@@ -5,17 +5,40 @@ namespace FMS.Domain.Entities;
 
 public partial class Fuelrefil
 {
+    
     public int Id { get; set; }
 
     public int VehicleId { get; set; }
 
-    public decimal? GpsfuelRefil { get; set; }
-
-    public decimal? ManualGpsfuelrefil { get; set; }
-
-    public decimal? Duration { get; set; }
+    public decimal? ManualFuelrefilAmount { get; set; }
 
     public DateTime Date { get; set; }
 
-    public DateTime? Time { get; set; }
+    public int? PreviousMeterReading { get; set; }
+
+    public int? CurrentMeterReading { get; set; }
+
+    public int SiteId { get; set; }
+
+    public string? Comment { get; set; }
+
+    public string FuelBy { get; set; } = null!;
+
+    public int? PumpTranscationId { get; set; }
+
+    public int? DriverId { get; set; }
+
+    public int? TankId { get; set; }
+
+    public virtual Tank? Tank { get; set; }
+
+    public virtual Employee? Driver { get; set; }
+
+    public virtual User FuelByNavigation { get; set; } = null!;
+
+    public virtual Pumptransaction? PumpTranscation { get; set; }
+
+    public virtual Site Site { get; set; } = null!;
+
+    public virtual Vehicle Vehicle { get; set; } = null!;
 }

@@ -1,0 +1,4499 @@
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-info.js
+
+const appInfo = {
+    title: 'Hyoung FMS'
+};
+export default appInfo;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-navigation.js
+
+export const navigation = [
+  {
+    text: 'Dashboard',
+    path: '/home',
+    icon: 'home'
+  },
+  {
+    text: 'ATG',
+    path: '/ATG',
+    icon: 'card'
+  },
+  {
+    text: 'Fuel Refill',
+    path: '/manualrefill',
+    icon: 'edit'
+  },
+  {
+    text: 'Vehicles',
+    path: '/vehicles',
+    icon: 'car'
+  }
+  ,
+  {
+    text: 'Data Analysis',
+    path: '/Analysis',
+    icon: 'event'
+  }
+  ,
+  
+   {
+    text: 'Reports',
+    path: '',
+    icon: 'chart',
+    items: [
+      {
+        text: 'Vehicle Consumption',
+        path: '/vehicleConsumption',
+        icon: ''
+      }, {
+        text: 'Daily Fuel Refill',
+        path: '/FuelRefill',
+        icon: ''
+      },
+      {
+        text: 'ATG Fuel Issues',
+        path: '/ATGFuelIssues',
+        icon: ''
+      }
+    ]
+  }
+,
+  {
+    text: 'Employees',
+    path: '/employees',
+    icon: 'group'
+  },
+  {
+    text: 'Device Issues',
+    path: '/Issues',
+    icon: 'checklist'
+  },
+  {
+    text: 'Site Activities',
+    path: '/siteActivity',
+    icon: 'clock'
+  },
+  {
+   text: 'Admin',
+   path: '',
+   icon: 'preferences',
+   items: [
+    {
+      text: 'ATG',
+      path: '/ATGManagement',
+      icon: ''
+    },
+     {
+       text: 'Users',
+       path: '/users',
+       icon: ''
+     },
+     {
+      text: 'Expected Average',
+      path: '/expectedAverage',
+      icon: ''
+    },
+     {
+      text: 'Roles',
+      path: '/Roles',
+      icon: ''
+    },
+    {
+      text: 'Sites',
+      path: '/Site',
+      icon: ''
+    },
+    {
+      text: 'Report Management',
+      path: '/Report',
+      icon: ''
+    },
+
+    {
+      text: 'Device Management',
+      path: '/Device',
+      icon: ''
+    },
+    {
+      text: 'Issues Management',
+      path: '/IssuesManagement',
+      icon: ''
+    },
+    {
+      text: 'System Settings',
+      path: '/system',
+      icon: ''
+    }
+   ]
+ }
+
+  ];
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-routes.js
+
+import { HomePage, Vehicles } from './pages';
+import { withNavigationWatcher } from './contexts/navigation';
+import vehicleConsumption from './report/vehicleConsumptionList/vehicleConsumptionList';
+import VehicleConsumptionDetails from './report/vehicleConsumptionDetails/vehicleConsumptionDetails';
+import VehicleConsumptionReportDesigner from './components/reports/vehicleConsumptionReportDesigner';
+import VehicleConsumptionReportViewer from './components/reports/vehicleConsumptionReportViewer';
+import VehicleManualRefill from './pages/manualrefill/manualRefil';
+import PermissionTreeList from './components/PermissionTreeList/permissionTreeList';
+import Rolepage from './pages/Role/rolepage';
+
+const routes = [
+   
+    {
+        path: '/home',
+        element: HomePage
+    }, 
+  {
+    path: '/vehicles',
+    element: Vehicles
+  }
+  ,
+  {
+    path: '/ManualRefill',
+    element: VehicleManualRefill
+  },
+  {
+    path: '/Roles',
+    element: Rolepage
+  }
+  ,
+  {
+    path: '/vehicleConsumption',
+    element: vehicleConsumption
+  },
+  {
+    path: '/vehicleConsumptionDetails/:id',
+    element: VehicleConsumptionDetails
+  },
+  {
+    path: '/vehicleConsumptionReportDesigner',
+    element: VehicleConsumptionReportDesigner
+  },
+  {
+    path: '/vehicleConsumptionReportViewer',
+    element: VehicleConsumptionReportViewer
+  }
+  ,
+  {
+    path: '/permissiontree',
+    element: PermissionTreeList
+  }
+        
+];
+
+export default routes.map(route => {
+    return {
+        ...route,
+        element: withNavigationWatcher(route.element, route.path)
+    };
+});
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\App.js
+
+import 'devextreme/dist/css/dx.common.css';
+import './themes/generated/theme.base.css';
+import './themes/generated/dx.fluent.custom-scheme1.css';
+import './themes/generated/theme.additional.css';
+
+
+
+import React , { useEffect } from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import StoreProvider from './store';
+import './dx-styles.scss';
+import LoadPanel from 'devextreme-react/load-panel';
+import { NavigationProvider } from './contexts/navigation';
+import { AuthProvider, useAuthContext  } from './contexts/authContext';
+import { useScreenSizeClass } from './utils/media-query';
+import Content from './Content';
+import ProtectedRoute from './components/ProtectedRoute/protectedRoute';
+import UnauthenticatedContent from './UnauthenticatedContent';
+
+function App() {
+  const dispatch = useDispatch();
+  const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(loadUser());
+  }, [dispatch]);
+//   const { user, loading } = useAuthContext ();
+
+//   if (loading) {
+//     return <LoadPanel visible={true} />;
+//   }
+
+//   if (user) {
+//     return <Content />;
+//   }
+
+//   return <UnauthenticatedContent />;
+// }
+
+return <Content />;
+}
+export default function Root() {
+  const screenSizeClass = useScreenSizeClass();
+
+  return (
+    <Router>
+      <AuthProvider>
+        <NavigationProvider>
+          <div className={`app ${screenSizeClass}`}>
+            <App />
+          </div>
+        </NavigationProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\App.test.js
+
+import './matchMediaMock';
+import { render, screen } from '@testing-library/react';
+import App from './App';
+import { act } from 'react-dom/test-utils';
+
+describe("App", () => {
+  test('renders learn react link', async () => {
+    await act( async () => { render(<App/>) });
+    const linkElement = screen.getByText(/create react app/i);
+    expect(linkElement).toBeInTheDocument();
+  });
+})
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\Content.js
+
+import { Routes, Route, Navigate } from 'react-router-dom';
+import appInfo from './app-info';
+import routes from './app-routes';
+import { SideNavInnerToolbar as SideNavBarLayout } from './layouts';
+import { Footer } from './components';
+
+export default function Content() {
+  return (
+    <SideNavBarLayout title={appInfo.title}>
+      <Routes>
+        {routes.map(({ path, element }) => (
+          <Route
+            key={path}
+            path={path}
+            element={element}
+          />
+        ))}
+        <Route
+          path='*'
+          element={<Navigate to='/home' />}
+        />
+      </Routes>
+      <Footer>
+        Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc.
+        <br />
+       Develop  by Kevin.kagiri@hyoung.co.ke All trademarks or registered trademarks are property of Hyoung EA Co. Ltd. 
+      </Footer>
+    </SideNavBarLayout>
+  );
+}
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\index.js
+
+import './polyfills';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import { Provider } from 'react-redux';
+import store from './store';
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+      <Provider store={store}>
+    <App />
+    </Provider>
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\matchMediaMock.js
+
+Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: jest.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(), // deprecated
+        removeListener: jest.fn(), // deprecated
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+    })),
+});
+export {};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\polyfills.js
+
+import 'react-app-polyfill/ie11';
+import 'react-app-polyfill/stable';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reportWebVitals.js
+
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\setupTests.js
+
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\store.js
+
+import { configureStore } from '@reduxjs/toolkit';
+import { Provider } from 'react-redux';
+import roleReducer from './reducers/roleReducer';
+import authReducer from './reducers/authReducer';
+import permissionRedcer from './reducers/permissionReducer';
+const store = configureStore({
+  reducer: {
+    role: roleReducer ,
+    auth: authReducer,
+    permission: permissionRedcer
+    
+    //add other reducers here
+  }
+});
+
+const StoreProvider = ({ children }) => {
+  return <Provider store={store}>{children}</Provider>;
+};
+
+export default StoreProvider;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\UnauthenticatedContent.js
+
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { SingleCard } from './layouts';
+import { LoginForm} from './components';
+
+export default function UnauthenticatedContent() {
+  return (
+    <Routes>
+      <Route
+        path='/login' 
+        element={
+          <SingleCard title="Sign In">
+            <LoginForm />
+          </SingleCard>
+        }
+      />
+      
+   
+     
+      <Route path='*' element={<Navigate to={'/login'} />}></Route>
+    </Routes>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\api\auth.js
+
+import axiosInstance from './axiosInstance';
+
+export const login = async (username, password) => {
+    try {
+      const response = await axiosInstance.post(`/user/login`, { username, password });
+      return response.data;
+    } catch (error) {
+      console.error('Error logging in:', error);
+      throw new Error(error.response?.data?.message || 'Login error');
+    }
+  };
+
+  export const getUserDetails = async () => {
+    try {
+      const response = await axiosInstance.get('/user/details');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      throw new Error('User details fetching error');
+    }
+  };
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\api\axiosInstance.js
+
+import axios from "axios";
+import config from "devextreme/core/config";
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+const axiosInstance = axios.create({
+    baseURL: apiUrl,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+});
+
+axiosInstance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+export default axiosInstance;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\index.js
+
+export { default as Header } from './header/Header';
+export { default as Footer } from './footer/Footer';
+export { default as LoginForm } from './login-form/LoginForm';
+export { default as SideNavigationMenu } from './side-navigation-menu/SideNavigationMenu';
+
+
+export { VehicleConsumptionChartDetail } from './vehicleConsumptionChartDetails/vehicleConsumptionChart';
+export { VehicleConsumptionMapDetails } from './vehicleConsumptionMapDetails/vehicleConsumptionMap';
+export { VehicleConsumptionFormDetails } from './vehicleConsumptionFormDetails/vehicleConsumptionForm';
+export { VehicleConsumptionHistoryDetails } from './vehicleConsumptionHistoryDetails/vehicleConsumptionHistoryDetails';
+export { default as VehicleConsumptionGridList } from './vehicleConsumptionGrid/vehicleConsumptionDataGrid';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\footer\Footer.js
+
+import React from 'react';
+import './Footer.scss';
+
+export default function Footer({ ...rest }) {
+  return <footer className={'footer'} {...rest} />;
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\header\Header.js
+
+import React from 'react';
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+import Button from 'devextreme-react/button';
+import UserPanel from '../user-panel/UserPanel';
+import './Header.scss';
+import { Template } from 'devextreme-react/core/template';
+
+
+export default function Header({ menuToggleEnabled, title, toggleMenu }) {
+  return (
+    <header className={'header-component'}>
+      <Toolbar className={'header-toolbar'}>
+        <Item
+          visible={menuToggleEnabled}
+          location={'before'}
+          widget={'dxButton'}
+          cssClass={'menu-button'}
+        >
+          <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
+        </Item>
+        <Item
+          location={'before'}
+          cssClass={'header-title'}
+          text={title}
+          visible={!!title}
+        />
+        <Item
+          location={'after'}
+          locateInMenu={'auto'}
+          menuItemTemplate={'userPanelTemplate'}
+        >
+          <Button
+            className={'user-button authorization'}
+            width={210}
+            height={'100%'}
+            stylingMode={'text'}
+          >
+            <UserPanel menuMode={'context'} />
+          </Button>
+        </Item>
+        <Template name={'userPanelTemplate'}>
+          <UserPanel menuMode={'list'} />
+        </Template>
+      </Toolbar>
+    </header>
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\login-form\LoginForm.js
+
+import React, { useState, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import Form, {
+  Item,
+  Label,
+  ButtonItem,
+  ButtonOptions,
+  RequiredRule,
+  
+} from 'devextreme-react/form';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';
+import { useAuthContext  } from '../../contexts/authContext';
+
+import './LoginForm.scss';
+
+const LoginForm = ()=> {
+  const { signIn } = useAuthContext ();
+  const [loading, setLoading] = useState(false);
+  const formData = useRef({ username: '', password: '' });
+
+  const onSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    const { username, password } = formData.current;
+    setLoading(true);
+
+    const result = await signIn(username, password);
+    if (!result.isOk) {
+      setLoading(false);
+      notify(result.message, 'error', 2000);
+    }
+  }, [signIn]);
+
+
+
+  return (
+    <form className={'login-form'} onSubmit={onSubmit}>
+      <Form formData={formData.current} disabled={loading}>
+        <Item
+          dataField={'username'}
+          editorType={'dxTextBox'}
+          editorOptions={UserNameEditorOptions}
+        >
+          <RequiredRule message="Username is required" />
+          <Label visible={false} />
+        </Item>
+        <Item
+          dataField={'password'}
+          editorType={'dxTextBox'}
+          editorOptions={passwordEditorOptions}
+        >
+          <RequiredRule message="Password is required" />
+          <Label visible={false} />
+        </Item>
+   
+        <ButtonItem>
+          <ButtonOptions
+            width={'100%'}
+            type={'default'}
+            useSubmitBehavior={true}
+          >
+            <span className="dx-button-text">
+              {
+                loading
+                  ? <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+                  : 'Sign In'
+              }
+            </span>
+          </ButtonOptions>
+        </ButtonItem>
+       
+        
+      </Form>
+    </form>
+  );
+}
+
+const UserNameEditorOptions = { stylingMode: 'filled', placeholder: 'Username', mode: 'username' };
+const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', mode: 'password' };
+
+export default LoginForm;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\PermissionTreeList\permissionTreeList.js
+
+import React, { useState, useEffect } from 'react';
+import { TreeList, Selection, Column, Editing,SearchPanel, FilterRow, RequiredRule } from 'devextreme-react/tree-list';
+import { createPermission, updatePermission, deletePermission, getPermissionList } from './../../dataservice/permissionservice';
+
+
+ const PermissionTreeList = () => {
+    const [permissions, setPermissions] = useState([]);
+
+    const fetchPermissions = async () => {
+        const data = await getPermissionList();
+        //console.log("data", data);
+
+        // Fix the da//ta to have parentId as null for the root items
+        const fixedData = data.map(item => ({
+            ...item,
+            parentId: item.parentId === item.id ? null : item.parentId
+        }));
+
+        setPermissions(fixedData);
+    };
+
+    useEffect(() => {
+        fetchPermissions();
+    }, []);
+
+    const onRowInserted = async (e) => {
+        try {
+            const permissionData = {
+                ...e.data,
+                parentId: e.data.parentId || null // Ensure parentId is null if not provided
+            };
+            await createPermission(permissionData);
+            fetchPermissions();
+        } catch (error) {
+            console.error('Error creating permission:', error);
+        }
+    };
+
+    const onRowUpdated = async (e) => {
+        try {
+            const { id, ...updatedData } = e.data;
+            //console.log("updatedData",updatedData);
+           // console.log("id",id);
+       
+        await updatePermission(id, updatedData);
+                    fetchPermissions();
+        } catch (error) {
+            console.error('Error updating permission:', error);
+        }
+    };
+
+    const onRowDeleted = async (e) => {
+        try {
+            await deletePermission(e.data.id);
+            fetchPermissions();
+        } catch (error) {
+            console.error('Error deleting permission:', error);
+        }
+    };
+    
+    return (
+        <div className="view-port">
+            <h2>Manage Permissions</h2>
+
+            <TreeList
+                dataSource={permissions}
+                //id="permissions"
+                parentIdExpr="parentId"
+                keyExpr="id"
+                onRowInserted={onRowInserted}
+                onRowUpdated={onRowUpdated}
+                onRowDeleted={onRowDeleted}
+                showBorders={true}
+
+                
+                >
+                        <SearchPanel visible={true} />
+
+                <Selection mode="multiple" recursive="all" />
+                <Editing 
+                allowAdding={true}
+                allowUpdating={true}
+                allowDeleting={true}
+                mode="cell"
+                />
+                <Column dataField="name" caption="Permissions"> <RequiredRule message="Name is required" /></Column>
+
+
+            </TreeList>
+        </div>
+    );
+    };
+export default PermissionTreeList;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\PermissionTreeList\permissionTreeListNonEdit.js
+
+import React, { useState, useEffect } from 'react';
+import { TreeList, Selection, Column,SearchPanel,   } from 'devextreme-react/tree-list';
+import {  getPermissionList } from './../../dataservice/permissionservice';
+
+
+ const PermissionTreeListNonEdit = ({ selectedPermissions, onPermissionChange }) => {
+    const [permissions, setPermissions] = useState([]);
+
+    const fetchPermissions = async () => {
+        const data = await getPermissionList();
+        const fixedData = data.map(item => ({
+            ...item,
+            parentId: item.parentId === item.id ? null : item.parentId
+        }));
+        setPermissions(fixedData);
+    };
+    useEffect(() => {
+        fetchPermissions();
+    }, []);
+
+    const onSelectionChanged = ({ selectedRowKeys }) => {
+        onPermissionChange(selectedRowKeys);
+    };
+
+    useEffect(() => {
+        console.log('Permissions:', permissions);
+        console.log('Selected Permissions:', selectedPermissions);
+    }, [permissions, selectedPermissions]);
+     
+    return (
+            <TreeList
+                dataSource={permissions}
+                //id="permissions"
+                parentIdExpr="parentId"
+                keyExpr="id"              
+                showBorders={true}
+                onSelectionChanged={onSelectionChanged}
+                selectedRowKeys={selectedPermissions}
+                >
+                <SearchPanel visible={true} />
+                <Selection mode="multiple" recursive="all" /> 
+                <Column dataField="name" caption="Name"/>
+            </TreeList>
+    );
+    };
+export default PermissionTreeListNonEdit;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\ProtectedRoute\protectedRoute.js
+
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuthContext  } from '../../contexts/authContext';
+
+
+const ProtectedRoute = ({ children, ...rest }) => {
+  const { user } = useAuthContext ();
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;};
+
+export default ProtectedRoute;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\reports\vehicleConsumptionReportDesigner.js
+
+import { useEffect, useRef } from "react";
+
+import { DxReportDesigner } from 'devexpress-reporting/dx-reportdesigner';
+import * as ko from 'knockout';
+import 'devexpress-reporting/dist/css/dx-reportdesigner.css';
+
+const VehicleConsumptionReportDesigner = () => {
+    const designerRef = useRef(null);
+   const reportUrl = ko.observable("VehicleConsumption");
+    //const reportUrl = 'VehicleConsumptionReport';
+
+    const requestOptions = {
+      host: "http://localhost:7009/",
+      getDesignerModelAction: "DXXRD/VehicleConsumptionReport"
+    };
+
+    useEffect(() => {
+        const designer = new DxReportDesigner(designerRef.current, { reportUrl, requestOptions });
+      designer.render();
+  
+      return () => {
+        designer.dispose();
+      };
+    }, []);
+  
+    return <div ref={designerRef} style={{ width: "100%", height: "1000px"  }}></div>;
+  };
+
+export default VehicleConsumptionReportDesigner;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\reports\vehicleConsumptionReportViewer.js
+
+import React, { useEffect, useRef } from 'react';
+import 'devexpress-reporting/'
+import {DxReportViewer} from  'devexpress-reporting/dx-webdocumentviewer';
+import 'devexpress-reporting/dist/css/dx-webdocumentviewer.css';
+import * as ko from 'knockout'
+
+
+const VehicleConsumptionReportViewer = () => {
+    const viewerRef = useRef(null);
+    //const reportURL = ko.observable("TestReport");
+
+    const requestOptions = {
+        host: "https://localhost:54114/",
+        invokeAction: "DXXRDV/VehicleConsumptionReport"
+      };
+    useEffect(() => {
+      const reportUrl = 'VehicleConsumptionReport';
+      const viewer = new DxReportViewer(viewerRef.current, { reportUrl, requestOptions });
+     
+  
+      viewer.render();
+  
+      return () => {
+        viewer.dispose();
+      };
+    }, []);
+  
+    return <div ref={viewerRef} style={{ height: '100vh' }}></div>;
+  };
+
+export default VehicleConsumptionReportViewer;
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\Roles\roleList.js
+
+//this should display list of role and pass rolename and roleID selection to parent component 
+
+
+import React, { useState, useEffect } from 'react';
+import { List } from 'devextreme-react/list';
+
+
+const RoleList = ({ roles, onRoleSelect }) => {   
+
+    return (
+        <List
+            dataSource={roles}
+            selectionMode="single"
+            displayExpr="name"
+            onSelectionChanged={(e) => {
+                if (e.selectedItem) {
+                    console.log("Selected Role ID in RoleList: ", e.selectedItem.id);
+                    onRoleSelect(e.selectedItem);
+                }
+            }}
+
+            
+        />
+    );
+};
+
+export default RoleList;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\Roles\RoleDetails\roleDetails.js
+
+import   React ,{useState,useEffect} from 'react';
+import Accordion, { Item as AccordionItem  } from 'devextreme-react/accordion';
+import { getRoleById, getPermissionList, 
+       getPermissionListByRoleId, getUserListByRoleId,
+     updateRole, assignPermissionsToRole, updateRoleForUsers  } from '../../../dataservice/permissionservice';
+import UserDataList from './../../user/userdatalist';
+import { Button ,CheckBox  } from 'devextreme-react';
+import RoleForm from './roleForm';
+import PermissionTreeListNonEdit from './../../PermissionTreeList/permissionTreeListNonEdit';
+
+const RoleDetails = ({ roleId }) => {
+    const [roleDetails, setRoleDetails] = useState({});
+    const [allPermissions, setAllPermissions] = useState([]);
+    const [rolePermissions, setRolePermissions] = useState([]);
+    const [permissions, setPermissions] = useState([]);
+    const [users, setUsers] = useState([]);
+
+
+
+    const onSaveData = async (e) => { 
+        try{
+            //update RoleEdit detail data 
+            await updateRole(roleId, roleDetails);
+            await assignPermissionsToRole(roleId, rolePermissions);
+            await updateRoleForUsers(roleId, users.map(user => user.id));
+
+        }
+        catch (error) {
+            console.error('Error fetching role data:', error);
+        }
+    
+    
+    }
+
+   const fetchData = async () => {
+        try {
+            const roleDetailData = await getRoleById(roleId);
+            setRoleDetails(roleDetailData);
+            //get all permissions
+             const permissionData = await getPermissionList();
+              setAllPermissions(permissionData);
+            //get permissions that the role can access
+            const rolePermissionData = await getPermissionListByRoleId(roleId);
+            setRolePermissions(rolePermissionData.map(p => p.id));
+
+            //update users that the role can access
+            const userData = await getUserListByRoleId(roleId);
+            setUsers(userData);
+            
+        }
+        catch (error) {
+            console.error('Error fetching role data:', error);
+        }
+    };  
+
+
+    useEffect(() => {
+        fetchData();
+    }, [roleId]);
+    const onPermissionChange = (permissionId, checked) => {
+        if (checked) {
+            setRolePermissions([...rolePermissions, permissionId]);
+        } else {
+            setRolePermissions(rolePermissions.filter(id => id !== permissionId));
+        }
+    };
+    
+    return (
+        <div>
+            <div style={{ padding: '20px' }}>
+                <Accordion multiple={true} collapsible={true}>
+                    <AccordionItem title="Role Details"> 
+                            <RoleForm editData={roleDetails} setRoleDetails={setRoleDetails} />                                                                         
+                    </AccordionItem>
+                    <AccordionItem title="Permissions">
+                           <PermissionTreeListNonEdit selectedPermissions={rolePermissions} onPermissionChange={onPermissionChange} />
+                          </AccordionItem>
+                        <AccordionItem title="Users">
+                            
+                            <UserDataList selectedUsers={users} setUsers={setUsers} />
+                         
+                        </AccordionItem>
+                        </Accordion>
+
+                        <Button onClick={onSaveData}>Save</Button>
+                  {/* <Button onClick={CancelData}>Cancel</Button> */}
+                    </div>
+                </div>
+);}
+
+export default RoleDetails;
+
+                                
+
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\Roles\RoleDetails\roleForm.js
+
+//display form for role details
+import React from 'react';
+import {Form, SimpleItem, GroupItem, Label} from 'devextreme-react/form';
+
+
+
+const RoleForm = ({ editData ,setRoleDetails  }) => {
+console.log("editData",editData);
+  return (
+    <Form
+    formData={editData}  
+    labelMode='outside'
+    onFieldDataChanged={({ component }) => setRoleDetails(component.option('formData'))}
+    >
+      <SimpleItem label="Name" dataField={editData.name} isRequired={true} />
+      <SimpleItem label="Role Description" dataField={editData.description} />
+    </Form>
+
+
+  );
+};
+ export default RoleForm;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\side-navigation-menu\SideNavigationMenu.js
+
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import TreeView from 'devextreme-react/tree-view';
+import { navigation } from '../../app-navigation';
+import { useNavigation } from '../../contexts/navigation';
+import { useScreenSize } from '../../utils/media-query';
+import './SideNavigationMenu.scss';
+
+
+import * as events from 'devextreme/events';
+
+export default function SideNavigationMenu(props) {
+  const {
+    children,
+    selectedItemChanged,
+    openMenu,
+    compactMode,
+    onMenuReady
+  } = props;
+
+  const { isLarge } = useScreenSize();
+  function normalizePath () {
+    return navigation.map((item) => (
+      { ...item, expanded: isLarge, path: item.path && !(/^\//.test(item.path)) ? `/${item.path}` : item.path }
+    ))
+  }
+
+  const items = useMemo(
+    normalizePath,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const { navigationData: { currentPath } } = useNavigation();
+
+  const treeViewRef = useRef(null);
+  const wrapperRef = useRef();
+  const getWrapperRef = useCallback((element) => {
+    const prevElement = wrapperRef.current;
+    if (prevElement) {
+      events.off(prevElement, 'dxclick');
+    }
+
+    wrapperRef.current = element;
+    events.on(element, 'dxclick', (e) => {
+      openMenu(e);
+    });
+  }, [openMenu]);
+
+  useEffect(() => {
+    const treeView = treeViewRef.current && treeViewRef.current.instance;
+    if (!treeView) {
+      return;
+    }
+
+    if (currentPath !== undefined) {
+      treeView.selectItem(currentPath);
+      treeView.expandItem(currentPath);
+    }
+
+    if (compactMode) {
+      treeView.collapseAll();
+    }
+  }, [currentPath, compactMode]);
+
+  return (
+    <div
+      className={'dx-swatch-additional side-navigation-menu'}
+      ref={getWrapperRef}
+    >
+      {children}
+      <div className={'menu-container'}>
+        <TreeView
+          ref={treeViewRef}
+          items={items}
+          keyExpr={'path'}
+          selectionMode={'single'}
+          focusStateEnabled={false}
+          expandEvent={'click'}
+          onItemClick={selectedItemChanged}
+          onContentReady={onMenuReady}
+          width={'100%'}
+        />
+      </div>
+    </div>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\user\userdatalist.js
+
+//display list of users by role and display the useer that are in the role by checking the checkbox of the datagrid
+import React, { useState, useEffect, useCallback } from 'react';
+import { DataGrid, Paging, HeaderFilter, SearchPanel, Editing, FilterRow, Column, Lookup, Sorting, RequiredRule, Selection } from 'devextreme-react/data-grid';
+import { getUserList} from '../../dataservice/userServices';
+import { getUserListByRoleName } from '../../dataservice/permissionservice';
+
+const UserDataList =  ({ selectedUsers, setUsers }) => {
+    const [allUsers, setAllUsers] = useState([]);
+
+    const fetchData = async () => {
+        try {
+            const data = await getUserList();
+            setAllUsers(data);
+            console.log("users",data)
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+        }
+    };  
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const onSelectionChanged = ({ selectedRowKeys }) => {
+        setUsers(selectedRowKeys);
+    };
+
+    useEffect(() => {
+        console.log('All Users:', allUsers);
+        console.log('Selected Users:', selectedUsers);
+    }, [allUsers, selectedUsers]);
+
+    return (
+        <div>
+             <DataGrid
+                dataSource={allUsers}
+                showBorders={true}
+                showColumnLines={true}
+                showRowLines={true}
+                allowColumnResizing={true}
+                showColumnHeaders={true}
+                onSelectionChanged={onSelectionChanged}
+                selectedRowKeys={selectedUsers}
+                >
+
+                    <Selection mode="multiple"  selectAllMode="all" />
+                    <SearchPanel showSearchButton={true} />
+
+                    <Column dataField="id" caption="ID" allowEditing={false} visible={false} defaultSortOrder="asc" />
+                    <Column dataField="userName" caption="Username" allowEditing={false} />
+                    <Column dataField="email" caption="Email" allowEditing={false} />   
+                </DataGrid>
+          
+             </div>
+    );
+};
+
+export default UserDataList;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\user\userForm.js
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\user-panel\UserPanel.js
+
+import React, { useMemo } from 'react';
+import { useNavigate } from "react-router-dom";
+import ContextMenu, { Position } from 'devextreme-react/context-menu';
+import List from 'devextreme-react/list';
+import { useAuthContext  } from '../../contexts/authContext';
+import './UserPanel.scss';
+
+
+export default function UserPanel({ menuMode }) {
+  const { user, signOut } = useAuthContext ();
+  const navigate = useNavigate();
+
+  function navigateToProfile() {
+    navigate("/profile");
+  }
+  const menuItems = useMemo(() => ([
+    {
+      text: 'Profile',
+      icon: 'user',
+      onClick: navigateToProfile
+    },
+    {
+      text: 'Logout',
+      icon: 'runner',
+      onClick: signOut
+    }
+  ]), [signOut]);
+  return (
+    <div className={'user-panel'}>
+      <div className={'user-info'}>
+        <div className={'image-container'}>
+          
+        </div>
+        <div className={'user-name'}>{user.email}</div>
+      </div>
+
+      {menuMode === 'context' && (
+        <ContextMenu
+          items={menuItems}
+          target={'.user-button'}
+          showEvent={'dxclick'}
+          width={210}
+          cssClass={'user-menu'}
+        >
+          <Position my={'top center'} at={'bottom center'} />
+        </ContextMenu>
+      )}
+      {menuMode === 'list' && (
+        <List className={'dx-toolbar-menu-action'} items={menuItems} />
+      )}
+    </div>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionChartDetails\vehicleConsumptionChart.js
+
+//07/05 
+//This component is responsible for displaying the vehicle consumption chart details.
+//ToDo: Fix issue with RangeSelector not filtering data correctly
+
+import React, { useEffect, useState } from "react";
+import { Chart, Series, ArgumentAxis, ValueAxis, Tooltip, Legend, CommonAxisSettings, Crosshair, Label, VerticalLine ,HorizontalLine } from "devextreme-react/chart";
+import TagBox from "devextreme-react/tag-box";
+import RangeSelector ,{Behavior, Scale,TickInterval} from 'devextreme-react/range-selector';
+
+import gpsgateApiService from "../../dataservice/gpsgateApiService";
+
+export const VehicleConsumptionChartDetail = ({ vehicleId, date }) => {
+    const [selectedVariables, setSelectedVariables] = useState([]);
+    const [variableData, setVariableData] = useState([]);
+    const [visualRange, setVisualRange] = useState({});
+
+    useEffect(() => {
+   
+        const fetchData = async () => {
+            if(vehicleId && date) { // Ensure vehicleId and date are present and no data has been loaded yet
+                try {
+                    await gpsgateApiService.login();
+                    const data = await gpsgateApiService.FetchTrackData(vehicleId, date);
+                    if (data && data.length > 0) {
+                        setVariableData(data.map(d => ({
+                            ...d.variables,
+                            time: new Date(d.utc).toLocaleString()
+                        })));
+                    } else {
+                        setVariableData([]);
+                    }
+                } catch (error) {
+                    console.error("Error fetching data", error);
+                }
+            }
+        };
+    console.log("variableData", variableData);
+        fetchData();
+    }, [vehicleId, date]);
+    
+
+    const variableNames = variableData.length > 0
+        ? Object.keys(variableData[0]).filter(key => key !== 'time').map(key => ({ value: key, label: key }))
+        : [];
+
+     const handleVariableSelection = (event) => {
+         if (JSON.stringify(event.value) !== JSON.stringify(selectedVariables)) {
+               setSelectedVariables(event.value);
+            }
+        };
+        const onRangeChange = (e) => {
+            setVisualRange(e.value);
+        };
+
+        const filteredChartData = variableData.filter(data => {
+            const time = new Date(data.time).getTime();
+            return (!visualRange.startValue || time >= visualRange.startValue) &&
+                   (!visualRange.endValue || time <= visualRange.endValue);
+        }).map(data => ({
+            time: data.time,
+            ...selectedVariables.reduce((obj, key) => ({ ...obj, [key]: data[key] }), {})
+        }));
+
+
+    return (
+        <div>
+            <div style={{ padding: '20px', boxSizing: 'border-box' }}>
+            <TagBox
+                width={500}
+                dataSource={variableNames}
+                valueExpr="value"
+                displayExpr="label"
+                value={selectedVariables}
+                onValueChanged={handleVariableSelection}
+                                showSelectionControls={true}
+                applyValueMode="instantly"
+                placeholder="Select variables"
+            />
+</div>
+<div style={{ padding: '20px' }}>
+           
+                <Chart dataSource={filteredChartData} height={300}>
+                    <ArgumentAxis argumentType="datetime" />
+                    <ValueAxis />
+                    <Legend />
+                    <Tooltip enabled={true} customizeTooltip={arg => ({
+                        text: `${arg.seriesName}: ${arg.valueText}`
+                    })} />
+                    <Crosshair enabled={true}>
+                        <HorizontalLine visible={true} />
+                        <VerticalLine visible={true}>
+                            <Label visible={true} format="longTime" />
+                        </VerticalLine>
+                    </Crosshair>
+                    <CommonAxisSettings endOnTick={false} />
+                    {selectedVariables.map(variable => (
+                        <Series key={variable} valueField={variable} argumentField="time" name={variable} type="line" />
+                    ))}
+                </Chart>
+           </div>
+<div style={{padding:'20px'}} >
+            <RangeSelector
+                 dataSource={variableData}
+                defaultValue={visualRange}
+                onValueChanged={onRangeChange}
+                dataSourceField="time"
+                size={{ height: 100 }}
+                margin={{ left: 10 }}
+            >
+                <Behavior snapToTicks={false} />
+                <Scale valueType="datetime"  minorTickInterval={{ minutes: 5 }}>                    <label>
+                        <format type="HH:mm:ss" />
+                    </label>
+                </Scale>
+            </RangeSelector>
+            </div>
+        </div>
+    );
+};
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionFormDetails\vehicleConsumptionForm.js
+
+import React, { useCallback, useEffect, useState } from "react";
+import axios from "axios";
+import Form, {
+    ButtonItem,
+    GroupItem,
+    SimpleItem,
+    Item,
+    Label,
+    CompareRule,
+    EmailRule,
+    PatternRule,
+    RangeRule,
+    RequiredRule,
+    StringLengthRule,
+    AsyncRule,
+    CustomRule,
+    FormTypes,
+  } from 'devextreme-react/form';
+  import { Lookup } from "devextreme-react";
+  import CustomStore from 'devextreme/data/custom_store';
+import { FormItem} from 'devextreme-react/form';
+import {getConsumptionById, getVehicleByKey,getEmployeeList,getEmployeeBySite ,getExpectedAvgBySiteIdAndVehicleId} from "../../dataservice";
+
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+export const VehicleConsumptionFormDetails = ({editData}) => {
+     
+  const [expectedAverageData, setExpectedAverageData] = useState();
+  const [employeeData, setEmployeeData] = useState();
+  const [selectedEmployee, setSelectedEmployee] = useState(); 
+  const [defaultEmployee, setDefaultEmployee] = useState();
+  const [totalDistance, setTotalDistance] = useState(editData.totalDistance);
+  const [engHours, setEngHours] = useState(editData.engHours);
+  const [totalFuel, setTotalFuel] = useState(editData.totalFuel);
+  const [expectedAveraged, setExpectedAveraged] = useState(editData.expectedAveraged);
+
+
+
+  
+
+
+  const fetchData = useCallback(async (siteID, vehicleID) => {
+    try {
+      const [vehicleResponse, expectedAvgResponse,consumptionResponse] = await Promise.all([
+        getVehicleByKey(vehicleID),
+        getExpectedAvgBySiteIdAndVehicleId(vehicleID, siteID),
+        getConsumptionById(editData.id)
+      ]);
+  
+     
+    if (vehicleResponse && vehicleResponse.defaultEmployee) {
+      setDefaultEmployee(vehicleResponse.defaultEmployee.fullName);
+    }
+
+    if (expectedAvgResponse) {
+      setExpectedAverageData(expectedAvgResponse);
+    }
+
+    if (consumptionResponse && consumptionResponse.employee) {
+      setEmployeeData([consumptionResponse.employee]);
+    
+      }
+      //if (employeeResponse) {
+      //  const modifiedEmployeeData = employeeResponse.map((emp) => ({
+       //   ...emp,
+     //     displayString: `${emp.fullName}: ${emp.vehicles && emp.vehicles.slice(0, 2).map((v) => v.hyoungNo).join(", ")}`,
+      //  }));
+       // setEmployeeData(modifiedEmployeeData);
+      
+    } catch (error) {
+      console.error("Error loading data:", error);
+      // Handle the error appropriately (e.g., show an error message)
+    }
+  }, [getConsumptionById,getVehicleByKey, getExpectedAvgBySiteIdAndVehicleId]);
+  
+
+
+  useEffect(() => {
+    console.log("Edit Data", editData);
+  
+    if (editData.siteId && editData.vehicleId) {
+      fetchData(editData.siteId, editData.vehicleId);
+    }
+  }, [editData.siteId, editData.vehicleId, fetchData]);
+
+  const onEmployeeChanged = (e) => {
+    const selectedEmployeeID = e.value;
+    if (employeeData) {
+      const selectedEmployee = employeeData.find((emp) => emp.id === selectedEmployeeID);
+      if (selectedEmployee) {
+        setSelectedEmployee(selectedEmployee);
+      }
+    }
+  };
+
+const employeeEditorOptions = {
+  dataSource: employeeData || [],
+  valueExpr: 'id',
+  displayExpr: 'fullName',
+  onValueChanged: onEmployeeChanged,
+  value: editData.employeeId
+};
+
+
+  const calculateFuelLost = () => {
+    let fuelLost = 0;
+
+  if (editData.isAverageKm) {
+    if (expectedAveraged && totalDistance && totalFuel && expectedAveraged < totalDistance / totalFuel && totalDistance / totalFuel > 0) {
+      fuelLost = totalFuel - (totalDistance / expectedAveraged);
+    }
+  } else {
+    if (expectedAveraged && engHours && totalFuel && expectedAveraged > totalFuel / engHours && totalFuel / engHours > 0) {
+      fuelLost = totalFuel - (expectedAveraged * engHours);
+    }
+  }
+
+  return fuelLost.toFixed(2);
+};
+
+const handleTotalDistanceChange = (e) => {
+  setTotalDistance(e.value);
+};
+
+const handleEngHoursChange = (e) => {
+  setEngHours(e.value);
+};
+
+const handleTotalFuelChange = (e) => {
+  setTotalFuel(e.value);
+};
+
+const handleExpectedAveragedChange = (e) => {
+  setExpectedAveraged(e.value);
+};
+;
+
+
+return (
+
+
+  <Form formData={editData}>
+    <label text="%{editData.vehicleId} Consumption Form" />
+   <GroupItem colCount={4}>
+  <GroupItem caption="Employee Details">
+  <Item
+            dataField="employeeId"
+            caption="Default Employee"           
+            editorType="dxSelectBox"
+            editorOptions={employeeEditorOptions}
+            
+          />
+
+
+           <Item
+            dataField="employeeWorkNo"
+            caption="Work Number"
+            editorOptions={{ readOnly: true, value: selectedEmployee?.employeeWorkNo }}
+          />
+        <Item
+            dataField="employeePhoneNumber"
+            caption="Phone Number"
+            editorOptions={{ readOnly: true, value: selectedEmployee?.employeePhoneNumber }}
+          />
+
+    </GroupItem>
+    <Item itemType="group" caption="Operation Details">
+    <Item dataField="isNightShift" caption="Night Shift"
+      editorType="dxCheckBox"
+     />
+    <Item dataField="isAverageKm" caption="Km/l"        editorType="dxCheckBox"
+/>
+    <Item
+            dataField="comments"
+            caption="Comments"
+            editorType="dxTextArea"
+            colSpan={2}
+            editorOptions={{ height: 140 }}
+          />
+     </Item>
+     <Item itemType="group" caption="Vehicle Telemetry Details">
+          <Item
+            dataField="totalDistance"
+            caption="Distance"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## km",
+              value: totalDistance / 1000,
+              placeholder: "km",
+              onValueChanged: handleTotalDistanceChange,
+            }}
+          />
+  <Item
+            dataField="engHours"
+            caption="Engine Hours"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## hrs",
+              value: engHours / 3600,
+              placeholder: "hrs",
+              onValueChanged: handleEngHoursChange,
+            }}
+          />
+          <Item
+            dataField="maxSpeed"
+            caption="Max Speed"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## km/h",
+              placeholder: "km/h",
+            }}
+          />
+          <Item
+            dataField="avgSpeed"
+            caption="Avg Speed"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## km/h",
+              placeholder: "km/h",
+            }}
+          />
+        </Item>
+
+        <Item itemType="group" caption="Fuel Details">
+          <Item
+            dataField="totalFuel"
+            caption="Total Fuel used"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## liters",
+              placeholder: "liters",
+              onValueChanged: handleTotalFuelChange,
+            }}
+          />
+          <Item dataField="expectedAveraged" caption="Expected Averaged">
+            <Lookup
+             dataSource={expectedAverageData}
+             valueExpr="id"
+             displayExpr="expectedAveraged"
+             value={expectedAveraged}
+             onValueChanged={handleExpectedAveragedChange}
+            />
+          </Item>
+          <Item
+            dataField="fuelEfficiency"
+            caption="Fuel Efficiency"
+            editorType="dxNumberBox"
+          />
+          <Item
+            dataField="fuelLost"
+            caption="Fuel Lost"
+            editorOptions={{ readOnly: true, value: calculateFuelLost() }}
+          />
+        </Item>
+
+
+
+    </GroupItem>
+
+
+
+    </Form>
+
+
+)
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionGrid\vehicleConsumptionDataGrid.js
+
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ScrollView from 'devextreme-react/scroll-view';
+import consumptionDataGridRules from '../../utils/consumptionDataGridRules';
+import DataGrid, {
+  Column, Selection, Sorting, HeaderFilter, DataGridTypes,
+  RequiredRule,FilterRow, Paging, Pager, Editing, Scrolling, LoadPanel,Lookup
+} from 'devextreme-react/data-grid';
+
+import { getEmployeeList,getVehicleList,getSiteList } from '../../dataservice';
+
+import SelectBox from 'devextreme-react/select-box';
+
+
+
+export const VehicleConsumptionGridList = (dataSource,pagingNo) => {
+  const [data, setData] = useState();
+  const navigate = useNavigate();
+  const [vehicles,setvehicles] = useState([]);
+  const [employees,setemployees] = useState([]);
+  const [sites,setsites] = useState([]);
+ // const employeeData = getEmployeeList();
+
+
+
+
+const onRowPrepared = (e) => {
+  const rowData = e.data;
+
+  consumptionDataGridRules.forEach((rule) => {
+    if (rule.condition(rowData)) {
+      e.rowElement.classList.add(rule.rowClassName);
+    }
+  });
+};
+
+
+useEffect(() => {
+
+const fetchtsidedata = async() => {
+   const vehicledata= await getVehicleList();
+   //console.log("vehicledata",vehicledata);
+   setvehicles(vehicledata);
+   const employeedata = await getEmployeeList();
+   console.log("employeedata",employeedata);
+   setemployees(employeedata);
+   const sitedata = await getSiteList();
+   setsites(sitedata);
+  // console.log("sitedata",sitedata);
+
+};  // Perform any side effects or data fetching here
+fetchtsidedata();
+  setData(dataSource.dataSource);
+  }, [dataSource]); // Empty dependency array means the effect runs only once on component mount
+
+
+  const navigationToDetails = useCallback((rowData) => {
+    navigate(`/vehicleConsumptionDetails/${rowData.data.id}`);
+  }, [navigate]);
+
+// const toogleUseNavigation = useCallback(() => {
+//   useNavigation = !useNavigation;
+// }, []);
+
+
+return(
+  <div>
+    <DataGrid
+    className='theme-dependent'
+
+      dataSource={data}
+      showBorders={true}
+      showColumnLines={true}
+      showRowLines={true}
+      rowAlternationEnabled={true}
+      columnAutoWidth={true}
+      allowColumnReordering={true}
+      allowColumnResizing={true}
+      allowColumnDragging={true}
+      allowColumnGrouping={true}
+      onRowPrepared={onratechange}
+      allowColumnHiding={true}
+      showColumnHeaders={true}
+       hoverStateEnabled={true}
+      //  onEditingStart={toogleUseNavigation}
+      //  onEditCanceled={toogleUseNavigation}
+      //  onSaved={toogleUseNavigation}
+       onRowClick={navigationToDetails}
+      >
+        <LoadPanel enabled={true} />
+        <Sorting mode="multiple" />
+        <scrolling mode="virtual"  />
+        <Paging defaultPageSize={pagingNo} />
+        <Pager
+          showPageSizeSelector={true}
+          showInfo={true} />
+          <Editing mode="row" allowUpdating={true} allowDeleting={false} useIcons={true} />
+          <Selection mode="multiple" selectAllMode={'allPages'} showCheckBoxesMode={'always'} />
+          <HeaderFilter visible={true} />
+         <FilterRow visible={true} />
+          <Column dataField="date"
+                    width={100}
+                    FilterRow={false}
+                    fixed={true}
+                    dataType="date"
+                    caption="Date" 
+                    allowEditing={false}
+                    
+                    defaultSortOrder="asc"
+                    />
+          <Column dataField="vehicleId" visible={false} caption="Vehicle ID" />
+          <Column dataField="vehicleId" allowEditing={false}   fixed={true} caption="Hyoung No" >
+            <Lookup
+             dataSource={vehicles}
+             valueExpr="vehicleId"
+             displayExpr="hyoungNo"
+            // value={selectedVehicle}
+            // onValueChanged={handleVehicleChange} 
+            />
+          </Column>
+          <Column dataField="siteId" caption="Site" >
+                    <Lookup dataSource={sites}
+                     valueExpr="id"
+                      displayExpr="name" />
+                </Column>
+          <Column dataField='defaultEmployees'  caption="Employee Details" width={200}allowSorting={false} >  
+          <Lookup dataSource={employees} valueExpr="id" displayExpr="fullName" />
+          </Column>               
+          <Column dataField="maxSpeed" caption="Max Speed" />
+          <Column dataField="avgSpeed" caption="AVG Speed" />
+          <Column dataField="totalDistance"
+
+          dataType="number"
+          caption="Distance"
+          cellRender={({ value }) => (value / 1000).toFixed(2)
+          }
+        />
+         <Column dataField="engHours"
+                    caption="Engine Hours"
+                    format={{ type: 'fixedPoint', precision: 1 }}
+                    cellRender={({ value }) => (value / 3600).toFixed(2)}
+                />
+                  <Column dataField="totalFuel"
+                    visible={true}
+                    caption="Fuel" />
+
+     <Column dataField="expectedAveraged" caption="Expected Averaged" >
+                {/* <Lookup dataSource={expectedAveragedDataSource} valueExpr="id" displayExpr="expectedAveragevalue" /> */}
+                </Column>
+                <Column dataField="fuelEfficiency" caption="Fuel Efficiency" />
+                <Column dataField="fuelLost" caption="Fuel Lost" />
+          
+      <Column dataField="comments" caption="comments" ></Column>
+      </DataGrid>
+      </div>
+)
+
+
+};
+
+export default VehicleConsumptionGridList;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionHistoryDetails\vehicleConsumptionHistoryDetails.js
+
+import React, { useCallback, useEffect,useState } from "react";
+import DataGrid, { Column ,FilterRow,Export} from 'devextreme-react/data-grid';
+import { getConsumptionHistoryByVehicle } from "../../dataservice";
+import NumberBox from 'devextreme-react/number-box';
+
+
+export const VehicleConsumptionHistoryDetails = (vehicleID,startDate) => {
+
+    const [consumptionHistory, setConsumptionHistory] = useState();
+    const [data, setData] = useState();
+    const [entry, setEntry] = useState(5);
+    
+useEffect(() => {
+    console.log("starting data",vehicleID,startDate,entry);
+
+       const fetchData = async () => {
+        if(vehicleID && startDate) 
+        { // Ensure vehicleId and date are present and no data has been loaded yet
+          try {     
+            
+                const response = await getConsumptionHistoryByVehicle(vehicleID,startDate,entry);
+                setData(response);
+            }
+        
+            catch (error) {
+                console.error(error);
+            }
+        }
+        };
+    
+        fetchData();
+    }, [vehicleID,startDate,entry]);
+
+    const handleEntryChange = (e) => {
+        const newEntry = Math.min(Math.max(e.value, 5), 30); // Ensure the entry is between 5 and 30
+        setEntry(newEntry);
+    };
+
+   
+
+    return (
+        <div style={{padding:"20px" , boxSizing: 'border-box' ,height:"100%"}}>
+<div className="dx-field" style={{marginTop:"20px"}}>
+          <div className="field-label" style={{marginRight:"10px"}}  > Number of Days to Show</div>
+          <div className="">
+            <NumberBox
+              value={entry}
+              width={100}
+              min={5}
+              max={30}
+              showSpinButtons={true}
+            //  inputAttr={endValueLabel}
+              onValueChanged={(e) => handleEntryChange(e)}
+            />
+          </div>
+        </div>
+  
+    
+<div style={{marginTop:"10px"}}>
+            <DataGrid
+                height={500}
+                dataSource={data}
+                showBorders={true}
+                showColumnLines={true}
+                showRowLines={true}
+                rowAlternationEnabled={true}
+                columnAutoWidth={true}
+                allowColumnReordering={true}
+                allowColumnResizing={true}
+
+            >
+                <FilterRow visible={true} />
+
+              
+                         <Column dataField="date" caption="Date" dataType="date" />
+                           <Column dataField="employee" caption="Employee" />
+                                <Column dataField="totalFuel" caption="Total Fuel" />
+                                <Column dataField="expectedAveraged" caption="ExpectedAveraged" />
+                                <Column dataField="totalDistance" caption="Total Distance" />
+                                <Column dataField="engHours" caption="Engine Hours" />
+                                <Column dataField="maxSpeed" caption="Max Speed" />
+                                <Column dataField="avgSpeed" caption="Avg Speed" />
+                                <Column dataField="fuelEfficiency" caption="Fuel Efficiency" />
+                                <Column dataField="fuelLost" caption="Fuel Lost" />
+                                <Column dataField="isNightShift" caption="Is Night Shift" />
+                                <Column dataField="isAverageKm" caption="Is Km/l" />
+                                <Column dataField="comments" caption="Comments" />
+                                <Column dataField="site" caption="Site" />
+            </DataGrid>
+            </div>
+        </div>
+    );
+    
+}
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionMapDetails\vehicleConsumptionMap.js
+
+import react from 'react';
+import axios from 'axios';
+import { CustomStore } from 'devextreme/data/custom_store';
+
+
+
+export const VehicleConsumptionMapDetails = (vehicleID,startDate) => {
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\authContext.js
+
+import react , { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import  {useNavigate } from 'react-router-dom';
+import { login ,getUserDetails} from '../api/auth';
+
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState({email: 'testuser@example.com' }); //remove email after testing
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const fetchUserDetails = async () => {
+        try {
+          const userDetails = await getUserDetails(token);
+          setUser(userDetails);
+        } catch (error) {
+          console.error('Failed to fetch user details:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUserDetails();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const signIn = async (username, password) => {
+    setUser({ email: username });
+    return { isOk: true };
+  };
+
+  // const signIn = async (username, password) => {
+  //   try {
+  //     const { token } = await login(username, password);
+  //     localStorage.setItem('token', token);
+  //     const userDetails = await getUserDetails(token);
+      
+  //     setUser(userDetails);
+  //     navigate('/home');
+  //     return { isOk: true };
+  //   } catch (error) {
+  //     return { isOk: false, message: error.message };
+  //   }
+  // };
+
+  const signOut = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    navigate('/login');
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuthContext = () => useContext(AuthContext);
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\navigation.js
+
+import React, { useState, createContext, useContext, useEffect } from 'react';
+
+
+const NavigationContext = createContext({});
+const useNavigation = () => useContext(NavigationContext);
+
+function NavigationProvider(props) {
+  const [navigationData, setNavigationData] = useState({ currentPath: '' });
+
+  return (
+    <NavigationContext.Provider
+      value={{ navigationData, setNavigationData }}
+      {...props}
+    />
+  );
+}
+
+function withNavigationWatcher(Component, path) {
+  const WrappedComponent = function (props) {
+    const { setNavigationData } = useNavigation();
+
+    useEffect(() => {
+      setNavigationData({ currentPath: path });
+    }, [path, setNavigationData]);
+
+    return <Component {...props} />;
+  }
+  return <WrappedComponent />;
+}
+
+export {
+  NavigationProvider,
+  useNavigation,
+  withNavigationWatcher
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\deviceManagerservices.js
+
+import axiosInstance from './axiosInstance';
+
+
+//Devices
+//get device list
+export const getDeviceList = async () => {
+    try {
+        const response = await axiosInstance.get(`/device/getlist`);
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+
+//Create Device
+export const createDevice = async (device) => {
+    try {
+        const response = await axiosInstance.post(`/device/`, device);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating device:', error);
+        throw new Error('Device creation error');
+    }
+};
+
+
+//get device by id
+export const getDeviceById = async (id) => {
+    try {       
+        const response = await axiosInstance.get(`/device/`, {
+            params: { id: id }
+        });
+        return response.data;
+    }
+        catch (error) {
+        console.error('Error loading device data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+//update device
+export const updateDevice = async (id, deviceData) => {
+    try {
+        const response = await axiosInstance.put(`/device/${id}`, deviceData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating device data:', error);
+        throw new Error('Data updating error');
+    }
+};
+
+//delete device
+export const deleteDevice = async (deviceId) => {
+    try {
+        const response = await axiosInstance.delete(`/device/${deviceId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting device data:', error);
+        throw new Error('Data deletion error');
+    }
+};
+
+//DeviceModel
+//get device model list
+export const getDeviceModelList = async () => {
+    try {
+        const response = await axiosInstance.get(`/devicemodel/getlist`);
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device model data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+
+
+//get device model by id
+export const getDeviceModelById = async (id) => {
+    try {
+        const response = await axiosInstance.get(`/devicemodel/`, {
+            params: { id: id }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device model data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+//update device model
+export const updateDeviceModel = async (id, deviceModelData) => {
+    try {
+        const response = await axiosInstance.put(`/devicemodel/${id}`, deviceModelData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating device model data:', error);
+        throw new Error('Data updating error');
+    }
+};
+
+//delete device model
+export const deleteDeviceModel = async (id) => {
+    try {
+        const response = await axiosInstance.delete(`/devicemodel/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting device model data:', error);
+        throw new Error('Data deletion error');
+    }
+};
+
+//Create Device Model 
+export const createDeviceModel = async (deviceModelData) => {
+    try {
+        if (!deviceModelData.devicemanufacturerId || deviceModelData.devicemanufacturerId <= 0) {
+            alert('Please provide a valid devicemanufacturerId before creating a device model.');
+            return;
+        }
+        const response = await axiosInstance.post(`/devicemodel/`, deviceModelData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating device model data:', error);
+        throw new Error('Data creation error');
+    }
+};
+
+//device type
+//get device type list
+export const getDeviceTypeList = async () => {
+    try {
+        const response = await axiosInstance.get(`/devicetype/getlist`);
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device type data:', error);
+        throw new Error('Data loading error');
+    }
+};
+//create Device Type
+export const createDeviceType = async (deviceTypeData) => {
+    try {
+        const response = await axiosInstance.post(`/devicetype/`, deviceTypeData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creating device type data:', error);
+        throw new Error('Data creation error');
+    }
+};
+
+
+//get device type by id
+export const getDeviceTypeById = async (id) => {
+    try {
+        const response = await axiosInstance.get(`/devicetype/`, {
+            params: { id: id }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device type data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+//update device type    
+export const updateDeviceType = async (id, deviceTypeData) => {
+    try {
+        const response = await axiosInstance.put(`/devicetype/${id}`, deviceTypeData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating device type data:', error);
+        throw new Error('Data updating error');
+    }
+};
+
+//delete device type
+export const deleteDeviceType = async (id) => {
+    try {
+        const response = await axiosInstance.delete(`/devicetype/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting device type data:', error);
+        throw new Error('Data deletion error');
+    }
+};
+
+//device manufacturer
+//get device manufacturer list
+export const getDeviceManufacturerList = async () => {
+    try {
+        const response = await axiosInstance.get(`/devicemanufacturer/getlist`);
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device manufacturer data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+//get device manufacturer by id
+export const getDeviceManufacturerById = async (id) => {
+    try {
+        const response = await axiosInstance.get(`/devicemanufacturer/`, {
+            params: { id: id }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error loading device manufacturer data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+//update device manufacturer
+export const updateDeviceManufacturer = async (id, deviceManufacturerData) => {
+    try {
+        const response = await axiosInstance.put(`/devicemanufacturer/${id}`, deviceManufacturerData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating device manufacturer data:', error);
+        throw new Error('Data updating error');
+    }
+};
+
+    //delete device manufacturer
+    export const deleteDeviceManufacturer = async (id) => {
+        try {
+            const response = await axiosInstance.delete(`/devicemanufacturer/${id}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error deleting device manufacturer data:', error);
+            throw new Error('Data deletion error');
+        }
+    };
+
+    //create Device Manufaturer 
+    export const createDeviceManufacturer = async (deviceManufacturerData) => {
+        try {
+            if (!deviceManufacturerData.name || deviceManufacturerData.name.length <= 0) {
+                alert('Please provide a valid name before creating a device manufacturer.');
+                return;
+            }
+            const response = await axiosInstance.post(`/devicemanufacturer/`, deviceManufacturerData);
+            return response.data;
+        } catch (error) {
+            console.error('Error creating device manufacturer data:', error);
+            throw new Error('Data creation error');
+        }        
+    };
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\gpsgateApiService.js
+
+import axios from 'axios';
+
+//login infor 
+
+const LOGIN_URL = process.env.REACT_APP_GPSGATE_APP_LOGIN_URL;
+const TRACKS_URL = process.env.REACT_APP_GPSGATE_APP_TRACK_URL;
+const USERNAME = process.env.REACT_APP_GPSGATE_APP_USERNAME;
+const PASSWORD = process.env.REACT_APP_GPSGATE_APP_PASSWORD;
+
+const login =   async () => {
+    console.log("login data ");
+
+    try{
+        const response = await axios.post(LOGIN_URL, {
+            username: USERNAME,
+            password: PASSWORD
+        },{
+            headers: {
+                "Accept": "application/json",
+                'Content-Type': 'application/json',
+            }
+        });
+       const token = response.data.token;
+
+       sessionStorage.setItem('authToken', token);
+       console.log("token",token);
+       return token;
+    }catch(error){
+        console.log("error login",error);
+        throw error;
+       
+    }
+
+
+};
+
+
+const FetchTrackData = async (vehicleId,date) => {
+    try{
+
+        const token = sessionStorage.getItem('authToken');
+        //parse date to yyyy-mm-dd
+          const _date = new Date(date);
+           const testdate = new Date("2023-08-11");
+          const formattedDate = `${_date.getFullYear()}-${String(_date.getMonth() + 1).padStart(2, '0')}-${String(_date.getDate()).padStart(2, '0')}`;         
+
+        const response = await axios.get(`${TRACKS_URL}${vehicleId}/tracks`, {
+            params: {
+                date: formattedDate,
+                filtered: false
+              
+            },
+            headers: {
+                "Accept": "application/json",
+                'Content-Type': 'application/json',
+                'Authorization': `${token}`
+            }
+        });
+
+      
+        return response.data;
+    } catch (error) {
+        console.log("Service:error fetching track data",error);
+        throw error;
+    }
+};
+
+export default {login,FetchTrackData};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\index.js
+
+import axiosInstance from "../api/axiosInstance";
+
+import CustomStore from "devextreme/data/custom_store";
+
+
+export const getVehicleList = async () => {
+  try {
+    const response = await axiosInstance.get(`/vehicle/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+export const updateVehicle = async (key, values) => {
+  try {
+    // Retrieve the original data
+    const originalData = await getVehicleByKey(key);
+    const updatedData = { ...originalData, ...values, vehicleId: key };
+
+    // Update the data
+    const updateResponse = await axiosInstance.get(`/vehicle/UpdateVehicle/${key}`, updatedData);
+    return updateResponse.data;
+  } catch (error) {
+    console.error('Error updating vehicle data:', error);
+    throw new Error('Data updating error');
+  }
+};
+
+export const getVehicleByKey = async (key) => {
+  try {
+    const response = await axiosInstance.get(`/vehicle/getvehiclebyid`, {
+      params: { id: key }
+    });
+return  response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle by key:', error);
+    throw new Error('Error in byKey operation');
+  }
+};
+
+export const getVehicleDataSource = () => {
+  return new CustomStore({
+    key: 'vehicleId',
+    load: getVehicleList,
+    update: updateVehicle,
+    byKey: getVehicleByKey
+  });
+};
+
+
+
+export const getManufacturers = async () => {
+  try {
+    const response =await axiosInstance.get(`/VehicleManufacturer/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading manufacturers data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+// Fetch vehicle models data
+export const getVehicleModels = async () => {
+  try {
+    const response = await axiosInstance.get(`/VehicleModel/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle models data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+export const getVehicleModelByVehicleManfuacturerId = async (manufacturerId) => {
+  try {
+    const response = await axiosInstance.get(`/VehicleModel/GetVehicleModelsByManufacturerId`, {
+      params: { manufacturerId: manufacturerId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle models data:', error);
+    throw new Error('Data loading error');
+  }
+}
+
+// Fetch expected average data
+export const getExpectedAvg = async () => {
+  try {
+    const response = await axiosInstance.get(`/expectedavg/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading expected average data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+
+//get expectded Average by SiteiD and Vehicle ID 
+export const getExpectedAvgBySiteIdAndVehicleId = async (vehicleId,siteId) => {
+  try {
+
+      const response = await axiosInstance.get(`/expectedavg/getlistbyvehiclebysite`, {
+        params: {vehicleid: vehicleId, siteid: siteId }
+      });
+      return response.data;
+  }
+  catch (error) {
+    console.error('Error loading expected average data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+
+
+export const getSiteList = async () => { 
+  try {
+    const response = await axiosInstance.get(`/site/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading site data:', error);
+    throw new Error('Data loading error');
+  }
+}
+//Fetch Employees
+
+export const getEmployeeList = async () => {
+  try {
+    const response = await axiosInstance.get(`/employee/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading employee data:', error);
+    throw new Error('Data loading error');
+  }
+}
+
+
+//get Employee by Site ID
+export const getEmployeeBySite = async (siteID) => {
+  try {
+    const response = await axiosInstance.get(`/employee/getemployeebysiteid`, {
+      params: { siteid: siteID }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error loading employee data:', error);
+    throw new Error('Data loading error');
+  }
+}
+
+
+
+
+
+
+// Fetch vehicle type data
+  export const getVehicleTypeList = async () => { 
+    try {
+      const response = await axiosInstance.get(`/vehicleType/getlist`);
+      return response.data;
+    } catch (error) {
+      console.error('Error loading vehicle type data:', error);
+      throw new Error('Data loading error');
+    }
+  }
+
+
+  export const getConsumptionById = async (id) => {
+    try {
+      const response = await axiosInstance.get(`/consumption/getbyid`, {
+         params: { id: id }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error loading consumption data by ID:', error);
+      throw new Error('Data loading error');
+    }
+  };
+
+  export const getConsumptionHistoryByVehicle = async (vehicleId, datestring,entry) => {
+    try {
+      console.log("Types:", typeof vehicleId.vehicleId, typeof vehicleId.startDate, typeof entry); // Check types
+      console.log("fetching history data",vehicleId,datestring,entry); 
+      
+
+
+      const formattedDate = new Date(vehicleId.startDate).toISOString().split('T')[0]; // Format the date
+      const response = await await axiosInstance.get(`/consumption/gethistoryconsumptionbyvehicle?vehicleId=${vehicleId.vehicleId}&datestring=${formattedDate}&entry=${entry}`);
+      return response.data;
+    } catch (error) {
+      console.error('Dataservice : Error loading consumption history data:', error);
+      throw new Error('Data loading error');
+    }
+  };
+
+
+    export const getConsumptionList = async(pagingNo) => {
+      try {
+        const response = await axiosInstance.get(`/consumption/getlist?pagingNo=${pagingNo}`);
+                return response.data;
+      } catch (error) {
+        console.error('Error loading consumption data:', error);
+        throw new Error('Data loading error');
+      }
+    };    
+  
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\manualFuelRefillServices.js
+
+import axiosInstance from "../api/axiosInstance";
+
+//Create a new manual fuel refil 
+export const createManualFuelRefill = async (refillData) => {
+    try {
+        const response = await axiosInstance.post("/fuelrefil", refillData);
+        return response.data;
+    } catch (error) {
+        console.error("Error creating manual fuel refill:", error);
+        throw new Error(error.response?.data?.message || "Manual fuel refill creation error");
+    }
+};
+
+//Get all manual fuel refills
+ 
+ export const getManualFuelRefills = async () => {
+    try {
+        const response = await axiosInstance.get("/fuelrefil/getlist");
+        return response.data;
+    } catch (error) {
+        console.error("Error getting manual fuel refills:", error);
+        throw new Error(error.response?.data?.message || "Manual fuel refills error");
+    }   
+};
+
+//Get a specific manual fuel refill
+export const getManualFuelRefillbyid = async (id) => {
+    try {
+        const response = await axiosInstance.get(`/fuelrefil/${id}`);
+        return response.data;
+    }
+        catch (error) {
+        console.error("Error getting manual fuel refill:", error);
+        throw new Error(error.response?.data?.message || "Manual fuel refill error");
+    }   
+};
+
+//Update a specific manual fuel refill
+export const updateManualFuelRefill = async (id, refillData) => {
+    try {
+        const response = await axiosInstance.put(`/fuelrefil/${id}`, refillData);
+        return response.data;
+    }
+        catch (error) {
+        console.error("Error updating manual fuel refill:", error);
+        throw new Error(error.response?.data?.message || "Manual fuel refill update error");
+    }   
+};
+
+//Delete a specific manual fuel refill
+export const deleteManualFuelRefill = async (id) => {
+    try {
+        const response = await axiosInstance.delete(`/fuelrefil/${id}`);
+        return response.data;
+    }
+        catch (error) {
+        console.error("Error deleting manual fuel refill:", error);
+        throw new Error(error.response?.data?.message || "Manual fuel refill deletion error");
+    }   
+};
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\permissionservice.js
+
+import axiosInstance from './../api/axiosInstance';
+
+//Create Permission
+export const createPermission = async (permissionData) => {
+    try{
+      const response = await axiosInstance.post(`/permission/`, permissionData);
+     
+      return response.data;
+   
+    } catch (error) {
+      console.error('Error creating permission:', error);
+      throw new Error('Data creation error');
+    }
+  }
+  
+  //Update Permission
+  export const updatePermission = async (id, permissionData) => {
+    try {
+      const response = await axiosInstance.put(`/permission/${id}`, permissionData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating permission:', error);
+      throw new Error('Permission updating error');
+    }
+  };
+  
+  //Delete Permission
+  export const deletePermission = async (id) => {
+    try {
+      const response = await axiosInstance.delete(`/permission/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting permission:', error);
+      throw new Error('Permission deletion error');
+    }
+  };
+  
+  //Get Permission
+  export const getPermissionList = async () => {
+    try {
+      const response = await axiosInstance.get(`/permission`); 
+      dispatch({ type: 'GET_PERMISSIONS_SUCCESS', payload: response.data });  
+      } catch (error) {     
+        dispatch({ type: 'GET_PERMISSIONS_FAILURE', payload: error.message });    }
+  };
+
+
+//get user list by roleid
+export const getUserListByRoleName = async (roleName) => {
+    try {
+      const response = await axiosInstance.get(`/user/UsersInRole/${roleName}`);
+      return response.data;
+    } 
+      catch (error) {
+      console.error('Error loading user data:', error);
+        throw new Error('Data loading error');
+    }
+  };
+
+
+  //get permissionList by Roleid
+
+  export const getPermissionListByRoleId = async (roleId) => {
+    try {
+      const response = await axiosInstance.get(`/permission/getpermissionsbyroleid?roleID=${roleId}`);
+      return response.data;
+    } 
+      catch (error) {
+      console.error('Error loading permission data:', error);
+        throw new Error('Data loading error');
+    }
+  };
+
+  //Roles
+  //Get Role List
+  export const getRoleList = async () => {
+    try {
+      const response = await axiosInstance.get(`/role/getlist`);
+      dispatch({ type: 'GET_ROLES_SUCCESS', payload: response.data });
+      return response.data;
+    } catch (error) {
+      console.error('Error loading role data:', error);
+      dispatch({ type: 'GET_ROLES_FAILURE', payload: error.message });
+      throw new Error('Data loading error');
+    }
+  };
+
+//getrolebyID
+export const getRoleById = async (id) => {
+    try {
+      const response = await axiosInstance.get(`/role/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error loading role data:', error);
+      throw new Error('Data loading error');
+    }
+  };
+
+  //get user list by roleid
+
+export const getUserListByRoleId = async (roleName) => {
+  try {
+        const response = await axiosInstance.get(`/role/UsersInRole/${roleName}`);
+        return response.data;
+  } catch (error) {
+    console.error('Error loading user data:', error);
+    throw new Error('Data loading error');
+  }
+};  
+
+
+  //Create Role
+  export const createRole = async (roleData) => {
+    try {
+      const response = await axiosInstance.post(`/role/`, roleData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating role:', error);
+      throw new Error('Role creation error');
+    }
+  };
+  //Update Role 
+  export const updateRole = async (id, roleData) => {
+    try {
+      const response = await axiosInstance.put(`/role/${id}`, roleData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating role:', error);
+      throw new Error('Role updating error');
+    }
+  };
+  //Delete Role 
+  export const deleteRole = async (id) => { 
+    try {
+      const response = await axiosInstance.delete(`/role/${id}`);
+      return response.data;
+    } 
+      catch (error) {
+      console.error('Error deleting role:', error);
+      throw new Error('Role deletion error');
+    }
+  };  
+  
+
+  //assign permissions to role
+  export const assignPermissionsToRole = async (roleId, permissionIds) => {
+    try {
+        const response = await axiosInstance.post(`/role/AssignPermissions`, {
+            roleId,
+            permissionIds
+        });
+
+        dispatch({ type: 'ASSIGN_PERMISSIONS_SUCCESS', payload:{ roleId, permissionIds } });
+        return response.data;
+    } catch (error) {
+        console.error('Error assigning permissions to role:', error);
+        dispatch({ type: 'ASSIGN_PERMISSIONS_FAILURE', payload: error.message });
+        throw new Error('Error assigning permissions to role');
+    }
+};
+  //update role for users
+
+  export const updateRoleForUsers = async (roleId, userIds) => {
+    try {
+        const response = await axiosInstance.post(`/role/UpdateRoleUsers`, { roleId, userIds });
+        return response.data;
+    } catch (error) {
+        console.error('Error updating role users:', error);
+        throw new Error('Updating role users error');
+    }
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\sampleconsumptiondata.js
+
+const sampleData= [{"id":485828,
+                   "vehicleId":45,
+                 "totalFuel":21,
+              "hyoungNo":"TP113","vehicleType":"TP",
+              "vehicleModel":"ZZ3257N3247B",
+              "vehicleManufacturer":"SINOTRUK HOWO",
+              "expectedAveraged":43,
+              "defaultEmployees":28487,
+              "siteId":1,
+              "excessWorkingHrCost":null,
+              "date":"2023-05-09T08:00:55",
+              "maxSpeed":13.10,
+              "avgSpeed":4.70,
+              "totalDistance":44407,
+              "fuelLost":0,
+              "isAverageKm":true,
+              "flowMeterFuelUsed":null,
+              "flowMeterFuelLost":0,
+              "flowMeterEffiency":0,
+              "fuelEfficiency":0.00,"engHours":null,
+              "flowMeterEngineHrs":null,
+              "isNightShift":false,"comments":"Demo data","isModified":false},
+              {"id":485876,"vehicleId":52,"totalFuel":15,"hyoungNo":"TP119","vehicleType":"TP",
+              "vehicleModel":"ZZ3257N3247B","vehicleManufacturer":"SINOTRUK HOWO","expectedAveraged":0,"defaultEmployees":28489,
+              "siteId":18,"excessWorkingHrCost":null,"date":"2023-05-09T00:00:03","maxSpeed":9.70,"avgSpeed":1.80,"totalDistance":26787,
+              "fuelLost":0,"isAverageKm":true,"flowMeterFuelUsed":null,"flowMeterFuelLost":0,"flowMeterEffiency":0,"fuelEfficiency":0.00,"engHours":null,
+              "flowMeterEngineHrs":null,"isNightShift":false,"comments":"Demo data","isModified":false}]
+
+
+export default sampleData;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\userServices.js
+
+import axiosInstance from "../api/axiosInstance";
+
+
+//get userLIst
+
+export const getUserList = async () => {
+    try {
+        const response = await axiosInstance.get(`/user`);
+        return response.data;
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        throw new Error('Data loading error');
+    }
+};
+
+//get user details
+export const getUserDetails = async (id) => {
+    try {
+        const response = await axiosInstance.get(`/user/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user details:', error);
+        throw new Error('User details fetching error');
+    }
+};
+
+//update user details
+export const updateUserDetails = async (id, userDetails) => {
+    try {
+        const response = await axiosInstance.put(`/user/${id}`, userDetails);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating user details:', error);
+        throw new Error('User details updating error');
+    }
+};
+
+//delete user
+export const deleteUser = async (id) => {
+    try {
+        const response = await axiosInstance.delete(`/api/user/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw new Error('User deletion error');
+    }
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\index.js
+
+export { default as SideNavOuterToolbar } from './side-nav-outer-toolbar/side-nav-outer-toolbar';
+export { default as SideNavInnerToolbar } from './side-nav-inner-toolbar/side-nav-inner-toolbar';
+export { default as SingleCard } from './single-card/single-card';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\side-nav-inner-toolbar\side-nav-inner-toolbar.js
+
+import Button from 'devextreme-react/button';
+import Drawer from 'devextreme-react/drawer';
+import ScrollView from 'devextreme-react/scroll-view';
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+import React, { useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
+import { Header, SideNavigationMenu, Footer } from '../../components';
+import './side-nav-inner-toolbar.scss';
+import { useScreenSize } from '../../utils/media-query';
+import { Template } from 'devextreme-react/core/template';
+import { useMenuPatch } from '../../utils/patches';
+
+
+
+
+export default function SideNavInnerToolbar({ title, children }) {
+  const scrollViewRef = useRef(null);
+  const navigate = useNavigate();
+  const { isXSmall, isLarge } = useScreenSize();
+  const [patchCssClass, onMenuReady] = useMenuPatch();
+  const [menuStatus, setMenuStatus] = useState(
+    isLarge ? MenuStatus.Opened : MenuStatus.Closed
+  );
+
+  const toggleMenu = useCallback(({ event }) => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.Opened
+        : MenuStatus.Closed
+    );
+    event.stopPropagation();
+  }, []);
+
+  const temporaryOpenMenu = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.TemporaryOpened
+        : prevMenuStatus
+    );
+  }, []);
+
+  const onOutsideClick = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus !== MenuStatus.Closed && !isLarge
+        ? MenuStatus.Closed
+        : prevMenuStatus
+    );
+    return menuStatus === MenuStatus.Closed ? true : false;
+  }, [isLarge]);
+
+  const onNavigationChanged = useCallback(({ itemData, event, node }) => {
+    if (menuStatus === MenuStatus.Closed || !itemData.path || node.selected) {
+      event.preventDefault();
+      return;
+    }
+
+    navigate(itemData.path);
+    scrollViewRef.current.instance.scrollTo(0);
+
+    if (!isLarge || menuStatus === MenuStatus.TemporaryOpened) {
+      setMenuStatus(MenuStatus.Closed);
+      event.stopPropagation();
+    }
+  }, [navigate, menuStatus, isLarge]);
+
+  return (
+    <div className={'side-nav-inner-toolbar'}>
+      <Drawer
+        className={['drawer', patchCssClass].join(' ')}
+        position={'before'}
+        closeOnOutsideClick={onOutsideClick}
+        openedStateMode={isLarge ? 'shrink' : 'overlap'}
+        revealMode={isXSmall ? 'slide' : 'expand'}
+        minSize={isXSmall ? 0 : 60}
+        maxSize={250}
+        shading={isLarge ? false : true}
+        opened={menuStatus === MenuStatus.Closed ? false : true}
+        template={'menu'}
+      >
+        <div className={'container'}>
+          <Header
+            menuToggleEnabled={isXSmall}
+            toggleMenu={toggleMenu}
+          />
+          <ScrollView ref={scrollViewRef} className={'layout-body with-footer'}>
+            <div className={'content'}>
+              {React.Children.map(children, (item) => {
+                return item.type !== Footer && item;
+              })}
+            </div>
+            <div className={'content-block'}>
+              {React.Children.map(children, (item) => {
+                return item.type === Footer && item;
+              })}
+            </div>
+          </ScrollView>
+        </div>
+        <Template name={'menu'}>
+          <SideNavigationMenu
+            compactMode={menuStatus === MenuStatus.Closed}
+            selectedItemChanged={onNavigationChanged}
+            openMenu={temporaryOpenMenu}
+            onMenuReady={onMenuReady}
+          >
+            <Toolbar id={'navigation-header'}>
+              {
+                !isXSmall &&
+                <Item
+                  location={'before'}
+                  cssClass={'menu-button'}
+                >
+                  <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
+                </Item>
+              }
+              <Item location={'before'} cssClass={'header-title'} text={title} />
+            </Toolbar>
+          </SideNavigationMenu>
+        </Template>
+      </Drawer>
+    </div>
+  );
+}
+
+const MenuStatus = {
+  Closed: 1,
+  Opened: 2,
+  TemporaryOpened: 3
+};
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\side-nav-outer-toolbar\side-nav-outer-toolbar.js
+
+import Drawer from 'devextreme-react/drawer';
+import ScrollView from 'devextreme-react/scroll-view';
+import React, { useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
+import { Header, SideNavigationMenu, Footer } from '../../components';
+import './side-nav-outer-toolbar.scss';
+import { useScreenSize } from '../../utils/media-query';
+import { Template } from 'devextreme-react/core/template';
+import { useMenuPatch } from '../../utils/patches';
+
+
+
+
+export default function SideNavOuterToolbar({ title, children }) {
+  const scrollViewRef = useRef(null);
+  const navigate = useNavigate();
+  const { isXSmall, isLarge } = useScreenSize();
+  const [patchCssClass, onMenuReady] = useMenuPatch();
+  const [menuStatus, setMenuStatus] = useState(
+    isLarge ? MenuStatus.Opened : MenuStatus.Closed
+  );
+
+  const toggleMenu = useCallback(({ event }) => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.Opened
+        : MenuStatus.Closed
+    );
+    event.stopPropagation();
+  }, []);
+
+  const temporaryOpenMenu = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.TemporaryOpened
+        : prevMenuStatus
+    );
+  }, []);
+
+  const onOutsideClick = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus !== MenuStatus.Closed && !isLarge
+        ? MenuStatus.Closed
+        : prevMenuStatus
+    );
+    return menuStatus === MenuStatus.Closed ? true : false;
+  }, [isLarge]);
+
+  const onNavigationChanged = useCallback(({ itemData, event, node }) => {
+    if (menuStatus === MenuStatus.Closed || !itemData.path || node.selected) {
+      event.preventDefault();
+      return;
+    }
+
+    navigate(itemData.path);
+    scrollViewRef.current.instance.scrollTo(0);
+
+    if (!isLarge || menuStatus === MenuStatus.TemporaryOpened) {
+      setMenuStatus(MenuStatus.Closed);
+      event.stopPropagation();
+    }
+  }, [navigate, menuStatus, isLarge]);
+
+  return (
+    <div className={'side-nav-outer-toolbar'}>
+      <Header
+        menuToggleEnabled
+        toggleMenu={toggleMenu}
+        title={title}
+      />
+      <Drawer
+        className={['drawer', patchCssClass].join(' ')}
+        position={'before'}
+        closeOnOutsideClick={onOutsideClick}
+        openedStateMode={isLarge ? 'shrink' : 'overlap'}
+        revealMode={isXSmall ? 'slide' : 'expand'}
+        minSize={isXSmall ? 0 : 60}
+        maxSize={250}
+        shading={isLarge ? false : true}
+        opened={menuStatus === MenuStatus.Closed ? false : true}
+        template={'menu'}
+      >
+        <div className={'container'}>
+          <ScrollView ref={scrollViewRef} className={'layout-body with-footer'}>
+            <div className={'content'}>
+              {React.Children.map(children, (item) => {
+                return item.type !== Footer && item;
+              })}
+            </div>
+            <div className={'content-block'}>
+              {React.Children.map(children, (item) => {
+                return item.type === Footer && item;
+              })}
+            </div>
+          </ScrollView>
+        </div>
+        <Template name={'menu'}>
+          <SideNavigationMenu
+            compactMode={menuStatus === MenuStatus.Closed}
+            selectedItemChanged={onNavigationChanged}
+            openMenu={temporaryOpenMenu}
+            onMenuReady={onMenuReady}
+          >
+          </SideNavigationMenu>
+        </Template>
+      </Drawer>
+    </div>
+  );
+}
+
+const MenuStatus = {
+  Closed: 1,
+  Opened: 2,
+  TemporaryOpened: 3
+};
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\single-card\single-card.js
+
+import React from 'react';
+import ScrollView from 'devextreme-react/scroll-view';
+import './single-card.scss';
+
+
+export default function SingleCard({ title, description, children }) {
+  return (
+    <ScrollView height={'100%'} width={'100%'} className={'with-footer single-card'}>
+      <div className={'dx-card content'}>
+        <div className={'header'}>
+          <div className={'title'}>{title}</div>
+          <div className={'description'}>{description}</div>
+        </div>
+        {children}
+      </div>
+    </ScrollView>
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\index.js
+
+export { default as HomePage } from './home/home';
+export { default as ProfilePage } from './profile/profile';
+export { default as TasksPage } from './tasks/tasks';
+export { default as Vehicles } from './vehicles/vehicles';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\devicemanager\devicemanager.js
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\home\home.js
+
+import React from 'react';
+import './home.scss';
+
+export default function Home() {
+  return (
+    <React.Fragment>
+      <h2 className={'content-block'}>Home</h2>
+      <div className={'content-block'}>
+        <div className={'dx-card responsive-paddings'}>
+          <div className={'logos-container'}>
+            <svg className={'devextreme-logo'} viewBox={'0 0 200 34'} fill={'none'} xmlns={'http://www.w3.org/2000/svg'}>
+              <path d={'M21.269 16.6304C21.269 21.9331 20.1851 25.9907 18.0171 28.8032C15.8638 31.6011 12.7583 33 8.70068 33H0.834473V0.875977H9.42578C13.1611 0.875977 16.0688 2.26025 18.1489 5.02881C20.229 7.78271 21.269 11.6499 21.269 16.6304ZM15.1387 16.8062C15.1387 9.62842 13.1611 6.03955 9.20605 6.03955H6.81104V27.7705H8.74463C10.9272 27.7705 12.5386 26.8623 13.5786 25.0459C14.6187 23.2148 15.1387 20.4683 15.1387 16.8062ZM33.7504 33.4395C30.6889 33.4395 28.2719 32.3555 26.4994 30.1875C24.7416 28.0049 23.8627 24.9214 23.8627 20.937C23.8627 16.894 24.661 13.7373 26.2577 11.4668C27.8544 9.19629 30.081 8.06104 32.9374 8.06104C35.6034 8.06104 37.7055 9.03516 39.2436 10.9834C40.7816 12.917 41.5507 15.6343 41.5507 19.1353V22.2554H29.7953C29.8393 24.438 30.286 26.064 31.1356 27.1333C31.9853 28.188 33.1571 28.7153 34.6513 28.7153C36.5556 28.7153 38.5038 28.1221 40.496 26.9355V31.7476C38.621 32.8755 36.3725 33.4395 33.7504 33.4395ZM32.8935 12.5654C32.0585 12.5654 31.37 13.0122 30.828 13.9058C30.286 14.7847 29.9711 16.1543 29.8832 18.0146H35.8158C35.7865 16.2275 35.5155 14.8726 35.0028 13.9497C34.4901 13.0269 33.787 12.5654 32.8935 12.5654ZM48.429 33L42.035 8.52246H48.0994L51.2195 22.6948C51.3514 23.354 51.5052 24.3208 51.681 25.5952C51.8714 26.855 51.9886 27.7632 52.0325 28.3198H52.1204C52.1351 27.8804 52.1937 27.2505 52.2962 26.4302C52.4134 25.6099 52.5306 24.8555 52.6478 24.167C52.7649 23.4785 53.8929 18.2637 56.0315 8.52246H62.096L55.68 33H48.429ZM78.5324 33H64.0524V0.875977H78.5324V6.03955H70.029V13.686H77.9172V18.8716H70.029V27.7705H78.5324V33ZM86.1798 20.4976L80.0714 8.52246H86.1358L89.3878 15.9932L92.398 8.52246H98.4186L92.2662 20.4976L98.6822 33H92.5738L89.1021 25.1777L85.8722 33H79.7857L86.1798 20.4976ZM109.12 28.4956C109.94 28.4956 110.827 28.2905 111.779 27.8804V32.4507C110.827 33.1099 109.398 33.4395 107.494 33.4395C105.37 33.4395 103.795 32.8096 102.77 31.5498C101.745 30.2754 101.232 28.3711 101.232 25.8369V13.1587H98.8589V10.5439L101.913 8.43457L103.407 3.24902H107.143V8.52246H111.581V13.1587H107.143V26.0347C107.143 27.6753 107.802 28.4956 109.12 28.4956ZM124.744 8.06104C125.461 8.06104 126.164 8.1709 126.853 8.39062L126.172 14.0596C125.762 13.9131 125.227 13.8398 124.568 13.8398C123.147 13.8398 122.056 14.4038 121.294 15.5317C120.532 16.645 120.151 18.271 120.151 20.4097V33H114.307V8.52246H119.119L119.778 12.3457H119.975C120.62 10.8076 121.323 9.70898 122.085 9.0498C122.847 8.39062 123.733 8.06104 124.744 8.06104ZM137.598 33.4395C134.537 33.4395 132.12 32.3555 130.347 30.1875C128.59 28.0049 127.711 24.9214 127.711 20.937C127.711 16.894 128.509 13.7373 130.106 11.4668C131.702 9.19629 133.929 8.06104 136.785 8.06104C139.451 8.06104 141.554 9.03516 143.092 10.9834C144.63 12.917 145.399 15.6343 145.399 19.1353V22.2554H133.643C133.687 24.438 134.134 26.064 134.984 27.1333C135.833 28.188 137.005 28.7153 138.499 28.7153C140.404 28.7153 142.352 28.1221 144.344 26.9355V31.7476C142.469 32.8755 140.221 33.4395 137.598 33.4395ZM136.742 12.5654C135.907 12.5654 135.218 13.0122 134.676 13.9058C134.134 14.7847 133.819 16.1543 133.731 18.0146H139.664C139.635 16.2275 139.364 14.8726 138.851 13.9497C138.338 13.0269 137.635 12.5654 136.742 12.5654ZM172.668 33V18.4102C172.668 14.8213 171.781 13.0269 170.009 13.0269C168.72 13.0269 167.797 13.6714 167.24 14.9604C166.684 16.2349 166.405 18.2856 166.405 21.1128V33H160.517V18.4102C160.517 14.8213 159.616 13.0269 157.814 13.0269C156.554 13.0269 155.639 13.6641 155.068 14.9385C154.496 16.2129 154.211 18.3149 154.211 21.2446V33H148.366V8.52246H153.002L153.705 11.6646H154.079C154.665 10.4194 155.463 9.51123 156.474 8.93994C157.499 8.354 158.591 8.06104 159.748 8.06104C162.736 8.06104 164.728 9.47461 165.724 12.3018H165.944C167.189 9.47461 169.189 8.06104 171.943 8.06104C174.111 8.06104 175.751 8.82275 176.864 10.3462C177.992 11.8696 178.556 14.0962 178.556 17.0259V33H172.668ZM191.433 33.4395C188.372 33.4395 185.955 32.3555 184.182 30.1875C182.424 28.0049 181.546 24.9214 181.546 20.937C181.546 16.894 182.344 13.7373 183.941 11.4668C185.537 9.19629 187.764 8.06104 190.62 8.06104C193.286 8.06104 195.388 9.03516 196.926 10.9834C198.464 12.917 199.233 15.6343 199.233 19.1353V22.2554H187.478C187.522 24.438 187.969 26.064 188.818 27.1333C189.668 28.188 190.84 28.7153 192.334 28.7153C194.238 28.7153 196.187 28.1221 198.179 26.9355V31.7476C196.304 32.8755 194.055 33.4395 191.433 33.4395ZM190.576 12.5654C189.741 12.5654 189.053 13.0122 188.511 13.9058C187.969 14.7847 187.654 16.1543 187.566 18.0146H193.499C193.469 16.2275 193.198 14.8726 192.686 13.9497C192.173 13.0269 191.47 12.5654 190.576 12.5654Z'} fill={'#F05B41'} />
+            </svg>
+            <svg className ={'plus'} viewBox={'0 0 22 22'} fill={'none'} xmlns={'http://www.w3.org/2000/svg'}>
+              <path d={'M21.6309 13.3433H13.1714V21.8027H8.73291V13.3433H0.229492V8.88281H8.73291V0.379395H13.1714V8.88281H21.6309V13.3433Z'} fill={'#BCBCBC'} />
+            </svg>
+            <svg className={'react-logo'} viewBox={'0 0 184 62'} xmlns={'http://www.w3.org/2000/svg'}>
+              <circle fill={'#6FCEEF'} cx={'34.6'} cy={'30.4'} r={'6'} /><path fill={'#6FCEEF'} d={'M68.1,30.4c0-4.8-5.4-8.9-14-11.3c0.3-1.3,0.6-2.5,0.8-3.7c1.1-7-0.1-12-3.5-14c-3.4-2-8.3-0.6-13.9,3.9c-0.9,0.8-1.9,1.6-2.8,2.6C28.3,1.7,22-1,17.9,1.4c-4.1,2.4-5,9.1-2.8,17.7c-8.6,2.4-14,6.5-14,11.3s5.4,8.8,14,11.3c-2.2,8.6-1.4,15.3,2.8,17.7c1,0.6,2.2,0.9,3.4,0.9c3.8,0,8.5-2.7,13.4-7.4c0.9,0.9,1.9,1.8,2.8,2.6c3.9,3.2,7.5,4.8,10.5,4.8c1.2,0,2.4-0.3,3.4-0.9c4.1-2.4,5-9.1,2.8-17.7C62.7,39.3,68.1,35.2,68.1,30.4z M39.4,7.7c3.3-2.7,6.3-4.1,8.5-4.1c0.7,0,1.4,0.2,1.9,0.5c2.2,1.3,3,5.3,2.1,10.9c-0.2,1.1-0.4,2.3-0.7,3.5c-2.7-0.6-5.7-1.1-8.9-1.3c-1.8-2.6-3.7-4.9-5.6-7C37.6,9.2,38.5,8.4,39.4,7.7z M43.9,35.8c-1,1.8-2.1,3.5-3.2,5.1c-1.9,0.1-4,0.2-6.1,0.2c-2.1,0-4.1-0.1-6.1-0.2c-1.1-1.6-2.2-3.4-3.2-5.1c-1-1.8-2-3.6-2.8-5.4c0.8-1.8,1.8-3.5,2.8-5.4c1-1.8,2.1-3.5,3.2-5.1c1.9-0.1,4-0.2,6.1-0.2c2.1,0,4.1,0.1,6.1,0.2c1.1,1.6,2.2,3.3,3.2,5.1c1,1.8,2,3.6,2.8,5.4C45.9,32.2,44.9,34,43.9,35.8z M48.3,33.9c0.8,1.9,1.5,3.8,2,5.6c-1.8,0.4-3.8,0.8-5.9,1c0.7-1.1,1.3-2.1,2-3.3C47.2,36.2,47.8,35.1,48.3,33.9z M34.6,48.6c-1.3-1.4-2.6-2.9-3.8-4.5c1.2,0.1,2.5,0.1,3.8,0.1c1.3,0,2.6,0,3.8-0.1C37.2,45.7,35.9,47.2,34.6,48.6z M24.7,40.5c-2.1-0.3-4-0.6-5.9-1c0.6-1.8,1.2-3.6,2-5.6c0.6,1.1,1.2,2.2,1.8,3.3C23.4,38.4,24.1,39.5,24.7,40.5z M20.9,26.9c-0.8-1.9-1.5-3.8-2-5.6c1.8-0.4,3.8-0.8,5.9-1c-0.7,1.1-1.3,2.1-2,3.3C22.1,24.7,21.5,25.8,20.9,26.9z M34.6,12.2c1.3,1.4,2.5,2.9,3.8,4.6c-1.2-0.1-2.5-0.1-3.8-0.1c-1.3,0-2.5,0-3.8,0.1C32.1,15.2,33.4,13.6,34.6,12.2z M46.5,23.6c-0.6-1.1-1.3-2.2-2-3.2c2.1,0.3,4,0.6,5.8,1c-0.6,1.8-1.2,3.7-2,5.6C47.8,25.8,47.2,24.7,46.5,23.6z M19.4,4c0.5-0.3,1.2-0.5,1.9-0.5c2.8,0,6.9,2.3,11.3,6.5c-1.9,2.1-3.8,4.4-5.6,6.9c-3.2,0.3-6.2,0.7-8.9,1.3C16.2,11,16.8,5.5,19.4,4z M4.1,30.4c0-3,4.4-6.2,11.8-8.3c0.8,2.7,1.9,5.5,3.3,8.3c-1.3,2.9-2.4,5.7-3.3,8.3C8.6,36.7,4.1,33.4,4.1,30.4z M19.4,56.8c-2.6-1.5-3.2-6.9-1.3-14.4c2.7,0.6,5.7,1.1,8.9,1.3c1.8,2.5,3.7,4.9,5.6,7C27,56.1,22,58.3,19.4,56.8z M49.9,56.8c-2.2,1.3-6-0.1-10.5-3.7c-0.9-0.7-1.8-1.5-2.6-2.4c1.9-2,3.8-4.4,5.6-7c3.2-0.3,6.1-0.7,8.9-1.3C53.1,49.9,52.5,55.3,49.9,56.8z M53.3,38.8c-0.8-2.7-1.9-5.5-3.3-8.4c1.3-2.8,2.4-5.6,3.2-8.3c7.4,2.1,11.8,5.3,11.8,8.4C65.1,33.4,60.7,36.7,53.3,38.8z'} /><g><path fill={'#6FCEEF'} d={'M79.2,31.8v10.8h-5.4v-27H84c3.1,0,5.5,0.7,7.2,2.1c1.7,1.4,2.6,3.4,2.6,5.9c0,1.4-0.4,2.6-1.1,3.6c-0.7,1-1.8,1.8-3.2,2.4c1.6,0.5,2.7,1.3,3.4,2.4c0.7,1.1,1,2.5,1,4.1v2c0,0.8,0.1,1.5,0.3,2.4c0.2,0.8,0.6,1.4,1,1.8v0.4h-5.6c-0.5-0.4-0.8-1.1-1-2s-0.2-1.8-0.2-2.6v-1.9c0-1.3-0.4-2.4-1.1-3.1c-0.7-0.7-1.8-1.1-3.1-1.1H79.2z M79.2,27.7h4.7c1.5,0,2.7-0.3,3.4-1c0.7-0.6,1.1-1.6,1.1-2.9c0-1.2-0.4-2.2-1.1-3c-0.7-0.7-1.9-1.1-3.3-1.1h-4.8V27.7z'} /><path fill={'#6FCEEF'} d={'M107.3,43c-2.9,0-5.2-0.9-6.9-2.8c-1.7-1.9-2.6-4.2-2.6-7.1v-0.7c0-3,0.8-5.4,2.5-7.4c1.6-1.9,3.8-2.9,6.6-2.9c2.7,0,4.8,0.8,6.3,2.4c1.5,1.6,2.2,3.8,2.2,6.6v3h-12l0,0.1c0.1,1.3,0.5,2.4,1.3,3.3c0.8,0.9,1.9,1.3,3.2,1.3c1.2,0,2.2-0.1,3-0.4c0.8-0.2,1.7-0.6,2.6-1.1l1.5,3.3c-0.8,0.7-1.9,1.2-3.2,1.7C110.4,42.8,109,43,107.3,43z M106.9,26.4c-1,0-1.8,0.4-2.4,1.2c-0.6,0.8-0.9,1.8-1.1,3l0.1,0.1h6.6v-0.5c0-1.2-0.3-2.1-0.8-2.8C108.8,26.7,108,26.4,106.9,26.4z'} /><path fill={'#6FCEEF'} d={'M130.4,42.6c-0.2-0.5-0.4-0.9-0.5-1.4c-0.1-0.5-0.2-1-0.3-1.6c-0.6,1-1.3,1.8-2.2,2.4c-0.9,0.6-2,1-3.3,1c-2.1,0-3.7-0.5-4.9-1.6c-1.1-1.1-1.7-2.6-1.7-4.4c0-2,0.8-3.5,2.3-4.6c1.5-1.1,3.7-1.6,6.6-1.6h3v-1.6c0-1-0.3-1.7-0.8-2.2c-0.5-0.5-1.3-0.8-2.2-0.8c-0.9,0-1.6,0.2-2,0.6c-0.5,0.4-0.7,1-0.7,1.8l-5.2,0l0-0.1c-0.1-1.7,0.6-3.2,2.2-4.4c1.6-1.2,3.6-1.8,6.1-1.8c2.4,0,4.3,0.6,5.8,1.8c1.5,1.2,2.2,3,2.2,5.2v8.3c0,0.9,0.1,1.8,0.2,2.7c0.1,0.8,0.4,1.7,0.7,2.5H130.4z M125.4,39c1,0,1.8-0.2,2.5-0.7c0.7-0.5,1.2-1,1.5-1.6v-2.8h-3c-1.2,0-2,0.3-2.6,0.9c-0.6,0.6-0.9,1.3-0.9,2.1c0,0.7,0.2,1.2,0.7,1.6S124.6,39,125.4,39z'} /><path fill={'#6FCEEF'} d={'M147.4,38.9c1,0,1.7-0.3,2.3-0.8c0.6-0.6,0.9-1.3,0.9-2.2h4.9l0.1,0.1c0,2-0.7,3.7-2.3,5.1c-1.6,1.4-3.5,2-5.9,2c-3,0-5.3-0.9-6.9-2.8c-1.6-1.9-2.4-4.3-2.4-7.3v-0.6c0-3,0.8-5.4,2.4-7.3c1.6-1.9,3.9-2.9,6.9-2.9c2.5,0,4.5,0.7,6,2.1c1.5,1.4,2.2,3.3,2.2,5.6l0,0.1h-4.9c0-1-0.3-1.9-0.9-2.6c-0.6-0.7-1.4-1-2.4-1c-1.4,0-2.4,0.6-3,1.7c-0.6,1.1-0.9,2.5-0.9,4.3v0.6c0,1.8,0.3,3.2,0.9,4.3C144.9,38.3,146,38.9,147.4,38.9z'} /><path fill={'#6FCEEF'} d={'M165.1,17.6v4.9h3.4v3.8h-3.4v10.2c0,0.8,0.2,1.3,0.5,1.7c0.3,0.3,0.8,0.5,1.3,0.5c0.3,0,0.5,0,0.7,0c0.2,0,0.4-0.1,0.7-0.2l0.5,3.9c-0.5,0.2-1.1,0.3-1.6,0.4c-0.5,0.1-1.1,0.1-1.7,0.1c-1.9,0-3.3-0.5-4.3-1.5c-1-1-1.5-2.7-1.5-4.9V26.4h-2.9v-3.8h2.9v-4.9H165.1z'} /></g>
+            </svg>
+          </div>
+
+          <p>Thanks for using the  DevExtreme React App Template.</p>
+          <p>
+            <span>This application was built using </span>
+            <a href={'https://create-react-app.dev/'} target={'_blank'} rel={'noopener noreferrer'}>Create React App</a>
+            <span> and </span>
+            <a href={'https://js.devexpress.com/Documentation/Guide/Common/DevExtreme_CLI/'} target={'_blank'} rel={'noopener noreferrer'}>DevExtreme CLI</a>
+            <span> and includes the following DevExtreme components:</span>
+          </p>
+          <ul>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/UI_Components/DataGrid/Getting_Started_with_DataGrid/'} target={'_blank'} rel={'noopener noreferrer'}>DataGrid</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/Widgets/Form/Overview/'} target={'_blank'} rel={'noopener noreferrer'}>Form</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/Widgets/Drawer/Getting_Started_with_Navigation_Drawer/'} target={'_blank'} rel={'noopener noreferrer'}>Drawer</a></li>
+          </ul>
+
+          <p>To customize your DevExtreme React application further, please refer to the following help topics:</p>
+
+          <ul>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Layouts'} target={'_blank'} rel={'noopener noreferrer'}>Layouts</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Add_a_New_View'} target={'_blank'} rel={'noopener noreferrer'}>Add a New View</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Configure_the_Navigation_Menu'} target={'_blank'} rel={'noopener noreferrer'}>Configure the Navigation Menu</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Configure_Themes'} target={'_blank'} rel={'noopener noreferrer'}>Configure Themes</a></li>
+          </ul>
+
+          <p>
+            <span>For technical content related to DevExtreme React components, feel free to explore our </span>
+            <a href="https://js.devexpress.com/documentation/" target="_blank" rel="noopener noreferrer">online documentation</a>
+            <span> and </span>
+            <a href="https://js.devexpress.com/Demos/Widgetsgallery/" target="_blank" rel="noopener noreferrer">technical demos</a>.
+          </p>
+        </div>
+      </div>
+    </React.Fragment>
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\manualrefill\manualRefil.js
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import DataGrid, { Paging, HeaderFilter, Item, SearchPanel, Toolbar, Editing, FilterRow, Column, Lookup, Sorting, RequiredRule } from 'devextreme-react/data-grid';
+import { getVehicleList, getSiteList } from '../../dataservice';
+import { getManualFuelRefills, createManualFuelRefill, updateManualFuelRefill, deleteManualFuelRefill } from '../../dataservice/manualFuelRefillServices';
+import Button from 'devextreme-react/button';
+import { Toast } from 'devextreme-react/toast';
+
+
+export default function Fuelrefil() {
+    const [vehicles, setVehicles] = useState([]);
+    const [sites, setSites] = useState([]);
+    const [manualFuelRefill, setManualFuelRefill] = useState([]);
+    const [newFuelRefill, setNewFuelRefill] = useState({});
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('info');
+    const gridRef = useRef(null);
+
+    const refresh = useCallback(() => {
+        gridRef.current?.instance.refresh();
+    }, []);
+    const validateRow = (data) => {
+        if (data.previousMeterReading >= data.currentMeterReading) {
+            return { isValid: false, message: "Previous meter reading cannot be greater than or equal to current meter reading." };
+        }
+        if ((data.currentMeterReading - data.previousMeterReading) > 5000) {
+            return { isValid: false, message: "Difference between readings cannot be more than 5000. Check " };
+        }
+        if (new Date(data.date) > new Date()) {
+            return { isValid: false, message: "Date cannot be in the future." };
+        }
+        return { isValid: true };
+    };
+    const fetchData = useCallback(async () => {
+        try {
+            const vehicles = await getVehicleList();
+            const sites = await getSiteList();
+            const manualFuelRefill = await getManualFuelRefills();
+            setVehicles(vehicles);
+            // console.log("vehicles",vehicles);
+            setSites(sites);
+            setManualFuelRefill(manualFuelRefill);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+    const showToast = (message, type) => {
+        setToastMessage(message);
+        setToastType(type);
+        setToastVisible(true);
+    };
+
+    const onRowInserted = useCallback(async (e) => {
+        const validation = validateRow(e.data);
+        if (!validation.isValid) {
+            e.cancel = true;
+            showToast(validation.message, 'error');
+            return;
+        }
+        try {
+            console.log(e.data);
+
+            const newData = await createManualFuelRefill(e.data);
+            setManualFuelRefill(prevData => [...prevData, newData]);
+            showToast('Manual fuel refill created successfully.', 'success');
+        } catch (error) {
+            console.error('Error creating manual fuel refill:', error);
+            showToast('Error creating manual fuel refill.', 'error');
+        }
+    }, []);
+
+    const onRowRemoved = useCallback(async (e) => {
+        try {
+            await deleteManualFuelRefill(e.key);
+            setManualFuelRefill(prevData => prevData.filter(item => item.id !== e.key));
+            showToast('Manual fuel refill deleted successfully.', 'success');
+        } catch (error) {
+            console.error('Error deleting manual fuel refill:', error);
+            showToast('Error deleting manual fuel refill.', 'error');
+        }
+    }, []);
+
+    const onRowUpdated = useCallback(async (e) => {
+        const validation = validateRow(e.data);
+        if (!validation.isValid) {
+            e.cancel = true;
+            showToast(validation.message, 'error');
+            return;
+        }
+        try {
+            const updatedData = await updateManualFuelRefill(e.key, e.data);
+            setManualFuelRefill(prevData => prevData.map(item => item.id === e.key ? updatedData : item));
+            showToast('Manual fuel refill updated successfully.', 'success');
+        } catch (error) {
+            console.error('Error updating manual fuel refill:', error);
+            showToast('Error updating manual fuel refill.', 'error');
+        }
+    }, []);
+
+
+    return (
+        <React.Fragment>
+            <h2 className={'content-block'}>Manual Fuel Refill</h2>
+            <div className={'content-block'}>
+                <DataGrid
+                    ref={gridRef}
+                    dataSource={manualFuelRefill}
+                    showBorders={true}
+
+                    allowColumnReordering={true}
+                    allowColumnResizing={true}
+                    columnAutoWidth={true}
+                    rowAlernationEnable={true}
+                    repaintChangesOnly={true}
+                    onRowInserted={onRowInserted}
+                    onRowUpdated={onRowUpdated}
+                    onRowRemoved={onRowRemoved}
+
+
+
+                >
+                    <Paging enabled={true} defaultPageSize={30} />
+                    <headerFilter>
+                        <FilterRow visible={true} />
+                    </headerFilter>
+                    <SearchPanel visible placeholder='Data Search' />
+                    <Sorting mode="multiple" />
+                    <Editing
+                        mode="popup"
+                        allowUpdating={true}
+                        allowAdding={true}
+                        allowDeleting={true}
+                        selectTextOnEditStart={true}
+                        startEditAction="dblClick"
+
+                    />
+
+                    {/* <Toolbar>
+
+
+                        <Item location='before' locateInMenu='auto'>
+                            <Button
+                                icon='plus'
+                                text='Add Fuel Refill'
+                                type='default'
+                                stylingMode='contained'
+                                onClick={addNewRow}
+                            />
+                        </Item>
+                        <Item
+                            location='after'
+                            locateInMenu='auto'
+                            showText='inMenu'
+                            widget='dxButton'
+                        >
+                            <Button
+                                icon='refresh'
+                                text='Refresh'
+                                stylingMode='text'
+                                onClick={refresh}
+                            />
+                        </Item>
+
+                        <Item location='after' locateInMenu='auto'>
+                            <div className='separator' />
+                        </Item>
+                        <Item name='searchPanel' locateInMenu='auto' />
+                    </Toolbar> */}
+                    <Column dataField="vehicleId" caption="Vehicle">
+                        <Lookup
+                            dataSource={vehicles}
+                            valueExpr="vehicleId"
+                            displayExpr="hyoungNo" // Adjust the field name based on your vehicle data
+                        />
+
+                        <RequiredRule />
+                    </Column>
+
+                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" >       
+                          <RequiredRule />
+                    </Column>
+                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" >       
+                    </Column>
+                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" >       
+                    </Column>
+                    <Column dataField="date" caption="Date" dataType="datetime" defaultValue={new Date().toISOString()}>                        <RequiredRule />
+                    </Column>
+                    <Column dataField="siteId" caption="Site" >
+                        <Lookup
+                            dataSource={sites}
+                            valueExpr="id"
+                            displayExpr="name"
+                        />
+                        <RequiredRule />
+
+                    </Column>
+                    <Column dataField="comment" caption="Comment" />
+                </DataGrid>
+            </div>
+            <Toast
+                visible={toastVisible}
+                message={toastMessage}
+                type={toastType}
+                displayTime={3000}
+                onHiding={() => setToastVisible(false)}
+            />
+        </React.Fragment>
+    );
+
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\profile\profile.js
+
+import React, { useState } from 'react';
+import './profile.scss';
+import Form from 'devextreme-react/form';
+
+export default function Profile() {
+  const [notes, setNotes] = useState(
+    'Sandra is a CPA and has been our controller since 2008. She loves to interact with staff so if you`ve not met her, be certain to say hi.\r\n\r\nSandra has 2 daughters both of whom are accomplished gymnasts.'
+  );
+  const employee = {
+    ID: 7,
+    FirstName: 'Sandra',
+    LastName: 'Johnson',
+    Prefix: 'Mrs.',
+    Position: 'Controller',
+    Picture: 'images/employees/06.png',
+    BirthDate: new Date('1974/11/5'),
+    HireDate: new Date('2005/05/11'),
+    Notes: notes,
+    Address: '4600 N Virginia Rd.'
+  };
+
+  return (
+    <React.Fragment>
+      <h2 className={'content-block'}>Profile</h2>
+
+      <div className={'content-block dx-card responsive-paddings'}>
+        <div className={'form-avatar'}>
+          <img
+            alt={''}
+            src={`https://js.devexpress.com/Demos/WidgetsGallery/JSDemos/${
+              employee.Picture
+            }`}
+          />
+        </div>
+        <span>{notes}</span>
+      </div>
+
+      <div className={'content-block dx-card responsive-paddings'}>
+        <Form
+          id={'form'}
+          defaultFormData={employee}
+          onFieldDataChanged={e => e.dataField === 'Notes' && setNotes(e.value)}
+          labelLocation={'top'}
+          colCountByScreen={colCountByScreen}
+        />
+      </div>
+    </React.Fragment>
+  );
+}
+
+const colCountByScreen = {
+  xs: 1,
+  sm: 2,
+  md: 3,
+  lg: 4
+};
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\Role\rolepage.js
+
+
+//this should display a list of roles on the left and the details of the (roleDetails) on the right based on the selected role . 
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import  RoleList  from '../../components/Roles/roleList';
+import RoleDetails  from '../../components/Roles/RoleDetails/roleDetails';
+import { getRoleList } from '../../dataservice/permissionservice';
+import { Item, Toolbar } from 'devextreme-react/toolbar';
+import Button from 'devextreme-react/button';
+import { setRoles, setSelectedRole } from '../../reducers/roleSlice';
+
+
+
+import "./rolepage.scss"
+const Rolepage = () => {
+const dispatch = useDispatch();
+  const roles = useSelector((state) => state.role.roles);
+  const selectedRole = useSelector((state) => state.role.selectedRole);
+
+  const fetchData = async () => {
+    try {
+      const data = await getRoleList();
+      dispatch(setRoles(data));
+    } catch (error) {
+      console.error('Error fetching roles data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+    const handleRoleSelection = (role) => {
+        console.log("Selected Role ID: ", role.id);
+        setSelectedRole(role);
+    };
+
+    return (
+        <div>
+            <div className={' view-wrapper view-wrapper-role-page'}>
+            <Toolbar className='toolbar-details theme-dependent'>
+          <Item location='before'>
+          <h2>Roles</h2>
+          </Item>
+          <Item location='after' locateInMenu='auto'>
+            <Button
+              text='Add Role'
+              type='default'
+              stylingMode='contained'
+            />
+          </Item>
+
+          <Item
+            location='after'
+            locateInMenu='auto'
+            widget='dxButton'
+            showText='inMenu'
+          >
+            <Button
+              text='Refresh'
+              icon='refresh'
+              stylingMode='text'
+            //  onClick={refresh}
+            />
+          </Item>
+             </Toolbar>
+             <div className='content content-block'>
+                <div className='panels'>
+                    <div className='left'>
+                        <RoleList roles={roles} onRoleSelect={handleRoleSelection} />
+                    </div>
+                    <div className='right'>
+                        {/* //set all components to be disabled if no role is selected */}
+                        {selectedRole && <RoleDetails roleId={selectedRole.id} />}
+                       {/* <RoleDetails roleId={selectedRole.id} /> */}
+
+                    </div>
+
+                </div>
+                </div>
+
+            </div>
+
+        </div>
+    );
+
+}
+
+
+export default Rolepage;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\tasks\tasks.js
+
+import React from 'react';
+import 'devextreme/data/odata/store';
+import DataGrid, {
+  Column,
+  Pager,
+  Paging,
+  FilterRow,
+  Lookup
+} from 'devextreme-react/data-grid';
+
+export default function Task() {
+  return (
+    <React.Fragment>
+      <h2 className={'content-block'}>Tasks</h2>
+
+      <DataGrid
+        className={'dx-card wide-card'}
+        dataSource={dataSource}
+        showBorders={false}
+        focusedRowEnabled={true}
+        defaultFocusedRowIndex={0}
+        columnAutoWidth={true}
+        columnHidingEnabled={true}
+      >
+        <Paging defaultPageSize={10} />
+        <Pager showPageSizeSelector={true} showInfo={true} />
+        <FilterRow visible={true} />
+
+        <Column dataField={'Task_ID'} width={90} hidingPriority={2} />
+        <Column
+          dataField={'Task_Subject'}
+          width={190}
+          caption={'Subject'}
+          hidingPriority={8}
+        />
+        <Column
+          dataField={'Task_Status'}
+          caption={'Status'}
+          hidingPriority={6}
+        />
+        <Column
+          dataField={'Task_Priority'}
+          caption={'Priority'}
+          hidingPriority={5}
+        >
+          <Lookup
+            dataSource={priorities}
+            valueExpr={'value'}
+            displayExpr={'name'}
+          />
+        </Column>
+        <Column
+          dataField={'ResponsibleEmployee.Employee_Full_Name'}
+          caption={'Assigned To'}
+          allowSorting={false}
+          hidingPriority={7}
+        />
+        <Column
+          dataField={'Task_Start_Date'}
+          caption={'Start Date'}
+          dataType={'date'}
+          hidingPriority={3}
+        />
+        <Column
+          dataField={'Task_Due_Date'}
+          caption={'Due Date'}
+          dataType={'date'}
+          hidingPriority={4}
+        />
+        <Column
+          dataField={'Task_Priority'}
+          caption={'Priority'}
+          name={'Priority'}
+          hidingPriority={1}
+        />
+        <Column
+          dataField={'Task_Completion'}
+          caption={'Completion'}
+          hidingPriority={0}
+        />
+      </DataGrid>
+    </React.Fragment>
+)}
+
+const dataSource = {
+  store: {
+    type: 'odata',
+    key: 'Task_ID',
+    url: 'https://js.devexpress.com/Demos/DevAV/odata/Tasks'
+  },
+  expand: 'ResponsibleEmployee',
+  select: [
+    'Task_ID',
+    'Task_Subject',
+    'Task_Start_Date',
+    'Task_Due_Date',
+    'Task_Status',
+    'Task_Priority',
+    'Task_Completion',
+    'ResponsibleEmployee/Employee_Full_Name'
+  ]
+};
+
+const priorities = [
+  { name: 'High', value: 4 },
+  { name: 'Urgent', value: 3 },
+  { name: 'Normal', value: 2 },
+  { name: 'Low', value: 1 }
+];
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\vehicles\vehicles.js
+
+import React, { useState, useEffect } from 'react';
+import './vehicles.scss';
+import Datagrid, { Paging, HeaderFilter, SearchPanel, Editing, FilterRow, Column, Lookup, Sorting, RequiredRule } from 'devextreme-react/data-grid';
+import CustomStore from 'devextreme/data/custom_store';
+import axios from "axios";
+import { getVehicleDataSource,getExpectedAvg
+         ,getManufacturers,getVehicleModels,
+         getSiteList ,getEmployeeList,getVehicleTypeList,getVehicleList} from '../../dataservice';
+ import ScrollView from 'devextreme-react/scroll-view';
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+export default  function Vehicles() 
+{ 
+    const [expectedAVG, setExpectedAVG] = useState([]);
+    const [manufacturers, setManufacturers] = useState([]);
+    const [vehicleModels, setVehicleModels] = useState([]);
+    const [site, setSite] = useState([]);
+    const [employee, setEmployee] = useState([]);
+    const [vehicleType, setVehicleType] = useState([]); 
+    const vehicleDataSource = getVehicleDataSource;
+
+    const [selectedSiteId, setSelectedSiteId] = useState(null);
+        const [selectedManufacturer, setSelectedManufacturer] = useState(null);
+  
+
+
+    useEffect(() => {
+
+        const fetchdata = async () => {
+            try{
+            const[ manufacturersResponse, 
+              vehicleModelsResponse ,
+              expectedAVGResponce ,
+               siteResponse,
+               employeeResponse  , vehicleTypeResponse] 
+               
+               = await Promise.all([
+                getManufacturers(),
+               getVehicleModels(),
+                getExpectedAvg(),
+                  getSiteList(),
+                  getEmployeeList(),
+                  getVehicleTypeList()
+            ]);
+              
+         setManufacturers(manufacturersResponse);
+            setVehicleModels(vehicleModelsResponse);
+            setExpectedAVG(expectedAVGResponce);
+              setSite(siteResponse);
+              setEmployee(employeeResponse);
+              setVehicleType(vehicleTypeResponse);
+        }
+        catch(error){
+            console.error('Error loading Support data:', error);
+            throw 'Data loading error'; 
+        };
+      }
+      
+      
+        fetchdata();
+      },[]);
+      
+
+
+
+
+
+
+//   const fetchFilteredExpectedAVGData = (options) => {
+  
+  
+//     if(options.data && options.data.vehicleId && options.data.workingSiteId)
+//     {
+   
+//         console.log("expectedAVG", expectedAVG);
+//         console.log("options.data", options.data);
+//         console.log("options.data.vehicleId", options.data.vehicleId);
+//         console.log("options.data.workingSiteId", options.data.workingSiteId);
+  
+        
+//         const filterData = expectedAVG.filter(item =>
+//              item.vehicleID === options.data.vehicleId && 
+//             item.siteId === options.data.workingSiteId);
+  
+//      console.log("Filtered Data:", filterData); 
+//         return filterData;
+       
+//     }else{
+//         console.log("Returning empty array expectedAVG",expectedAVG);
+//         return {store: expectedAVG};
+//     };
+  
+//   };
+
+  
+
+//   const getFilteredVehicleModels = (options) => {
+//     //console.log("Options.data:", options.data)
+//     if (options.data && options.data.vehicleManufacturerId) {
+
+//           console.log("Options.data.vehicleManufacturerId:", options.data.vehicleManufacturerId);
+
+//         const filteredModels = vehicleModels.filter(model => model.manufacturerId === options.data.vehicleManufacturerId);
+//        console.log("Filtered Models:", filteredModels);
+//         return {
+//             store: filteredModels,
+//         };
+//     } else {
+//         console.log("Vehicle Models:", vehicleModels);
+
+//         return {
+//             store: vehicleModels,
+//         };
+//     }
+// };
+//   function setExpectedAVGCellValue(rowData, value) {
+//     console.log("Row data:", rowData);
+//     //rowData.defaultExpectedAverageId = null;
+//     this.defaultSetCellValue(rowData, value);
+// };
+
+
+
+
+// function setManufacturersCellValue (rowData,value){
+//   console.log("Row data manu facturer:", rowData);
+
+//   rowData.vehicleModelId =null;
+//   this.defaultSetCellValue(rowData, value);
+// };
+
+
+const getFilteredExpectedAVG = (options) => {
+    if (options.data && options.data.vehicleId && options.data.workingSiteId) {
+        return expectedAVG.filter(item =>
+            item.vehicleID === options.data.vehicleId &&
+            item.siteId === options.data.workingSiteId
+        );
+    }
+    return expectedAVG;
+};
+const getFilteredVehicleModels = () => {
+    if (selectedManufacturer) {
+        return vehicleModels.filter(model => model.manufacturerId === selectedManufacturer);
+    }
+    return vehicleModels;
+};
+
+const handleSiteChange = (selectedRowKeys) => {
+    setSelectedSiteId(selectedRowKeys[0]);
+};
+
+const handleManufacturerChange = (selectedRowKeys) => {
+    setSelectedManufacturer(selectedRowKeys[0]);
+};
+
+   return(
+     <ScrollView className='view-wrapper-scroll'>
+    <h2 className={'content-block'}>Vehicles</h2>
+    <div className={'content-block'}>
+      <div className={'responsive-paddings'}>
+      <Datagrid
+                dataSource={getVehicleDataSource()}
+                showBorders={true}
+                allowColumnReordering={true}
+                allowColumnResizing={true}
+                columnAutoWidth={true}
+                rowAlernationEnable={true}        
+                repaintChangesOnly={true}>
+                <Paging enabled={true} defaultPageSize={30} />
+                
+
+                <FilterRow visible={true} />
+                <HeaderFilter visible={true} />
+                <Sorting mode="multiple" />
+                <Editing
+                    mode="row"
+                    allowUpdating={true}
+                    allowAdding={false}
+                    allowDeleting={false}
+                    selectTextOnEditStart={true}
+                    startEditAction="dblClick"
+                   
+                    />
+               
+                <Column dataField="vehicleId" caption="Vehicle ID" allowEditing={false} visible={false} defaultSortOrder="asc" />
+                <Column dataField="hyoungNo" fixed={true} caption="Hyoung No" allowEditing={false} width={100} />
+                <Column dataField="defaultExpectedAverageId"width={200} caption="Default Expected AVG" alignment="center"
+                >
+                    <Lookup
+                        // dataSource={useFilteredDataSource ? expectedAVGDatasource : loadExpectedAVGData}
+                        dataSource={getFilteredExpectedAVG}
+                        valueExpr="id"
+                        displayExpr="combinedExpectedAverage"
+
+                    />
+
+                </Column>
+                <Column dataField="workingSiteId" caption="Working Site"
+                  //  setCellValue={setExpectedAVGCellValue}
+                    width={230}
+
+                >
+                    <Lookup
+                        dataSource={site}
+                        valueExpr="id"
+                        displayExpr="name"
+                        onSelectionChanged={(selectedRowKeys) => handleSiteChange(selectedRowKeys)}
+
+                    />
+                </Column>
+                <Column dataField="averageKmL" caption="is km/l" width={100} />
+
+
+                <Column dataField="defaultEmployeeId" caption="Default Employee"
+                      width={230}  >
+                    <Lookup
+                    dataSource={employee} 
+                    valueExpr="id" 
+                    displayExpr="fullName" 
+                   
+                    />
+                </Column>
+
+                <Column dataField="vehicleTypeId"
+                    caption="Vehicle Type"
+                // editCellComponent = {VehicleTypeUIComponent}
+                >
+                    <Lookup
+                        dataSource={vehicleType}
+                        valueExpr="id"
+                        displayExpr="name" />
+                </Column>
+
+                <Column dataField="vehicleManufacturerId" 
+                caption="Vehicle Manufacturer"    
+             //   setCellValue = {setManufacturersCellValue}   
+                width={230}
+
+                >
+                    <Lookup
+                        dataSource={manufacturers}
+                        valueExpr="id"
+                        displayExpr="name"
+                       
+
+                    />
+                </Column>
+                <Column dataField="vehicleModelId" caption="Vehicle Model"       width={230}
+>
+
+                    <Lookup
+                        dataSource ={getFilteredVehicleModels}
+                        valueExpr="id"
+                        displayExpr="name"
+                    />
+                </Column>
+                <Column 
+                dataField="excessWorkingHrCost" 
+                caption="Excess Working Hr Cost" 
+                dataType="number"
+                setCellValue={(newData, value) => {
+                    // Enforce the number range 0 - 10000
+                    newData.excessWorkingHrCost = Math.max(0, Math.min(10000, Number(value)));
+                }}
+                
+                />
+
+
+
+            </Datagrid>      </div>
+    </div>
+  </ScrollView>
+
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reducers\authReducer.js
+
+const initialState = {
+    token: localStorage.getItem('token') || null,
+    isAuthenticated: null,
+    loading: true,
+    user: null
+};
+
+const authReducer = (state = initialState, action) => {
+    switch (action.type) {
+        case 'LOGIN_SUCCESS':
+            return {
+                ...state,
+                token: action.payload,
+                isAuthenticated: true,
+                loading: false,
+            };
+        case 'USER_LOADED':
+            return {
+                ...state,
+                isAuthenticated: true,
+                user: action.payload,
+                loading: false,
+            };
+        case 'LOGIN_FAILED':     
+        case 'LOGOUT':
+            return {
+                ...state,
+                isAuthenticated: false,
+                loading: false,
+                token: null,
+                user: null,
+            };
+        default:
+            return state;
+    }
+};
+
+export default authReducer; 
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reducers\permissionReducer.js
+
+const initialState = {
+    permissions: [],
+    loading: true,
+    error: null
+};
+
+const permissionReducer = (state = initialState, action) => {
+    switch (action.type) {
+        case 'GET_PERMISSIONS_SUCCESS':
+            return {
+                ...state,
+                permissions: action.payload,
+                loading: false,
+                error: null
+            };
+        case 'GET_PERMISSIONS_FAILURE':
+            return {
+                ...state,
+                loading: false,
+                error: action.payload
+            };
+            default:
+                return state;
+    }
+};
+
+export default permissionReducer;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reducers\roleReducer.js
+
+const initialState ={
+    roles: [],
+    loading: false,
+    error: null
+};
+
+const roleReducer = (state = initialState, action) => {
+    switch (action.type) {      
+        case 'GET_ROLES_SUCCESS':
+            return {
+                ...state,
+                loading: false,
+                roles: action.payload
+            };
+        case 'GET_ROLES_FAILURE':
+        case 'ASSIGN_PERMISSIONS_FAILURE':
+            return {
+                ...state,
+                loading: false,
+                error: action.payload
+            };
+        case  'ASSIGN_PERMISSIONS_SUCCESS':
+            return {
+                ...state,
+                roles:state.roles.map((role) =>
+                 role.id === action.payload.roleId ? 
+                 { ...role, permissions: action.payload.permissionIds } 
+                 : role),
+                loading: false,
+            };
+            default:
+                return state;
+    }
+};
+
+export default roleReducer;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reducers\roleSlice.js
+
+import { createSlice } from "@reduxjs/toolkit";
+
+const roleSlice = createSlice({
+  name: "role",
+  initialState: {
+    roles: [],
+    selectedRole: null
+  },
+  reducers: {
+    setRoles: (state, action) => {
+      state.roles = action.payload;
+      state.selectedRole = action.payload.length > 0 ? action.payload[0] : null;
+    },
+    setSelectedRole: (state, action) => {
+      state.selectedRole = action.payload;
+    }
+  }
+});
+
+export const { setRoles, setSelectedRole } = roleSlice.actions;
+
+export default roleSlice.reducer;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumption.js
+
+import { DxReportViewer } from "devexpress-reporting/dx-webdocumentviewer";
+import { useEffect, useRef } from "react";
+import * as ko from 'knockout';
+
+const vehicleConsumption = () => {
+}
+
+export default vehicleConsumption;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionDetails\vehicleConsumptionDetails.js
+
+import React, { useCallback, useEffect,useState } from "react";
+import { useParams  } from 'react-router-dom';
+import { Toolbar, Item as ToolbarItem } from 'devextreme-react/toolbar';
+import Button from 'devextreme-react/button';
+import ValidationGroup from 'devextreme-react/validation-group';
+import DropDownButton, { Item as DropDownItem } from 'devextreme-react/drop-down-button';
+import TabPanel, { Item as TabPanelItem } from 'devextreme-react/tab-panel';
+import {VehicleConsumptionChartDetail,
+        VehicleConsumptionHistoryDetails,
+        VehicleConsumptionMapDetails,
+        } from '../../components';
+        import { getConsumptionById } from '../../dataservice';
+        
+//show form and load history data + map details 
+const VehicleConsumptionDetails= () => {
+  const { id } = useParams();
+    const [consumptionData, setConsumptionData] = useState(null);
+   
+
+    useEffect(() => {
+     
+      const fetchData = async () => {
+        try {
+          const data = await getConsumptionById(id);
+          setConsumptionData(data);
+        } catch (error) {
+          console.error('Error fetching consumption data:', error);
+        }
+      };
+  
+      fetchData();
+      console.log("consumptionData",consumptionData);
+    }, [id]);
+
+
+    if (!consumptionData) {
+      return <div>Loading...</div>;
+    }
+
+return (
+  <React.Fragment>
+    <div className="">
+  <Toolbar className='toolbar-details theme-dependent'>
+  <ToolbarItem location='before'>
+            <Button icon='arrowleft' stylingMode='text' />
+    </ToolbarItem>
+
+    <ToolbarItem location='after' locateInMenu='auto'>
+    <DropDownButton text='Actions' stylingMode='text' dropDownOptions={{ width: 'auto' }}>
+    <DropDownItem text='Request Project Admin assistance' />
+    <DropDownItem text='Seek Approval' />
+
+   </DropDownButton>
+     </ToolbarItem>
+   
+  </Toolbar>
+        <div className='content content-block'>
+        <div className='responsive-paddings dx-card '>
+        <ValidationGroup>
+        {/* <VehicleConsumptionFormDetails editData ={consumptionData}/> */}
+
+       </ValidationGroup>
+            </div>
+
+<div className='content content-block'>
+<div className='dx-card details-card'>
+        <TabPanel
+        height={'auto'}
+         showNavButtons
+         focusStateEnabled={false}
+         deferRendering={false}>
+            
+            <TabPanelItem title="chart " >
+            <VehicleConsumptionChartDetail
+                   vehicleId={consumptionData.vehicleId}
+                  date={consumptionData.date}/>
+            </TabPanelItem>
+
+            <TabPanelItem title="History ">
+            <VehicleConsumptionHistoryDetails 
+            vehicleId={consumptionData.vehicleId}
+            startDate={consumptionData.date} />
+            </TabPanelItem>
+
+            <TabPanelItem title="Map ">
+         <VehicleConsumptionMapDetails
+      vehicleID={consumptionData.vehicleId}
+      startDate={consumptionData.date}
+           />
+            </TabPanelItem>
+            <TabPanelItem title="Device Tracker">
+              </TabPanelItem>
+
+        </TabPanel>
+    </div>
+   </div>
+    </div>
+    </div>
+    </React.Fragment>
+);
+
+
+
+
+};
+export default VehicleConsumptionDetails;
+
+
+
+
+
+
+
+// Suggestions for Improvement
+
+//     Error Handling: Enhance user experience by implementing a more robust error-handling strategy. Display error messages directly on the UI to inform users when data cannot be fetched.
+
+//     Loading State: Consider improving the loading state presentation. For instance, use a spinner or a more visually appealing component instead of a simple text message.
+
+//     Accessibility and Navigation:
+//         Ensure that the back button in the toolbar is functional. It appears to be a static button with no action bound to it. You might want to add an onClick handler to navigate back or use history from react-router-dom.
+//         The TabPanel component's accessibility can be enhanced by ensuring all interactive elements are keyboard accessible and have appropriate ARIA labels.
+
+//     Performance Optimization:
+//         The deferRendering prop on the TabPanel is set to false, which means all tabs are rendered immediately. If the tabs contain complex and heavy components, consider setting deferRendering to true to lazy-load tab contents only when they are activated.
+
+//     Code Organization: Consider separating the components into smaller subcomponents if the logic or markup becomes too complex, improving maintainability and readability.
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionList\vehicleConsumptionList.js
+
+import React, { useState, useEffect, useRef } from 'react';
+import DataGrid, { Column, Paging, Export, FilterRow, Sorting, ColumnChooser, ColumnFixing, Editing, Popup, Lookup } from 'devextreme-react/data-grid';
+import axios from "axios";
+import CustomStore from 'devextreme/data/custom_store';
+import { HeaderFilter } from 'devextreme-react/pivot-grid-field-chooser';
+import sampleData from '../../dataservice/sampleconsumptiondata';
+import DateBox from 'devextreme-react/date-box';
+import Button from 'devextreme-react/button';
+import LoadPanel from 'devextreme-react/load-panel';
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+import './vehicleConsumption.scss';
+import { VehicleConsumptionGridList } from '../../components';
+import ScrollView from 'devextreme-react/scroll-view';
+import { getConsumptionList } from '../../dataservice';
+import { NumberBox } from 'devextreme-react/number-box';
+
+
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+const VehicleConsumptionList = () => {
+  const [consumptionData, setConsumptionData] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [pagingNo, setPagingNo] = useState(100); // Set the initial paging size to 100
+    const gridRef = useRef(null);
+
+
+    const handlePagingNoChange = (e) => {
+      setPagingNo(e.value);
+      //set consumptiondata to be empty
+
+    };
+
+  const fetchData = async (pagingNo) => {
+    setLoading(true);
+    const consumptionData = await getConsumptionList(pagingNo);
+    console.log("consumptionData",consumptionData);
+    setConsumptionData(consumptionData);
+    setLoading(false);
+   // setConsumptionData(sampleData);
+    //console.log("sample data", consumptionData);
+  };
+
+  useEffect(() => {
+    fetchData(pagingNo);
+  }, [pagingNo]);
+
+  return (
+    <React.Fragment>
+      <ScrollView className='view-wrapper-scroll'>
+      <div className='view-wrapper view-wrapper-list'>
+      <Toolbar className='toolbar-common theme-dependent'>
+          <Item location='before'>
+            <span className='toolbar-header'>Vehicle Consumption</span>
+          </Item>
+          <Item location='after'>
+            <div className='date-container'>
+           
+              <span className='label'>Generate data From GPSGate</span>
+              <DateBox
+                className='date-box'
+                width={200}
+                defaultValue="select date"
+                value={selectedDate}
+                onValueChanged={e => setSelectedDate(e.value)}
+                displayFormat="dd-MM-yyyy"
+                type="date"
+              />
+
+              <span className='label'>View historical data</span>
+              <DateBox
+                className='date-box'
+                width={200}
+                defaultValue="select date"
+                value={selectedDate}
+                onValueChanged={e => setSelectedDate(e.value)}
+                displayFormat="dd-MM-yyyy"
+                type="date"
+              />
+            </div>
+          </Item>
+          <Item location='after'>
+    {/* ... */}
+    <span className='label'>Paging Size:</span>
+    <NumberBox
+      value={pagingNo}
+      onValueChanged={handlePagingNoChange}
+      min= {5}
+      step={50}
+    />
+  </Item>
+        </Toolbar>
+
+
+        <LoadPanel container='.content' showPane={false} visible={loading} position={{ of: '.content' }} />
+        <div className='content content-block'>
+<VehicleConsumptionGridList dataSource={consumptionData} pagingNo={pagingNo} />        </div>
+      </div>
+      </ScrollView>
+      </React.Fragment>  );
+};
+
+export default VehicleConsumptionList;
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\consumptionDataGridRules.js
+
+const consumptionDataGridRules = [
+    {
+      condition: (rowData) => rowData.fuelLost > 0,
+      rowClassName: 'highlight-red',
+    },
+    {
+      condition: (rowData) => rowData.engineHours > 10,
+      rowClassName: 'highlight-red',
+    },
+    {
+      condition: (rowData) => rowData.isKmPerLiter && rowData.distance === 0 && rowData.fuelUsed > 0,
+      rowClassName: 'highlight-yellow',
+    },
+    {
+      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours === 0 && rowData.fuelUsed > 0,
+      rowClassName: 'highlight-yellow',
+    },
+    {
+      condition: (rowData) => rowData.isKmPerLiter && rowData.distance > 10 && rowData.fuelUsed === 0,
+      rowClassName: 'highlight-blue',
+    },
+    {
+      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours > 0.5 && rowData.fuelUsed === 0,
+      rowClassName: 'highlight-blue',
+    },
+  ];
+  
+  export default consumptionDataGridRules;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\default-user.js
+
+export default {
+  email: 'Kevin.kagiri@gmail.com',
+  avatarUrl: ''
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\media-query.js
+
+import { useState, useCallback, useEffect } from 'react';
+
+
+export const useScreenSize = () => {
+  const [screenSize, setScreenSize] = useState(getScreenSize());
+  const onSizeChanged = useCallback(() => {
+    setScreenSize(getScreenSize());
+  }, []);
+
+  useEffect(() => {
+    subscribe(onSizeChanged);
+
+    return () => {
+      unsubscribe(onSizeChanged);
+    };
+  }, [onSizeChanged]);
+
+  return screenSize;
+};
+
+export const useScreenSizeClass = () => {
+  const screenSize = useScreenSize();
+
+  if (screenSize.isLarge) {
+    return 'screen-large';
+  }
+
+  if (screenSize.isMedium) {
+    return 'screen-medium';
+  }
+
+  if (screenSize.isSmall) {
+    return 'screen-small';
+  }
+
+  return 'screen-x-small';
+}
+
+let handlers = [];
+const xSmallMedia = window.matchMedia('(max-width: 599.99px)');
+const smallMedia = window.matchMedia('(min-width: 600px) and (max-width: 959.99px)');
+const mediumMedia = window.matchMedia('(min-width: 960px) and (max-width: 1279.99px)');
+const largeMedia = window.matchMedia('(min-width: 1280px)');
+
+[xSmallMedia, smallMedia, mediumMedia, largeMedia].forEach(media => {
+  media.addListener((e) => {
+    e.matches && handlers.forEach(handler => handler());
+  });
+});
+
+const subscribe = (handler) => handlers.push(handler);
+
+const unsubscribe = (handler) => {
+  handlers = handlers.filter(item => item !== handler);
+};
+
+function getScreenSize() {
+  return {
+    isXSmall: xSmallMedia.matches,
+    isSmall: smallMedia.matches,
+    isMedium: mediumMedia.matches,
+    isLarge: largeMedia.matches
+  };
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\patches.js
+
+import { useState, useCallback } from 'react';
+import { useScreenSize } from './media-query';
+
+export function useMenuPatch() {
+  const { isSmall, isMedium } = useScreenSize();
+  const [enabled, setEnabled] = useState(isSmall || isMedium);
+  const onMenuReady = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
+
+    setTimeout(() => setEnabled(false));
+  }, [enabled]);
+
+  return [enabled ? 'pre-init-blink-fix' : '', onMenuReady];
+}
+
+

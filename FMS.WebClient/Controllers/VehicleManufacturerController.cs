@@ -1,4 +1,4 @@
-﻿using FMS.Application.Queries.Database.VehicleManufacturer;
+﻿using FMS.Application.Queries.Database.FMSQuery.VehicleManufacturer;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

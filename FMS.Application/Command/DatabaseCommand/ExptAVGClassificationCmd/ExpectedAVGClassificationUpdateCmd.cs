@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using FMS.Application.Common;
-using FMS.Application.Models;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -19,6 +18,8 @@ namespace FMS.Application.Command.DatabaseCommand.ExptAVGClassification
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+
+        public bool IskmperLiter { get; set; }
 
     }
 
@@ -44,6 +45,7 @@ namespace FMS.Application.Command.DatabaseCommand.ExptAVGClassification
 
             entity.Name = request.Name;
             entity.Description = request.Description;
+            entity.IskmperLiter= request.IskmperLiter ? (sbyte)1:(sbyte)0;
             _context.Expectedaverageclassifications.Update(entity);
             await _context.SaveChangesAsync(cancellationToken);
 

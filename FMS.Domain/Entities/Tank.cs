@@ -13,8 +13,16 @@ public partial class Tank
 
     public decimal TankHeight { get; set; }
 
-    public virtual ICollection<Pts> Pts { get; set; } = new List<Pts>();
+    public decimal TankLength { get; set; }
+    public int? PtsId { get; set; }
 
-    public virtual ICollection<PtsTank> PtsTanks { get; set; } = new List<PtsTank>();
-    public virtual ICollection<Tankmeasurement> Tankmeasurements { get; set; } = new List<Tankmeasurement>();
+    public int? SiteId { get; set; }
+
+    public virtual Ptsdevice PtsDevice { get; set; } = null!;
+
+    public virtual Site Site { get; set; } = null!;
+
+    public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
+
+    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
 }

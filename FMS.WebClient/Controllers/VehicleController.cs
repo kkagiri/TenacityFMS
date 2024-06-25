@@ -1,10 +1,11 @@
 ﻿using AutoMapper;
-using FMS.Application.Command.DatabaseCommand.UpdateVehicle;
-using FMS.Application.Models;
-using FMS.Application.Queries.Database.VehicleQuery;
+using AutoMapper.Configuration.Annotations;
+using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.Domain.Entities;
 using FMS.WebClient.Models.DatabaseViewModel.VehicleViewModel;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Newtonsoft.Json;
@@ -25,6 +26,7 @@ namespace FMS.WebClient.Controllers
             _mapper = mapper;
         }
 
+
         [HttpGet("getlist")]
         public async Task<IActionResult> GetVehicleList()
         {
@@ -36,6 +38,24 @@ namespace FMS.WebClient.Controllers
 
         }
 
+
+        [HttpGet("getVehicleById")]
+        public async Task<IActionResult> GetVehicleByID(int id)
+        {
+            
+            var query = new GetVehicleByIDQuery { Id = id };
+
+            var vehicle = await _mediator.Send(query);
+
+            if (vehicle == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(vehicle);
+        }
+
+
         [HttpGet("getsimplevehiclelist")]
         public async Task<IActionResult> GetSimpleVehicleList()
         {
@@ -43,6 +63,9 @@ namespace FMS.WebClient.Controllers
             var vehicles = await _mediator.Send(query);
             return Ok(vehicles);
         }
+
+
+        [Authorize(Policy = "RequirePowerUserRole")]
 
         [HttpPut("UpdateVehicle/{vehicleId}")]
         public async Task<IActionResult> UpdateVehicle(int vehicleId, [FromBody] VehicleViewModel model)

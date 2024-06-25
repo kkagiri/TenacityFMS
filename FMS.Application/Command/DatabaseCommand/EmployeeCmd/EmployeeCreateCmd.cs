@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
-using FMS.Application.Models.Employee;
-using FMS.Application.Models.Vehicle;
+using FMS.Application.ModelsDTOs.FMS.Employee;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;

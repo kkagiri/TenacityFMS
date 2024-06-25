@@ -1,4 +1,4 @@
-﻿using FMS.Application.Models;
+﻿using FMS.Application.ModelsDTOs.FMS;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Auth;
 using MediatR;

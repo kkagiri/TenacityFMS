@@ -1,0 +1,517 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import DataGrid, { Paging,
+          HeaderFilter, SearchPanel, Toolbar, Item as TItems,
+          Editing, FilterRow, Column, Lookup, Sorting, RequiredRule ,
+          Form,Popup
+         } from 'devextreme-react/data-grid';
+import Button from 'devextreme-react/button';
+import notify from 'devextreme/ui/notify';
+import FormPopup from '../../components/FormPopup/formPopup';
+import ManualFuelRefillForm from '../../components/FormPopup/ManualRefilForm';
+import 'devextreme-react/text-area';
+import 'devextreme-react/select-box';
+import LoadIndicator from 'devextreme-react/load-indicator';
+
+import {fetchVehicleList} from '../../actions/vehicleActions';
+import {fetchEmployeeList} from '../../actions/employeeActions';
+import {fetchSiteList} from '../../actions/siteActions';
+import { fetchTanks} from '../../actions/tankActions';
+import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../actions/fuelRefillAction';
+
+import { UsersApi } from '../../api/gpsgate';
+import  createApiClient from '../../api/gpsgateAPIClient';
+
+import { Item as FItem } from 'devextreme-react/form';
+import { fetchpermissionbyUserId } from '../../actions/permissionActions';
+
+export default function Fuelrefil() {
+    const vehicles = useSelector((state) => state.vehicle.vehicles);
+    const employees = useSelector((state) => state.employee.employees);
+    const sites= useSelector((state) => state.site.sites);
+   const user = useSelector((state) => state.auth.user);
+   const tanks = useSelector((state) => state.tank.tanks);
+   const [filteredTanks, setFilteredTanks] = useState([]);
+    const [formVisible, setFormVisible] = useState(false);
+    const [loading, setLoading] = useState(false); 
+    const [saving, setSaving] = useState(false);
+    const [fuelLevel, setFuelLevel] = useState(null);
+    const gridRef = useRef(null);
+    const dispatch = useDispatch();
+    const fuelRefills = useSelector(state => state.fuelRefill.fuelRefills);
+    const permissions = useSelector((state) => state.permission.permissions);
+    const [noTanksAvailable, setNoTanksAvailable] = useState(false);
+    const [formData, setFormData] = useState({
+        vehicleId: null,
+        manualFuelrefilAmount: null,
+        previousMeterReading: null,
+        currentMeterReading: null,
+        date: new Date().toISOString(),
+        siteId: null,
+        comment: '',
+        driverId: null,
+        transactionId: null,
+        fuelBy: user.userName,
+        tankId: null
+    });
+
+    const validateRow = (data) => {
+        console.log("data",data)
+        const previousMeterReadingProvided = data.previousMeterReading !== null && data.previousMeterReading !== undefined && data.previousMeterReading !== ''; // chatgptcomment
+        const currentMeterReadingProvided = data.currentMeterReading !== null && data.currentMeterReading !== undefined && data.currentMeterReading !== ''; // chatgptcomment
+    
+        // Validate meter readings if both are provided
+        if (previousMeterReadingProvided && currentMeterReadingProvided) {
+            if (data.previousMeterReading >= data.currentMeterReading) {
+                return { isValid: false, message: "Previous meter reading cannot be greater than or equal to current meter reading." };
+            }
+            if ((data.currentMeterReading - data.previousMeterReading) > 5000) {
+                return { isValid: false, message: "Difference between readings cannot be more than 5000. Check " };
+            }
+        }
+    
+        // Validate that comment is provided if both meter readings are empty
+        if (!previousMeterReadingProvided && !currentMeterReadingProvided && !data.comment) {
+            return { isValid: false, message: "Comment cannot be empty if meter readings are empty." };
+        }
+
+        if (!data.siteId) {
+            return { isValid: false, message: "Please select a site." };
+        }
+    
+       
+        if (new Date(data.date) > new Date()) {
+            return { isValid: false, message: "Date cannot be in the future." };
+        }
+        return { isValid: true };
+    };
+    const fetchData = useCallback(async () => {
+        try {
+            
+             dispatch(fetchFuelRefills());
+             dispatch(fetchVehicleList());
+             dispatch(fetchEmployeeList());
+             dispatch(fetchSiteList());
+             dispatch(fetchpermissionbyUserId(user.id));
+             dispatch(fetchTanks());
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    // const fetchGPSliveData = async () => {
+    //     try{
+    //         const apiClient = createApiClient();
+    //         const usersApi = new UsersApi(apiClient);
+    //         usersApi.getStatus(12,formData.vehicleId,(error,data)=>{
+    //             if(error)
+    //             {
+    //                 notify('Cannot Fetch GPS data','error',3000);
+    //                  setFuelLevel(null);
+    //             }else
+    //             {
+    //                 const fueldata = data.variables.find(v => v.name === 'Fuel Level');
+    //                 setFuelLevel(fueldata? fueldata.value : null);
+    //             }
+
+    //         });
+    //     }
+    //         catch(error)
+    //         {
+    //            console.log('Error fetching GPS data:',error);
+    //            notify('Cannot Fetch GPS data','error',3000);
+    //         }
+    
+    //     };
+   
+    const onSaving = async (e) => {
+        if (e.changes.length > 0) {
+            const change = e.changes[0];
+            const updatedData = { ...formData, ...change.data };
+             console.log("updatedData",updatedData)
+            const validation = validateRow(updatedData);
+            setSaving(true);
+            setLoading(true);
+    
+            if (!validation.isValid) {
+                e.cancel = true;
+                notify(validation.message, 'error', 3000);
+                setLoading(false);
+                setSaving(false);
+                return;
+            }
+    
+            try {
+                const formattedData = {
+                    ...updatedData,
+                    date: new Date(updatedData.date).toISOString(),
+                    transactionId: updatedData.transactionId || null,
+                    fuelBy: updatedData.fuelBy || user.userName,
+                    siteId: updatedData.siteId,
+                    tankId: updatedData.tankId
+                };
+    
+                if (change.type === 'insert') {
+                    await dispatch(createFuelRefill(formattedData));
+                    notify('Manual fuel refill created successfully.', 'success', 3000);
+                } else if (change.type === 'update') {
+                    await dispatch(updateFuelRefill(change.key, formattedData));
+                    notify('Manual fuel refill updated successfully.', 'success', 3000);
+                }
+                dispatch(fetchFuelRefills());
+                e.component.refresh();
+            } catch (error) {
+                e.cancel = true;
+                const errorMessage = error.response?.data?.message || 'Error creating/updating manual fuel refill.';
+                notify(errorMessage, 'error', 3000);
+            } finally {
+                setSaving(false);
+                setLoading(false);
+            }
+        }
+    };
+
+    const onRowInserted = useCallback(async (e) => {
+        setSaving(true);
+        const validation = validateRow(e.data);
+        if (!validation.isValid) {
+            console.log("e",e)
+            e.cancel = true; 
+            e.isValid = false;
+            notify(validation.message, 'error', 3000);
+            setFormVisible(true); 
+        }
+        try {
+            const formattedData = {
+                ...e.data,
+                date: new Date(e.data.date).toISOString(), // Ensure date is in ISO format
+                transactionId: e.data.transactionId || null, // Handle nullable fields
+                fuelBy: e.data.fuelBy || null, // Ensure required fields have default values if necessary
+            };
+            await dispatch(createFuelRefill(formattedData));
+            notify('Manual fuel refill created successfully.', 'success', 3000);
+            setSaving(false);
+        } catch (error) {
+            e.cancel = true;
+            const errorMessage = error.response?.data?.message || 'Error creating manual fuel refill.';
+            notify(errorMessage, 'error', 3000);
+            setSaving(false);
+        }
+    }, [dispatch]);
+
+    const onRowRemoved = useCallback(async (e) => {
+        try {
+            setSaving(true);
+            await dispatch(deleteFuelRefill(e.key));
+            notify('Manual fuel refill deleted successfully.', 'success', 3000);
+            setSaving(false);
+
+        } catch (error) {
+            console.error('Error deleting manual fuel refill:', error);
+            notify('Error deleting manual fuel refill.', 'error', 3000);
+           setSaving(false);
+        }
+    }, [dispatch]);
+
+    const onRowUpdated = useCallback(async (e) => {
+        setSaving(true);
+        const validation = validateRow(e.data);
+        if (!validation.isValid) {
+            e.cancel = true;
+            notify(validation.message, 'error', 3000);
+            return;
+        }
+        try {
+            const formattedData = {
+                ...e.data,
+                date: new Date(e.data.date).toISOString(), // Ensure date is in ISO format
+                transactionId: e.data.transactionId || null, // Handle nullable fields
+                fuelBy: e.data.fuelBy || "Unknown", // Ensure required fields have default values if necessary
+            };
+            await dispatch(updateFuelRefill(e.key, formattedData));
+            notify('Manual fuel refill updated successfully.', 'success', 3000);
+            setSaving(false);
+        } catch (error) {
+            console.error('Error updating manual fuel refill:', error);
+            setSaving(false);
+        }
+    }, [ dispatch]);
+
+    // const handleFormSave = async () => {
+    //     const validation = validateRow(formData);
+    //     if (!validation.isValid) {
+    //        notify(validation.message, 'error', 3000);
+    //         return;
+    //     }
+    //     try {
+    //         await dispatch(createFuelRefill(formData));
+    //        notify('Manual fuel refill created successfully.', 'success', 3000);
+    //         closeForm();
+    //     } catch (error) {
+    //         console.error('Error creating manual fuel refill:', error);
+    //         notify('Error creating manual fuel refill.', 'error', 3000);
+    //     }
+    // };
+
+//     const openForm = () => {
+//         setFormVisible(true);
+//     };
+
+//     const closeForm = () => {
+//         setFormVisible(false);
+//     };
+//    const handleFormDataChange = (newData) => {
+//         setFormData(newData);
+//     };
+
+    const addRow = () => {
+         gridRef.current.instance.addRow();
+    };
+
+    const refresh = useCallback(() => {
+        setFormVisible(true);
+        gridRef.current?.instance.refresh();
+    }, []);
+
+    const handleFieldChange = (e) => {
+        const { dataField, value } = e;
+        setFormData(prevData => ({
+            ...prevData,
+            [dataField]: value
+        }));
+    };
+
+    const handleSiteChange = (e) => {
+        const selectedSiteId = e.value;
+
+        setFormData(prevData => ({
+            ...prevData,
+            siteId: selectedSiteId,
+            tankId: null // Reset tank when site changes
+        }));  
+        const tanksForSite = tanks.filter(tank => tank.siteId === selectedSiteId);
+        setFilteredTanks(tanksForSite);
+        setNoTanksAvailable(tanksForSite.length === 0);
+    };
+    
+    
+const handleTankChange = (e) => {
+    const selectedTankId = e.value;
+    setFormData(prevData => ({
+        ...prevData,
+        tankId: selectedTankId
+    }));
+};
+    
+    const onEditorPreparing = (e) => {
+        if (e.parentType === 'dataRow' && e.dataField === 'tankId') {
+          const isSiteNotSet = e.row.data.siteId === undefined;
+          e.editorOptions.disabled = isSiteNotSet;
+        }
+      };
+      const getFilteredTanks = (options) => ({
+        store: tanks,
+        filter: options.data ? ['siteId', '=', options.data.siteId] : null,
+    });
+      const setSiteValue = (rowData, value) => {
+        rowData.tankId = null; // Reset the tankId when siteId changes
+        rowData.siteId = value;
+    };
+    
+ 
+
+    // Define the flags for edit and delete permissions
+    const canEdit = permissions.includes('_editFuelRefill');
+    const canDelete = permissions.includes('_deleteFuelRefill');
+    const canCreate = permissions.includes('_createFuelRefill');
+
+    if (loading || saving) {
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+          </div>
+        );
+    }
+
+    return (
+        <div>
+            <h2 className={'content-block'}>Manual Fuel Refill</h2>
+            <div className={'content-block'}>
+                <DataGrid
+                    ref={gridRef}
+                    dataSource={fuelRefills}
+                    showBorders={true}
+                    keyExpr={'id'}
+                    allowColumnReordering={true}
+                    allowColumnResizing={true}
+                    columnAutoWidth={true}
+                    rowAlernationEnable={true}
+                    repaintChangesOnly={true}
+                    // onRowInserted={onRowInserted}
+                    // onRowUpdated={onRowUpdated}
+                    onRowRemoved={onRowRemoved}
+                    onSaving={onSaving}
+                    onEditorPreparing={onEditorPreparing}
+
+
+                >
+                    <Paging enabled={true} defaultPageSize={30} />
+                        <FilterRow visible={true} />
+                   
+                    <SearchPanel visible placeholder='Data Search' />
+                    <Sorting mode="multiple" />
+                    <Editing
+                        mode="popup"
+                        allowUpdating={canEdit}
+                        allowAdding={true}
+                        allowDeleting={canDelete}
+                        selectTextOnEditStart={true}
+                        startEditAction="dblClick"
+                        newRowPosition={'first'}
+
+                    >
+                     <Popup title="Add Fuel Refill"  showTitle={true} width={800} />
+
+                    
+                     <Form  formData={formData}    onFieldDataChanged={handleFieldChange}  >
+   
+                           
+                            <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
+                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'datetime' }}>
+                                    <RequiredRule />
+                                </FItem>
+                                <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
+                                    <RequiredRule />
+                                </FItem>
+                                <FItem dataField={'driverId'} editorType={'dxSelectBox'} editorOptions={{ dataSource: employees, valueExpr: 'id', displayExpr: 'fullName' }}>
+                                    <RequiredRule />
+                                </FItem>
+                                <FItem dataField="siteId" editorType="dxSelectBox" editorOptions={{ 
+                                    dataSource: sites, 
+                                    valueExpr: 'id',
+                                     displayExpr: 'name',
+                                    onValueChanged: handleSiteChange,
+                                    value: formData.siteId                                    
+                                }}>
+                                </FItem>
+                            </FItem>
+                            <FItem itemType={'group'} caption={'Meter Readings'} colCount={2} colSpan={2}>
+                                <FItem dataField="previousMeterReading" editorType="dxNumberBox" />
+                                <FItem dataField="currentMeterReading" editorType="dxNumberBox" />
+                                <FItem dataField="manualFuelrefilAmount" editorType="dxNumberBox">
+                                    <RequiredRule />
+                                </FItem>
+                            </FItem>
+                            <FItem dataField="comment" editorType="dxTextArea" editorOptions={{ height: 100 }} colSpan={2} />
+                            <FItem itemType={'group'} caption={'Integration'} colCount={2} colSpan={2}>
+                                <FItem dataField="tankId"
+                                 caption={'Tank Used'} editorType={'dxSelectBox'}
+                                    editorOptions={{
+                                        dataSource: filteredTanks, // chatgptcomment
+                                        valueExpr: 'id',
+                                        displayExpr: 'name',
+                                        disabled: filteredTanks.length === 0, // chatgptcomment
+                                        placeholder: noTanksAvailable ? "No tank. Inquire from Admin" : "Select a tank",
+                                        noDataText: "No tank. Inquire from Admin",
+                                       // onValueChanged: handleTankChange, // chatgptcomment
+                                        value: formData.tankId // chatgptcomment
+                                    }}>
+                                    <RequiredRule />
+                                    </FItem>
+                                <FItem dataField="fuelBy" editorType="dxTextBox" disabled ={true} value={user.userName}>
+                                </FItem>
+                            </FItem>
+                        </Form>
+                    </Editing>
+                    <Toolbar>
+                        <TItems location='before' locateInMenu='auto'>
+                            <Button
+                                icon='plus'
+                                text='Add Fuel Refill'
+                                type='default'
+                                stylingMode='contained'
+                                onClick={addRow}
+                                visible ={canCreate}
+                            />
+                        </TItems>
+                        <TItems
+                            location='after'
+                            locateInMenu='auto'
+                            showText='inMenu'
+                            widget='dxButton'
+                        >
+                            <Button
+                                icon='refresh'
+                                text='Refresh'
+                                stylingMode='text'
+                                onClick={refresh}
+                            />
+                        </TItems>
+
+                        <TItems location='after' locateInMenu='auto'>
+                            <div className='separator' />
+                        </TItems>
+                        <TItems name='searchPanel' locateInMenu='auto' />
+                    </Toolbar> 
+                    <Column dataField="date" caption="Date" dataType="datetime" defaultValue={new Date().toISOString()}/>
+              
+                    <Column dataField="vehicleId" caption="Vehicle">
+                        <Lookup
+                            dataSource={vehicles}
+                            valueExpr="vehicleId"
+                            displayExpr="hyoungNo" // Adjust the field name based on your vehicle data
+                        />
+
+                    </Column>
+
+                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" >       
+                    </Column>
+                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" >       
+                    </Column>
+                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" >       
+                    </Column>
+                    <Column dataField="driverId" caption="Driver">
+                        <Lookup
+                            dataSource={employees}
+                            valueExpr="id"
+                            displayExpr="fullName"
+                        />
+                        </Column>
+
+                  
+                    <Column dataField="siteId" caption="Site" >
+                        <Lookup
+                            dataSource={sites}
+                            valueExpr="id"
+                            displayExpr="name"
+                        />
+
+                    </Column>
+                    <Column dataField="comment" caption="Comment" />
+                </DataGrid>
+                {/* {formVisible && (
+                <FormPopup
+                    title="Add Fuel Refill"
+                    visible={formVisible}
+                    setVisible={setFormVisible}
+                    onSave={handleFormSave}
+                    width={800}
+                   
+                >
+                    <ManualFuelRefillForm
+                        initData={formData}
+                        onDataChanged={handleFormDataChange}
+                    />
+                </FormPopup>
+            )} */}
+            </div>
+            
+        </div>
+    );
+
+}

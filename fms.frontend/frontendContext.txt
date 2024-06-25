@@ -1,0 +1,2859 @@
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-info.js
+
+const appInfo = {
+    title: 'Hyoung FMS'
+};
+export default appInfo;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-navigation.js
+
+export const navigation = [
+  {
+    text: 'Home',
+    path: '/home',
+    icon: 'home'
+  },
+  {
+    text: 'Vehicles',
+    path: '/vehicles',
+    icon: 'car'
+  }
+  ,
+  
+   {
+    text: 'Reports',
+    path: '',
+    icon: 'chart',
+    items: [
+      {
+        text: 'Vehicle Consumption',
+        path: '/vehicleConsumption',
+        icon: ''
+      }
+    ]
+  }
+  ];
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-routes.js
+
+import { HomePage, Vehicles } from './pages';
+import { withNavigationWatcher } from './contexts/navigation';
+import vehicleConsumption from './report/vehicleConsumptionList/vehicleConsumptionList';
+import VehicleConsumptionDetails from './report/vehicleConsumptionDetails/vehicleConsumptionDetails';
+
+const routes = [
+   
+    {
+        path: '/home',
+        element: HomePage
+    }, 
+  {
+    path: '/vehicles',
+    element: Vehicles
+  }
+  ,
+  {
+    path: '/vehicleConsumption',
+    element: vehicleConsumption
+  },
+  {
+    path: '/vehicleConsumptionDetails/:id',
+    element: VehicleConsumptionDetails
+  }
+        
+];
+
+export default routes.map(route => {
+    return {
+        ...route,
+        element: withNavigationWatcher(route.element, route.path)
+    };
+});
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\App.js
+
+import 'devextreme/dist/css/dx.common.css';
+import './themes/generated/theme.base.css';
+import './themes/generated/dx.fluent.custom-scheme1.css';
+import './themes/generated/theme.additional.css';
+import React from 'react';
+import { HashRouter as Router } from 'react-router-dom';
+import './dx-styles.scss';
+import LoadPanel from 'devextreme-react/load-panel';
+import { NavigationProvider } from './contexts/navigation';
+import { AuthProvider, useAuth } from './contexts/auth';
+import { useScreenSizeClass } from './utils/media-query';
+import Content from './Content';
+import UnauthenticatedContent from './UnauthenticatedContent';
+
+function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadPanel visible={true} />;
+  }
+
+  if (user) {
+    return <Content />;
+  }
+
+  return <UnauthenticatedContent />;
+}
+
+export default function Root() {
+  const screenSizeClass = useScreenSizeClass();
+
+  return (
+    <Router>
+      <AuthProvider>
+        <NavigationProvider>
+          <div className={`app ${screenSizeClass}`}>
+            <App />
+          </div>
+        </NavigationProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\App.test.js
+
+import './matchMediaMock';
+import { render, screen } from '@testing-library/react';
+import App from './App';
+import { act } from 'react-dom/test-utils';
+
+describe("App", () => {
+  test('renders learn react link', async () => {
+    await act( async () => { render(<App/>) });
+    const linkElement = screen.getByText(/create react app/i);
+    expect(linkElement).toBeInTheDocument();
+  });
+})
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\Content.js
+
+import { Routes, Route, Navigate } from 'react-router-dom';
+import appInfo from './app-info';
+import routes from './app-routes';
+import { SideNavInnerToolbar as SideNavBarLayout } from './layouts';
+import { Footer } from './components';
+
+export default function Content() {
+  return (
+    <SideNavBarLayout title={appInfo.title}>
+      <Routes>
+        {routes.map(({ path, element }) => (
+          <Route
+            key={path}
+            path={path}
+            element={element}
+          />
+        ))}
+        <Route
+          path='*'
+          element={<Navigate to='/home' />}
+        />
+      </Routes>
+      <Footer>
+        Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc.
+        <br />
+        All trademarks or registered trademarks are property of Hyoung EA Co. Ltd.
+      </Footer>
+    </SideNavBarLayout>
+  );
+}
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\index.js
+
+import './polyfills';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\matchMediaMock.js
+
+Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: jest.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(), // deprecated
+        removeListener: jest.fn(), // deprecated
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+    })),
+});
+export {};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\polyfills.js
+
+import 'react-app-polyfill/ie11';
+import 'react-app-polyfill/stable';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reportWebVitals.js
+
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\setupTests.js
+
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\UnauthenticatedContent.js
+
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { SingleCard } from './layouts';
+import { LoginForm, ResetPasswordForm, ChangePasswordForm, CreateAccountForm } from './components';
+
+export default function UnauthenticatedContent() {
+  return (
+    <Routes>
+      <Route
+        path='/login' 
+        element={
+          <SingleCard title="Sign In">
+            <LoginForm />
+          </SingleCard>
+        }
+      />
+      <Route
+        path='/create-account'
+        element={
+          <SingleCard title="Sign Up">
+            <CreateAccountForm />
+          </SingleCard>
+        }
+      />
+      <Route 
+        path='/reset-password'
+        element={
+          <SingleCard
+            title="Reset Password"
+            description="Please enter the email address that you used to register, and we will send you a link to reset your password via Email."
+          >
+            <ResetPasswordForm />
+          </SingleCard>
+        }
+      />
+      <Route
+        path='/change-password/:recoveryCode'
+        element={
+          <SingleCard title="Change Password">
+            <ChangePasswordForm />
+          </SingleCard>
+        }
+      />
+      <Route path='*' element={<Navigate to={'/login'} />}></Route>
+    </Routes>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\api\auth.js
+
+import defaultUser from '../utils/default-user';
+
+export async function signIn(email, password) {
+  try {
+    // Send request
+    console.log(email, password);
+
+    return {
+      isOk: true,
+      data: defaultUser
+    };
+  }
+  catch {
+    return {
+      isOk: false,
+      message: "Authentication failed"
+    };
+  }
+}
+
+export async function getUser() {
+  try {
+    // Send request
+
+    return {
+      isOk: true,
+      data: defaultUser
+    };
+  }
+  catch {
+    return {
+      isOk: false
+    };
+  }
+}
+
+export async function createAccount(email, password) {
+  try {
+    // Send request
+    console.log(email, password);
+
+    return {
+      isOk: true
+    };
+  }
+  catch {
+    return {
+      isOk: false,
+      message: "Failed to create account"
+    };
+  }
+}
+
+export async function changePassword(email, recoveryCode) {
+  try {
+    // Send request
+    console.log(email, recoveryCode);
+
+    return {
+      isOk: true
+    };
+  }
+  catch {
+    return {
+      isOk: false,
+      message: "Failed to change password"
+    }
+  }
+}
+
+export async function resetPassword(email) {
+  try {
+    // Send request
+    console.log(email);
+
+    return {
+      isOk: true
+    };
+  }
+  catch {
+    return {
+      isOk: false,
+      message: "Failed to reset password"
+    };
+  }
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\index.js
+
+export { default as Header } from './header/Header';
+export { default as Footer } from './footer/Footer';
+export { default as LoginForm } from './login-form/LoginForm';
+export { default as ResetPasswordForm } from './reset-password-form/ResetPasswordForm';
+export { default as CreateAccountForm } from './create-account-form/CreateAccountForm';
+export { default as ChangePasswordForm } from './change-password-form/ChangePasswordForm';
+export { default as SideNavigationMenu } from './side-navigation-menu/SideNavigationMenu';
+export { VehicleConsumptionChartDetail } from './vehicleConsumptionChartDetails/vehicleConsumptionChart';
+export { VehicleConsumptionMapDetails } from './vehicleConsumptionMapDetails/vehicleConsumptionMap';
+export { VehicleConsumptionFormDetails } from './vehicleConsumptionFormDetails/vehicleConsumptionForm';
+export { VehicleConsumptionHistoryDetails } from './vehicleConsumptionHistoryDetails/vehicleConsumptionHistoryDetails';
+export { default as VehicleConsumptionGridList } from './vehicleConsumptionGrid/vehicleConsumptionDataGrid';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\change-password-form\ChangePasswordForm.js
+
+import React, { useState, useRef, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Form, {
+  Item,
+  Label,
+  ButtonItem,
+  ButtonOptions,
+  RequiredRule,
+  CustomRule,
+} from 'devextreme-react/form';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';
+
+import { changePassword } from '../../api/auth';
+
+export default function ChangePasswordForm() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const formData = useRef({ password: '' });
+  const { recoveryCode } = useParams();
+
+  const onSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    const { password } = formData.current;
+    setLoading(true);
+
+    const result = await changePassword(password, recoveryCode);
+    setLoading(false);
+
+    if (result.isOk) {
+      navigate('/login');
+    } else {
+      notify(result.message, 'error', 2000);
+    }
+  }, [navigate, recoveryCode]);
+
+  const confirmPassword = useCallback(
+    ({ value }) => value === formData.current.password,
+    []
+  );
+
+  return (
+    <form onSubmit={onSubmit}>
+      <Form formData={formData.current} disabled={loading}>
+        <Item
+          dataField={'password'}
+          editorType={'dxTextBox'}
+          editorOptions={passwordEditorOptions}
+        >
+          <RequiredRule message="Password is required" />
+          <Label visible={false} />
+        </Item>
+        <Item
+          dataField={'confirmedPassword'}
+          editorType={'dxTextBox'}
+          editorOptions={confirmedPasswordEditorOptions}
+        >
+          <RequiredRule message="Password is required" />
+          <CustomRule
+            message={'Passwords do not match'}
+            validationCallback={confirmPassword}
+          />
+          <Label visible={false} />
+        </Item>
+        <ButtonItem>
+          <ButtonOptions
+            width={'100%'}
+            type={'default'}
+            useSubmitBehavior={true}
+          >
+            <span className="dx-button-text">
+              {
+                loading
+                  ? <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+                  : 'Continue'
+              }
+            </span>
+          </ButtonOptions>
+        </ButtonItem>
+      </Form>
+    </form>
+  );
+}
+
+const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', mode: 'password' };
+const confirmedPasswordEditorOptions = { stylingMode: 'filled', placeholder: 'Confirm Password', mode: 'password' };
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\create-account-form\CreateAccountForm.js
+
+import React, { useState, useRef, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Form, {
+  Item,
+  Label,
+  ButtonItem,
+  ButtonOptions,
+  RequiredRule,
+  CustomRule,
+  EmailRule
+} from 'devextreme-react/form';
+import notify from 'devextreme/ui/notify';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import { createAccount } from '../../api/auth';
+
+import './CreateAccountForm.scss';
+
+export default function CreateAccountForm() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const formData = useRef({ email: '', password: '' });
+
+  const onSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    const { email, password } = formData.current;
+    setLoading(true);
+
+    const result = await createAccount(email, password);
+    setLoading(false);
+
+    if (result.isOk) {
+      navigate('/login');
+    } else {
+      notify(result.message, 'error', 2000);
+    }
+  }, [navigate]);
+
+  const confirmPassword = useCallback(
+    ({ value }) => value === formData.current.password,
+    []
+  );
+
+  return (
+    <form className={'create-account-form'} onSubmit={onSubmit}>
+      <Form formData={formData.current} disabled={loading}>
+        <Item
+          dataField={'email'}
+          editorType={'dxTextBox'}
+          editorOptions={emailEditorOptions}
+        >
+          <RequiredRule message="Email is required" />
+          <EmailRule message="Email is invalid" />
+          <Label visible={false} />
+        </Item>
+        <Item
+          dataField={'password'}
+          editorType={'dxTextBox'}
+          editorOptions={passwordEditorOptions}
+        >
+          <RequiredRule message="Password is required" />
+          <Label visible={false} />
+        </Item>
+        <Item
+          dataField={'confirmedPassword'}
+          editorType={'dxTextBox'}
+          editorOptions={confirmedPasswordEditorOptions}
+        >
+          <RequiredRule message="Password is required" />
+          <CustomRule
+            message={'Passwords do not match'}
+            validationCallback={confirmPassword}
+          />
+          <Label visible={false} />
+        </Item>
+        <Item>
+          <div className='policy-info'>
+            By creating an account, you agree to the <Link to="#">Terms of Service</Link> and <Link to="#">Privacy Policy</Link>
+          </div>
+        </Item>
+        <ButtonItem>
+          <ButtonOptions
+            width={'100%'}
+            type={'default'}
+            useSubmitBehavior={true}
+          >
+            <span className="dx-button-text">
+              {
+                loading
+                  ? <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+                  : 'Create a new account'
+              }
+            </span>
+          </ButtonOptions>
+        </ButtonItem>
+        <Item>
+          <div className={'login-link'}>
+            Have an account? <Link to={'/login'}>Sign In</Link>
+          </div>
+        </Item>
+      </Form>
+    </form>
+  );
+}
+
+const emailEditorOptions = { stylingMode: 'filled', placeholder: 'Email', mode: 'email' };
+const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', mode: 'password' };
+const confirmedPasswordEditorOptions = { stylingMode: 'filled', placeholder: 'Confirm Password', mode: 'password' };
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\footer\Footer.js
+
+import React from 'react';
+import './Footer.scss';
+
+export default function Footer({ ...rest }) {
+  return <footer className={'footer'} {...rest} />;
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\header\Header.js
+
+import React from 'react';
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+import Button from 'devextreme-react/button';
+import UserPanel from '../user-panel/UserPanel';
+import './Header.scss';
+import { Template } from 'devextreme-react/core/template';
+
+
+export default function Header({ menuToggleEnabled, title, toggleMenu }) {
+  return (
+    <header className={'header-component'}>
+      <Toolbar className={'header-toolbar'}>
+        <Item
+          visible={menuToggleEnabled}
+          location={'before'}
+          widget={'dxButton'}
+          cssClass={'menu-button'}
+        >
+          <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
+        </Item>
+        <Item
+          location={'before'}
+          cssClass={'header-title'}
+          text={title}
+          visible={!!title}
+        />
+        <Item
+          location={'after'}
+          locateInMenu={'auto'}
+          menuItemTemplate={'userPanelTemplate'}
+        >
+          <Button
+            className={'user-button authorization'}
+            width={210}
+            height={'100%'}
+            stylingMode={'text'}
+          >
+            <UserPanel menuMode={'context'} />
+          </Button>
+        </Item>
+        <Template name={'userPanelTemplate'}>
+          <UserPanel menuMode={'list'} />
+        </Template>
+      </Toolbar>
+    </header>
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\login-form\LoginForm.js
+
+import React, { useState, useRef, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Form, {
+  Item,
+  Label,
+  ButtonItem,
+  ButtonOptions,
+  RequiredRule,
+  EmailRule
+} from 'devextreme-react/form';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';
+import { useAuth } from '../../contexts/auth';
+
+import './LoginForm.scss';
+
+export default function LoginForm() {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const formData = useRef({ email: '', password: '' });
+
+  const onSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    const { email, password } = formData.current;
+    setLoading(true);
+
+    const result = await signIn(email, password);
+    if (!result.isOk) {
+      setLoading(false);
+      notify(result.message, 'error', 2000);
+    }
+  }, [signIn]);
+
+  const onCreateAccountClick = useCallback(() => {
+    navigate('/create-account');
+  }, [navigate]);
+
+  return (
+    <form className={'login-form'} onSubmit={onSubmit}>
+      <Form formData={formData.current} disabled={loading}>
+        <Item
+          dataField={'email'}
+          editorType={'dxTextBox'}
+          editorOptions={emailEditorOptions}
+        >
+          <RequiredRule message="Email is required" />
+          <EmailRule message="Email is invalid" />
+          <Label visible={false} />
+        </Item>
+        <Item
+          dataField={'password'}
+          editorType={'dxTextBox'}
+          editorOptions={passwordEditorOptions}
+        >
+          <RequiredRule message="Password is required" />
+          <Label visible={false} />
+        </Item>
+        <Item
+          dataField={'rememberMe'}
+          editorType={'dxCheckBox'}
+          editorOptions={rememberMeEditorOptions}
+        >
+          <Label visible={false} />
+        </Item>
+        <ButtonItem>
+          <ButtonOptions
+            width={'100%'}
+            type={'default'}
+            useSubmitBehavior={true}
+          >
+            <span className="dx-button-text">
+              {
+                loading
+                  ? <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+                  : 'Sign In'
+              }
+            </span>
+          </ButtonOptions>
+        </ButtonItem>
+        <Item>
+          <div className={'link'}>
+            <Link to={'/reset-password'}>Forgot password?</Link>
+          </div>
+        </Item>
+        <ButtonItem>
+          <ButtonOptions
+            text={'Create an account'}
+            width={'100%'}
+            onClick={onCreateAccountClick}
+          />
+        </ButtonItem>
+      </Form>
+    </form>
+  );
+}
+
+const emailEditorOptions = { stylingMode: 'filled', placeholder: 'Email', mode: 'email' };
+const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', mode: 'password' };
+const rememberMeEditorOptions = { text: 'Remember me', elementAttr: { class: 'form-text' } };
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\reset-password-form\ResetPasswordForm.js
+
+import React, { useState, useRef, useCallback } from 'react';
+import { Link, useNavigate } from "react-router-dom";
+import Form, {
+  Item,
+  Label,
+  ButtonItem,
+  ButtonOptions,
+  RequiredRule,
+  EmailRule
+} from 'devextreme-react/form';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';
+import { resetPassword } from '../../api/auth';
+import './ResetPasswordForm.scss';
+
+const notificationText = 'We\'ve sent a link to reset your password. Check your inbox.';
+
+export default function ResetPasswordForm() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const formData = useRef({ email: '', password: '' });
+
+  const onSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    const { email } = formData.current;
+    setLoading(true);
+
+    const result = await resetPassword(email);
+    setLoading(false);
+
+    if (result.isOk) {
+      navigate('/login');
+      notify(notificationText, 'success', 2500);
+    } else {
+      notify(result.message, 'error', 2000);
+    }
+  }, [navigate]);
+
+  return (
+    <form className={'reset-password-form'} onSubmit={onSubmit}>
+      <Form formData={formData.current} disabled={loading}>
+        <Item
+          dataField={'email'}
+          editorType={'dxTextBox'}
+          editorOptions={emailEditorOptions}
+        >
+          <RequiredRule message="Email is required" />
+          <EmailRule message="Email is invalid" />
+          <Label visible={false} />
+        </Item>
+        <ButtonItem>
+          <ButtonOptions
+            elementAttr={submitButtonAttributes}
+            width={'100%'}
+            type={'default'}
+            useSubmitBehavior={true}
+          >
+            <span className="dx-button-text">
+              {
+                loading
+                  ? <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+                  : 'Reset my password'
+              }
+            </span>
+          </ButtonOptions>
+        </ButtonItem>
+        <Item>
+          <div className={'login-link'}>
+            Return to <Link to={'/login'}>Sign In</Link>
+          </div>
+        </Item>
+      </Form>
+    </form>
+  );
+}
+
+const emailEditorOptions = { stylingMode: 'filled', placeholder: 'Email', mode: 'email' };
+const submitButtonAttributes = { class: 'submit-button' };
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\side-navigation-menu\SideNavigationMenu.js
+
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import TreeView from 'devextreme-react/tree-view';
+import { navigation } from '../../app-navigation';
+import { useNavigation } from '../../contexts/navigation';
+import { useScreenSize } from '../../utils/media-query';
+import './SideNavigationMenu.scss';
+
+
+import * as events from 'devextreme/events';
+
+export default function SideNavigationMenu(props) {
+  const {
+    children,
+    selectedItemChanged,
+    openMenu,
+    compactMode,
+    onMenuReady
+  } = props;
+
+  const { isLarge } = useScreenSize();
+  function normalizePath () {
+    return navigation.map((item) => (
+      { ...item, expanded: isLarge, path: item.path && !(/^\//.test(item.path)) ? `/${item.path}` : item.path }
+    ))
+  }
+
+  const items = useMemo(
+    normalizePath,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const { navigationData: { currentPath } } = useNavigation();
+
+  const treeViewRef = useRef(null);
+  const wrapperRef = useRef();
+  const getWrapperRef = useCallback((element) => {
+    const prevElement = wrapperRef.current;
+    if (prevElement) {
+      events.off(prevElement, 'dxclick');
+    }
+
+    wrapperRef.current = element;
+    events.on(element, 'dxclick', (e) => {
+      openMenu(e);
+    });
+  }, [openMenu]);
+
+  useEffect(() => {
+    const treeView = treeViewRef.current && treeViewRef.current.instance;
+    if (!treeView) {
+      return;
+    }
+
+    if (currentPath !== undefined) {
+      treeView.selectItem(currentPath);
+      treeView.expandItem(currentPath);
+    }
+
+    if (compactMode) {
+      treeView.collapseAll();
+    }
+  }, [currentPath, compactMode]);
+
+  return (
+    <div
+      className={'dx-swatch-additional side-navigation-menu'}
+      ref={getWrapperRef}
+    >
+      {children}
+      <div className={'menu-container'}>
+        <TreeView
+          ref={treeViewRef}
+          items={items}
+          keyExpr={'path'}
+          selectionMode={'single'}
+          focusStateEnabled={false}
+          expandEvent={'click'}
+          onItemClick={selectedItemChanged}
+          onContentReady={onMenuReady}
+          width={'100%'}
+        />
+      </div>
+    </div>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\user-panel\UserPanel.js
+
+import React, { useMemo } from 'react';
+import { useNavigate } from "react-router-dom";
+import ContextMenu, { Position } from 'devextreme-react/context-menu';
+import List from 'devextreme-react/list';
+import { useAuth } from '../../contexts/auth';
+import './UserPanel.scss';
+
+
+export default function UserPanel({ menuMode }) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  function navigateToProfile() {
+    navigate("/profile");
+  }
+  const menuItems = useMemo(() => ([
+    {
+      text: 'Profile',
+      icon: 'user',
+      onClick: navigateToProfile
+    },
+    {
+      text: 'Logout',
+      icon: 'runner',
+      onClick: signOut
+    }
+  ]), [signOut]);
+  return (
+    <div className={'user-panel'}>
+      <div className={'user-info'}>
+        <div className={'image-container'}>
+          <div
+            style={{
+              background: `url(${user.avatarUrl}) no-repeat #fff`,
+              backgroundSize: 'cover'
+            }}
+            className={'user-image'} />
+        </div>
+        <div className={'user-name'}>{user.email}</div>
+      </div>
+
+      {menuMode === 'context' && (
+        <ContextMenu
+          items={menuItems}
+          target={'.user-button'}
+          showEvent={'dxclick'}
+          width={210}
+          cssClass={'user-menu'}
+        >
+          <Position my={'top center'} at={'bottom center'} />
+        </ContextMenu>
+      )}
+      {menuMode === 'list' && (
+        <List className={'dx-toolbar-menu-action'} items={menuItems} />
+      )}
+    </div>
+  );
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionChartDetails\vehicleConsumptionChart.js
+
+import React, { useEffect, useState } from "react";
+;
+
+
+export const VehicleConsumptionChartDetail = ({ vehicleID, startDate }) => {   
+
+
+
+
+
+}
+
+//export default VehicleConsumptionChartDetail;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionFormDetails\vehicleConsumptionForm.js
+
+import React, { useCallback, useEffect, useState } from "react";
+import axios from "axios";
+import Form, {
+    ButtonItem,
+    GroupItem,
+    SimpleItem,
+    Item,
+    Label,
+    CompareRule,
+    EmailRule,
+    PatternRule,
+    RangeRule,
+    RequiredRule,
+    StringLengthRule,
+    AsyncRule,
+    CustomRule,
+    FormTypes,
+  } from 'devextreme-react/form';
+  import { Lookup } from "devextreme-react";
+  import CustomStore from 'devextreme/data/custom_store';
+import { FormItem} from 'devextreme-react/form';
+import {getConsumptionById, getVehicleByKey,getEmployeeList,getEmployeeBySite ,getExpectedAvgBySiteIdAndVehicleId} from "../../dataservice";
+
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+export const VehicleConsumptionFormDetails = ({editData}) => {
+     
+  const [expectedAverageData, setExpectedAverageData] = useState();
+  const [employeeData, setEmployeeData] = useState();
+  const [selectedEmployee, setSelectedEmployee] = useState(); 
+  const [defaultEmployee, setDefaultEmployee] = useState();
+  const [totalDistance, setTotalDistance] = useState(editData.totalDistance);
+  const [engHours, setEngHours] = useState(editData.engHours);
+  const [totalFuel, setTotalFuel] = useState(editData.totalFuel);
+  const [expectedAveraged, setExpectedAveraged] = useState(editData.expectedAveraged);
+
+
+
+  
+
+
+  const fetchData = useCallback(async (siteID, vehicleID) => {
+    try {
+      const [vehicleResponse, expectedAvgResponse,consumptionResponse] = await Promise.all([
+        getVehicleByKey(vehicleID),
+        getExpectedAvgBySiteIdAndVehicleId(vehicleID, siteID),
+        getConsumptionById(editData.id)
+      ]);
+  
+     
+    if (vehicleResponse && vehicleResponse.defaultEmployee) {
+      setDefaultEmployee(vehicleResponse.defaultEmployee.fullName);
+    }
+
+    if (expectedAvgResponse) {
+      setExpectedAverageData(expectedAvgResponse);
+    }
+
+    if (consumptionResponse && consumptionResponse.employee) {
+      setEmployeeData([consumptionResponse.employee]);
+    
+      }
+      //if (employeeResponse) {
+      //  const modifiedEmployeeData = employeeResponse.map((emp) => ({
+       //   ...emp,
+     //     displayString: `${emp.fullName}: ${emp.vehicles && emp.vehicles.slice(0, 2).map((v) => v.hyoungNo).join(", ")}`,
+      //  }));
+       // setEmployeeData(modifiedEmployeeData);
+      
+    } catch (error) {
+      console.error("Error loading data:", error);
+      // Handle the error appropriately (e.g., show an error message)
+    }
+  }, [getConsumptionById,getVehicleByKey, getExpectedAvgBySiteIdAndVehicleId]);
+  
+
+
+  useEffect(() => {
+    console.log("Edit Data", editData);
+  
+    if (editData.siteId && editData.vehicleId) {
+      fetchData(editData.siteId, editData.vehicleId);
+    }
+  }, [editData.siteId, editData.vehicleId, fetchData]);
+
+  const onEmployeeChanged = (e) => {
+    const selectedEmployeeID = e.value;
+    if (employeeData) {
+      const selectedEmployee = employeeData.find((emp) => emp.id === selectedEmployeeID);
+      if (selectedEmployee) {
+        setSelectedEmployee(selectedEmployee);
+      }
+    }
+  };
+
+const employeeEditorOptions = {
+  dataSource: employeeData || [],
+  valueExpr: 'id',
+  displayExpr: 'fullName',
+  onValueChanged: onEmployeeChanged,
+  value: editData.employeeId
+};
+
+
+  const calculateFuelLost = () => {
+    let fuelLost = 0;
+
+  if (editData.isAverageKm) {
+    if (expectedAveraged && totalDistance && totalFuel && expectedAveraged < totalDistance / totalFuel && totalDistance / totalFuel > 0) {
+      fuelLost = totalFuel - (totalDistance / expectedAveraged);
+    }
+  } else {
+    if (expectedAveraged && engHours && totalFuel && expectedAveraged > totalFuel / engHours && totalFuel / engHours > 0) {
+      fuelLost = totalFuel - (expectedAveraged * engHours);
+    }
+  }
+
+  return fuelLost.toFixed(2);
+};
+
+const handleTotalDistanceChange = (e) => {
+  setTotalDistance(e.value);
+};
+
+const handleEngHoursChange = (e) => {
+  setEngHours(e.value);
+};
+
+const handleTotalFuelChange = (e) => {
+  setTotalFuel(e.value);
+};
+
+const handleExpectedAveragedChange = (e) => {
+  setExpectedAveraged(e.value);
+};
+;
+
+
+return (
+
+
+  <Form formData={editData}>
+    <label text="%{editData.vehicleId} Consumption Form" />
+   <GroupItem colCount={4}>
+  <GroupItem caption="Employee Details">
+  <Item
+            dataField="employeeId"
+            caption="Default Employee"           
+            editorType="dxSelectBox"
+            editorOptions={employeeEditorOptions}
+            
+          />
+
+
+           <Item
+            dataField="employeeWorkNo"
+            caption="Work Number"
+            editorOptions={{ readOnly: true, value: selectedEmployee?.employeeWorkNo }}
+          />
+        <Item
+            dataField="employeePhoneNumber"
+            caption="Phone Number"
+            editorOptions={{ readOnly: true, value: selectedEmployee?.employeePhoneNumber }}
+          />
+
+    </GroupItem>
+    <Item itemType="group" caption="Operation Details">
+    <Item dataField="isNightShift" caption="Night Shift"
+      editorType="dxCheckBox"
+     />
+    <Item dataField="isAverageKm" caption="Km/l"        editorType="dxCheckBox"
+/>
+    <Item
+            dataField="comments"
+            caption="Comments"
+            editorType="dxTextArea"
+            colSpan={2}
+            editorOptions={{ height: 140 }}
+          />
+     </Item>
+     <Item itemType="group" caption="Vehicle Telemetry Details">
+          <Item
+            dataField="totalDistance"
+            caption="Distance"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## km",
+              value: totalDistance / 1000,
+              placeholder: "km",
+              onValueChanged: handleTotalDistanceChange,
+            }}
+          />
+  <Item
+            dataField="engHours"
+            caption="Engine Hours"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## hrs",
+              value: engHours / 3600,
+              placeholder: "hrs",
+              onValueChanged: handleEngHoursChange,
+            }}
+          />
+          <Item
+            dataField="maxSpeed"
+            caption="Max Speed"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## km/h",
+              placeholder: "km/h",
+            }}
+          />
+          <Item
+            dataField="avgSpeed"
+            caption="Avg Speed"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## km/h",
+              placeholder: "km/h",
+            }}
+          />
+        </Item>
+
+        <Item itemType="group" caption="Fuel Details">
+          <Item
+            dataField="totalFuel"
+            caption="Total Fuel used"
+            editorType="dxNumberBox"
+            editorOptions={{
+              format: "#0.## liters",
+              placeholder: "liters",
+              onValueChanged: handleTotalFuelChange,
+            }}
+          />
+          <Item dataField="expectedAveraged" caption="Expected Averaged">
+            <Lookup
+             dataSource={expectedAverageData}
+             valueExpr="id"
+             displayExpr="expectedAveraged"
+             value={expectedAveraged}
+             onValueChanged={handleExpectedAveragedChange}
+            />
+          </Item>
+          <Item
+            dataField="fuelEfficiency"
+            caption="Fuel Efficiency"
+            editorType="dxNumberBox"
+          />
+          <Item
+            dataField="fuelLost"
+            caption="Fuel Lost"
+            editorOptions={{ readOnly: true, value: calculateFuelLost() }}
+          />
+        </Item>
+
+
+
+    </GroupItem>
+
+
+
+    </Form>
+
+
+)
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionGrid\vehicleConsumptionDataGrid.js
+
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ScrollView from 'devextreme-react/scroll-view';
+import consumptionDataGridRules from '../../utils/consumptionDataGridRules';
+import DataGrid, {
+  Column, Selection, Sorting, HeaderFilter, DataGridTypes,
+  RequiredRule, Paging, Pager, Editing, Scrolling, LoadPanel,Lookup
+} from 'devextreme-react/data-grid';
+
+import { getEmployeeList } from '../../dataservice';
+
+import SelectBox from 'devextreme-react/select-box';
+
+
+
+export const VehicleConsumptionGridList = (dataSource) => {
+  const [data, setData] = useState();
+  const navigate = useNavigate();
+ // const employeeData = getEmployeeList();
+
+
+
+
+const onRowPrepared = (e) => {
+  const rowData = e.data;
+
+  consumptionDataGridRules.forEach((rule) => {
+    if (rule.condition(rowData)) {
+      e.rowElement.classList.add(rule.rowClassName);
+    }
+  });
+};
+
+
+useEffect(() => {
+  // Perform any side effects or data fetching here
+  setData(dataSource.dataSource);
+  }, [dataSource]); // Empty dependency array means the effect runs only once on component mount
+
+  const navigationToDetails = useCallback((rowData) => {
+    navigate(`/vehicleConsumptionDetails/${rowData.data.id}`);
+  }, [navigate]);
+
+// const toogleUseNavigation = useCallback(() => {
+//   useNavigation = !useNavigation;
+// }, []);
+
+
+return(
+  <div>
+    <DataGrid
+    className='theme-dependent'
+
+      dataSource={data}
+      showBorders={true}
+      showColumnLines={true}
+      showRowLines={true}
+      rowAlternationEnabled={true}
+      columnAutoWidth={true}
+      allowColumnReordering={true}
+      allowColumnResizing={true}
+      allowColumnDragging={true}
+      allowColumnGrouping={true}
+      onRowPrepared={onratechange}
+      allowColumnHiding={true}
+      showColumnHeaders={true}
+       hoverStateEnabled={true}
+      //  onEditingStart={toogleUseNavigation}
+      //  onEditCanceled={toogleUseNavigation}
+      //  onSaved={toogleUseNavigation}
+       onRowClick={navigationToDetails}
+      >
+        <LoadPanel enabled={false} />
+        <scrolling mode="virtual" />
+        <Paging defaultPageSize={20} />
+        <Pager
+          showPageSizeSelector={true}
+          allowedPageSizes={[5, 10, 20]}
+          showInfo={true} />
+          <Editing mode="row" allowUpdating={true} allowDeleting={false} useIcons={true} />
+          <Selection mode="multiple" selectAllMode={'allPages'} showCheckBoxesMode={'always'} />
+          <Sorting mode="multiple" />
+          <HeaderFilter visible={true} />
+          
+          <Column dataField="date"
+                    width={100}
+                    FilterRow={false}
+                    fixed={true}
+                    dataType="date"
+                    caption="Date" 
+                    allowEditing={false}
+                    />
+          <Column dataField="vehicleId" visible={false} caption="Vehicle ID" />
+          <Column dataField="hyoungNo" allowEditing={false}   fixed={true} caption="Hyoung No" />
+          <Column dataField='defaultEmployees'  caption="Employee Details" width={200}allowSorting={false} >  
+          </Column>               
+          <Column dataField="maxSpeed" caption="Max Speed" />
+          <Column dataField="avgSpeed" caption="AVG Speed" />
+          <Column dataField="totalDistance"
+
+          dataType="number"
+          caption="Distance"
+          cellRender={({ value }) => (value / 1000).toFixed(2)
+          }
+        />
+         <Column dataField="engHours"
+                    caption="Engine Hours"
+                    format={{ type: 'fixedPoint', precision: 1 }}
+                    cellRender={({ value }) => (value / 3600).toFixed(2)}
+                />
+                  <Column dataField="totalFuel"
+                    visible={true}
+                    caption="Fuel" />
+
+     <Column dataField="expectedAveraged" caption="Expected Averaged" >
+                {/* <Lookup dataSource={expectedAveragedDataSource} valueExpr="id" displayExpr="expectedAveragevalue" /> */}
+                </Column>
+                <Column dataField="fuelEfficiency" caption="Fuel Efficiency" />
+                <Column dataField="fuelLost" caption="Fuel Lost" />
+          
+                <Column dataField="siteId" caption="Site" >
+                   {/* <Lookup dataSource={siteDataSource} valueExpr="id" displayExpr="name" />*/}
+                </Column>
+      </DataGrid>
+      </div>
+)
+
+
+};
+
+export default VehicleConsumptionGridList;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionHistoryDetails\vehicleConsumptionHistoryDetails.js
+
+import React, { useCallback, useEffect,useState } from "react";
+
+
+export const VehicleConsumptionHistoryDetails = (vehicleID,startDate) => {
+    
+}
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionMapDetails\vehicleConsumptionMap.js
+
+import react from 'react';
+import axios from 'axios';
+import { CustomStore } from 'devextreme/data/custom_store';
+
+
+
+export const VehicleConsumptionMapDetails = (vehicleID,startDate) => {
+}
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\auth.js
+
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { getUser, signIn as sendSignInRequest } from '../api/auth';
+
+
+function AuthProvider(props) {
+  const [user, setUser] = useState();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async function () {
+      const result = await getUser();
+      if (result.isOk) {
+        setUser(result.data);
+      }
+
+      setLoading(false);
+    })();
+  }, []);
+
+  const signIn = useCallback(async (email, password) => {
+    const result = await sendSignInRequest(email, password);
+    if (result.isOk) {
+      setUser(result.data);
+    }
+
+    return result;
+  }, []);
+
+  const signOut = useCallback(() => {
+    setUser(undefined);
+  }, []);
+
+
+  return (
+    <AuthContext.Provider value={{ user, signIn, signOut, loading }} {...props} />
+  );
+}
+
+const AuthContext = createContext({ loading: false });
+const useAuth = () => useContext(AuthContext);
+
+export { AuthProvider, useAuth }
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\navigation.js
+
+import React, { useState, createContext, useContext, useEffect } from 'react';
+
+
+const NavigationContext = createContext({});
+const useNavigation = () => useContext(NavigationContext);
+
+function NavigationProvider(props) {
+  const [navigationData, setNavigationData] = useState({ currentPath: '' });
+
+  return (
+    <NavigationContext.Provider
+      value={{ navigationData, setNavigationData }}
+      {...props}
+    />
+  );
+}
+
+function withNavigationWatcher(Component, path) {
+  const WrappedComponent = function (props) {
+    const { setNavigationData } = useNavigation();
+
+    useEffect(() => {
+      setNavigationData({ currentPath: path });
+    }, [path, setNavigationData]);
+
+    return <Component {...props} />;
+  }
+  return <WrappedComponent />;
+}
+
+export {
+  NavigationProvider,
+  useNavigation,
+  withNavigationWatcher
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\index.js
+
+import axios  from "axios";
+import CustomStore from "devextreme/data/custom_store";
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+export const getVehicleList = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/vehicle/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+export const updateVehicle = async (key, values) => {
+  try {
+    // Retrieve the original data
+    const originalData = await getVehicleByKey(key);
+    const updatedData = { ...originalData, ...values, vehicleId: key };
+
+    // Update the data
+    const updateResponse = await axios.put(`${apiUrl}/vehicle/UpdateVehicle/${key}`, updatedData);
+    return updateResponse.data;
+  } catch (error) {
+    console.error('Error updating vehicle data:', error);
+    throw new Error('Data updating error');
+  }
+};
+
+export const getVehicleByKey = async (key) => {
+  try {
+    const response = await axios.get(`${apiUrl}/vehicle/getvehiclebyid`, {
+      params: { id: key }
+    });
+return  response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle by key:', error);
+    throw new Error('Error in byKey operation');
+  }
+};
+
+export const getVehicleDataSource = () => {
+  return new CustomStore({
+    key: 'vehicleId',
+    load: getVehicleList,
+    update: updateVehicle,
+    byKey: getVehicleByKey
+  });
+};
+
+
+
+export const getManufacturers = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/VehicleManufacturer/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading manufacturers data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+// Fetch vehicle models data
+export const getVehicleModels = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/VehicleModel/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle models data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+export const getVehicleModelByVehicleManfuacturerId = async (manufacturerId) => {
+  try {
+    const response = await axios.get(`${apiUrl}/VehicleModel/GetVehicleModelsByManufacturerId`, {
+      params: { manufacturerId: manufacturerId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle models data:', error);
+    throw new Error('Data loading error');
+  }
+}
+
+// Fetch expected average data
+export const getExpectedAvg = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/expectedavg/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading expected average data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+
+//get expectded Average by SiteiD and Vehicle ID 
+export const getExpectedAvgBySiteIdAndVehicleId = async (vehicleId,siteId) => {
+  try {
+
+      const response = await axios.get(`${apiUrl}/expectedavg/getlistbyvehiclebysite`, {
+        params: {vehicleid: vehicleId, siteid: siteId }
+      });
+      return response.data;
+  }
+  catch (error) {
+    console.error('Error loading expected average data:', error);
+    throw new Error('Data loading error');
+  }
+};
+
+
+
+export const getSiteList = async () => { 
+  try {
+    const response = await axios.get(`${apiUrl}/site/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading site data:', error);
+    throw new Error('Data loading error');
+  }
+}
+//Fetch Employees
+
+export const getEmployeeList = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/employee/getlist`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading employee data:', error);
+    throw new Error('Data loading error');
+  }
+}
+
+
+//get Employee by Site ID
+export const getEmployeeBySite = async (siteID) => {
+  try {
+    const response = await axios.get(`${apiUrl}/employee/getemployeebysiteid`, {
+      params: { siteid: siteID }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error loading employee data:', error);
+    throw new Error('Data loading error');
+  }
+}
+
+
+
+
+
+
+// Fetch vehicle type data
+  export const getVehicleTypeList = async () => { 
+    try {
+      const response = await axios.get(`${apiUrl}/vehicleType/getlist`);
+      return response.data;
+    } catch (error) {
+      console.error('Error loading vehicle type data:', error);
+      throw new Error('Data loading error');
+    }
+  }
+
+
+  export const getConsumptionById = async (id) => {
+    try {
+      const response = await axios.get(`${apiUrl}/consumption/getbyid`, {
+         params: { id: id }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error loading consumption data by ID:', error);
+      throw new Error('Data loading error');
+    }
+  };
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\sampleconsumptiondata.js
+
+const sampleData= [{"id":485828,
+                   "vehicleId":45,
+                 "totalFuel":21,
+              "hyoungNo":"TP113","vehicleType":"TP",
+              "vehicleModel":"ZZ3257N3247B",
+              "vehicleManufacturer":"SINOTRUK HOWO",
+              "expectedAveraged":43,
+              "defaultEmployees":28487,
+              "siteId":1,
+              "excessWorkingHrCost":null,
+              "date":"2023-05-09T08:00:55",
+              "maxSpeed":13.10,
+              "avgSpeed":4.70,
+              "totalDistance":44407,
+              "fuelLost":0,
+              "isAverageKm":true,
+              "flowMeterFuelUsed":null,
+              "flowMeterFuelLost":0,
+              "flowMeterEffiency":0,
+              "fuelEfficiency":0.00,"engHours":null,
+              "flowMeterEngineHrs":null,
+              "isNightShift":false,"comments":"Demo data","isModified":false},
+              {"id":485876,"vehicleId":52,"totalFuel":15,"hyoungNo":"TP119","vehicleType":"TP",
+              "vehicleModel":"ZZ3257N3247B","vehicleManufacturer":"SINOTRUK HOWO","expectedAveraged":0,"defaultEmployees":28489,
+              "siteId":18,"excessWorkingHrCost":null,"date":"2023-05-09T00:00:03","maxSpeed":9.70,"avgSpeed":1.80,"totalDistance":26787,
+              "fuelLost":0,"isAverageKm":true,"flowMeterFuelUsed":null,"flowMeterFuelLost":0,"flowMeterEffiency":0,"fuelEfficiency":0.00,"engHours":null,
+              "flowMeterEngineHrs":null,"isNightShift":false,"comments":"Demo data","isModified":false}]
+
+
+export default sampleData;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\index.js
+
+export { default as SideNavOuterToolbar } from './side-nav-outer-toolbar/side-nav-outer-toolbar';
+export { default as SideNavInnerToolbar } from './side-nav-inner-toolbar/side-nav-inner-toolbar';
+export { default as SingleCard } from './single-card/single-card';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\side-nav-inner-toolbar\side-nav-inner-toolbar.js
+
+import Button from 'devextreme-react/button';
+import Drawer from 'devextreme-react/drawer';
+import ScrollView from 'devextreme-react/scroll-view';
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+import React, { useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
+import { Header, SideNavigationMenu, Footer } from '../../components';
+import './side-nav-inner-toolbar.scss';
+import { useScreenSize } from '../../utils/media-query';
+import { Template } from 'devextreme-react/core/template';
+import { useMenuPatch } from '../../utils/patches';
+
+
+
+
+export default function SideNavInnerToolbar({ title, children }) {
+  const scrollViewRef = useRef(null);
+  const navigate = useNavigate();
+  const { isXSmall, isLarge } = useScreenSize();
+  const [patchCssClass, onMenuReady] = useMenuPatch();
+  const [menuStatus, setMenuStatus] = useState(
+    isLarge ? MenuStatus.Opened : MenuStatus.Closed
+  );
+
+  const toggleMenu = useCallback(({ event }) => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.Opened
+        : MenuStatus.Closed
+    );
+    event.stopPropagation();
+  }, []);
+
+  const temporaryOpenMenu = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.TemporaryOpened
+        : prevMenuStatus
+    );
+  }, []);
+
+  const onOutsideClick = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus !== MenuStatus.Closed && !isLarge
+        ? MenuStatus.Closed
+        : prevMenuStatus
+    );
+    return menuStatus === MenuStatus.Closed ? true : false;
+  }, [isLarge]);
+
+  const onNavigationChanged = useCallback(({ itemData, event, node }) => {
+    if (menuStatus === MenuStatus.Closed || !itemData.path || node.selected) {
+      event.preventDefault();
+      return;
+    }
+
+    navigate(itemData.path);
+    scrollViewRef.current.instance.scrollTo(0);
+
+    if (!isLarge || menuStatus === MenuStatus.TemporaryOpened) {
+      setMenuStatus(MenuStatus.Closed);
+      event.stopPropagation();
+    }
+  }, [navigate, menuStatus, isLarge]);
+
+  return (
+    <div className={'side-nav-inner-toolbar'}>
+      <Drawer
+        className={['drawer', patchCssClass].join(' ')}
+        position={'before'}
+        closeOnOutsideClick={onOutsideClick}
+        openedStateMode={isLarge ? 'shrink' : 'overlap'}
+        revealMode={isXSmall ? 'slide' : 'expand'}
+        minSize={isXSmall ? 0 : 60}
+        maxSize={250}
+        shading={isLarge ? false : true}
+        opened={menuStatus === MenuStatus.Closed ? false : true}
+        template={'menu'}
+      >
+        <div className={'container'}>
+          <Header
+            menuToggleEnabled={isXSmall}
+            toggleMenu={toggleMenu}
+          />
+          <ScrollView ref={scrollViewRef} className={'layout-body with-footer'}>
+            <div className={'content'}>
+              {React.Children.map(children, (item) => {
+                return item.type !== Footer && item;
+              })}
+            </div>
+            <div className={'content-block'}>
+              {React.Children.map(children, (item) => {
+                return item.type === Footer && item;
+              })}
+            </div>
+          </ScrollView>
+        </div>
+        <Template name={'menu'}>
+          <SideNavigationMenu
+            compactMode={menuStatus === MenuStatus.Closed}
+            selectedItemChanged={onNavigationChanged}
+            openMenu={temporaryOpenMenu}
+            onMenuReady={onMenuReady}
+          >
+            <Toolbar id={'navigation-header'}>
+              {
+                !isXSmall &&
+                <Item
+                  location={'before'}
+                  cssClass={'menu-button'}
+                >
+                  <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
+                </Item>
+              }
+              <Item location={'before'} cssClass={'header-title'} text={title} />
+            </Toolbar>
+          </SideNavigationMenu>
+        </Template>
+      </Drawer>
+    </div>
+  );
+}
+
+const MenuStatus = {
+  Closed: 1,
+  Opened: 2,
+  TemporaryOpened: 3
+};
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\side-nav-outer-toolbar\side-nav-outer-toolbar.js
+
+import Drawer from 'devextreme-react/drawer';
+import ScrollView from 'devextreme-react/scroll-view';
+import React, { useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
+import { Header, SideNavigationMenu, Footer } from '../../components';
+import './side-nav-outer-toolbar.scss';
+import { useScreenSize } from '../../utils/media-query';
+import { Template } from 'devextreme-react/core/template';
+import { useMenuPatch } from '../../utils/patches';
+
+
+
+
+export default function SideNavOuterToolbar({ title, children }) {
+  const scrollViewRef = useRef(null);
+  const navigate = useNavigate();
+  const { isXSmall, isLarge } = useScreenSize();
+  const [patchCssClass, onMenuReady] = useMenuPatch();
+  const [menuStatus, setMenuStatus] = useState(
+    isLarge ? MenuStatus.Opened : MenuStatus.Closed
+  );
+
+  const toggleMenu = useCallback(({ event }) => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.Opened
+        : MenuStatus.Closed
+    );
+    event.stopPropagation();
+  }, []);
+
+  const temporaryOpenMenu = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
+        ? MenuStatus.TemporaryOpened
+        : prevMenuStatus
+    );
+  }, []);
+
+  const onOutsideClick = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus !== MenuStatus.Closed && !isLarge
+        ? MenuStatus.Closed
+        : prevMenuStatus
+    );
+    return menuStatus === MenuStatus.Closed ? true : false;
+  }, [isLarge]);
+
+  const onNavigationChanged = useCallback(({ itemData, event, node }) => {
+    if (menuStatus === MenuStatus.Closed || !itemData.path || node.selected) {
+      event.preventDefault();
+      return;
+    }
+
+    navigate(itemData.path);
+    scrollViewRef.current.instance.scrollTo(0);
+
+    if (!isLarge || menuStatus === MenuStatus.TemporaryOpened) {
+      setMenuStatus(MenuStatus.Closed);
+      event.stopPropagation();
+    }
+  }, [navigate, menuStatus, isLarge]);
+
+  return (
+    <div className={'side-nav-outer-toolbar'}>
+      <Header
+        menuToggleEnabled
+        toggleMenu={toggleMenu}
+        title={title}
+      />
+      <Drawer
+        className={['drawer', patchCssClass].join(' ')}
+        position={'before'}
+        closeOnOutsideClick={onOutsideClick}
+        openedStateMode={isLarge ? 'shrink' : 'overlap'}
+        revealMode={isXSmall ? 'slide' : 'expand'}
+        minSize={isXSmall ? 0 : 60}
+        maxSize={250}
+        shading={isLarge ? false : true}
+        opened={menuStatus === MenuStatus.Closed ? false : true}
+        template={'menu'}
+      >
+        <div className={'container'}>
+          <ScrollView ref={scrollViewRef} className={'layout-body with-footer'}>
+            <div className={'content'}>
+              {React.Children.map(children, (item) => {
+                return item.type !== Footer && item;
+              })}
+            </div>
+            <div className={'content-block'}>
+              {React.Children.map(children, (item) => {
+                return item.type === Footer && item;
+              })}
+            </div>
+          </ScrollView>
+        </div>
+        <Template name={'menu'}>
+          <SideNavigationMenu
+            compactMode={menuStatus === MenuStatus.Closed}
+            selectedItemChanged={onNavigationChanged}
+            openMenu={temporaryOpenMenu}
+            onMenuReady={onMenuReady}
+          >
+          </SideNavigationMenu>
+        </Template>
+      </Drawer>
+    </div>
+  );
+}
+
+const MenuStatus = {
+  Closed: 1,
+  Opened: 2,
+  TemporaryOpened: 3
+};
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\single-card\single-card.js
+
+import React from 'react';
+import ScrollView from 'devextreme-react/scroll-view';
+import './single-card.scss';
+
+
+export default function SingleCard({ title, description, children }) {
+  return (
+    <ScrollView height={'100%'} width={'100%'} className={'with-footer single-card'}>
+      <div className={'dx-card content'}>
+        <div className={'header'}>
+          <div className={'title'}>{title}</div>
+          <div className={'description'}>{description}</div>
+        </div>
+        {children}
+      </div>
+    </ScrollView>
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\index.js
+
+export { default as HomePage } from './home/home';
+export { default as ProfilePage } from './profile/profile';
+export { default as TasksPage } from './tasks/tasks';
+export { default as Vehicles } from './vehicles/vehicles';
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\home\home.js
+
+import React from 'react';
+import './home.scss';
+
+export default function Home() {
+  return (
+    <React.Fragment>
+      <h2 className={'content-block'}>Home</h2>
+      <div className={'content-block'}>
+        <div className={'dx-card responsive-paddings'}>
+          <div className={'logos-container'}>
+            <svg className={'devextreme-logo'} viewBox={'0 0 200 34'} fill={'none'} xmlns={'http://www.w3.org/2000/svg'}>
+              <path d={'M21.269 16.6304C21.269 21.9331 20.1851 25.9907 18.0171 28.8032C15.8638 31.6011 12.7583 33 8.70068 33H0.834473V0.875977H9.42578C13.1611 0.875977 16.0688 2.26025 18.1489 5.02881C20.229 7.78271 21.269 11.6499 21.269 16.6304ZM15.1387 16.8062C15.1387 9.62842 13.1611 6.03955 9.20605 6.03955H6.81104V27.7705H8.74463C10.9272 27.7705 12.5386 26.8623 13.5786 25.0459C14.6187 23.2148 15.1387 20.4683 15.1387 16.8062ZM33.7504 33.4395C30.6889 33.4395 28.2719 32.3555 26.4994 30.1875C24.7416 28.0049 23.8627 24.9214 23.8627 20.937C23.8627 16.894 24.661 13.7373 26.2577 11.4668C27.8544 9.19629 30.081 8.06104 32.9374 8.06104C35.6034 8.06104 37.7055 9.03516 39.2436 10.9834C40.7816 12.917 41.5507 15.6343 41.5507 19.1353V22.2554H29.7953C29.8393 24.438 30.286 26.064 31.1356 27.1333C31.9853 28.188 33.1571 28.7153 34.6513 28.7153C36.5556 28.7153 38.5038 28.1221 40.496 26.9355V31.7476C38.621 32.8755 36.3725 33.4395 33.7504 33.4395ZM32.8935 12.5654C32.0585 12.5654 31.37 13.0122 30.828 13.9058C30.286 14.7847 29.9711 16.1543 29.8832 18.0146H35.8158C35.7865 16.2275 35.5155 14.8726 35.0028 13.9497C34.4901 13.0269 33.787 12.5654 32.8935 12.5654ZM48.429 33L42.035 8.52246H48.0994L51.2195 22.6948C51.3514 23.354 51.5052 24.3208 51.681 25.5952C51.8714 26.855 51.9886 27.7632 52.0325 28.3198H52.1204C52.1351 27.8804 52.1937 27.2505 52.2962 26.4302C52.4134 25.6099 52.5306 24.8555 52.6478 24.167C52.7649 23.4785 53.8929 18.2637 56.0315 8.52246H62.096L55.68 33H48.429ZM78.5324 33H64.0524V0.875977H78.5324V6.03955H70.029V13.686H77.9172V18.8716H70.029V27.7705H78.5324V33ZM86.1798 20.4976L80.0714 8.52246H86.1358L89.3878 15.9932L92.398 8.52246H98.4186L92.2662 20.4976L98.6822 33H92.5738L89.1021 25.1777L85.8722 33H79.7857L86.1798 20.4976ZM109.12 28.4956C109.94 28.4956 110.827 28.2905 111.779 27.8804V32.4507C110.827 33.1099 109.398 33.4395 107.494 33.4395C105.37 33.4395 103.795 32.8096 102.77 31.5498C101.745 30.2754 101.232 28.3711 101.232 25.8369V13.1587H98.8589V10.5439L101.913 8.43457L103.407 3.24902H107.143V8.52246H111.581V13.1587H107.143V26.0347C107.143 27.6753 107.802 28.4956 109.12 28.4956ZM124.744 8.06104C125.461 8.06104 126.164 8.1709 126.853 8.39062L126.172 14.0596C125.762 13.9131 125.227 13.8398 124.568 13.8398C123.147 13.8398 122.056 14.4038 121.294 15.5317C120.532 16.645 120.151 18.271 120.151 20.4097V33H114.307V8.52246H119.119L119.778 12.3457H119.975C120.62 10.8076 121.323 9.70898 122.085 9.0498C122.847 8.39062 123.733 8.06104 124.744 8.06104ZM137.598 33.4395C134.537 33.4395 132.12 32.3555 130.347 30.1875C128.59 28.0049 127.711 24.9214 127.711 20.937C127.711 16.894 128.509 13.7373 130.106 11.4668C131.702 9.19629 133.929 8.06104 136.785 8.06104C139.451 8.06104 141.554 9.03516 143.092 10.9834C144.63 12.917 145.399 15.6343 145.399 19.1353V22.2554H133.643C133.687 24.438 134.134 26.064 134.984 27.1333C135.833 28.188 137.005 28.7153 138.499 28.7153C140.404 28.7153 142.352 28.1221 144.344 26.9355V31.7476C142.469 32.8755 140.221 33.4395 137.598 33.4395ZM136.742 12.5654C135.907 12.5654 135.218 13.0122 134.676 13.9058C134.134 14.7847 133.819 16.1543 133.731 18.0146H139.664C139.635 16.2275 139.364 14.8726 138.851 13.9497C138.338 13.0269 137.635 12.5654 136.742 12.5654ZM172.668 33V18.4102C172.668 14.8213 171.781 13.0269 170.009 13.0269C168.72 13.0269 167.797 13.6714 167.24 14.9604C166.684 16.2349 166.405 18.2856 166.405 21.1128V33H160.517V18.4102C160.517 14.8213 159.616 13.0269 157.814 13.0269C156.554 13.0269 155.639 13.6641 155.068 14.9385C154.496 16.2129 154.211 18.3149 154.211 21.2446V33H148.366V8.52246H153.002L153.705 11.6646H154.079C154.665 10.4194 155.463 9.51123 156.474 8.93994C157.499 8.354 158.591 8.06104 159.748 8.06104C162.736 8.06104 164.728 9.47461 165.724 12.3018H165.944C167.189 9.47461 169.189 8.06104 171.943 8.06104C174.111 8.06104 175.751 8.82275 176.864 10.3462C177.992 11.8696 178.556 14.0962 178.556 17.0259V33H172.668ZM191.433 33.4395C188.372 33.4395 185.955 32.3555 184.182 30.1875C182.424 28.0049 181.546 24.9214 181.546 20.937C181.546 16.894 182.344 13.7373 183.941 11.4668C185.537 9.19629 187.764 8.06104 190.62 8.06104C193.286 8.06104 195.388 9.03516 196.926 10.9834C198.464 12.917 199.233 15.6343 199.233 19.1353V22.2554H187.478C187.522 24.438 187.969 26.064 188.818 27.1333C189.668 28.188 190.84 28.7153 192.334 28.7153C194.238 28.7153 196.187 28.1221 198.179 26.9355V31.7476C196.304 32.8755 194.055 33.4395 191.433 33.4395ZM190.576 12.5654C189.741 12.5654 189.053 13.0122 188.511 13.9058C187.969 14.7847 187.654 16.1543 187.566 18.0146H193.499C193.469 16.2275 193.198 14.8726 192.686 13.9497C192.173 13.0269 191.47 12.5654 190.576 12.5654Z'} fill={'#F05B41'} />
+            </svg>
+            <svg className ={'plus'} viewBox={'0 0 22 22'} fill={'none'} xmlns={'http://www.w3.org/2000/svg'}>
+              <path d={'M21.6309 13.3433H13.1714V21.8027H8.73291V13.3433H0.229492V8.88281H8.73291V0.379395H13.1714V8.88281H21.6309V13.3433Z'} fill={'#BCBCBC'} />
+            </svg>
+            <svg className={'react-logo'} viewBox={'0 0 184 62'} xmlns={'http://www.w3.org/2000/svg'}>
+              <circle fill={'#6FCEEF'} cx={'34.6'} cy={'30.4'} r={'6'} /><path fill={'#6FCEEF'} d={'M68.1,30.4c0-4.8-5.4-8.9-14-11.3c0.3-1.3,0.6-2.5,0.8-3.7c1.1-7-0.1-12-3.5-14c-3.4-2-8.3-0.6-13.9,3.9c-0.9,0.8-1.9,1.6-2.8,2.6C28.3,1.7,22-1,17.9,1.4c-4.1,2.4-5,9.1-2.8,17.7c-8.6,2.4-14,6.5-14,11.3s5.4,8.8,14,11.3c-2.2,8.6-1.4,15.3,2.8,17.7c1,0.6,2.2,0.9,3.4,0.9c3.8,0,8.5-2.7,13.4-7.4c0.9,0.9,1.9,1.8,2.8,2.6c3.9,3.2,7.5,4.8,10.5,4.8c1.2,0,2.4-0.3,3.4-0.9c4.1-2.4,5-9.1,2.8-17.7C62.7,39.3,68.1,35.2,68.1,30.4z M39.4,7.7c3.3-2.7,6.3-4.1,8.5-4.1c0.7,0,1.4,0.2,1.9,0.5c2.2,1.3,3,5.3,2.1,10.9c-0.2,1.1-0.4,2.3-0.7,3.5c-2.7-0.6-5.7-1.1-8.9-1.3c-1.8-2.6-3.7-4.9-5.6-7C37.6,9.2,38.5,8.4,39.4,7.7z M43.9,35.8c-1,1.8-2.1,3.5-3.2,5.1c-1.9,0.1-4,0.2-6.1,0.2c-2.1,0-4.1-0.1-6.1-0.2c-1.1-1.6-2.2-3.4-3.2-5.1c-1-1.8-2-3.6-2.8-5.4c0.8-1.8,1.8-3.5,2.8-5.4c1-1.8,2.1-3.5,3.2-5.1c1.9-0.1,4-0.2,6.1-0.2c2.1,0,4.1,0.1,6.1,0.2c1.1,1.6,2.2,3.3,3.2,5.1c1,1.8,2,3.6,2.8,5.4C45.9,32.2,44.9,34,43.9,35.8z M48.3,33.9c0.8,1.9,1.5,3.8,2,5.6c-1.8,0.4-3.8,0.8-5.9,1c0.7-1.1,1.3-2.1,2-3.3C47.2,36.2,47.8,35.1,48.3,33.9z M34.6,48.6c-1.3-1.4-2.6-2.9-3.8-4.5c1.2,0.1,2.5,0.1,3.8,0.1c1.3,0,2.6,0,3.8-0.1C37.2,45.7,35.9,47.2,34.6,48.6z M24.7,40.5c-2.1-0.3-4-0.6-5.9-1c0.6-1.8,1.2-3.6,2-5.6c0.6,1.1,1.2,2.2,1.8,3.3C23.4,38.4,24.1,39.5,24.7,40.5z M20.9,26.9c-0.8-1.9-1.5-3.8-2-5.6c1.8-0.4,3.8-0.8,5.9-1c-0.7,1.1-1.3,2.1-2,3.3C22.1,24.7,21.5,25.8,20.9,26.9z M34.6,12.2c1.3,1.4,2.5,2.9,3.8,4.6c-1.2-0.1-2.5-0.1-3.8-0.1c-1.3,0-2.5,0-3.8,0.1C32.1,15.2,33.4,13.6,34.6,12.2z M46.5,23.6c-0.6-1.1-1.3-2.2-2-3.2c2.1,0.3,4,0.6,5.8,1c-0.6,1.8-1.2,3.7-2,5.6C47.8,25.8,47.2,24.7,46.5,23.6z M19.4,4c0.5-0.3,1.2-0.5,1.9-0.5c2.8,0,6.9,2.3,11.3,6.5c-1.9,2.1-3.8,4.4-5.6,6.9c-3.2,0.3-6.2,0.7-8.9,1.3C16.2,11,16.8,5.5,19.4,4z M4.1,30.4c0-3,4.4-6.2,11.8-8.3c0.8,2.7,1.9,5.5,3.3,8.3c-1.3,2.9-2.4,5.7-3.3,8.3C8.6,36.7,4.1,33.4,4.1,30.4z M19.4,56.8c-2.6-1.5-3.2-6.9-1.3-14.4c2.7,0.6,5.7,1.1,8.9,1.3c1.8,2.5,3.7,4.9,5.6,7C27,56.1,22,58.3,19.4,56.8z M49.9,56.8c-2.2,1.3-6-0.1-10.5-3.7c-0.9-0.7-1.8-1.5-2.6-2.4c1.9-2,3.8-4.4,5.6-7c3.2-0.3,6.1-0.7,8.9-1.3C53.1,49.9,52.5,55.3,49.9,56.8z M53.3,38.8c-0.8-2.7-1.9-5.5-3.3-8.4c1.3-2.8,2.4-5.6,3.2-8.3c7.4,2.1,11.8,5.3,11.8,8.4C65.1,33.4,60.7,36.7,53.3,38.8z'} /><g><path fill={'#6FCEEF'} d={'M79.2,31.8v10.8h-5.4v-27H84c3.1,0,5.5,0.7,7.2,2.1c1.7,1.4,2.6,3.4,2.6,5.9c0,1.4-0.4,2.6-1.1,3.6c-0.7,1-1.8,1.8-3.2,2.4c1.6,0.5,2.7,1.3,3.4,2.4c0.7,1.1,1,2.5,1,4.1v2c0,0.8,0.1,1.5,0.3,2.4c0.2,0.8,0.6,1.4,1,1.8v0.4h-5.6c-0.5-0.4-0.8-1.1-1-2s-0.2-1.8-0.2-2.6v-1.9c0-1.3-0.4-2.4-1.1-3.1c-0.7-0.7-1.8-1.1-3.1-1.1H79.2z M79.2,27.7h4.7c1.5,0,2.7-0.3,3.4-1c0.7-0.6,1.1-1.6,1.1-2.9c0-1.2-0.4-2.2-1.1-3c-0.7-0.7-1.9-1.1-3.3-1.1h-4.8V27.7z'} /><path fill={'#6FCEEF'} d={'M107.3,43c-2.9,0-5.2-0.9-6.9-2.8c-1.7-1.9-2.6-4.2-2.6-7.1v-0.7c0-3,0.8-5.4,2.5-7.4c1.6-1.9,3.8-2.9,6.6-2.9c2.7,0,4.8,0.8,6.3,2.4c1.5,1.6,2.2,3.8,2.2,6.6v3h-12l0,0.1c0.1,1.3,0.5,2.4,1.3,3.3c0.8,0.9,1.9,1.3,3.2,1.3c1.2,0,2.2-0.1,3-0.4c0.8-0.2,1.7-0.6,2.6-1.1l1.5,3.3c-0.8,0.7-1.9,1.2-3.2,1.7C110.4,42.8,109,43,107.3,43z M106.9,26.4c-1,0-1.8,0.4-2.4,1.2c-0.6,0.8-0.9,1.8-1.1,3l0.1,0.1h6.6v-0.5c0-1.2-0.3-2.1-0.8-2.8C108.8,26.7,108,26.4,106.9,26.4z'} /><path fill={'#6FCEEF'} d={'M130.4,42.6c-0.2-0.5-0.4-0.9-0.5-1.4c-0.1-0.5-0.2-1-0.3-1.6c-0.6,1-1.3,1.8-2.2,2.4c-0.9,0.6-2,1-3.3,1c-2.1,0-3.7-0.5-4.9-1.6c-1.1-1.1-1.7-2.6-1.7-4.4c0-2,0.8-3.5,2.3-4.6c1.5-1.1,3.7-1.6,6.6-1.6h3v-1.6c0-1-0.3-1.7-0.8-2.2c-0.5-0.5-1.3-0.8-2.2-0.8c-0.9,0-1.6,0.2-2,0.6c-0.5,0.4-0.7,1-0.7,1.8l-5.2,0l0-0.1c-0.1-1.7,0.6-3.2,2.2-4.4c1.6-1.2,3.6-1.8,6.1-1.8c2.4,0,4.3,0.6,5.8,1.8c1.5,1.2,2.2,3,2.2,5.2v8.3c0,0.9,0.1,1.8,0.2,2.7c0.1,0.8,0.4,1.7,0.7,2.5H130.4z M125.4,39c1,0,1.8-0.2,2.5-0.7c0.7-0.5,1.2-1,1.5-1.6v-2.8h-3c-1.2,0-2,0.3-2.6,0.9c-0.6,0.6-0.9,1.3-0.9,2.1c0,0.7,0.2,1.2,0.7,1.6S124.6,39,125.4,39z'} /><path fill={'#6FCEEF'} d={'M147.4,38.9c1,0,1.7-0.3,2.3-0.8c0.6-0.6,0.9-1.3,0.9-2.2h4.9l0.1,0.1c0,2-0.7,3.7-2.3,5.1c-1.6,1.4-3.5,2-5.9,2c-3,0-5.3-0.9-6.9-2.8c-1.6-1.9-2.4-4.3-2.4-7.3v-0.6c0-3,0.8-5.4,2.4-7.3c1.6-1.9,3.9-2.9,6.9-2.9c2.5,0,4.5,0.7,6,2.1c1.5,1.4,2.2,3.3,2.2,5.6l0,0.1h-4.9c0-1-0.3-1.9-0.9-2.6c-0.6-0.7-1.4-1-2.4-1c-1.4,0-2.4,0.6-3,1.7c-0.6,1.1-0.9,2.5-0.9,4.3v0.6c0,1.8,0.3,3.2,0.9,4.3C144.9,38.3,146,38.9,147.4,38.9z'} /><path fill={'#6FCEEF'} d={'M165.1,17.6v4.9h3.4v3.8h-3.4v10.2c0,0.8,0.2,1.3,0.5,1.7c0.3,0.3,0.8,0.5,1.3,0.5c0.3,0,0.5,0,0.7,0c0.2,0,0.4-0.1,0.7-0.2l0.5,3.9c-0.5,0.2-1.1,0.3-1.6,0.4c-0.5,0.1-1.1,0.1-1.7,0.1c-1.9,0-3.3-0.5-4.3-1.5c-1-1-1.5-2.7-1.5-4.9V26.4h-2.9v-3.8h2.9v-4.9H165.1z'} /></g>
+            </svg>
+          </div>
+
+          <p>Thanks for using the  DevExtreme React App Template.</p>
+          <p>
+            <span>This application was built using </span>
+            <a href={'https://create-react-app.dev/'} target={'_blank'} rel={'noopener noreferrer'}>Create React App</a>
+            <span> and </span>
+            <a href={'https://js.devexpress.com/Documentation/Guide/Common/DevExtreme_CLI/'} target={'_blank'} rel={'noopener noreferrer'}>DevExtreme CLI</a>
+            <span> and includes the following DevExtreme components:</span>
+          </p>
+          <ul>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/UI_Components/DataGrid/Getting_Started_with_DataGrid/'} target={'_blank'} rel={'noopener noreferrer'}>DataGrid</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/Widgets/Form/Overview/'} target={'_blank'} rel={'noopener noreferrer'}>Form</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/Widgets/Drawer/Getting_Started_with_Navigation_Drawer/'} target={'_blank'} rel={'noopener noreferrer'}>Drawer</a></li>
+          </ul>
+
+          <p>To customize your DevExtreme React application further, please refer to the following help topics:</p>
+
+          <ul>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Layouts'} target={'_blank'} rel={'noopener noreferrer'}>Layouts</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Add_a_New_View'} target={'_blank'} rel={'noopener noreferrer'}>Add a New View</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Configure_the_Navigation_Menu'} target={'_blank'} rel={'noopener noreferrer'}>Configure the Navigation Menu</a></li>
+            <li><a href={'https://js.devexpress.com/Documentation/Guide/React_Components/Application_Template/#Configure_Themes'} target={'_blank'} rel={'noopener noreferrer'}>Configure Themes</a></li>
+          </ul>
+
+          <p>
+            <span>For technical content related to DevExtreme React components, feel free to explore our </span>
+            <a href="https://js.devexpress.com/documentation/" target="_blank" rel="noopener noreferrer">online documentation</a>
+            <span> and </span>
+            <a href="https://js.devexpress.com/Demos/Widgetsgallery/" target="_blank" rel="noopener noreferrer">technical demos</a>.
+          </p>
+        </div>
+      </div>
+    </React.Fragment>
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\profile\profile.js
+
+import React, { useState } from 'react';
+import './profile.scss';
+import Form from 'devextreme-react/form';
+
+export default function Profile() {
+  const [notes, setNotes] = useState(
+    'Sandra is a CPA and has been our controller since 2008. She loves to interact with staff so if you`ve not met her, be certain to say hi.\r\n\r\nSandra has 2 daughters both of whom are accomplished gymnasts.'
+  );
+  const employee = {
+    ID: 7,
+    FirstName: 'Sandra',
+    LastName: 'Johnson',
+    Prefix: 'Mrs.',
+    Position: 'Controller',
+    Picture: 'images/employees/06.png',
+    BirthDate: new Date('1974/11/5'),
+    HireDate: new Date('2005/05/11'),
+    Notes: notes,
+    Address: '4600 N Virginia Rd.'
+  };
+
+  return (
+    <React.Fragment>
+      <h2 className={'content-block'}>Profile</h2>
+
+      <div className={'content-block dx-card responsive-paddings'}>
+        <div className={'form-avatar'}>
+          <img
+            alt={''}
+            src={`https://js.devexpress.com/Demos/WidgetsGallery/JSDemos/${
+              employee.Picture
+            }`}
+          />
+        </div>
+        <span>{notes}</span>
+      </div>
+
+      <div className={'content-block dx-card responsive-paddings'}>
+        <Form
+          id={'form'}
+          defaultFormData={employee}
+          onFieldDataChanged={e => e.dataField === 'Notes' && setNotes(e.value)}
+          labelLocation={'top'}
+          colCountByScreen={colCountByScreen}
+        />
+      </div>
+    </React.Fragment>
+  );
+}
+
+const colCountByScreen = {
+  xs: 1,
+  sm: 2,
+  md: 3,
+  lg: 4
+};
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\tasks\tasks.js
+
+import React from 'react';
+import 'devextreme/data/odata/store';
+import DataGrid, {
+  Column,
+  Pager,
+  Paging,
+  FilterRow,
+  Lookup
+} from 'devextreme-react/data-grid';
+
+export default function Task() {
+  return (
+    <React.Fragment>
+      <h2 className={'content-block'}>Tasks</h2>
+
+      <DataGrid
+        className={'dx-card wide-card'}
+        dataSource={dataSource}
+        showBorders={false}
+        focusedRowEnabled={true}
+        defaultFocusedRowIndex={0}
+        columnAutoWidth={true}
+        columnHidingEnabled={true}
+      >
+        <Paging defaultPageSize={10} />
+        <Pager showPageSizeSelector={true} showInfo={true} />
+        <FilterRow visible={true} />
+
+        <Column dataField={'Task_ID'} width={90} hidingPriority={2} />
+        <Column
+          dataField={'Task_Subject'}
+          width={190}
+          caption={'Subject'}
+          hidingPriority={8}
+        />
+        <Column
+          dataField={'Task_Status'}
+          caption={'Status'}
+          hidingPriority={6}
+        />
+        <Column
+          dataField={'Task_Priority'}
+          caption={'Priority'}
+          hidingPriority={5}
+        >
+          <Lookup
+            dataSource={priorities}
+            valueExpr={'value'}
+            displayExpr={'name'}
+          />
+        </Column>
+        <Column
+          dataField={'ResponsibleEmployee.Employee_Full_Name'}
+          caption={'Assigned To'}
+          allowSorting={false}
+          hidingPriority={7}
+        />
+        <Column
+          dataField={'Task_Start_Date'}
+          caption={'Start Date'}
+          dataType={'date'}
+          hidingPriority={3}
+        />
+        <Column
+          dataField={'Task_Due_Date'}
+          caption={'Due Date'}
+          dataType={'date'}
+          hidingPriority={4}
+        />
+        <Column
+          dataField={'Task_Priority'}
+          caption={'Priority'}
+          name={'Priority'}
+          hidingPriority={1}
+        />
+        <Column
+          dataField={'Task_Completion'}
+          caption={'Completion'}
+          hidingPriority={0}
+        />
+      </DataGrid>
+    </React.Fragment>
+)}
+
+const dataSource = {
+  store: {
+    type: 'odata',
+    key: 'Task_ID',
+    url: 'https://js.devexpress.com/Demos/DevAV/odata/Tasks'
+  },
+  expand: 'ResponsibleEmployee',
+  select: [
+    'Task_ID',
+    'Task_Subject',
+    'Task_Start_Date',
+    'Task_Due_Date',
+    'Task_Status',
+    'Task_Priority',
+    'Task_Completion',
+    'ResponsibleEmployee/Employee_Full_Name'
+  ]
+};
+
+const priorities = [
+  { name: 'High', value: 4 },
+  { name: 'Urgent', value: 3 },
+  { name: 'Normal', value: 2 },
+  { name: 'Low', value: 1 }
+];
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\vehicles\vehicles.js
+
+import React, { useState, useEffect } from 'react';
+import './vehicles.scss';
+import Datagrid, { Paging, HeaderFilter, SearchPanel, Editing, FilterRow, Column, Lookup, Sorting, RequiredRule } from 'devextreme-react/data-grid';
+import CustomStore from 'devextreme/data/custom_store';
+import axios from "axios";
+import { getVehicleDataSource,getExpectedAvg
+         ,getManufacturers,getVehicleModels,
+         getSiteList ,getEmployeeList,getVehicleTypeList,getVehicleList} from '../../dataservice';
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+export default  function Vehicles() 
+{ 
+    const [expectedAVG, setExpectedAVG] = useState([]);
+    const [manufacturers, setManufacturers] = useState([]);
+    const [vehicleModels, setVehicleModels] = useState([]);
+    const [site, setSite] = useState([]);
+    const [employee, setEmployee] = useState([]);
+    const [vehicleType, setVehicleType] = useState([]); 
+    const vehicleDataSource = getVehicleDataSource;
+
+    const [selectedSiteId, setSelectedSiteId] = useState(null);
+        const [selectedManufacturer, setSelectedManufacturer] = useState(null);
+  
+
+
+    useEffect(() => {
+
+        const fetchdata = async () => {
+            try{
+            const[ manufacturersResponse, 
+              vehicleModelsResponse ,
+              expectedAVGResponce ,
+               siteResponse,
+               employeeResponse  , vehicleTypeResponse] 
+               
+               = await Promise.all([
+                getManufacturers(),
+               getVehicleModels(),
+                getExpectedAvg(),
+                  getSiteList(),
+                  getEmployeeList(),
+                  getVehicleTypeList()
+            ]);
+              
+         setManufacturers(manufacturersResponse);
+            setVehicleModels(vehicleModelsResponse);
+            setExpectedAVG(expectedAVGResponce);
+              setSite(siteResponse);
+              setEmployee(employeeResponse);
+              setVehicleType(vehicleTypeResponse);
+        }
+        catch(error){
+            console.error('Error loading Support data:', error);
+            throw 'Data loading error'; 
+        };
+      }
+      
+      
+        fetchdata();
+      },[]);
+      
+
+
+
+
+
+
+//   const fetchFilteredExpectedAVGData = (options) => {
+  
+  
+//     if(options.data && options.data.vehicleId && options.data.workingSiteId)
+//     {
+   
+//         console.log("expectedAVG", expectedAVG);
+//         console.log("options.data", options.data);
+//         console.log("options.data.vehicleId", options.data.vehicleId);
+//         console.log("options.data.workingSiteId", options.data.workingSiteId);
+  
+        
+//         const filterData = expectedAVG.filter(item =>
+//              item.vehicleID === options.data.vehicleId && 
+//             item.siteId === options.data.workingSiteId);
+  
+//      console.log("Filtered Data:", filterData); 
+//         return filterData;
+       
+//     }else{
+//         console.log("Returning empty array expectedAVG",expectedAVG);
+//         return {store: expectedAVG};
+//     };
+  
+//   };
+
+  
+
+//   const getFilteredVehicleModels = (options) => {
+//     //console.log("Options.data:", options.data)
+//     if (options.data && options.data.vehicleManufacturerId) {
+
+//           console.log("Options.data.vehicleManufacturerId:", options.data.vehicleManufacturerId);
+
+//         const filteredModels = vehicleModels.filter(model => model.manufacturerId === options.data.vehicleManufacturerId);
+//        console.log("Filtered Models:", filteredModels);
+//         return {
+//             store: filteredModels,
+//         };
+//     } else {
+//         console.log("Vehicle Models:", vehicleModels);
+
+//         return {
+//             store: vehicleModels,
+//         };
+//     }
+// };
+//   function setExpectedAVGCellValue(rowData, value) {
+//     console.log("Row data:", rowData);
+//     //rowData.defaultExpectedAverageId = null;
+//     this.defaultSetCellValue(rowData, value);
+// };
+
+
+
+
+// function setManufacturersCellValue (rowData,value){
+//   console.log("Row data manu facturer:", rowData);
+
+//   rowData.vehicleModelId =null;
+//   this.defaultSetCellValue(rowData, value);
+// };
+
+
+const getFilteredExpectedAVG = (options) => {
+    if (options.data && options.data.vehicleId && options.data.workingSiteId) {
+        return expectedAVG.filter(item =>
+            item.vehicleID === options.data.vehicleId &&
+            item.siteId === options.data.workingSiteId
+        );
+    }
+    return expectedAVG;
+};
+const getFilteredVehicleModels = () => {
+    if (selectedManufacturer) {
+        return vehicleModels.filter(model => model.manufacturerId === selectedManufacturer);
+    }
+    return vehicleModels;
+};
+
+const handleSiteChange = (selectedRowKeys) => {
+    setSelectedSiteId(selectedRowKeys[0]);
+};
+
+const handleManufacturerChange = (selectedRowKeys) => {
+    setSelectedManufacturer(selectedRowKeys[0]);
+};
+
+   return(
+     <React.Fragment>
+    <h2 className={'content-block'}>Vehicles</h2>
+    <div className={'content-block'}>
+      <div className={'responsive-paddings'}>
+      <Datagrid
+                dataSource={getVehicleDataSource()}
+                showBorders={true}
+                allowColumnReordering={true}
+                allowColumnResizing={true}
+                columnAutoWidth={true}
+                rowAlernationEnable={true}        
+                repaintChangesOnly={true}>
+                <Paging enabled={true} defaultPageSize={30} />
+                
+
+                <FilterRow visible={true} />
+                <HeaderFilter visible={true} />
+                <Sorting mode="multiple" />
+                <Editing
+                    mode="row"
+                    allowUpdating={true}
+                    allowAdding={false}
+                    allowDeleting={false}
+                    selectTextOnEditStart={true}
+                    startEditAction="dblClick"
+                   
+                    />
+               
+                <Column dataField="vehicleId" caption="Vehicle ID" allowEditing={false} visible={false} defaultSortOrder="asc" />
+                <Column dataField="hyoungNo" fixed={true} caption="Hyoung No" allowEditing={false} width={100} />
+                <Column dataField="defaultExpectedAverageId"width={200} caption="Default Expected AVG" alignment="center"
+                >
+                    <Lookup
+                        // dataSource={useFilteredDataSource ? expectedAVGDatasource : loadExpectedAVGData}
+                        dataSource={getFilteredExpectedAVG}
+                        valueExpr="id"
+                        displayExpr="combinedExpectedAverage"
+
+                    />
+
+                </Column>
+                <Column dataField="workingSiteId" caption="Working Site"
+                  //  setCellValue={setExpectedAVGCellValue}
+                    width={230}
+
+                >
+                    <Lookup
+                        dataSource={site}
+                        valueExpr="id"
+                        displayExpr="name"
+                        onSelectionChanged={(selectedRowKeys) => handleSiteChange(selectedRowKeys)}
+
+                    />
+                </Column>
+                <Column dataField="averageKmL" caption="is km/l" width={100} />
+
+
+                <Column dataField="defaultEmployeeId" caption="Default Employee"
+                      width={230}  >
+                    <Lookup
+                    dataSource={employee} 
+                    valueExpr="id" 
+                    displayExpr="fullName" 
+                   
+                    />
+                </Column>
+
+                <Column dataField="vehicleTypeId"
+                    caption="Vehicle Type"
+                // editCellComponent = {VehicleTypeUIComponent}
+                >
+                    <Lookup
+                        dataSource={vehicleType}
+                        valueExpr="id"
+                        displayExpr="name" />
+                </Column>
+
+                <Column dataField="vehicleManufacturerId" 
+                caption="Vehicle Manufacturer"    
+             //   setCellValue = {setManufacturersCellValue}   
+                width={230}
+
+                >
+                    <Lookup
+                        dataSource={manufacturers}
+                        valueExpr="id"
+                        displayExpr="name"
+                       
+
+                    />
+                </Column>
+                <Column dataField="vehicleModelId" caption="Vehicle Model"       width={230}
+>
+
+                    <Lookup
+                        dataSource ={getFilteredVehicleModels}
+                        valueExpr="id"
+                        displayExpr="name"
+                    />
+                </Column>
+                <Column 
+                dataField="excessWorkingHrCost" 
+                caption="Excess Working Hr Cost" 
+                dataType="number"
+                setCellValue={(newData, value) => {
+                    // Enforce the number range 0 - 10000
+                    newData.excessWorkingHrCost = Math.max(0, Math.min(10000, Number(value)));
+                }}
+                
+                />
+
+
+
+            </Datagrid>      </div>
+    </div>
+  </React.Fragment>
+
+)}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionDetails\vehicleConsumptionDetails.js
+
+import React, { useCallback, useEffect,useState } from "react";
+import { useParams  } from 'react-router-dom';
+import { Toolbar, Item as ToolbarItem } from 'devextreme-react/toolbar';
+import Button from 'devextreme-react/button';
+import ValidationGroup from 'devextreme-react/validation-group';
+import DropDownButton, { Item as DropDownItem } from 'devextreme-react/drop-down-button';
+import TabPanel, { Item as TabPanelItem } from 'devextreme-react/tab-panel';
+import {VehicleConsumptionChartDetail,
+        VehicleConsumptionHistoryDetails,
+        VehicleConsumptionMapDetails,
+        VehicleConsumptionFormDetails} from '../../components';
+        import { getConsumptionById } from '../../dataservice';
+        
+//show form and load history data + map details 
+const VehicleConsumptionDetails= () => {
+  const { id } = useParams();
+    const [consumptionData, setConsumptionData] = useState(null);
+ 
+ 
+
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const data = await getConsumptionById(id);
+          setConsumptionData(data);
+        } catch (error) {
+          console.error('Error fetching consumption data:', error);
+        }
+      };
+  
+      fetchData();
+    }, [id]);
+
+
+    if (!consumptionData) {
+      return <div>Loading...</div>;
+    }
+
+return (
+  <React.Fragment>
+    <div className="">
+  <Toolbar className='toolbar-details theme-dependent'>
+  <ToolbarItem location='before'>
+            <Button icon='arrowleft' stylingMode='text' />
+    </ToolbarItem>
+
+    <ToolbarItem location='after' locateInMenu='auto'>
+    <DropDownButton text='Actions' stylingMode='text' dropDownOptions={{ width: 'auto' }}>
+    <DropDownItem text='Request Project Admin assistance' />
+    <DropDownItem text='Seek Approval' />
+
+   </DropDownButton>
+     </ToolbarItem>
+   
+  </Toolbar>
+        <div className='content content-block'>
+        <div className='responsive-paddings dx-card '>
+        <ValidationGroup>
+        <VehicleConsumptionFormDetails editData ={consumptionData}/>
+
+       </ValidationGroup>
+            </div>
+
+<div className='content content-block'>
+<div className='dx-card details-card'>
+        <TabPanel
+         showNavButtons
+         focusStateEnabled={false}
+         deferRendering={false}>
+            
+            <TabPanelItem title="chart " >
+            <VehicleConsumptionChartDetail
+                   vehicleID={consumptionData.vehicleId}
+                  startDate={consumptionData.date}/>
+            </TabPanelItem>
+
+            <TabPanelItem title="History ">
+            <VehicleConsumptionHistoryDetails 
+            vehicleID={consumptionData.vehicleId}
+                  startDate={consumptionData.date}/>
+            </TabPanelItem>
+
+            <TabPanelItem title="Map ">
+         <VehicleConsumptionMapDetails
+      vehicleID={consumptionData.vehicleId}
+      startDate={consumptionData.date}
+           />
+            </TabPanelItem>
+
+
+        </TabPanel>
+    </div>
+   </div>
+    </div>
+    </div>
+    </React.Fragment>
+);
+
+
+
+
+};
+export default VehicleConsumptionDetails;
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionList\vehicleConsumptionList.js
+
+import React, { useState, useEffect ,useRef} from 'react';
+import DataGrid, { Column, Paging, FilterRow, Sorting, ColumnChooser, ColumnFixing, Editing, Popup, Lookup } from 'devextreme-react/data-grid';
+import axios from "axios";
+import CustomStore from 'devextreme/data/custom_store';
+import { HeaderFilter } from 'devextreme-react/pivot-grid-field-chooser';
+import sampleData from '../../dataservice/sampleconsumptiondata';
+import DateBox from 'devextreme-react/date-box';
+import Button from 'devextreme-react/button';
+import LoadPanel from 'devextreme-react/load-panel';
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+import './vehicleConsumption.scss';
+import { VehicleConsumptionGridList } from '../../components';
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+ const  VehicleConsumptionList = () => {
+  const [consumptionData, setConsumptionData] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedData, setSelectedData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+
+  const gridRef = useRef(null);
+
+
+
+  const fetchData = async () => {
+
+    // if (!selectedDate) {
+    //     return;
+    // }
+    setLoading(true); // Start loading
+    setConsumptionData(sampleData);
+    setLoading(false); // End loading
+    console.log("sample data",consumptionData);
+};
+
+
+  useEffect(() => {
+    // Perform any side effects or data fetching here
+    fetchData();
+  }, []); // Empty dependency array means the effect runs only once on component mount
+
+  // Rest of your component code...
+
+ 
+  return (
+    <React.Fragment>
+  <div className='view-wrapper view-wrapper-list list-page' >
+    <Toolbar className='toolbar-common theme-dependent'>
+        <Item location='before'>
+          <span className='toolbar-header'>Vehicle Consumption</span>
+        </Item>
+        <Item location={'after'} locateInMenu={'auto'} widget={'dxlabel'} >
+          <span className=''>Generate data From GPSGate</span>
+</Item>
+        <Item location='after' locateInMenu='auto' widget='dxtextbox' >
+          <DateBox
+           width={500}
+           defaultValue="select date"
+            value={selectedDate}
+            onValueChanged={e => setSelectedDate(e.value)}
+            displayFormat="dd-MM-yyyy"
+            type="date"
+          />
+        </Item>
+    </Toolbar>
+
+    <LoadPanel container='.content' showPane={false} visible ={loading} position={{ of: '.content' }} />
+    <VehicleConsumptionGridList dataSource={consumptionData}  />
+
+  </div>
+  </React.Fragment>
+  );
+};
+
+export default VehicleConsumptionList;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\consumptionDataGridRules.js
+
+const consumptionDataGridRules = [
+    {
+      condition: (rowData) => rowData.fuelLost > 0,
+      rowClassName: 'highlight-red',
+    },
+    {
+      condition: (rowData) => rowData.engineHours > 10,
+      rowClassName: 'highlight-red',
+    },
+    {
+      condition: (rowData) => rowData.isKmPerLiter && rowData.distance === 0 && rowData.fuelUsed > 0,
+      rowClassName: 'highlight-yellow',
+    },
+    {
+      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours === 0 && rowData.fuelUsed > 0,
+      rowClassName: 'highlight-yellow',
+    },
+    {
+      condition: (rowData) => rowData.isKmPerLiter && rowData.distance > 10 && rowData.fuelUsed === 0,
+      rowClassName: 'highlight-blue',
+    },
+    {
+      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours > 0.5 && rowData.fuelUsed === 0,
+      rowClassName: 'highlight-blue',
+    },
+  ];
+  
+  export default consumptionDataGridRules;
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\default-user.js
+
+export default {
+  email: 'Kevin.kagiri@gmail.com',
+  avatarUrl: ''
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\media-query.js
+
+import { useState, useCallback, useEffect } from 'react';
+
+
+export const useScreenSize = () => {
+  const [screenSize, setScreenSize] = useState(getScreenSize());
+  const onSizeChanged = useCallback(() => {
+    setScreenSize(getScreenSize());
+  }, []);
+
+  useEffect(() => {
+    subscribe(onSizeChanged);
+
+    return () => {
+      unsubscribe(onSizeChanged);
+    };
+  }, [onSizeChanged]);
+
+  return screenSize;
+};
+
+export const useScreenSizeClass = () => {
+  const screenSize = useScreenSize();
+
+  if (screenSize.isLarge) {
+    return 'screen-large';
+  }
+
+  if (screenSize.isMedium) {
+    return 'screen-medium';
+  }
+
+  if (screenSize.isSmall) {
+    return 'screen-small';
+  }
+
+  return 'screen-x-small';
+}
+
+let handlers = [];
+const xSmallMedia = window.matchMedia('(max-width: 599.99px)');
+const smallMedia = window.matchMedia('(min-width: 600px) and (max-width: 959.99px)');
+const mediumMedia = window.matchMedia('(min-width: 960px) and (max-width: 1279.99px)');
+const largeMedia = window.matchMedia('(min-width: 1280px)');
+
+[xSmallMedia, smallMedia, mediumMedia, largeMedia].forEach(media => {
+  media.addListener((e) => {
+    e.matches && handlers.forEach(handler => handler());
+  });
+});
+
+const subscribe = (handler) => handlers.push(handler);
+
+const unsubscribe = (handler) => {
+  handlers = handlers.filter(item => item !== handler);
+};
+
+function getScreenSize() {
+  return {
+    isXSmall: xSmallMedia.matches,
+    isSmall: smallMedia.matches,
+    isMedium: mediumMedia.matches,
+    isLarge: largeMedia.matches
+  };
+}
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\patches.js
+
+import { useState, useCallback } from 'react';
+import { useScreenSize } from './media-query';
+
+export function useMenuPatch() {
+  const { isSmall, isMedium } = useScreenSize();
+  const [enabled, setEnabled] = useState(isSmall || isMedium);
+  const onMenuReady = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
+
+    setTimeout(() => setEnabled(false));
+  }, [enabled]);
+
+  return [enabled ? 'pre-init-blink-fix' : '', onMenuReady];
+}
+
+

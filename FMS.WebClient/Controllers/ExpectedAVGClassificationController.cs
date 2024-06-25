@@ -1,6 +1,6 @@
 ﻿using FMS.Application.Command.DatabaseCommand.ExptAVGClassification;
-using FMS.Application.Models;
-using FMS.Application.Queries.Database.ExpectedAvg;
+using FMS.Application.ModelsDTOs.FMS;
+using FMS.Application.Queries.Database.FMSQuery.ExpectedAvg;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -55,7 +55,9 @@ namespace FMS.WebClient.Controllers
             {
                 Id = id,
                 Name = expectedAVGClassificationDto.Name,
-                Description = expectedAVGClassificationDto.Description
+                Description = expectedAVGClassificationDto.Description,
+                IskmperLiter= expectedAVGClassificationDto.IskmperLiter
+
             };
 
             var result = await _mediator.Send(command);

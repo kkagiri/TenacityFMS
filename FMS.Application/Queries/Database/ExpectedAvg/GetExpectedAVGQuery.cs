@@ -48,7 +48,7 @@ namespace FMS.Application.Queries.Database.ExpectedAvg
                                     siteId= item.SiteId,
                                     site = item.Vehicle.WorkingSite.Name,
                                     expectedAverageClassificationName = item.ExpectedAverageClassification.Name,
-                                    expectedAveragevalue = item.ExpectedAverage1
+                                    expectedAveragevalue = item.ExpectedAverageValue
                                     
                                     }).
                                    ToListAsync(cancellationToken);

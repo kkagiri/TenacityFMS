@@ -9,7 +9,7 @@ public partial class Vehicle
 
     public int VehicleId { get; set; }
 
-    public int VehicleTypeId { get; set; }
+    public int? VehicleTypeId { get; set; }
 
     public int? VehicleModelId { get; set; }
 
@@ -33,15 +33,21 @@ public partial class Vehicle
 
     public string? CurrentPhysicalReading { get; set; }
 
-    public int? WorkingExpectedAverage { get; set; }
+    public sbyte? GpsgategeneratedId { get; set; }
+
+    public int? DefaultExptdAvgid { get; set; }
 
     public virtual ICollection<Calibrationdatum> Calibrationdata { get; set; } = new List<Calibrationdatum>();
 
     public virtual Employee? DefaultEmployee { get; set; }
 
+    public virtual Expectedaverage? DefaultExptdAvg { get; set; }
+
     public virtual Device? Device { get; set; }
 
     public virtual ICollection<Expectedaverage> Expectedaverages { get; set; } = new List<Expectedaverage>();
+
+    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
 
     public virtual ICollection<Issuetracker> Issuetrackers { get; set; } = new List<Issuetracker>();
 
@@ -49,13 +55,15 @@ public partial class Vehicle
 
     public virtual Vehiclemodel? VehicleModel { get; set; }
 
-    public virtual Vehicletype VehicleType { get; set; } = null!;
+    public virtual Vehicletype? VehicleType { get; set; }
 
     public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
-
-    public virtual Expectedaverage? WorkingExpectedAverageNavigation { get; set; }
 
     public virtual Site? WorkingSite { get; set; }
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
+
+    public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+    
 }
+

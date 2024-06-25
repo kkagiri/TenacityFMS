@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using FMS.Application.ModelsDTOs.ExpectedAVG;
+using FMS.Application.ModelsDTOs.FMS.ExpectedAVG;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +52,7 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
                 await _context.SaveChangesAsync(cancellationToken);
             }catch (DbUpdateException ex)
             {
-                throw;
+                throw new Exception("Error updating record", ex);
             }
             return true;
         }

@@ -1,0 +1,795 @@
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\AutofacModule.cs
+
+﻿using Autofac;
+using FMS.PTS;
+
+namespace FMS.ATGClient
+{
+    public class AutofacModule:Module
+    {
+        protected override void Load(ContainerBuilder builder)
+        {
+            builder.RegisterType<Device>().SingleInstance();           
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\Program.cs
+
+using System;
+using System.Reflection;
+//using FMS.WebClient.Signal;
+//using FMS.Application.Models;
+using FMS.Infrastructure.DependancyInjection;
+using MediatR;
+using AutoMapper;
+using System.Diagnostics;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+//using FMS.Application.MappingProfile;
+using Autofac.Core;
+using System.Security.Cryptography.Xml;
+using System.Text.Json.Serialization;
+using FMS.Infrastructure.Webservice.GPSService;
+using NLog.Web;
+using NLog;
+using Microsoft.Extensions.Logging;
+using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess.Nafta;
+using FMS.ATGClient.Controllers;
+using FMS.Application.MappingProfile;
+using FMS.ATGClient.RabbitMQ;
+using AutoMapper.Configuration.Annotations;
+using FMS.Application.FuelDispensing.Commands;
+using Autofac.Extensions.DependencyInjection;
+using Autofac;
+using FMS.ATGClient;
+
+
+var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
+
+try{
+
+logger.Info(" Log ATG Application started");
+
+    var builder =WebApplication.CreateBuilder(args);
+
+//configure Nlog For ASp.Net Core
+   
+   
+    builder.Logging.ClearProviders();
+    builder.Logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+    builder.Host.UseNLog();
+
+    builder.Services.AddControllers().AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.MaxDepth = 0;
+    });
+
+    builder.Services.AddSignalR();
+
+    builder.Services.AddMediatR( cfg =>
+    {
+        cfg.RegisterServicesFromAssemblyContaining<Program>();
+        cfg.RegisterServicesFromAssembly(typeof(FMS.Application.Command.DatabaseCommand.ATGCommands.AlertRecordCommand.CreateAlertRecordCommand).Assembly);
+        cfg.RegisterServicesFromAssembly(typeof(PTSController).Assembly);
+        cfg.RegisterServicesFromAssembly(typeof(SendPumpAuthorizeCommandHandler).Assembly);
+    });
+
+
+
+      //  builder.Services.AddSingleton<PtsStatusService>();
+
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+ var connectionString = builder.Configuration.GetConnectionString("ATGConnection");
+
+ var rabbitmqConnectionString = builder.Configuration.GetConnectionString("RabbitMQConnection");
+ if(!string.IsNullOrEmpty(connectionString))
+ {
+builder.Services.AddDbContext<NaftaContext>(options =>
+              options.UseMySQL(connectionString));
+ }
+ else{
+    logger.Error("Connectionstring is Empty");
+    throw new Exception("ConnectionString is Empty");
+ }
+
+
+
+    builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory()).ConfigureContainer<ContainerBuilder>(ContainerBuilder =>
+    {
+        ContainerBuilder.RegisterModule(new AutofacModule());
+    });
+
+    builder.Services.AddAutoMapper(typeof(ATGMappingProfile).Assembly);
+    //rabbitMQ startup
+    builder.Services.AddSingleton<RabbitMQService>(sp=> new RabbitMQService(rabbitmqConnectionString));
+
+    builder.Services.AddHostedService<UploadStatusWorker>();
+
+
+
+    builder.Services.AddCors(options =>
+       {
+           options.AddPolicy("AllowSpecificOrigin",
+               builder => builder.AllowAnyMethod()
+               .AllowAnyHeader()
+               .WithOrigins("http://localhost:4200")
+               .AllowCredentials());
+       });       
+
+       var app = builder.Build();   
+
+       if(!app.Environment.IsDevelopment())
+       {
+        app.UseHsts();
+        app.UseExceptionHandler("/Home/Error");
+       }
+
+
+       app.Use(async (context, next) =>
+    {
+        //log request information here 
+
+
+        logger.Info("Handling request: {RequestMethod} {RequestPath}", context.Request.Method, context.Request.Path);
+        try
+        {
+            await next.Invoke();
+            //log response information here
+
+            logger.Info("Finished handling request. Response status code: {ResponseStatusCode}", context.Response.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "An unhandled exception has occurred while executing the request. Response status code: {ResponseStatusCode}", context.Response.StatusCode);
+            throw;
+        }
+
+
+    });
+    app.UseHttpsRedirection();
+    app.UseStaticFiles();
+    app.UseRouting();
+
+      app.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
+    //  endpoints.MapHub<PtsStatusHub>("/ptsstatushub");
+
+    });
+
+     app.MapControllerRoute(
+        name: "default",
+        pattern: "{controller}/{action=Index}/{id?}");
+  app.Run();
+
+
+}
+ catch (Exception ex)
+{
+        logger.Error(ex, "Stopped program because of exception");
+
+}
+finally
+{
+    logger.Info("Application Stopped");
+    NLog.LogManager.Shutdown();
+}
+
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\Controllers\ATGController.cs
+
+using FMS.Application.Command.PTSCommand;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.ATGClient.Controllers
+{
+    [Route("[controller]")]
+    [ApiController]
+    public class ATGController : ControllerBase
+    {
+        private readonly ILogger<ATGController> _logger;
+        private readonly IMediator _mediator;
+
+        public ATGController(ILogger<ATGController> logger, IMediator mediator)
+        {
+            _logger = logger;
+            _mediator = mediator;
+        }
+
+        [HttpPost("ReadRFIDTag")]
+        public async Task<IActionResult> ReadRFIDTag(int pumpNumber, int nozzleNumber)
+        {
+
+            
+            var result = await _mediator.Send(new PumpGetTagCommand(pumpNumber, nozzleNumber));
+            if(result.Success)
+            {
+                return Ok(result.TagData);
+            }
+            else{
+                return BadRequest(result.ErrorMessage);
+            }
+
+        }
+        
+    }
+}
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\Controllers\NaftaTransactionController.cs
+
+﻿using AutoMapper.Configuration.Annotations;
+using FMS.Application.Queries.Database.NaftaATGQueries.CardDetailsQueries;
+using FMS.Application.Queries.Database.NaftaATGQueries.CardTransactionQueries;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
+
+namespace FMS.ATGClient.Controllers
+{
+    [ApiController]
+    [Route("api/atg/Naftatransaction")]
+    public class NaftaTransactionController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+        private readonly ILogger _logger;
+
+        public NaftaTransactionController(IMediator mediator,ILogger<NaftaTransactionController> logger) {
+          
+            _mediator = mediator;
+            _logger = logger;
+
+         }
+
+
+
+
+        [HttpGet]
+        [Route("getsalestransaction")]
+        public async Task<IActionResult> GetTransactionByDate([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            if (startDate > endDate)
+            {
+                return BadRequest("Start date must be earlier than or equal to the end date.");
+            }
+
+            try {
+
+                var query = new GetTransactionListQuery { StartDate = startDate, EndDate = endDate };
+                var result = await _mediator.Send(query);
+
+                if(result == null || !result.Any())
+                {
+                    return NotFound($"No transactions found between {startDate.ToString("yyyy-MM-dd")} and {endDate.ToString("yyyy-MM-dd")}");
+                }
+                return Ok(result);
+
+                
+            }catch(Exception ex)
+            {
+
+                return StatusCode(500, "An unexpected error occurred.");
+            }
+            
+        }
+
+        [HttpGet("card-details/{cardid}")]
+        public async Task<ActionResult> GetCardDetails(string cardId)
+        {
+            var query = new GetCardDetailbyCardIDQuery { CardID = cardId };
+
+            var results = await _mediator.Send(query);
+
+
+            if(results == null)
+            {
+                return NotFound();
+            }
+            return Ok(results);
+        }
+
+
+
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\Controllers\PTSController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.ATGCommands.AlertRecordCommand;
+using FMS.Application.Command.DatabaseCommand.ATGCommands.InTankDeliveryCommand;
+using FMS.Application.Command.DatabaseCommand.ATGCommands.PumpTransactoinCommand;
+using FMS.Application.Command.DatabaseCommand.ATGCommands.TankMeasurementsCommand;
+using FMS.Application.Common;
+using FMS.Application.FuelDispensing.Commands;
+using FMS.Application.ModelsDTOs.ATG.Common;
+using FMS.ATGClient.PTS.FuelDispensing.Hub;
+using FMS.ATGClient.RabbitMQ;
+using FMS.Domain.ATGStatus;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace FMS.ATGClient.Controllers
+{
+
+    [ApiController]
+    [Route("PTS")]
+    public class PTSController : Controller
+    {
+        private readonly IMediator _mediator;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger _logger;
+       // private readonly IHubContext<PtsStatusHub> _hubContext;
+       private readonly RabbitMQService _rabbitMQService;
+
+        public PTSController(IMediator mediator, IConfiguration configuration ,RabbitMQService rabbitMQService, ILogger<PTSController> logger)
+        {
+            _rabbitMQService = rabbitMQService;
+            _mediator = mediator;
+            _configuration = configuration;
+            _logger = logger;
+//_hubContext = hubContext;
+
+        }
+
+
+        [HttpPost]
+        [Route("post")]
+        public async Task<IActionResult> Post()
+        {
+
+            // You would validate the HMAC signature here if you're using the SecretKey
+            // This example assumes you have a method to validate the HMAC called ValidateHMAC
+            // if (Request.Headers.TryGetValue("X-Data-Signature", out var signature) &&
+            //    !await validateHMAC(signature,Request.Body,secretKey))
+            // {
+            //     return Unauthorized();
+            //  }
+
+            //TODO: Check if the Header X-Pts-Id is in the Database . If not return 401 with message "PTS ID not found"
+            //extract headers 
+            // var ptsID = Request.Headers["X-Pts-Id"].ToString();
+
+          
+            try
+            {
+                var requestBody = await new StreamReader(Request.Body).ReadToEndAsync();
+                var ptsRequestDto = JsonConvert.DeserializeObject<PtsBaseRequest>(requestBody);
+
+                if (ptsRequestDto?.Packets == null || !ptsRequestDto.Packets.Any())
+                {
+                    return BadRequest("Invalid or missing packet data");
+                }
+
+                bool isUploadStatus = false;
+
+
+                var responses = new List<string>();
+
+                foreach (var packet in ptsRequestDto.Packets)
+                {
+                    string response;
+
+                    switch (packet.Type)
+                    {
+
+                        case "UploadStatus":
+
+                            isUploadStatus = true;
+                            try{
+                            _rabbitMQService.PublishUploadStatus(packet.Data.ToString());
+                                _logger.LogInformation("Message published successfully");
+                            }catch
+                            {
+                                _logger.LogError("Error in RabbitMQ Publish");
+                            }
+                            var command = new UploadStatusCommand { Data = packet.Data };
+                           // var uploadStatus = await _mediator.Send(command);                          
+                            response = ConfirmationMessage.Success(packet.Id, "UploadStatus", "OK");
+                            
+                            break;
+                        case "UploadTankMeasurement":
+
+                            var tankcommand = new CreateTankMeasurementCommand { PtsRequestDto = ptsRequestDto };
+                            response = await _mediator.Send(tankcommand);
+                            break;
+                        case "UploadPumpTransaction":
+                            var pumpCommand = new CreatePumpTransactionCommand { PtsRequestDto = ptsRequestDto };
+                            response = await _mediator.Send(pumpCommand);
+                            break;
+                        case "UploadInTankDelivery":
+                            var deliveryCommand = new CreateInTankDeliveryCommand { PtsRequestDto = ptsRequestDto };
+                            response = await _mediator.Send(deliveryCommand);
+                            break;
+                        case "UploadAlertRecord":
+                            var alertCommand = new CreateAlertRecordCommand { PtsRequestDto = ptsRequestDto };
+                            response = await _mediator.Send(alertCommand);
+                            break;
+                        default:
+                            _logger.LogError("Unknown request type: {RequestType}", packet.Type);
+                            response = ConfirmationMessage.Error(packet.Id, packet.Type, 400, "Unknown request type");
+                            break;
+                    }
+
+                    responses.Add(response);
+                }
+
+                var hasError = responses.Any(r =>r.Contains("\"Code\":"));
+                if (hasError)
+                {
+                    return BadRequest(string.Join("", responses));
+
+                }
+                else
+                {
+                    return Ok(string.Join("", responses));
+                }
+
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid Json Format");
+                return BadRequest("Invalid Json Format");
+            }
+
+        }
+
+
+        private string CreateHmacSignature(string responseData)
+        {
+            var secretKey = _configuration["SecretKey"];
+            var secretKeyBytes = Encoding.UTF8.GetBytes(secretKey);
+            using (var hmac = new HMACSHA256(secretKeyBytes))
+            {
+                var responseBytes = Encoding.UTF8.GetBytes(responseData);
+                var hash = hmac.ComputeHash(responseBytes);
+                return Convert.ToBase64String(hash);
+            }
+        }
+        public async Task<bool> validateHMAC(string receivedSignature, Stream requestBodyStream, string secretKey)
+        {
+            using (var reader = new StreamReader(requestBodyStream))
+            {
+                var requestbody = await reader.ReadToEndAsync();
+
+                // Compute the hash from the request body and the secret key
+                var secretKeyBytes = Encoding.UTF8.GetBytes(secretKey);
+                using (var hmac = new HMACSHA256(secretKeyBytes))
+                {
+                    var bodyBytes = Encoding.UTF8.GetBytes(requestbody);
+                    var computedHash = hmac.ComputeHash(bodyBytes);
+                    var computedSignature = Convert.ToBase64String(computedHash);
+
+                    // Compare the computed signature with the received signature
+                    return computedSignature == receivedSignature;
+                }
+
+
+            }
+        }
+    }
+}
+
+
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\Listener\PTSListener.cs
+
+
+using FMS.PTS;
+
+namespace FMS.ATGClient.Listener
+{
+    public class PTSListener : BackgroundService
+    {
+        private readonly ILogger<PTSListener> _logger;
+        private readonly PTSCommunicationService _ptsService;
+
+        public PTSListener(ILogger<PTSListener> logger, PTSCommunicationService ptsService)
+        {
+            _logger = logger;
+            _ptsService = ptsService;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+           try 
+           {
+            var _openResult = await OpenPTSDeviceAsync(stoppingToken);
+
+            if(!_openResult.Success)
+            {
+                //handle error 
+                _logger.LogError("Failed to open PTS Device");
+            }
+                SetupEventHandlers();
+            
+            //listening for PTS event or Commands 
+            while(!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(1000, stoppingToken);
+                //check for any new events or commands
+            }
+
+
+           }catch (Exception ex)
+           {
+                _logger.LogError(ex.Message);
+           }
+           finally
+           {
+            await ClosePTSDeviceAsync();
+
+           }
+           
+           
+        }
+
+
+
+        private void SetupEventHandlers()
+        {
+            _ptsService.PumpGetTagResponsedReceived += HandlePumpGetTagResponse;
+
+        }
+
+        private void HandlePumpGetTagResponse(object sender, PumpGetTagResponseEventArgs e)
+        {
+            if(e.Success)
+            {
+                var tagData = e.TagData;
+            }
+            else
+            {
+                _logger.LogError(e.ErrorMessage);
+            }
+            
+        }
+
+    }
+}
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\PTS\FuelDispensing\Hub\PtsStatusHub.cs
+
+//using Microsoft.AspNetCore.SignalR;
+//using System.CodeDom;
+//namespace FMS.ATGClient.PTS.FuelDispensing.Hub
+//{
+//    public class  PtsStatusHub:Hub
+//    {
+
+//        private readonly PtsStatusService _statusService;
+
+//        public PtsStatusHub(PtsStatusService statusService)
+//        {
+//            _statusService = statusService;
+//        }
+//        public async Task SendStatusUpdate()
+//        {
+
+//            var status = _statusService.GetCurrentStatus();
+//            await Client.All.SendAsync("ReceiveStatus", status);
+//        }
+
+
+
+//    }
+//}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\PTS\FuelDispensing\Hub\PtsStatusService.cs
+
+using FMS.Domain.ATGStatus;
+using System;
+
+namespace FMS.ATGClient.PTS.FuelDispensing.Hub;
+
+public class PtsStatusService
+{
+
+    private UploadStatus? _currentStatus;
+
+    public void UpdateStatus(UploadStatus status)
+    {
+        _currentStatus = status;
+        // Consider triggering SignalR hub to send updates to clients
+         
+     }
+
+    public UploadStatus GetCurrentStatus()
+    {
+        return _currentStatus ?? throw new InvalidOperationException("Status has not been set yet")   ;
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\RabbitMQ\RabbitMQService.cs
+
+﻿using NLog.LayoutRenderers;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using System.Text;
+
+namespace FMS.ATGClient.RabbitMQ
+{
+    public class RabbitMQService : IDisposable
+    {
+
+        private readonly IConnection _connection;
+        private readonly IModel _channel;
+        private const string ExchangeName = "upload-status-exchange";
+        private const string QueueName = "upload-status-queue";
+
+        private const string RoutingKey = "upload-status";
+
+        public RabbitMQService(string connectionString)
+        {
+            var factory = new ConnectionFactory
+            {
+                Uri = new Uri(connectionString)
+            };
+
+            _connection = factory.CreateConnection();
+            _channel = _connection.CreateModel();
+
+            _channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, true);
+            _channel.QueueDeclare(QueueName, true, false, false, null);
+            _channel.QueueBind(QueueName, ExchangeName,RoutingKey);
+        }
+
+
+        public void PublishUploadStatus(string uploadStatusJson)
+        {
+            var body = Encoding.UTF8.GetBytes(uploadStatusJson);
+              var properties = _channel.CreateBasicProperties();
+            properties.Persistent = true;
+
+            _channel.BasicPublish(ExchangeName,RoutingKey, properties, body);
+        }
+
+        public void ConsumeUploadStatus(EventHandler<BasicDeliverEventArgs> handler, CancellationToken stoppingToken)
+        {
+            var consumer = new EventingBasicConsumer(_channel);
+            consumer.Received += (model,ea) =>
+            {
+                try
+                {
+                    
+                    handler(this,ea);
+                                    
+                }
+                catch(Exception ex)
+                {
+                   Console.WriteLine("Error processing message:",ex.Message);
+                }
+            };
+        
+
+            _channel.BasicConsume(QueueName, false, consumer);
+        }
+
+        public void Dispose()
+        {
+          _channel?.Dispose();
+            _connection?.Dispose();
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.ATGClient\RabbitMQ\UploadStatusWorker.cs
+
+﻿
+using MediatR;
+using System.Text;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using FMS.Domain.ATGStatus;
+using Newtonsoft.Json;
+using FMS.Application.Command.PTSCommand.FuelDispensing;
+using AutoMapper.Configuration.Annotations;
+using System.Threading;
+
+namespace FMS.ATGClient.RabbitMQ
+{
+    public class UploadStatusWorker : BackgroundService
+    {
+
+        private readonly RabbitMQService _rabbitMQService;
+        private readonly IMediator _mediator;
+        private readonly ILogger<UploadStatusWorker> _logger;
+
+
+        public UploadStatusWorker (RabbitMQService rabbitMQService, IMediator mediator, ILogger<UploadStatusWorker> logger)
+        {
+            _rabbitMQService = rabbitMQService;
+            _mediator = mediator;
+            _logger = logger;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("UploadStatusWorker is starting");
+            _rabbitMQService.ConsumeUploadStatus(async (sender,args) =>
+                {
+                    try
+                    {
+
+                        _logger.LogInformation("consuming upload status");
+                        var uploadStatusJson = Encoding.UTF8.GetString(args.Body.ToArray());
+
+                        var uploadStatus = JsonConvert.DeserializeObject<UploadStatus>(uploadStatusJson);
+
+
+                        bool isNozzleUp = uploadStatus.Pumps?.IdleStatus?.NozzlesUp?.Any(nozzleNo => nozzleNo > 0) == true;
+
+                        bool hasReaderData = uploadStatus.Pumps?.IdleStatus?.Tags?.Any(tag =>!string.IsNullOrWhiteSpace(tag.ToString())) == true;
+
+
+
+
+                        if (isNozzleUp && !hasReaderData)
+                        {
+
+
+
+
+
+
+                            var tagInfo = uploadStatus.Pumps.IdleStatus.Tags.FirstOrDefault();
+                            var pumpNumber = uploadStatus.Pumps.IdleStatus.Ids.FirstOrDefault();
+                            var nozzleNumber = uploadStatus.Pumps.IdleStatus.NozzlesUp.FirstOrDefault();
+
+                          //  var readRFIDCommand = new ReadRFIDCommand(pumpNumber, nozzleNumber);
+
+                           // var readRFIDResults = await _mediator.Send(readRFIDCommand);
+
+                          //  if (readRFIDResults.Success)
+                           // {
+                          //      var fuelDispenseCommand = new FuelDispenseCommand(readRFIDResults.TagData, pumpNumber, nozzleNumber);
+                         //       await _mediator.Send(fuelDispenseCommand);
+                        //    }
+
+                         //   else
+                         ///  {
+                              //  _logger.LogError($"Failed to read RFID data. Error: {readRFIDResults.ErrorMessage}");
+                         //   }
+                        }
+                        else if (isNozzleUp )
+                        {
+                            var tagInfo = uploadStatus.Pumps.IdleStatus.Tags.FirstOrDefault();
+                            var pumpNumber = uploadStatus.Pumps.IdleStatus.Ids.FirstOrDefault();
+                            var nozzleNumber = uploadStatus.Pumps.IdleStatus.NozzlesUp.FirstOrDefault();
+                            //send FuelDispeseCommand 
+
+                            var fuelDispenseCommand = new FuelDispenseCommand(tagInfo.ToString(), pumpNumber, nozzleNumber);
+
+                            await _mediator.Send(fuelDispenseCommand);
+                        }
+
+
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error while processing upload status");
+                    }
+
+                },stoppingToken);
+           
+        }
+    }
+}
+
+

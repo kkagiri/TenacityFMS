@@ -53,9 +53,9 @@ public partial class Vehicleconsumption
 
     public sbyte? IsModified { get; set; }
 
-    public virtual Employee? Employee { get; set; }
+    public int? ReportId { get; set; }
 
-    public virtual User? ModifiedByNavigation { get; set; }
+    public virtual Employee? Employee { get; set; }
 
     public virtual Site Site { get; set; } = null!;
 

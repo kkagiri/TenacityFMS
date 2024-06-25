@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using FMS.Application.Models;
+using FMS.Application.ModelsDTOs.FMS;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;

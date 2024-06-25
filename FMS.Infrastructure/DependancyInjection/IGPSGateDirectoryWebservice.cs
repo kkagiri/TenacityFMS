@@ -1,6 +1,6 @@
 ﻿using FMS.Domain.Entities;
 using FMS.Domain.Entities.Auth;
-using FMS.Services.GPSServiceModels;
+using FMS.Infrastructure.Webservice.GPSService;
 using System;
 using System.Collections.Generic;
 using System.Text;

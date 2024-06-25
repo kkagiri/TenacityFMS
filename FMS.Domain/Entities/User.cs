@@ -1,28 +1,33 @@
-﻿using System;
+﻿using FMS.Domain.Entities.Auth;
+using Microsoft.AspNetCore.Identity;
+using System;
 using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-/// <summary>
-/// 	
-/// </summary>
-public partial class User
+public partial class User : IdentityUser
 {
-    public int Id { get; set; }
+    public bool? IsDeleted { get; set; } //implement soft delete
+   
 
-    public string? FullName { get; set; }
+    public virtual ICollection<Site> Sites { get; set; } = new List<Site>();
 
-    public string? Email { get; set; }
+    public virtual ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
+    public virtual ICollection<Issueassignmenttracker> IssueassignmenttrackerAssignedFromNavigations { get; set; } = new List<Issueassignmenttracker>();
 
-    public int? UserType { get; set; }
-
-    public string? Password { get; set; }
+    public virtual ICollection<Issueassignmenttracker> IssueassignmenttrackerAssignedToNavigations { get; set; } = new List<Issueassignmenttracker>();
 
     public virtual ICollection<Issuetracker> IssuetrackerAssignToNavigations { get; set; } = new List<Issuetracker>();
 
     public virtual ICollection<Issuetracker> IssuetrackerOpenbyNavigations { get; set; } = new List<Issuetracker>();
 
-    public virtual Usertype? UserTypeNavigation { get; set; }
+    public virtual ICollection<Loginactivity> Loginactivities { get; set; } = new List<Loginactivity>();
 
-    public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
+    public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
+
+public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
+public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public virtual ICollection<UserActivity> UserActivities { get; set; } = new List<UserActivity>();
+
 }

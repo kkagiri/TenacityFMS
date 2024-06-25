@@ -1,7 +1,6 @@
 ﻿using FMS.Domain.Entities;
 using FMS.Domain.Entities.Auth;
 using FMS.Infrastructure.DependancyInjection;
-using FMS.Services.GPSServiceModels;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

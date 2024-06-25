@@ -1,21 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
-    <PackageReference Include="MediatR" Version="12.0.1" />
+    <PackageReference Include="MediatR" Version="12.2.0" />
     <PackageReference Include="NLog" Version="5.1.5" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.35.0" />
+    <PackageReference Include="system.servicemodel.duplex" Version="4.7.0" />
+    <PackageReference Include="system.servicemodel.http" Version="4.7.0" />
+    <PackageReference Include="system.servicemodel.netTcp" Version="4.7.0" />
+    <PackageReference Include="system.servicemodel.security" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
-    <ProjectReference Include="..\FMS.Services\FMS.Services.csproj" />
+    <ProjectReference Include="..\fms.PTS\FMS.PTS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Command\SignalCommand\" />
+    <Folder Include="FuelDispensing\DTOs\" />
+    <Folder Include="FuelDispensing\Queries\" />
+    <Folder Include="Queries\Database\FMSQuery\UserManagement\Authentication\" />
   </ItemGroup>
 
 </Project>

@@ -11,5 +11,9 @@ public partial class Device
 
     public int DevicePhoneNumber { get; set; }
 
+    public int DeviceType { get; set; }
+
+    public virtual Devicetype DeviceTypeNavigation { get; set; } = null!;
+
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

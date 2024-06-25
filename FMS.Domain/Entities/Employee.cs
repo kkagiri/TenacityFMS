@@ -20,6 +20,8 @@ public partial class Employee
     public int? SiteId { get; set; }
 
     public virtual Site? Site { get; set; }
+        public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
+
 
     public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
 

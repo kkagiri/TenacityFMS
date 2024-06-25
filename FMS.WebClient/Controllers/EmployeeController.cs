@@ -1,6 +1,6 @@
 ﻿using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
-using FMS.Application.Models.Employee;
-using FMS.Application.Queries.Database.EmployeeQuery;
+using FMS.Application.ModelsDTOs.FMS.Employee;
+using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,6 +32,17 @@ namespace FMS.WebClient.Controllers
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+
+
+
+        [HttpGet("bysiteid")]
+   public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
+   {
+         var query = new GetEmployeeBySiteIdQuery { SiteId = siteId };
+         var employees = await _mediator.Send(query);
+         return Ok(employees);
+   }
+
 
 
         [HttpGet("getlist")]
