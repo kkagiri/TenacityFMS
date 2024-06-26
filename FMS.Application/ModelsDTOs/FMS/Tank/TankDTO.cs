@@ -11,11 +11,11 @@ namespace FMS.Application.ModelsDTOs.FMS.Tank
         public int Id { get; set; }
         public string Name { get; set; } = null!;
 
-        public decimal TankVolume { get; set; }
+        public decimal? TankVolume { get; set; }
 
-        public decimal TankHeight { get; set; }
+        public decimal? TankHeight { get; set; }
 
-        public decimal TankLength { get; set; }
+        public decimal? TankLength { get; set; }
         public int? PtsId { get; set; }
 
         public int? SiteId { get; set; }

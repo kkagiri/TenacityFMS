@@ -29,11 +29,19 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
 
             try
             {
+                //To:do verify if t he userID is valid 
+
+                var userId = await _context.Users.FirstOrDefaultAsync(x=>x.Id == request.UserId);
+                if(userId == null)
+                {
+                    throw new Exception("Invalid User Id");
+                }
+                
                 var sites = await _context.Sites
                     .Join(_context.UserSites,site=>site.Id,
                            usersite=>usersite.SiteId,
                            (site,usersite) => new {site,usersite}) 
-                    .Where(x=>x.usersite.UserId == request.UserId)
+                    .Where(x=>x.usersite.UserId == userId.Id)
                     .Select(x=>x.site).ToListAsync(cancellationToken);
 
                 return sites;

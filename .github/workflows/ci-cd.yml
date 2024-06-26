@@ -1,0 +1,95 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - productionv1
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Check out the latest code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Node.js environment for the React app
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'  # Specify the version of Node.js to use
+
+      # Step 3: Install all Node.js dependencies required for the React app
+      - name: Install dependencies
+        run: npm install
+        working-directory: fms.frontend
+
+      # Step 4: Build the React app to generate production-ready files
+      - name: Build React app
+        run: npm run build
+        working-directory: fms.frontend
+
+      # Step 5: Set up .NET environment
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0'  # Specify the version of .NET to use
+
+      # Step 6: Restore .NET dependencies as specified in the project files
+      - name: Restore .NET dependencies
+        run: dotnet restore
+        working-directory: fms.webclient
+
+      # Step 7: Build and publish the .NET application in Release mode
+      - name: Publish .NET app
+        run: dotnet publish -c Release -o ./publish
+        working-directory: fms.webclient
+
+   # Step 8: Copy appsettings and web.config to the publish directory
+      - name: Copy configuration files
+        run: |
+          cp fms.webclient/appsettings.json fms.webclient/publish/
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <location path="." inheritInChildApplications="false">
+              <system.webServer>
+                <handlers>
+                  <add name="aspNetCore"
+                    path="*"
+                     verb="*"
+                     modules="AspNetCoreModuleV2"
+                     resourceType="Unspecified" />
+                </handlers>
+                <aspNetCore processPath="dotnet"
+                arguments=".\FMS.WebClient.dll"
+                stdoutLogEnabled="true"
+                stdoutLogFile=".\logs\stdout"
+                hostingModel="inprocess">
+              <environmentVariables>
+                <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" />
+                <environmentVariable name="ASPNETCORE_DETAILEDERRORS" value="1" />
+                <environmentVariable name="ASPNETCORE_LOGGING__CONSOLE__DISABLECOLORS" value="true" />
+                <environmentVariable name="ASPNETCORE_LOGGING__LEVEL__DEFAULT" value="Debug" />
+                </environmentVariables>
+                </aspNetCore>
+              </system.webServer>
+            </location>
+            <system.web>
+                <roleManager enabled="true" />
+            </system.web>
+          </configuration>' > fms.webclient/publish/web.config
+
+      # Step 9: Deploy the React app to the server using SCP
+      - name: Deploy React app using SCP
+        run: |
+          scp -r -o StrictHostKeyChecking=no fms.frontend/build/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/C:/inetpub/wwwroot/hyoungFMS/reactApp
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Step 10: Deploy the .NET Web API to the server using SCP
+      - name: Deploy WebAPI using SCP
+        run: |
+          scp -r -o StrictHostKeyChecking=no fms.webclient/publish/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/C:/inetpub/wwwroot/hyoungFMS/webAPI
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
