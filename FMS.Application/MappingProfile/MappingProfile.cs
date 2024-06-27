@@ -11,6 +11,8 @@ using FMS.Application.ModelsDTOs.FMS.TankStock;
 using FMS.Application.ModelsDTOs.FMS.UserManagement;
 using FMS.Application.ModelsDTOs.FMS.Vehicle;
 using FMS.Domain.Entities;
+using FMS.Application.Models ;
+
 //using FMS.Services.GPSServiceModels;
 using System;
 using System.Collections.Generic;
@@ -23,6 +25,7 @@ namespace FMS.Application.MappingProfile
     public class MappingProfile:Profile
     {
         public MappingProfile() { 
+            CreateMap<Site,SiteDTO>().ReverseMap();
 
 
 // Map from Fuelrefil to FeulRefilDTO
@@ -93,16 +96,16 @@ namespace FMS.Application.MappingProfile
             CreateMap<Vehicle, SimpleVehicleDto>()
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
                 .ForMember(dest => dest.HyoungNo, opt => opt.MapFrom(src => src.HyoungNo)).ReverseMap();
-            
-         CreateMap<Vehiclemodel, VehicleModelDto>()
-                       .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-                       .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-                       .ForMember(dest => dest.ManufacturerId, opt => opt.MapFrom(src => src.ManufacturerId));
 
-        CreateMap<VehicleModelDto, Vehiclemodel>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-                .ForMember(dest => dest.ManufacturerId, opt => opt.MapFrom(src => src.ManufacturerId));
+CreateMap<Vehiclemodel, FMS.Application.ModelsDTOs.FMS.VehicleModelDto>()
+   .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+   .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+   .ForMember(dest => dest.ManufacturerId, opt => opt.MapFrom(src => src.ManufacturerId));
+
+CreateMap<FMS.Application.ModelsDTOs.FMS.VehicleModelDto, Vehiclemodel>()
+   .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+   .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+   .ForMember(dest => dest.ManufacturerId, opt => opt.MapFrom(src => src.ManufacturerId));
 
 
             CreateMap <Expectedaverage,ExpectedAVGDto>()
@@ -114,8 +117,7 @@ namespace FMS.Application.MappingProfile
                 
                 .ReverseMap();
 
-            CreateMap<Expectedaverageclassification, ExpectedAVGClassficationDTO>().ReverseMap();
-
+CreateMap<Expectedaverageclassification, FMS.Application.ModelsDTOs.FMS.ExpectedAVGClassficationDTO>().ReverseMap();
 
             CreateMap<Vehicleconsumption, HistoryConsumptionDTO>()
       .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
@@ -165,7 +167,7 @@ namespace FMS.Application.MappingProfile
 
 
 
-            CreateMap<Vehicleconsumption, VehicleConsumptionInfoDTO>()
+CreateMap<Vehicleconsumption, FMS.Application.ModelsDTOs.FMS.VehicleConsumptionInfoDTO>()
     .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
     .ForMember(dest => dest.TotalFuel, opt => opt.MapFrom(src => src.TotalFuel))
     .ForMember(dest=> dest.HyoungNo,opt=>opt.MapFrom(src=>src.Vehicle.HyoungNo))
