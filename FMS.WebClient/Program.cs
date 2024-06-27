@@ -52,6 +52,7 @@ using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 using Microsoft.Extensions.FileProviders;
 using FMS.Application.Util;
 using FMS.WebClient.Util;
+using FMS.Application.ModelsDTOs.FMS.UserManagement;
 
 
 
@@ -204,14 +205,14 @@ try
         {
             var serviceProvider = scope.ServiceProvider;
             var mediator = serviceProvider.GetRequiredService<IMediator>();
-            List<Permission> permissions;
+            List<PermissionDTO> permissions;
             try
             {
                 permissions = mediator.Send(new GetPermissionQuery()).Result;
             }
             catch (Exception ex)
             {
-                permissions = new List<Permission>(); // or load default permissions
+                permissions = new List<PermissionDTO>(); // or load default permissions
             }
 
             foreach (var permission in permissions)
