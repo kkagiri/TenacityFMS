@@ -10,6 +10,7 @@ namespace FMS.WebClient.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PermissionController : ControllerBase
     {
 
@@ -21,8 +22,12 @@ namespace FMS.WebClient.Controllers
         }
 
         // GET: api/Permission
+        /// <summary>
+        /// Get Permissions
+        /// </summary>
+        /// 
         [HttpGet]
-       // [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> GetPermissions()
         {
             var result = await _mediator.Send(new GetPermissionQuery());
@@ -30,8 +35,14 @@ namespace FMS.WebClient.Controllers
         }
 
         // POST: api/Permission
+        /// <summary>
+        /// Create Permission
+        /// </summary>  
+        /// <param name="command"></param>
+        /// <returns> ok </returns>
+       
         [HttpPost]
-       // [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> CreatePermission([FromBody] AddPermissionCommand command)
         {
             if (!ModelState.IsValid)
@@ -43,8 +54,15 @@ namespace FMS.WebClient.Controllers
         }
 
         // PUT: api/Permission/5
+        /// <summary>
+        /// Update Permission
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="command"></param>
+        /// <returns> ok </returns>
+
         [HttpPut("{id}")]
-       // [Authorize(Roles = "Admin")]
+       [Authorize]
         public async Task<IActionResult> UpdatePermission(int id, [FromBody] UpdatePermissionCommand command)
         {
             if (!ModelState.IsValid)
@@ -59,16 +77,22 @@ namespace FMS.WebClient.Controllers
 
         // DELETE: api/Permission/5
         [HttpDelete("{id}")]
-       // [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> DeletePermission(int id)
         {
             var result = await _mediator.Send(new DeletePermissionCommand(id));
             return Ok(result);
         }
 
-        //getPermissionsByRoleID
-        [HttpGet("getpermissionsbyroleid")]
-       // [Authorize(Roles = "Admin")]
+
+        ///Get /Api/Permission/role/{roleId}
+        /// <summary>
+        /// Get Permissions by RoleID 
+        /// </summary>
+        /// <param name="roleId"></param>
+        /// <returns></returns>
+        [HttpGet("role/{roleId:guid}")]
+         [Authorize]
         public async Task<IActionResult> GetPermissionsByRoleID(string roleId)
         {
             if (roleId == null  ) return BadRequest("RoleID is null");
@@ -77,9 +101,14 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
 
-        [HttpGet("getpermissionsbyuserid")]
-        [Authorize]
-        
+        ///Get /Api/Permission/user/{userId} <summary>
+        /// Get /Api/Permission/user/{userId}
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+
+        [HttpGet("user/{userId:guid}")]
+        [Authorize]     
         public async Task<IActionResult> GetPermissionsByUserID(string userId)
         {
             if (userId == null) return BadRequest("UserID is null");

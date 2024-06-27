@@ -30,6 +30,7 @@ namespace FMS.Application.MappingProfile
 
 // Map from Fuelrefil to FeulRefilDTO
          CreateMap<Fuelrefil, FuelRefilDTO>();
+            CreateMap<Permission, PermissionDTO>().ReverseMap();
             CreateMap<Tank, TankDTO>();
             CreateMap<TankDTO, Tank>().
                 ForMember(dest=>dest.Site,opt=>opt.Ignore())

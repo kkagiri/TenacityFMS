@@ -2,6 +2,7 @@
 using FMS.Domain.Entities.Auth;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.AspNetCore.DataProtection.KeyManagement.Internal;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands
 {
-    public record AssignPermissionsToRoleCommand (string RoleId, List<int> PermisionIds) : IRequest<AssignPermissionToRoleResult>;
+    public record AssignPermissionsToRoleCommand (string RoleId, List<int> PermissionIds) : IRequest<AssignPermissionToRoleResult>;
 
 
     public class AssignPermissionsToRoleCommandHandler : IRequestHandler<AssignPermissionsToRoleCommand, AssignPermissionToRoleResult>
@@ -31,62 +32,101 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
         }
         public async Task<AssignPermissionToRoleResult> Handle(AssignPermissionsToRoleCommand request, CancellationToken cancellationToken)
         {
+            if (string.IsNullOrEmpty(request.RoleId))
+            {
+                return new AssignPermissionToRoleResult(false, "Invalid role ID.");
+            }
+
+            if (request.PermissionIds == null || !request.PermissionIds.Any())
+            {
+                _logger.LogWarning("No permissions provided to assign.");
+                return new AssignPermissionToRoleResult(false, "No permission(s) provided to assign");
+            }
             try
             {
-                var role = await _roleManager.FindByIdAsync(request.RoleId);
-                if (role == null) 
+                var role = await _roleManager.Roles.Include(r=>r.RolePermissions).FirstOrDefaultAsync(r =>r.Id == request.RoleId, cancellationToken);
+                if (role == null)
                 {
-                    _logger.LogWarning($"Role with id {request.RoleId} not found.");
                     return new AssignPermissionToRoleResult(false, $"Role with id {request.RoleId} not found.");
                 }
 
+                var result = await AssignNewPermissions(role, request.PermissionIds, cancellationToken);
 
-                if (request.PermisionIds == null || !request.PermisionIds.Any())
-                {
-                    _logger.LogWarning("No permissions provided to assign.");
-                    return new AssignPermissionToRoleResult(true,"No permission(s) provided to assign");
-                }
-                var existingPermissions = await _context.RolePermissions
-                  .Where(rp => rp.RoleId == request.RoleId && request.PermisionIds.Contains(rp.PermissionId))
-                  .Select(rp => rp.PermissionId)
-                  .ToListAsync(cancellationToken);
+                return result;
 
-                var newPermissionIds = request.PermisionIds.Except(existingPermissions).ToList();
-
-
-                if (!newPermissionIds.Any())
-                {
-                    _logger.LogInformation("No new permissions to assign.");
-                    return new AssignPermissionToRoleResult(true, "No new permission(s) to assign.");
-                }
-
-                var newPermissions = await _context.Permissions .Where(p => newPermissionIds.Contains(p.Id)).ToListAsync(cancellationToken);
-               
-                foreach (var permission in newPermissions)
-            {
-                role.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permission.Id });
             }
-
-            var result = await _roleManager.UpdateAsync(role);
-            if (!result.Succeeded)
-            {
-                _logger.LogError($"Failed to update role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-                return new AssignPermissionToRoleResult(false, $"Failed to update role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation($"Assigned {newPermissions.Count} permissions to role {role.Name}.");
-            return new AssignPermissionToRoleResult(true, $"Assigned {newPermissions.Count} permissions to role {role.Name}.");
-
-
-       
-            }catch (Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 return new AssignPermissionToRoleResult(false, ex.Message);
             }   
         }
+
+
+        /// <summary>
+        /// Assigns new permissions to the role
+        /// </summary>
+        /// <param name="role"></param>
+        /// <param name="newPermissionIds"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>AssignPermissionToRoleResult </returns>
+        private async Task<AssignPermissionToRoleResult> AssignNewPermissions(Role role, List<int> newPermissionIds, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+                var currentPermissionIds = await _context.RolePermissions
+                    .Where(rp => rp.RoleId == role.Id)
+                    .Select(rp => rp.PermissionId)
+                    .ToListAsync(cancellationToken);
+
+                var permissionsToAdd = newPermissionIds.Except(currentPermissionIds).ToList();
+                var permissionsToRemove = currentPermissionIds.Except(newPermissionIds).ToList();
+
+                if (permissionsToAdd.Any())
+                {
+                    var newPermissions = await _context.Permissions
+                        .Where(p => permissionsToAdd.Contains(p.Id))
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var permission in newPermissions)
+                    {
+                        role.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permission.Id });
+                    }
+                }
+
+                if (permissionsToRemove.Any())
+                {
+                    var removePermissions = role.RolePermissions.Where(rp => permissionsToRemove.Contains(rp.PermissionId)).ToList();
+                    foreach (var rp in removePermissions)
+                    {
+                        role.RolePermissions.Remove(rp);
+                    }
+                }
+
+
+                var updateResult = await _roleManager.UpdateAsync(role);
+                if (!updateResult.Succeeded)
+                {
+                    var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                    throw new ApplicationException($"Failed to update role: {errors}");
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                var addedCount = permissionsToAdd.Count;
+                var removedCount = permissionsToRemove.Count;
+                return new AssignPermissionToRoleResult(true, $"Successfully updated permissions for role {role.Name}. Added: {addedCount}, Removed: {removedCount}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating permissions for role {RoleName}", role.Name);
+                return new AssignPermissionToRoleResult(false, $"Failed to update permissions for role {role.Name}: {ex.Message}");
+            }
+        }
+
     }
 
      public record AssignPermissionToRoleResult(bool Success, string Message);

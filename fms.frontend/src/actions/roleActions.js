@@ -18,7 +18,7 @@ export const fetchRoleDetails = (roleId) => async (dispatch) => {
     try {
       const roleDetails = await axiosInstance.get(`/role/${roleId}`);
       const allPermissions = await axiosInstance.get(`/permission`);
-      const rolePermissions = await axiosInstance.get(`/permission/getpermissionsbyroleid?roleID=${roleId}`);
+      const rolePermissions = await axiosInstance.get(`/permission/role/${roleId}`);
       const users = await axiosInstance.get(`/role/UsersInRole/${roleId}`);
       const allUsers = await axiosInstance.get(`/user`);
   
