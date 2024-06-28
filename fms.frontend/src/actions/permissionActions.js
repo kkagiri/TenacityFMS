@@ -21,7 +21,7 @@ export const fetchPermissions = () => async (dispatch) => {
 
   export const fetchpermissionbyUserId = (userId) => async (dispatch) => {
     try {
-        const response = await axiosInstance.get(`/permission/getpermissionsbyuserid?userID=${userId}`);
+        const response = await axiosInstance.get(`/permission/user/${userId}`);
         dispatch({ type: 'FETCH_PERMISSION_BY_USER_ID_SUCCESS', payload: response.data });
     } catch (error) {
         dispatch({ type: 'FETCH_PERMISSION_BY_USER_ID_FAILURE', payload: error.message });

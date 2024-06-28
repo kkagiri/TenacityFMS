@@ -11,7 +11,7 @@ namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class TankController : ControllerBase
     {
         private readonly IMediator _mediator;
