@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
@@ -23,7 +24,7 @@ public class FuelRefilDeleteCommandHandler : IRequestHandler<FuelRefilDeleteComm
     public async Task<bool> Handle(FuelRefilDeleteCommand request, CancellationToken cancellationToken)
     {
         try{
-        var fuelRefil = await _context.Fuelrefils.FindAsync(new object[] { request.Id }, cancellationToken);
+        var fuelRefil = await _context.Fuelrefils.FirstOrDefaultAsync(x=>x.Id == request.Id , cancellationToken);
         if (fuelRefil == null) return false;
 
         _context.Fuelrefils.Remove(fuelRefil);
