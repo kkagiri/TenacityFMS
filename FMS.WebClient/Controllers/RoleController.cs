@@ -105,7 +105,7 @@ namespace FMS.WebClient.Controllers
             var result = await _mediator.Send(command);
             return Ok(result);
         }
-        [HttpGet("RolesByUser/{userId}")]
+        [HttpGet("user/{userId}")]
       [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetRolesByUserId(string userId)
         {

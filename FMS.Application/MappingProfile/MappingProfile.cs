@@ -12,7 +12,7 @@ using FMS.Application.ModelsDTOs.FMS.UserManagement;
 using FMS.Application.ModelsDTOs.FMS.Vehicle;
 using FMS.Domain.Entities;
 using FMS.Application.Models ;
-
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 //using FMS.Services.GPSServiceModels;
 using System;
 using System.Collections.Generic;
@@ -26,6 +26,7 @@ namespace FMS.Application.MappingProfile
     {
         public MappingProfile() { 
             CreateMap<Site,SiteDTO>().ReverseMap();
+            CreateMap<User, UserDto>().ReverseMap();
 
 
 // Map from Fuelrefil to FeulRefilDTO

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -30,9 +31,8 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
 
     public async Task<List<FuelRefilDTO>> Handle(FuelRefillGetListQuery request, CancellationToken cancellationToken)
     {
-        try{    
-                 return _mapper.Map<List<FuelRefilDTO>>(await _context.Fuelrefils.ToListAsync(cancellationToken));
-
+        try{
+            return _mapper.Map<List<FuelRefilDTO>>(await _context.Fuelrefils.OrderByDescending(x=>x.Date).ToListAsync(cancellationToken));
         } 
         catch (Exception ex)
         {

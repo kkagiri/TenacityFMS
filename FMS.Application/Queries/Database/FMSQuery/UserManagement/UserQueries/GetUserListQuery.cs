@@ -10,27 +10,31 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
 {
-   public record GetUserListQuery : IRequest<List<User>>;
+   public record GetUserListQuery : IRequest<List<UserDto>>;
 
-    public class GetUserListQueryHandler : IRequestHandler<GetUserListQuery, List<User>>
+    public class GetUserListQueryHandler : IRequestHandler<GetUserListQuery, List<UserDto>>
     {
         private readonly GpsdataContext _context;
 
         private readonly ILogger<GetUserListQueryHandler> _logger;
-        public GetUserListQueryHandler(GpsdataContext context ,ILogger<GetUserListQueryHandler> logger)
+        private readonly IMapper _mapper;    
+        public GetUserListQueryHandler(GpsdataContext context ,ILogger<GetUserListQueryHandler> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
+            _mapper = mapper;
         }
-        public async Task<List<User>> Handle(GetUserListQuery request, CancellationToken cancellationToken)
+        public async Task<List<UserDto>> Handle(GetUserListQuery request, CancellationToken cancellationToken)
         {
 
             try
             {
-                return await _context.Users.ToListAsync(cancellationToken);
+                return _mapper.Map<List<UserDto>>(await _context.Users.ToListAsync(cancellationToken));
             }
             catch (Exception ex)
             {

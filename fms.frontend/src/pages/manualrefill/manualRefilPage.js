@@ -3,7 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, { Paging,
           HeaderFilter, SearchPanel, Toolbar, Item as TItems,
           Editing, FilterRow, Column, Lookup, Sorting, RequiredRule ,
-          Form,Popup
+          Form,Popup ,  Grouping,
+          GroupPanel ,Summary ,SortByGroupSummaryInfo ,GroupItem , FilterPanel,
+          FilterBuilderPopup
          } from 'devextreme-react/data-grid';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
@@ -17,6 +19,7 @@ import {fetchVehicleList} from '../../actions/vehicleActions';
 import {fetchEmployeeList} from '../../actions/employeeActions';
 import {fetchSiteList} from '../../actions/siteActions';
 import { fetchTanks} from '../../actions/tankActions';
+import { fetchUsers } from '../../actions/userActions';
 import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../actions/fuelRefillAction';
 
 import { UsersApi } from '../../api/gpsgate';
@@ -29,6 +32,7 @@ export default function Fuelrefil() {
     const vehicles = useSelector((state) => state.vehicle.vehicles);
     const employees = useSelector((state) => state.employee.employees);
     const sites= useSelector((state) => state.site.sites);
+    const fuelBy = useSelector((state) => state.user.users);
    const user = useSelector((state) => state.auth.user);
    const tanks = useSelector((state) => state.tank.tanks);
    const [filteredTanks, setFilteredTanks] = useState([]);
@@ -88,86 +92,70 @@ export default function Fuelrefil() {
     const fetchData = useCallback(async () => {
         try {
             
-             dispatch(fetchFuelRefills());
-             dispatch(fetchVehicleList());
-             dispatch(fetchEmployeeList());
-             dispatch(fetchSiteList());
-             dispatch(fetchpermissionbyUserId(user.id));
-             dispatch(fetchTanks());
-
+            await Promise.all([
+                dispatch(fetchFuelRefills()),
+                dispatch(fetchVehicleList()),
+                dispatch(fetchEmployeeList()),
+                dispatch(fetchSiteList()),
+                dispatch(fetchpermissionbyUserId(user.id)),
+                dispatch(fetchTanks()),
+                dispatch(fetchUsers())
+            ]);
         } catch (error) {
             console.error('Error fetching data:', error);
         }
-    }, []);
+    },  [dispatch, user.id]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+   
 
-    // const fetchGPSliveData = async () => {
-    //     try{
-    //         const apiClient = createApiClient();
-    //         const usersApi = new UsersApi(apiClient);
-    //         usersApi.getStatus(12,formData.vehicleId,(error,data)=>{
-    //             if(error)
-    //             {
-    //                 notify('Cannot Fetch GPS data','error',3000);
-    //                  setFuelLevel(null);
-    //             }else
-    //             {
-    //                 const fueldata = data.variables.find(v => v.name === 'Fuel Level');
-    //                 setFuelLevel(fueldata? fueldata.value : null);
-    //             }
-
-    //         });
-    //     }
-    //         catch(error)
-    //         {
-    //            console.log('Error fetching GPS data:',error);
-    //            notify('Cannot Fetch GPS data','error',3000);
-    //         }
-    
-    //     };
    
     const onSaving = async (e) => {
         if (e.changes.length > 0) {
             const change = e.changes[0];
-            const updatedData = { ...formData, ...change.data };
-             console.log("updatedData",updatedData)
-            const validation = validateRow(updatedData);
             setSaving(true);
             setLoading(true);
     
-            if (!validation.isValid) {
-                e.cancel = true;
-                notify(validation.message, 'error', 3000);
-                setLoading(false);
-                setSaving(false);
-                return;
-            }
-    
             try {
-                const formattedData = {
-                    ...updatedData,
-                    date: new Date(updatedData.date).toISOString(),
-                    transactionId: updatedData.transactionId || null,
-                    fuelBy: updatedData.fuelBy || user.userName,
-                    siteId: updatedData.siteId,
-                    tankId: updatedData.tankId
-                };
+                if (change.type === 'remove') {
+                    // Handle delete operation
+                    await dispatch(deleteFuelRefill(change.key));
+                    notify('Manual fuel refill deleted successfully.', 'success', 3000);
+                } else {
+                    // Handle insert and update operations
+                    const updatedData = { ...formData, ...change.data };
+                    const validation = validateRow(updatedData);
     
-                if (change.type === 'insert') {
-                    await dispatch(createFuelRefill(formattedData));
-                    notify('Manual fuel refill created successfully.', 'success', 3000);
-                } else if (change.type === 'update') {
-                    await dispatch(updateFuelRefill(change.key, formattedData));
-                    notify('Manual fuel refill updated successfully.', 'success', 3000);
+                    if (!validation.isValid) {
+                        e.cancel = true;
+                        notify(validation.message, 'error', 3000);
+                        return;
+                    }
+    
+                    const formattedData = {
+                        ...updatedData,
+                        date: new Date(updatedData.date).toISOString(),
+                        transactionId: updatedData.transactionId || null,
+                        fuelBy: updatedData.fuelBy || user.userName,
+                        siteId: updatedData.siteId,
+                        tankId: updatedData.tankId
+                    };
+    
+                    if (change.type === 'insert') {
+                        await dispatch(createFuelRefill(formattedData));
+                        notify('Manual fuel refill created successfully.', 'success', 3000);
+                    } else if (change.type === 'update') {
+                        await dispatch(updateFuelRefill(change.key, formattedData));
+                        notify('Manual fuel refill updated successfully.', 'success', 3000);
+                    }
                 }
-                dispatch(fetchFuelRefills());
-                e.component.refresh();
+    
+                // dispatch(fetchFuelRefills());
             } catch (error) {
                 e.cancel = true;
-                const errorMessage = error.response?.data?.message || 'Error creating/updating manual fuel refill.';
+                const errorMessage = error.response?.data?.message || 'Error processing fuel refill operation.';
                 notify(errorMessage, 'error', 3000);
             } finally {
                 setSaving(false);
@@ -175,7 +163,6 @@ export default function Fuelrefil() {
             }
         }
     };
-
     const onRowInserted = useCallback(async (e) => {
         setSaving(true);
         const validation = validateRow(e.data);
@@ -337,9 +324,14 @@ const handleTankChange = (e) => {
           </div>
         );
     }
+    console.log("Sample fuelBy value:", fuelRefills[0]?.fuelBy);
+
 
     return (
+        
         <div>
+            
+    
             <h2 className={'content-block'}>Manual Fuel Refill</h2>
             <div className={'content-block'}>
                 <DataGrid
@@ -360,9 +352,12 @@ const handleTankChange = (e) => {
 
 
                 >
+                    <GroupPanel visible={true} />
+                    <Grouping autoExpandAll={false} />
+
                     <Paging enabled={true} defaultPageSize={30} />
                         <FilterRow visible={true} />
-                   
+                   <HeaderFilter visible={true} />  
                     <SearchPanel visible placeholder='Data Search' />
                     <Sorting mode="multiple" />
                     <Editing
@@ -382,8 +377,7 @@ const handleTankChange = (e) => {
    
                            
                             <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
-                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'datetime' }}>
-                                    <RequiredRule />
+                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'date' }}>
                                 </FItem>
                                 <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
                                     <RequiredRule />
@@ -458,9 +452,16 @@ const handleTankChange = (e) => {
                         </TItems>
                         <TItems name='searchPanel' locateInMenu='auto' />
                     </Toolbar> 
-                    <Column dataField="date" caption="Date" dataType="datetime" defaultValue={new Date().toISOString()}/>
-              
-                    <Column dataField="vehicleId" caption="Vehicle">
+                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true}  defaultValue={new Date().toISOString()} />
+                    <Column dataField="siteId" caption="Site"  fixed={true} >
+                        <Lookup
+                            dataSource={sites}
+                            valueExpr="id"
+                            displayExpr="name"
+                        />
+
+                    </Column>
+                    <Column dataField="vehicleId" caption="Vehicle" width={150}>
                         <Lookup
                             dataSource={vehicles}
                             valueExpr="vehicleId"
@@ -469,11 +470,11 @@ const handleTankChange = (e) => {
 
                     </Column>
 
-                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" >       
+                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" width={120} >       
                     </Column>
-                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" >       
+                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} >       
                     </Column>
-                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" >       
+                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150} >       
                     </Column>
                     <Column dataField="driverId" caption="Driver">
                         <Lookup
@@ -484,15 +485,23 @@ const handleTankChange = (e) => {
                         </Column>
 
                   
-                    <Column dataField="siteId" caption="Site" >
+               
+                    <Column dataField="comment" caption="Comment" width={150} />
+                    <Column dataField="fuelBy" caption="Fuel By" width={100} 
+                        cellRender={(cellData) => {
+                            const user = fuelBy.find(u => u.id === cellData.value);
+                            return user ? user.userName : cellData.value;
+                        }}>
+                        <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
+                    </Column>
+
+                    <Column dataField="tankId" caption="Tank Used" width={100} >
                         <Lookup
-                            dataSource={sites}
+                            dataSource={tanks}
                             valueExpr="id"
                             displayExpr="name"
                         />
-
                     </Column>
-                    <Column dataField="comment" caption="Comment" />
                 </DataGrid>
                 {/* {formVisible && (
                 <FormPopup
