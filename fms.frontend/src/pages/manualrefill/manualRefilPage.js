@@ -393,16 +393,6 @@ const handleTankChange = (e) => {
                                     value: formData.siteId                                    
                                 }}>
                                 </FItem>
-                            </FItem>
-                            <FItem itemType={'group'} caption={'Meter Readings'} colCount={2} colSpan={2}>
-                                <FItem dataField="previousMeterReading" editorType="dxNumberBox" />
-                                <FItem dataField="currentMeterReading" editorType="dxNumberBox" />
-                                <FItem dataField="manualFuelrefilAmount" editorType="dxNumberBox">
-                                    <RequiredRule />
-                                </FItem>
-                            </FItem>
-                            <FItem dataField="comment" editorType="dxTextArea" editorOptions={{ height: 100 }} colSpan={2} />
-                            <FItem itemType={'group'} caption={'Integration'} colCount={2} colSpan={2}>
                                 <FItem dataField="tankId"
                                  caption={'Tank Used'} editorType={'dxSelectBox'}
                                     editorOptions={{
@@ -417,6 +407,17 @@ const handleTankChange = (e) => {
                                     }}>
                                     <RequiredRule />
                                     </FItem>
+                            </FItem>
+                            <FItem itemType={'group'} caption={'Meter Readings'} colCount={2} colSpan={2}>
+                                <FItem dataField="previousMeterReading" editorType="dxNumberBox" />
+                                <FItem dataField="currentMeterReading" editorType="dxNumberBox" />
+                                <FItem dataField="manualFuelrefilAmount" editorType="dxNumberBox">
+                                    <RequiredRule />
+                                </FItem>
+                            </FItem>
+                            <FItem dataField="comment" editorType="dxTextArea" editorOptions={{ height: 100 }} colSpan={2} />
+                            <FItem itemType={'group'} caption={'Integration'} colCount={2} colSpan={2}>
+                                
                                 <FItem dataField="fuelBy" editorType="dxTextBox" disabled ={true} value={user.userName}>
                                 </FItem>
                             </FItem>
@@ -495,13 +496,7 @@ const handleTankChange = (e) => {
                         <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
                     </Column>
 
-                    <Column dataField="tankId" caption="Tank Used" width={100} >
-                        <Lookup
-                            dataSource={tanks}
-                            valueExpr="id"
-                            displayExpr="name"
-                        />
-                    </Column>
+                  
                 </DataGrid>
                 {/* {formVisible && (
                 <FormPopup
