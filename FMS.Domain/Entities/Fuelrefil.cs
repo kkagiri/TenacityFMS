@@ -12,7 +12,7 @@ public partial class Fuelrefil
 
     public decimal? ManualFuelrefilAmount { get; set; }
 
-    public DateTime Date { get; set; }
+    public DateTime? Date { get; set; }
 
     public int? PreviousMeterReading { get; set; }
 
@@ -29,8 +29,8 @@ public partial class Fuelrefil
     public int? DriverId { get; set; }
 
     public int? TankId { get; set; }
-    public DateTime DateCreated {get;set;}
-    public DateTime DateModified {get;set;}
+    public DateTime? DateCreated {get;set;}
+    public DateTime? DateModified {get;set;}
 
     public sbyte IsModified {get;set;}
 

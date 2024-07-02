@@ -33,7 +33,7 @@ export const createFuelRefill = (fuelRefill) => async (dispatch) => {
 
 export const updateFuelRefill = (id, fuelRefill) => async (dispatch) => {
     try {
-        await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill);
+        const response =  await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill);
         dispatch({ type: UPDATE_FUEL_REFILL_SUCCESS, payload: { id, fuelRefill } });
         return { success: true, message: response.data.message };
 

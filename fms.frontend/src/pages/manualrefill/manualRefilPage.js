@@ -144,7 +144,7 @@ export default function Fuelrefil() {
                     };
     
                     if (change.type === 'insert') {
-                        await dispatch(createFuelRefill(formattedData));
+                        const createResult = await dispatch(createFuelRefill(formattedData));
                         if (createResult.success) {
                             notify(createResult.message || 'Manual fuel refill created successfully.', 'success', 3000);
                         } else {
@@ -152,8 +152,7 @@ export default function Fuelrefil() {
                             e.cancel = true;
                         }
                     } else if (change.type === 'update') {
-                        await dispatch(updateFuelRefill(change.key, formattedData));
-                        if (updateResult.success) {
+                        const updateResult = await dispatch(updateFuelRefill(formattedData));                        if (updateResult.success) {
                             notify(updateResult.message || 'Manual fuel refill updated successfully.', 'success', 3000);
                         } else {
                             notify(updateResult.message || 'Failed to update fuel refill.', 'error', 3000);
@@ -239,32 +238,7 @@ export default function Fuelrefil() {
         }
     }, [ dispatch]);
 
-    // const handleFormSave = async () => {
-    //     const validation = validateRow(formData);
-    //     if (!validation.isValid) {
-    //        notify(validation.message, 'error', 3000);
-    //         return;
-    //     }
-    //     try {
-    //         await dispatch(createFuelRefill(formData));
-    //        notify('Manual fuel refill created successfully.', 'success', 3000);
-    //         closeForm();
-    //     } catch (error) {
-    //         console.error('Error creating manual fuel refill:', error);
-    //         notify('Error creating manual fuel refill.', 'error', 3000);
-    //     }
-    // };
-
-//     const openForm = () => {
-//         setFormVisible(true);
-//     };
-
-//     const closeForm = () => {
-//         setFormVisible(false);
-//     };
-//    const handleFormDataChange = (newData) => {
-//         setFormData(newData);
-//     };
+  
 
     const addRow = () => {
          gridRef.current.instance.addRow();
