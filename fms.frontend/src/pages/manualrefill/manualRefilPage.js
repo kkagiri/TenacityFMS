@@ -145,14 +145,12 @@ export default function Fuelrefil() {
     
                     if (change.type === 'insert') {
                         const createResult = await dispatch(createFuelRefill(formattedData));
-                        if (createResult.success) {
-                            notify(createResult.message || 'Manual fuel refill created successfully.', 'success', 3000);
-                        } else {
-                            notify(createResult.message || 'Failed to create fuel refill.', 'error', 3000);
-                            e.cancel = true;
-                        }
+
+                      change.data = createResult;
+                      notify('manual fuel refill create successfull','sucess',3000)
                     } else if (change.type === 'update') {
-                        const updateResult = await dispatch(updateFuelRefill(formattedData));                        if (updateResult.success) {
+                        const updateResult = await dispatch(updateFuelRefill(formattedData));     
+                                           if (updateResult.success) {
                             notify(updateResult.message || 'Manual fuel refill updated successfully.', 'success', 3000);
                         } else {
                             notify(updateResult.message || 'Failed to update fuel refill.', 'error', 3000);
@@ -160,8 +158,9 @@ export default function Fuelrefil() {
                         }
                     }
                 }
+
+                e.component.refresh(true);
     
-                // dispatch(fetchFuelRefills());
             } catch (error) {
                 e.cancel = true;
                 const errorMessage = error.response?.data?.message || 'Error processing fuel refill operation.';
@@ -169,6 +168,7 @@ export default function Fuelrefil() {
             } finally {
                 setSaving(false);
                 setLoading(false);
+                e.cancel =true;
             }
         }
     };

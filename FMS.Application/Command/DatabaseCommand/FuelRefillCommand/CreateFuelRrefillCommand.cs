@@ -35,31 +35,31 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 
             // Validate related entities existence
             var vehicle = await _context.Vehicles.FindAsync(new object[] { fuelRefilDto.VehicleId }, cancellationToken);
-            if (vehicle == null) return new FuelRefillCreateCommandResults(false,$"Vehicle with ID {fuelRefilDto.VehicleId} does not exist.");
+            if (vehicle == null) return new FuelRefillCreateCommandResults(false,$"Vehicle with ID {fuelRefilDto.VehicleId} does not exist.",null);
 
             var site = await _context.Sites.FindAsync(new object[] { fuelRefilDto.SiteId }, cancellationToken);
-            if (site == null) return new FuelRefillCreateCommandResults(false,$"Site with ID {fuelRefilDto.SiteId} does not exist.");
+            if (site == null) return new FuelRefillCreateCommandResults(false,$"Site with ID {fuelRefilDto.SiteId} does not exist.",null);
 
             var fuelByUser = await _context.Users.FindAsync(new object[] { fuelRefilDto.FuelBy }, cancellationToken);
-            if (fuelByUser == null) return new FuelRefillCreateCommandResults(false, $"User with ID {fuelRefilDto.FuelBy} does not exist.");
+            if (fuelByUser == null) return new FuelRefillCreateCommandResults(false, $"User with ID {fuelRefilDto.FuelBy} does not exist.",null);
 
             if (fuelRefilDto.DriverId.HasValue)
             {
                 var driver = await _context.Employees.FindAsync(new object[] { fuelRefilDto.DriverId.Value }, cancellationToken);
-                if (driver == null) return new FuelRefillCreateCommandResults(false,$"Driver with ID {fuelRefilDto.DriverId.Value} does not exist.");
+                if (driver == null) return new FuelRefillCreateCommandResults(false,$"Driver with ID {fuelRefilDto.DriverId.Value} does not exist.",null);
             }
 
             if (fuelRefilDto.PumpTranscationId.HasValue)
             {
                 var pumpTransaction = await _context.Pumptransactions.FindAsync(new object[] { fuelRefilDto.PumpTranscationId.Value }, cancellationToken);
-                if (pumpTransaction == null) return new FuelRefillCreateCommandResults(false, $"PumpTransaction with ID {fuelRefilDto.PumpTranscationId.Value} does not exist.");
+                if (pumpTransaction == null) return new FuelRefillCreateCommandResults(false, $"PumpTransaction with ID {fuelRefilDto.PumpTranscationId.Value} does not exist.",null);
             }
 
             // Validate meter readings
             if (fuelRefilDto.PreviousMeterReading.HasValue && fuelRefilDto.CurrentMeterReading.HasValue &&
                 fuelRefilDto.PreviousMeterReading >= fuelRefilDto.CurrentMeterReading)
             {
-                return new FuelRefillCreateCommandResults(false, "Previous meter reading should be smaller than current meter reading.");
+                return new FuelRefillCreateCommandResults(false, "Previous meter reading should be smaller than current meter reading.",null);
             }
 
             var fuelRefil = _mapper.Map<Fuelrefil>(fuelRefilDto);
@@ -67,12 +67,12 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
             _context.Fuelrefils.Add(fuelRefil);
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new FuelRefillCreateCommandResults(true,"Fuel refill created successfully.");
+            return new FuelRefillCreateCommandResults(true,"Fuel refill created successfully.",fuelRefil);
         }
     catch (Exception ex)
     {
         _logger.LogError(ex, "Error creating fuel refill");
-            return new FuelRefillCreateCommandResults(false,ex.Message);
+            return new FuelRefillCreateCommandResults(false,ex.Message,null);
     }
     }
 
@@ -80,4 +80,4 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 }
 
 
-public record FuelRefillCreateCommandResults(bool Success, string Message);
+public record FuelRefillCreateCommandResults(bool Success, string Message,Fuelrefil CreatedFuelRefill);

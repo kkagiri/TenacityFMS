@@ -44,8 +44,8 @@ public class FuelRefillController : ControllerBase
         var results = await _mediator.Send(command);
         if (!results.Success) return BadRequest(results.Message);
 
-        return Ok(results);
-    }
+    return Ok(results.CreatedFuelRefill);
+        }
 
     [HttpGet("{id}")]
     [Authorize]
