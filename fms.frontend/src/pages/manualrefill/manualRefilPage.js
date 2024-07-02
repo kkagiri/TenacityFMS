@@ -377,7 +377,7 @@ const handleTankChange = (e) => {
    
                            
                             <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
-                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'date' }}>
+                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'datetime' }}>
                                 </FItem>
                                 <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
                                     <RequiredRule />

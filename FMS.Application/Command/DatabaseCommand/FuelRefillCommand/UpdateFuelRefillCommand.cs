@@ -48,7 +48,15 @@ public class FuelRefilUpdateCommandHandler : IRequestHandler<UpdateFuelRefillCom
                 _logger.LogError("Validation failed: Previous meter reading is greater than current meter reading.");
                 return false;
             }
-          _mapper.Map(request.FuelRefilDTO, fuelRefil);
+          var originalDateCreated = fuelRefil.DateCreated;
+
+        // Map DTO to entity, excluding DateCreated and DateModified
+        _mapper.Map(request.FuelRefilDTO, fuelRefil);
+
+        // Restore original DateCreated and set DateModified
+        fuelRefil.DateCreated = originalDateCreated;
+        fuelRefil.DateModified = DateTime.Now;
+        fuelRefil.IsModified = 1;
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
