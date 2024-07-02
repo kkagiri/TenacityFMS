@@ -145,10 +145,20 @@ export default function Fuelrefil() {
     
                     if (change.type === 'insert') {
                         await dispatch(createFuelRefill(formattedData));
-                        notify('Manual fuel refill created successfully.', 'success', 3000);
+                        if (createResult.success) {
+                            notify(createResult.message || 'Manual fuel refill created successfully.', 'success', 3000);
+                        } else {
+                            notify(createResult.message || 'Failed to create fuel refill.', 'error', 3000);
+                            e.cancel = true;
+                        }
                     } else if (change.type === 'update') {
                         await dispatch(updateFuelRefill(change.key, formattedData));
-                        notify('Manual fuel refill updated successfully.', 'success', 3000);
+                        if (updateResult.success) {
+                            notify(updateResult.message || 'Manual fuel refill updated successfully.', 'success', 3000);
+                        } else {
+                            notify(updateResult.message || 'Failed to update fuel refill.', 'error', 3000);
+                            e.cancel = true;
+                        }
                     }
                 }
     

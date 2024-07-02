@@ -21,11 +21,13 @@ export const fetchFuelRefills = () => async (dispatch) => {
 
 export const createFuelRefill = (fuelRefill) => async (dispatch) => {
     try {
-        const response = await axiosInstance.post('/fuelrefill', fuelRefill);   
+        const response = await axiosInstance.post('/fuelrefill', fuelRefill);
         dispatch({ type: CREATE_FUEL_REFILL_SUCCESS, payload: response.data.message });
+        return { success: true, message: response.data.message };
     } catch (error) {
         const errorMessage = error.response?.data?.message || error.message;
         dispatch({ type: CREATE_FUEL_REFILL_FAILURE, payload: errorMessage });
+        return { success: false, message: errorMessage };
     }
 };
 
@@ -33,8 +35,12 @@ export const updateFuelRefill = (id, fuelRefill) => async (dispatch) => {
     try {
         await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill);
         dispatch({ type: UPDATE_FUEL_REFILL_SUCCESS, payload: { id, fuelRefill } });
+        return { success: true, message: response.data.message };
+
     } catch (error) {
-        dispatch({ type: UPDATE_FUEL_REFILL_FAILURE, payload: error.message });
+        const errorMessage = error.response?.data?.message || error.message;
+        dispatch({ type: UPDATE_FUEL_REFILL_FAILURE, payload: errorMessage  });
+        return { success: false, message: errorMessage };
     }
 };
 
