@@ -32,7 +32,9 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
     public async Task<List<FuelRefilDTO>> Handle(FuelRefillGetListQuery request, CancellationToken cancellationToken)
     {
         try{
-            return _mapper.Map<List<FuelRefilDTO>>(await _context.Fuelrefils.OrderByDescending(x=>x.Date).ToListAsync(cancellationToken));
+               var fuelRefils = await _context.Fuelrefils.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+                 var fuelRefilDTOs = _mapper.Map<List<FuelRefilDTO>>(fuelRefils);
+                    return fuelRefilDTOs;
         } 
         catch (Exception ex)
         {

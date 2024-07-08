@@ -573,6 +573,9 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
            entity.Property(e => e.Id)
                .HasColumnType("int(11)")
                .HasColumnName("ID");
+               entity.Property(e=>e.IsModified).HasColumnType("tinyint(4)").HasDefaultValue(false);
+               entity.Property(e=>e.DateCreated).HasColumnName("DateCreated");
+
            entity.Property(e => e.Comment).HasMaxLength(500);
            entity.Property(e => e.CurrentMeterReading).HasColumnType("int(11)");
            entity.Property(e => e.DriverId)
@@ -596,6 +599,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
            entity.Property(e => e.TankId)
            .HasColumnType("int(11)")
                 .HasColumnName("TankID");
+
+                
 
            entity.HasOne(d => d.Driver).WithMany(p => p.Fuelrefils)
                .HasForeignKey(d => d.DriverId)

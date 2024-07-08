@@ -10,7 +10,7 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
 
     public decimal? ManualFuelrefilAmount { get; set; }
 
-    public DateTime Date { get; set; }
+    public DateTime? Date { get; set; }
 
     public int? PreviousMeterReading { get; set; }
 
@@ -27,5 +27,10 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
     public int? DriverId { get; set; }
 
         public int? TankId { get; set; }
+
+     public DateTime? DateCreated {get;set;} = DateTime.Now; 
+    public DateTime? DateModified {get;set;} = DateTime.Now;
+
+    public sbyte IsModified {get;set;} =0;
     }
 }
