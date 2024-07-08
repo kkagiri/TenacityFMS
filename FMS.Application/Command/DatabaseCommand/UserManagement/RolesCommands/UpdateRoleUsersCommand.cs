@@ -43,7 +43,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
                 var roleName = role.Name;
 
                 var usersInRole = await _userManager.GetUsersInRoleAsync(roleName);
-                if (roleName == "admin")
+                if (roleName == "Admin")
                 {
                     var currentAdminCount = usersInRole.Count;
                     if (currentAdminCount == 1 && request.UserIds.Count == 0)

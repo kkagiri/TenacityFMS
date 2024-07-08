@@ -92,8 +92,9 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.EmployeeWorkNo, opt => opt.MapFrom(src => src.EmployeeWorkNo))
                .ForMember(dest => dest.EmployeephoneNumber, opt => opt.MapFrom(src => src.EmployeephoneNumber))
                 .ForMember(dest => dest.Employeestatus, opt => opt.MapFrom(src => src.Employeestatus))
-                  .ForMember(dest => dest.NationalId, opt => opt.MapFrom(src => src.NationalId))         
-                .ReverseMap();
+                  .ForMember(dest => dest.NationalId, opt => opt.MapFrom(src => src.NationalId)) 
+               .ForMember(dest=>dest.Vehicles,opt=>opt.MapFrom(src=>src.Vehicles.Select(v=>v.VehicleId)))
+                  .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })));
 
             CreateMap<Vehicle, SimpleVehicleDto>()
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))

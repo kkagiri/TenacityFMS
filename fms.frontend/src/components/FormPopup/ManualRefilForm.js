@@ -9,7 +9,7 @@ import { UsersApi } from '../../api/gpsgate';
 import  createApiClient from '../../api/gpsgateAPIClient';
 import { Button } from 'devextreme-react/button';
 import {fetchVehicleList} from '../../actions/vehicleActions';
-import {fetchEmployeeList} from '../../actions/employeeActions';
+import {fetchEmployees} from '../../actions/employeeActions';
 import {fetchSiteList} from '../../actions/siteActions';
 // import {getSizeQualifier} from '../../utils/media-query';
 import  notify from 'devextreme/ui/notify';
@@ -42,7 +42,7 @@ const ManualFuelRefillForm = ({  initData, onDataChanged }) => {
 
     useEffect(() => {
         dispatch(fetchVehicleList());
-        dispatch(fetchEmployeeList());
+        dispatch(fetchEmployees());
         dispatch(fetchSiteList());
     }, []);
 

@@ -1,7 +1,9 @@
-﻿using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
+﻿using AutoMapper.Configuration.Annotations;
+using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
 using FMS.Application.ModelsDTOs.FMS.Employee;
 using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers
@@ -18,82 +20,96 @@ namespace FMS.WebClient.Controllers
         {
             _mediator = mediator;
         }
-        [HttpPost("create")]
+        [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDto employeeDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest();
-            }
-            var command = new EmployeeCreateCmd
-            {
-                EmployeeDto = employeeDto
-            };
+            var hasPermission = User.HasClaim("permissions", "_createEmployee");
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var command = new EmployeeCreateCmd { EmployeeDto = employeeDto };
             var result = await _mediator.Send(command);
+            if(!result.Success) return BadRequest(result.Message);
             return Ok(result);
         }
 
 
 
-        [HttpGet("bysiteid")]
-   public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
-   {
-         var query = new GetEmployeeBySiteIdQuery { SiteId = siteId };
-         var employees = await _mediator.Send(query);
-         return Ok(employees);
+        [HttpGet("site/{siteId}")]
+        [Authorize]
+       public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
+     {
+            var hasPermission = User.HasClaim("permissions", "_readEmployee");
+            if (!hasPermission) return Forbid();
+            if (siteId <= 0) return BadRequest("Invalid ID");
+            var query = new GetEmployeeBySiteIdQuery { SiteId = siteId };
+           var employees = await _mediator.Send(query);
+          return Ok(employees);
    }
 
 
 
-        [HttpGet("getlist")]
+        [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetEmployeeList()
         {
+            var hasPermission = User.HasClaim("permissions", "_readEmployee");
+            var permissionlist = User.Claims.ToList();
+
+            if (!hasPermission) return Forbid();
+
             var query = new GetEmployeeQuery();
             var employees = await _mediator.Send(query);
             return Ok(employees);
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> GetEmployee(int id)
         {
+            var hasPermission = User.HasClaim("permissions", "_readEmployee");
+            if (!hasPermission) return Forbid();
+            if (id <= 0) return BadRequest("Invalid ID");
+
             var query = new GetEmployeeByIdQuery { Id = id};
             var employee = await _mediator.Send(query);
 
-            if (employee == null)
-            {
-                return NotFound();
-            }
-
-
+            if (employee == null)  return NotFound();
+          
             return Ok(employee);
         }
 
-        [HttpPut("update/{id}")]
+        [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEmployee( int id, [FromBody] EmployeeDto employeeDto)
         {
+            var hasPermission = User.HasClaim("permissions", "_editEmployee");
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if(id <= 0) return BadRequest("Invalid ID");
+            if (id != employeeDto.Id) return BadRequest("ID mismatch");
 
-            if(!ModelState.IsValid)
-            {
-                return BadRequest();
-            }
-
-            var command = new EmployeeUpdateCmd
-            {
-               ID = id,
-                EmployeeDto = employeeDto
-            };
+            var command = new EmployeeUpdateCmd(id,employeeDto);
 
             var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result.Message);
 
-            if(result)
-            {
-                return NoContent();
-            }
+            return Ok(result);
+          
+        }
 
-            else
-            {
-                return NotFound();
-            }
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteEmployee(int id)
+        {
+            var hasPermission = User.HasClaim("permissions", "_deleteEmployee");
+            if (!hasPermission) return Forbid();
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var command = new EmployeeDeleteCmd(id) ;
+            var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result.Message);
+
+            return NoContent();
         }
 
     }

@@ -16,7 +16,7 @@ import 'devextreme-react/select-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 
 import {fetchVehicleList} from '../../actions/vehicleActions';
-import {fetchEmployeeList} from '../../actions/employeeActions';
+import {fetchEmployees} from '../../actions/employeeActions';
 import {fetchSiteList} from '../../actions/siteActions';
 import { fetchTanks} from '../../actions/tankActions';
 import { fetchUsers } from '../../actions/userActions';
@@ -95,7 +95,7 @@ export default function Fuelrefil() {
             await Promise.all([
                 dispatch(fetchFuelRefills()),
                 dispatch(fetchVehicleList()),
-                dispatch(fetchEmployeeList()),
+                dispatch(fetchEmployees()),
                 dispatch(fetchSiteList()),
                 dispatch(fetchpermissionbyUserId(user.id)),
                 dispatch(fetchTanks()),
@@ -144,19 +144,19 @@ export default function Fuelrefil() {
                     };
     
                     if (change.type === 'insert') {
-                        const createResult = await dispatch(createFuelRefill(formattedData));
 
-                      change.data = createResult;
-                      notify('manual fuel refill create successfull','sucess',3000)
+                    const reponse =    await dispatch(createFuelRefill(formattedData));
+                        notify('Manual fuel refill created successfully.', 'success', 3000);
+                        e.component.navigateToRow(e.key)
+
                     } else if (change.type === 'update') {
-                        const updateResult = await dispatch(updateFuelRefill(formattedData));     
-                                           if (updateResult.success) {
-                            notify(updateResult.message || 'Manual fuel refill updated successfully.', 'success', 3000);
-                        } else {
-                            notify(updateResult.message || 'Failed to update fuel refill.', 'error', 3000);
-                            e.cancel = true;
-                        }
+                        await dispatch(updateFuelRefill(change.key, formattedData));
+                        notify('Manual fuel refill updated successfully.', 'success', 3000);
+                        e.component.navigateToRow(e.key)
+
+
                     }
+
                 }
 
                 e.component.refresh(true);
@@ -172,33 +172,7 @@ export default function Fuelrefil() {
             }
         }
     };
-    const onRowInserted = useCallback(async (e) => {
-        setSaving(true);
-        const validation = validateRow(e.data);
-        if (!validation.isValid) {
-            console.log("e",e)
-            e.cancel = true; 
-            e.isValid = false;
-            notify(validation.message, 'error', 3000);
-            setFormVisible(true); 
-        }
-        try {
-            const formattedData = {
-                ...e.data,
-                date: new Date(e.data.date).toISOString(), // Ensure date is in ISO format
-                transactionId: e.data.transactionId || null, // Handle nullable fields
-                fuelBy: e.data.fuelBy || null, // Ensure required fields have default values if necessary
-            };
-            await dispatch(createFuelRefill(formattedData));
-            notify('Manual fuel refill created successfully.', 'success', 3000);
-            setSaving(false);
-        } catch (error) {
-            e.cancel = true;
-            const errorMessage = error.response?.data?.message || 'Error creating manual fuel refill.';
-            notify(errorMessage, 'error', 3000);
-            setSaving(false);
-        }
-    }, [dispatch]);
+
 
     const onRowRemoved = useCallback(async (e) => {
         try {
@@ -214,39 +188,19 @@ export default function Fuelrefil() {
         }
     }, [dispatch]);
 
-    const onRowUpdated = useCallback(async (e) => {
-        setSaving(true);
-        const validation = validateRow(e.data);
-        if (!validation.isValid) {
-            e.cancel = true;
-            notify(validation.message, 'error', 3000);
-            return;
-        }
-        try {
-            const formattedData = {
-                ...e.data,
-                date: new Date(e.data.date).toISOString(), // Ensure date is in ISO format
-                transactionId: e.data.transactionId || null, // Handle nullable fields
-                fuelBy: e.data.fuelBy || "Unknown", // Ensure required fields have default values if necessary
-            };
-            await dispatch(updateFuelRefill(e.key, formattedData));
-            notify('Manual fuel refill updated successfully.', 'success', 3000);
-            setSaving(false);
-        } catch (error) {
-            console.error('Error updating manual fuel refill:', error);
-            setSaving(false);
-        }
-    }, [ dispatch]);
 
   
+
+
+
 
     const addRow = () => {
          gridRef.current.instance.addRow();
     };
 
     const refresh = useCallback(() => {
-        setFormVisible(true);
         gridRef.current?.instance.refresh();
+        dispatch.fetchEmployees();  
     }, []);
 
     const handleFieldChange = (e) => {
@@ -308,7 +262,6 @@ const handleTankChange = (e) => {
           </div>
         );
     }
-    console.log("Sample fuelBy value:", fuelRefills[0]?.fuelBy);
 
 
     return (
@@ -336,9 +289,7 @@ const handleTankChange = (e) => {
 
 
                 >
-                    <GroupPanel visible={true} />
-                    <Grouping autoExpandAll={false} />
-
+   
                     <Paging enabled={true} defaultPageSize={30} />
                         <FilterRow visible={true} />
                    <HeaderFilter visible={true} />  

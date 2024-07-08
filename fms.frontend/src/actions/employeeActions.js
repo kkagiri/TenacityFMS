@@ -1,26 +1,93 @@
 import axiosInstance from "../api/axiosInstance";
 
-// Action types
+export const FETCH_EMPLOYEES_REQUEST = 'FETCH_EMPLOYEES_REQUEST';
 export const FETCH_EMPLOYEES_SUCCESS = 'FETCH_EMPLOYEES_SUCCESS';
 export const FETCH_EMPLOYEES_FAILURE = 'FETCH_EMPLOYEES_FAILURE';
+export const FETCH_EMPLOYEE_REQUEST = 'FETCH_EMPLOYEE_REQUEST';
+export const FETCH_EMPLOYEE_SUCCESS = 'FETCH_EMPLOYEE_SUCCESS';
+export const FETCH_EMPLOYEE_FAILURE = 'FETCH_EMPLOYEE_FAILURE';
+export const CREATE_EMPLOYEE_REQUEST = 'CREATE_EMPLOYEE_REQUEST';
+export const CREATE_EMPLOYEE_SUCCESS = 'CREATE_EMPLOYEE_SUCCESS';
+export const CREATE_EMPLOYEE_FAILURE = 'CREATE_EMPLOYEE_FAILURE';
+export const UPDATE_EMPLOYEE_REQUEST = 'UPDATE_EMPLOYEE_REQUEST';
+export const UPDATE_EMPLOYEE_SUCCESS = 'UPDATE_EMPLOYEE_SUCCESS';
+export const UPDATE_EMPLOYEE_FAILURE = 'UPDATE_EMPLOYEE_FAILURE';
+export const DELETE_EMPLOYEE_REQUEST = 'DELETE_EMPLOYEE_REQUEST';
+export const DELETE_EMPLOYEE_SUCCESS = 'DELETE_EMPLOYEE_SUCCESS';
+export const DELETE_EMPLOYEE_FAILURE = 'DELETE_EMPLOYEE_FAILURE';
 
-// Action creators
-export const fetchEmployeesSuccess = (employees) => ({
-  type: FETCH_EMPLOYEES_SUCCESS,
-  payload: employees
-});
-
-export const fetchEmployeesFailure = (error) => ({
-  type: FETCH_EMPLOYEES_FAILURE,
-  payload: error
-});
-
-// Thunk action for fetching employees
-export const fetchEmployeeList = () => async (dispatch) => {
+// Action Creators
+export const fetchEmployees = () => async (dispatch) => {
+  dispatch({ type: FETCH_EMPLOYEES_REQUEST });
   try {
-    const response = await axiosInstance.get(`/employee/getlist`);
-    dispatch(fetchEmployeesSuccess(response.data));
+    const response = await axiosInstance.get('/employee');
+    dispatch({ type: FETCH_EMPLOYEES_SUCCESS, payload: response.data });
   } catch (error) {
-    dispatch(fetchEmployeesFailure(error.message));
+    dispatch({ type: FETCH_EMPLOYEES_FAILURE, payload: error.message });
+  }
+};
+
+export const fetchEmployee = (id) => async (dispatch) => {
+  dispatch({ type: FETCH_EMPLOYEE_REQUEST });
+  try {
+    const response = await axiosInstance.get(`/employee/${id}`);
+    dispatch({ type: FETCH_EMPLOYEE_SUCCESS, payload: response.data });
+  } catch (error) {
+    dispatch({ type: FETCH_EMPLOYEE_FAILURE, payload: error.message });
+  }
+};
+
+export const createEmployee = (employeeData) => async (dispatch) => {
+  dispatch({ type: CREATE_EMPLOYEE_REQUEST });
+  try {
+    const newValues = {
+      ...employeeData, 
+      employeestatus: "Active",
+      vehicles: employeeData.vehicles || [] // Directly use the array of vehicle IDs
+    };
+
+    if (newValues.siteId == 0) {
+      delete newValues.siteId;
+    }
+
+    const response = await axiosInstance.post('/employee', newValues);
+
+    dispatch({ type: CREATE_EMPLOYEE_SUCCESS, payload: response.data });
+    return response.data;
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message;
+    dispatch({ type: CREATE_EMPLOYEE_FAILURE, payload: errorMessage });
+  }
+};
+
+export const updateEmployee = (key, employeeData) => async (dispatch) => {
+
+  dispatch({ type: UPDATE_EMPLOYEE_REQUEST });
+  try {
+    const updatedData = { 
+      ...employeeData, 
+      id: key,
+      vehicles: employeeData.vehicles || [] // Directly use the array of vehicle IDs
+    };
+
+    if (updatedData.siteId === 0) {
+      delete updatedData.siteId;
+    }
+
+    const response = await axiosInstance.put(`/employee/${key}`, updatedData);
+    dispatch({ type: UPDATE_EMPLOYEE_SUCCESS, payload: response.data });
+    return response.data;
+  } catch (error) {
+    dispatch({ type: UPDATE_EMPLOYEE_FAILURE, payload: error.message });
+  }
+};
+
+export const deleteEmployee = (id) => async (dispatch) => {
+  dispatch({ type: DELETE_EMPLOYEE_REQUEST });
+  try {
+    await axiosInstance.delete(`/employee/${id}`);
+    dispatch({ type: DELETE_EMPLOYEE_SUCCESS, payload: id });
+  } catch (error) {
+    dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: error.message });
   }
 };
