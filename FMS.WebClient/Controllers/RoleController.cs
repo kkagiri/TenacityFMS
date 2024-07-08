@@ -65,7 +65,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("AssignPermissions")]
-       [Authorize(Roles = "Admin")]
+       [Authorize]
         public async Task<IActionResult> AssignPermissions([FromBody] AssignPermissionsToRoleCommand command)
         {
             if(!ModelState.IsValid) return BadRequest(ModelState);
@@ -74,7 +74,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpPost("UpdateRoleUsers")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> UpdateRoleForUsers([FromBody] UpdateRoleUsersCommand command)
         {
             if (!ModelState.IsValid)
@@ -86,9 +86,9 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
 
-        //api: api/role/getusersinrole
+        //api: api/role/UsersInRole/{roleId}
         [HttpGet("UsersInRole/{roleId}")]
-       [Authorize(Roles = "Admin")]
+       [Authorize]
         public async Task<IActionResult> GetUsersInRole(string roleId)
         {
             var command = new GetUsersInRoleQuery(roleId);
@@ -98,7 +98,7 @@ namespace FMS.WebClient.Controllers
         
 
         [HttpGet("PermissionsByRole/{roleId}")]
-       [Authorize(Roles = "Admin")]
+       [Authorize]
         public async Task<IActionResult> GetPermissionsByRoleId(string roleId)
         {
             var command = new GetPermissionsByRoleIDQuery(roleId);
@@ -106,7 +106,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpGet("user/{userId}")]
-      [Authorize(Roles = "Admin")]
+      [Authorize]
         public async Task<IActionResult> GetRolesByUserId(string userId)
         {
             var command = new GetRolesByUserIDQuery(userId);
@@ -114,7 +114,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpPost("AssignRolesToUser")]
-       [Authorize(Roles = "Admin")]
+       [Authorize]
         public async Task<IActionResult> AssignRolesToUser([FromBody] AssignUserRolesCommand command)
         {
             if (!ModelState.IsValid)

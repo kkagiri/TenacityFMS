@@ -11,6 +11,8 @@ const UserDataList = () => {
     dispatch({ type: 'SET_SELECTED_USERS', payload: selectedRowKeys });
   }, [allUsers, selectedUsers, dispatch]);
 
+
+  console.log('selectedUsers:', selectedUsers);
   return (
     <div>
       <DataGrid

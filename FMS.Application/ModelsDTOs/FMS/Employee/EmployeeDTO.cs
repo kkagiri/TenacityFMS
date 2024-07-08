@@ -37,10 +37,10 @@ namespace FMS.Application.ModelsDTOs.FMS.Employee
         //<todo> this is wrong: change from SimplevehicleDto to Vehicle
         //</todo>
         /// <summary>
-        /// this is wrong
+        /// vehicle list
         /// </summary>
         [JsonPropertyName("vehicles")]
-        public ICollection<SimpleVehicleDto> Vehicles { get; set; } = new List<SimpleVehicleDto>();
+        public ICollection<int> Vehicles { get; set; } = new List<int>();
     }
 
 }

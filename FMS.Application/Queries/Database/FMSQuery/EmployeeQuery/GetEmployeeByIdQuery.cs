@@ -31,6 +31,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
 
         public async Task<EmployeeDto> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
         {
+            if (request == null) { return null;}
             var result = await _context.Employees
                 .Include(e => e.Vehicles)
                 .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);

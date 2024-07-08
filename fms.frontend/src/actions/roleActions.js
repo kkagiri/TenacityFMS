@@ -40,16 +40,16 @@ export const fetchRoleDetails = (roleId) => async (dispatch) => {
     }
   };
   
-  export const assignPermissionsToRole = (roleId, permisionIds) => async (dispatch) => {
+  export const assignPermissionsToRole = (roleId, permissionIds) => async (dispatch) => {
     try {
 
       console.log('RoleAction_roleId:', roleId);
-      console.log('RoleAction_permissionIds:', permisionIds);
-      const response = await axiosInstance.post(`/role/AssignPermissions`, { roleId, permisionIds });
+      console.log('RoleAction_permissionIds:', permissionIds);
+      const response = await axiosInstance.post(`/role/AssignPermissions`, { roleId, permissionIds });
 
       console.log('RoleAction_response:', response);
       if (response.data.success) {
-        dispatch({ type: ASSIGN_PERMISSIONS_SUCCESS, payload: { roleId, permisionIds } });
+        dispatch({ type: ASSIGN_PERMISSIONS_SUCCESS, payload: { roleId, permissionIds } });
         return { success: true, message: response.data.message };
       } else {
         dispatch({ type: ASSIGN_PERMISSIONS_FAILURE, payload: response.data.message });

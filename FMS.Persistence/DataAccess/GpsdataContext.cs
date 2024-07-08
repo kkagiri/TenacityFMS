@@ -417,7 +417,9 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
             entity.Property(e => e.Id)
                 .HasColumnType("int(11)")
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
+             
             entity.Property(e => e.EmployeeWorkNo)
                 .HasMaxLength(45)
                 .HasDefaultValueSql("'New'");

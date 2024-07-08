@@ -8,12 +8,13 @@ import PermissionTreeList from './components/PermissionTreeList/permissionTreeLi
 import Rolepage from './pages/Role/rolepage';
 import unauthorized from './pages/unauthorized';
 import NavigationPage from './pages/Navigation/NavigationPage';
-
+import EmployeePage from './pages//employees/employeePage';
 const resolvedComponents =(pageName) => {
   switch(pageName.toLowerCase())
   {    
      case 'dashboard':
        return HomePage;
+       
      case 'vehicles':
        return Vehicles;
      case 'consumption':
@@ -24,8 +25,10 @@ const resolvedComponents =(pageName) => {
        return VehicleConsumptionReportDesigner;
      case 'vehicleConsumptionReportViewer':
        return VehicleConsumptionReportViewer;
-     case 'manual refill':
+     case 'manual refill': 
        return VehicleManualRefill;
+     case 'employees':
+        return EmployeePage;
      case 'roles':
        return Rolepage;
      case 'permissions':
