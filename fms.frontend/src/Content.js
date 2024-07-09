@@ -51,7 +51,7 @@ export default function Content() {
 
       </Routes>
       <Footer>
-        Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc.
+        Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc. Version:1.1.0
         <br />
         Develop  by Kevin.kagiri@hyoung.co.ke. All trademarks or registered trademarks are property of Hyoung EA Co. Ltd.
       </Footer>

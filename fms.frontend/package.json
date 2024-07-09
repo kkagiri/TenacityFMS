@@ -31,7 +31,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
      "build:dev": "env-cmd -f .env.development react-scripts build",
-    "build:prod": "env-cmd -f .env.production react-scripts build",
+    "build:prod.internal": "env-cmd -f .env.production.internal react-scripts build",
+    "build:prod.external": "env-cmd -f .env.production.external react-scripts build",
+
 
     "test": "react-scripts test",
     "eject": "react-scripts eject",
