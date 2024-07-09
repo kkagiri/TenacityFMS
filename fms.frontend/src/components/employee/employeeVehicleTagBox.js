@@ -1,21 +1,20 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo,useCallback } from 'react';
 import TagBox from 'devextreme-react/tag-box';
-import { useSelector,useDispatch } from 'react-redux';
-import {fetchVehicleList } from "../../actions/vehicleActions";
+import { useSelector } from 'react-redux';
 
 const EmployeevehicleTagbox = (props) => {
-    const { data, value, onValueChanged } = props;
+    const { value, onValueChanged } = props;
     const vehicles = useSelector(state => state.vehicle.vehicles);
 
     const vehicleValues = useMemo(() => {
-        if (!value) return [];
         return Array.isArray(value) ? value : [];
     }, [value]);
 
-    const handleValueChanged = (e) => {
+
+    const handleValueChanged = useCallback((e) => {
         console.log("New value:", e.value);
         onValueChanged(e.value);
-    };
+    }, [onValueChanged]);
   
         return (
             <TagBox
@@ -28,6 +27,8 @@ const EmployeevehicleTagbox = (props) => {
             applyValueMode="useButtons"
             searchEnabled={true}
             onValueChanged={handleValueChanged}
+            acceptCustomValue={false}
+            showClearButton={true}
             searchExpr={["hyoungNo", "vehicleId"]}         />
         );
     }
