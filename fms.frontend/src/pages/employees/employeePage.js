@@ -32,7 +32,9 @@ const EmployeePage = () => {
     const sites= useSelector((state) => state.site.sites);
     const gridRef = useRef(null);
     const [saving, setSaving] = useState(false);
+    const [selectedVehicles, setSelectedVehicles] = useState([]);
 
+ 
 
     const fetchData = useCallback(async () => {
         try {
@@ -164,6 +166,10 @@ const canEdit = permissions.includes('_editEmployee');
 const canDelete = permissions.includes('_deleteEmployee');
 const canCreate = permissions.includes('_createEmployee');
 
+const handleTagBoxValueChanged = (newValue) => {
+    setSelectedVehicles(newValue);
+};
+
 if (loading || saving) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -237,7 +243,7 @@ return (
                         </TItems>
                         <TItems name='searchPanel' locateInMenu='auto' />
                     </Toolbar> 
-                <Column dataField="id" allowEditing={false} visible={true} />
+                <Column dataField="id" allowEditing={false} visible={true} defaultSortOrder={"dsc"} />
                 <Column dataField="fullName" caption="Full Names" width={200}>
                     <RequiredRule />
                 </Column>
@@ -255,7 +261,10 @@ return (
                     editCellRender={(cellInfo) => (
                         <EmployeevehicleTagbox
                             value={cellInfo.value}
-                            onValueChanged={(newValue) => cellInfo.setValue(newValue)}
+                            onValueChanged={(newValue) => {
+                                cellInfo.setValue(newValue);
+                                handleTagBoxValueChanged(newValue); // Ensure parent state is updated
+                            }}
                         />
                     )}
                     cellTemplate={vehicleTemplate}

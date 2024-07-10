@@ -42,7 +42,7 @@ namespace FMS.Application.Queries.Database.EmployeeQuery
         {
             var employees= await _context.Employees
                 .Include(e => e.Vehicles)
-                .Where(e => e.Employeestatus == "Active")
+               .OrderByDescending(x=>x.Id)        
                 .ToListAsync(cancellationToken);
 
             return _mapper.Map<List<EmployeeDto>>(employees);

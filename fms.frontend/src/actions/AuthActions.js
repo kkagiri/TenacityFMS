@@ -38,8 +38,12 @@ export const signIn = (username, password) => async (dispatch) => {
         dispatch(loadUser()); // Load user details after login
         return { isOk: true };
     } catch (error) {
-        dispatch({ type: LOGIN_FAILURE, payload: error.message });
-        return { isOk: false, message: error.message };
+        let errorMessage = 'An error occurred during login';
+        if (error.response && error.response.status === 401) {
+            errorMessage = 'Wrong username or password';
+        }
+        dispatch({ type: LOGIN_FAILURE, payload: errorMessage });
+        return { isOk: false, message: errorMessage };
     }
 };
 

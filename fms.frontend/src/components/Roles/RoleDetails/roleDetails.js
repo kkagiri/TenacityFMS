@@ -59,10 +59,11 @@ const RoleDetails = ({ roleId }) => {
   const onSaveData = async () => {
     try {
       setSaving(true);
-
-      await dispatch(updateRole(roleId, roleDetails));
-      await dispatch(assignPermissionsToRole(roleId, rolePermissions));
-      await dispatch(updateRoleForUsers(roleId, selectedUsers));
+      await Promise.all([
+       dispatch(updateRole(roleId, roleDetails)),
+       dispatch(assignPermissionsToRole(roleId, rolePermissions)),
+       dispatch(updateRoleForUsers(roleId, selectedUsers)),
+      ]);
 
       notify('Role updated successfully', 'success', 2000);
       dispatch(fetchRoleDetails(roleId));

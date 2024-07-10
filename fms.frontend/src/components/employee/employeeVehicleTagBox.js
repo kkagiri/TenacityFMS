@@ -1,20 +1,23 @@
-import React, { useMemo,useCallback } from 'react';
+import React, { useMemo,useCallback,useEffect } from 'react';
 import TagBox from 'devextreme-react/tag-box';
 import { useSelector } from 'react-redux';
+
+
+
 
 const EmployeevehicleTagbox = (props) => {
     const { value, onValueChanged } = props;
     const vehicles = useSelector(state => state.vehicle.vehicles);
-
     const vehicleValues = useMemo(() => {
-        return Array.isArray(value) ? value : [];
+        const result = Array.isArray(value) ? value : [];
+        return result;
     }, [value]);
 
 
+
     const handleValueChanged = useCallback((e) => {
-        console.log("New value:", e.value);
         onValueChanged(e.value);
-    }, [onValueChanged]);
+    }, [onValueChanged,value]);
   
         return (
             <TagBox
@@ -29,7 +32,9 @@ const EmployeevehicleTagbox = (props) => {
             onValueChanged={handleValueChanged}
             acceptCustomValue={false}
             showClearButton={true}
-            searchExpr={["hyoungNo", "vehicleId"]}         />
+            searchExpr={["hyoungNo", "vehicleId"]}  
+           
+            />
         );
     }
 
