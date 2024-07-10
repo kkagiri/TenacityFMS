@@ -3,17 +3,15 @@ on:
   push:
     branches:
       - productionv1
+      - productionv1
 jobs:
   build-and-deploy:
     runs-on: windows-latest
     steps:
+    steps:
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Install Cygwin and required packages
-      run: |
-        Invoke-WebRequest https://cygwin.com/setup-x86_64.exe -OutFile cygwin-setup.exe
-        .\cygwin-setup.exe -q -P rsync,openssh
-        $env:Path += ";C:\cygwin64\bin"
+ 
     - name: Build and deploy internal environment
       run: |
         bash deploy.sh internal
