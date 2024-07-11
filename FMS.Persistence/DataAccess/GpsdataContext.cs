@@ -405,45 +405,74 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
 
 
-        modelBuilder.Entity<Employee>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
+      modelBuilder.Entity<Employee>(entity =>
+{
+    entity.HasKey(e => e.Id).HasName("PRIMARY");
+    entity.HasIndex(e => e.CreatedBy, "Employee_user_idx");
+    entity.HasIndex(e => e.ModifiedBy, "Employe_modifyUser_idx");
 
-            entity.ToTable("employee");
+    entity.ToTable("employee");
 
-            entity.HasIndex(e => e.SiteId, "Employee_site_idx");
+    entity.HasIndex(e => e.SiteId, "Employee_site_idx");
 
-            entity.HasIndex(e => e.NationalId, "NationalID_UNIQUE").IsUnique();
+    entity.HasIndex(e => e.NationalId, "NationalID_UNIQUE").IsUnique();
 
-            entity.Property(e => e.Id)
-                .HasColumnType("int(11)")
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
-             
-            entity.Property(e => e.EmployeeWorkNo)
-                .HasMaxLength(45)
-                .HasDefaultValueSql("'New'");
-            entity.Property(e => e.EmployeephoneNumber)
-                .HasMaxLength(45)
-                .HasDefaultValueSql("'0700000000'")
-                .HasColumnName("employeephoneNumber");
-            entity.Property(e => e.Employeestatus)
-                .HasMaxLength(45)
-                .HasColumnName("employeestatus");
-            entity.Property(e => e.FullName)
-                .HasMaxLength(45)
-                .HasDefaultValueSql("'Employee Name'");
-            entity.Property(e => e.NationalId)
-                .HasColumnType("bigint(20)")
-                .HasColumnName("NationalID");
-            entity.Property(e => e.SiteId)
-                .HasColumnType("int(11)")
-                .HasColumnName("SiteID");
+    entity.Property(e => e.Id)
+        .HasColumnType("int(11)")
+        .HasColumnName("id");
+    entity.Property(e => e.EmployeeWorkNo)
+        .HasMaxLength(45)
+        .HasDefaultValueSql("'New'");
+    entity.Property(e => e.EmployeephoneNumber)
+        .HasMaxLength(45)
+        .HasDefaultValueSql("'0700000000'")
+        .HasColumnName("employeephoneNumber");
+    entity.Property(e => e.Employeestatus)
+        .HasMaxLength(45)
+        .HasColumnName("employeestatus");
+    entity.Property(e => e.FullName)
+        .HasMaxLength(45)
+        .HasDefaultValueSql("'Employee Name'");
+    entity.Property(e => e.NationalId)
+        .HasColumnType("bigint(20)")
+        .HasColumnName("NationalID");
+    entity.Property(e => e.SiteId)
+        .HasColumnType("int(11)")
+        .HasColumnName("SiteID");
+    entity.Property(e => e.IsModified)
+      .HasDefaultValueSql("'0'")
+      .HasColumnType("tinyint(4)");
 
-            entity.HasOne(d => d.Site).WithMany(p => p.Employees)
-                .HasForeignKey(d => d.SiteId)
-                .HasConstraintName("Employee_site");
-        });
+    entity.Property(e => e.DateCreated)
+     .IsRequired()
+    .HasColumnType("datetime");
+
+    entity.Property(e => e.DateModified)
+        .HasColumnType("datetime");
+
+    entity.Property(e => e.CreatedBy)
+        .HasMaxLength(100)
+        .UseCollation("utf8mb4_general_ci")
+        .HasCharSet("utf8mb4");
+
+    entity.Property(e => e.ModifiedBy)
+       .HasMaxLength(100)
+       .UseCollation("utf8mb4_general_ci")
+       .HasCharSet("utf8mb4");
+
+
+    entity.HasOne(d => d.Site).WithMany(p => p.Employees)
+        .HasForeignKey(d => d.SiteId)
+        .HasConstraintName("Employee_site");
+    entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.EmployeeCreatedByNavigations)
+        .HasForeignKey(d => d.CreatedBy)
+        .HasConstraintName("Employee_Createuser");
+
+    entity.HasOne(d => d.ModifiedByNavigation).WithMany(p => p.EmployeeModifiedByNavigations)
+        .HasForeignKey(d => d.ModifiedBy)
+        .HasConstraintName("Employe_modifyUser");
+
+});
         modelBuilder.Entity<Tankstock>(entity =>
             {
                 entity.HasKey(e => e.EntryId).HasName("PRIMARY");

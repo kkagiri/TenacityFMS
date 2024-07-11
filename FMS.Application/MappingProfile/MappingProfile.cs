@@ -30,20 +30,19 @@ namespace FMS.Application.MappingProfile
 
 
 // Map from Fuelrefil to FeulRefilDTO
-         CreateMap<Fuelrefil, FuelRefilDTO>();
+         CreateMap<Fuelrefil, FuelRefilDTO>()
+           .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
+           .ReverseMap().ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));;
+
+
             CreateMap<Permission, PermissionDTO>().ReverseMap();
             CreateMap<Tank, TankDTO>();
             CreateMap<TankDTO, Tank>().
                 ForMember(dest=>dest.Site,opt=>opt.Ignore())
                 .ForMember(dest => dest.PtsDevice, opt=>opt.Ignore());
-
-            // Map from FeulRefilDTO to Fuelrefil
-            CreateMap<FuelRefilDTO, Fuelrefil>()
-            .ForMember(dest => dest.Driver, opt => opt.Ignore())
-            .ForMember(dest => dest.FuelByNavigation, opt => opt.Ignore())
-            .ForMember(dest => dest.PumpTranscation, opt => opt.Ignore())
-            .ForMember(dest => dest.Site, opt => opt.Ignore())
-            .ForMember(dest => dest.Vehicle, opt => opt.Ignore());
+          
+           
+;
 
 
            CreateMap<Role,RoleDto>().ForMember(dest=>dest.Id,opt=>opt.MapFrom(src=>src.Id))
@@ -68,23 +67,7 @@ namespace FMS.Application.MappingProfile
              .ForMember(dest => dest.DefaultExpectedAverageId, opt => opt.MapFrom(src => src.DefaultExptdAvg.Id))
              .ForMember(dest => dest.ExpectedAverageclassificationName, opt => opt.MapFrom(src => src.DefaultExptdAvg.ExpectedAverageClassification.Name))
              .ForMember(dest => dest.ExpectedAverageValue, opt => opt.MapFrom(src => src.DefaultExptdAvg.ExpectedAverageValue))
-             // .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             // .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             // .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-             //.ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-
-
-
-
-                .ReverseMap();
+             .ReverseMap();
 
          CreateMap<Employee,EmployeeDto>()
                 .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId))
@@ -94,7 +77,10 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.Employeestatus, opt => opt.MapFrom(src => src.Employeestatus))
                   .ForMember(dest => dest.NationalId, opt => opt.MapFrom(src => src.NationalId)) 
                .ForMember(dest=>dest.Vehicles,opt=>opt.MapFrom(src=>src.Vehicles.Select(v=>v.VehicleId)))
-                  .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })));
+                .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
+                  .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })))        
+                  .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));;
+;
 
             CreateMap<Vehicle, SimpleVehicleDto>()
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))

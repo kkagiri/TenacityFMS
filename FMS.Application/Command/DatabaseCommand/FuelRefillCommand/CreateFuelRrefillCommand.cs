@@ -61,8 +61,9 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
             {
                 return new FuelRefillCreateCommandResults(false, "Previous meter reading should be smaller than current meter reading.",null);
             }
-
-            var fuelRefil = _mapper.Map<Fuelrefil>(fuelRefilDto);
+            request.FuelRefilDTO.DateCreated =DateTime.UtcNow;
+            request.FuelRefilDTO.DateModified = DateTime.UtcNow;            var fuelRefil = _mapper.Map<Fuelrefil>(fuelRefilDto);
+             fuelRefil.IsModified = false?(sbyte)1:(sbyte)0;
 
             _context.Fuelrefils.Add(fuelRefil);
             await _context.SaveChangesAsync(cancellationToken);

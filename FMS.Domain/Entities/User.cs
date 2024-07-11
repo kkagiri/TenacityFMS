@@ -8,7 +8,9 @@ namespace FMS.Domain.Entities;
 public partial class User : IdentityUser
 {
     public bool? IsDeleted { get; set; } //implement soft delete
-   
+     public virtual ICollection<Employee> EmployeeCreatedByNavigations { get; set; } = new List<Employee>();
+
+  public virtual ICollection<Employee> EmployeeModifiedByNavigations { get; set; } = new List<Employee>();
 
     public virtual ICollection<Site> Sites { get; set; } = new List<Site>();
 

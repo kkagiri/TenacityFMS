@@ -34,13 +34,23 @@ namespace FMS.Application.ModelsDTOs.FMS.Employee
         [JsonPropertyName("siteId")]
         public int? SiteId { get; set; }
 
-        //<todo> this is wrong: change from SimplevehicleDto to Vehicle
-        //</todo>
-        /// <summary>
-        /// vehicle list
-        /// </summary>
         [JsonPropertyName("vehicles")]
         public ICollection<int> Vehicles { get; set; } = new List<int>();
+        [JsonPropertyName("dateCreated")]
+        public DateTime? DateCreated { get; set; } = DateTime.Now;
+
+        [JsonPropertyName("dateModified")]
+        public DateTime? DateModified { get; set; }
+
+        private DateTime? _dateCreated;
+        [JsonPropertyName("createdBy")]
+        public string? CreatedBy { get; set; }
+
+        [JsonPropertyName("isModified")]
+        public bool IsModified { get; set; }
+
+        [JsonPropertyName("modifiedBy")]
+        public string? ModifiedBy { get; set; }
     }
 
 }

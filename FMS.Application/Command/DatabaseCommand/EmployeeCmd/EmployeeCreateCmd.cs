@@ -42,10 +42,10 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 if (site == null) return new EmployeeCreateResponse(false, "Site not found", null);
                 // Check for duplicate NationalId
                 var duplicateEmployee = await _context.Employees.FirstOrDefaultAsync(e => e.NationalId == request.EmployeeDto.NationalId);
-                if (duplicateEmployee != null)
-                {
-                    return new EmployeeCreateResponse(false, $"Duplicate NationalId {request.EmployeeDto.NationalId} found", null);
-                }
+                if (duplicateEmployee != null)  return new EmployeeCreateResponse(false, $"Duplicate NationalId {request.EmployeeDto.NationalId} found", null);             
+                if (string.IsNullOrWhiteSpace(request.EmployeeDto.Employeestatus)) return new EmployeeCreateResponse( false, "Employee Status cannot be empty. It should be either 'Active' or 'Terminated'.", null);
+                 string status = request.EmployeeDto.Employeestatus.Trim();
+                if (status != "Active" && status != "Terminated") return new EmployeeCreateResponse( false,"Invalid Employee Status. It should be either 'Active' or 'Terminated'.",null);
                 var employee = new Employee
                 {
                     SiteId = request.EmployeeDto.SiteId,
@@ -55,6 +55,9 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                     NationalId = request.EmployeeDto.NationalId,
                     Employeestatus = request.EmployeeDto.Employeestatus,
                     Site = site,
+                    DateCreated = DateTime.UtcNow,
+                    DateModified = DateTime.UtcNow,
+                    IsModified =false?(sbyte)1:(sbyte)0,                       
                     Vehicles = new List<Vehicle>()
                 };
 
@@ -62,11 +65,8 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 foreach (var vehicleId in request.EmployeeDto.Vehicles)
                 {
                     var result = await _context.Vehicles.FirstOrDefaultAsync(i => i.VehicleId == vehicleId);
-                    if (result == null)
-                    {
-                        return new EmployeeCreateResponse(false, $"Vehicle with ID {vehicleId} not found", null);
-                    }
-                    employee.Vehicles.Add(result);
+                    if (result == null) return new EmployeeCreateResponse(false, $"Vehicle with ID {vehicleId} not found", null);
+                     employee.Vehicles.Add(result);
                 }
 
                 _context.Employees.Add(employee);

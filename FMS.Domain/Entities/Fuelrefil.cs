@@ -32,7 +32,7 @@ public partial class Fuelrefil
     public DateTime? DateCreated {get;set;}
     public DateTime? DateModified {get;set;}
 
-    public sbyte IsModified {get;set;}
+    public sbyte? IsModified {get;set;}
 
     public virtual Tank? Tank { get; set; }
 

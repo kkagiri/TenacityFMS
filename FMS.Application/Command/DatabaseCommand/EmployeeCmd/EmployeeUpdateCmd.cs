@@ -40,13 +40,17 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 var siteId = await _context.Sites.FindAsync(request.EmployeeDto.SiteId);
                 if (siteId == null) return new EmployeeUpdateResponse(false, $"Site {request.EmployeeDto.SiteId} not Found", null);
                 var employee = await _context.Employees.Include(e => e.Vehicles).FirstOrDefaultAsync(e => e.Id == request.EmployeeDto.Id, cancellationToken);
+                 if (employee == null) return new EmployeeUpdateResponse(false, $"Employee {request.EmployeeDto.Id} not Found", null);
 
-                if (employee == null) return new EmployeeUpdateResponse(false, $"Employee {request.EmployeeDto.Id} not Found", null);
-                //_mapper.Map(request.EmployeeDto, employee);
-
+                if (string.IsNullOrWhiteSpace(request.EmployeeDto.Employeestatus)) return new EmployeeUpdateResponse( false, "Employee Status cannot be empty. It should be either 'Active' or 'Terminated'.", null);
+                 string status = request.EmployeeDto.Employeestatus.Trim();
+                if (status != "Active" && status != "Terminated") return new EmployeeUpdateResponse( false,"Invalid Employee Status. It should be either 'Active' or 'Terminated'.",null);
 
                 //feature of assigning multiple vehicles used 
                 employee.Vehicles.Clear();
+
+                employee.DateModified = DateTime.UtcNow;
+                employee.IsModified = true?(sbyte)1:(sbyte)0;
 
                 foreach (var vehicle in request.EmployeeDto.Vehicles)
                 {
