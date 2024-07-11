@@ -25,6 +25,15 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDto employeeDto)
         {
             var hasPermission = User.HasClaim("permissions", "_createEmployee");
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                            Guid.TryParse(c.Value, out _));
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            employeeDto.CreatedBy = userIdClaim.Value;
+
+
             if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var command = new EmployeeCreateCmd { EmployeeDto = employeeDto };
@@ -51,14 +60,14 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetEmployeeList()
+        public async Task<IActionResult> GetEmployeeList([FromQuery] bool? active)
         {
             var hasPermission = User.HasClaim("permissions", "_readEmployee");
             var permissionlist = User.Claims.ToList();
 
             if (!hasPermission) return Forbid();
 
-            var query = new GetEmployeeQuery();
+            var query = new GetEmployeeQuery(active ?? true);
             var employees = await _mediator.Send(query);
             return Ok(employees);
         }
@@ -87,6 +96,14 @@ namespace FMS.WebClient.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if(id <= 0) return BadRequest("Invalid ID");
             if (id != employeeDto.Id) return BadRequest("ID mismatch");
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            employeeDto.ModifiedBy = userIdClaim.Value;
 
             var command = new EmployeeUpdateCmd(id,employeeDto);
 

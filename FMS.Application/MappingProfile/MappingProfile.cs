@@ -29,11 +29,11 @@ namespace FMS.Application.MappingProfile
             CreateMap<User, UserDto>().ReverseMap();
 
 
-// Map from Fuelrefil to FeulRefilDTO
-         CreateMap<Fuelrefil, FuelRefilDTO>()
-           .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
-           .ReverseMap().ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));;
-
+            CreateMap<Fuelrefil, FuelRefilDTO>()
+    .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
+        .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
+    .ReverseMap()
+    .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified ? (sbyte)1 : (sbyte)0));
 
             CreateMap<Permission, PermissionDTO>().ReverseMap();
             CreateMap<Tank, TankDTO>();

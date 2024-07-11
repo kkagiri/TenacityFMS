@@ -602,8 +602,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
            entity.Property(e => e.Id)
                .HasColumnType("int(11)")
                .HasColumnName("ID");
-               entity.Property(e=>e.IsModified).HasColumnType("tinyint(4)").HasDefaultValue(false);
-               entity.Property(e=>e.DateCreated).HasColumnName("DateCreated");
+           entity.Property(e => e.IsModified).HasColumnType("tinyint(4)").HasDefaultValue((sbyte)0);
+           entity.Property(e=>e.DateCreated).HasColumnName("DateCreated");
 
            entity.Property(e => e.Comment).HasMaxLength(500);
            entity.Property(e => e.CurrentMeterReading).HasColumnType("int(11)");

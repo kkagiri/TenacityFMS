@@ -17,10 +17,10 @@ export const DELETE_EMPLOYEE_SUCCESS = 'DELETE_EMPLOYEE_SUCCESS';
 export const DELETE_EMPLOYEE_FAILURE = 'DELETE_EMPLOYEE_FAILURE';
 
 // Action Creators
-export const fetchEmployees = () => async (dispatch) => {
+export const fetchEmployees = (active = true) => async (dispatch) => {
   dispatch({ type: FETCH_EMPLOYEES_REQUEST });
   try {
-    const response = await axiosInstance.get('/employee');
+    const response = await axiosInstance.get(`/employee?active=${active}`);
     dispatch({ type: FETCH_EMPLOYEES_SUCCESS, payload: response.data });
   } catch (error) {
     dispatch({ type: FETCH_EMPLOYEES_FAILURE, payload: error.message });

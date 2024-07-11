@@ -6,19 +6,21 @@ import { fetchpermissionbyUserId } from '../../actions/permissionActions';
 import { fetchUsers } from '../../actions/userActions';
 import {fetchSiteList} from '../../actions/siteActions';
 import EmployeevehicleTagbox from "./../../components/employee/employeeVehicleTagBox";
-
+import Switch, { SwitchTypes } from 'devextreme-react/switch';
+import { format } from 'date-fns';
 import DataGrid, { Paging,
-    HeaderFilter, SearchPanel, Toolbar, Item as TItems,
-    Editing, FilterRow, Column, Lookup, Sorting, RequiredRule ,
-    Form,Popup ,  Grouping,
+    HeaderFilter, SearchPanel,  
+    Editing, FilterRow, Column, Lookup,Toolbar, Item as TItems , Sorting, RequiredRule ,ColumnChooser,ColumnChooserSelection,
+    Form,Popup ,  Grouping,Position,Export,Selection,
     GroupPanel ,Summary ,SortByGroupSummaryInfo ,GroupItem , FilterPanel,
-    FilterBuilderPopup
+    FilterBuilderPopup,LoadPanel
    } from 'devextreme-react/data-grid';
 
    import Button from 'devextreme-react/button';
    import notify from 'devextreme/ui/notify';  
    import LoadIndicator from 'devextreme-react/load-indicator';
-
+   import { jsPDF } from 'jspdf';
+   import { exportDataGrid } from 'devextreme/pdf_exporter';
 const EmployeePage = () => {
 
 
@@ -28,18 +30,20 @@ const EmployeePage = () => {
     const error = useSelector(state => state.employee.error);
     const vehicles = useSelector(state => state.vehicle.vehicles);
     const permissions = useSelector(state => state.permission.permissions);
+    const users = useSelector(state => state.user.users);
     const user = useSelector(state => state.auth.user);
     const sites= useSelector((state) => state.site.sites);
     const gridRef = useRef(null);
     const [saving, setSaving] = useState(false);
     const [selectedVehicles, setSelectedVehicles] = useState([]);
-
- 
+    const exportFormats = ['pdf'];
+    const employeestatus = ['Active', 'Terminated'];
+    const [includeTerminated, setIncludeTerminated] = useState(true);
 
     const fetchData = useCallback(async () => {
         try {
              await Promise.all([
-                dispatch(fetchEmployees()),
+                dispatch(fetchEmployees(includeTerminated)),
                 dispatch(fetchVehicleList()),
                 dispatch(fetchUsers()),
                 dispatch(fetchSiteList()),
@@ -51,13 +55,48 @@ const EmployeePage = () => {
             console.error(error);
         }
     }
-    , [dispatch, user.id]);
+    , [dispatch, user.id, includeTerminated]);
 
     useEffect(() => {
         fetchData();
     }
     , [fetchData]);
    
+    const onExporting = (e) => {
+        const doc = new jsPDF();
+        const lastPoint = { x: 0, y: 0 };
+        exportDataGrid({
+          jsPDFDocument: doc,
+          component: e.component,
+          topLeft: { x: 1, y: 15 },
+          columnWidths: [50, 30, 30, 20, 25, 20, 26, 20],
+          customDrawCell({ rect }) {
+            if (lastPoint.x < rect.x + rect.w) {
+              lastPoint.x = rect.x + rect.w;
+            }
+            if (lastPoint.y < rect.y + rect.h) {
+              lastPoint.y = rect.y + rect.h;
+            }
+          },
+        }).then(() => {
+          // header
+          const header = 'Hyoung FMS : Employees List';
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const headerWidth = doc.getTextDimensions(header).w;
+          doc.setFontSize(15);
+          doc.text(header, (pageWidth - headerWidth) / 2, 20);
+          // footer
+          const footer = 'Page  ' + e.component.pageIndex() + ' of ' + e.component.pageCount();
+          const footerWidth = doc.getTextDimensions(footer).w;
+          doc.setFontSize(9);
+          doc.setTextColor('#cccccc');
+          doc.text(footer, lastPoint.x - footerWidth, lastPoint.y + 5);
+          doc.save('Employees.pdf');
+        });
+      };
+
+
+
     const onRowInserted = async (e) => {
         try {
             const newData = { ...e.data, vehicles: e.data.vehicles || [] }; // Ensure vehicles is an array        
@@ -160,7 +199,13 @@ const EmployeePage = () => {
    };
    const refresh = useCallback(() => {
     gridRef.current?.instance.refresh();
-}, []);
+  }, []);
+
+  const handleSwitchChange = useCallback((value) => {
+    setIncludeTerminated(value);
+    fetchData();
+    refresh();
+  }, [fetchData, refresh]);
 
 const canEdit = permissions.includes('_editEmployee');
 const canDelete = permissions.includes('_deleteEmployee');
@@ -169,7 +214,13 @@ const canCreate = permissions.includes('_createEmployee');
 const handleTagBoxValueChanged = (newValue) => {
     setSelectedVehicles(newValue);
 };
-
+const formatDateToLocal = (cellInfo) => {
+    if (cellInfo.value) {
+      const date = new Date(cellInfo.value);
+      return format(date, 'dd/MM/yyyy HH:mm');
+    }
+    return '';
+  };
 if (loading || saving) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -183,6 +234,8 @@ return (
 <h2 className={'content-block'}>Employees</h2>
 
 <div className={'content-block'}>
+
+
                 <DataGrid
                  ref={gridRef}
                  dataSource={employees}
@@ -196,13 +249,18 @@ return (
                     onRowInserted={onRowInserted}
                     onRowUpdated={onRowUpdated}
                     onRowRemoved={onRowRemoved}
-
+                    onExporting={onExporting}
+   
                  >
-                    <Paging enabled={true} defaultPageSize={30} />
+                    <ColumnChooser enabled={true} mode="select"  height={100} > </ColumnChooser>
+                    <LoadPanel enabled={true} />
+                    <Export enabled={true} allowExportSelectedData={true} formats ={exportFormats} />
+                    <Paging enabled={true} defaultPageSize={20} />
                     <FilterRow visible={true} />
                     <HeaderFilter visible={true} />  
-                    <SearchPanel visible placeholder='Data Search' />
                     <Sorting mode="multiple" />
+                    <Selection mode="multiple" />
+
                     <Editing
                         mode="row"
                         allowUpdating={canEdit}
@@ -213,7 +271,8 @@ return (
                         newRowPosition={'first'}
 
                     ></Editing>
-                      <Toolbar>
+                    
+                    <Toolbar>
                         <TItems location='before' locateInMenu='auto'>
                             <Button
                                 icon='plus'
@@ -224,9 +283,21 @@ return (
                                 visible ={canCreate}
                             />
                         </TItems>
-                        <TItems
-                            location='after'
-                            locateInMenu='auto'
+                        <TItems location='after' locateInMenu='auto'>
+                            <span>Active Employee Only</span></TItems>
+                        <TItems location='after' locateInMenu='auto'>
+                            
+                            <Switch defaultValue={includeTerminated} value={includeTerminated} onValueChanged={(e) => handleSwitchChange(e.value)} />                
+                            
+                            </TItems>
+                           
+                        <TItems name="searchPanel" locateInMenu={'auto'} />
+                        <TItems name="exportButton" locateInMenu={'auto'} />
+
+                        <TItems name="columnChooserButton" />
+
+                          <TItems
+                            location='after'                          
                             showText='inMenu'
                             widget='dxButton'
                         >
@@ -238,13 +309,10 @@ return (
                             />
                         </TItems>
 
-                        <TItems location='after' locateInMenu='auto'>
-                            <div className='separator' />
-                        </TItems>
-                        <TItems name='searchPanel' locateInMenu='auto' />
                     </Toolbar> 
-                <Column dataField="id" allowEditing={false} visible={true} defaultSortOrder={"dsc"} />
-                <Column dataField="fullName" caption="Full Names" width={200}>
+                
+                <Column dataField="id" allowEditing={false} visible={false} defaultSortOrder={"dsc"} />
+                <Column dataField="fullName" caption="Full Names" width={200} allowHiding={false}>
                     <RequiredRule />
                 </Column>
                 <Column dataField="nationalId" caption="National ID" alignment="left" width={100} >
@@ -252,12 +320,14 @@ return (
                 </Column>
                 <Column dataField="employeephoneNumber" caption="Phone No" />
                 <Column dataField="employeeWorkNo" caption="Work No" />
-                <Column dataField="employeestatus" allowEditing={false} ></Column>
+                <Column dataField="employeestatus" caption="Employee Status">  <Lookup dataSource={employeestatus} /></Column>
                 <Column
                     dataField="vehicles"
                     width={300}
                     caption="Default vehicles"
                     allowSorting={false}
+                    allowHiding={false}
+                    allowFiltering={false}
                     editCellRender={(cellInfo) => (
                         <EmployeevehicleTagbox
                             value={cellInfo.value}
@@ -270,15 +340,44 @@ return (
                     cellTemplate={vehicleTemplate}
                     calculateFilterExpression={calculateFilterExpression}
                 >
-        <lookup dataSource={vehicles} valueExpr="vehicleId" displayExpr="hyoungNo" />  
+                    <lookup dataSource={vehicles} valueExpr="vehicleId" displayExpr="hyoungNo" />
                 </Column>
-                <Column dataField="siteId" caption="Site" width={150}>
+                <Column dataField="siteId" caption="Site" width={150} allowHiding={false}>
                     <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
                     <RequiredRule />
                 </Column>
-                    </DataGrid>
+                <Column
+                    dataField={'dateCreated'}
+                    caption={'Created On'}
+                    dataType={'datetime'}
+                    visible={false}
+                    allowEditing={false}
+                    cellRender={formatDateToLocal}
+                />
+                <Column
+                    dataField={'dateModified'}
+                    caption={'Updated On'}
+                    dataType={'datetime'}
+                    visible={false}
+                    allowEditing={false}
+                    cellRender={formatDateToLocal}
+                />              
+                  <Column dataField={'createdBy'} caption={'Created By'} visible={false} allowEditing={false} >
+                    <lookup 
+                    dataSource = {users}
+                    valueExpr="id"
+                    displayExpr="userName"
+                    
+                    /></Column>
+                <Column dataField={'modifiedBy'} caption={'Updated By'} visible={false} allowEditing={false} >
+                    <lookup 
+                    dataSource = {users}
+                    valueExpr="id"
+                    displayExpr="userName"
+                    /></Column>
+            </DataGrid>
 
-                    </div>
+        </div>
 
 
 </div>

@@ -13,10 +13,8 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
 {
-    public class GetEmployeeQuery : IRequest<List<EmployeeDto>>
-    {
-
-    }
+    public record  GetEmployeeQuery (bool ActiveEmployee=true) : IRequest<List<EmployeeDto>>;
+  
     /// <summary>
     /// Get all active employees
     /// </summary>
@@ -39,9 +37,17 @@ namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
         /// <returns></returns>
         public async Task<List<EmployeeDto>> Handle(GetEmployeeQuery request, CancellationToken cancellationToken)
         {
-            var employees = await _context.Employees
-                .Include(e => e.Vehicles)
-                .Where(e => e.Employeestatus == "Active")
+            var employeesQuery = _context.Employees
+             .Include(e => e.Vehicles)
+             .AsQueryable();
+
+            if (request.ActiveEmployee)
+            {
+                employeesQuery = employeesQuery.Where(e => e.Employeestatus == "Active");
+            }
+
+            var employees = await employeesQuery
+                .OrderByDescending(x => x.Id)
                 .ToListAsync(cancellationToken);
 
             return _mapper.Map<List<EmployeeDto>>(employees);

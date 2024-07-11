@@ -200,7 +200,7 @@ export default function Fuelrefil() {
 
     const refresh = useCallback(() => {
         gridRef.current?.instance.refresh();
-        dispatch.fetchEmployees();  
+        dispatch.fetchData(); 
     }, []);
 
     const handleFieldChange = (e) => {

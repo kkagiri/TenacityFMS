@@ -57,7 +57,9 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                     Site = site,
                     DateCreated = DateTime.UtcNow,
                     DateModified = DateTime.UtcNow,
-                    IsModified =false?(sbyte)1:(sbyte)0,                       
+                    IsModified =false?(sbyte)1:(sbyte)0,  
+                    ModifiedBy = request.EmployeeDto.ModifiedBy,
+                    CreatedBy = request.EmployeeDto.CreatedBy,
                     Vehicles = new List<Vehicle>()
                 };
 
