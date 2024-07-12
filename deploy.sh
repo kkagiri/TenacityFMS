@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Define Paths (adjusted for Cygwin)
 REACT_BUILD_PATH="/cygdrive/e/source/Hyoung.FMS/fms.frontend/build"
 WEBAPI_BUILD_PATH="/cygdrive/e/source/Hyoung.FMS/FMS.WebClient/publish"
