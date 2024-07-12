@@ -40,3 +40,4 @@ dotnet.exe publish -c Release -o "$WEBAPI_BUILD_PATH"
 deploy_webapi
 
 echo "Deployment completed for $1 environment."
+ 
