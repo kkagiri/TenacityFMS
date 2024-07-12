@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "date-fns": "^3.6.0",
     "devextreme": "22.2.5",
-    "devextreme-react": "22.2.5"
+    "devextreme-react": "22.2.5",
+    "jspdf": "^2.5.1"
   },
   "devDependencies": {
     "env-cmd": "^10.1.0"

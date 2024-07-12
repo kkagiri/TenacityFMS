@@ -46,11 +46,11 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                  string status = request.EmployeeDto.Employeestatus.Trim();
                 if (status != "Active" && status != "Terminated") return new EmployeeUpdateResponse( false,"Invalid Employee Status. It should be either 'Active' or 'Terminated'.",null);
 
-                //feature of assigning multiple vehicles used 
-                employee.Vehicles.Clear();
-
+                //feature of assigning multiple vehicles used
+                employee.FullName = request.EmployeeDto.FullName.ToUpper(); 
                 employee.DateModified = DateTime.UtcNow;
                 employee.IsModified = true?(sbyte)1:(sbyte)0;
+                employee.Vehicles.Clear();
 
                 foreach (var vehicle in request.EmployeeDto.Vehicles)
                 {

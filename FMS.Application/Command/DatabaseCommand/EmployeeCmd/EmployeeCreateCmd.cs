@@ -49,7 +49,7 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 var employee = new Employee
                 {
                     SiteId = request.EmployeeDto.SiteId,
-                    FullName = request.EmployeeDto.FullName,
+                    FullName = request.EmployeeDto.FullName.ToUpper(),
                     EmployeeWorkNo = request.EmployeeDto.EmployeeWorkNo,
                     EmployeephoneNumber = request.EmployeeDto.EmployeephoneNumber,
                     NationalId = request.EmployeeDto.NationalId,

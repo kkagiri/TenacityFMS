@@ -5,7 +5,7 @@ import './themes/generated/theme.additional.css';
 
 
 
-import React , { useEffect } from 'react';
+import React , { useEffect,useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import StoreProvider from './store';
@@ -17,15 +17,24 @@ import Content from './Content';
 import ProtectedRoute from './components/ProtectedRoute/protectedRoute';
 import UnauthenticatedContent from './UnauthenticatedContent';
 import  {loadUser}  from './actions/AuthActions'
+import { initializeAxiosInstance } from './api/axiosInstance'; // Import the initialization function
 
 function App() {
   const dispatch = useDispatch();
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
+  const [isApiInitialized, setIsApiInitialized] = useState(false);
 
   useEffect(() => {
-    dispatch(loadUser());
+    const initialize = async () => {
+      await initializeAxiosInstance(); // Initialize Axios instance
+      setIsApiInitialized(true);
+      console.log('API initialized and Axios instance ready');
+      dispatch(loadUser());
+    };
+    initialize();
   }, [dispatch]);
-  if (loading) {
+
+  if (loading || !isApiInitialized) {
     return <LoadPanel visible={true} />;
   }
 

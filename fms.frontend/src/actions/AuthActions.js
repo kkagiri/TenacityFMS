@@ -16,10 +16,7 @@ export const loadUser = () => async (dispatch) => {
     try {
         const response = await axiosInstance.get('/user/details');
         const user = response.data;
-        console.log('User loaded:', user);
-        console.log('User roles:', user.roles);
-
-        dispatch({ type: USER_LOADED, payload: response.data });
+           dispatch({ type: USER_LOADED, payload: response.data });
     } catch (error) {
         dispatch({ type: AUTH_ERROR, payload: error.message });
     }
