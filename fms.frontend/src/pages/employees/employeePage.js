@@ -333,7 +333,6 @@ return (
                 <Column dataField="id" allowEditing={false} visible={false} defaultSortOrder={"dsc"} />
                 <Column dataField="fullName" caption="Full Names" width={200} 
                 allowHiding={false}
-                calculateCellValue={(data) => data.fullName ? data.fullName.toUpperCase() : ''}
                 >
                     <RequiredRule />
                 </Column>
