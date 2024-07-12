@@ -11,9 +11,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Copy deploy script to server
+      run: |
+        scp ./deploy.sh administrator@10.0.10.153:/cygdrive/d/source/hyoung.fms/deploy.sh
+      shell: bash
+
     - name: Build and deploy internal environment
       run: |
-        bash deploy.sh internal
+        ssh administrator@10.0.10.153 'bash /cygdrive/d/source/hyoung.fms/deploy.sh internal'
+      
       env:
         REACT_DEPLOYMENT_PATH: '/cygdrive/c/inetpub/wwwroot/hyoungFMS/internal/reactApp'
         WEBAPI_DEPLOYMENT_PATH: '/cygdrive/c/inetpub/wwwroot/hyoungFMS/internal/webAPI'
