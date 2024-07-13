@@ -240,10 +240,7 @@ if (loading || saving) {
 return (
 <div>
 <h2 className={'content-block'}>Employees</h2>
-
 <div className={'content-block'}>
-
-
                 <DataGrid
                  ref={gridRef}
                  dataSource={employees}
@@ -335,9 +332,7 @@ return (
                 >
                     <RequiredRule />
                 </Column>
-                <Column dataField="nationalId" caption="National ID" alignment="left" minWidth={100} hidingPriority={4} >
-                    <RequiredRule />
-                </Column>
+               
                 <Column dataField="employeephoneNumber" caption="Phone No"  minWidth={150} hidingPriority={3}/>
                 <Column dataField="employeeWorkNo" caption="Work No" minWidth={150} hidingPriority={3}/>
                 <Column dataField="employeestatus" caption="Employee Status" minWidth={150} hidingPriority={3}>  <Lookup dataSource={employeestatus} /></Column>

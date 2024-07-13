@@ -34,7 +34,6 @@ const VehicleConsumptionList = () => {
   const fetchData = async (pagingNo) => {
     setLoading(true);
     const consumptionData = await getConsumptionList(pagingNo);
-    console.log("consumptionData",consumptionData);
     setConsumptionData(consumptionData);
     setLoading(false);
    // setConsumptionData(sampleData);
@@ -81,7 +80,7 @@ const VehicleConsumptionList = () => {
           </Item>
           <Item location='after'>
     {/* ... */}
-    <span className='label'>Paging Size:</span>
+    <span>Paging Size:</span>
     <NumberBox
       value={pagingNo}
       onValueChanged={handlePagingNoChange}

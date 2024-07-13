@@ -198,9 +198,9 @@ export default function Fuelrefil() {
     };
 
     const refresh = useCallback(() => {
-        gridRef.current?.instance.refresh();
-        dispatch.fetchData(); 
+        gridRef.current?.instance.refresh();   
     }, []);
+    
 
     const handleFieldChange = (e) => {
         const { dataField, value } = e;
@@ -400,7 +400,7 @@ const handleTankChange = (e) => {
 
 
                     </Toolbar> 
-                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true}  defaultValue={new Date().toISOString()} />
+                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} hidingPriority={5} defaultValue={new Date().toISOString()} />
                     <Column dataField="siteId" caption="Site"  hidingPriority={5} minWidth={100} >
                         <Lookup
                             dataSource={sites}
@@ -409,7 +409,7 @@ const handleTankChange = (e) => {
                         />
 
                     </Column>
-                    <Column dataField="vehicleId" caption="Vehicle" width={150} hidingPriority={4}>
+                    <Column dataField="vehicleId" caption="Vehicle" width={150} hidingPriority={5}>
                         <Lookup
                             dataSource={vehicles}
                             valueExpr="vehicleId"

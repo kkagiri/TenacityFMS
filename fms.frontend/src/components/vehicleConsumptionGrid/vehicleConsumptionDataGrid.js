@@ -1,13 +1,22 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {useDispatch,useSelector} from "react-redux";
+import {fetchEmployees } from "../../actions/employeeActions";
+import {fetchSiteList} from '../../actions/siteActions';
+
 import ScrollView from 'devextreme-react/scroll-view';
 import consumptionDataGridRules from '../../utils/consumptionDataGridRules';
-import DataGrid, {
-  Column, Selection, Sorting, HeaderFilter, DataGridTypes,
-  RequiredRule,FilterRow, Paging, Pager, Editing, Scrolling, LoadPanel,Lookup
-} from 'devextreme-react/data-grid';
+import DataGrid, { Paging,
+  HeaderFilter, SearchPanel,  
+  Editing, FilterRow, Column, Lookup,Toolbar, Item as TItems , Sorting, RequiredRule ,ColumnChooser,ColumnChooserSelection,
+  Form,Popup ,  Grouping,Position,Export,Selection,
+  GroupPanel ,Summary ,SortByGroupSummaryInfo ,GroupItem , FilterPanel,
+  FilterBuilderPopup,LoadPanel ,Pager
+ } from 'devextreme-react/data-grid';
 
 import { getEmployeeList,getVehicleList,getSiteList } from '../../dataservice';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';  
 
 import SelectBox from 'devextreme-react/select-box';
 
@@ -15,11 +24,15 @@ import SelectBox from 'devextreme-react/select-box';
 
 export const VehicleConsumptionGridList = (dataSource,pagingNo) => {
   const [data, setData] = useState();
+  const dispatch = useDispatch();
+
   const navigate = useNavigate();
   const [vehicles,setvehicles] = useState([]);
-  const [employees,setemployees] = useState([]);
-  const [sites,setsites] = useState([]);
- // const employeeData = getEmployeeList();
+  const employees = useSelector(state => state.employee.employees);
+
+  const sites= useSelector((state) => state.site.sites);
+  // const employeeData = getEmployeeList();
+  const [includeTerminated, setIncludeTerminated] = useState(false);
 
 
 
@@ -40,24 +53,21 @@ useEffect(() => {
 const fetchtsidedata = async() => {
    const vehicledata= await getVehicleList();
    setvehicles(vehicledata);
-   const employeedata = await getEmployeeList();
-   setemployees(employeedata);
-   const sitedata = await getSiteList();
-   setsites(sitedata);
+   await Promise.all([
+   dispatch(fetchEmployees(includeTerminated)),
+   dispatch(fetchSiteList())
+  ]);
 
 };  // Perform any side effects or data fetching here
 fetchtsidedata();
   setData(dataSource.dataSource);
-  }, [dataSource]); // Empty dependency array means the effect runs only once on component mount
+  }, [dispatch,dataSource]); // Empty dependency array means the effect runs only once on component mount
 
 
   const navigationToDetails = useCallback((rowData) => {
     navigate(`/vehicleConsumptionDetails/${rowData.data.id}`);
   }, [navigate]);
 
-// const toogleUseNavigation = useCallback(() => {
-//   useNavigation = !useNavigation;
-// }, []);
 
 
 return(
@@ -98,15 +108,16 @@ return(
           <Column dataField="date"
                     width={100}
                     FilterRow={false}
-                    fixed={true}
+                    hidingPriority={5}
+
                     dataType="date"
                     caption="Date" 
                     allowEditing={false}
                     
                     defaultSortOrder="asc"
                     />
-          <Column dataField="vehicleId" visible={false} caption="Vehicle ID" />
-          <Column dataField="vehicleId" allowEditing={false}   fixed={true} caption="Hyoung No" >
+          <Column dataField="vehicleId" visible={false} caption="Vehicle ID" minWidth={150} />
+          <Column dataField="vehicleId" allowEditing={false}  hidingPriority={5} caption="Hyoung No" >
             <Lookup
              dataSource={vehicles}
              valueExpr="vehicleId"
