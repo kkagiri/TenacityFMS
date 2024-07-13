@@ -415,7 +415,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
     entity.HasIndex(e => e.SiteId, "Employee_site_idx");
 
-    entity.HasIndex(e => e.NationalId, "NationalID_UNIQUE").IsUnique();
 
     entity.Property(e => e.Id)
         .HasColumnType("int(11)")
@@ -433,9 +432,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     entity.Property(e => e.FullName)
         .HasMaxLength(45)
         .HasDefaultValueSql("'Employee Name'");
-    entity.Property(e => e.NationalId)
-        .HasColumnType("bigint(20)")
-        .HasColumnName("NationalID");
+   
     entity.Property(e => e.SiteId)
         .HasColumnType("int(11)")
         .HasColumnName("SiteID");

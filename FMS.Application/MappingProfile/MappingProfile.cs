@@ -75,7 +75,6 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.EmployeeWorkNo, opt => opt.MapFrom(src => src.EmployeeWorkNo))
                .ForMember(dest => dest.EmployeephoneNumber, opt => opt.MapFrom(src => src.EmployeephoneNumber))
                 .ForMember(dest => dest.Employeestatus, opt => opt.MapFrom(src => src.Employeestatus))
-                  .ForMember(dest => dest.NationalId, opt => opt.MapFrom(src => src.NationalId)) 
                .ForMember(dest=>dest.Vehicles,opt=>opt.MapFrom(src=>src.Vehicles.Select(v=>v.VehicleId)))
                 .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
                   .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })))        

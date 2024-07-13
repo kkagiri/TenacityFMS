@@ -25,8 +25,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Employee
         [JsonPropertyName("employeephoneNumber")]
         public string EmployeephoneNumber { get; set; } = string.Empty;
 
-        [JsonPropertyName("nationalId")]
-        public long? NationalId { get; set; }
+       
 
         [JsonPropertyName("employeestatus")]
         public string Employeestatus { get; set; } = "Active";
