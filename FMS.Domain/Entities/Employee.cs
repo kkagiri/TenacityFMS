@@ -13,7 +13,6 @@ public partial class Employee
 
     public string? EmployeephoneNumber { get; set; }
 
-    public long? NationalId { get; set; }
 
     public string? Employeestatus { get; set; }
 
