@@ -40,9 +40,6 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
             {
                 var site = await _context.Sites.FindAsync(request.EmployeeDto.SiteId);
                 if (site == null) return new EmployeeCreateResponse(false, "Site not found", null);
-                // Check for duplicate NationalId
-                var duplicateEmployee = await _context.Employees.FirstOrDefaultAsync(e => e.NationalId == request.EmployeeDto.NationalId);
-                if (duplicateEmployee != null)  return new EmployeeCreateResponse(false, $"Duplicate NationalId {request.EmployeeDto.NationalId} found", null);             
                 if (string.IsNullOrWhiteSpace(request.EmployeeDto.Employeestatus)) return new EmployeeCreateResponse( false, "Employee Status cannot be empty. It should be either 'Active' or 'Terminated'.", null);
                  string status = request.EmployeeDto.Employeestatus.Trim();
                 if (status != "Active" && status != "Terminated") return new EmployeeCreateResponse( false,"Invalid Employee Status. It should be either 'Active' or 'Terminated'.",null);
@@ -52,7 +49,6 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                     FullName = request.EmployeeDto.FullName.ToUpper(),
                     EmployeeWorkNo = request.EmployeeDto.EmployeeWorkNo,
                     EmployeephoneNumber = request.EmployeeDto.EmployeephoneNumber,
-                    NationalId = request.EmployeeDto.NationalId,
                     Employeestatus = request.EmployeeDto.Employeestatus,
                     Site = site,
                     DateCreated = DateTime.UtcNow,

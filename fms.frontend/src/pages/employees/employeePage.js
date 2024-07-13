@@ -263,14 +263,11 @@ return (
                     <ColumnChooser enabled={true} mode="select"  height={200} >
                     <Position
                      my="right top"
-                     at="right bottom"
-                     of=".dx-datagrid-column-chooser-button"
-                    />
-                    
-                    
+                     at="right top"
+                    />                          
                      </ColumnChooser>
                     <LoadPanel enabled={true} />
-                    <Export enabled={true} allowExportSelectedData={true} formatss ={exportFormats} />
+                    <Export enabled={true} allowExportSelectedData={true} formats ={exportFormats} />
                     <Paging enabled={true} defaultPageSize={20} />
                     <FilterRow visible={true} />
                     <HeaderFilter visible={true} />  
@@ -310,7 +307,6 @@ return (
                             
                             </TItems>
                            
-                        <TItems name="searchPanel" locateInMenu={'auto'} />
                         <TItems name="exportButton" locateInMenu={'auto'} />
 
                         <TItems name="columnChooserButton" />
@@ -331,20 +327,24 @@ return (
                     </Toolbar> 
                 
                 <Column dataField="id" allowEditing={false} visible={false} defaultSortOrder={"dsc"} />
+
                 <Column dataField="fullName" caption="Full Names" width={200} 
                 allowHiding={false}
+
+
                 >
                     <RequiredRule />
                 </Column>
-                <Column dataField="nationalId" caption="National ID" alignment="left" width={100} >
+                <Column dataField="nationalId" caption="National ID" alignment="left" minWidth={100} hidingPriority={4} >
                     <RequiredRule />
                 </Column>
-                <Column dataField="employeephoneNumber" caption="Phone No" />
-                <Column dataField="employeeWorkNo" caption="Work No" />
-                <Column dataField="employeestatus" caption="Employee Status">  <Lookup dataSource={employeestatus} /></Column>
+                <Column dataField="employeephoneNumber" caption="Phone No"  minWidth={150} hidingPriority={3}/>
+                <Column dataField="employeeWorkNo" caption="Work No" minWidth={150} hidingPriority={3}/>
+                <Column dataField="employeestatus" caption="Employee Status" minWidth={150} hidingPriority={3}>  <Lookup dataSource={employeestatus} /></Column>
                 <Column
                     dataField="vehicles"
-                    width={300}
+                    minWidth={300}
+                    hidingPriority={4}
                     caption="Default vehicles"
                     allowSorting={false}
                     allowHiding={false}
@@ -363,11 +363,13 @@ return (
                 >
                     <lookup dataSource={vehicles} valueExpr="vehicleId" displayExpr="hyoungNo" />
                 </Column>
-                <Column dataField="siteId" caption="Site" width={150} allowHiding={false}>
+                <Column dataField="siteId" caption="Site" width={150} allowHiding={false} minWidth={150} hidingPriority={5}>
                     <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
                     <RequiredRule />
                 </Column>
                 <Column
+                     minWidth={100}
+                     hidingPriority={1}
                     dataField={'dateCreated'}
                     caption={'Created On'}
                     dataType={'datetime'}
@@ -381,16 +383,17 @@ return (
                     dataType={'datetime'}
                     visible={false}
                     allowEditing={false}
+                    hidingPriority={1}
                     cellRender={formatDateToLocal}
                 />              
-                  <Column dataField={'createdBy'} caption={'Created By'} visible={false} allowEditing={false} >
+                  <Column dataField={'createdBy'} caption={'Created By'} visible={false} allowEditing={false} hidingPriority={1} >
                     <lookup 
                     dataSource = {users}
                     valueExpr="id"
                     displayExpr="userName"
                     
                     /></Column>
-                <Column dataField={'modifiedBy'} caption={'Updated By'} visible={false} allowEditing={false} >
+                <Column dataField={'modifiedBy'} caption={'Updated By'} visible={false} allowEditing={false} hidingPriority={1}>
                     <lookup 
                     dataSource = {users}
                     valueExpr="id"
