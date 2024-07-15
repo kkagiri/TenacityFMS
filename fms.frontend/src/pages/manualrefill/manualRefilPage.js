@@ -435,7 +435,7 @@ const handleTankChange = (e) => {
                   
                
                     <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3}/>
-                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={2}
+                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={3}
                         cellRender={(cellData) => {
                             const user = fuelBy.find(u => u.id === cellData.value);
                             return user ? user.userName : cellData.value;
