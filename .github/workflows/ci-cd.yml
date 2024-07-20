@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - productionv1
-
 jobs:
   build-and-deploy:
     runs-on: [self-hosted, Windows, X64, HY-FMS]
@@ -11,45 +10,39 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Copy deploy script to server
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '8.0.302'  # adjust this to your .NET version
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20.15.0'  # adjust this to your Node.js version
+
+    - name: Install dependencies
       run: |
-        scp ./deploy.sh administrator@10.0.10.153:/cygdrive/d/source/hyoung.fms/deploy.sh
+        cd fms.frontend
+        npm ci
       shell: bash
 
-    - name: Build and deploy internal environment
+    - name: Build React app
       run: |
-        ssh administrator@10.0.10.153 'bash /cygdrive/d/source/hyoung.fms/deploy.sh internal'
-      
-      env:
-        REACT_DEPLOYMENT_PATH: '/cygdrive/c/inetpub/wwwroot/hyoungFMS/internal/reactApp'
-        WEBAPI_DEPLOYMENT_PATH: '/cygdrive/c/inetpub/wwwroot/hyoungFMS/internal/webAPI'
-        REACT_APP_GPSGATE_APP_LOGIN_URL: http://10.0.10.150/comGpsGate/api/v.1/applications/12/tokens
-        REACT_APP_GPSGATE_APP_USERNAME: kkagiri
-        REACT_APP_GPSGATE_APP_PASSWORD: Niwewe1000
-        REACT_APP_GPSGATE_APP_TRACK_URL: http://10.0.10.150/comGpsGate/api/v.1/applications/12/users/
-        REACT_APP_GOOGLE_MAPS_API_KEY: AIzaSyB8e_qS2ALazgbbE94gnwIESXkXzKjwYsY
-        REACT_APP_FMS_API_URL: http://10.0.10.153:7009/api
-
-    - name: Build and deploy external environment
-      run: |
-        bash deploy.sh external
-      env:
-        REACT_DEPLOYMENT_PATH: '/cygdrive/c/inetpub/wwwroot/hyoungFMS/external/reactApp'
-        WEBAPI_DEPLOYMENT_PATH: '/cygdrive/c/inetpub/wwwroot/hyoungFMS/external/webAPI'
-        REACT_APP_GPSGATE_APP_LOGIN_URL: http://197.254.33.230/comGpsGate/api/v.1/applications/12/tokens
-        REACT_APP_GPSGATE_APP_USERNAME: kkagiri
-        REACT_APP_GPSGATE_APP_PASSWORD: Niwewe1000
-        REACT_APP_GPSGATE_APP_TRACK_URL: http://197.254.33.230/comGpsGate/api/v.1/applications/12/users/
-        REACT_APP_GOOGLE_MAPS_API_KEY: AIzaSyB8e_qS2ALazgbbE94gnwIESXkXzKjwYsY
-        REACT_APP_FMS_API_URL: http://197.254.33.227:7009/api
-
-    - name: Configure the self-hosted runner
-      run: |
-        .\config.cmd --url https://github.com/kagz100/Hyoung.FMS --token ${{ secrets.RUNNER_TOKEN }}
-      shell: pwsh
-
-    - name: Deploy to server
-      run: |
-        rsync -avz --exclude 'web.config' /cygdrive/d/hyoung.fms/fms.frontend/build/ administrator@10.0.10.153:/C/inetpub/wwwroot/hyoungFMS/reactApp/
-        rsync -avz --exclude 'web.config' /cygdrive/d/hyoung.fms/fms.webclient/publish/ administrator@10.0.10.153:/C/inetpub/wwwroot/hyoungFMS/webAPI/
+        cd fms.frontend
+        npm run build
       shell: bash
+
+    - name: Publish .NET Web API
+      run: |
+        cd FMS.WebClient
+        dotnet publish -c Release -o publish
+      shell: bash
+
+    - name: Run deploy script
+      run: |
+        bash ./deploy.sh
+      env:
+        REACT_BUILD_PATH: '${{ github.workspace }}/fms.frontend/build'
+        WEBAPI_BUILD_PATH: '${{ github.workspace }}/FMS.WebClient/publish'
+        REACT_DEPLOYMENT_PATH: 'C:/inetpub/wwwroot/hyoungFMS/reactApp'
+        WEBAPI_DEPLOYMENT_PATH: 'C:/inetpub/wwwroot/hyoungFMS/webAPI'
