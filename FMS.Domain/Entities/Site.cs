@@ -12,9 +12,8 @@ public partial class Site
 
     public string Name { get; set; } = null!;
 
-    public virtual ICollection<UserSites>? UserSites { get; set; }
-
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
+    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
+    public virtual ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
@@ -26,14 +25,13 @@ public partial class Site
 
     public virtual ICollection<Ptsdevice> Ptsdevices { get; set; } = new List<Ptsdevice>();
 
-    public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
-
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
-    
+    public virtual ICollection<Tank> Tanks { get; set; } = new List<Tank>();
 
     public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
 
-    public virtual ICollection<Tank> Tanks { get; set; } = new List<Tank>();
+    public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
 
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

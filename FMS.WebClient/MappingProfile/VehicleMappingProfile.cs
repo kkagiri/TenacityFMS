@@ -3,6 +3,7 @@ using FMS.Application.Command.DatabaseCommand.ConsumptionCmd;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update;
 using FMS.Application.Command.DatabaseCommand.VehicleCmd;
 using FMS.Application.ModelsDTOs.FMS.ExpectedAVG;
+using FMS.Application.ModelsDTOs.FMS.TankVolumeHistory;
 using FMS.Domain.Entities;
 using FMS.WebClient.Models.DatabaseViewModel;
 using FMS.WebClient.Models.DatabaseViewModel.ExpectedViewModel;
@@ -36,7 +37,8 @@ namespace FMS.WebClient.MappingProfile
        .ForMember(dest => dest.ExcessWorkingHrCost, opt => opt.MapFrom(src => src.ExcessWorkingHrCost))
        .ForMember(dest => dest.AverageKmL, opt => opt.MapFrom(src => src.AverageKmL));
 
-
+            CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>()
+                .ForMember(dest => dest.ChangeReason, opt => opt.MapFrom(src => src.ChangeReason.ToString()));
 
             //expectedAverage
             CreateMap<ExpectedAVGDto, ExpectedAVGViewModel>()

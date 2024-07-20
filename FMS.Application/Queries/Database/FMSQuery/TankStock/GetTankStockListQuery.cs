@@ -32,33 +32,9 @@ public record GetTankStockListQuery : IRequest<List<TankStockDTO>>;
     {
         try
         {
-            var tankStocks = await _context.Tankstocks
-            .Select(ts => new TankStockDTO
-            {
-                EntryId = ts.EntryId,
-                TankId = ts.TankId,
-                EntryDate = ts.EntryDate,
-                EntryType = string.IsNullOrEmpty(ts.EntryType)
-                    ? EntryType.TankReconciliation
-                    : Enum.Parse<EntryType>(ts.EntryType),
-                ManualStartLevel = ts.ManualStartLevel,
-                ManualEndLevel = ts.ManualEndLevel,
-                ManualDeliveryAmount = ts.ManualDeliveryAmount,
-                SensorStartLevel = ts.SensorStartLevel,
-                SensorEndLevel = ts.SensorEndLevel,
-                SensorDeliveryAmount = ts.SensorDeliveryAmount,
-                RecordedBy = ts.RecordedBy,
-                SiteId = ts.SiteId,
-                DeliveryDensity = ts.DeliveryDensity,
-                DeliveryTemperature = ts.DeliveryTemperature,
-                DeliveryMass = ts.DeliveryMass,
-                Product = ts.Product
-
-            })
-            .ToListAsync(cancellationToken);
-
-            return tankStocks;
+            return _mapper.Map<List<TankStockDTO>>(await _context.Tankstocks.ToListAsync(cancellationToken));
         }
+
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting tank stock list");
