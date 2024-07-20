@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define Paths (adjusted for Cygwin)
-REACT_BUILD_PATH="/cygdrive/e/source/Hyoung.FMS/fms.frontend/build"
-WEBAPI_BUILD_PATH="/cygdrive/e/source/Hyoung.FMS/FMS.WebClient/publish"
+REACT_BUILD_PATH="/cygdrive/c/actions-runner/_work/Hyoung.FMS/Hyoung.FMS/fms.frontend/build"
+WEBAPI_BUILD_PATH="/cygdrive/c/actions-runner/_work/Hyoung.FMS/Hyoung.FMS/FMS.WebClient/publish"
 REACT_DEPLOYMENT_PATH="/cygdrive/c/inetpub/wwwroot/hyoungFMS/reactApp"
 WEBAPI_DEPLOYMENT_PATH="/cygdrive/c/inetpub/wwwroot/hyoungFMS/webAPI"
 
