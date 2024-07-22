@@ -12,11 +12,8 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
 {
-    public class GetSimpleVehicleQuery : IRequest<List<SimpleVehicleDto>>
-    {
-
-    }
-
+    public record GetSimpleVehicleQuery : IRequest<List<SimpleVehicleDto>>;
+ 
     public class GetSimpleVehicleQueryHandler : IRequestHandler<GetSimpleVehicleQuery, List<SimpleVehicleDto>>
     {
         private readonly IMapper _mapper;
@@ -32,10 +29,17 @@ namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
 
         public async Task<List<SimpleVehicleDto>> Handle(GetSimpleVehicleQuery request, CancellationToken cancellationToken)
         {
-            var results = await _context.Vehicles.ToListAsync(cancellationToken);
+            try
+            {
+                var results = await _context.Vehicles.ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<SimpleVehicleDto>>(results);
+                return _mapper.Map<List<SimpleVehicleDto>>(results);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error getting vehicle list", ex);
 
+            }
         }
     }
 

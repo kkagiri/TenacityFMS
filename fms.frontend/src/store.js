@@ -12,6 +12,11 @@ import fuelRefillReducer from './reducers/fuelRefillReducer';
 import siteReducer from './reducers/siteReducer';
 import employeeReducer from './reducers/employeeReducer';
 import vehicleReducer from './reducers/vehicleReducer';
+import vehicleTypeReducer from './reducers/vehicleTypeReducer';
+import vehicleManufacturerReducer from './reducers/vehicleManufacturerReducer';
+import vehicleModelReducer from './reducers/vehicleModelReducer';
+import tankReconciliationReducer from './reducers/tankReconciliationReducer';
+
 const rootReducer = combineReducers({
     auth: authReducer,
     role: roleReducer,
@@ -23,7 +28,11 @@ const rootReducer = combineReducers({
     fuelRefill: fuelRefillReducer,
     site: siteReducer,
     employee: employeeReducer,
-    vehicle: vehicleReducer
+    vehicle: vehicleReducer,
+    vehicleType: vehicleTypeReducer,
+    vehicleManufacturer: vehicleManufacturerReducer,
+    vehicleModel: vehicleModelReducer,
+    tankReconciliation: tankReconciliationReducer
     
 });
 

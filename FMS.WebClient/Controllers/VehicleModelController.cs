@@ -4,6 +4,7 @@ using FMS.Application.ModelsDTOs.FMS;
 using FMS.Application.Queries.Database.FMSQuery.VehicleModelQuery;
 using FMS.Domain.Entities;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers
@@ -12,6 +13,7 @@ namespace FMS.WebClient.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
 
     public class VehicleModelController : ControllerBase
     {
@@ -25,28 +27,23 @@ namespace FMS.WebClient.Controllers
         }
 
        [HttpPost("CreateVehicleModel")]
+        [Authorize]
         public async Task<ActionResult<int>> CreateVehicleModel([FromBody] Vehiclemodel vehicleModel)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var command = new CreateVehicleModelCommand { ManufacturerId = vehicleModel.ManufacturerId, Name = vehicleModel.Name} ;
-           
-           try{
-            var model = await _mediator.Send(command);
-            return Ok(model);
-           }
-              catch (Exception ex)
-              {
-               return StatusCode(500,ex.Message);
-              }
+            var command = new CreateVehicleModelCommand(vehicleModel.ManufacturerId, vehicleModel.Name);
+              var results = await _mediator.Send(command);
+
+            if(!results.Success) return BadRequest(results.Message);
+
+            return Ok(results.Data);        
+             
         }
 
+        [HttpGet]
+        [Authorize]
 
-
-        [HttpGet("getlist")]
         public async Task<IActionResult> GetVehicleModel()
         {
 
@@ -55,16 +52,7 @@ namespace FMS.WebClient.Controllers
             return Ok(vehicleModels);
 
         }
-        [HttpGet("GetVehicleModelsByManufacturerId/{manufacturerId}")]
-        public async Task<ActionResult<List<VehicleModelDto>>> GetVehicleModelsByManufacturerId(int manufacturerId)
-        {
-            return await _mediator.Send(new GetVehicleModelsByManufacturerIdQuery { ManufacturerId = manufacturerId });
-        }
-
-        
-
-
-
+      
 
     }
 }

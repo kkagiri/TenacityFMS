@@ -14,13 +14,9 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
 {
-    public class GetVehicleQuery : IRequest<List<VehicleListDTO>>
-    {
+    public record GetVehicleListQuery : IRequest<List<VehicleDTO>>;
 
-
-    }
-
-    public class GetVehicleQueryHandler : IRequestHandler<GetVehicleQuery, List<VehicleListDTO>>
+    public class GetVehicleQueryHandler : IRequestHandler<GetVehicleListQuery, List<VehicleDTO>>
     {
 
         private readonly GpsdataContext _context;
@@ -34,12 +30,12 @@ namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
             _logger = logger;
         }
 
-        public async Task<List<VehicleListDTO>> Handle(GetVehicleQuery request, CancellationToken cancellationToken)
+        public async Task<List<VehicleDTO>> Handle(GetVehicleListQuery request, CancellationToken cancellationToken)
         {
             try
             {
-                var results = await _context.Vehicles.Include(x => x.DefaultExptdAvg.ExpectedAverageClassification).ProjectTo<VehicleListDTO>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
-                return results;
+              return  await _context.Vehicles.Include(x => x.DefaultExptdAvg.ExpectedAverageClassification).ProjectTo<VehicleDTO>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
+         
             }
             catch (Exception ex)
             {

@@ -1,6 +1,8 @@
 import {
     FETCH_VEHICLES_SUCCESS,
     FETCH_VEHICLES_FAILURE,
+    UPDATE_VEHICLES_SUCCESS,
+    UPDATE_VEHICLES_FAILURE
   } from '../actions/vehicleActions';
   
   const initialState = {
@@ -24,6 +26,19 @@ import {
           loading: false,
           error: action.payload,
         };
+        case UPDATE_VEHICLES_SUCCESS:
+          return {
+            ...state,
+            vehicles: action.payload,
+            loading: false,
+            error: null,
+          };
+        case UPDATE_VEHICLES_FAILURE:
+          return {
+            ...state,
+            loading: false,
+            error: action.payload,
+          };
       default:
         return state;
     }

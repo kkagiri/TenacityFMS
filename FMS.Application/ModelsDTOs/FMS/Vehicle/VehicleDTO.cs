@@ -8,26 +8,21 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.ModelsDTOs.FMS.Vehicle
 {
-    public class VehicleListDTO
+    public class VehicleDTO
     {
-        public int VehicleId { get; set; }
-
         public string HyoungNo { get; set; } = null!;
 
-        public int VehicleTypeId { get; set; }
+        public int VehicleId { get; set; }
+
+        public int? VehicleTypeId { get; set; }
 
         public int? VehicleModelId { get; set; }
 
         public int? VehicleManufacturerId { get; set; }
 
-        //change to date
-        /// <summary>
-        /// year of manufacture ...change to date
-        /// </summary>
-        public string Yom { get; set; }
+        public string? Yom { get; set; } = null!;
 
-        public decimal ExpectedAveraged { get; set; }
-
+        public int? DeviceId { get; set; }
 
         public int? DefaultEmployeeId { get; set; }
 
@@ -35,22 +30,26 @@ namespace FMS.Application.ModelsDTOs.FMS.Vehicle
 
         public decimal? ExcessWorkingHrCost { get; set; }
 
-        /// <summary>
-        /// Change if vehicle is using km/l or l/hr
-        /// </summary>
+        public string? NumberPlate { get; set; } = null!;
+
         public bool AverageKmL { get; set; }
 
+        public string? Capacity { get; set; } = null;
 
-        public int? DefaultExpectedAverageId { get; set; }
+        public string? Passenger { get; set; } = null!;
+        public string? CurrentPhysicalReading { get; set; } =null!;
 
-        [JsonIgnore()]
+        public int? DefaultExptdAvgid { get; set; }
+
+        [JsonIgnore]
 
         public string ExpectedAverageclassificationName { get; set; } = null!;
 
-        [JsonIgnore()]
+        [JsonIgnore]
         public decimal? ExpectedAverageValue { get; set; }
 
 
+        [JsonIgnore]
         public string CombinedExpectedAverage => $"{ExpectedAverageclassificationName} {ExpectedAverageValue}" ?? "";
 
     }

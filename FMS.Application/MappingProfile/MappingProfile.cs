@@ -36,6 +36,8 @@ namespace FMS.Application.MappingProfile
             CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>().ForMember(dest => dest.ChangeReason, opt => opt.MapFrom(src => src.ChangeReason.ToString())).ReverseMap();
             CreateMap<Dailytankreconciliation,TankReconcillationDTO>().ReverseMap();
             CreateMap<Permission, PermissionDTO>().ReverseMap();
+            CreateMap<Vehicle, VehicleDTO>().ReverseMap();
+
 
 
             CreateMap<Fuelrefil, FuelRefilDTO>()
@@ -53,14 +55,6 @@ namespace FMS.Application.MappingProfile
 
 
 
-            CreateMap<Vehicle,VehicleListDTO>()
-                
-              .ForMember(dest=>dest.VehicleId,opt =>opt.MapFrom(src =>src.VehicleId))
-             .ForMember(dest => dest.VehicleManufacturerId, opt => opt.MapFrom(src => src.VehicleManufacturer.Id))
-             .ForMember(dest => dest.DefaultExpectedAverageId, opt => opt.MapFrom(src => src.DefaultExptdAvg.Id))
-             .ForMember(dest => dest.ExpectedAverageclassificationName, opt => opt.MapFrom(src => src.DefaultExptdAvg.ExpectedAverageClassification.Name))
-             .ForMember(dest => dest.ExpectedAverageValue, opt => opt.MapFrom(src => src.DefaultExptdAvg.ExpectedAverageValue))
-             .ReverseMap();
 
          CreateMap<Employee,EmployeeDto>()
                 .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId))

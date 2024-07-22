@@ -18,11 +18,19 @@ export const fetchVehiclesFailure = (error) => ({
 // Thunk action for fetching vehicles
 export const fetchVehicleList = () => async (dispatch) => {
   try {
-    const response = await axiosInstance.get(`/vehicle/getlist`);
+    const response = await axiosInstance.get(`/vehicle`);
     dispatch(fetchVehiclesSuccess(response.data));
   } catch (error) {
     dispatch(fetchVehiclesFailure(error.message));
   }
 };
 
-// You can similarly define update, create and delete actions here
+
+export const updateVehicles = (vehicleDTOs) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.put('/vehicle', vehicleDTOs);
+    dispatch(updateVehiclesSuccess(response.data));
+  } catch (error) {
+    dispatch(updateVehiclesFailure(error.message));
+  }
+};

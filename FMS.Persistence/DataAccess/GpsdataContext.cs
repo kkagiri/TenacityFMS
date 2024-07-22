@@ -1436,7 +1436,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
                 .ValueGeneratedNever()
                 .HasColumnType("int(11)")
                 .HasColumnName("vehicleID");
-            entity.Property(e => e.AverageKmL).HasColumnName("Average_km_l");
+            entity.Property(e => e.AverageKmL).HasColumnName("Average_km_l").HasConversion<sbyte>();
             entity.Property(e => e.Capacity).HasMaxLength(45);
             entity.Property(e => e.CurrentPhysicalReading).HasMaxLength(45);
             entity.Property(e => e.DefaultEmployeeId)
@@ -1470,6 +1470,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
             entity.Property(e => e.Yom)
                 .HasMaxLength(45)
                 .HasColumnName("YOM");
+            entity.Property(e => e.Passenger).HasMaxLength(100);
 
             entity.HasOne(d => d.DefaultEmployee).WithMany(p => p.VehiclesNavigation)
                 .HasForeignKey(d => d.DefaultEmployeeId)

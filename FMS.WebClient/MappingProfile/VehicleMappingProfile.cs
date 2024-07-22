@@ -23,7 +23,7 @@ namespace FMS.WebClient.MappingProfile
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId));
 
 
-            CreateMap<VehicleViewModel, UpdatevehicleCommand>()
+            CreateMap<VehicleViewModel, UpdateVehicleCommand>()
              .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
        .ForMember(dest => dest.HyoungNo, opt => opt.MapFrom(src => src.HyoungNo))
        .ForMember(dest => dest.VehicleTypeId, opt => opt.MapFrom(src => src.VehicleTypeId))

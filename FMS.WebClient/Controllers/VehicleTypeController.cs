@@ -1,5 +1,6 @@
 ﻿using FMS.Application.Queries.Database.FMSQuery.VehicleTypeQuery;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers
@@ -7,6 +8,8 @@ namespace FMS.WebClient.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
+
     public class VehicleTypeController : ControllerBase
     {
        private readonly IMediator _mediator;
@@ -14,7 +17,8 @@ namespace FMS.WebClient.Controllers
         {
             _mediator = mediator;
         }
-        [HttpGet("getlist")]
+        [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetVehicleType()
         {
             var query = new GetVehicleTypeQuery();
