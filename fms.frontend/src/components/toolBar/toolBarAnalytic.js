@@ -30,7 +30,7 @@ const POPUP_CONFIG = {
     Form: TankDeliveryForm,
     width: '100%',
     maxWidth: '1000px',
-    height: '90%',
+    height: 'auto',
   },
   transfer: {
     title: 'Transfer',
