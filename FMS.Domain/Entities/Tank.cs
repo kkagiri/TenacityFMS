@@ -14,7 +14,7 @@ public partial class Tank
     public decimal? TankHeight { get; set; }
 
     public int? PtsId { get; set; }
-
+    public sbyte? UseBookKeeping { get; set; }
     public int SiteId { get; set; }
     public decimal? DiscrepancyThreshold { get; set; }
     public decimal? TankLength { get; set; }

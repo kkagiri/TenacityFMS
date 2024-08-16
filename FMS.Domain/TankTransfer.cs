@@ -15,6 +15,7 @@ namespace FMS.Domain.Entities
         public DateTime? TransferDate { get; set; }
         public string? RecordedBy { get; set; } = null;
 
+        public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 
         public virtual Tank SourceTank { get; set; } = null!;
         public virtual Tank DestinationTank { get; set; } = null!;

@@ -9,9 +9,9 @@ const VehiclePage = () => {
       <ScrollView className='view-wrapper-scroll'>
         <h2 className={'content-block'}>Vehicles</h2>
         <div className={'content-block'}>
-          <div className={'responsive-paddings'}>
+        
             <VehicleDataGrid />
-          </div>
+        
         </div>
       </ScrollView>
     );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch,useSelector } from 'react-redux';
 import { TreeList, Selection, Column, Editing,SearchPanel, FilterRow, RequiredRule } from 'devextreme-react/tree-list';
-import { createPermission, updatePermission, deletePermission,fetchPermissions } from './../../actions/permissionActions';
+import { createPermission, updatePermission, deletePermission,fetchPermissions } from './../../redux/actions/permissionActions';
 
 
  const PermissionTreeList = () => {

@@ -1,0 +1,36 @@
+.tank-transfer-form {
+    .dx-fieldset {
+      margin-bottom: 20px;
+    }
+  
+    .dx-field-item-label-text {
+      font-weight: bold;
+    }
+  
+    .dx-form-group-caption {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  
+    .button-container {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+    }
+  
+    .submit-button {
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+  
+      &:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+    }
+  }

@@ -62,9 +62,9 @@ function getScreenSize() {
     isLarge: largeMedia.matches
   };
 }
-// export function getSizeQualifier(width) {
-//   if (width <= 200) return 'xs';
-//   if (width <= 500) return 'sm';
-//   if (width < 800) return 'md';
-//   return 'lg';
-// }
+export function getSizeQualifier(width) {
+  if (width <= 200) return 'xs';
+  if (width <= 500) return 'sm';
+  if (width < 800) return 'md';
+  return 'lg';
+}

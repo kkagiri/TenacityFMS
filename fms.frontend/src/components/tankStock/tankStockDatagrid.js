@@ -1,46 +1,59 @@
-// Code Created by Kevin Kagiri 
+// Code Created by Kevin Kagiri@kagz100 
 // Date Created: 15th July 2024
 //Code for showing tank Stock Activity from Tank stock Page or tankStockPage.js
-import React from 'react';
-import { useDispatch, useSelector,useEffct } from 'react-redux';
-import { DataGrid, Column, Lookup } from 'devextreme-react/data-grid';
-import { fetchTanks } from '../../actions/tankActions';
-import { fetchSiteList } from '../../actions/siteActions';
-import { fetchUsers } from '../../actions/userActions';
-import { fetchpermissionbyUserId } from '../../actions/permissionActions';
+import React ,{useCallback,useEffect,useMemo  } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { DataGrid, Column, Lookup , MasterDetail ,   GroupPanel, 
+    Grouping,
+    Summary,
+    GroupItem,
+    TotalItem ,  StateStoring,
+} from 'devextreme-react/data-grid';
+import { fetchTanks } from '../../redux/actions/tankActions';
+import { fetchSiteList } from '../../redux/actions/siteActions';
+import { formatDate } from './../../utils/dateUtils';
+import TankHistoryVolumeDatagrid from './tankHistoryVolumeDatagrid';
 
 const TankStockDatagrid = ({ tankStockDataSource }) => {
 
     const dispatch = useDispatch();
-    const tanks = useSelector((state) => state.tank.tanks);
-    const tankStock = useSelector((state) => state.tank.tankStock);
-    const users = useSelector((state) => state.user.users);
-    const user = useSelector((state) => state.auth.user);
 
 
 
     const fetchData = useCallback(async () => {
         try {
-            
             await Promise.all([
                 dispatch(fetchTanks()),
                 dispatch(fetchSiteList()),
-                dispatch(fetchUsers()),
-                dispatch(fetchpermissionbyUserId(user.id))
             ]);
         } catch (error) {
             console.log(error);
         }
-    }
-    , [dispatch, user]);
+    }, [dispatch]);
 
     useEffect(() => {
         fetchData();
-    }
-    , [fetchData]);
+    }, [fetchData]);
+
     
+    const renderDetail = useCallback((props) => {
+        return (
+            <TankHistoryVolumeDatagrid
+                startDate={props.data.data.reconciliationDate}
+                endDate={props.data.data.reconciliationDate}
+                tankId={props.data.data.tankId}
 
-
+            />
+        );
+    }, []);
+    const MemoizedMasterDetail = useMemo(() => {
+        return (
+            <MasterDetail
+                enabled={true}
+                component={renderDetail}
+            />
+        );
+    }, [renderDetail]);
     return (
         <div>
         <DataGrid
@@ -51,13 +64,23 @@ const TankStockDatagrid = ({ tankStockDataSource }) => {
             allowColumnResizing={true}
             showColumnHeaders={true}
         >
-            <Column dataField="id" caption="ID" allowEditing={false} visible={false} defaultSortOrder="asc" />
-            <Column dataField="tankName" caption="Tank Name" allowEditing={false} >
-                 <Lookup dataSource={tank}  valueExpr={id} /> </Column>
-            <Column dataField="tankCapacity" caption="Tank Capacity" allowEditing={false} />
-            <Column dataField="tankLocation" caption="Tank Location" allowEditing={false} />
-            <Column dataField="tankFuelLevel" caption="Tank Fuel Level" allowEditing={false} />
-            <Column dataField="tankStatus" caption="Tank Status" allowEditing={false} />
+        <StateStoring enabled={true} type="sessionStorage" storageKey="tankStockDataGrid" />
+
+        <GroupPanel visible={true} allowColumnDragging={false} />
+                    <Grouping autoExpandAll={true} />
+          <Column dataField="id" caption="ID"  visible={false} defaultSortOrder="asc" />
+          <Column dataField="siteName" caption="Site" groupIndex={0} />
+          <Column dataField="tankName" caption="Tank" />
+           <Column dataField="reconciliationDate" caption="Date"      cellRender={formatDate} />
+           <Column dataField="openingLevel" caption="Opening Level"  />
+           <Column dataField="closingLevel" caption="Closing Level"  />
+           
+            <Column dataField="totalDeliveries" caption="Total Deliveries" />
+            <Column dataField="totalRefills" caption="Total Fuel Dispense" />
+            <Column dataField="totalTransfersIn" caption="Total Fuel Transfered In"/>
+            <Column dataField="totalTransfersOut" caption="Total Fuel Transfered Out"/>   
+            {MemoizedMasterDetail}
+
         </DataGrid>
         </div>
     );

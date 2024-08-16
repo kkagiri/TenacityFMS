@@ -19,7 +19,7 @@ import {
   clearUsers,
   updateRole,
   updateRoleForUsers
-} from '../../../actions/roleActions';
+} from '../../../redux/actions/roleActions';
 import RoleForm from './roleForm';
 import PermissionTreeListNonEdit from './../../PermissionTreeList/permissionTreeListNonEdit';
 import UserDataList from './../../user/userdatalist';

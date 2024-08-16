@@ -3,9 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from "react-router-dom";
 import ContextMenu, { Position } from 'devextreme-react/context-menu';
 import List from 'devextreme-react/list';
-import { useAuthContext  } from '../../contexts/authContext';
 import './UserPanel.scss';
-import {logout} from '../../actions/AuthActions';
+import {logout} from '../../redux/actions/AuthActions';
 
 
 export default function UserPanel({ menuMode }) {

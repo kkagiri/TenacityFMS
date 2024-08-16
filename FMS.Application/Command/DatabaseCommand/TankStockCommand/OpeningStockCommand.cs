@@ -1,4 +1,5 @@
-﻿using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+﻿using AutoMapper.Configuration.Annotations;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -12,10 +13,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 {
-    public record OpeningStockCommand (int TankId, decimal OpeningStock, string RecordedBy) :IRequest<FMSResponseMessage>;
+    public record OpeningStockCommand (int TankId, decimal OpeningStock, string RecordedBy, DateTime? EntryDate = null) :IRequest<FMSResponseMessage>;
 
     public class OpeningStockCommandHandler : IRequestHandler<OpeningStockCommand, FMSResponseMessage>
     {
@@ -31,42 +33,52 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         }
         public async Task<FMSResponseMessage> Handle(OpeningStockCommand request, CancellationToken cancellationToken)
         {
-            using var transaction = _context.Database.BeginTransactionAsync(cancellationToken);
-            try { 
-            var tank = await _context.Tanks.FindAsync(request.TankId,cancellationToken);
-            if (tank == null) return new FMSResponseMessage (false, $"TankID {request.TankId} not found " );
-            if(request.OpeningStock <= 0)return new FMSResponseMessage(false, "Opening stock should be greater than 0");
 
-            var lastStockEntry = await _context.Tankstocks.Where(x => x.TankId == request.TankId )
-                                         .OrderByDescending(x => x.EntryDate.Date).FirstOrDefaultAsync(cancellationToken);
+            try {
 
 
 
-               if(lastStockEntry!=null)
+                var tank = await _context.Tanks.FindAsync(request.TankId,cancellationToken);
+                if (tank == null) return new FMSResponseMessage (false, $"TankID {request.TankId} not found " );
+                if(request.OpeningStock <= 0)return new FMSResponseMessage(false, "Opening stock should be greater than 0");
+
+                var entryDate = request.EntryDate?.Date ?? DateTime.Now.Date;
+
+
+                // Check for existing opening stock on the same day
+                var existingOpeningStock = await _context.TankVolumeHistories
+                   .Where(x => x.TankId == request.TankId &&
+                               x.Timestamp.Date == entryDate &&
+                               x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                   .OrderByDescending(x => x.Timestamp)
+                   .FirstOrDefaultAsync(cancellationToken);
+
+                if (existingOpeningStock != null)
                 {
-                    if(lastStockEntry.EntryType == VolumeChangeReasonEnum.OpeningStock)
-                    {
-                        //check if there is a closing stock after the last opening stock
-                        var closingStockAfterLastOpening = await _context.Tankstocks
-                             .Where(x => x.TankId == request.TankId && x.EntryDate.Date > lastStockEntry.EntryDate.Date && x.EntryType==VolumeChangeReasonEnum.ClosingStock)
-                             .AnyAsync(cancellationToken);
+                    // Check if there's a closing stock after the existing opening stock
+                    var closingStockAfterOpening = await _context.TankVolumeHistories
+                        .Where(x => x.TankId == request.TankId &&
+                                    x.Timestamp > existingOpeningStock.Timestamp &&
+                                    x.Timestamp.Date == entryDate &&
+                                    x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                        .OrderBy(x => x.Timestamp)
+                        .FirstOrDefaultAsync(cancellationToken);
 
-                        if(!closingStockAfterLastOpening) return new FMSResponseMessage(false, "Cannot create a new opening stock. The previous opening stock hasn't been closed yet.");
+                    if (closingStockAfterOpening == null)
+                    {
+                        return new FMSResponseMessage(false, "An opening stock already exists for this date without a subsequent closing stock.");
                     }
-
-                    var discrepancy = request.OpeningStock - lastStockEntry.ManualClosingLevel;
-
-                    if(Math.Abs((decimal)discrepancy) > 0 )
+                    // Ensure the new opening stock is after the closing stock
+                    if (request.EntryDate <= closingStockAfterOpening.Timestamp)
                     {
-                        var discrepancyReason = discrepancy > 0 ? "over" : "under";
-                        return new FMSResponseMessage(false, $"Opening stock is {discrepancyReason} by {Math.Abs((decimal)discrepancy)} litres from the last closing stock");
+                        return new FMSResponseMessage(false, "New opening stock must be after the previous closing stock.");
                     }
                 }
 
-            var stockTaking = new Tankstock
+                var stockTaking = new Tankstock
             {
                 TankId = request.TankId,
-                EntryDate = DateTime.Now,
+                EntryDate = request.EntryDate ?? DateTime.Now,
                 EntryType = VolumeChangeReasonEnum.OpeningStock,
                 ManualOpeningLevel = request.OpeningStock,
                 RecordedBy = request.RecordedBy,
@@ -75,31 +87,39 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 _context.Tankstocks.Add(stockTaking);
 
 
-                var tankVolumeHistory = new TankVolumeHistory
+            
+                if (tank.UseBookKeeping == 1)
                 {
-                    TankId = request.TankId,
-                    Timestamp = DateTime.UtcNow,
-                    VolumeChange =request.OpeningStock - (tank.CurrentStock ?? 0),
-                    NewVolume = request.OpeningStock,
-                    ChangeReason = VolumeChangeReasonEnum.OpeningStock,
-                    RecordedBy = request.RecordedBy
-                };
-
-
-                tank.CurrentStock = request.OpeningStock;
-                tank.LastStockUpdate = DateTime.Now;
+                    tank.CurrentStock = request.OpeningStock;
+                    tank.LastStockUpdate = DateTime.Now;
+                }
 
                 _context.Tanks.Update(tank);
-                _context.TankVolumeHistories.Add(tankVolumeHistory);
 
 
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.Result.CommitAsync(cancellationToken);
+
+
+                var tankVolumeHistory = new TankVolumeHistory
+                {
+                    TankId = request.TankId,
+                    Timestamp = stockTaking.EntryDate,
+                    VolumeChange = tank.UseBookKeeping == 1 ? request.OpeningStock - (tank.CurrentStock ?? 0) : 0,
+                    NewVolume = request.OpeningStock,
+                    ChangeReason = VolumeChangeReasonEnum.OpeningStock,
+                    RecordedBy = request.RecordedBy,
+                    ReferenceId = stockTaking.EntryId,
+                    ReferenceType = "OpeningStock"
+                };
+                _context.TankVolumeHistories.Add(tankVolumeHistory);
+                await _context.SaveChangesAsync(cancellationToken);
+
+
                 return new FMSResponseMessage(true, "Opening stock created successfully");
             } catch(Exception ex)
             {
                 _logger.LogError(ex, "Error while creating opening stock");
-                return new FMSResponseMessage(false, $"Error while creating opening stock {ex.InnerException}");
+                return new FMSResponseMessage(false, $"Error while creating opening stock {ex}");
             }
         }
     }

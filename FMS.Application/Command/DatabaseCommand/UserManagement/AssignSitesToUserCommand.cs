@@ -31,10 +31,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
             try
             {
                 var isvalidUserID = await _context.Users.AnyAsync(x => x.Id == request.UserId);
-                if (!isvalidUserID)
-                {
-                    throw new Exception("Invalid User Id");
-                }
+                if (!isvalidUserID) throw new Exception("Invalid User Id");
+                
                 var userSites = await _context.UserSites.Where(x => x.UserId == request.UserId).ToListAsync(cancellationToken);
                 _context.UserSites.RemoveRange(userSites);
                 await _context.SaveChangesAsync(cancellationToken);

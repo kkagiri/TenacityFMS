@@ -43,7 +43,6 @@ using FMS.Application.Command.DatabaseCommand.TagCmd;
 using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 
-
 // using DevExpress.AspNetCore;
 // using DevExpress.AspNetCore.Reporting;
 // using DevExpress.AspNetCore.Reporting.WebDocumentViewer;
@@ -53,6 +52,8 @@ using Microsoft.Extensions.FileProviders;
 using FMS.Application.Util;
 using FMS.WebClient.Util;
 using FMS.Application.ModelsDTOs.FMS.UserManagement;
+using Pomelo.EntityFrameworkCore.MySql.Internal;
+using FMS.BackgroundServices.FMS;
 
 
 
@@ -111,7 +112,7 @@ try
     builder.Services.AddScoped<RoleManager<Role>>();
     builder.Services.AddScoped<UserManager<User>>();
     builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
-
+    builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionMiddleware<,>));
     //Configration files loading
 
     builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
@@ -120,13 +121,11 @@ try
     var naftaConnectionString = builder.Configuration.GetConnectionString("ATGConnection");
     builder.Services.AddIdentity<User, Role>().AddEntityFrameworkStores<GpsdataContext>()
        .AddDefaultTokenProviders();
-    Console.WriteLine("ConnectiionStrings....",connectionString);
-        Console.WriteLine("naftaConnectionString....",naftaConnectionString);
 
     if (!string.IsNullOrEmpty(connectionString))
     {
         builder.Services.AddDbContext<GpsdataContext>(options =>
-                options.UseMySql(connectionString, new MySqlServerVersion(new Version(5, 5, 61))));
+                options.UseMySql(connectionString, new MySqlServerVersion(new Version(5, 5, 61))), ServiceLifetime.Scoped) ;
     }
     else
     {
@@ -169,6 +168,9 @@ try
 
 
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+    builder.Services.AddHostedService<AutomatedClosingStockService>();
+    
+
     builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -320,11 +322,11 @@ try
 
     try
     {
+      var value =   app.Environment.IsDevelopment();
         app.Run();
     }
     catch (Exception ex)
     {
-        Debugger.Launch();
         Console.WriteLine("App error",ex.Message);
         logger.Error("App Err", ex.Message);
     }

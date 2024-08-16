@@ -25,7 +25,7 @@ namespace FMS.Application.Queries.Database.VehicleModelQuery
         }
         public async Task<List<Vehiclemodel>> Handle(GetVehicleModelQuery request, CancellationToken cancellationToken)
         {
-            return await _context.Vehiclemodels.ToListAsync(cancellationToken);
+            return await _context.Vehiclemodels.OrderBy(x=>x.Name).ToListAsync(cancellationToken);
         }
     }
 }

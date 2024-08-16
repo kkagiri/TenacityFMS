@@ -53,6 +53,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     }
                 }
 
+                tank.UseBookKeeping = request.TankDto.UseBookKeeping ? (sbyte)1 : (sbyte)0;
+
                 _context.Tanks.Add(tank);
                 await _context.SaveChangesAsync(cancellationToken);
 

@@ -23,7 +23,10 @@ namespace FMS.Application.ModelsDTOs.FMS.Tank
         public decimal? TankLength { get; set; }
 
         public decimal CurrentStock { get; set; }
+        public bool UseBookKeeping { get; set; }
 
         public DateTime LastStockUpdate { get; set; }
+
+
     }
 }

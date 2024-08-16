@@ -12,6 +12,10 @@ namespace FMS.Application.ModelsDTOs.FMS.TankReconciliation
 
         public int TankId { get; set; }
 
+        public string TankName { get; set; }
+
+        public string SiteName { get; set; }
+
         public DateTime ReconciliationDate { get; set; }
 
         public decimal? OpeningLevel { get; set; }
@@ -25,6 +29,8 @@ namespace FMS.Application.ModelsDTOs.FMS.TankReconciliation
         public decimal? TotalTransfersIn { get; set; }
 
         public decimal? TotalTransfersOut { get; set; }
+
+
 
     }
 }

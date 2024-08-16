@@ -34,7 +34,6 @@ public class FuelRefilUpdateCommandHandler : IRequestHandler<UpdateFuelRefillCom
 
     public async Task<FMSResponseMessage> Handle(UpdateFuelRefillCommand request, CancellationToken cancellationToken)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
         var fuelRefil = await _context.Fuelrefils.FindAsync(new object[] { request.Id }, cancellationToken);
@@ -75,11 +74,18 @@ public class FuelRefilUpdateCommandHandler : IRequestHandler<UpdateFuelRefillCom
             // Update the tank's current stock
 // If amountDifference is positive (more fuel used), decrease the stock
 // If amountDifference is negative (less fuel used), increase the stock
-            tank.CurrentStock -= amountDifference;
-            tank.LastStockUpdate = DateTime.Now;
+
+            if(tank.UseBookKeeping == 1)
+            {
+                tank.CurrentStock -= amountDifference;
+                tank.LastStockUpdate = DateTime.Now;
+            }
+                   
+            
 
 
 
+        await _context.SaveChangesAsync(cancellationToken);
             if (amountDifference != 0)
             {
                 var tankHistory = new TankVolumeHistory
@@ -89,21 +95,20 @@ public class FuelRefilUpdateCommandHandler : IRequestHandler<UpdateFuelRefillCom
                     VolumeChange = -amountDifference,
                     NewVolume = tank.CurrentStock,
                     ChangeReason = VolumeChangeReasonEnum.Adjustment,
-                    RecordedBy = fuelByUser.Id
+                    RecordedBy = fuelByUser.Id,
+                    ReferenceId = fuelRefil.Id,
+                    ReferenceType = "Adjustment"
+
                 };
                 _context.TankVolumeHistories.Add(tankHistory);
+                await _context.SaveChangesAsync(cancellationToken);
             }
-            
 
 
-
-        await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
         return new FMSResponseMessage(true,"Update SuccessFully");
         }
         catch(Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex.ToString(),"Error in UpdateFuelRefilCommandHandler");
             throw;
         }

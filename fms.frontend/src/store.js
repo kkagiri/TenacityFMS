@@ -1,22 +1,26 @@
 import { createStore, applyMiddleware, combineReducers } from 'redux';
 import thunk from 'redux-thunk';
 import { composeWithDevTools } from 'redux-devtools-extension';
-import roleReducer from './reducers/roleReducer';
-import permissionReducer from './reducers/permissionReducer';
-import authReducer from './reducers/authReducer';
-import userReducer from './reducers/userReducer'; 
-import navigationReducer from './reducers/navigationReducer';
-import tankReducer from './reducers/tankReducer';
-import tankStockReducer from './reducers/tankStockReducer';
-import fuelRefillReducer from './reducers/fuelRefillReducer';
-import siteReducer from './reducers/siteReducer';
-import employeeReducer from './reducers/employeeReducer';
-import vehicleReducer from './reducers/vehicleReducer';
-import vehicleTypeReducer from './reducers/vehicleTypeReducer';
-import vehicleManufacturerReducer from './reducers/vehicleManufacturerReducer';
-import vehicleModelReducer from './reducers/vehicleModelReducer';
-import tankReconciliationReducer from './reducers/tankReconciliationReducer';
-
+import roleReducer from './redux/reducers/roleReducer';
+import permissionReducer from './redux/reducers/permissionReducer';
+import authReducer from './redux/reducers/authReducer';
+import userReducer from './redux/reducers/userReducer'; 
+import navigationReducer from './redux/reducers/navigationReducer';
+import tankReducer from './redux/reducers/tankReducer';
+import tankStockReducer from './redux/reducers/tankStockReducer';
+import fuelRefillReducer from './redux/reducers/fuelRefillReducer';
+import siteReducer from './redux/reducers/siteReducer';
+import employeeReducer from './redux/reducers/employeeReducer';
+import VehicleReducer from './redux/reducers/vehicleReducer';
+import vehicleTypeReducer from './redux/reducers/vehicleTypeReducer';
+import vehicleManufacturerReducer from './redux/reducers/vehicleManufacturerReducer';
+import vehicleModelReducer from './redux/reducers/vehicleModelsReducer';
+import tankReconciliationReducer from './redux/reducers/tankReconciliationReducer';
+import consumptionReducer from './redux/reducers/consumptionReducer';
+import tankVolumeHistoryReducer from './redux/reducers/tankVolumeHistoryReducer';
+import deliveryReducer from './redux/reducers/DeliveryReducer';
+import supplierReducer from './redux/reducers/supplierReducer';
+ 
 const rootReducer = combineReducers({
     auth: authReducer,
     role: roleReducer,
@@ -28,12 +32,15 @@ const rootReducer = combineReducers({
     fuelRefill: fuelRefillReducer,
     site: siteReducer,
     employee: employeeReducer,
-    vehicle: vehicleReducer,
+    vehicle: VehicleReducer,
     vehicleType: vehicleTypeReducer,
     vehicleManufacturer: vehicleManufacturerReducer,
     vehicleModel: vehicleModelReducer,
-    tankReconciliation: tankReconciliationReducer
-    
+    tankReconciliation: tankReconciliationReducer,
+    consumption: consumptionReducer,
+    tankVolumeHistory: tankVolumeHistoryReducer,
+    delivery: deliveryReducer,
+    supplier: supplierReducer
 });
 
 const store = createStore(

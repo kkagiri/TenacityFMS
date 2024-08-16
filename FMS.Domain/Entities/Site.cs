@@ -12,7 +12,6 @@ public partial class Site
 
     public string Name { get; set; } = null!;
 
-    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
     public virtual ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
 
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();

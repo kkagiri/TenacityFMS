@@ -14,8 +14,13 @@ namespace FMS.Application.ModelsDTOs.FMS.TankVolumeHistory
         public DateTime Timestamp { get; set; }
         public decimal? VolumeChange { get; set; }
         public decimal? NewVolume { get; set; }
-        public VolumeChangeReasonEnum ChangeReason { get; set; } // e.g., "OpeningStock", "Refill", "Withdrawal", "Adjustment"
+        public VolumeChangeReasonEnum ChangeReason { get; set; } 
         public string? RecordedBy { get; set; } = null;
+
+        public string? ReferenceType { get; set; } = null;
+
+        public int? ReferenceId { get; set; }
+        public string? Site { get; set; } = null;
 
 
     }

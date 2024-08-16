@@ -1,5 +1,5 @@
 import { HomePage, Vehicles } from './pages';
-import vehicleConsumption from './report/vehicleConsumptionList/vehicleConsumptionList';
+import ConsumptionBasedonRefills from './pages/consumption/consumptionBasedonRefills';
 import VehicleConsumptionDetails from './report/vehicleConsumptionDetails/vehicleConsumptionDetails';
 import VehicleConsumptionReportDesigner from './components/reports/vehicleConsumptionReportDesigner';
 import VehicleConsumptionReportViewer from './components/reports/vehicleConsumptionReportViewer';
@@ -8,17 +8,24 @@ import PermissionTreeList from './components/PermissionTreeList/permissionTreeLi
 import Rolepage from './pages/Role/rolepage';
 import unauthorized from './pages/unauthorized';
 import NavigationPage from './pages/Navigation/NavigationPage';
-import EmployeePage from './pages//employees/employeePage';
+import EmployeePage from './pages/employees/employeePage';
+import TankStockPage from './pages/tankStock/tankStockPage';
 const resolvedComponents =(pageName) => {
   switch(pageName.toLowerCase())
+
   {    
+
      case 'dashboard':
        return HomePage;
        
      case 'vehicles':
        return Vehicles;
+       case 'tank stock':
+        return TankStockPage;
      case 'consumption':
-       return vehicleConsumption;
+      console.log("Returning ConsumptionBasedonRefills component"); // Add this lineS
+       return ConsumptionBasedonRefills;
+
      case 'vehicleConsumptionDetails':
        return VehicleConsumptionDetails;
      case 'vehicleConsumptionReportDesigner':
@@ -35,6 +42,7 @@ const resolvedComponents =(pageName) => {
        return PermissionTreeList;
        case 'navigations':
         return NavigationPage;
+     
      case 'unauthorized':
        return unauthorized;
      default:

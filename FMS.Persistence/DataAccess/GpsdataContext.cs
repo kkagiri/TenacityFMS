@@ -274,7 +274,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
             entity.ToTable("delivery", tb => tb.HasComment("		"));
 
-            entity.HasIndex(e => e.SiteId, "Delivery_Site_idx");
 
             entity.HasIndex(e => e.SupplierId, "Delivery_Supplier_idx");
 
@@ -283,6 +282,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
             entity.HasIndex(e => e.TankId, "Delivery_tank_idx");
 
             entity.Property(e => e.Id).HasColumnType("int(11)");
+            entity.Property(e => e.CreatedOn).HasColumnType("datetime");
             entity.Property(e => e.DeliveryDensity).HasPrecision(10);
             entity.Property(e => e.DeliveryMass).HasPrecision(10);
             entity.Property(e => e.DeliveryTemperature).HasPrecision(10);
@@ -296,7 +296,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
             entity.Property(e => e.SensorDeliveryAmount).HasPrecision(10);
-            entity.Property(e => e.SiteId).HasColumnType("int(11)");
             entity.Property(e => e.StockAfterDelivery).HasPrecision(10);
             entity.Property(e => e.StockBeforeDelivery).HasPrecision(10);
             entity.Property(e => e.SupplierId).HasColumnType("int(11)");
@@ -307,10 +306,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("Delivery_User");
 
-            entity.HasOne(d => d.Site).WithMany(p => p.Deliveries)
-                .HasForeignKey(d => d.SiteId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("Delivery_Site");
+   
 
             entity.HasOne(d => d.Supplier).WithMany(p => p.Deliveries)
                 .HasForeignKey(d => d.SupplierId)
@@ -721,6 +717,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
             entity.HasIndex(e => e.TankId, "TankVolumeHistory_Tank_idx");
             entity.HasIndex(e => e.RecordedBy, "TanVolumeHistory_User_idx");
+            entity.HasIndex(e => new { e.ReferenceId, e.ReferenceType }, "TankVolumeHistory_Reference_idx");
 
             entity.Property(e => e.Id).HasColumnType("int(11)");
             entity.Property(e => e.TankId).HasColumnType("int(11)");
@@ -729,6 +726,9 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
             entity.Property(e => e.Timestamp).HasColumnType("datetime");
             entity.Property(e => e.RecordedBy).HasMaxLength(100);
             entity.Property(e => e.ChangeReason).HasConversion<int>();
+            entity.Property(e => e.ReferenceId).HasColumnType("int(11)");
+            entity.Property(e => e.ReferenceType).HasMaxLength(50);
+
             entity.HasOne(d => d.Tank).
             WithMany(p => p.TankVolumeHistories)
                 .HasForeignKey(d => d.TankId)
@@ -1308,7 +1308,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
             entity.Property(e => e.TankHeight).HasPrecision(10);
             entity.Property(e => e.TankLength).HasPrecision(10);
             entity.Property(e => e.TankVolume).HasPrecision(10);
-
+            entity.Property(e =>e.UseBookKeeping).HasColumnType("tinyint(4)").HasDefaultValue((sbyte)0);
             entity.HasOne(d => d.Pts).WithMany(p => p.Tanks)
                 .HasForeignKey(d => d.PtsId)
                 .HasConstraintName("Tank_PtsID");

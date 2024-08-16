@@ -260,3 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 /FMS.Persistence/Migrations/20231219071447_updatedTankMeaurementData.Designer.cs
+/fms.frontend/src/api
+fms.frontend/src/api/axiosInstance.js

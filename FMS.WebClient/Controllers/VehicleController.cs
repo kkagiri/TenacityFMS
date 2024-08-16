@@ -62,7 +62,7 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> UpdateVehicle([FromBody] List<VehicleDTO> vehicleDTOs)
         {
 
-            var hasPermission = User.HasClaim("permissions", "_editVehicle");
+            var hasPermission = User.HasClaim("permissions", "_EditVehicle");
             if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -71,6 +71,24 @@ namespace FMS.WebClient.Controllers
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result);
 
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleDTO vehicleDTO)
+        {
+            var hasPermission = User.HasClaim("permissions", "_EditVehicle");
+            if (!hasPermission) return Forbid();
+          //  if (vehicleDTO.VehicleId != id) return BadRequest("Vehicle Id mismatch");
+            if (id == 0 || id < 0) return BadRequest("Invalid Vehicle Id");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            vehicleDTO.VehicleId = id;
+            var command = new UpdateSingleVehicleCommand(vehicleDTO);
+            var result = await _mediator.Send(command);
+
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
         }
     }
 }

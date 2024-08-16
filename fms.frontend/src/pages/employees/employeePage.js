@@ -1,10 +1,10 @@
 import React ,{useEffect,useCallback,useRef,useState} from "react";
 import {useDispatch,useSelector} from "react-redux";
-import {fetchEmployees,createEmployee,updateEmployee,deleteEmployee} from "../../actions/employeeActions";
-import {fetchVehicleList } from "../../actions/vehicleActions";
-import { fetchpermissionbyUserId } from '../../actions/permissionActions';
-import { fetchUsers } from '../../actions/userActions';
-import {fetchSiteList} from '../../actions/siteActions';
+import {fetchEmployees,createEmployee,updateEmployee,deleteEmployee} from "../../redux/actions/employeeActions";
+import {fetchVehicleList } from "../../redux/actions/vehicleActions";
+import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
+import { fetchUsers } from '../../redux/actions/userActions';
+import {fetchSiteList} from '../../redux/actions/siteActions';
 import EmployeevehicleTagbox from "./../../components/employee/employeeVehicleTagBox";
 import Switch, { SwitchTypes } from 'devextreme-react/switch';
 import { format } from 'date-fns';
@@ -63,40 +63,7 @@ const EmployeePage = () => {
     }
     , [fetchData]);
    
-    const onExporting = (e) => {
-        const doc = new jsPDF();
-        const lastPoint = { x: 0, y: 0 };
-        exportDataGrid({
-          jsPDFDocument: doc,
-          component: e.component,
-          topLeft: { x: 1, y: 15 },
-          columnWidths: [50, 30, 30, 20, 25, 20, 26, 20],
-          customDrawCell({ rect }) {
-            if (lastPoint.x < rect.x + rect.w) {
-              lastPoint.x = rect.x + rect.w;
-            }
-            if (lastPoint.y < rect.y + rect.h) {
-              lastPoint.y = rect.y + rect.h;
-            }
-          },
-        }).then(() => {
-          // header
-          const header = 'Hyoung FMS : Employees List';
-          const pageWidth = doc.internal.pageSize.getWidth();
-          const headerWidth = doc.getTextDimensions(header).w;
-          doc.setFontSize(15);
-          doc.text(header, (pageWidth - headerWidth) / 2, 20);
-          // footer
-          const footer = 'Page  ' + e.component.pageIndex() + ' of ' + e.component.pageCount();
-          const footerWidth = doc.getTextDimensions(footer).w;
-          doc.setFontSize(9);
-          doc.setTextColor('#cccccc');
-          doc.text(footer, lastPoint.x - footerWidth, lastPoint.y + 5);
-          doc.save('Employees.pdf');
-        });
-      };
-
-
+   
 
     const onRowInserted = async (e) => {
         try {
@@ -257,7 +224,6 @@ return (
                     onRowInserted={onRowInserted}
                     onRowUpdated={onRowUpdated}
                     onRowRemoved={onRowRemoved}
-                    onExporting={onExporting}
    
                  >
                     <ColumnChooser enabled={true} mode="select"  height={200} >
@@ -332,9 +298,7 @@ return (
                 >
                     <RequiredRule />
                 </Column>
-                <Column dataField="nationalId" caption="National ID" alignment="left" minWidth={100} hidingPriority={4} >
-                    <RequiredRule />
-                </Column>
+            
                 <Column dataField="employeephoneNumber" caption="Phone No"  minWidth={150} hidingPriority={3}/>
                 <Column dataField="employeeWorkNo" caption="Work No" minWidth={150} hidingPriority={3}/>
                 <Column dataField="employeestatus" caption="Employee Status" minWidth={150} hidingPriority={3}>  <Lookup dataSource={employeestatus} /></Column>

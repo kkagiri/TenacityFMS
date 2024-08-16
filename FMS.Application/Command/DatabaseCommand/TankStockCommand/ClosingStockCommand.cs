@@ -1,4 +1,5 @@
-﻿using FMS.Application.Common;
+﻿using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using FMS.Application.Common;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -14,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 {
-    public record ClosingStockCommand(int TankId, decimal ClosingStock,string RecordedBy) : IRequest<FMSResponseMessage>;
+    public record ClosingStockCommand(int TankId, decimal ClosingStock,string RecordedBy,DateTime? EntryDate = null) : IRequest<FMSResponseMessage>;
 
     public class ClosingStockCommandHandler : IRequestHandler<ClosingStockCommand, FMSResponseMessage>
     {
@@ -33,14 +34,24 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         public async Task<FMSResponseMessage> Handle(ClosingStockCommand request, CancellationToken cancellationToken)
         {
 
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+                var entryDate = request.EntryDate ?? DateTime.Now.Date;
+
                 var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
                 if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
 
+                var existingClosingStock = await _context.Tankstocks
+           .Where(x => x.TankId == request.TankId &&
+                       x.EntryDate.Date == entryDate &&
+                       x.EntryType == VolumeChangeReasonEnum.ClosingStock)
+           .SingleOrDefaultAsync(cancellationToken);
+
+                if (existingClosingStock != null) return new FMSResponseMessage(false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
+                
+
                 var openingStock = await _context.Tankstocks.Where(x => x.TankId == request.TankId && 
-                                    x.EntryDate.Date == DateTime.Now.Date && x.EntryType ==  VolumeChangeReasonEnum.OpeningStock)
+                                    x.EntryDate.Date == entryDate && x.EntryType ==  VolumeChangeReasonEnum.OpeningStock)
                                  .SingleOrDefaultAsync(cancellationToken);
 
                 if (openingStock == null) return new FMSResponseMessage(false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
@@ -69,7 +80,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var newClosingStock = new Tankstock
                 {
                     TankId = request.TankId,
-                    EntryDate = DateTime.Now,
+                    EntryDate = entryDate,
                     EntryType = VolumeChangeReasonEnum.ClosingStock,
                     ManualClosingLevel = request.ClosingStock,
                     RecordedBy = request.RecordedBy,
@@ -81,7 +92,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var reconciliation = new Dailytankreconciliation
                 {
                     TankId = request.TankId,
-                    ReconciliationDate = DateTime.Now.Date,
+                    ReconciliationDate = entryDate,
                     OpeningLevel = openingStock.ManualOpeningLevel,
                     ClosingLevel = request.ClosingStock,
                     TotalRefills = Math.Abs((decimal)totalRefills),
@@ -91,33 +102,43 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
 
                 };
-                var tankHistory = new TankVolumeHistory
+               
+
+                _context.Dailytankreconciliations.Add(reconciliation);
+
+                if(tank.UseBookKeeping == 1)
+                {
+                    tank.CurrentStock = request.ClosingStock;
+                    tank.LastStockUpdate = DateTime.Now;
+                }
+       
+                await _context.SaveChangesAsync(cancellationToken);
+
+
+
+
+
+                var tankhistory = new TankVolumeHistory
                 {
                     TankId = request.TankId,
                     Timestamp = DateTime.Now,
                     VolumeChange = request.ClosingStock - (tank.CurrentStock ?? 0),
                     NewVolume = request.ClosingStock,
                     ChangeReason = VolumeChangeReasonEnum.ClosingStock,
-                    RecordedBy = request.RecordedBy
+                    RecordedBy = request.RecordedBy,
+                    ReferenceId = newClosingStock.EntryId,
+                    ReferenceType = "ClosingStock"
                 };
 
-                _context.Dailytankreconciliations.Add(reconciliation);
-
-                tank.CurrentStock = request.ClosingStock;
-                tank.LastStockUpdate = DateTime.Now;
-
-
-                
-
-
+                _context.TankVolumeHistories.Add(tankhistory);
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
+
+
 
                 return new FMSResponseMessage(true, "Closing stock created successfully");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Error while creating closing stock");
                 return new FMSResponseMessage(false, "Error while creating closing stock");
             }

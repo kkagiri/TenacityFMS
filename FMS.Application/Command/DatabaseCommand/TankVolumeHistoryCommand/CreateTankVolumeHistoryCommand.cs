@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
 {
-    public record CreateTankVolumeHistoryCommand (int TankId, DateTime Timestamp, decimal? VolumeChange, decimal? NewVolume, VolumeChangeReasonEnum ChangeReason, string RecordedBy) : IRequest<FMSResponseMessage>;
+    public record CreateTankVolumeHistoryCommand (TankVolumeHistory TankVolumeHistory) : IRequest<FMSResponseMessage>;
     
 
     public class CreateTankVolumeHistoryCommandHandler : IRequestHandler<CreateTankVolumeHistoryCommand, FMSResponseMessage>
@@ -33,36 +33,35 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
 
         public async Task<FMSResponseMessage> Handle(CreateTankVolumeHistoryCommand request, CancellationToken cancellationToken)
         {
-            using var transaction = _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
                 var lastHistory = _context.TankVolumeHistories.
-                    Where(x => x.TankId == request.TankId).
+                    Where(x => x.TankId == request.TankVolumeHistory.TankId).
                     OrderByDescending(x => x.Timestamp).FirstOrDefaultAsync(cancellationToken);
 
-                var newVolume = (lastHistory.Result?.NewVolume ?? 0) + request.VolumeChange;
+                var newVolume = (lastHistory.Result?.NewVolume ?? 0) + request.TankVolumeHistory.NewVolume;
 
                 var tankVolumeHistory = new TankVolumeHistory
                 {
-                    TankId = request.TankId,
-                    Timestamp = request.Timestamp,
-                    VolumeChange = request.VolumeChange,
+                    TankId = request.TankVolumeHistory.TankId,
+                    Timestamp = request.TankVolumeHistory.Timestamp,
+                    VolumeChange = request.TankVolumeHistory.VolumeChange,
                     NewVolume = newVolume,
-                    ChangeReason = request.ChangeReason,
-                    RecordedBy = request.RecordedBy
+                    ChangeReason = request.TankVolumeHistory.ChangeReason,
+                    RecordedBy = request.TankVolumeHistory.RecordedBy,
+                    ReferenceType = request.TankVolumeHistory.ReferenceType,
+                    ReferenceId = request.TankVolumeHistory.ReferenceId.Value
                 };
 
                 _context.TankVolumeHistories.Add(tankVolumeHistory);
 
               await _context.SaveChangesAsync(cancellationToken);
 
-            await   transaction.Result.CommitAsync(cancellationToken);
                return new FMSResponseMessage(true, "Tank volume history created successfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating tank volume history");
-                transaction.Result.Rollback();
                 return  new FMSResponseMessage(false, "Error creating tank volume history");
             }
 

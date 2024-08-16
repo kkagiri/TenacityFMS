@@ -1,7 +1,7 @@
 import react , { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import  {useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { signIn as signInAction, loadUser as loadUserAction, logout as logoutAction } from './../actions/AuthActions';
+import { signIn as signInAction, loadUser as loadUserAction, logout as logoutAction } from './../redux/actions/AuthActions';
 
 const AuthContext = createContext();
 

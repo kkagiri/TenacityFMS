@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Domain.Entities;
@@ -21,18 +22,19 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
     public record CreateDeliveryCommandHandler : IRequestHandler<CreateDeliveryCommand, FMSResponseMessage>
     {
           private readonly GpsdataContext _context;
-    private readonly ILogger<CreateDeliveryCommandHandler> _logger;
+         private readonly ILogger<CreateDeliveryCommandHandler> _logger;
         private readonly IMapper _mapper;
+        private readonly IMediator _mediator;
 
-    public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger,IMapper mapper)
+    public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger,IMapper mapper,IMediator mediator)
     {
         _context = context;
         _logger = logger;
             _mapper = mapper;
+            _mediator = mediator;
     }
         public async Task<FMSResponseMessage> Handle(CreateDeliveryCommand request, CancellationToken cancellationToken)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
@@ -54,17 +56,33 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
               if(request.DeliveryDTO.StockBeforeDelivery > request.DeliveryDTO.StockBeforeDelivery) return new FMSResponseMessage(false, "Start stock should be less than stock level at end of delivery");
 
                
-                var site = await _context.Sites.FindAsync(new object[] { request.DeliveryDTO.SiteId }, cancellationToken);
-                if (site == null) return new FMSResponseMessage(false, $"Site with ID {request.DeliveryDTO.SiteId} does not exist.");
 
                 // Map the DTO to the entity
                 // var delivery = new Delivery(
-               _mapper.Map<DeliveryDTO>(request.DeliveryDTO);
+           //    _mapper.Map<DeliveryDTO>(request.DeliveryDTO);
 
                 var delivery = _mapper.Map<Delivery>(request.DeliveryDTO);
 
-                delivery.DeliveryDate = DateTime.Now;
+                delivery.DeliveryDate = request.DeliveryDTO.DeliveryDate.Value;
                 _context.Deliveries.Add(delivery);
+
+
+                if(tank.UseBookKeeping == 1)
+                {
+                    tank.CurrentStock += request.DeliveryDTO.ManualDeliveryAmount;
+                    _context.Tanks.Update(tank);
+
+                }
+
+
+
+
+          
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+
+
 
                 var tankVolumeHistory = new TankVolumeHistory
                 {
@@ -72,17 +90,20 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                     VolumeChange = request.DeliveryDTO.ManualDeliveryAmount,
                     NewVolume = tank.CurrentStock + request.DeliveryDTO.ManualDeliveryAmount,
                     ChangeReason = VolumeChangeReasonEnum.Delivery,
-                    Timestamp = DateTime.Now
+                    Timestamp = request.DeliveryDTO.DeliveryDate.Value,
+                    RecordedBy = request.DeliveryDTO.RecordedBy,
+                    ReferenceId = delivery.Id,
+                    ReferenceType = "Delivery"
                 };
-
                 _context.TankVolumeHistories.Add(tankVolumeHistory);
 
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
+
+
+
                 return new FMSResponseMessage(true, "Delivery created successfully");
             } catch( Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex.Message);
                 throw;
             }

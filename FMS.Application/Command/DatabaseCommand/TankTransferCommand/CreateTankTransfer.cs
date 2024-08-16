@@ -17,6 +17,10 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
 {
+    /// <summary>
+    /// Create Tank Transfer Command
+    /// </summary>
+    /// <param name="TankTransferDTO"></param>
     public record CreateTankTransfer(TankTransferDTO TankTransferDTO) : IRequest<FMSResponseMessage<TankTransferDTO>>;
 
 
@@ -39,7 +43,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
 
         public async Task<FMSResponseMessage<TankTransferDTO>> Handle(CreateTankTransfer request, CancellationToken cancellationToken)
         {
-            using var transaction = _context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
@@ -61,14 +64,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 //update source tank stock
                 sourceTank.CurrentStock -= request.TankTransferDTO.Amount;
 
-                //update tank history   
-                 await _mediator.Send(new CreateTankVolumeHistoryCommand(sourceTank.Id, DateTime.Now, -request.TankTransferDTO.Amount, sourceTank.CurrentStock, VolumeChangeReasonEnum.TransferOut, request.TankTransferDTO.RecordedBy), cancellationToken);
-
+           
                 //update destination tank stock
                 destinationTank.CurrentStock += request.TankTransferDTO.Amount;
 
                 //update tank history
-                await _mediator.Send(new CreateTankVolumeHistoryCommand(destinationTank.Id, DateTime.Now, request.TankTransferDTO.Amount, destinationTank.CurrentStock, VolumeChangeReasonEnum.TransferIn, request.TankTransferDTO.RecordedBy), cancellationToken);
 
 
                 //update TankStock for both tanks
@@ -100,8 +100,48 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 _context.Tankstocks.Add(sourceTankStock);
                 _context.Tankstocks.Add(destinationTankStock);
 
+
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.Result.CommitAsync(cancellationToken);
+
+
+
+                //create tank volume history for source tank
+
+                var tankVolumeHistorySource = new TankVolumeHistory
+                {
+                    TankId = sourceTank.Id,
+                    Timestamp = DateTime.Now,
+                    VolumeChange = -request.TankTransferDTO.Amount,
+                    NewVolume = sourceTank.CurrentStock,
+                    ChangeReason = VolumeChangeReasonEnum.TransferOut,
+                    RecordedBy = request.TankTransferDTO.RecordedBy,
+                    ReferenceId = sourceTankStock.EntryId,
+                    ReferenceType = "TransferOut"
+                };
+
+
+                _context.TankVolumeHistories.Add(tankVolumeHistorySource);
+
+                //create tank volume history for destination tank
+
+                var tankVolumeHistoryDestination = new TankVolumeHistory
+                {
+                    TankId = destinationTank.Id,
+                    Timestamp = DateTime.Now,
+                    VolumeChange = request.TankTransferDTO.Amount,
+                    NewVolume = destinationTank.CurrentStock,
+                    ChangeReason = VolumeChangeReasonEnum.TransferIn,
+                    RecordedBy = request.TankTransferDTO.RecordedBy,
+                    ReferenceId = destinationTankStock.EntryId,
+                    ReferenceType = "TransferIn"
+                };
+                    
+                 
+                _context.TankVolumeHistories.Add(tankVolumeHistoryDestination);
+
+
+                await _context.SaveChangesAsync(cancellationToken);
+
 
                 return new FMSResponseMessage<TankTransferDTO>(true, "Tank Transfer successful", request.TankTransferDTO);
 
@@ -110,7 +150,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
             }catch(Exception ex)
             {
                 _logger.LogError(ex, "Error creating tank transfer");
-                await transaction.Result.RollbackAsync(cancellationToken);
                 return new FMSResponseMessage<TankTransferDTO>(false, "Error creating tank transfer",null);
             }   
         }

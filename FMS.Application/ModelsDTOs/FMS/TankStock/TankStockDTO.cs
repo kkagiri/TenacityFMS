@@ -10,6 +10,7 @@ public class TankStockDTO
 
     public int TankId { get; set; }
 
+    public DateTime CreatedOn { get; set; }
     public DateTime EntryDate { get; set; }
 
     public decimal? ManualOpeningLevel { get; set; }

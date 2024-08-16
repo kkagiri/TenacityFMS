@@ -9,6 +9,9 @@ public partial class Dailytankreconciliation
 
     public int TankId { get; set; }
 
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+
+
     public DateTime ReconciliationDate { get; set; }
 
     public decimal? OpeningLevel { get; set; }

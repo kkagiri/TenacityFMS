@@ -10,6 +10,9 @@ using FMS.Application.ModelsDTOs.FMS.FuelRefil;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Domain.Entities.enums;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using AutoMapper.Configuration.Annotations;
+using System.Linq;
 
 namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
 
@@ -20,27 +23,54 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
     private readonly ILogger<FuelRefilCreateCommandHandler> _logger;
+    private readonly IMediator _mediator;
 
-    public FuelRefilCreateCommandHandler(GpsdataContext context, ILogger<FuelRefilCreateCommandHandler> logger, IMapper mapper)
+    public FuelRefilCreateCommandHandler(GpsdataContext context, ILogger<FuelRefilCreateCommandHandler> logger, IMapper mapper, IMediator mediator)
     {
         _context = context;
         _logger = logger;
         _mapper = mapper;
+        _mediator = mediator;
     }
 
     public async Task<FMSResponseMessage> Handle(FuelRefilCreateCommand request, CancellationToken cancellationToken)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
 
+
             var fuelRefilDto = request.FuelRefilDTO;
 
+            var entryDate = request.FuelRefilDTO.Date?.Date ?? DateTime.Now.Date;
+            //TODO: Insert check for configuration enforcement to use start of day for opening check 
+            // Check if there is opening stock for the tank on the entry day 
+            var existingOpeningStock = await _context.TankVolumeHistories
+                  .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
+                              x.Timestamp.Date == entryDate &&
+                              x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                  .OrderByDescending(x => x.Timestamp)
+                  .FirstOrDefaultAsync(cancellationToken);
+
+            if( existingOpeningStock == null) return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate} not found Create A new Opening Stock ");
+
+            var existingRefuel = await _context.Fuelrefils
+                .FirstOrDefaultAsync(f =>
+                    f.VehicleId == fuelRefilDto.VehicleId &&
+                    f.Date.Value.Date == fuelRefilDto.Date.Value.Date &&
+                    f.PreviousMeterReading == fuelRefilDto.PreviousMeterReading &&
+                    f.CurrentMeterReading == fuelRefilDto.CurrentMeterReading &&
+                    f.ManualFuelrefilAmount == fuelRefilDto.ManualFuelrefilAmount,
+                    cancellationToken);
+
+            if (existingRefuel != null)  return new FMSResponseMessage(false, "Duplicate entry: A fuel refill with the same details already exists for this vehicle on the specified date.");
+            
             if (request.FuelRefilDTO.ManualFuelrefilAmount <= 0) return new FMSResponseMessage(false, "Fuel refill amount should be greater than 0.");
 
-
+            var vehicle = await _context.Vehicles
+             .AsNoTracking()
+             .Include(v => v.WorkingSite)
+             .FirstOrDefaultAsync(v => v.VehicleId == fuelRefilDto.VehicleId, cancellationToken);
             // Validate related entities existence
-            var vehicle = await _context.Vehicles.FindAsync(new object[] { fuelRefilDto.VehicleId }, cancellationToken);
             if (vehicle == null) return new FMSResponseMessage(false, $"Vehicle with ID {fuelRefilDto.VehicleId} does not exist.");
 
             var site = await _context.Sites.FindAsync(new object[] { fuelRefilDto.SiteId }, cancellationToken);
@@ -48,12 +78,17 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 
 
             var tank = await _context.Tanks.FindAsync(new object[] { fuelRefilDto.TankId }, cancellationToken);
+
             if (tank == null) return new FMSResponseMessage(false, $"Tank with ID {fuelRefilDto.TankId} does not exist.");
 
-            if (tank.CurrentStock <= 0) return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
 
-            if (tank.CurrentStock < fuelRefilDto.ManualFuelrefilAmount) return new FMSResponseMessage(false, $"Insufficient fuel in the tank. Current stock: {tank.CurrentStock}, Requested amount: {fuelRefilDto.ManualFuelrefilAmount}");
+            // Check if the tank is using book keeping
+            if (tank.UseBookKeeping == 1)
+            {
+                if (tank.CurrentStock <= 0) return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
 
+                if (tank.CurrentStock < fuelRefilDto.ManualFuelrefilAmount) return new FMSResponseMessage(false, $"Insufficient fuel in the tank. Current stock: {tank.CurrentStock}, Requested amount: {fuelRefilDto.ManualFuelrefilAmount}");
+            }
 
             var fuelByUser = await _context.Users.FindAsync(new object[] { fuelRefilDto.FuelBy }, cancellationToken);
             if (fuelByUser == null) return new FMSResponseMessage(false, $"User with ID {fuelRefilDto.FuelBy} does not exist.");
@@ -83,35 +118,56 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 
             _context.Fuelrefils.Add(fuelRefil);
 
-            // Update tank stock
-            tank.CurrentStock -= (decimal)fuelRefil.ManualFuelrefilAmount;
-            tank.LastStockUpdate = DateTime.Now;
+            // We check if the tank is using book keeping and update the stock accordingly
+            if(tank.UseBookKeeping == 1)
+            { 
+                //check if the date of the fuel refill is today or past date 
+               var today = DateTime.Now.Date;
+
+                if( request.FuelRefilDTO.Date.Value.Date == today)
+                {
+                    tank.CurrentStock -= (decimal)fuelRefil.ManualFuelrefilAmount;
+                    tank.LastStockUpdate = DateTime.Now;
+                }
+
+              
+            }
+   
+
+
+            
+
+
+            await _context.SaveChangesAsync(cancellationToken);
 
 
             var tankVolumeHistory = new TankVolumeHistory
             {
                 ChangeReason = VolumeChangeReasonEnum.Dispensing,
-                Timestamp = DateTime.Now,
+                Timestamp = request.FuelRefilDTO.Date.Value,
                 TankId = tank.Id,
                 VolumeChange = -(decimal)fuelRefil.ManualFuelrefilAmount,
                 NewVolume = tank.CurrentStock,
                 RecordedBy = fuelRefil.FuelBy,
-
+                ReferenceId = fuelRefil.Id,
+                ReferenceType = "Dispense"
             };
 
 
 
             _context.TankVolumeHistories.Add(tankVolumeHistory);
 
-
             await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+
+
+
+
+
 
             return new FMSResponseMessage<Fuelrefil>(true, "Fuel refill created successfully.", fuelRefil);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error creating fuel refill");
             return new FMSResponseMessage(false, ex.Message);
         }

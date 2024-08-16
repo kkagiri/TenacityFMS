@@ -12,6 +12,8 @@ using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.Command.DatabaseCommand.ATGCommands.InTankDeliveryCommand;
 using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
+using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
+using FMS.Application.ModelsDTOs.FMS.TankTransfer;
 namespace FMS.WebClient.Controllers;
 
 [Route("api/[controller]")]
@@ -109,12 +111,15 @@ public class TankStockController : ControllerBase
 
     [HttpPost("openingstock")]
     [Authorize]
-    public async Task<IActionResult> CreateOpeningStock([FromQuery]int tankId,decimal amount)
+    public async Task<IActionResult> CreateOpeningStock([FromQuery]int tankId,decimal amount,DateTime dateTime)
     {
         var hasPermission = User.HasClaim("permissions", "_openingStock");
         if (!hasPermission) return Forbid();
         if (tankId <= 0) return BadRequest("Invalid Tank ID");  
         if (amount <= 0) return BadRequest("Opening stock should be greater than 0");
+
+        if (dateTime > DateTime.Now) return BadRequest("Date cannot be in the future");
+        if (dateTime == default(DateTime)) return BadRequest("Invalid Date");
 
         var userIdClaim = User.Claims.FirstOrDefault(c =>
                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
@@ -124,19 +129,21 @@ public class TankStockController : ControllerBase
 
         var result = await _mediator.Send(new OpeningStockCommand(tankId, amount, userIdClaim.Value));
 
-        if (!result.Success) return BadRequest(result.Message);
+        if (!result.Success) return BadRequest(result);
          
-        return Ok(result.Message);
+        return Ok(result);
         
     }
     [HttpPost("closingstock")]
     [Authorize]
-    public async Task<IActionResult> CreateClosingStock([FromQuery]int tankId, decimal amount)
+    public async Task<IActionResult> CreateClosingStock([FromQuery]int tankId, decimal amount ,DateTime dateTime)
     {
         var hasPermission = User.HasClaim("permissions", "_closingStock");
         if (!hasPermission) return Forbid();
         if (tankId <= 0) return BadRequest("Invalid Tank ID");
         if (amount <= 0) return BadRequest("Closing stock should be greater than 0");
+        if (dateTime > DateTime.Now) return BadRequest("Date cannot be in the future");
+        if (dateTime == default(DateTime)) return BadRequest("Invalid Date");
 
         var userIdClaim = User.Claims.FirstOrDefault(c =>
              c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
@@ -145,61 +152,36 @@ public class TankStockController : ControllerBase
         if (userIdClaim == null) return BadRequest("Invalid User ID");
         var result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userIdClaim.Value));
 
-        if (!result.Success) return BadRequest(result.Message);
+        if (!result.Success) return BadRequest(result);
 
-        return Ok(result.Message);
-
-    }
-
-    [HttpGet("tankvolumeHistory")]
-    [Authorize]
-    public async Task<IActionResult>  GetTankVolumeHistory()
-    {
-       // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-        //if (!hasPermission) return Forbid();
-        var result = await _mediator.Send(new GetTankVolumeHistoryQuery());
-        if (result == null) return NoContent();
         return Ok(result);
+
     }
 
-    [HttpGet("tankvolumehistory/{TankId}")]
+    [HttpPost("transfer")]
     [Authorize]
-    public async Task<IActionResult> GetTankVolumeHistoryById(int TankId)
+    public async Task<IActionResult> CreateTankTransfer([FromBody] TankTransferDTO tankTransferDTO)
     {
-       // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-     //   if (!hasPermission) return Forbid();
-        if (TankId <= 0) return BadRequest("Invalid ID");
-
-        var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(TankId));
-        if (result == null) return NotFound();
-        if (result.Success == false) return BadRequest(result.Message);
-        
-        return Ok(result.Data);
-    }
-
-
-    [HttpPost("Delivery")]
-    [Authorize]
-    public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
-    {
-        var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
-
-        if (!hasPermission) return Forbid();
+        //var hasPermission = User.HasClaim("permissions", "_tankTransfer");
+       // if (!hasPermission) return Forbid();
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        var result = await _mediator.Send(new CreateDeliveryCommand(deliveryDTO));
-        if (!result.Success) return BadRequest(result.Message);
-        return Ok(result.Message);
-    }
-    [HttpGet("Deliveries")]
-    [Authorize]
-    public async Task<IActionResult> GetDeliveries()
-    {
-        var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
-        if (!hasPermission) return Forbid();
-        var result = await _mediator.Send(new GetDeliveryListQuery());
-        if (result == null) return NoContent();
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                                Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+        tankTransferDTO.RecordedBy = userIdClaim.Value;
+
+        var result = await _mediator.Send(new CreateTankTransfer(tankTransferDTO));
+
+        if (!result.Success) return BadRequest(result);
+
         return Ok(result);
     }
+    
+
+
 
 
 }

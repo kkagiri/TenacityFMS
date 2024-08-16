@@ -24,7 +24,7 @@ namespace FMS.Application.Queries.Database.VehicleManufacturer
         }
         public async Task<List<Vehiclemanufacturer>> Handle(GetVehicleManufacturerQuery request, CancellationToken cancellationToken)
         {
-            return await _context.Vehiclemanufacturers.ToListAsync(cancellationToken);
+            return await _context.Vehiclemanufacturers.OrderBy(x => x.Name).ToListAsync(cancellationToken);
         }
     }
 

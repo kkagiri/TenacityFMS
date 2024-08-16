@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.TankReconciliation;
 
-   public record GetDailyTankReconciliationBySiteQuery(DateTime Date, int SiteId) : IRequest<List<TankReconcillationDTO>>;
+   public record GetDailyTankReconciliationBySiteQuery(DateTime Startdate, DateTime EndDate, int SiteId) : IRequest<List<TankReconcillationDTO>>;
     
     public class GetDailyTankReconciliationBySiteQueryHandler : IRequestHandler<GetDailyTankReconciliationBySiteQuery, List<TankReconcillationDTO>>
 {
@@ -32,9 +32,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankReconciliation;
     {
             try
         {
-                return _mapper.Map<List<TankReconcillationDTO>>(await _context.Dailytankreconciliations
-                                       .Where(x =>x.Tank.SiteId  == request.SiteId && x.ReconciliationDate.Date == request.Date.Date)
-                                                          .ToListAsync(cancellationToken));
+                return _mapper.Map<List<TankReconcillationDTO>>(await _context.Dailytankreconciliations.Include(x => x.Tank.Site).Include(x => x.Tank)
+                                       .Where(x =>x.Tank.SiteId  == request.SiteId && x.ReconciliationDate.Date >=request.Startdate.Date && x.ReconciliationDate.Date <=request.EndDate.Date)
+                                       .ToListAsync(cancellationToken));
             }
             catch (Exception ex)
         {

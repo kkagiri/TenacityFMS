@@ -7,7 +7,7 @@ import RoleDetails  from '../../components/Roles/RoleDetails/roleDetails';
 import { getRoleList } from '../../dataservice/permissionservice';
 import { Item, Toolbar } from 'devextreme-react/toolbar';
 import Button from 'devextreme-react/button';
-import { fetchRoles,setSelectedRole , assignPermissions } from '../../actions/roleActions';
+import { fetchRoles,setSelectedRole , assignPermissions } from '../../redux/actions/roleActions';
 //import { setRoles, setSelectedRole } from '../../reducers/roleSlice';
 import "./rolepage.scss"
 

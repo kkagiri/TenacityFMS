@@ -1,5 +1,4 @@
-import React, { useEffect, useState ,useCallback, useRef } from 'react';
-import { CustomRule } from 'devextreme-react/validator';
+import React, { useEffect, useState , useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { TreeList, Column, Editing, Popup, Form, RequiredRule, Pager, Paging, Lookup ,Item as FormItem} from 'devextreme-react/tree-list';
 import {
@@ -8,8 +7,8 @@ import {
     updateNavigationItem,
     deleteNavigationItem,
     assignRolesToNavigationItem
-} from './../../actions/navigationActions';
-import { fetchRoles } from './../../actions/roleActions';
+} from './../../redux/actions/navigationActions';
+import { fetchRoles } from './../../redux/actions/roleActions';
 
 const NavigationPage = () => {
     const dispatch = useDispatch();

@@ -26,11 +26,11 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
 
     public int? DriverId { get; set; }
 
-        public int? TankId { get; set; }
+    public int? TankId { get; set; }
 
      public DateTime? DateCreated {get;set;} 
     public DateTime? DateModified {get;set;}
-
+     public decimal? Consumption  { get; set; }
     public bool IsModified {get;set;}
     }
 }
