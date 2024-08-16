@@ -36,7 +36,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
         public async Task<List<SiteDTO>> Handle(GetSiteQuery request, CancellationToken cancellationToken)
         {
             try { 
-            return _mapper.Map<List<SiteDTO>>( await _context.Sites.ToListAsync(cancellationToken));
+            return _mapper.Map<List<SiteDTO>>( await _context.Sites.OrderBy(x=>x.Name).ToListAsync(cancellationToken));
                 }
             catch (Exception ex)
             {

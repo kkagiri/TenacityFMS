@@ -11,7 +11,7 @@ import Form, {
 } from 'devextreme-react/form';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
-import { signIn } from '../../actions/AuthActions'; // Import the signIn action
+import { signIn } from '../../redux/actions/AuthActions'; // Import the signIn action
 
 import './LoginForm.scss';
 

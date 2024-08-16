@@ -3,11 +3,10 @@ import React, { useEffect, useMemo } from 'react';
 import appInfo from './app-info';
 import { SideNavInnerToolbar as SideNavBarLayout } from './layouts';
 import { Footer } from './components';
-import routes from './app-routes';
 
 
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchNavigationItems } from './actions/navigationActions';
+import { fetchNavigationItems } from './redux/actions/navigationActions';
 import resolvedComponents from './app-routes';
 import withRoleProtection from './utils/withRoleProtection';
 import Unauthorized from './pages/unauthorized';

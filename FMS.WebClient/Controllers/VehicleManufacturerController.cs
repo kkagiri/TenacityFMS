@@ -1,5 +1,6 @@
 ﻿using FMS.Application.Queries.Database.FMSQuery.VehicleManufacturer;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers
@@ -19,7 +20,8 @@ namespace FMS.WebClient.Controllers
         }
 
 
-        [HttpGet("getlist")]
+        [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetVehicleManufacturer()
         {
             var query = new GetVehicleManufacturerQuery();
@@ -27,5 +29,6 @@ namespace FMS.WebClient.Controllers
 
             return Ok(vehicleManufacturer);
         }
-    }
+
+         }
 }

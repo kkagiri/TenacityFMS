@@ -5,7 +5,7 @@ import { useNavigation } from '../../contexts/navigation';
 import { useScreenSize } from '../../utils/media-query';
 import './SideNavigationMenu.scss';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchNavigationItems } from '../../actions/navigationActions';
+import { fetchNavigationItems } from '../../redux/actions/navigationActions';
 import * as events from 'devextreme/events';
 
 export default function SideNavigationMenu(props) {
@@ -60,7 +60,6 @@ export default function SideNavigationMenu(props) {
 
   const transformedNavigationItems = useMemo(() => {
     if (!navigationItems || navigationItems.length === 0) return [];
-
     return transformToNested(navigationItems).map(item => ({
       text: item.page.charAt(0).toUpperCase() + item.page.slice(1),
       path: item.link && item.link !== "''" ? item.link : '',

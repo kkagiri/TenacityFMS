@@ -31,6 +31,7 @@ public partial class Vehicle
 
     public string? Capacity { get; set; }
 
+    public string? Passenger { get; set; }
     public string? CurrentPhysicalReading { get; set; }
 
     public sbyte? GpsgategeneratedId { get; set; }

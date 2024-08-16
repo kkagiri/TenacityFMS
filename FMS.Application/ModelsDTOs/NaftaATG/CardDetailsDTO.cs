@@ -15,10 +15,5 @@ namespace FMS.Application.ModelsDTOs.NaftaATG
         public VehicleDTO Vehicle { get; set; }
     }
 
-    public class VehicleDTO
-    {
-        public string HyoungNo { get; set; }
-        public int? VehicleId { get; set; }
-        public string VehicleTypeId { get; set; } = string.Empty;
-    }
+   
 }

@@ -10,6 +10,7 @@ using FMS.Application.Command.DatabaseCommand.ConsumptionCmd;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update;
 using FMS.Application.Queries.Database.FMSQuery.Consumption;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 //using FMS.Application.Queries.Database.Consumption;
 
 namespace FMS.WebClient.Controllers
@@ -31,6 +32,72 @@ namespace FMS.WebClient.Controllers
             _configuration = configuration;
             _logger = logger;
         }
+        [HttpGet("manualRefills")]
+        public async Task<IActionResult> GetManualConsumption([FromQuery]  string startDate,string endDate)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+
+            if (_startDate == default(DateTime)|| _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+               var query = new GetVehicleConsumptionManualRefillQuery(_startDate,_endDate);
+
+                var results = await _mediator.Send(query);
+
+                return Ok(results);
+         }
+
+
+        [HttpGet("manualRefillsbySiteId")]
+        public async Task<IActionResult> GetManualConsumptionBySiteId([FromQuery] string startDate, string endDate,int SiteId)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if(SiteId <= 0) return BadRequest("Invalid Site ID");
+           
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))  return BadRequest("Invalid date");
+           
+
+            var query = new GetVehicleConsumptionManualRefillBySiteIdQuery(_startDate, _endDate,SiteId);
+
+            var results = await _mediator.Send(query);
+
+            return Ok(results);
+        }
+
+
+        [HttpGet("vehicleRefills")]
+        public async Task<IActionResult> GetManualConsumptionByVehicleID([FromQuery] string startDate, string endDate,int? vehicleId)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if(vehicleId == null || vehicleId <= 0)
+            {
+                return BadRequest("Invalid vehicle ID");
+            }
+
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+            var query = new GetConsumptionManualRefillByVehicleIDQuery(_startDate, _endDate,vehicleId);
+
+            var results = await _mediator.Send(query);
+
+            return Ok(results);
+        }
+
+
+
 
         /// <summary>
         /// Get histroical data TODO: Search days on settings or application

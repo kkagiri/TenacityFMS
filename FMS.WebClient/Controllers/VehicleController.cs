@@ -1,14 +1,9 @@
-﻿using AutoMapper;
-using AutoMapper.Configuration.Annotations;
-using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+﻿using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+using FMS.Application.ModelsDTOs.FMS.Vehicle;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
-using FMS.Domain.Entities;
-using FMS.WebClient.Models.DatabaseViewModel.VehicleViewModel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Newtonsoft.Json;
 
 namespace FMS.WebClient.Controllers
 {
@@ -18,19 +13,18 @@ namespace FMS.WebClient.Controllers
     {
 
         private readonly IMediator _mediator;
-        private readonly IMapper _mapper;
 
-        public VehicleController(IMediator mediator,IMapper mapper)
+        public VehicleController(IMediator mediator)
         {
             _mediator = mediator;
-            _mapper = mapper;
         }
 
 
-        [HttpGet("getlist")]
+        [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetVehicleList()
         {
-            var query = new GetVehicleQuery();
+            var query = new GetVehicleListQuery();
 
             var vehicles = await _mediator.Send(query);
 
@@ -39,24 +33,22 @@ namespace FMS.WebClient.Controllers
         }
 
 
-        [HttpGet("getVehicleById")]
+        [HttpGet("/{id}")]
+        [Authorize]
+
         public async Task<IActionResult> GetVehicleByID(int id)
         {
             
-            var query = new GetVehicleByIDQuery { Id = id };
-
+            var query = new GetVehicleByIDQuery(id);
             var vehicle = await _mediator.Send(query);
-
-            if (vehicle == null)
-            {
-                return NotFound();
-            }
-
+            if (vehicle == null) return NotFound();           
             return Ok(vehicle);
         }
 
 
-        [HttpGet("getsimplevehiclelist")]
+        [HttpGet("simple")]
+        [Authorize]
+
         public async Task<IActionResult> GetSimpleVehicleList()
         {
             var query = new GetSimpleVehicleQuery();
@@ -65,35 +57,38 @@ namespace FMS.WebClient.Controllers
         }
 
 
-        [Authorize(Policy = "RequirePowerUserRole")]
-
-        [HttpPut("UpdateVehicle/{vehicleId}")]
-        public async Task<IActionResult> UpdateVehicle(int vehicleId, [FromBody] VehicleViewModel model)
+        [HttpPut]
+        [Authorize]
+        public async Task<IActionResult> UpdateVehicle([FromBody] List<VehicleDTO> vehicleDTOs)
         {
 
+            var hasPermission = User.HasClaim("permissions", "_EditVehicle");
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (vehicleId != model.VehicleId)
-            {
-                Console.WriteLine("BadRequest: vehicleId does not match model.VehicleID");
-
-                return BadRequest();
-            }
-
-
-           var command = _mapper.Map<UpdatevehicleCommand>(model);
-
+            var command = new UpdateVehiclesCommand(vehicleDTOs);
             var result = await _mediator.Send(command);
-           
-            if(result)
-            {
-                return NoContent();
-            }
-            else
-            {
-                Console.WriteLine("NotFound: vehicle not updated");
-                return NotFound();
-            }
+            if (!result.Success) return BadRequest(result.Message);
+            return Ok(result);
 
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleDTO vehicleDTO)
+        {
+            var hasPermission = User.HasClaim("permissions", "_EditVehicle");
+            if (!hasPermission) return Forbid();
+          //  if (vehicleDTO.VehicleId != id) return BadRequest("Vehicle Id mismatch");
+            if (id == 0 || id < 0) return BadRequest("Invalid Vehicle Id");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            vehicleDTO.VehicleId = id;
+            var command = new UpdateSingleVehicleCommand(vehicleDTO);
+            var result = await _mediator.Send(command);
+
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
         }
     }
 }

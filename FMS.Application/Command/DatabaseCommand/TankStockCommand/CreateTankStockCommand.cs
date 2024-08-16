@@ -41,7 +41,7 @@ public class CreateTankStockCommandHandler : IRequestHandler<CreateTankStockComm
             var tankStock = _mapper.Map<Tankstock>(request.TankStockDTO);
 
 
-            tankStock.ManualDeliveryAmount = tankStock.ManualStartLevel - tankStock.ManualEndLevel;
+           // tankStock.ManualDeliveryAmount = tankStock.ManualStartLevel - tankStock.ManualEndLevel;
             tankStock.RecordedBy = user.Id;
             _context.Tankstocks.Add(tankStock);
             await _context.SaveChangesAsync(cancellationToken);

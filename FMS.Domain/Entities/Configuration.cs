@@ -14,4 +14,5 @@ public partial class Configuration
     public int PacketId { get; set; }
 
     public string Ptsid { get; set; } = null!;
+
 }

@@ -10,6 +10,7 @@ namespace FMS.WebClient.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
 
     public class SiteController : ControllerBase
     {
@@ -23,6 +24,7 @@ namespace FMS.WebClient.Controllers
 
         //return list of sites
         [HttpGet("getlist")]
+        [Authorize]
         public async Task<IActionResult> GetSiteList()
         {
 
@@ -34,16 +36,23 @@ namespace FMS.WebClient.Controllers
 
         //return list of sites by user id
         [HttpGet("getsitebyuserid")]
+        [Authorize]
         public async Task<IActionResult> GetSitesByUserId()
         {
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var query = new GetSitesByUserIdQuery(userId);
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                 c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                 Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            var query = new GetSitesByUserIdQuery(userIdClaim.Value);
             var sites = await _mediator.Send(query);
             return Ok(sites);
         }
 
         [HttpPut("assignSitestoUser")]
+        [Authorize]
         public async Task<IActionResult> AssignSiteToUser(AssignSitesToUserCommand command)
         {
             if (command == null || string.IsNullOrEmpty(command.UserId) || command.SiteIds == null || !command.SiteIds.Any())

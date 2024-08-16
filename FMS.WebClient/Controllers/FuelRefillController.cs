@@ -44,7 +44,7 @@ public class FuelRefillController : ControllerBase
         var results = await _mediator.Send(command);
         if (!results.Success) return BadRequest(results.Message);
 
-    return Ok(results.CreatedFuelRefill);
+    return Ok(results);
         }
 
     [HttpGet("{id}")]
@@ -73,6 +73,9 @@ public class FuelRefillController : ControllerBase
         return Ok(fuelRefil);
     }
 
+
+  
+
     [HttpPut("{id}")]
     [Authorize]
 
@@ -96,8 +99,8 @@ public class FuelRefillController : ControllerBase
         var command = new UpdateFuelRefillCommand(fuelRefilDTO,id );
 
         var result = await _mediator.Send(command);
-        if (!result)  return NotFound();
-         return NoContent();
+        if (!result.Success)  return NotFound();
+         return Ok(result);
     }
 
     [HttpDelete("{id}")]

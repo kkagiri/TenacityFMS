@@ -1,0 +1,615 @@
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/AuthActions.js
+
+import axiosInstance from '../api/axiosInstance';
+import {
+LOGIN_SUCCESS,
+LOGIN_FAILURE,
+LOGOUT,
+USER_LOADED,
+AUTH_ERROR,
+AUTH_REQUEST,
+AUTH_SUCCESS,
+AUTH_FAILURE,
+} from './types';
+export const loadUser = () => async (dispatch) => {
+dispatch({ type: AUTH_REQUEST });
+try {
+const response = await axiosInstance.get('/user/details');
+const user = response.data;
+dispatch({ type: USER_LOADED, payload: response.data });
+} catch (error) {
+dispatch({ type: AUTH_ERROR, payload: error.message });
+}
+};
+export const signIn = (username, password) => async (dispatch) => {
+dispatch({ type: AUTH_REQUEST });
+try {
+const response = await axiosInstance.post(`/user/login`, { username, password });
+const { token, user } = response.data;
+localStorage.setItem('token', token);
+dispatch({ type: LOGIN_SUCCESS, payload: { user, token } });
+dispatch(loadUser()); // Load user details after login
+return { isOk: true };
+} catch (error) {
+let errorMessage = 'An error occurred during login';
+if (error.response && error.response.status === 401) {
+errorMessage = 'Wrong username or password';
+}
+dispatch({ type: LOGIN_FAILURE, payload: errorMessage });
+return { isOk: false, message: errorMessage };
+}
+};
+export const logout = () => (dispatch) => {
+localStorage.removeItem('token');
+dispatch({ type: LOGOUT });
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/consumptionActions.js
+
+
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/employeeActions.js
+
+import axiosInstance from "../api/axiosInstance";
+export const FETCH_EMPLOYEES_REQUEST = 'FETCH_EMPLOYEES_REQUEST';
+export const FETCH_EMPLOYEES_SUCCESS = 'FETCH_EMPLOYEES_SUCCESS';
+export const FETCH_EMPLOYEES_FAILURE = 'FETCH_EMPLOYEES_FAILURE';
+export const FETCH_EMPLOYEE_REQUEST = 'FETCH_EMPLOYEE_REQUEST';
+export const FETCH_EMPLOYEE_SUCCESS = 'FETCH_EMPLOYEE_SUCCESS';
+export const FETCH_EMPLOYEE_FAILURE = 'FETCH_EMPLOYEE_FAILURE';
+export const CREATE_EMPLOYEE_REQUEST = 'CREATE_EMPLOYEE_REQUEST';
+export const CREATE_EMPLOYEE_SUCCESS = 'CREATE_EMPLOYEE_SUCCESS';
+export const CREATE_EMPLOYEE_FAILURE = 'CREATE_EMPLOYEE_FAILURE';
+export const UPDATE_EMPLOYEE_REQUEST = 'UPDATE_EMPLOYEE_REQUEST';
+export const UPDATE_EMPLOYEE_SUCCESS = 'UPDATE_EMPLOYEE_SUCCESS';
+export const UPDATE_EMPLOYEE_FAILURE = 'UPDATE_EMPLOYEE_FAILURE';
+export const DELETE_EMPLOYEE_REQUEST = 'DELETE_EMPLOYEE_REQUEST';
+export const DELETE_EMPLOYEE_SUCCESS = 'DELETE_EMPLOYEE_SUCCESS';
+export const DELETE_EMPLOYEE_FAILURE = 'DELETE_EMPLOYEE_FAILURE';
+// Action Creators
+export const fetchEmployees = (active = true) => async (dispatch) => {
+dispatch({ type: FETCH_EMPLOYEES_REQUEST });
+try {
+const response = await axiosInstance.get(`/employee?active=${active}`);
+dispatch({ type: FETCH_EMPLOYEES_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_EMPLOYEES_FAILURE, payload: error.message });
+}
+};
+export const fetchEmployee = (id) => async (dispatch) => {
+dispatch({ type: FETCH_EMPLOYEE_REQUEST });
+try {
+const response = await axiosInstance.get(`/employee/${id}`);
+dispatch({ type: FETCH_EMPLOYEE_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_EMPLOYEE_FAILURE, payload: error.message });
+}
+};
+export const createEmployee = (employeeData) => async (dispatch) => {
+dispatch({ type: CREATE_EMPLOYEE_REQUEST });
+try {
+const newValues = {
+...employeeData,
+employeestatus: "Active",
+vehicles: employeeData.vehicles || [] // Directly use the array of vehicle IDs
+};
+if (newValues.siteId == 0) {
+delete newValues.siteId;
+}
+const response = await axiosInstance.post('/employee', newValues);
+dispatch({ type: CREATE_EMPLOYEE_SUCCESS, payload: response.data });
+return response.data;
+} catch (error) {
+const errorMessage = error.response?.data?.message || error.message;
+dispatch({ type: CREATE_EMPLOYEE_FAILURE, payload: errorMessage });
+}
+};
+export const updateEmployee = (key, employeeData) => async (dispatch) => {
+dispatch({ type: UPDATE_EMPLOYEE_REQUEST });
+try {
+const updatedData = {
+...employeeData,
+id: key,
+vehicles: employeeData.vehicles || [] // Directly use the array of vehicle IDs
+};
+if (updatedData.siteId === 0) {
+delete updatedData.siteId;
+}
+const response = await axiosInstance.put(`/employee/${key}`, updatedData);
+dispatch({ type: UPDATE_EMPLOYEE_SUCCESS, payload: response.data });
+return response.data;
+} catch (error) {
+dispatch({ type: UPDATE_EMPLOYEE_FAILURE, payload: error.message });
+}
+};
+export const deleteEmployee = (id) => async (dispatch) => {
+dispatch({ type: DELETE_EMPLOYEE_REQUEST });
+try {
+await axiosInstance.delete(`/employee/${id}`);
+dispatch({ type: DELETE_EMPLOYEE_SUCCESS, payload: id });
+} catch (error) {
+dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: error.message });
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/fuelRefillAction.js
+
+import axiosInstance from '../api/axiosInstance';
+export const FETCH_FUEL_REFILLS_SUCCESS = 'FETCH_FUEL_REFILLS_SUCCESS';
+export const FETCH_FUEL_REFILLS_FAILURE = 'FETCH_FUEL_REFILLS_FAILURE';
+export const CREATE_FUEL_REFILL_SUCCESS = 'CREATE_FUEL_REFILL_SUCCESS';
+export const CREATE_FUEL_REFILL_FAILURE = 'CREATE_FUEL_REFILL_FAILURE';
+export const UPDATE_FUEL_REFILL_SUCCESS = 'UPDATE_FUEL_REFILL_SUCCESS';
+export const UPDATE_FUEL_REFILL_FAILURE = 'UPDATE_FUEL_REFILL_FAILURE';
+export const DELETE_FUEL_REFILL_SUCCESS = 'DELETE_FUEL_REFILL_SUCCESS';
+export const DELETE_FUEL_REFILL_FAILURE = 'DELETE_FUEL_REFILL_FAILURE';
+export const fetchFuelRefills = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get('/fuelrefill');
+dispatch({ type: FETCH_FUEL_REFILLS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_FUEL_REFILLS_FAILURE, payload: error.message });
+}
+};
+export const createFuelRefill = (fuelRefill) => async (dispatch) => {
+try {
+const response = await axiosInstance.post('/fuelrefill', fuelRefill);
+dispatch({ type: CREATE_FUEL_REFILL_SUCCESS, payload: response.data.message });
+return { success: true, message: response.data.message };
+} catch (error) {
+const errorMessage = error.response?.data?.message || error.message;
+dispatch({ type: CREATE_FUEL_REFILL_FAILURE, payload: errorMessage });
+return { success: false, message: errorMessage };
+}
+};
+export const updateFuelRefill = (id, fuelRefill) => async (dispatch) => {
+try {
+const response =  await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill);
+dispatch({ type: UPDATE_FUEL_REFILL_SUCCESS, payload: { id, fuelRefill } });
+return { success: true, message: response.data.message };
+} catch (error) {
+const errorMessage = error.response?.data?.message || error.message;
+dispatch({ type: UPDATE_FUEL_REFILL_FAILURE, payload: errorMessage  });
+return { success: false, message: errorMessage };
+}
+};
+export const deleteFuelRefill = (id) => async (dispatch) => {
+try {
+await axiosInstance.delete(`/fuelrefill/${id}`);
+dispatch({ type: DELETE_FUEL_REFILL_SUCCESS, payload: id });
+} catch (error) {
+dispatch({ type: DELETE_FUEL_REFILL_FAILURE, payload: error.message });
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/navigationActions.js
+
+import axiosInstance from '../api/axiosInstance';
+export const FETCH_NAVIGATION_ITEMS_SUCCESS = 'FETCH_NAVIGATION_ITEMS_SUCCESS';
+export const FETCH_NAVIGATION_ITEMS_FAILURE = 'FETCH_NAVIGATION_ITEMS_FAILURE';
+export const CREATE_NAVIGATION_ITEM_SUCCESS = 'CREATE_NAVIGATION_ITEM_SUCCESS';
+export const CREATE_NAVIGATION_ITEM_FAILURE = 'CREATE_NAVIGATION_ITEM_FAILURE';
+export const UPDATE_NAVIGATION_ITEM_SUCCESS = 'UPDATE_NAVIGATION_ITEM_SUCCESS';
+export const UPDATE_NAVIGATION_ITEM_FAILURE = 'UPDATE_NAVIGATION_ITEM_FAILURE';
+export const DELETE_NAVIGATION_ITEM_SUCCESS = 'DELETE_NAVIGATION_ITEM_SUCCESS';
+export const DELETE_NAVIGATION_ITEM_FAILURE = 'DELETE_NAVIGATION_ITEM_FAILURE';
+export const ASSIGN_ROLES_TO_NAVIGATION_ITEM_SUCCESS = 'ASSIGN_ROLES_TO_NAVIGATION_ITEM_SUCCESS';
+export const ASSIGN_ROLES_TO_NAVIGATION_ITEM_FAILURE = 'ASSIGN_ROLES_TO_NAVIGATION_ITEM_FAILURE';
+export const FETCH_ALL_NAVIGATION_ITEMS_SUCCESS = 'FETCH_ALL_NAVIGATION_ITEMS_SUCCESS';
+export const FETCH_ALL_NAVIGATION_ITEMS_FAILURE = 'FETCH_ALL_NAVIGATION_ITEMS_FAILURE';
+export const fetchAllNavigationItems = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get('/navigation/all');
+dispatch({ type: FETCH_ALL_NAVIGATION_ITEMS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_ALL_NAVIGATION_ITEMS_FAILURE, payload: error.message });
+}
+};
+export const LOGOUT = 'LOGOUT';
+export const fetchNavigationItems = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get('/navigation');
+dispatch({ type: FETCH_NAVIGATION_ITEMS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_NAVIGATION_ITEMS_FAILURE, payload: error.message });
+}
+};
+export const createNavigationItem = (item) => async (dispatch) => {
+try {
+const response = await axiosInstance.post('/navigation', item);
+dispatch({ type: CREATE_NAVIGATION_ITEM_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: CREATE_NAVIGATION_ITEM_FAILURE, payload: error.message });
+}
+};
+export const updateNavigationItem = (id, item) => async (dispatch) => {
+try {
+await axiosInstance.put(`/navigation/${id}`, item);
+dispatch({ type: UPDATE_NAVIGATION_ITEM_SUCCESS, payload: { id, item } });
+} catch (error) {
+dispatch({ type: UPDATE_NAVIGATION_ITEM_FAILURE, payload: error.message });
+}
+};
+export const deleteNavigationItem = (id) => async (dispatch) => {
+try {
+await axiosInstance.delete(`/navigation/${id}`);
+dispatch({ type: DELETE_NAVIGATION_ITEM_SUCCESS, payload: id });
+} catch (error) {
+dispatch({ type: DELETE_NAVIGATION_ITEM_FAILURE, payload: error.message });
+}
+};
+export const assignRolesToNavigationItem = (id, roles) => async (dispatch) => {
+try {
+const response = await axiosInstance.post('navigation/AssignRoles', { NavigationItemId: id, RoleIds: roles });
+dispatch({ type: ASSIGN_ROLES_TO_NAVIGATION_ITEM_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: ASSIGN_ROLES_TO_NAVIGATION_ITEM_FAILURE, payload: error.message });
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/permissionActions.js
+
+import axiosInstance from '../api/axiosInstance';
+import { FETCH_PERMISSIONS_SUCCESS, FETCH_PERMISSIONS_FAILURE } from './types';
+// export const FETCH_PERMISSIONS_SUCCESS = 'FETCH_PERMISSIONS_SUCCESS';
+// export const FETCH_PERMISSIONS_FAILURE = 'FETCH_PERMISSIONS_FAILURE';
+export const SET_ROLE_PERMISSIONS = 'SET_ROLE_PERMISSIONS';
+export const FETCH_PERMISSION_BY_USER_ID_SUCCESS = 'FETCH_PERMISSION_BY_USER_ID_SUCCESS';
+export const FETCH_PERMISSION_BY_USER_ID_FAILURE = 'FETCH_PERMISSION_BY_USER_ID_FAILURE';
+export const fetchPermissions = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get('/permission');
+dispatch({ type: FETCH_PERMISSIONS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_PERMISSIONS_FAILURE, payload: error.message });
+}
+};
+export const fetchpermissionbyUserId = (userId) => async (dispatch) => {
+try {
+const response = await axiosInstance.get(`/permission/user/${userId}`);
+dispatch({ type: 'FETCH_PERMISSION_BY_USER_ID_SUCCESS', payload: response.data });
+} catch (error) {
+dispatch({ type: 'FETCH_PERMISSION_BY_USER_ID_FAILURE', payload: error.message });
+}
+}
+export const fetchPermissionById = (roleId) => async (dispatch) => {
+try {
+const response = await axiosInstance.get(`/permission/getpermissionsbyroleid?roleID=${roleId}`);
+dispatch({ type: 'GET_PERMISSION_BY_ID_SUCCESS', payload: response.data });
+} catch (error) {
+dispatch({ type: 'GET_PERMISSION_BY_ID_FAILURE', payload: error.message });
+}
+};
+export const createPermission = (permissionData) => async (dispatch) => {
+try {
+const response = await axiosInstance.post('/permission', permissionData);
+dispatch({ type: 'CREATE_PERMISSION_SUCCESS', payload: response.data });
+} catch (error) {
+dispatch({ type: 'CREATE_PERMISSION_FAILURE', payload: error.message });
+}
+};
+export const updatePermission = (id, permissionData) => async (dispatch) => {
+try {
+const response = await axiosInstance.put(`/permission/${id}`, permissionData);
+dispatch({ type: 'UPDATE_PERMISSION_SUCCESS', payload: response.data });
+} catch (error) {
+dispatch({ type: 'UPDATE_PERMISSION_FAILURE', payload: error.message });
+}
+};
+export const deletePermission = (id) => async (dispatch) => {
+try {
+await axiosInstance.delete(`/permission/${id}`);
+dispatch({ type: 'DELETE_PERMISSION_SUCCESS', payload: id });
+} catch (error) {
+dispatch({ type: 'DELETE_PERMISSION_FAILURE', payload: error.message });
+}
+};
+export const setRolePermissions = (permissions) => ({
+type: SET_ROLE_PERMISSIONS,
+payload: permissions
+});
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/roleActions.js
+
+import axiosInstance from '../api/axiosInstance';
+import {
+FETCH_ROLE_DETAILS_SUCCESS,
+FETCH_ROLE_DETAILS_FAILURE,
+ASSIGN_PERMISSIONS_SUCCESS,
+ASSIGN_PERMISSIONS_FAILURE,
+SET_ROLE_PERMISSIONS,
+SET_USERS,
+CLEAR_PERMISSIONS,
+CLEAR_USERS,
+UPDATE_ROLE_SUCCESS,
+UPDATE_ROLE_FAILURE,
+UPDATE_ROLE_USERS_SUCCESS,
+UPDATE_ROLE_USERS_FAILURE
+} from './types';
+export const fetchRoleDetails = (roleId) => async (dispatch) => {
+try {
+const roleDetails = await axiosInstance.get(`/role/${roleId}`);
+const allPermissions = await axiosInstance.get(`/permission`);
+const rolePermissions = await axiosInstance.get(`/permission/role/${roleId}`);
+const users = await axiosInstance.get(`/role/UsersInRole/${roleId}`);
+const allUsers = await axiosInstance.get(`/user`);
+dispatch({
+type: FETCH_ROLE_DETAILS_SUCCESS,
+payload: {
+roleDetails: roleDetails.data,
+allPermissions: allPermissions.data,
+rolePermissions: rolePermissions.data.map(p => p.id),
+users: users.data,
+allUsers: allUsers.data
+}
+});
+} catch (error) {
+dispatch({
+type: FETCH_ROLE_DETAILS_FAILURE,
+payload: error.message
+});
+}
+};
+export const assignPermissionsToRole = (roleId, permissionIds) => async (dispatch) => {
+try {
+console.log('RoleAction_roleId:', roleId);
+console.log('RoleAction_permissionIds:', permissionIds);
+const response = await axiosInstance.post(`/role/AssignPermissions`, { roleId, permissionIds });
+console.log('RoleAction_response:', response);
+if (response.data.success) {
+dispatch({ type: ASSIGN_PERMISSIONS_SUCCESS, payload: { roleId, permissionIds } });
+return { success: true, message: response.data.message };
+} else {
+dispatch({ type: ASSIGN_PERMISSIONS_FAILURE, payload: response.data.message });
+return { success: false, message: response.data.message };
+}
+} catch (error) {
+dispatch({ type: ASSIGN_PERMISSIONS_FAILURE, payload: error.message });
+throw new Error('Error assigning permissions to role', error.message);
+}
+};
+export const updateRoleForUsers = (roleId, userIds) => async (dispatch) => {
+try {
+const response = await axiosInstance.post(`/role/UpdateRoleUsers`, { roleId, userIds: userIds.map(u => u.id)});
+const { succeed, message } = response.data;
+if (succeed) {
+dispatch({ type: UPDATE_ROLE_USERS_SUCCESS, payload: { roleId, userIds } });
+} else {
+dispatch({ type: UPDATE_ROLE_USERS_FAILURE, payload: message });
+}
+return response.data;
+} catch (error) {
+dispatch({ type: UPDATE_ROLE_USERS_FAILURE, payload: error.message });
+throw new Error('Error updating role users', error.message);
+}
+};
+export const clearPermissions = () => ({ type: CLEAR_PERMISSIONS });
+export const clearUsers = () => ({ type: CLEAR_USERS });
+export const setRolePermissions = (permissions) => ({ type: SET_ROLE_PERMISSIONS, payload: permissions });
+export const setUsers = (users) => ({ type: SET_USERS, payload: users });
+export const fetchRoles = () => async (dispatch) => {
+try {
+dispatch({ type: 'LOADING_ROLES' });
+const response = await axiosInstance.get('/role/getlist');
+dispatch({ type: 'GET_ROLES_SUCCESS', payload: response.data });
+} catch (error) {
+dispatch({ type: 'GET_ROLES_FAILURE', payload: error.message });
+}
+};
+export const setSelectedRole = (role) => ({
+type: 'SET_SELECTED_ROLE',
+payload: role
+});
+export const updateRole = (roleId, roleDetails) => async (dispatch) => {
+try {
+console.log(" RoleActions_roleDetails",roleDetails);
+const response = await axiosInstance.put(`/role/${roleId}`, roleDetails);
+dispatch({ type: UPDATE_ROLE_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: UPDATE_ROLE_FAILURE, payload: error.message });
+throw new Error('Error updating role', error.message);
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/siteActions.js
+
+import axiosInstance from "../api/axiosInstance";
+// Action types
+export const FETCH_SITES_SUCCESS = 'FETCH_SITES_SUCCESS';
+export const FETCH_SITES_FAILURE = 'FETCH_SITES_FAILURE';
+// Action creators
+export const fetchSitesSuccess = (sites) => ({
+type: FETCH_SITES_SUCCESS,
+payload: sites
+});
+export const fetchSitesFailure = (error) => ({
+type: FETCH_SITES_FAILURE,
+payload: error
+});
+// Thunk action for fetching sites
+export const fetchSiteList = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get(`/site/getlist`);
+dispatch(fetchSitesSuccess(response.data));
+} catch (error) {
+dispatch(fetchSitesFailure(error.message));
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/tankActions.js
+
+import axiosInstance from '../api/axiosInstance';
+export const FETCH_TANKS_SUCCESS = 'FETCH_TANKS_SUCCESS';
+export const FETCH_TANKS_FAILURE = 'FETCH_TANKS_FAILURE';
+export const CREATE_TANK_SUCCESS = 'CREATE_TANK_SUCCESS';
+export const CREATE_TANK_FAILURE = 'CREATE_TANK_FAILURE';
+export const UPDATE_TANK_SUCCESS = 'UPDATE_TANK_SUCCESS';
+export const UPDATE_TANK_FAILURE = 'UPDATE_TANK_FAILURE';
+export const DELETE_TANK_SUCCESS = 'DELETE_TANK_SUCCESS';
+export const DELETE_TANK_FAILURE = 'DELETE_TANK_FAILURE';
+export const FETCH_TANK_BY_SITE_ID_SUCCESS = 'FETCH_TANK_BY_SITE_ID_SUCCESS';
+export const FETCH_TANK_BY_SITE_ID_FAILURE = 'FETCH_TANK_BY_SITE_ID_FAILURE';
+export const fetchTanks = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get('/tank');
+dispatch({ type: FETCH_TANKS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_TANKS_FAILURE, payload: error.message });
+}
+};
+export const fetctTankbySiteId = (siteId) => async (dispatch) => {
+try
+{
+const response = await axiosInstance.get(`/tank/site/${siteId}`);
+dispatch({ type: FETCH_TANK_BY_SITE_ID_SUCCESS, payload: response.data });
+}catch (error) {
+dispatch({ type: FETCH_TANK_BY_SITE_ID_FAILURE, payload: error.message });
+}
+}
+export const createTank = (tank) => async (dispatch) => {
+try {
+const response = await axiosInstance.post('/tank', tank);
+dispatch({ type: CREATE_TANK_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: CREATE_TANK_FAILURE, payload: error.message });
+}
+};
+export const updateTank = (id, tank) => async (dispatch) => {
+try {
+await axiosInstance.put(`/tank/${id}`, tank);
+dispatch({ type: UPDATE_TANK_SUCCESS, payload: { id, tank } });
+} catch (error) {
+dispatch({ type: UPDATE_TANK_FAILURE, payload: error.message });
+}
+};
+export const deleteTank = (id) => async (dispatch) => {
+try {
+await axiosInstance.delete(`/tank/${id}`);
+dispatch({ type: DELETE_TANK_SUCCESS, payload: id });
+} catch (error) {
+dispatch({ type: DELETE_TANK_FAILURE, payload: error.message });
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/tankStockAction.js
+
+import axiosInstance from '../api/axiosInstance';
+export const FETCH_TANK_STOCKS_SUCCESS = 'FETCH_TANK_STOCKS_SUCCESS';
+export const FETCH_TANK_STOCKS_FAILURE = 'FETCH_TANK_STOCKS_FAILURE';
+export const CREATE_TANK_STOCK_SUCCESS = 'CREATE_TANK_STOCK_SUCCESS';
+export const CREATE_TANK_STOCK_FAILURE = 'CREATE_TANK_STOCK_FAILURE';
+export const UPDATE_TANK_STOCK_SUCCESS = 'UPDATE_TANK_STOCK_SUCCESS';
+export const UPDATE_TANK_STOCK_FAILURE = 'UPDATE_TANK_STOCK_FAILURE';
+export const DELETE_TANK_STOCK_SUCCESS = 'DELETE_TANK_STOCK_SUCCESS';
+export const DELETE_TANK_STOCK_FAILURE = 'DELETE_TANK_STOCK_FAILURE';
+export const fetchTankStocks = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get('/tankstock');
+dispatch({ type: FETCH_TANK_STOCKS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_TANK_STOCKS_FAILURE, payload: error.message });
+}
+};
+export const createTankStock = (tankStock) => async (dispatch) => {
+try {
+const response = await axiosInstance.post('/tankstock', tankStock);
+dispatch({ type: CREATE_TANK_STOCK_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: CREATE_TANK_STOCK_FAILURE, payload: error.message });
+}
+};
+export const updateTankStock = (id, tankStock) => async (dispatch) => {
+try {
+await axiosInstance.put(`/tankstock/${id}`, tankStock);
+dispatch({ type: UPDATE_TANK_STOCK_SUCCESS, payload: { id, tankStock } });
+} catch (error) {
+dispatch({ type: UPDATE_TANK_STOCK_FAILURE, payload: error.message });
+}
+};
+export const deleteTankStock = (id) => async (dispatch) => {
+try {
+await axiosInstance.delete(`/tankstock/${id}`);
+dispatch({ type: DELETE_TANK_STOCK_SUCCESS, payload: id });
+} catch (error) {
+dispatch({ type: DELETE_TANK_STOCK_FAILURE, payload: error.message });
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/types.js
+
+export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
+export const LOGIN_FAILURE = 'LOGIN_FAILURE';
+export const LOGOUT = 'LOGOUT';
+export const USER_LOADED = 'USER_LOADED';
+export const AUTH_ERROR = 'AUTH_ERROR';
+export const AUTH_REQUEST = 'AUTH_REQUEST';
+export const AUTH_SUCCESS = 'AUTH_SUCCESS';
+export const AUTH_FAILURE = 'AUTH_FAILURE';
+export const FETCH_PERMISSIONS_SUCCESS = 'FETCH_PERMISSIONS_SUCCESS';
+export const FETCH_PERMISSIONS_FAILURE = 'FETCH_PERMISSIONS_FAILURE';
+export const FETCH_ROLE_DETAILS_SUCCESS = 'FETCH_ROLE_DETAILS_SUCCESS';
+export const FETCH_ROLE_DETAILS_FAILURE = 'FETCH_ROLE_DETAILS_FAILURE';
+export const ASSIGN_PERMISSIONS_SUCCESS = 'ASSIGN_PERMISSIONS_SUCCESS';
+export const ASSIGN_PERMISSIONS_FAILURE = 'ASSIGN_PERMISSIONS_FAILURE';
+export const SET_ROLE_PERMISSIONS = 'SET_ROLE_PERMISSIONS';
+export const SET_USERS = 'SET_USERS';
+export const CLEAR_PERMISSIONS = 'CLEAR_PERMISSIONS';
+export const CLEAR_USERS = 'CLEAR_USERS';
+export const UPDATE_ROLE_SUCCESS = 'UPDATE_ROLE_SUCCESS';
+export const UPDATE_ROLE_FAILURE = 'UPDATE_ROLE_FAILURE';
+export const UPDATE_ROLE_USERS_SUCCESS = 'UPDATE_ROLE_USERS_SUCCESS';
+export const UPDATE_ROLE_USERS_FAILURE = 'UPDATE_ROLE_USERS_FAILURE';
+export const FETCH_NAVIGATION_ITEMS_SUCCESS = 'FETCH_NAVIGATION_ITEMS_SUCCESS';
+export const FETCH_NAVIGATION_ITEMS_FAILURE = 'FETCH_NAVIGATION_ITEMS_FAILURE';
+export const CREATE_NAVIGATION_ITEM_SUCCESS = 'CREATE_NAVIGATION_ITEM_SUCCESS';
+export const CREATE_NAVIGATION_ITEM_FAILURE = 'CREATE_NAVIGATION_ITEM_FAILURE';
+export const UPDATE_NAVIGATION_ITEM_SUCCESS = 'UPDATE_NAVIGATION_ITEM_SUCCESS';
+export const UPDATE_NAVIGATION_ITEM_FAILURE = 'UPDATE_NAVIGATION_ITEM_FAILURE';
+export const DELETE_NAVIGATION_ITEM_SUCCESS = 'DELETE_NAVIGATION_ITEM_SUCCESS';
+export const DELETE_NAVIGATION_ITEM_FAILURE = 'DELETE_NAVIGATION_ITEM_FAILURE';
+export const ASSIGN_ROLES_TO_NAVIGATION_ITEM_SUCCESS = 'ASSIGN_ROLES_TO_NAVIGATION_ITEM_SUCCESS';
+export const ASSIGN_ROLES_TO_NAVIGATION_ITEM_FAILURE = 'ASSIGN_ROLES_TO_NAVIGATION_ITEM_FAILURE';
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/userActions.js
+
+import axiosInstance from "../api/axiosInstance";
+// Action Types
+export const FETCH_USERS_SUCCESS = 'FETCH_USERS_SUCCESS';
+export const FETCH_USERS_FAILURE = 'FETCH_USERS_FAILURE';
+// Action Creators
+export const fetchUsers = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get(`/user`);
+dispatch({ type: FETCH_USERS_SUCCESS, payload: response.data });
+} catch (error) {
+dispatch({ type: FETCH_USERS_FAILURE, payload: error.message });
+throw new Error('Data loading error');
+}
+};
+
+//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.frontend/src/actions/vehicleActions.js
+
+import axiosInstance from "../api/axiosInstance";
+// Action types
+export const FETCH_VEHICLES_SUCCESS = 'FETCH_VEHICLES_SUCCESS';
+export const FETCH_VEHICLES_FAILURE = 'FETCH_VEHICLES_FAILURE';
+// Action creators
+export const fetchVehiclesSuccess = (vehicles) => ({
+type: FETCH_VEHICLES_SUCCESS,
+payload: vehicles
+});
+export const fetchVehiclesFailure = (error) => ({
+type: FETCH_VEHICLES_FAILURE,
+payload: error
+});
+// Thunk action for fetching vehicles
+export const fetchVehicleList = () => async (dispatch) => {
+try {
+const response = await axiosInstance.get(`/vehicle/getlist`);
+dispatch(fetchVehiclesSuccess(response.data));
+} catch (error) {
+dispatch(fetchVehiclesFailure(error.message));
+}
+};
+// You can similarly define update, create and delete actions here
+

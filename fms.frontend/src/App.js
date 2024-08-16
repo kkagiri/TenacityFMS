@@ -4,6 +4,15 @@ import './themes/generated/dx.fluent.custom-scheme1.css';
 import './themes/generated/theme.additional.css';
 
 
+import './assests/fontawesome/js/fontawesome';
+ import './assests/fontawesome/js/light';
+
+
+ import './assests/fontawesome/css/fontawesome.css';
+ import './assests/fontawesome/css/regular.css';
+
+
+
 
 import React , { useEffect,useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
@@ -16,7 +25,7 @@ import { useScreenSizeClass } from './utils/media-query';
 import Content from './Content';
 import ProtectedRoute from './components/ProtectedRoute/protectedRoute';
 import UnauthenticatedContent from './UnauthenticatedContent';
-import  {loadUser}  from './actions/AuthActions'
+import  {loadUser}  from './redux/actions/AuthActions'
 import { initializeAxiosInstance } from './api/axiosInstance'; // Import the initialization function
 
 function App() {
@@ -28,7 +37,6 @@ function App() {
     const initialize = async () => {
       await initializeAxiosInstance(); // Initialize Axios instance
       setIsApiInitialized(true);
-      console.log('API initialized and Axios instance ready');
       dispatch(loadUser());
     };
     initialize();

@@ -1,4 +1,6 @@
-﻿using FMS.Domain.Entities;
+﻿using AutoMapper;
+using FMS.Application.Models;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -12,19 +14,21 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
 {
-    public record GetSitesByUserIdQuery (string UserId) : IRequest<List<Site>>;
+    public record GetSitesByUserIdQuery (string UserId) : IRequest<List<SiteDTO>>;
 
-    public class GetSitesByUserIdQueryHandler : IRequestHandler<GetSitesByUserIdQuery, List<Site>>
+    public class GetSitesByUserIdQueryHandler : IRequestHandler<GetSitesByUserIdQuery, List<SiteDTO>>
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<GetSitesByUserIdQueryHandler> _logger;
+        private readonly IMapper _mapper;
 
-        public GetSitesByUserIdQueryHandler(GpsdataContext context, ILogger<GetSitesByUserIdQueryHandler> logger)
+        public GetSitesByUserIdQueryHandler(GpsdataContext context, ILogger<GetSitesByUserIdQueryHandler> logger , IMapper mapper)
         {
             _context = context;
             _logger = logger;
+            _mapper = mapper;
         }
-        public async Task<List<Site>> Handle(GetSitesByUserIdQuery request, CancellationToken cancellationToken)
+        public async Task<List<SiteDTO>> Handle(GetSitesByUserIdQuery request, CancellationToken cancellationToken)
         {
 
             try
@@ -44,7 +48,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
                     .Where(x=>x.usersite.UserId == userId.Id)
                     .Select(x=>x.site).ToListAsync(cancellationToken);
 
-                return sites;
+                return _mapper.Map<List<SiteDTO>>(sites);
             }
             catch (Exception ex)
             {

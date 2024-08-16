@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
+using FMS.Application.ModelsDTOs.FMS.Vehicle;
 
 namespace FMS.Application.Queries.Database.NaftaATGQueries.CardDetailsQueries
 {
@@ -53,7 +54,7 @@ namespace FMS.Application.Queries.Database.NaftaATGQueries.CardDetailsQueries
                     {
                         HyoungNo = vehicle.HyoungNo,
                         VehicleId = vehicle.VehicleId,
-                        VehicleTypeId = vehicle.VehicleType.Name,
+                        VehicleTypeId = vehicle.VehicleTypeId,
                     } : null
                 };
 

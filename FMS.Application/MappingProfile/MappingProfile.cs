@@ -19,55 +19,52 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FMS.Application.ModelsDTOs.FMS.TankTransfer;
+using FMS.Application.ModelsDTOs.FMS.TankVolumeHistory;
+using FMS.Application.ModelsDTOs.FMS.TankReconciliation;
+using FMS.Application.ModelsDTOs.FMS.Supplier;
+using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 
 namespace FMS.Application.MappingProfile
 {
     public class MappingProfile:Profile
     {
         public MappingProfile() { 
-            CreateMap<Site,SiteDTO>().ReverseMap();
+            CreateMap<Site,SiteDTO>().ForMember(dest=>dest.Name,opt =>opt.MapFrom(scr=>scr.Name.ToUpper())).ReverseMap();
             CreateMap<User, UserDto>().ReverseMap();
+            CreateMap<Delivery,DeliveryDTO>().ReverseMap();
+            CreateMap<Supplier,SupplierDTO>().ReverseMap();
+
+            CreateMap<Tankstock, TankStockDTO>().ForMember(dest => dest.EntryType, opt => opt.MapFrom(src => src.EntryType.ToString())).ReverseMap();
+            CreateMap<TankTransfer, TankTransferDTO>().ReverseMap();
+            CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>().ForMember(dest => dest.ChangeReason, opt => opt.MapFrom(src => src.ChangeReason.ToString()))
+                .ForMember(dest=>dest.Site,opt=>opt.MapFrom(src =>src.Tank.Site.Name)).ReverseMap();
+            CreateMap<Dailytankreconciliation,TankReconcillationDTO>() 
+                .ForMember(dest=>dest.TankName,opt=>opt.MapFrom(src=>src.Tank.Name))
+                .ForMember(dest=>dest.SiteName,opt=>opt.MapFrom(src=>src.Tank.Site.Name))
+                .ReverseMap();
+            CreateMap<Permission, PermissionDTO>().ReverseMap();
+            CreateMap<Vehicle, VehicleDTO>().ReverseMap();
+
+
+            
 
 
             CreateMap<Fuelrefil, FuelRefilDTO>()
-    .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
-        .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
-    .ReverseMap()
-    .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified ? (sbyte)1 : (sbyte)0));
-
-            CreateMap<Permission, PermissionDTO>().ReverseMap();
-            CreateMap<Tank, TankDTO>();
-            CreateMap<TankDTO, Tank>().
-                ForMember(dest=>dest.Site,opt=>opt.Ignore())
-                .ForMember(dest => dest.PtsDevice, opt=>opt.Ignore());
-          
-           
-;
-
+          .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
+         .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
+          .ReverseMap()
+         .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified ? (sbyte)1 : (sbyte)0));
 
            CreateMap<Role,RoleDto>().ForMember(dest=>dest.Id,opt=>opt.MapFrom(src=>src.Id))
             .ForMember(dest=>dest.Name,opt=>opt.MapFrom(src=>src.Name))
             .ForMember(dest=>dest.Description,opt=>opt.MapFrom(src=>src.Description))
             .ReverseMap();
 
-            CreateMap<Tankstock, TankStockDTO>()
-                .ForMember(dest => dest.EntryType, opt => opt.MapFrom(src =>
-                    string.IsNullOrEmpty(src.EntryType)
-                        ? EntryType.TankReconciliation  // Default value if EntryType is null or empty
-                        : Enum.Parse<EntryType>(src.EntryType)))
-                .ReverseMap()
-                .ForMember(dest => dest.EntryType, opt => opt.MapFrom(src => src.EntryType.ToString()));
 
 
 
-            CreateMap<Vehicle,VehicleListDTO>()
-                
-              .ForMember(dest=>dest.VehicleId,opt =>opt.MapFrom(src =>src.VehicleId))
-             .ForMember(dest => dest.VehicleManufacturerId, opt => opt.MapFrom(src => src.VehicleManufacturer.Id))
-             .ForMember(dest => dest.DefaultExpectedAverageId, opt => opt.MapFrom(src => src.DefaultExptdAvg.Id))
-             .ForMember(dest => dest.ExpectedAverageclassificationName, opt => opt.MapFrom(src => src.DefaultExptdAvg.ExpectedAverageClassification.Name))
-             .ForMember(dest => dest.ExpectedAverageValue, opt => opt.MapFrom(src => src.DefaultExptdAvg.ExpectedAverageValue))
-             .ReverseMap();
+
 
          CreateMap<Employee,EmployeeDto>()
                 .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId))
@@ -78,8 +75,12 @@ namespace FMS.Application.MappingProfile
                .ForMember(dest=>dest.Vehicles,opt=>opt.MapFrom(src=>src.Vehicles.Select(v=>v.VehicleId)))
                 .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
                   .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })))        
-                  .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));;
+                  .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));
 ;
+            CreateMap<Tank, TankDTO>().ForMember(dest=>dest.UseBookKeeping,opt =>opt.MapFrom(src =>src.UseBookKeeping.HasValue && src.UseBookKeeping.Value !=0)).ReverseMap()
+                .ForMember(dest =>dest.UseBookKeeping,opt => opt.MapFrom(src =>(sbyte?)(src.UseBookKeeping ? (sbyte)1:(sbyte)0))); 
+
+
 
             CreateMap<Vehicle, SimpleVehicleDto>()
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))

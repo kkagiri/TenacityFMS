@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FMS.Application.ModelsDTOs.FMS.Vehicle;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -14,16 +15,14 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
 {
-    public class GetVehicleByIDQuery : IRequest<Vehicle>
+    /// <summary>
+    /// Request to get a vehicle by its ID
+    /// </summary>
+    /// <param name="Id"></param>
+    public record GetVehicleByIDQuery(int Id) : IRequest<VehicleDTO>;
+
+    public class GetVehicleByIDQueryHandler : IRequestHandler<GetVehicleByIDQuery, VehicleDTO>
     {
-        public int Id { get; set; }
-
-    }
-
-    public class GetVehicleByIDQueryHandler : IRequestHandler<GetVehicleByIDQuery, Vehicle>
-    {
-
-
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger _logger;
@@ -38,16 +37,15 @@ namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
         }
 
 
-        public async Task<Vehicle> Handle(GetVehicleByIDQuery request, CancellationToken cancellationToken)
+        public async Task<VehicleDTO> Handle(GetVehicleByIDQuery request, CancellationToken cancellationToken)
         {
             try
             {
-                return await _context.Vehicles.Include(e => e.Employees).FirstOrDefaultAsync(e => e.VehicleId == request.Id);
+                return _mapper.Map<Vehicle, VehicleDTO>(await _context.Vehicles.Include(e => e.Employees).FirstOrDefaultAsync(e => e.VehicleId == request.Id));
             }
             catch (MySqlException ex)
             {
                 _logger.LogError(ex.Message);
-
                 throw new Exception(ex.Message);
 
             }

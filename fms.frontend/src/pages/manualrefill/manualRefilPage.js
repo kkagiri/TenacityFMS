@@ -4,7 +4,7 @@ import DataGrid, { Paging,
           HeaderFilter, SearchPanel, Toolbar, Item as TItems,
           Editing, FilterRow, Column, Lookup, Sorting, RequiredRule ,
           Form,Popup ,LoadPanel,Export,Selection, FilterPanel,
-          FilterBuilderPopup, ColumnChooser,ColumnChooserSelection ,Position
+          FilterBuilderPopup, ColumnChooser,ColumnChooserSelection ,Position,StateStoring
          } from 'devextreme-react/data-grid';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
@@ -12,18 +12,20 @@ import 'devextreme-react/text-area';
 import 'devextreme-react/select-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 
-import {fetchVehicleList} from '../../actions/vehicleActions';
-import {fetchEmployees} from '../../actions/employeeActions';
-import {fetchSiteList} from '../../actions/siteActions';
-import { fetchTanks} from '../../actions/tankActions';
-import { fetchUsers } from '../../actions/userActions';
-import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../actions/fuelRefillAction';
+import {fetchVehicleList} from '../../redux/actions/vehicleActions';
+import {fetchEmployees} from '../../redux/actions/employeeActions';
+import {fetchSitebyUserId} from '../../redux/actions/siteActions';
+import { fetchTanks} from '../../redux/actions/tankActions';
+import { fetchUsers } from '../../redux/actions/userActions';
+import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../redux/actions/fuelRefillAction';
 
 import { UsersApi } from '../../api/gpsgate';
 import  createApiClient from '../../api/gpsgateAPIClient';
 
 import { Item as FItem } from 'devextreme-react/form';
-import { fetchpermissionbyUserId } from '../../actions/permissionActions';
+import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
+
+import { formatDate } from '../../utils/dateUtils';
 
 export default function Fuelrefil() {
     const vehicles = useSelector((state) => state.vehicle.vehicles);
@@ -44,6 +46,7 @@ export default function Fuelrefil() {
     const fuelRefills = useSelector(state => state.fuelRefill.fuelRefills);
     const permissions = useSelector((state) => state.permission.permissions);
     const [noTanksAvailable, setNoTanksAvailable] = useState(false);
+
     const [formData, setFormData] = useState({
         vehicleId: null,
         manualFuelrefilAmount: null,
@@ -95,7 +98,7 @@ export default function Fuelrefil() {
                 dispatch(fetchFuelRefills()),
                 dispatch(fetchVehicleList()),
                 dispatch(fetchEmployees()),
-                dispatch(fetchSiteList()),
+                dispatch(fetchSitebyUserId()),
                 dispatch(fetchpermissionbyUserId(user.id)),
                 dispatch(fetchTanks()),
                 dispatch(fetchUsers())
@@ -198,9 +201,9 @@ export default function Fuelrefil() {
     };
 
     const refresh = useCallback(() => {
-        gridRef.current?.instance.refresh();   
+        gridRef.current?.instance.refresh();
+        dispatch.fetchData(); 
     }, []);
-    
 
     const handleFieldChange = (e) => {
         const { dataField, value } = e;
@@ -282,7 +285,7 @@ const handleTankChange = (e) => {
                     repaintChangesOnly={true}
                     // onRowInserted={onRowInserted}
                     // onRowUpdated={onRowUpdated}
-                    onRowRemoved={onRowRemoved}
+                     onRowRemoved={onRowRemoved}
                     onSaving={onSaving}
                     onEditorPreparing={onEditorPreparing}
 
@@ -297,6 +300,7 @@ const handleTankChange = (e) => {
                     <LoadPanel enabled={true} />
                     <Paging enabled={true} defaultPageSize={30} />
                     <Export enabled={true} allowExportSelectedData={true} formats ={exportFormats} />
+                    <StateStoring enabled={true} type="sessionStorage" storageKey="dispensingGridState" />
 
                    <FilterRow visible={true} />
                    <HeaderFilter visible={true} />  
@@ -321,7 +325,8 @@ const handleTankChange = (e) => {
    
                            
                             <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
-                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'datetime' }}>
+                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'datetime', displayFormat: 'dd/MM/yyyy',
+    dateSerializationFormat: 'yyyy-MM-dd' }}>
                                 </FItem>
                                 <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
                                     <RequiredRule />
@@ -353,8 +358,9 @@ const handleTankChange = (e) => {
                                     </FItem>
                             </FItem>
                             <FItem itemType={'group'} caption={'Meter Readings'} colCount={2} colSpan={2}>
-                                <FItem dataField="previousMeterReading" editorType="dxNumberBox" />
                                 <FItem dataField="currentMeterReading" editorType="dxNumberBox" />
+                                <FItem dataField="previousMeterReading" editorType="dxNumberBox" />
+
                                 <FItem dataField="manualFuelrefilAmount" editorType="dxNumberBox">
                                     <RequiredRule />
                                 </FItem>
@@ -400,16 +406,9 @@ const handleTankChange = (e) => {
 
 
                     </Toolbar> 
-                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} hidingPriority={5} defaultValue={new Date().toISOString()} />
-                    <Column dataField="siteId" caption="Site"  hidingPriority={5} minWidth={100} >
-                        <Lookup
-                            dataSource={sites}
-                            valueExpr="id"
-                            displayExpr="name"
-                        />
 
-                    </Column>
-                    <Column dataField="vehicleId" caption="Vehicle" width={150} hidingPriority={5}>
+                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true}  defaultValue={new Date().toISOString()} />
+                    <Column dataField="vehicleId" caption="Vehicle" minWidth={150}>
                         <Lookup
                             dataSource={vehicles}
                             valueExpr="vehicleId"
@@ -417,8 +416,17 @@ const handleTankChange = (e) => {
                         />
 
                     </Column>
+                    <Column dataField="siteId" caption="Site"  minWidth={100} >
+                        <Lookup
+                            dataSource={sites}
+                            valueExpr="id"
+                            displayExpr="name"
+                        />
 
-                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" width={120}hidingPriority={3} >       
+                    </Column>
+               
+
+                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" minWidth={100}>       
                     </Column>
                     <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>       
                     </Column>
@@ -435,7 +443,7 @@ const handleTankChange = (e) => {
                   
                
                     <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3}/>
-                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={2}
+                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={3}
                         cellRender={(cellData) => {
                             const user = fuelBy.find(u => u.id === cellData.value);
                             return user ? user.userName : cellData.value;
@@ -443,7 +451,7 @@ const handleTankChange = (e) => {
                         <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
                     </Column>
 
-                  
+                  <Column dataField="dateCreated" caption="Date Created"  dataType="Date"  defaultSortOrder="asc" cellRender={formatDate} />
                 </DataGrid>
                 {/* {formVisible && (
                 <FormPopup

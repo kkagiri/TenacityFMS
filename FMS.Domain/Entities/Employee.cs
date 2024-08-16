@@ -28,7 +28,6 @@ public partial class Employee
     public virtual User? ModifiedByNavigation { get; set; }
     public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
 
-
     public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
 
     public virtual ICollection<Vehicle> VehiclesNavigation { get; set; } = new List<Vehicle>();

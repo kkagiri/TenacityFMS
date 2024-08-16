@@ -7,7 +7,7 @@
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
     <IsPackable>false</IsPackable>
     <!--  <SpaRoot>ClientApp\</SpaRoot>-->
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+    <!--<DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>-->
     <!-- <SpaProxyServerUrl>https://localhost:44403</SpaProxyServerUrl>-->
    <!--  <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>-->
     <ImplicitUsings>enable</ImplicitUsings>
@@ -31,23 +31,14 @@
     <!-- Don't publish the SPA source files, but do show them in the project files list -->
     <Content Remove="$(SpaRoot)**" />
     <None Remove="$(SpaRoot)**" />
-    <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
+    <!--<None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />-->
   </ItemGroup>
 
 
-
-  
-
-
-
- 
-
-  <ItemGroup>
-    <None Remove="Helper\MessageHelper.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
+    <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
   </ItemGroup>
 
   <ItemGroup>

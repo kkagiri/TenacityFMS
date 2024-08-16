@@ -1,0 +1,27 @@
+﻿using FMS.Domain.Entities.enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Application.ModelsDTOs.FMS.TankVolumeHistory
+{
+    public class TankVolumeHistoryDTO
+    {
+        public int Id { get; set; }
+        public int? TankId { get; set; }
+        public DateTime Timestamp { get; set; }
+        public decimal? VolumeChange { get; set; }
+        public decimal? NewVolume { get; set; }
+        public VolumeChangeReasonEnum ChangeReason { get; set; } 
+        public string? RecordedBy { get; set; } = null;
+
+        public string? ReferenceType { get; set; } = null;
+
+        public int? ReferenceId { get; set; }
+        public string? Site { get; set; } = null;
+
+
+    }
+}

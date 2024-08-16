@@ -13,6 +13,7 @@
     "devexpress-reporting": "^22.2.12",
     "devextreme": "^22.2.12",
     "devextreme-react": "^22.2.4",
+    "fontawesome": "^5.6.3",
     "http-proxy-middleware": "^3.0.0",
     "jspdf": "^2.5.1",
     "querystring": "^0.2.1",

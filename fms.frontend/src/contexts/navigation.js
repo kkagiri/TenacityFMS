@@ -1,7 +1,4 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
-import { fetchNavigationItems } from '../actions/navigationActions';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchRoles } from '../actions/roleActions';
 
 const NavigationContext = createContext({});
 const useNavigation = () => useContext(NavigationContext);
