@@ -23,7 +23,7 @@ const POPUP_CONFIG = {
     Form: ClosingStockForm,
     width: '90%',
     maxWidth: '800px',
-    height: '900px',
+    height: 'auto',
   },
   delivery: {
     title: 'Delivery',
