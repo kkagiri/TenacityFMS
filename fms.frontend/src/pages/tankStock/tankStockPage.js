@@ -1,9 +1,6 @@
 //Page for Dashboard of Tank transactions and Tank fuel level Dashboarad
 
 import React ,{useState,useEffect,useCallback,useMemo}from "react";
-import { TickerCard } from "../../components/tickerCard/tickerCard";
-import  TankStockDatagrid  from "../../components/tankStock/tankStockDatagrid";
-import { fetchTankReconciliation ,fetchTankReconciliationBySite} from "../../redux/actions/tankReconciliationActions";
 import { fetchTankVolumeHistoryBySiteId ,fetchTankVolumeHistoryByDateRange} from "../../redux/actions/tankVolumeHistoryActions";
 import { fetchTanks } from "../../redux/actions/tankActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";

@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {useDispatch,useSelector} from "react-redux";
-import {fetchEmployees } from "../../actions/employeeActions";
-import {fetchSiteList} from '../../actions/siteActions';
+import {fetchEmployees } from "../../redux/actions/employeeActions";
+import {fetchSiteList} from '../../redux/actions/siteActions';
 
 import ScrollView from 'devextreme-react/scroll-view';
 import consumptionDataGridRules from '../../utils/consumptionDataGridRules';

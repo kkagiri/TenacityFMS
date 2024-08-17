@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { TickerCard } from '../../components/tickerCard/tickerCard';
+import { TickerCard } from '../../components/TickerCard/tickerCard';
 
 const VolumeChangeReasonEnum = {
     OpeningStock: 0,
