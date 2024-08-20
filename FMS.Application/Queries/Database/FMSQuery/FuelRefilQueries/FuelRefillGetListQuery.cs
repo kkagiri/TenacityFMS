@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
 
-public record FuelRefillGetListQuery : IRequest<List<FuelRefilDTO>>;
+public record FuelRefillGetListQuery(int Take = 100,int Skip =0) : IRequest<List<FuelRefilDTO>>;
 
 public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQuery, List<FuelRefilDTO>>
 {
@@ -32,7 +32,9 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
     public async Task<List<FuelRefilDTO>> Handle(FuelRefillGetListQuery request, CancellationToken cancellationToken)
     {
         try{
-               var fuelRefils = await _context.Fuelrefils.OrderByDescending(x => x.Date).ToListAsync(cancellationToken);
+               var fuelRefils = await _context.Fuelrefils.OrderByDescending(x => x.Date)
+               .Skip(request.Skip).Take(request.Take)
+               .ToListAsync(cancellationToken);
 
 
 

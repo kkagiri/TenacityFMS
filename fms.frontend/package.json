@@ -31,12 +31,12 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "build:dev": "env-cmd -f .env.development react-scripts build",
-    "build:prod.internal": "env-cmd -f .env.production.internal react-scripts build",
-    "build:prod.external": "env-cmd -f .env.production.external react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "build:dev": "env-cmd -f .env.development craco build",
+    "build:prod.internal": "env-cmd -f .env.production.internal craco build",
+    "build:prod.external": "env-cmd -f .env.production.external craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "build-themes": "devextreme build",
     "postinstall": "npm run build-themes"
@@ -60,6 +60,8 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "copy-webpack-plugin": "^12.0.2",
     "devextreme-cli": "1.5.1",
     "devextreme-themebuilder": "^22.2.4",
     "react-scripts": "^5.0.1"

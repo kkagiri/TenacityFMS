@@ -5,7 +5,6 @@ import './TickerCard.scss';
 export const TickerCard = (props) => {
   const { title, icon, tone, value, percentage, formatValue = (value) => `${value}` } = props;
   useEffect(() => {
-    console.log('props', tone);
   }, [props]);
 
   return (

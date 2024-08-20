@@ -113,8 +113,8 @@ public class TankStockController : ControllerBase
     [Authorize]
     public async Task<IActionResult> CreateOpeningStock([FromQuery]int tankId,decimal amount,DateTime dateTime)
     {
-        var hasPermission = User.HasClaim("permissions", "_openingStock");
-        if (!hasPermission) return Forbid();
+        // var hasPermission = User.HasClaim("permissions", "_openingStock");
+        // if (!hasPermission) return Forbid();
         if (tankId <= 0) return BadRequest("Invalid Tank ID");  
         if (amount <= 0) return BadRequest("Opening stock should be greater than 0");
 
@@ -138,8 +138,8 @@ public class TankStockController : ControllerBase
     [Authorize]
     public async Task<IActionResult> CreateClosingStock([FromQuery]int tankId, decimal amount ,DateTime dateTime)
     {
-        var hasPermission = User.HasClaim("permissions", "_closingStock");
-        if (!hasPermission) return Forbid();
+        // var hasPermission = User.HasClaim("permissions", "_closingStock");
+        // if (!hasPermission) return Forbid();
         if (tankId <= 0) return BadRequest("Invalid Tank ID");
         if (amount <= 0) return BadRequest("Closing stock should be greater than 0");
         if (dateTime > DateTime.Now) return BadRequest("Date cannot be in the future");

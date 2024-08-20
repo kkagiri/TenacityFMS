@@ -23,6 +23,15 @@ export const CREATE_DELIVERY_FAILURE = 'CREATE_DELIVERY_FAILURE';
 export const FETCH_DELIVERIES_SUCCESS = 'FETCH_DELIVERIES_SUCCESS';
 export const FETCH_DELIVERIES_FAILURE = 'FETCH_DELIVERIES_FAILURE';
 
+const formatDateTime = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
 export const fetchTankStocks = () => async (dispatch) => {
   try {
     const response = await axiosInstance.get('/tankstock');
@@ -61,6 +70,8 @@ export const deleteTankStock = (id) => async (dispatch) => {
 
 export const createOpeningStock = (tankId, amount,date) => async (dispatch) => {
   try {
+  //  const formattedDate = formatDateTime(date);
+
     const response = await axiosInstance.post(`/tankstock/openingstock?tankId=${tankId}&amount=${amount}&dateTime=${date}`);
    
     if (response.data.success) {
@@ -79,7 +90,9 @@ export const createOpeningStock = (tankId, amount,date) => async (dispatch) => {
 
 export const createClosingStock = (tankId, amount,date) => async (dispatch) => {
   try {
-    const response = await axiosInstance.post(`/tankstock/closingstock?tankId=${tankId}&amount=${amount}&dateTime=${date}`);
+    const formattedDate = formatDateTime(date);
+  
+    const response = await axiosInstance.post(`/tankstock/closingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
     if (response.data.success) {
     dispatch({ type: CREATE_CLOSING_STOCK_SUCCESS, payload: response.data });
     return response.data;

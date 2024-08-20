@@ -3,13 +3,12 @@ import './themes/generated/theme.base.css';
 import './themes/generated/dx.fluent.custom-scheme1.css';
 import './themes/generated/theme.additional.css';
 
+import './../assests/fontawesome/js/fontawesome';
+ import './../assests/fontawesome/js/light';
 
-import './assests/fontawesome/js/fontawesome';
- import './assests/fontawesome/js/light';
 
-
- import './assests/fontawesome/css/fontawesome.css';
- import './assests/fontawesome/css/regular.css';
+ import './../assests/fontawesome/css/fontawesome.css';
+ import './../assests/fontawesome/css/light.css';
 
 
 

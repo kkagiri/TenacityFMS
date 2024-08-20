@@ -9,6 +9,7 @@ import OpeningStockForm from './../tankStock/OpeningStockForm'
 import ClosingStockForm from './../tankStock/ClosingStockForm';
 import TankDeliveryForm from '../deliveryForms/TankDeliveryForm';
 import TankTransferForm from '../tanktransfer/tankTransferForm';
+import ScrollView from 'devextreme-react/scroll-view';
 
 const POPUP_CONFIG = {
   openingStock: {
@@ -30,7 +31,7 @@ const POPUP_CONFIG = {
     Form: TankDeliveryForm,
     width: '100%',
     maxWidth: '1000px',
-    height: 'auto',
+    height: '100%',
   },
   transfer: {
     title: 'Transfer',

@@ -142,11 +142,12 @@ const ClosingStockForm = ({ updateFormData , isLoading }) => {
                         dataField="date"
                         editorType="dxDateBox"
                         editorOptions={{
+                            value: formData.date,
                             max: new Date(),
                             displayFormat: "yyyy-MM-dd HH:mm",
                             type: "datetime",
-                            onValueChanged: handleDateChange
-                        }}
+                            onValueChanged: (e) => setFormData(prev => ({ ...prev, date: e.value }))          
+                                      }}
                     >
                         <RequiredRule message="Date is required" />
                     </SimpleItem>

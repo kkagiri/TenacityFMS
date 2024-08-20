@@ -74,7 +74,6 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
         {
             try
             {
-                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
                 var currentPermissionIds = await _context.RolePermissions
                     .Where(rp => rp.RoleId == role.Id)
@@ -114,7 +113,6 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
 
                 var addedCount = permissionsToAdd.Count;
                 var removedCount = permissionsToRemove.Count;

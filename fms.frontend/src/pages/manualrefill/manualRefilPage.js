@@ -14,7 +14,7 @@ import LoadIndicator from 'devextreme-react/load-indicator';
 
 import {fetchVehicleList} from '../../redux/actions/vehicleActions';
 import {fetchEmployees} from '../../redux/actions/employeeActions';
-import {fetchSitebyUserId} from '../../redux/actions/siteActions';
+import {fetchSiteList} from '../../redux/actions/siteActions';
 import { fetchTanks} from '../../redux/actions/tankActions';
 import { fetchUsers } from '../../redux/actions/userActions';
 import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../redux/actions/fuelRefillAction';
@@ -98,7 +98,7 @@ export default function Fuelrefil() {
                 dispatch(fetchFuelRefills()),
                 dispatch(fetchVehicleList()),
                 dispatch(fetchEmployees()),
-                dispatch(fetchSitebyUserId()),
+                dispatch(fetchSiteList()),
                 dispatch(fetchpermissionbyUserId(user.id)),
                 dispatch(fetchTanks()),
                 dispatch(fetchUsers())
@@ -138,7 +138,7 @@ export default function Fuelrefil() {
     
                     const formattedData = {
                         ...updatedData,
-                        date: new Date(updatedData.date).toISOString(),
+                        date: updatedData.date,
                         transactionId: updatedData.transactionId || null,
                         fuelBy: updatedData.fuelBy || user.userName,
                         siteId: updatedData.siteId,
@@ -147,9 +147,15 @@ export default function Fuelrefil() {
     
                     if (change.type === 'insert') {
 
-                    const reponse =    await dispatch(createFuelRefill(formattedData));
+                    const response =    await dispatch(createFuelRefill(formattedData));
+                    if (response.success) {
                         notify('Manual fuel refill created successfully.', 'success', 3000);
-                        e.component.navigateToRow(e.key)
+                        e.component.navigateToRow(e.key);
+                    } else {
+                        // Display the error message from the API
+                        notify(response.message, "error", 5000);
+                        e.cancel = true;
+                    }
 
                     } else if (change.type === 'update') {
                         await dispatch(updateFuelRefill(change.key, formattedData));
@@ -165,8 +171,8 @@ export default function Fuelrefil() {
     
             } catch (error) {
                 e.cancel = true;
-                const errorMessage = error.response?.data?.message || 'Error processing fuel refill operation.';
-                notify(errorMessage, 'error', 3000);
+                notify('An unexpected error occurred while processing the fuel refill operation.', 'error', 3000);               
+
             } finally {
                 setSaving(false);
                 setLoading(false);
@@ -250,7 +256,30 @@ const handleTankChange = (e) => {
         rowData.siteId = value;
     };
     
- 
+     const formatDateTime = (cellInfo) => {
+        if (!cellInfo.value) return '';
+
+        // Parse the ISO 8601 date string
+        const utcDate = new Date(cellInfo.value);
+      
+        // Check if the date is valid
+        if (isNaN(utcDate.getTime())) {
+          console.error('Invalid date:', cellInfo.value);
+          return cellInfo.value;
+        }
+      
+        // Format the date and time in local timezone
+        return utcDate.toLocaleString('en-GB', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
+      };
 
     // Define the flags for edit and delete permissions
     const canEdit = permissions.includes('_editFuelRefill');
@@ -325,9 +354,12 @@ const handleTankChange = (e) => {
    
                            
                             <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
-                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{ type: 'datetime', displayFormat: 'dd/MM/yyyy',
-    dateSerializationFormat: 'yyyy-MM-dd' }}>
-                                </FItem>
+                            <FItem dataField="date" editorType="dxDateBox" editorOptions={{ 
+    type: 'datetime', 
+    displayFormat: 'dd/MM/yyyy HH:mm',
+    dateSerializationFormat: 'yyyy-MM-ddTHH:mm:ss'
+}}>
+</FItem>
                                 <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
                                     <RequiredRule />
                                 </FItem>
@@ -451,7 +483,7 @@ const handleTankChange = (e) => {
                         <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
                     </Column>
 
-                  <Column dataField="dateCreated" caption="Date Created"  dataType="Date"  defaultSortOrder="asc" cellRender={formatDate} />
+                  <Column dataField="dateCreated" caption="Date Created"  dataType="Date"  defaultSortOrder="asc" cellRender={formatDateTime} />
                 </DataGrid>
                 {/* {formVisible && (
                 <FormPopup

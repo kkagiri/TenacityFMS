@@ -21,7 +21,6 @@ import { fetchConsumptionByDateRange,fetchConsumptionByDateRangebySitId } from "
  import LoadIndicator from 'devextreme-react/load-indicator';
  import ScrollView from 'devextreme-react/scroll-view';
 
-
 import './tankStockPage.scss';
 import Tabs from 'devextreme-react/tabs';
 
@@ -32,6 +31,28 @@ import { DatePeriods } from "../../components/Shared/datePeriods";
 import notify from 'devextreme/ui/notify';  
 
 const DEFAULT_ANALYTICS_PERIOD_KEY = 'Today';
+
+const useInterval = (callback, delay) => {
+  const savedCallback = React.useRef();
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    function tick() {
+      savedCallback.current();
+    }
+    if (delay !== null) {
+      let id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+};
+
+
+
+
 
 const useFetchData = (selectedSite, dateRange, user) => {
   const dispatch = useDispatch();
@@ -47,6 +68,7 @@ const useFetchData = (selectedSite, dateRange, user) => {
         await dispatch(fetchTankVolumeHistoryByDateRange(startDate, endDate));
         await dispatch(fetchConsumptionByDateRange(startDate, endDate));
         await dispatch(fetchDeliveriesbyDateRange(startDate, endDate));
+
 
 
       } else {
@@ -73,8 +95,10 @@ const useFetchData = (selectedSite, dateRange, user) => {
     fetchData();
   }, [fetchData]);
 
+  useInterval(fetchData, 5 * 60 * 1000); // 5 minutes in milliseconds
   return { isLoading, fetchData };
 };
+
 
 
 const TankStockPage = () => {
@@ -262,7 +286,7 @@ return (
       >
                <div style={{marginBottom:'30px' }}>
 
-        <TankStockDashBoardCards  />
+        <TankStockDashBoardCards selectedSite = {selectedSite}  selectedPeriod = {selectedPeriod}/>
         </div>
         <div style={{marginTop:'30px' }}>
         <TabPanel
@@ -272,7 +296,7 @@ return (
          deferRendering={false}>
             
             <TabPanelItem title="All Tank Volume History " >
-           <TankHistoryVolumeDatagrid tankVolumeHistory={tankVolumeHistory} />
+           <TankHistoryVolumeDatagrid tankVolumeHistory={tankVolumeHistory}  selectedSite = {selectedSite}  selectedPeriod = {selectedPeriod} />
             </TabPanelItem>
 
             {/* <TabPanelItem title="Dispensing ">

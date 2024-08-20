@@ -41,14 +41,14 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 
             var fuelRefilDto = request.FuelRefilDTO;
 
-            var entryDate = request.FuelRefilDTO.Date?.Date ?? DateTime.Now.Date;
+            var entryDate = request.FuelRefilDTO?.Date?? DateTime.Now;
             //TODO: Insert check for configuration enforcement to use start of day for opening check 
             // Check if there is opening stock for the tank on the entry day 
             var existingOpeningStock = await _context.TankVolumeHistories
                   .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
-                              x.Timestamp.Date == entryDate &&
+                              x.Timestamp.Date == entryDate.Date &&
                               x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
-                  .OrderByDescending(x => x.Timestamp)
+                  .OrderByDescending(x => x.Timestamp.Date)
                   .FirstOrDefaultAsync(cancellationToken);
 
             if( existingOpeningStock == null) return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate} not found Create A new Opening Stock ");
@@ -124,7 +124,7 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
                 //check if the date of the fuel refill is today or past date 
                var today = DateTime.Now.Date;
 
-                if( request.FuelRefilDTO.Date.Value.Date == today)
+                if( entryDate.Date == today)
                 {
                     tank.CurrentStock -= (decimal)fuelRefil.ManualFuelrefilAmount;
                     tank.LastStockUpdate = DateTime.Now;
@@ -133,10 +133,6 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
               
             }
    
-
-
-            
-
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -158,11 +154,6 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
             _context.TankVolumeHistories.Add(tankVolumeHistory);
 
             await _context.SaveChangesAsync(cancellationToken);
-
-
-
-
-
 
             return new FMSResponseMessage<Fuelrefil>(true, "Fuel refill created successfully.", fuelRefil);
         }

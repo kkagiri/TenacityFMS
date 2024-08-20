@@ -28,7 +28,7 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
 
     public int? TankId { get; set; }
 
-     public DateTime? DateCreated {get;set;} 
+     public string? DateCreated {get;set;} 
     public DateTime? DateModified {get;set;}
      public decimal? Consumption  { get; set; }
     public bool IsModified {get;set;}

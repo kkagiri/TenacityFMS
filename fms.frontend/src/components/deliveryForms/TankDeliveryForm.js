@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem ,GroupItem,ButtonItem, Label, RequiredRule,NumericRule } from 'devextreme-react/form';
-import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
 import { fetchSitebyUserId } from '../../redux/actions/siteActions';
 import { fetchTanks } from '../../redux/actions/tankActions';
 import { fetchSuppliers } from '../../redux/actions/SupplierActions'; // Assuming you have this action
 //import './deliveryForm.scss';
 import LoadIndicator from 'devextreme-react/load-indicator';
+import ScrollView from 'devextreme-react/scroll-view';
 
 
 const Products = [ {id:1, name:'Diesel'},{id:2, name:'Petrol'},{id:3, name:'Kerosene'}];
@@ -77,7 +77,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
 
    
     return (
-        <ScrollView className='delivery-form'>       
+      <ScrollView  showScrollbar='always' scrollByThumb ='true' onPullDown="true" >
             <Form 
              formData={localFormData}  
                 readOnly={isLoading} showColonAfterLabel={true} labelLocation="top"
@@ -149,8 +149,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
                 <SimpleItem dataField="lpoNumber" />
                 </GroupItem>
             </Form>
-          
-        </ScrollView>
+            </ScrollView>
     );
 };
 

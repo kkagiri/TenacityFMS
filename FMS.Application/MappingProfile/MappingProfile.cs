@@ -53,6 +53,7 @@ namespace FMS.Application.MappingProfile
             CreateMap<Fuelrefil, FuelRefilDTO>()
           .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
          .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
+             .ForMember(dest => dest.DateCreated, opt => opt.MapFrom(src => src.DateCreated.HasValue ? src.DateCreated.Value.ToString("yyyy-MM-ddTHH:mm:ssZ") : null))
           .ReverseMap()
          .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified ? (sbyte)1 : (sbyte)0));
 
