@@ -12,14 +12,18 @@ module.exports = {
       // Add support for importing files from outside of src/
       webpackConfig.resolve.modules.push(path.resolve(__dirname));
 
-      // Copy FontAwesome assets to build folder
+      // Copy FontAwesome assets and web.config to build folder
       webpackConfig.plugins.push(
         new CopyWebpackPlugin({
           patterns: [
             {
-                from: path.resolve(__dirname, 'src', 'assests', 'fontawesome'),
-                to: path.resolve(paths.appBuild, 'assets', 'fontawesome'),
-                noErrorOnMissing: true,
+              from: path.resolve(__dirname, 'src', 'assests', 'fontawesome'),
+              to: path.resolve(paths.appBuild, 'assets', 'fontawesome'),
+              noErrorOnMissing: true,
+            },
+            {
+              from: path.resolve(__dirname, 'public', 'web.config'),
+              to: path.resolve(paths.appBuild, 'web.config'),
             },
           ],
         })

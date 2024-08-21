@@ -242,7 +242,11 @@ try
 
         options.AddPolicy("ProductionCorsPolicy", builder =>
         {
-            builder.WithOrigins("http://10.0.10.153", "http://localhost")
+              builder.WithOrigins(
+                "http://10.0.10.153", "https://10.0.10.153",
+                "http://197.254.33.227", "https://197.254.33.227",
+                "http://localhost", "https://localhost"
+            )
                    .AllowAnyHeader()
                    .AllowAnyMethod();
         });
@@ -270,7 +274,6 @@ try
         app.UseDeveloperExceptionPage();
         app.UseCors("DevelopmentCorsPolicy");
     }
-
 
 
     app.UseHttpsRedirection();
