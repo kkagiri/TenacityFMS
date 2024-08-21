@@ -151,7 +151,7 @@ public class TankStockController : ControllerBase
              Guid.TryParse(c.Value, out _));
 
         if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
-        var result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userIdClaim.Value));
+        var result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userIdClaim.Value,dateTime));
 
         if (!result.Success) return BadRequest(result);
 
