@@ -278,6 +278,8 @@ if (data.sourceSiteId === data.destinationSiteId && data.sourceTankId === data.d
             displayExpr="name"
             valueExpr="id"
             value={selectedSite}
+            searchEnabled={true}
+            searchMode='contains'
             onValueChanged={onSiteChange}
             width={200}
             height={40}
@@ -293,6 +295,7 @@ if (data.sourceSiteId === data.destinationSiteId && data.sourceTankId === data.d
               className='add-card'
               icon={key === 'openingStock' ? 'plus' : key === 'closingStock' ? 'minus' : 'add'}
               text={title}
+              
               type={key === 'openingStock' ? 'default' : key === 'closingStock' ? 'success' : 'normal'}
               stylingMode='contained'
               onClick={() => handlePopupVisibility(key, true)}
