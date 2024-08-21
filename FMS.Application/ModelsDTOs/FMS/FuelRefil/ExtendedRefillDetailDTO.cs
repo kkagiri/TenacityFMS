@@ -13,8 +13,8 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
         public string HyoungNO { get; set; } // Add this to store the vehicle number (HyoungNo)
         public decimal? ManualFuelrefilAmount { get; set; }
         public DateTime? Date { get; set; }
-        public int? PreviousMeterReading { get; set; }
-        public int? CurrentMeterReading { get; set; }
+        public decimal? PreviousMeterReading { get; set; }
+        public decimal? CurrentMeterReading { get; set; }
         public int SiteId { get; set; }
         public string SiteName { get; set; } 
         public string Comment { get; set; }

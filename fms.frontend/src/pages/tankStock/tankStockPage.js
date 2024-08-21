@@ -145,7 +145,7 @@ const handleSiteChange = useCallback((e) => {
 }, []);
 
 const { currentStock, totalCapacity } = useMemo(() => {
-  if (selectedPeriod === 'Today') {
+  
     return tanks.reduce((acc, tank) => {
       if (selectedSite === 'all' || tank.siteId === selectedSite) {
         acc.currentStock += tank.currentStock;
@@ -153,7 +153,7 @@ const { currentStock, totalCapacity } = useMemo(() => {
       }
       return acc;
     }, { currentStock: 0, totalCapacity: 0 });
-  }
+  
   return { currentStock: null, totalCapacity: null };
 }, [tanks, selectedSite, selectedPeriod]);
 

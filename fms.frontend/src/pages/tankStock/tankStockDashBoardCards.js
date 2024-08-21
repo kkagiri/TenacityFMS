@@ -58,9 +58,9 @@ const VolumeChangeReasonEnum = {
       return (
         <>
           <div className="cards compact">
-          {selectedPeriod ==='Today' && (
+         
           <StockCapacityTicker currentStock={currentStock} tankCapacity={totalCapacity} />
-                      )}
+                     
             <TickerCard title="Total Delivery" icon ={"fa-light fa-arrow-down-to-square"}  tone ={"delivery"} value={aggregatedData.totalDelivery} />
             <TickerCard title="Opening Stock" icon ={"fa-light fa-tank-water"} tone={"info"} value={aggregatedData.openingStock} />
             <TickerCard title="Closing Stock"  icon ={"fa-light fa-tank-water"} tone={"info"} value={aggregatedData.closingStock} />

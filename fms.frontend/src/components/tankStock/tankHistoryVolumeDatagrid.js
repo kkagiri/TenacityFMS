@@ -66,7 +66,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
 
     const calculateCustomSummary = useCallback((options) => {
         
-        if (selectedPeriod === 'Today') {
+        
             if (options.summaryProcess === 'start') {
                 options.totalValue = { currentStock: 0, capacity: 0, count: 0, processedTanks: new Set() };
             }
@@ -107,11 +107,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         break;
                 }
             }
-        } else {
-            if (options.summaryProcess === 'finalize') {
-                options.totalValue = 'N/A';
-            }
-        }
+        
     }, [selectedPeriod, filteredTanks]);
 
     return (
@@ -164,6 +160,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         displayFormat="Current Stock: {0}"
                         valueFormat="fixedPoint"
                         precision={2}
+
                     />
                     <GroupItem
                         column="tankId"
@@ -185,7 +182,12 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                     />
                 </Summary>
             </DataGrid>
-          
+          <style jsx>{`
+                :global(.dark-group-item) {
+                    font-weight: bold;
+                    color: #333;
+                }
+            `}</style>
         </div>
     );
 }

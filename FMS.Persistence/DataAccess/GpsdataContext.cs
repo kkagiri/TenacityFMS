@@ -768,7 +768,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
            entity.Property(e=>e.DateCreated).HasColumnName("DateCreated");
 
            entity.Property(e => e.Comment).HasMaxLength(500);
-           entity.Property(e => e.CurrentMeterReading).HasColumnType("int(11)");
+           entity.Property(e => e.CurrentMeterReading).HasPrecision(10);
            entity.Property(e => e.DriverId)
                .HasColumnType("int(11)")
                .HasColumnName("DriverID");
@@ -777,7 +777,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
                .UseCollation("utf8mb4_general_ci")
                .HasCharSet("utf8mb4");
            entity.Property(e => e.ManualFuelrefilAmount).HasPrecision(10);
-           entity.Property(e => e.PreviousMeterReading).HasColumnType("int(11)");
+           entity.Property(e => e.PreviousMeterReading).HasPrecision(10);
            entity.Property(e => e.PumpTranscationId)
                .HasColumnType("int(11)")
                .HasColumnName("PumpTranscationID");

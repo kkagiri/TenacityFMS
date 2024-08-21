@@ -14,9 +14,9 @@ public partial class Fuelrefil
 
     public DateTime? Date { get; set; }
 
-    public int? PreviousMeterReading { get; set; }
+    public decimal? PreviousMeterReading { get; set; }
 
-    public int? CurrentMeterReading { get; set; }
+    public decimal? CurrentMeterReading { get; set; }
 
     public int SiteId { get; set; }
 
