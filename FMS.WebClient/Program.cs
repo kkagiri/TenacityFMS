@@ -245,7 +245,10 @@ try
               builder.WithOrigins(
                 "http://10.0.10.153", "https://10.0.10.153",
                 "http://197.254.33.227", "https://197.254.33.227",
-                "http://localhost", "https://localhost"
+                "http://localhost", "https://localhost", 
+                "http://localhost:3000/", "http://10.0.10.153:3000", "http://10.0.11.90:3000"
+                
+
             )
                    .AllowAnyHeader()
                    .AllowAnyMethod();

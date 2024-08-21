@@ -66,7 +66,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                     if (closingStockAfterOpening == null)
                     {
-                        return new FMSResponseMessage(false, "An opening stock already exists for this date without a subsequent closing stock.");
+                        return new FMSResponseMessage(false, $"An opening stock already exists for this date {entryDate.Date} without a subsequent closing stock.");
                     }
                     // Ensure the new opening stock is after the closing stock
                     if (request.EntryDate <= closingStockAfterOpening.Timestamp)

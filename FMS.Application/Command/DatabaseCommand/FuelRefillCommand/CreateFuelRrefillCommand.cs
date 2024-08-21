@@ -46,12 +46,12 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
             // Check if there is opening stock for the tank on the entry day 
             var existingOpeningStock = await _context.TankVolumeHistories
                   .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
-                              x.Timestamp.Date == entryDate.Date &&
+                              x.Timestamp.Date.Date == entryDate.Date.Date &&
                               x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
                   .OrderByDescending(x => x.Timestamp.Date)
                   .FirstOrDefaultAsync(cancellationToken);
 
-            if( existingOpeningStock == null) return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate} not found Create A new Opening Stock ");
+            if( existingOpeningStock == null) return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate.Date} not found Create A new Opening Stock ");
 
             var existingRefuel = await _context.Fuelrefils
                 .FirstOrDefaultAsync(f =>

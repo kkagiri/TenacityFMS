@@ -14,6 +14,7 @@ using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
 using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
 using FMS.Application.ModelsDTOs.FMS.TankTransfer;
+using FMS.Application.Common;
 namespace FMS.WebClient.Controllers;
 
 [Route("api/[controller]")]
@@ -78,7 +79,7 @@ public class TankStockController : ControllerBase
     public async Task<IActionResult> UpdateTankStock(int id, [FromBody] TankStockDTO tankStockDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
-        if (!hasPermission) return Forbid();
+        if (!hasPermission) return Forbid( new FMSResponseMessage(false,"Please sign in").ToString());
         
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -115,19 +116,19 @@ public class TankStockController : ControllerBase
     {
         // var hasPermission = User.HasClaim("permissions", "_openingStock");
         // if (!hasPermission) return Forbid();
-        if (tankId <= 0) return BadRequest("Invalid Tank ID");  
-        if (amount <= 0) return BadRequest("Opening stock should be greater than 0");
+        if (tankId <= 0) return BadRequest(new FMSResponseMessage(false, "Invalid Tank ID"));  
+        if (amount <= 0) return BadRequest(new FMSResponseMessage(false, "Opening stock should be greater than 0"));
 
-        if (dateTime > DateTime.Now) return BadRequest("Date cannot be in the future");
-        if (dateTime == default(DateTime)) return BadRequest("Invalid Date");
+        if (dateTime > DateTime.Now) return BadRequest(new FMSResponseMessage(false,"Date cannot be in the future"));
+        if (dateTime == default(DateTime)) return BadRequest(new FMSResponseMessage(false, "Invalid Date"));
 
         var userIdClaim = User.Claims.FirstOrDefault(c =>
                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
                Guid.TryParse(c.Value, out _));
 
-        if (userIdClaim == null) return BadRequest("Invalid User ID");
+        if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
 
-        var result = await _mediator.Send(new OpeningStockCommand(tankId, amount, userIdClaim.Value));
+        var result = await _mediator.Send(new OpeningStockCommand(tankId, amount, userIdClaim.Value,dateTime));
 
         if (!result.Success) return BadRequest(result);
          
@@ -140,16 +141,16 @@ public class TankStockController : ControllerBase
     {
         // var hasPermission = User.HasClaim("permissions", "_closingStock");
         // if (!hasPermission) return Forbid();
-        if (tankId <= 0) return BadRequest("Invalid Tank ID");
-        if (amount <= 0) return BadRequest("Closing stock should be greater than 0");
-        if (dateTime > DateTime.Now) return BadRequest("Date cannot be in the future");
-        if (dateTime == default(DateTime)) return BadRequest("Invalid Date");
+        if (tankId <= 0) return BadRequest(new FMSResponseMessage(false, "Invalid Tank ID"));
+        if (amount <= 0) return BadRequest(new FMSResponseMessage(false, "Closing stock should be greater than 0"));
+        if (dateTime > DateTime.Now) return BadRequest(new FMSResponseMessage(false, "Date cannot be in the future"));
+        if (dateTime == default(DateTime)) return BadRequest(new FMSResponseMessage(false, "Invalid Date"));
 
         var userIdClaim = User.Claims.FirstOrDefault(c =>
              c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
              Guid.TryParse(c.Value, out _));
 
-        if (userIdClaim == null) return BadRequest("Invalid User ID");
+        if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
         var result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userIdClaim.Value));
 
         if (!result.Success) return BadRequest(result);
@@ -169,7 +170,7 @@ public class TankStockController : ControllerBase
                     c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
                                 Guid.TryParse(c.Value, out _));
 
-        if (userIdClaim == null) return BadRequest("Invalid User ID");
+        if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
 
         tankTransferDTO.RecordedBy = userIdClaim.Value;
 
