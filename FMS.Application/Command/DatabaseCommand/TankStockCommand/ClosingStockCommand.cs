@@ -51,7 +51,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 
 
                 var openingStock = await _context.Tankstocks.Where(x => x.TankId == request.TankId && 
-                                    x.EntryDate.Date == entryDate && x.EntryType ==  VolumeChangeReasonEnum.OpeningStock)
+                                    x.EntryDate.Date == entryDate.Date && x.EntryType ==  VolumeChangeReasonEnum.OpeningStock)
                                  .SingleOrDefaultAsync(cancellationToken);
 
                 if (openingStock == null) return new FMSResponseMessage(false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
