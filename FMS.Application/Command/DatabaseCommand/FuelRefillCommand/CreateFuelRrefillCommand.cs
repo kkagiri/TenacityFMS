@@ -111,7 +111,7 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
             {
                 return new FMSResponseMessage(false, "Previous meter reading should be smaller than current meter reading.");
             }
-            request.FuelRefilDTO.DateCreated = DateTime.UtcNow;
+            request.FuelRefilDTO.DateCreated = DateTime.UtcNow.ToString();
             request.FuelRefilDTO.DateModified = DateTime.UtcNow;
             var fuelRefil = _mapper.Map<Fuelrefil>(fuelRefilDto);
             fuelRefil.IsModified = false ? (sbyte)1 : (sbyte)0;

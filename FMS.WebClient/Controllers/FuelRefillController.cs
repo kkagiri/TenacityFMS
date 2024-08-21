@@ -42,7 +42,7 @@ public class FuelRefillController : ControllerBase
         var command = new FuelRefilCreateCommand(fuelRefilDTO);
 
         var results = await _mediator.Send(command);
-        return BadRequest(new { success = false, message = results.Message });
+            if (!results.Success) return BadRequest(results);
         return Ok(results);
     }
 
@@ -62,11 +62,11 @@ public class FuelRefillController : ControllerBase
 
     [HttpGet]
     [Authorize]
-     public async Task<IActionResult> GetFuelRefilList(int take = 100,int skip 0)
+     public async Task<IActionResult> GetFuelRefilList(int take = 100 ,int skip= 0)
     {
         var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
         if (!hasPermission) return Forbid();
-        var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery(Take= take,Skip= skip));
+        var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery(take,skip));
         if (fuelRefil == null)  return NoContent();
         
         return Ok(fuelRefil);

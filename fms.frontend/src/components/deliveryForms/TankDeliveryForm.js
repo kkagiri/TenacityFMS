@@ -77,7 +77,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
 
    
     return (
-      <ScrollView  showScrollbar='always' scrollByThumb ='true' onPullDown="true" >
+      <ScrollView  showScrollbar='always' scrollByThumb ={true} >
             <Form 
              formData={localFormData}  
                 readOnly={isLoading} showColonAfterLabel={true} labelLocation="top"

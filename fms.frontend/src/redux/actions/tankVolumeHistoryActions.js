@@ -52,7 +52,6 @@ export const fetchTankVolumeHistoryByTankId = (startDate,endDate, tankId) => asy
 
 export const fetchTankVolumeHistoryByDateRange = (startDate, endDate) => async (dispatch) => {
   try {
-    console.log("Start Date",startDate + " " +"end Date:" +endDate )
     const response = await axiosInstance.get('/tankvolumehistory/byDateRange', {
       params: { StartDate: startDate, EndDate: endDate}
     });

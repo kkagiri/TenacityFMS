@@ -62,7 +62,6 @@ const useFetchData = (selectedSite, dateRange, user) => {
     try {
       setIsLoading(true);
       const [startDate, endDate] = dateRange;
-      console.log(`Fetching data for range: ${startDate} to ${endDate}`);
       
       if (selectedSite === 'all') {
         await dispatch(fetchTankVolumeHistoryByDateRange(startDate, endDate));
@@ -106,6 +105,8 @@ const TankStockPage = () => {
 const user = useSelector((state) => state.auth.user);
 const sites = useSelector((state) => state.site.sites);
 const dispatch = useDispatch();
+const tanks = useSelector((state) => state.tank.tanks);
+
 const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
 const tankDeliveryData = useSelector((state) => state.delivery.deliveries);
 const [saving, setSaving] = useState(false);
@@ -124,6 +125,9 @@ const dateRange = useMemo(() => {
 
 const tabIndex = useMemo(() => Analytics_period[selectedPeriod].index, [Analytics_period, selectedPeriod]);
 const { isLoading, fetchData } = useFetchData(selectedSite, dateRange, user);
+useEffect(() => {
+  fetchData();
+}, [selectedSite, fetchData]);
 
 
 useEffect(() => {
@@ -139,6 +143,20 @@ useEffect(() => {
 const handleSiteChange = useCallback((e) => {
   setSelectedSite(e.value);
 }, []);
+
+const { currentStock, totalCapacity } = useMemo(() => {
+  if (selectedPeriod === 'Today') {
+    return tanks.reduce((acc, tank) => {
+      if (selectedSite === 'all' || tank.siteId === selectedSite) {
+        acc.currentStock += tank.currentStock;
+        acc.totalCapacity += tank.tankVolume;
+      }
+      return acc;
+    }, { currentStock: 0, totalCapacity: 0 });
+  }
+  return { currentStock: null, totalCapacity: null };
+}, [tanks, selectedSite, selectedPeriod]);
+
 
 
 const handlePeriodChange = useCallback((e) => {
@@ -285,8 +303,13 @@ return (
         onRefresh={fetchData}
       >
                <div style={{marginBottom:'30px' }}>
+      <TankStockDashBoardCards 
+      selectedSite={selectedSite}  
+      selectedPeriod={selectedPeriod}
+      currentStock={currentStock}
+      totalCapacity={totalCapacity}
+    />
 
-        <TankStockDashBoardCards selectedSite = {selectedSite}  selectedPeriod = {selectedPeriod}/>
         </div>
         <div style={{marginTop:'30px' }}>
         <TabPanel

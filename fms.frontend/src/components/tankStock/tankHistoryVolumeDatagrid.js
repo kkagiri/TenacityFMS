@@ -4,9 +4,8 @@
 
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DataGrid, Column, Lookup, Paging, FilterRow, HeaderFilter, Export, Grouping, GroupPanel, FilterPanel, Summary, GroupItem } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Lookup, Paging, FilterRow, HeaderFilter,LoadPanel , Export, Grouping, GroupPanel, FilterPanel, Summary, GroupItem } from 'devextreme-react/data-grid';
 import { formatDate } from './../../utils/dateUtils';
-
 
 const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPeriod }) => {
     const VolumeChangeReasonEnum = [
@@ -18,8 +17,13 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
         { id: 5, name: 'Adjustment' },
         { id: 6, name: 'Dispensing' }
     ];
-
+    const [groupedColumns, setGroupedColumns] = useState(['site', 'tankId']);
     const exportFormats = ['xlsx'];
+    const [isLoading, setIsLoading] = useState(true);
+    const onDataGridReady = useCallback(() => {
+        setIsLoading(false);
+    }, []);
+
 
     const formatTime = (cellInfo) => {
         const date = new Date(cellInfo.value);
@@ -42,13 +46,10 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
         if (selectedSite === 'all') {
             return tanks;
         }
-        return tanks.filter(tank => tank.siteId.toString() === selectedSite);
+        return tanks.filter(tank => tank.siteId === selectedSite);
     }, [tanks, selectedSite]);
 
     
-    console.log('Filtered Tanks:', filteredTanks);
-    console.log('Selected Site:', selectedSite);
-    console.log('Selected Period:', selectedPeriod);
 
 
     const totalCapacity = useMemo(() => {
@@ -78,7 +79,6 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                     if (isSiteLevel) {
                         // Site level aggregation
                         if (!options.totalValue.processedTanks.has(tank.id)) {
-                            console.log('Aggregating for site - Tank:', tank.name);
                             options.totalValue.currentStock += tank.currentStock;
                             options.totalValue.capacity += tank.tankVolume;
                             options.totalValue.count += 1;
@@ -115,14 +115,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
     }, [selectedPeriod, filteredTanks]);
 
     return (
-        <div>
-              {selectedPeriod === 'Today' && (
-                <div style={{ marginTop: '20px', fontWeight: 'bold' }}>
-                    <p>Total Capacity: {totalCapacity.toFixed(0)}</p>
-                    <p>Current Total Stock: {currentTotalStock.toFixed(0)}</p>
-                    <p>Percentage Remaining: {percentageRemaining.toFixed(1)}%</p>
-                </div>
-            )}
+        <div>            
             <DataGrid
                 dataSource={tankVolumeHistory}
                 showBorders={true}
@@ -133,13 +126,13 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
             >
                 <FilterPanel visible={true} />
                 <GroupPanel visible={true} />
-                <Grouping visible={true} autoExpandAll={false} />
+                <Grouping visible={true} autoExpandAll={true} />
                 <HeaderFilter visible={true} />
                 <FilterRow visible={true} />
 
                 <Paging defaultPageSize={20} />
 
-
+                <LoadPanel enabled={isLoading} />
                 <Column dataField="id" caption="ID" visible={false} defaultSortOrder="asc" />
 
                 <Column dataField="timestamp" caption="Timestamp" cellRender={formatTime} minWidth={100} />
@@ -178,7 +171,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         name="capacity"
                         showInGroupFooter={false}
                         alignByColumn={true}
-                        displayFormat="Capacity: {0}"
+                        displayFormat="/ {0} liters"
                         valueFormat="fixedPoint"
                         precision={2}
                     />

@@ -23,7 +23,6 @@ const resolvedComponents =(pageName) => {
        case 'tank stock':
         return TankStockPage;
      case 'consumption':
-      console.log("Returning ConsumptionBasedonRefills component"); // Add this lineS
        return ConsumptionBasedonRefills;
 
      case 'vehicleConsumptionDetails':

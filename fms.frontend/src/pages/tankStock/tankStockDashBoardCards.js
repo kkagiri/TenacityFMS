@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { TickerCard } from '../../components/TickerCard/tickerCard';
-import { Tick } from 'devextreme-react/chart';
-
+import { StockCapacityTicker } from '../../components/TickerCard/tankStockTickers/StockCapacityTicker';
 const VolumeChangeReasonEnum = {
     OpeningStock: 0,
     ClosingStock: 1,
@@ -14,12 +13,13 @@ const VolumeChangeReasonEnum = {
   };
   
 
-const TankStockDashBoardCards = ({selectedSite,selectedPeriod}) => {
+  const TankStockDashBoardCards = ({ selectedSite, selectedPeriod, currentStock, totalCapacity }) =>  {
     const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
-    const tanks = useSelector((state) => state.tank.tanks);
 
     const aggregatedData = useMemo(() => {
-        return tankVolumeHistory.reduce((acc, record) => {
+      return tankVolumeHistory.reduce((acc, record) => {
+        if (!record || typeof record.siteId === 'undefined') return acc;
+        if (selectedSite === 'all' || record.siteId === selectedSite) {
           switch (record.changeReason) {
             case VolumeChangeReasonEnum.OpeningStock:
               acc.openingStock += record.newVolume;
@@ -40,44 +40,33 @@ const TankStockDashBoardCards = ({selectedSite,selectedPeriod}) => {
               acc.totalTransferOut += Math.abs(record.volumeChange);
               break;
           }
-          return acc;
-        }, {
-          openingStock: 0,
-          closingStock: 0,
-          totalDelivery: 0,
-          totalDispense: 0,
-          totalTransferIn: 0,
-          totalTransferOut: 0
-        });
-      }, [tankVolumeHistory]);
+        }
+        return acc;
+      }, {
+        openingStock: 0,
+        closingStock: 0,
+        totalDelivery: 0,
+        totalDispense: 0,
+        totalTransferIn: 0,
+        totalTransferOut: 0
+      });
+    }, [tankVolumeHistory, selectedSite]);
 
-const currentStock = useMemo(()=>{
-  if(selectedPeriod ==='Today')
-    {
-      return tanks.reduce ((total,tank) =>{
-        if(selectedSite ==='all' || tank.siteId.toString() ===selectedSite)
-          {
-            return total + tank.currentStock;
-          }
-          return total;
-      },0);
-    }
-    return null;
-},[tanks,selectedSite,selectedPeriod])
-
+     
+    
 
       return (
         <>
           <div className="cards compact">
           {selectedPeriod ==='Today' && (
-              <TickerCard title ="Current Stock" icon="fa-light fa-tank-water" tone ="success" value ={currentStock} />
-            )}
-            <TickerCard title="Total Delivery" icon ={"fa-light fa-arrow-down-to-square"} value={aggregatedData.totalDelivery} />
+          <StockCapacityTicker currentStock={currentStock} tankCapacity={totalCapacity} />
+                      )}
+            <TickerCard title="Total Delivery" icon ={"fa-light fa-arrow-down-to-square"}  tone ={"delivery"} value={aggregatedData.totalDelivery} />
             <TickerCard title="Opening Stock" icon ={"fa-light fa-tank-water"} tone={"info"} value={aggregatedData.openingStock} />
-            <TickerCard title="Closing Stock"  icon ={"fa-light fa-tank-water"} value={aggregatedData.closingStock} />
-            <TickerCard title="Total Fuel Dispense"  icon ={"fa-light fa-gas-pump"}value={aggregatedData.totalDispense} />
-            <TickerCard title="Total Transfer In" icon ={"fa-light fa-arrow-turn-down"} value={aggregatedData.totalTransferIn} />
-            <TickerCard title="Total Transfer Out" icon ={"fa-light fa-arrow-turn-up"} value={aggregatedData.totalTransferOut} />
+            <TickerCard title="Closing Stock"  icon ={"fa-light fa-tank-water"} tone={"info"} value={aggregatedData.closingStock} />
+            <TickerCard title="Total Fuel Dispense"  icon ={"fa-light fa-gas-pump"} tone={"negative"} value={aggregatedData.totalDispense} />
+            <TickerCard title="Total Transfer In" icon ={"fa-light fa-arrow-turn-down"} tone={"success"} value={aggregatedData.totalTransferIn} />
+            <TickerCard title="Total Transfer Out" icon ={"fa-light fa-arrow-turn-up"} tone={"success"} value={aggregatedData.totalTransferOut} />
 
           
           </div>

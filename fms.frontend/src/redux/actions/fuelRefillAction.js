@@ -35,7 +35,6 @@ export const fetchFuelRefillsbyDateRange = (startDate, endDate) => async (dispat
 export const createFuelRefill = (fuelRefill) => async (dispatch) => {
     try {
         const response = await axiosInstance.post('/fuelrefill', fuelRefill);
-        console.log("response", response);
         if (response.data.success) {
             dispatch({ type: CREATE_FUEL_REFILL_SUCCESS, payload: response.data.message });
             return { success: true, message: response.data.message };
@@ -46,7 +45,6 @@ export const createFuelRefill = (fuelRefill) => async (dispatch) => {
     } catch (error) {
         // If the error is from the API, it will be in error.response.data
         const errorMessage = error.response?.data?.message || error.message;
-        console.log("error message", errorMessage);
         dispatch({ type: CREATE_FUEL_REFILL_FAILURE, payload: errorMessage });
         return { success: false, message: errorMessage };
     }

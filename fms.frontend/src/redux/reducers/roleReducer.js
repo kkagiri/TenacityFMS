@@ -109,5 +109,4 @@ const roleReducer = (state = initialState, action) => {
             return state;
     }
 };
-console.log ('roleReducer:', roleReducer);
 export default roleReducer;

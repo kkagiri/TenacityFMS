@@ -150,10 +150,12 @@ export default function Fuelrefil() {
                     const response =    await dispatch(createFuelRefill(formattedData));
                     if (response.success) {
                         notify('Manual fuel refill created successfully.', 'success', 3000);
+                        fetchData();
                         e.component.navigateToRow(e.key);
                     } else {
                         // Display the error message from the API
-                        notify(response.message, "error", 5000);
+                        notify(response.message, "error", 6000);
+                        e.component.editRow(e.key);
                         e.cancel = true;
                     }
 
@@ -172,11 +174,12 @@ export default function Fuelrefil() {
             } catch (error) {
                 e.cancel = true;
                 notify('An unexpected error occurred while processing the fuel refill operation.', 'error', 3000);               
-
+                if (change.type === 'insert' || change.type === 'update') {
+                    e.component.editRow(e.key);
+                }
             } finally {
                 setSaving(false);
                 setLoading(false);
-                e.cancel =true;
             }
         }
     };
@@ -208,7 +211,7 @@ export default function Fuelrefil() {
 
     const refresh = useCallback(() => {
         gridRef.current?.instance.refresh();
-        dispatch.fetchData(); 
+        fetchData()
     }, []);
 
     const handleFieldChange = (e) => {

@@ -24,6 +24,7 @@ using FMS.Application.ModelsDTOs.FMS.TankVolumeHistory;
 using FMS.Application.ModelsDTOs.FMS.TankReconciliation;
 using FMS.Application.ModelsDTOs.FMS.Supplier;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
+using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 
 namespace FMS.Application.MappingProfile
 {
@@ -38,7 +39,9 @@ namespace FMS.Application.MappingProfile
             CreateMap<Tankstock, TankStockDTO>().ForMember(dest => dest.EntryType, opt => opt.MapFrom(src => src.EntryType.ToString())).ReverseMap();
             CreateMap<TankTransfer, TankTransferDTO>().ReverseMap();
             CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>().ForMember(dest => dest.ChangeReason, opt => opt.MapFrom(src => src.ChangeReason.ToString()))
-                .ForMember(dest=>dest.Site,opt=>opt.MapFrom(src =>src.Tank.Site.Name)).ReverseMap();
+                .ForMember(dest=>dest.Site,opt=>opt.MapFrom(src =>src.Tank.Site.Name))
+                .ForMember(dest=>dest.SiteId,opt=>opt.MapFrom(src=>src.Tank.Site.Id))
+                .ReverseMap();
             CreateMap<Dailytankreconciliation,TankReconcillationDTO>() 
                 .ForMember(dest=>dest.TankName,opt=>opt.MapFrom(src=>src.Tank.Name))
                 .ForMember(dest=>dest.SiteName,opt=>opt.MapFrom(src=>src.Tank.Site.Name))

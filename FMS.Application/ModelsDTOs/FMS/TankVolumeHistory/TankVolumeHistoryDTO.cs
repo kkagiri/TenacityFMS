@@ -21,6 +21,7 @@ namespace FMS.Application.ModelsDTOs.FMS.TankVolumeHistory
 
         public int? ReferenceId { get; set; }
         public string? Site { get; set; } = null;
+        public int? SiteId{get;set;}
 
 
     }
