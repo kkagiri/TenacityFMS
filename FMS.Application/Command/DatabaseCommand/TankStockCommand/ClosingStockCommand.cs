@@ -41,17 +41,17 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
                 if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
 
-                var existingClosingStock = await _context.Tankstocks
+                var existingClosingStock = await _context.TankVolumeHistories
            .Where(x => x.TankId == request.TankId &&
-                       x.EntryDate.Date == entryDate &&
-                       x.EntryType == VolumeChangeReasonEnum.ClosingStock)
+                       x.Timestamp.Date == entryDate &&
+                       x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
            .SingleOrDefaultAsync(cancellationToken);
 
                 if (existingClosingStock != null) return new FMSResponseMessage(false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
                 
 
-                var openingStock = await _context.Tankstocks.Where(x => x.TankId == request.TankId && 
-                                    x.EntryDate.Date == entryDate.Date && x.EntryType ==  VolumeChangeReasonEnum.OpeningStock)
+                var openingStock = await _context.TankVolumeHistories.Where(x => x.TankId == request.TankId && 
+                                    x.Timestamp.Date == entryDate.Date && x.ChangeReason ==  VolumeChangeReasonEnum.OpeningStock)
                                  .SingleOrDefaultAsync(cancellationToken);
 
                 if (openingStock == null) return new FMSResponseMessage(false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
@@ -70,12 +70,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                 //  var calculatedUsage = openingStock.ManualOpeningLevel + totalRefill - request.ClosingStock;
 
-                var expectedClosingLevel = openingStock.ManualOpeningLevel + totalDeliveries + totalTransfersIn - Math.Abs((decimal)totalRefills) - Math.Abs((decimal)totalTransfersOut);
+                //var expectedClosingLevel = openingStock. + totalDeliveries + totalTransfersIn - Math.Abs((decimal)totalRefills) - Math.Abs((decimal)totalTransfersOut);
 
-                if(Math.Abs((decimal)expectedClosingLevel - request.ClosingStock) > tank.DiscrepancyThreshold)
-                {
-                    return new FMSResponseMessage(false, $"Closing stock does not match transactions. Expected: {expectedClosingLevel}, Actual: {request.ClosingStock}");
-                }
+                //if(Math.Abs((decimal)expectedClosingLevel - request.ClosingStock) > tank.DiscrepancyThreshold)
+                //{
+                //    return new FMSResponseMessage(false, $"Closing stock does not match transactions. Expected: {expectedClosingLevel}, Actual: {request.ClosingStock}");
+                //}
 
                 var newClosingStock = new Tankstock
                 {
@@ -89,27 +89,31 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                 _context.Tankstocks.Add(newClosingStock);
 
-                var reconciliation = new Dailytankreconciliation
-                {
-                    TankId = request.TankId,
-                    ReconciliationDate = entryDate,
-                    OpeningLevel = openingStock.ManualOpeningLevel,
-                    ClosingLevel = request.ClosingStock,
-                    TotalRefills = Math.Abs((decimal)totalRefills),
-                    TotalDeliveries = totalDeliveries,
-                    TotalTransfersIn = totalTransfersIn,
-                    TotalTransfersOut = totalTransfersOut
+                //var reconciliation = new Dailytankreconciliation
+                //{
+                //    TankId = request.TankId,
+                //    ReconciliationDate = entryDate,
+                //    OpeningLevel = openingStock.ManualOpeningLevel,
+                //    ClosingLevel = request.ClosingStock,
+                //    TotalRefills = Math.Abs((decimal)totalRefills),
+                //    TotalDeliveries = totalDeliveries,
+                //    TotalTransfersIn = totalTransfersIn,
+                //    TotalTransfersOut = totalTransfersOut
 
 
-                };
+                //};
                
 
-                _context.Dailytankreconciliations.Add(reconciliation);
+                //_context.Dailytankreconciliations.Add(reconciliation);
 
-                if(tank.UseBookKeeping == 1)
+                if (entryDate.Date == DateTime.Now.Date)
                 {
-                    tank.CurrentStock = request.ClosingStock;
-                    tank.LastStockUpdate = DateTime.Now;
+
+                    if (tank.UseBookKeeping == 1)
+                    {
+                        tank.CurrentStock = request.ClosingStock;
+                        tank.LastStockUpdate = DateTime.Now;
+                    }
                 }
        
                 await _context.SaveChangesAsync(cancellationToken);
@@ -121,7 +125,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var tankhistory = new TankVolumeHistory
                 {
                     TankId = request.TankId,
-                    Timestamp = DateTime.Now,
+                    Timestamp = entryDate,
                     VolumeChange = request.ClosingStock - (tank.CurrentStock ?? 0),
                     NewVolume = request.ClosingStock,
                     ChangeReason = VolumeChangeReasonEnum.ClosingStock,
