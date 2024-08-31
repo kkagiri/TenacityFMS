@@ -23,17 +23,17 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        siteId: null,
-        tankId: null,
-        date: new Date().toLocaleString(),
-        manualDeliveryAmount: null,
+        siteId: 0,
+        tankId: 0,
+        date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+         manualDeliveryAmount: 0,
         sensorDeliveryAmount: 0,
         deliveryTemperature: 0,
         deliveryDensity: 0,
         deliveryMass: 0,
         stockBeforeDelivery: 0,
         stockAfterDelivery: 0,
-        supplierId: null,
+        supplierId: 0,
         lpoNumber: '',
         product: ''
     });
@@ -84,8 +84,19 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
                  onFieldDataChanged={handleChange} >
 
                 <GroupItem caption="General Details" colCount={2}>
-                <SimpleItem dataField="date" editorType="dxDateBox"
-                    editorOptions={{max: new Date(), displayFormat: "yyyy-MM-dd HH:mm",type:"datetime"}} />
+                <SimpleItem 
+                        dataField="date" 
+                        editorType="dxDateBox"
+                        editorOptions={{
+                            max: new Date(),
+                            displayFormat: "yyyy-MM-dd HH:mm",
+                            type: "datetime",
+                            // Set pickerType to 'calendar' for better date-time selection UI
+                            pickerType: 'calendar'
+                        }}
+                    >
+                        <RequiredRule message="Date and time are required" />
+                    </SimpleItem>
                 <SimpleItem dataField="siteId" editorType="dxSelectBox"
                     editorOptions={{items: sites, displayExpr: 'name', valueExpr: 'id', onValueChanged: handleSiteChange}} ><Label text="Site" /></SimpleItem>
                 <SimpleItem dataField="tankId" editorType="dxSelectBox"
