@@ -87,12 +87,14 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 _context.Tankstocks.Add(stockTaking);
 
 
-            
+             if(entryDate.Date == DateTime.Now.Date){
+
                 if (tank.UseBookKeeping == 1)
                 {
                     tank.CurrentStock = request.OpeningStock;
                     tank.LastStockUpdate = DateTime.Now;
                 }
+                         }
 
                 _context.Tanks.Update(tank);
 
