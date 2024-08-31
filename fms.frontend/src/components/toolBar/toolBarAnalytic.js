@@ -92,10 +92,10 @@ if (data.date > new Date()) {
 
 const validateDelivery = (data) => {
 
-  if (!data.tankId || !data.manualDeliveryAmount || !data.deliveryDate  || !data.product || !data.stockBeforeDelivery || !data.stockAfterDelivery) {
+  if (!data.tankId || !data.manualDeliveryAmount || !data.date || !data.product || !data.stockBeforeDelivery || !data.stockAfterDelivery) {
     notify('Please fill in all required fields', 'error', 3000);
     return false;
-}
+  }
 
 if(data.stockAfterDelivery < data.stockBeforeDelivery){
   notify('Stock after delivery cannot be less than stock before delivery', 'error', 3000);
@@ -147,8 +147,6 @@ if (data.sourceSiteId === data.destinationSiteId && data.sourceTankId === data.d
 
     switch (currentForm) {
       case 'openingStock':
-        isValid = await validateOpeningClosingStock(currentFormData);
-        break;
       case 'closingStock':
         isValid = await validateOpeningClosingStock(currentFormData);
         break;
@@ -159,12 +157,12 @@ if (data.sourceSiteId === data.destinationSiteId && data.sourceTankId === data.d
         isValid = await validateTransfer(currentFormData);
         break;
       default:
-        throw new Error('Invalid form type');
-    }
+notify('Invalid form type','error',4000)    }
     if (!isValid) return;
 
- let result;
+
     try {
+      let result;
       switch (currentForm) {
         case 'openingStock':
           result = await onOpeningStockSubmit(currentFormData);
