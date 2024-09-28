@@ -1,6 +1,5 @@
 import axiosInstance from './../../api/axiosInstance';
 
-
 export const FETCH_TANK_STOCKS_SUCCESS = 'FETCH_TANK_STOCKS_SUCCESS';
 export const FETCH_TANK_STOCKS_FAILURE = 'FETCH_TANK_STOCKS_FAILURE';
 export const CREATE_TANK_STOCK_SUCCESS = 'CREATE_TANK_STOCK_SUCCESS';
@@ -110,7 +109,9 @@ export const createClosingStock = (tankId, amount,date) => async (dispatch) => {
 
 export const createTankTransfer = (tankTransferDTO) => async (dispatch) => {
   try {
+ 
     const response = await axiosInstance.post('/tankstock/transfer', tankTransferDTO);
+
     if (response.data.success) {
       dispatch({ type: CREATE_TANK_TRANSFER_SUCCESS, payload: response.data });
       return response.data;

@@ -37,7 +37,9 @@ namespace FMS.Application.MappingProfile
             CreateMap<Supplier,SupplierDTO>().ReverseMap();
 
             CreateMap<Tankstock, TankStockDTO>().ForMember(dest => dest.EntryType, opt => opt.MapFrom(src => src.EntryType.ToString())).ReverseMap();
-            CreateMap<TankTransfer, TankTransferDTO>().ReverseMap();
+             CreateMap<TankTransfer, TankTransferDTO>()
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.TransferDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ")))
+            .ReverseMap();
             CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>().ForMember(dest => dest.ChangeReason, opt => opt.MapFrom(src => src.ChangeReason.ToString()))
                 .ForMember(dest=>dest.Site,opt=>opt.MapFrom(src =>src.Tank.Site.Name))
                 .ForMember(dest=>dest.SiteId,opt=>opt.MapFrom(src=>src.Tank.Site.Id))

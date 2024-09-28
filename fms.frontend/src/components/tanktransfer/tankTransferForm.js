@@ -21,7 +21,7 @@ const TankTransferForm = ({updateFormData, isLoading  }) => {
         destinationSiteId: null,
         destinationTankId: null,
         amount: null,
-        transferDate: new Date()
+        date: new Date().toISOString()
     });
     const handleChange = (e) => {
         const updatedData = { ...localFormData, [e.dataField]: e.value };
@@ -66,9 +66,9 @@ const TankTransferForm = ({updateFormData, isLoading  }) => {
                 readOnly={isLoading} showColonAfterLabel={true} labelLocation="top"
                  onFieldDataChanged={handleChange} >
                
-            <SimpleItem dataField="transferDate" editorType="dxDateBox"
+            <SimpleItem dataField="date" editorType="dxDateBox"
                     editorOptions={{
-                        max: new Date(),
+                        max: new Date().toISOString(),
                         displayFormat: "yyyy-MM-dd HH:mm",
                         type: "datetime",
                         placeholder: 'Select Transfer Date'

@@ -114,7 +114,7 @@ if (data.deliveryDate > new Date()) {
 
 const validateTransfer = (data) => {
   console.log("Data",data);
-  if (!data.sourceTankId || !data.destinationTankId || !data.amount || !data.transferDate) {
+  if (!data.sourceTankId || !data.destinationTankId || !data.amount || !data.date) {
     notify('Please fill in all required fields', 'error', 3000);
     return false;
 }
