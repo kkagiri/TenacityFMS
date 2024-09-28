@@ -28,7 +28,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankQueries
 
         public async Task<List<TankDTO>> Handle(GetTankListQuery request, CancellationToken cancellationToken)
         {
-            var tanks = await _context.Tanks.ToListAsync(cancellationToken);
+            var tanks = await _context.Tanks.Include(x=>x.Site).ToListAsync(cancellationToken);
             return _mapper.Map<List<TankDTO>>(tanks);
         }
     }

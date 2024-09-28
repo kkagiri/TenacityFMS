@@ -3,9 +3,19 @@
 //Code for showing tank Stock Activity from Tank stock Page or tankStockPage.js
 
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import Toolbar, { Item as thvdItem } from 'devextreme-react/toolbar';
+
 import { useDispatch, useSelector } from 'react-redux';
-import { DataGrid, Column, Lookup, Paging, FilterRow, HeaderFilter,LoadPanel , Export, Grouping, GroupPanel, FilterPanel, Summary, GroupItem } from 'devextreme-react/data-grid';
+import { DataGrid, Column, Lookup, Paging, FilterRow,Selection,
+      TotalItem,Toolbar as TB,
+       Item as TBItem,HeaderFilter,LoadPanel , Export,
+        Grouping, GroupPanel, FilterPanel, Summary, GroupItem } from 'devextreme-react/data-grid';
 import { formatDate } from './../../utils/dateUtils';
+import { Workbook } from 'exceljs';
+import saveAs from 'file-saver';
+import Button from 'devextreme-react/button';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+
 
 const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPeriod }) => {
     const VolumeChangeReasonEnum = [
@@ -17,13 +27,24 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
         { id: 5, name: 'Adjustment' },
         { id: 6, name: 'Dispensing' }
     ];
+    const dataGridRef = React.useRef(null);
+
     const [groupedColumns, setGroupedColumns] = useState(['site', 'tankId']);
     const exportFormats = ['xlsx'];
     const [isLoading, setIsLoading] = useState(true);
     const onDataGridReady = useCallback(() => {
         setIsLoading(false);
     }, []);
-
+    const changeReasonCellRender = (cellInfo) => {
+        const reason = VolumeChangeReasonEnum.find(r => r.id === cellInfo.value);
+        if (reason) {
+            if (reason.name === 'Dispensing' && cellInfo.data.vehicleName) {
+                return `${reason.name} - ${cellInfo.data.vehicleName}`;
+            }
+            return reason.name;
+        }
+        return cellInfo.value;
+    };
 
     const formatTime = (cellInfo) => {
         const date = new Date(cellInfo.value);
@@ -110,23 +131,89 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
         
     }, [selectedPeriod, filteredTanks]);
 
+
+    const onExporting = useCallback((e) => {
+        const workbook = new Workbook();
+        const worksheet = workbook.addWorksheet('Tank History Volume');
+
+        const changeReasonCellPrepareFunction = (cell, cellInfo) => {
+            const reason = VolumeChangeReasonEnum.find(r => r.id === cellInfo.value);
+            if (reason) {
+                if (reason.name === 'Dispensing' && cellInfo.data.vehicleName) {
+                    cell.value = `${reason.name} - ${cellInfo.data.vehicleName}`;
+                } else {
+                    cell.value = reason.name;
+                }
+            }
+        };
+
+        const dateCellPrepareFunction = (cell) => {
+            if (cell.value instanceof Date) {
+                cell.value = cell.value.toLocaleString('en-GB', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }).replace(/\//g, '-');
+            }
+        };
+
+        exportDataGrid({
+            component: dataGridRef.current.instance,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            customizeCell: ({ gridCell, excelCell }) => {
+                if (gridCell.column.dataField === 'changeReason') {
+                    changeReasonCellPrepareFunction(excelCell, gridCell);
+                }
+                if (gridCell.column.dataField === 'timestamp') {
+                    dateCellPrepareFunction(excelCell);
+                }
+            }
+        }).then(() => {
+            workbook.xlsx.writeBuffer().then((buffer) => {
+                saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'TankHistoryVolume.xlsx');
+            });
+        });
+        e.cancel = true;
+    }, [VolumeChangeReasonEnum]);
+
+      
     return (
-        <div>            
+            <div style={{ display: 'flex',  marginTop:'20px' }}>
+       
             <DataGrid
                 dataSource={tankVolumeHistory}
                 showBorders={true}
+                ref={dataGridRef}
                 showColumnLines={true}
                 showRowLines={true}
                 allowColumnResizing={true}
                 showColumnHeaders={true}
+                instanceName="tankHistoryVolumeGrid"
+
             >
                 <FilterPanel visible={true} />
-                <GroupPanel visible={true} />
-                <Grouping visible={true} autoExpandAll={true} />
+                <GroupPanel visible={false} />
+                <Grouping visible={true} autoExpandAll={false} />
                 <HeaderFilter visible={true} />
                 <FilterRow visible={true} />
-
                 <Paging defaultPageSize={20} />
+                <Selection mode="multiple" />
+                <TB visible={true}  >
+                    <TBItem    location="after"
+                    widget="dxButton"
+                    options={{
+                        icon: 'fa-light fa-file-export',
+                        text: 'Export',
+                        onClick: onExporting
+                    }}   
+                       />
+
+                </TB>
 
                 <LoadPanel enabled={isLoading} />
                 <Column dataField="id" caption="ID" visible={false} defaultSortOrder="asc" />
@@ -137,9 +224,11 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                     <Lookup dataSource={tanks} valueExpr="id" displayExpr="name" />
                 </Column>
 
-                <Column dataField="changeReason" caption="Change Reason " minWidth={130}>
-                    <Lookup dataSource={VolumeChangeReasonEnum} valueExpr="id" displayExpr="name" />
-                </Column>
+                <Column dataField="changeReason"  caption="Change Reason"  minWidth={130}
+           cellRender={changeReasonCellRender}
+                >
+      <Lookup dataSource={VolumeChangeReasonEnum} valueExpr="id" displayExpr="name" />
+               </Column>
                 <Column dataField="newVolume" caption="New Volume" minWidth={120} />
 
                 <Column dataField="volumeChange" caption="Volume Change" minWidth={150} />
@@ -180,6 +269,27 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         alignByColumn={true}
                         displayFormat="Remaining: {0} %"
                     />
+                           <GroupItem
+                        column="volumeChange"
+                        summaryType="sum"
+                        valueFormat="fixedPoint"
+                        precision={2}
+                        displayFormat="Total : {0} liters"
+                        showInGroupFooter={true}
+                      
+                    />
+                <TotalItem
+                        column="volumeChange"
+                        summaryType="sum"
+                        valueFormat="fixedPoint"
+                        precision={2}
+                        calculateCustomSummary={(options) => {
+                            if (options.summaryProcess === 'finalize') {
+                                options.totalValue = Math.abs(options.totalValue);
+                            }
+                        }}
+                    />
+
                 </Summary>
             </DataGrid>
           <style jsx>{`

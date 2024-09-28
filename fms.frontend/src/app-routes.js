@@ -1,8 +1,6 @@
 import { HomePage, Vehicles } from './pages';
 import ConsumptionBasedonRefills from './pages/consumption/consumptionBasedonRefills';
 import VehicleConsumptionDetails from './report/vehicleConsumptionDetails/vehicleConsumptionDetails';
-import VehicleConsumptionReportDesigner from './components/reports/vehicleConsumptionReportDesigner';
-import VehicleConsumptionReportViewer from './components/reports/vehicleConsumptionReportViewer';
 import VehicleManualRefill from './pages/manualrefill/manualRefilPage';
 import PermissionTreeList from './components/PermissionTreeList/permissionTreeList';
 import Rolepage from './pages/Role/rolepage';
@@ -10,6 +8,8 @@ import unauthorized from './pages/unauthorized';
 import NavigationPage from './pages/Navigation/NavigationPage';
 import EmployeePage from './pages/employees/employeePage';
 import TankStockPage from './pages/tankStock/tankStockPage';
+import DocumentViewer from './components/reports/DocumentViewer';
+import ReportDesignerComponent from './components/reports/ReportDesigner';
 const resolvedComponents =(pageName) => {
   switch(pageName.toLowerCase())
 
@@ -27,10 +27,6 @@ const resolvedComponents =(pageName) => {
 
      case 'vehicleConsumptionDetails':
        return VehicleConsumptionDetails;
-     case 'vehicleConsumptionReportDesigner':
-       return VehicleConsumptionReportDesigner;
-     case 'vehicleConsumptionReportViewer':
-       return VehicleConsumptionReportViewer;
      case 'manual refill': 
        return VehicleManualRefill;
      case 'employees':
@@ -41,6 +37,8 @@ const resolvedComponents =(pageName) => {
        return PermissionTreeList;
        case 'navigations':
         return NavigationPage;
+        case 'reports':
+          return ReportDesignerComponent;
      
      case 'unauthorized':
        return unauthorized;

@@ -1,4 +1,6 @@
 ﻿using FMS.Domain.Entities.Auth;
+using FMS.Domain.Entities.Reports;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
@@ -9,6 +11,8 @@ public partial class User : IdentityUser
 { 
 
     public bool? IsDeleted { get; set; }
+
+
 
     public virtual ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
@@ -28,6 +32,8 @@ public partial class User : IdentityUser
     public virtual ICollection<Issuetracker> IssuetrackerOpenbyNavigations { get; set; } = new List<Issuetracker>();
 
     public virtual ICollection<Loginactivity> Loginactivities { get; set; } = new List<Loginactivity>();
+
+   
 
     public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
 

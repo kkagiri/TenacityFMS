@@ -143,11 +143,26 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         modelBuilder.Entity<ReportItem>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.HasIndex(e => e.CreatedBy, "CreatedBy_ReportITem_idx");
+            entity.HasIndex(e => e.UpdatedBy, "UpdatedBy_ReportItem_idx");
+            entity.HasIndex(e => e.Name, "Name_UNIQUE");
+
+
+
             entity.ToTable("reportitem");
+
             entity.Property(e => e.Id).HasColumnType("int(11)");
-            entity.Property(e => e.DisplayName).HasMaxLength(45);
-            entity.Property(e => e.Name).HasMaxLength(45);
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.DisplayName).HasMaxLength(100);
             entity.Property(e => e.LayoutData).HasColumnName("LayoutData").HasColumnType("LONGBLOB");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+  
+
 
         });
         modelBuilder.Entity<UserActivity>(entity =>

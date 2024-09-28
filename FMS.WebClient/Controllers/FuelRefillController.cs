@@ -114,4 +114,39 @@ public class FuelRefillController : ControllerBase
         
         return NoContent();
     }
+
+    [HttpGet("summary")]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefillSummary([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
+
+        var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate,null));
+
+        if (summary == null || !summary.Any())
+        {
+            return NoContent();
+        }
+
+        return Ok(summary);
+    }
+
+    
+    [HttpGet("summary/{siteId}")]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefillSummaryBySite([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
+
+        var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate, siteId));
+
+        if (summary == null || !summary.Any())
+        {
+            return NoContent();
+        }
+
+        return Ok(summary);
+    }
 }

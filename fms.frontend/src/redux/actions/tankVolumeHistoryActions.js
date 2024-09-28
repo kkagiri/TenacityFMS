@@ -1,4 +1,5 @@
 import axiosInstance from './../../api/axiosInstance';
+import { cloneDeep } from 'lodash';
 
 // Action Types
 export const FETCH_TANK_VOLUME_HISTORY_SUCCESS = 'FETCH_TANK_VOLUME_HISTORY_SUCCESS';
@@ -12,9 +13,9 @@ export const FETCH_TANK_VOLUME_HISTORY_BY_DATE_RANGE_FAILURE = 'FETCH_TANK_VOLUM
 export const fetchTankVolumeHistory = () => async (dispatch) => {
   try {
     const response = await axiosInstance.get('/tankvolumehistory');
-    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_SUCCESS, payload: response.data });
+    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_SUCCESS, payload: cloneDeep(response.data) });
   } catch (error) {
-    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_FAILURE, payload: error.message });
+    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_FAILURE, payload: cloneDeep(error.message) });
   }
 };
 
@@ -24,10 +25,10 @@ export const fetchTankVolumeHistoryBySiteId = (startDate,endDate,siteId) => asyn
     const response = await axiosInstance.get(`/tankvolumehistory/bySite`, {
       params: { StartDate: startDate, EndDate: endDate, siteId: siteId }
     });
-    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_BY_ID_SUCCESS, payload: response.data });
+    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_BY_ID_SUCCESS, payload: cloneDeep(response.data) });
   } catch (error) {
     console.error("Error fetching tank volume history:", error);
-    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_BY_ID_FAILURE, payload: error.message });
+    dispatch({ type: FETCH_TANK_VOLUME_HISTORY_BY_ID_FAILURE, payload: cloneDeep(error.message) });
   }
 
 };

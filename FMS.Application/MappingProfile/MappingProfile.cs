@@ -83,7 +83,9 @@ namespace FMS.Application.MappingProfile
                   .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })))        
                   .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));
 ;
-            CreateMap<Tank, TankDTO>().ForMember(dest=>dest.UseBookKeeping,opt =>opt.MapFrom(src =>src.UseBookKeeping.HasValue && src.UseBookKeeping.Value !=0)).ReverseMap()
+            CreateMap<Tank, TankDTO>().
+            ForMember(dest=>dest.SiteName,opt=>opt.MapFrom(src=>src.Site.Name)).
+            ForMember(dest=>dest.UseBookKeeping,opt =>opt.MapFrom(src =>src.UseBookKeeping.HasValue && src.UseBookKeeping.Value !=0)).ReverseMap()
                 .ForMember(dest =>dest.UseBookKeeping,opt => opt.MapFrom(src =>(sbyte?)(src.UseBookKeeping ? (sbyte)1:(sbyte)0))); 
 
 

@@ -10,6 +10,7 @@ import ClosingStockForm from './../tankStock/ClosingStockForm';
 import TankDeliveryForm from '../deliveryForms/TankDeliveryForm';
 import TankTransferForm from '../tanktransfer/tankTransferForm';
 import ScrollView from 'devextreme-react/scroll-view';
+import DropDownButton from 'devextreme-react/drop-down-button';
 
 const POPUP_CONFIG = {
   openingStock: {
@@ -70,7 +71,17 @@ export const ToolbarAnalytics = ({
     transfer: {},
   });
 
- 
+  const stockManagementItems = [
+    { key: 'openingStock', text: 'Opening Stock' , icon: 'fa-light fa-lock-open' , type: 'default' },
+    { key: 'closingStock', text: 'Closing Stock' , icon: 'fa-light fa-lock' , type: 'success' },
+    { key: 'delivery', text: 'Delivery' , icon: 'fa-light fa-truck-fast' , type: 'normal' },
+    { key: 'transfer', text: 'Transfer' , icon: 'fa-light fa-exchange' , type: 'normal' },
+  ];
+
+  const handleStockManagementClick = (e) => {
+    handlePopupVisibility(e.itemData.key, true);
+  };
+
   const handlePopupVisibility = (popupName, isVisible) => {
     setPopupVisibility(prev => ({ ...prev, [popupName]: isVisible }));
     setCurrentForm(isVisible ? popupName : null);
@@ -91,8 +102,9 @@ if (data.date > new Date()) {
 };
 
 const validateDelivery = (data) => {
+  console.log("Validating delivery data:", data);
 
-  if (!data.tankId || !data.manualDeliveryAmount || !data.date || !data.product || !data.stockBeforeDelivery || !data.stockAfterDelivery) {
+  if (!data.tankId || !data.manualDeliveryAmount || !data.date  || !data.product || !data.stockBeforeDelivery || !data.stockAfterDelivery) {
     notify('Please fill in all required fields', 'error', 3000);
     return false;
   }
@@ -113,7 +125,6 @@ if (data.deliveryDate > new Date()) {
 };
 
 const validateTransfer = (data) => {
-  console.log("Data",data);
   if (!data.sourceTankId || !data.destinationTankId || !data.amount || !data.date) {
     notify('Please fill in all required fields', 'error', 3000);
     return false;
@@ -270,36 +281,35 @@ notify('Invalid form type','error',4000)    }
         <Item location='before'>
           <span className='toolbar-header' style={{paddingLeft:'10px'}}>{title}</span>
         </Item>
-        <Item location='before'>
+        <Item location='before' locateInMenu='auto'>
           <SelectBox
             dataSource={siteOptions}
             displayExpr="name"
             valueExpr="id"
-            value={selectedSite}
+            value={selectedSite || 'all'} // Set default to 'all' if selectedSite is empty
+            stylingMode='underlined'
             searchEnabled={true}
             searchMode='contains'
             onValueChanged={onSiteChange}
             width={200}
-            height={40}
+            height='auto'
             placeholder="Select a site"
-            defaultValue={siteOptions[0]}
           />
         </Item>
         {additionalToolbarContent}
       
-        {Object.entries(POPUP_CONFIG).map(([key, { title }]) => (
-          <Item key={key} location='after' locateInMenu='auto'>
-            <Button
-              className='add-card'
-              icon={key === 'openingStock' ? 'plus' : key === 'closingStock' ? 'minus' : 'add'}
-              text={title}
-              
-              type={key === 'openingStock' ? 'default' : key === 'closingStock' ? 'success' : 'normal'}
-              stylingMode='contained'
-              onClick={() => handlePopupVisibility(key, true)}
-            />
-          </Item>
-        ))}
+        <Item location='after'>
+          <DropDownButton
+            text="Manage Stocks"
+            icon="add"
+            type='success'
+            items={stockManagementItems}
+            onItemClick={handleStockManagementClick}
+            displayExpr="text"
+            keyExpr="key"
+            stylingMode="contained"
+          />
+        </Item>
         
         <Item
           location='after'
@@ -315,18 +325,7 @@ notify('Invalid form type','error',4000)    }
             disabled={isLoading}
                       />
         </Item>
-        <Item
-          location='after'
-          locateInMenu='auto'
-          widget='dxButton'
-          showText='inMenu'
-        >
-          <Button
-            icon='export'
-            text='Export'
-            stylingMode='text'
-          />
-        </Item>
+       
       </Toolbar>
       {children}
       {renderPopups()}

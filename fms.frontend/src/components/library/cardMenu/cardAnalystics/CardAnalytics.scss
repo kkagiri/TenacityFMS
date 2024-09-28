@@ -6,7 +6,9 @@
     position: relative;
     border: 1px solid var(--border-color);
     overflow: hidden;
-  
+    width: 100%; // Add this line to ensure full width
+    box-sizing: border-box; // Add this line to include padding and border in the width calculation
+
     .header {
       padding: var(--content-padding) var(--content-padding) 0;
     }
@@ -30,9 +32,9 @@
   
     .card-contents {
       padding: 0 var(--content-padding) var(--content-padding);
-      box-sizing: content-box;
+      box-sizing: border-box; // Change to border-box
       font-size: 14px;
       line-height: 17px;
-      height: 270px;
+      width: 100%; // Add this line to ensure full width of contents
     }
   }

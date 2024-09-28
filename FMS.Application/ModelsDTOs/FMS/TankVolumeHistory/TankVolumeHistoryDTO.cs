@@ -16,6 +16,7 @@ namespace FMS.Application.ModelsDTOs.FMS.TankVolumeHistory
         public decimal? NewVolume { get; set; }
         public VolumeChangeReasonEnum ChangeReason { get; set; } 
         public string? RecordedBy { get; set; } = null;
+    public string? VehicleName { get; set; }
 
         public string? ReferenceType { get; set; } = null;
 

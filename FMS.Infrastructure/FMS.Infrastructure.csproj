@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\" />
+    <Folder Include="Common\Report\" />
     <Folder Include="DependancyInjection\ATG\" />
   </ItemGroup>
 

@@ -1,8 +1,7 @@
 import 'devextreme/dist/css/dx.common.css';
-import './themes/generated/theme.base.css';
-import './themes/generated/dx.fluent.custom-scheme1.css';
-import './themes/generated/theme.additional.css';
-
+ import './themes/generated/theme.base.css';
+ import './themes/generated/dx.fluent.custom-scheme1.css';
+  import './themes/generated/theme.additional.css';
 import './../assests/fontawesome/js/fontawesome';
  import './../assests/fontawesome/js/light';
 
@@ -10,7 +9,10 @@ import './../assests/fontawesome/js/fontawesome';
  import './../assests/fontawesome/css/fontawesome.css';
  import './../assests/fontawesome/css/light.css';
 
-
+import 'ace-builds/css/ace.css';
+import 'ace-builds/css/theme/dreamweaver.css';
+import 'ace-builds/css/theme/ambiance.css';
+//import './reportDesignerStyles.css';
 
 
 import React , { useEffect,useState } from 'react';
@@ -24,6 +26,8 @@ import { useScreenSizeClass } from './utils/media-query';
 import Content from './Content';
 import ProtectedRoute from './components/ProtectedRoute/protectedRoute';
 import UnauthenticatedContent from './UnauthenticatedContent';
+import { fetchNavigationItems } from './redux/actions/navigationActions'; 
+
 import  {loadUser}  from './redux/actions/AuthActions'
 import { initializeAxiosInstance } from './api/axiosInstance'; // Import the initialization function
 

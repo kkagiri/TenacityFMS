@@ -57,7 +57,7 @@ namespace FMS.BackgroundServices.FMS
                    
                      foreach(var tank in tanksNeedClosingStock)
                     {
-                        await mediator.Send(new ClosingStockCommand(tank.Id, tank.CurrentStock ?? 0, "6d1af84f-b86f-48c4-a70f-eed5dd5dbcea"), stoppingToken);
+                        await mediator.Send(new ClosingStockCommand(tank.Id, tank.CurrentStock ?? 0, "e66b6544-70e8-4a77-bd11-584e6eb35f62"), stoppingToken);
                     }
                 
                 }
