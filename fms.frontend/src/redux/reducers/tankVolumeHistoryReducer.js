@@ -6,6 +6,7 @@ import {
     FETCH_TANK_VOLUME_HISTORY_BY_DATE_RANGE_SUCCESS,
     FETCH_TANK_VOLUME_HISTORY_BY_DATE_RANGE_FAILURE
 } from '../actions/tankVolumeHistoryActions';
+import { cloneDeep } from 'lodash';
 
 const initialState = {
     tankVolumeHistory: [],
@@ -20,14 +21,21 @@ const tankVolumeHistoryReducer = (state = initialState, action) => {
         case FETCH_TANK_VOLUME_HISTORY_BY_ID_SUCCESS:     
         case FETCH_TANK_VOLUME_HISTORY_BY_DATE_RANGE_SUCCESS:
             return { 
-                ...state, 
-                tankVolumeHistory: Array.isArray(action.payload) ? action.payload : [action.payload],                 loading: false, 
+                ...cloneDeep(state), 
+                tankVolumeHistory: Array.isArray(action.payload) 
+                    ? cloneDeep(action.payload)
+                    : action.payload ? [cloneDeep(action.payload)] : [],
+                loading: false, 
                 error: null 
             };
         case FETCH_TANK_VOLUME_HISTORY_FAILURE:
         case FETCH_TANK_VOLUME_HISTORY_BY_ID_FAILURE:
         case FETCH_TANK_VOLUME_HISTORY_BY_DATE_RANGE_FAILURE:
-            return { ...state, loading: false, error: action.payload };
+            return { 
+                ...cloneDeep(state), 
+                loading: false, 
+                error: action.payload ? cloneDeep(action.payload) : null 
+            };
         default:
             return state;
     }

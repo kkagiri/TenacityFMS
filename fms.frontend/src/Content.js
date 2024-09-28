@@ -57,30 +57,3 @@ export default function Content() {
     </SideNavBarLayout>
   );
 }
-
-
-
-// export default function Content() {
-//   return (
-//     <SideNavBarLayout title={appInfo.title}>
-//       <Routes>
-//         {routes.map(({ path, element }) => (
-//           <Route
-//             key={path}
-//             path={path}
-//             element={element}
-//           />
-//         ))}
-//         <Route
-//           path='*'
-//           element={<Navigate to='/home' />}
-//         />
-//       </Routes>
-//       <Footer>
-//         Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc.
-//         <br />
-//        Develop  by Kevin.kagiri@hyoung.co.ke All trademarks or registered trademarks are property of Hyoung EA Co. Ltd. 
-//       </Footer>
-//     </SideNavBarLayout>
-//   );
-// }

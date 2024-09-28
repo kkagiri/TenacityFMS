@@ -12,7 +12,7 @@ namespace FMS.Application.ModelsDTOs.FMS.TankTransfer
         public int? SourceTankId { get; set; }
         public int? DestinationTankId { get; set; }
         public decimal? Amount { get; set; }
-        public DateTime? TransferDate { get; set; }
+        public DateTime? Date { get; set; }
         public string? RecordedBy { get; set; } = null;
     }
 }

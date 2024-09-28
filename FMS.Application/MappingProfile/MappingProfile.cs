@@ -37,7 +37,9 @@ namespace FMS.Application.MappingProfile
             CreateMap<Supplier,SupplierDTO>().ReverseMap();
 
             CreateMap<Tankstock, TankStockDTO>().ForMember(dest => dest.EntryType, opt => opt.MapFrom(src => src.EntryType.ToString())).ReverseMap();
-            CreateMap<TankTransfer, TankTransferDTO>().ReverseMap();
+            CreateMap<TankTransfer, TankTransferDTO>()
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.TransferDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ")))
+            .ReverseMap();
             CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>().ForMember(dest => dest.ChangeReason, opt => opt.MapFrom(src => src.ChangeReason.ToString()))
                 .ForMember(dest=>dest.Site,opt=>opt.MapFrom(src =>src.Tank.Site.Name))
                 .ForMember(dest=>dest.SiteId,opt=>opt.MapFrom(src=>src.Tank.Site.Id))
@@ -81,7 +83,9 @@ namespace FMS.Application.MappingProfile
                   .ReverseMap().ForMember(dest => dest.Vehicles, opt => opt.MapFrom(src => src.Vehicles.Select(id => new Vehicle { VehicleId = id })))        
                   .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => (sbyte?)(src.IsModified ? (sbyte)1 : (sbyte)0)));
 ;
-            CreateMap<Tank, TankDTO>().ForMember(dest=>dest.UseBookKeeping,opt =>opt.MapFrom(src =>src.UseBookKeeping.HasValue && src.UseBookKeeping.Value !=0)).ReverseMap()
+            CreateMap<Tank, TankDTO>().
+            ForMember(dest=>dest.SiteName,opt=>opt.MapFrom(src=>src.Site.Name)).
+            ForMember(dest=>dest.UseBookKeeping,opt =>opt.MapFrom(src =>src.UseBookKeeping.HasValue && src.UseBookKeeping.Value !=0)).ReverseMap()
                 .ForMember(dest =>dest.UseBookKeeping,opt => opt.MapFrom(src =>(sbyte?)(src.UseBookKeeping ? (sbyte)1:(sbyte)0))); 
 
 

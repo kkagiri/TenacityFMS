@@ -11,6 +11,7 @@ import notify from 'devextreme/ui/notify';
 import 'devextreme-react/text-area';
 import 'devextreme-react/select-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
+import NumberBox from 'devextreme-react/number-box';
 
 import {fetchVehicleList} from '../../redux/actions/vehicleActions';
 import {fetchEmployees} from '../../redux/actions/employeeActions';
@@ -28,6 +29,8 @@ import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
 import { formatDate } from '../../utils/dateUtils';
 
 export default function Fuelrefil() {
+    const [take, setTake] = useState(100);
+
     const vehicles = useSelector((state) => state.vehicle.vehicles);
     const employees = useSelector((state) => state.employee.employees);
     const sites= useSelector((state) => state.site.sites);
@@ -95,7 +98,7 @@ export default function Fuelrefil() {
         try {
             
             await Promise.all([
-                dispatch(fetchFuelRefills()),
+                dispatch(fetchFuelRefills(take)),
                 dispatch(fetchVehicleList()),
                 dispatch(fetchEmployees()),
                 dispatch(fetchSiteList()),
@@ -106,7 +109,7 @@ export default function Fuelrefil() {
         } catch (error) {
             console.error('Error fetching data:', error);
         }
-    },  [dispatch, user.id]);
+    },  [dispatch, user.id,take]);
 
     useEffect(() => {
         fetchData();
@@ -200,7 +203,13 @@ export default function Fuelrefil() {
     }, [dispatch]);
 
 
-  
+    const handleTakeChange = (e) => {
+        setTake(e.value);
+    };
+
+    const applyTake = () => {
+        fetchData();
+    };
 
 
 
@@ -417,6 +426,23 @@ const handleTankChange = (e) => {
                                 stylingMode='contained'
                                 onClick={addRow}
                                 visible ={canCreate}
+                            />
+                        </TItems>
+                        <TItems location="after" locateInMenu="auto">
+                            <NumberBox
+                                value={take}
+                                onValueChanged={handleTakeChange}
+                                min={1}
+                                max={1000000}
+                                showSpinButtons={true}
+                                width={100}
+                            />
+                            </TItems>
+                             <TItems location="after" locateInMenu="auto">
+                            <Button
+                                text="Apply"
+                                onClick={applyTake}
+                                stylingMode="contained"
                             />
                         </TItems>
                         <TItems

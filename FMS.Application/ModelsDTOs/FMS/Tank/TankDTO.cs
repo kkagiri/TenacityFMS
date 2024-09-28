@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace FMS.Application.ModelsDTOs.FMS.Tank
 {
@@ -28,5 +29,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Tank
         public DateTime LastStockUpdate { get; set; }
 
 
+[JsonIgnore]
+        public string SiteName { get; set; } = null!;
     }
 }

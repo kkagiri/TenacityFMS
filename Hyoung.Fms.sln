@@ -33,7 +33,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Service", "Service", "{CA77
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FMS.Services", "FMS.Services\FMS.Services.csproj", "{800E78F7-04EB-4724-9CF7-2342C715835B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FMS.BackgroundServices", "FMS.BackgroundServices\FMS.BackgroundServices.csproj", "{0B8F611C-C82A-4952-9A40-67E41A922BD7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FMS.BackgroundServices", "FMS.BackgroundServices\FMS.BackgroundServices.csproj", "{0B8F611C-C82A-4952-9A40-67E41A922BD7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

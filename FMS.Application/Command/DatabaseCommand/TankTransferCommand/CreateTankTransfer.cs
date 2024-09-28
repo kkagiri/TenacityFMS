@@ -9,21 +9,12 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
 {
-    /// <summary>
-    /// Create Tank Transfer Command
-    /// </summary>
-    /// <param name="TankTransferDTO"></param>
     public record CreateTankTransfer(TankTransferDTO TankTransferDTO) : IRequest<FMSResponseMessage<TankTransferDTO>>;
-
-
 
     public class CreateTankTransferHandler : IRequestHandler<CreateTankTransfer, FMSResponseMessage<TankTransferDTO>>
     {
@@ -32,126 +23,98 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
 
-        public CreateTankTransferHandler(GpsdataContext context, ILogger<CreateTankTransferHandler> logger ,IMapper mapper,IMediator mediatr)
+        public CreateTankTransferHandler(GpsdataContext context, ILogger<CreateTankTransferHandler> logger, IMapper mapper, IMediator mediator)
         {
             _context = context;
             _logger = logger;
             _mapper = mapper;
-            _mediator = mediatr;
-
+            _mediator = mediator;
         }
 
         public async Task<FMSResponseMessage<TankTransferDTO>> Handle(CreateTankTransfer request, CancellationToken cancellationToken)
         {
-
             try
             {
                 var sourceTank = await _context.Tanks.FindAsync(new object[] { request.TankTransferDTO.SourceTankId }, cancellationToken);
-
                 var destinationTank = await _context.Tanks.FindAsync(new object[] { request.TankTransferDTO.DestinationTankId }, cancellationToken);
 
-                if(sourceTank == null || destinationTank == null) return new FMSResponseMessage<TankTransferDTO>(false, "Source or Destination Tank not found",null);
+                if (sourceTank == null || destinationTank == null)
+                    return new FMSResponseMessage<TankTransferDTO>(false, "Source or Destination Tank not found", null);
 
-                if(sourceTank.CurrentStock < request.TankTransferDTO.Amount) return new FMSResponseMessage<TankTransferDTO>(false, "Insufficient stock in source tank Check your stock Level ",null);
+                if (!request.TankTransferDTO.Amount.HasValue || request.TankTransferDTO.Amount.Value <= 0)
+                    return new FMSResponseMessage<TankTransferDTO>(false, "Invalid transfer amount", null);
 
+                var transferAmount = request.TankTransferDTO.Amount.Value;
+                var transferDate = request.TankTransferDTO.Date ?? DateTime.Now;
+
+                if (transferDate == DateTime.Now.Date)
+                {
+                    if (sourceTank.CurrentStock < transferAmount)
+                        return new FMSResponseMessage<TankTransferDTO>(false, "Insufficient stock in source tank. Check your stock level.", null);
+                }
 
                 var tankTransfer = _mapper.Map<TankTransfer>(request.TankTransferDTO);
-
-                tankTransfer.TransferDate = DateTime.Now;
-
+                tankTransfer.TransferDate = transferDate;
                 _context.TankTransfers.Add(tankTransfer);
 
-                //update source tank stock
-                sourceTank.CurrentStock -= request.TankTransferDTO.Amount;
-
-           
-                //update destination tank stock
-                destinationTank.CurrentStock += request.TankTransferDTO.Amount;
-
-                //update tank history
-
-
-                //update TankStock for both tanks
-                var sourceTankStock = new Tankstock
+                if (transferDate.Date == DateTime.Now.Date)
                 {
-                    TankId = sourceTank.Id,
-                    EntryDate = DateTime.UtcNow,
-                    EntryType = VolumeChangeReasonEnum.TransferOut,
-                    RecordedBy = request.TankTransferDTO.RecordedBy,
-                    SiteId = sourceTank.SiteId,
-                    ManualClosingLevel = sourceTank.CurrentStock,
-                    ManualAmount = -request.TankTransferDTO.Amount
+                    sourceTank.CurrentStock -= transferAmount;
+                    destinationTank.CurrentStock += transferAmount;
+                }
 
-                    
-                };
-
-                var destinationTankStock = new Tankstock
-                {
-                    TankId = destinationTank.Id,
-                    EntryDate = DateTime.UtcNow,
-                    EntryType = VolumeChangeReasonEnum.TransferIn,
-                    ManualClosingLevel = destinationTank.CurrentStock,
-                    RecordedBy = request.TankTransferDTO.RecordedBy,
-                    SiteId = destinationTank.SiteId,
-                    ManualAmount = request.TankTransferDTO.Amount
-                    
-                };
+                var sourceTankStock = CreateTankStock(sourceTank, -transferAmount, VolumeChangeReasonEnum.TransferOut, request.TankTransferDTO.RecordedBy);
+                var destinationTankStock = CreateTankStock(destinationTank, transferAmount, VolumeChangeReasonEnum.TransferIn, request.TankTransferDTO.RecordedBy);
 
                 _context.Tankstocks.Add(sourceTankStock);
                 _context.Tankstocks.Add(destinationTankStock);
 
-
                 await _context.SaveChangesAsync(cancellationToken);
 
-
-
-                //create tank volume history for source tank
-
-                var tankVolumeHistorySource = new TankVolumeHistory
-                {
-                    TankId = sourceTank.Id,
-                    Timestamp = DateTime.Now,
-                    VolumeChange = -request.TankTransferDTO.Amount,
-                    NewVolume = sourceTank.CurrentStock,
-                    ChangeReason = VolumeChangeReasonEnum.TransferOut,
-                    RecordedBy = request.TankTransferDTO.RecordedBy,
-                    ReferenceId = sourceTankStock.EntryId,
-                    ReferenceType = "TransferOut"
-                };
-
+                var tankVolumeHistorySource = CreateTankVolumeHistory(sourceTank, -transferAmount, VolumeChangeReasonEnum.TransferOut, request.TankTransferDTO.RecordedBy, sourceTankStock.EntryId, "TransferOut");
+                var tankVolumeHistoryDestination = CreateTankVolumeHistory(destinationTank, transferAmount, VolumeChangeReasonEnum.TransferIn, request.TankTransferDTO.RecordedBy, destinationTankStock.EntryId, "TransferIn");
 
                 _context.TankVolumeHistories.Add(tankVolumeHistorySource);
-
-                //create tank volume history for destination tank
-
-                var tankVolumeHistoryDestination = new TankVolumeHistory
-                {
-                    TankId = destinationTank.Id,
-                    Timestamp = DateTime.Now,
-                    VolumeChange = request.TankTransferDTO.Amount,
-                    NewVolume = destinationTank.CurrentStock,
-                    ChangeReason = VolumeChangeReasonEnum.TransferIn,
-                    RecordedBy = request.TankTransferDTO.RecordedBy,
-                    ReferenceId = destinationTankStock.EntryId,
-                    ReferenceType = "TransferIn"
-                };
-                    
-                 
                 _context.TankVolumeHistories.Add(tankVolumeHistoryDestination);
-
 
                 await _context.SaveChangesAsync(cancellationToken);
 
-
                 return new FMSResponseMessage<TankTransferDTO>(true, "Tank Transfer successful", request.TankTransferDTO);
-
-                
-                   
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating tank transfer");
-                return new FMSResponseMessage<TankTransferDTO>(false, "Error creating tank transfer",null);
-            }   
+                return new FMSResponseMessage<TankTransferDTO>(false, "Error creating tank transfer", null);
+            }
+        }
+
+        private Tankstock CreateTankStock(Tank tank, decimal amount, VolumeChangeReasonEnum entryType, string recordedBy)
+        {
+            return new Tankstock
+            {
+                TankId = tank.Id,
+                EntryDate = DateTime.UtcNow,
+                EntryType = entryType,
+                RecordedBy = recordedBy,
+                SiteId = tank.SiteId,
+                ManualClosingLevel = tank.CurrentStock,
+                ManualAmount = amount
+            };
+        }
+
+        private TankVolumeHistory CreateTankVolumeHistory(Tank tank, decimal amount, VolumeChangeReasonEnum changeReason, string recordedBy, int referenceId, string referenceType)
+        {
+            return new TankVolumeHistory
+            {
+                TankId = tank.Id,
+                Timestamp = DateTime.Now,
+                VolumeChange = amount,
+                NewVolume = tank.CurrentStock,
+                ChangeReason = changeReason,
+                RecordedBy = recordedBy,
+                ReferenceId = referenceId,
+                ReferenceType = referenceType
+            };
         }
     }
 }

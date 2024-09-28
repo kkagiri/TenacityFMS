@@ -11,9 +11,9 @@ export const DELETE_FUEL_REFILL_SUCCESS = 'DELETE_FUEL_REFILL_SUCCESS';
 export const DELETE_FUEL_REFILL_FAILURE = 'DELETE_FUEL_REFILL_FAILURE';
 
 
-export const fetchFuelRefills = () => async (dispatch) => {
+export const fetchFuelRefills = (take = 100) => async (dispatch) => {
     try {
-        const response = await axiosInstance.get('/fuelrefill');
+        const response = await axiosInstance.get(`/fuelrefill?take=${take}`);
         dispatch({ type: FETCH_FUEL_REFILLS_SUCCESS, payload: response.data });
     } catch (error) {
         dispatch({ type: FETCH_FUEL_REFILLS_FAILURE, payload: error.message });

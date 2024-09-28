@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FMS.Application.ModelsDTOs.FMS.TankVolumeHistory;
+using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,11 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
 {
+    /// <summary>
+    /// Get Tank Volume History By Date Range Query
+    /// </summary>
+    /// <param name="StartDate"></param>
+    /// <param name="EndDate"></param>
   public record GetTankVolumeHistoryByDateRangeQuery(DateTime StartDate, DateTime EndDate) : IRequest<List<TankVolumeHistoryDTO>>;
 
     public class GetTankVolumeHistoryByDateRangeQueryHandler : IRequestHandler<GetTankVolumeHistoryByDateRangeQuery, List<TankVolumeHistoryDTO>>
@@ -32,8 +38,34 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
         {
            try
             {
-              return _mapper.Map<List<TankVolumeHistoryDTO>>(await _contenxt.TankVolumeHistories.Include(x=>x.Tank.Site).
-                  Where(x => x.Timestamp.Date >= request.StartDate.Date && x.Timestamp.Date <= request.EndDate.Date  ).ToListAsync(cancellationToken));
+
+           var tankVolumeHistories = await _contenxt.TankVolumeHistories
+                    .Include(x => x.Tank.Site)
+                    .Where(x => x.Timestamp.Date >= request.StartDate.Date && x.Timestamp.Date <= request.EndDate.Date)
+                    .ToListAsync(cancellationToken);
+
+                var result = new List<TankVolumeHistoryDTO>();
+
+                foreach (var history in tankVolumeHistories)
+                {
+                    var dto = _mapper.Map<TankVolumeHistoryDTO>(history);
+
+                    if (history.ChangeReason == VolumeChangeReasonEnum.Dispensing && history.ReferenceId.HasValue)
+                    {
+                        var fuelRefill = await _contenxt.Fuelrefils
+                            .Include(fr => fr.Vehicle)
+                            .FirstOrDefaultAsync(fr => fr.Id == history.ReferenceId, cancellationToken);
+
+                        if (fuelRefill != null)
+                        {
+                            dto.VehicleName = fuelRefill.Vehicle.HyoungNo;
+                        }
+                    }
+
+                    result.Add(dto);
+                }
+
+                return result;
                 }
                 catch (Exception ex)
             {
@@ -43,5 +75,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
             }
         }
     }
-    
+
 

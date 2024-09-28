@@ -1,6 +1,6 @@
 import react , {useEffect} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DataGrid, Column, Paging, FilterRow, HeaderFilter, Export ,Lookup,  Grouping,GroupPanel
+import { DataGrid, Column, Paging, FilterRow, HeaderFilter, Export ,ColumnChooser,Lookup,  Grouping,GroupPanel
 } from 'devextreme-react/data-grid';
 import { formatDate } from './../../utils/dateUtils';
 import { fetchTanks } from '../../redux/actions/tankActions';
@@ -29,58 +29,62 @@ const TankDeliveryDatagrid = ({ tankDeliveryData }) => {
 
 
     return (
-        <div>
+        <div style={{ display: 'flex',  marginTop:'20px' }}>
             <DataGrid
                 dataSource={tankDeliveryData}
                 showBorders={true}
                 showColumnLines={true}
                 showRowLines={true}
                 allowColumnResizing={true}
-                showColumnHeaders={true}
+                columnHidingEnabled={true}
+
+
             >
-                <HeaderFilter visible={true} />
                 <FilterRow visible={true} />
                 <Paging defaultPageSize={10} />
                 <GroupPanel visible={true} />
                 <Grouping autoExpandAll= {true} />
-
-
-                <Column dataField="id" caption="ID" visible={false} defaultSortOrder="asc" />
-                <Column dataField="deliveryDate" caption="Timestamp" dataType="datetime" />
+                <ColumnChooser enabled={true} mode="select" />
                 <Column dataField="site" caption="Site"   groupIndex={0} lookup={{
                     dataSource: sites,
                     valueExpr: 'id',
                     displayExpr: 'name'
                 }} />
-                <Column dataField="tankId" caption="Tank" lookup={{
+
+                <Column dataField="id" caption="ID" visible={false} defaultSortOrder="asc" />
+                <Column dataField="deliveryDate" caption="Timestamp" dataType="datetime"  width={120} />
+                
+                <Column dataField="tankId" width={100} caption="Tank" lookup={{
                     dataSource: tanks,
                     valueExpr: 'id',
                     displayExpr: 'name'
                 }} />
-              
-               <Column dataField="stockBeforeDelivery" caption="Stock Before Delivery" />
-                <Column dataField="stockAfterDelivery" caption="Stock After Delivery" />
-                <Column dataField="manualDeliveryAmount" caption="Volume ManualDeliveryAmount" />
-                <Column dataField="sensorDeliveryAmount" caption="Sensor Delivery Amount" />
-
-                <Column dataField="deliveryTemperature" caption="Delivery Temperature" />
-                <Column dataField="deliveryDensity" caption="Delivery Density" />
-                <Column dataField="deliveryMass" caption="Delivery weight" />
-
-                <Column dataField="supplierId" caption="Supplier" lookup={{
+                     <Column dataField="manualDeliveryAmount" caption="Volume" minWidth={120} />
+                <Column dataField="supplierId" caption="Supplier"  maxWidth={100} lookup={{
                     dataSource: suppliers,
                     valueExpr: 'id',
                     displayExpr: 'name'
                 }} />   
+         
 
-                <Column dataField="lponumber" caption="Lponumber" />
-                <Column dataField="product" caption="Product" />
+               <Column dataField="stockBeforeDelivery" hidingPriority={1} caption="Stock Before Delivery" maxWidth={120}  visible={false}/>
+                <Column dataField="stockAfterDelivery" hidingPriority={1} caption="Stock After Delivery" maxWidth={120}  visible={false}/>
+                <Column dataField="sensorDeliveryAmount" hidingPriority={1} caption="Sensor Delivery Amount" maxWidth={120}  visible={false}/>
+
+                <Column dataField="deliveryTemperature"  hidingPriority={1} caption="Delivery Temperature" maxWidth={120} visible={false} />
+                <Column dataField="deliveryDensity" hidingPriority={1} caption="Delivery Density"  visible={false} maxWidth={120} />
+                <Column dataField="deliveryMass" hidingPriority={1} caption="Delivery weight"  visible={false} maxWidth={120} />
+
+              
+
+                <Column dataField="lponumber" hidingPriority={1} caption="Lponumber"  visible={false} maxWidth={120} />
+                <Column dataField="product" hidingPriority={1} caption="Product"  visible={false} maxWidth={200} />
 
                 <Column 
                     dataField="recordedBy" 
                     caption="Recorded By" 
                     minWidth={120}  
-                    hidingPriority={2}
+                    hidingPriority={0}
                     cellRender={(cellData) => {
                         const user = users.find(u => u.id === cellData.value);
                         return user ? user.userName : cellData.value;

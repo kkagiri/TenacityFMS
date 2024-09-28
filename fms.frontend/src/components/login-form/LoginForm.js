@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { Link } from 'react-router-dom';
 import Form, {
   Item,
@@ -12,27 +13,32 @@ import Form, {
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import { signIn } from '../../redux/actions/AuthActions'; // Import the signIn action
+import { fetchNavigationItems } from '../../redux/actions/navigationActions'; // Import fetchNavigationItems
 
 import './LoginForm.scss';
 
 const LoginForm = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // Use useNavigate hook
   const loading = useSelector((state) => state.auth.loading);
   const formData = useRef({ username: '', password: '' });
 
   const onSubmit = useCallback(async (e) => {
     e.preventDefault();
     const { username, password } = formData.current;
-
     try {
       const result = await dispatch(signIn(username, password));
-      if (!result.isOk) {
+      if (result.isOk) {
+        // Fetch navigation items immediately after successful login
+        dispatch(fetchNavigationItems());
+        navigate('/home');
+      } else {
         notify(result.message, 'error', 2000);
       }
     } catch (error) {
       notify(error.message, 'error', 2000);
     }
-  }, [dispatch]);
+  }, [dispatch.navigate]);
 
   return (
     <form className={'login-form'} onSubmit={onSubmit}>

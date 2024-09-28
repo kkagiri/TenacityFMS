@@ -1,10 +1,9 @@
-import { createStore, applyMiddleware, combineReducers } from 'redux';
-import thunk from 'redux-thunk';
-import { composeWithDevTools } from 'redux-devtools-extension';
+import { configureStore } from '@reduxjs/toolkit';
+import { thunk } from 'redux-thunk';
 import roleReducer from './redux/reducers/roleReducer';
 import permissionReducer from './redux/reducers/permissionReducer';
 import authReducer from './redux/reducers/authReducer';
-import userReducer from './redux/reducers/userReducer'; 
+import userReducer from './redux/reducers/userReducer';
 import navigationReducer from './redux/reducers/navigationReducer';
 import tankReducer from './redux/reducers/tankReducer';
 import tankStockReducer from './redux/reducers/tankStockReducer';
@@ -20,8 +19,29 @@ import consumptionReducer from './redux/reducers/consumptionReducer';
 import tankVolumeHistoryReducer from './redux/reducers/tankVolumeHistoryReducer';
 import deliveryReducer from './redux/reducers/DeliveryReducer';
 import supplierReducer from './redux/reducers/supplierReducer';
- 
-const rootReducer = combineReducers({
+import refillSummaryReducer from './redux/reducers/refillSummaryReducer';
+import { cloneDeep } from 'lodash';
+
+import { isEqual } from 'lodash';
+
+const deepFreeze = (obj) => {
+  Object.keys(obj).forEach(prop => {
+    if (typeof obj[prop] === 'object' && !Object.isFrozen(obj[prop])) deepFreeze(obj[prop]);
+  });
+  return Object.freeze(obj);
+};
+
+const checkMutations = store => next => action => {
+  const prevState = deepFreeze(cloneDeep(store.getState()));
+  const result = next(action);
+  const nextState = store.getState();
+  
+   
+  return result;
+};
+
+const store = configureStore({
+  reducer: {
     auth: authReducer,
     role: roleReducer,
     permission: permissionReducer,
@@ -40,12 +60,11 @@ const rootReducer = combineReducers({
     consumption: consumptionReducer,
     tankVolumeHistory: tankVolumeHistoryReducer,
     delivery: deliveryReducer,
-    supplier: supplierReducer
+    supplier: supplierReducer,
+    refillSummary: refillSummaryReducer
+  },
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(thunk, checkMutations),
+  devTools: process.env.NODE_ENV !== 'production',
 });
-
-const store = createStore(
-    rootReducer,
-    composeWithDevTools(applyMiddleware(thunk))
-);
 
 export default store;

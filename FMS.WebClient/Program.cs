@@ -54,6 +54,14 @@ using FMS.WebClient.Util;
 using FMS.Application.ModelsDTOs.FMS.UserManagement;
 using Pomelo.EntityFrameworkCore.MySql.Internal;
 using FMS.BackgroundServices.FMS;
+using DevExpress.AspNetCore;
+using DevExpress.AspNetCore.Reporting;
+using DevExpress.XtraCharts;
+using FMS.WebClient.Report;
+using DevExpress.XtraReports.Services;
+using DevExpress.AspNetCore.Reporting.WebDocumentViewer.Native.Services;
+using DevExpress.AspNetCore.Reporting.ReportDesigner.Native.Services;
+using DevExpress.XtraReports.Web.Extensions;
 
 
 
@@ -82,6 +90,7 @@ try
 
     builder.Services.AddSignalR();
 
+    builder.Services.AddDevExpressControls();
 
 
     builder.Services.AddHttpContextAccessor();
@@ -107,13 +116,16 @@ try
     builder.Services.AddTransient<TagCreateCmd>();
     builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorization>();
     builder.Services.AddScoped<IGPSGateDirectoryWebservice, GPSGateDirectoryWebservice>();
-
     builder.Services.AddTransient<RoleManager<Role>>();
     builder.Services.AddScoped<RoleManager<Role>>();
     builder.Services.AddScoped<UserManager<User>>();
     builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
     builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionMiddleware<,>));
+    builder.Services.AddScoped<IWebDocumentViewerMvcControllerService, WebDocumentViewerMvcControllerService>();
+    builder.Services.AddScoped<IReportDesignerMvcControllerService, ReportDesignerMvcControllerService>();
     //Configration files loading
+       builder.Services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
+builder.Services.AddHostedService<AutomatedOpeningStockService>();
 
     builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
@@ -144,27 +156,28 @@ try
         throw new Exception("ConnectionString is Empty");
     }
     //Devexpress Reporting
-    // builder.Services.AddDevExpressControls();
-    // builder.Services.ConfigureReportingServices(config =>
-    // {
-    //     config.ConfigureReportDesigner(designerconfig =>
-    //     {
-    //         //configure the report designer here 
-    //         designerconfig.RegisterDataSourceWizardConfigFileConnectionStringsProvider();
+    builder.Services.ConfigureReportingServices(config =>
+   {
+       if (builder.Environment.IsDevelopment())
+       {
+           config.UseDevelopmentMode();
+       }
+       config.ConfigureReportDesigner(designerConfig =>
+       {
+           designerConfig.RegisterDataSourceWizardConfigFileConnectionStringsProvider();
 
-    //     });
-    //     config.ConfigureWebDocumentViewer(webviewerconfig =>
-    //     {
+       });
+       config.ConfigureWebDocumentViewer(viewerConfig =>
+       {
 
-    //         //configure the web document viewer here
-    //         webviewerconfig.UseCachedReportSourceBuilder();
-    //         webviewerconfig.UseFileDocumentStorage(System.IO.Path.Combine(builder.Environment.ContentRootPath, "ReportsDocumentStorage"));
-    //     });
+           viewerConfig.UseCachedReportSourceBuilder();
+           viewerConfig.UseDbStorage(connectionString);
+           
+       });
+   });
 
 
-    // });
 
-    // builder.Services.AddScoped<ReportStorageWebExtension, CustomReportStorageWebExtension>();
 
 
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
@@ -309,7 +322,7 @@ try
 
     });
 
-
+        app.UseDevExpressControls();
 
     app.UseEndpoints(endpoints =>
     {
