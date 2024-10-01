@@ -125,7 +125,10 @@ try
     builder.Services.AddScoped<IReportDesignerMvcControllerService, ReportDesignerMvcControllerService>();
     //Configration files loading
        builder.Services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
-builder.Services.AddHostedService<AutomatedOpeningStockService>();
+
+  //builder.Services.AddHostedService<AutomatedOpeningStockService>();
+   builder.Services.AddHostedService<AutomatedClosingStockService>();
+
 
     builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
@@ -181,7 +184,6 @@ builder.Services.AddHostedService<AutomatedOpeningStockService>();
 
 
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-    builder.Services.AddHostedService<AutomatedClosingStockService>();
     
 
     builder.Services.AddAuthentication(options =>

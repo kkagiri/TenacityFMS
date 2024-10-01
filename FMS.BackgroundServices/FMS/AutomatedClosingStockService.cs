@@ -21,14 +21,12 @@ namespace FMS.BackgroundServices.FMS
         private readonly ILogger<AutomatedClosingStockService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IConfiguration _configuration;
-        private readonly IMediator _mediator;
 
         public AutomatedClosingStockService(ILogger<AutomatedClosingStockService> logger, IServiceScopeFactory serviceScopeFactory, IConfiguration configuration, IMediator mediator)
         {
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
             _configuration = configuration;
-            _mediator = mediator;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,16 +50,70 @@ namespace FMS.BackgroundServices.FMS
                     var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
                     var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                    var tanksNeedClosingStock = await context.Tanks.Where(t=>t.UseBookKeeping == 1).
-                                                Where(x=>x.TankVolumeHistories.Any(x=>x.Timestamp.Date == DateTime.Now.Date && x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)).ToListAsync(stoppingToken);
-                   
-                     foreach(var tank in tanksNeedClosingStock)
+                    var tanks = await context.Tanks
+                        .Where(t => t.UseBookKeeping == 1)
+                        .Where(x => !x.TankVolumeHistories.Any(tvh => 
+                            tvh.Timestamp.Date == DateTime.Now.Date && 
+                            tvh.ChangeReason == VolumeChangeReasonEnum.ClosingStock))
+                        .ToListAsync(stoppingToken);
+   
+                    foreach(var tank in tanks)
                     {
-                        await mediator.Send(new ClosingStockCommand(tank.Id, tank.CurrentStock ?? 0, "e66b6544-70e8-4a77-bd11-584e6eb35f62"), stoppingToken);
+                        var closingStock = await GetClosingStock(context, tank.Id, stoppingToken);
+                        if (closingStock.HasValue)
+                        {
+                            await mediator.Send(new ClosingStockCommand(tank.Id, closingStock.Value, "6d1af84f-b86f-48c4-a70f-eed5dd5dbcea"), stoppingToken);
+                            _logger.LogInformation("Closing stock created for tank {TankId}", tank.Id);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Unable to determine closing stock for tank {TankId}", tank.Id);
+                        }
                     }
-                
+                }
+
+                // Wait for a short period before the next iteration
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            }
+        }
+
+        private async Task<decimal?> GetClosingStock(GpsdataContext context, int tankId, CancellationToken stoppingToken)
+        {
+            var priorityList = _configuration.GetSection("ClosingStockPriority").Get<List<string>>() ?? 
+                new List<string> { "Sensor", "LastEntry", "CurrentVolume" };
+
+            foreach (var priority in priorityList)
+            {
+                switch (priority)
+                {
+                    case "Sensor":
+                        // Implement sensor reading logic here
+                        // For now, we'll skip this as it's not implemented
+                        break;
+
+                    case "LastEntry":
+                        var lastEntry = await context.TankVolumeHistories
+                            .Where(x => x.TankId == tankId)
+                            .OrderByDescending(x => x.Timestamp)
+                            .FirstOrDefaultAsync(stoppingToken);
+
+                        if (lastEntry != null)
+                        {
+                            return lastEntry.NewVolume;
+                        }
+                        break;
+
+                    case "CurrentVolume":
+                        var tank = await context.Tanks.FindAsync(new object[] { tankId }, stoppingToken);
+                        if (tank?.CurrentStock.HasValue == true)
+                        {
+                            return tank.CurrentStock.Value;
+                        }
+                        break;
                 }
             }
+
+            return null;
         }
     }
     

@@ -14,7 +14,11 @@
     <OutputType>Exe</OutputType>
     <UserSecretsId>d6b03573-f5e8-45ec-b246-2f65dc3bbea5</UserSecretsId>
   </PropertyGroup>
+<ItemGroup>
+    <RestoreSources Include="https://api.nuget.org/v3/index.json" /> 
 
+    <RestoreSources Include="E:\Dependancy\Components\System\Components\packages" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
