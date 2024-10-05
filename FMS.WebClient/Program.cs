@@ -127,7 +127,7 @@ try
        builder.Services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
 
   //builder.Services.AddHostedService<AutomatedOpeningStockService>();
-   builder.Services.AddHostedService<AutomatedClosingStockService>();
+  // builder.Services.AddHostedService<AutomatedClosingStockService>();
 
 
     builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);

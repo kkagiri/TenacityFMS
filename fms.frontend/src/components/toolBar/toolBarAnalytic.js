@@ -130,7 +130,7 @@ const validateTransfer = (data) => {
     return false;
 }
 
-if (data.transferDate > new Date()) {
+if (data.date > new Date()) {
     notify('Transfer date cannot be in the future', 'error', 3000);
     return false;
 }
