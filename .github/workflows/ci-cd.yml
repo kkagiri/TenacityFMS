@@ -13,12 +13,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '8.0.302'  # adjust this to your .NET version
+        dotnet-version: '8.0.X'  # adjust this to your .NET version
 
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '20.15.0'  # adjust this to your Node.js version
+        node-version: '20.15'  # adjust this to your Node.js version
 
     - name: Install dependencies
       run: |
