@@ -11,6 +11,10 @@ import { fetchConsumptionByDateRange ,fetchConsumptionByDateRangeByVehicleID } f
 import Button from 'devextreme-react/button';
 import  DateBox  from 'devextreme-react/date-box';
 import notify from 'devextreme/ui/notify';
+import { Workbook } from 'exceljs';
+import saveAs from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+
 const ConsumptionBasedonRefills = () => {
     const dispatch = useDispatch();
     const consumption = useSelector((state) => state.consumption.consumption);
@@ -18,7 +22,9 @@ const ConsumptionBasedonRefills = () => {
     const [dataCounter, setDataCounter] = useState(0);
     const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 1)));
     const [endDate, setEndDate] = useState(new Date());
-    
+    const dataGridRef = React.useRef(null);
+
+
     const exportFormats = ['xlsx'];
     
     const fetchData = useCallback(() => {
@@ -55,7 +61,6 @@ const ConsumptionBasedonRefills = () => {
       };
 
     const renderDetail = (props) => {
-        console.log(props.data.data);
         return (
             <RefillDetails
                 vehicleId={props.data.data.vehicleId}
@@ -64,33 +69,92 @@ const ConsumptionBasedonRefills = () => {
             />
         );
     };
+
+
+    const onExporting = useCallback((e) => {
+        console.log('Export started', { event: e });
+    
+        try {
+            const workbook = new Workbook();
+            const worksheet = workbook.addWorksheet('Consumption Based on Refills');
+            
+            console.log('Workbook and worksheet created');
+            notify('Preparing export...', 'info', 2000);
+    
+            console.log('Starting exportDataGrid with component:', e.component);
+            
+            exportDataGrid({
+                component: e.component,
+                worksheet,
+                autoFilterEnabled: true,
+                customizeCell: ({ gridCell, excelCell }) => {
+                    if (gridCell.rowType === 'data') {
+                        excelCell.font = { size: 12 };
+                    }
+                    if (gridCell.rowType === 'header') {
+                        excelCell.font = { bold: true };
+                    }
+                    console.log('Customizing cell:', { rowType: gridCell.rowType });
+                }
+            }).then(() => {
+                console.log('exportDataGrid completed, creating buffer');
+                workbook.xlsx.writeBuffer()
+                    .then((buffer) => {
+                        console.log('Buffer created, saving file');
+                        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'ConsumptionBasedonRefills.xlsx');
+                        notify('Export complete', 'success', 2000);
+                    })
+                    .catch(err => {
+                        console.error("Buffer creation error:", err);
+                        notify('Export failed', 'error', 2000);
+                    });
+            }).catch(err => {
+                console.error("exportDataGrid error:", err);
+                notify('Export failed', 'error', 2000);
+            });
+    
+            e.cancel = true;
+        } catch (error) {
+            console.error("General export error:", error);
+            notify('Export failed', 'error', 2000);
+        }
+    }, []);
+
+
+
     return (
         <div className='content-block'>
         <DataGrid
             dataSource={consumption}
+            ref={dataGridRef}
             keyExpr="id" 
-                        showBorders={true}
+            showBorders={true}
             focusedRowEnabled={true}
             height={'100%'}
-            onContentReady={(e) => {
-                console.log('DataGrid content ready:', e);
-                console.log('Visible rows:', e.component.getVisibleRows());
-            }}
+            onExporting={onExporting}
             >
             <Paging enabled={true} defaultPageSize={30} />
             <FilterRow visible={true} />
             {/* <Pager visible={true} showPageSizeSelector={true} showInfo={true} /> */}
-             <Scrolling mode={'infinite'} />  
+             <Scrolling mode="infinite" />  
             <SearchPanel visible={true} />
             <HeaderFilter visible={true} />
-            <Selection mode={'multiple'} />
+            <Selection 
+                mode="multiple"
+                deferred={true}  // Add this
+                selectAllMode="page"  // Add this
+            />
             <LoadPanel enabled={true} /> 
            <Grouping autoExpandAll={true} />
            <GroupPanel visible={true} />
 
            <StateStoring enabled={true} type="sessionStorage" storageKey="refuelingGridState" />
 
-            <Export enabled={true} allowExportSelectedData={true} formats ={exportFormats} />
+            <Export 
+                enabled={true}
+                formats={['xlsx']}
+                allowExportSelectedData={true}
+            />
             <Toolbar >
 
 <TItems location="before" widget={'dxDateBox'}>
@@ -133,7 +197,10 @@ const ConsumptionBasedonRefills = () => {
                 onClick={refresh}
             />
         </TItems>
-           <TItems name="exportButton" locateInMenu={'auto'} />
+           <TItems name="exportButton" 
+           locateInMenu={'auto'}
+           
+/>
 
 </Toolbar>
 <Column 
@@ -204,7 +271,6 @@ const RefillDetails = ({ vehicleId, startDate, endDate }) => {
     const refills = useSelector((state) => state.consumption.vehicleRefills);
 
     useEffect(() => {
-        console.log("vehicleId",vehicleId);
         dispatch(fetchConsumptionByDateRangeByVehicleID(startDate, endDate, vehicleId));
     }, [dispatch, startDate, endDate, vehicleId]);
 

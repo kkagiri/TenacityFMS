@@ -2,7 +2,8 @@ import axios from "axios";
 
 const determineApiUrl = async () => {
   if (process.env.NODE_ENV === 'development') {
-
+console.log('development');
+console.log(process.env.REACT_APP_FMS_API_URL_DEV);
     return process.env.REACT_APP_FMS_API_URL_DEV;
   } else {
     try {
