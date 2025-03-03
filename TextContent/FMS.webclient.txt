@@ -1,0 +1,5353 @@
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Program.cs
+
+using System;
+using System.Diagnostics;
+using System.Reflection;
+using System.Security.Cryptography.Xml;
+using System.Text;
+using System.Text.Json.Serialization;
+using Autofac.Core;
+using AutoMapper;
+using FMS.WebClient.Controllers;
+using FMS.WebClient.Signal;
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using NLog;
+using NLog.Web;
+// using FMS.WebClient.ReportViewer;
+using FMS.Application;
+using FMS.Application.Command.DatabaseCommand.TagCmd;
+using FMS.Application.MappingProfile;
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
+using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
+using FMS.Domain.Entities;
+using FMS.Infrastructure.DependancyInjection;
+using FMS.Infrastructure.Webservice.GPSService;
+using FMS.Persistence.DataAccess;
+using FMS.Persistence.DataAccess.Nafta;
+using FMS.PTS;
+using FMS.WebClient.MappingProfile;
+
+// using DevExpress.AspNetCore;
+// using DevExpress.AspNetCore.Reporting;
+// using DevExpress.AspNetCore.Reporting.WebDocumentViewer;
+// using DevExpress.AspNetCore.Reporting.ReportDesigner;
+// using DevExpress.XtraReports.Web.Extensions;
+using DevExpress.AspNetCore;
+using DevExpress.AspNetCore.Reporting;
+using DevExpress.AspNetCore.Reporting.ReportDesigner.Native.Services;
+using DevExpress.AspNetCore.Reporting.WebDocumentViewer.Native.Services;
+
+using DevExpress.XtraReports.Web.Extensions;
+using FMS.Application.Command.DatabaseCommand.Common;
+using FMS.Application.Command.DatabaseCommand.UserManagement;
+using FMS.Application.Command.PTSCommand.Common;
+using FMS.Application.Communication;
+using FMS.Application.Communication.Connection;
+using FMS.Application.Communication.HttpPolling;
+using FMS.Application.Communication.SignalR;
+using FMS.Application.Handlers.Interface;
+using FMS.Application.Infrastructure.DistCacheTracker;
+
+using FMS.Application.PTSServices.Configuration;
+using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Util;
+using FMS.Application.Validation.PTSValidators;
+using FMS.Application.Validation.PTSValidators.Common;
+using FMS.PTS.WindowsService.Services.Pump;
+using FMS.WebClient.Report;
+using FMS.WebClient.Util;
+using NLog.Extensions.Logging;
+using StackExchange.Redis;
+using Role = FMS.Domain.Entities.Role;
+using static K4os.Compression.LZ4.Engine.Pubternal;
+
+namespace FMS.WebClient;
+
+public class Program
+{
+
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+        Console.WriteLine("App started....", builder.Environment.EnvironmentName);
+        builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+
+        ConfigureServices(builder.Services, builder.Configuration);
+        ConfigureDatabase(builder.Services, builder.Configuration, builder.Environment);
+        ConfigureLogging(builder.Logging);
+
+        var app = builder.Build();
+        ConfigureApp(app, builder.Environment);
+
+        try
+        {
+            Console.WriteLine("App running....", app);
+
+            app.Run();
+        }
+        catch (Exception ex)
+        {
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Application startup failed: {Message}", ex.Message);
+            Console.WriteLine($"Application startup failed: {ex.Message}");
+            return; // Or appropriate exit code
+        }
+        finally
+        {
+            NLog.LogManager.Shutdown();
+        }
+    }
+    static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    {
+        try
+        {
+            services.AddControllersWithViews().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                options.JsonSerializerOptions.MaxDepth = 0;
+            });
+
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var configuration = sp.GetRequiredService<IConfiguration>();
+                var redisConnectionString = configuration["ConnectionStrings:RedisConnection"];
+                if (string.IsNullOrEmpty(redisConnectionString))
+                    throw new InvalidOperationException("Redis connection string is missing.");
+
+                return ConnectionMultiplexer.Connect(redisConnectionString);
+            });
+
+            services.AddSingleton<DeviceConnectionTracker>();
+
+            services.AddSignalR();
+            services.AddDevExpressControls();
+            services.AddHttpContextAccessor();
+
+            RegisterMediatR(services);
+            RegisterAutoMapper(services);
+            RegisterCustomServices(services);
+            ConfigureAuthentication(services, configuration);
+            ConfigureAuthorization(services);
+            ConfigureCors(services);
+        }
+        catch (Exception ex)
+        {
+            var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Error configuring services: {Message}", ex.Message);
+            throw; // Or handle as needed
+        }
+    }
+    static void RegisterMediatR(IServiceCollection services)
+    {
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblyContaining<Program>();
+            cfg.RegisterServicesFromAssembly(typeof(ConsumptionController).Assembly);
+            cfg.RegisterServicesFromAssemblies(typeof(VehicleController).Assembly);
+            cfg.RegisterServicesFromAssembly(typeof(GetConsumptionReportQueryHandler).Assembly);
+            cfg.RegisterServicesFromAssembly(typeof(CreateTagCommand).Assembly);
+        });
+    }
+
+    static void RegisterAutoMapper(IServiceCollection services)
+    {
+        services.AddAutoMapper(typeof(VehicleMappingProfile));
+        services.AddAutoMapper(typeof(MainMappingProfile).Assembly);
+    }
+
+    static void RegisterCustomServices(IServiceCollection services)
+    {
+        services.AddMemoryCache();
+        services.AddSingleton<PtsStatusService>();
+        services.AddScoped<UserManager<User>>();
+        services.AddScoped<RoleManager<Role>>();
+        services.AddScoped<IDeviceCommunicationService, DeviceCommunicationService>();
+        services.AddScoped<IDeviceValidator, DeviceValidator>();
+        services.AddScoped<IPumpService, PumpService>();
+        services.Scan(scan => scan
+            .FromAssemblies(Assembly.GetExecutingAssembly())
+            .AddClasses(classes => classes.AssignableTo<IPacketHandler>())
+            .AsImplementedInterfaces()
+            .WithScopedLifetime());
+
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorization>();
+        services.AddScoped<IGPSGateDirectoryWebservice, GPSGateDirectoryWebservice>();
+        services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
+        services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
+        services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService>();
+        services.AddScoped<IAuthorizationHandler, PermissionHandler>();
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionMiddleware<,>));
+        services.AddScoped<IWebDocumentViewerMvcControllerService, WebDocumentViewerMvcControllerService>();
+        services.AddScoped<IReportDesignerMvcControllerService, ReportDesignerMvcControllerService>();
+        services.AddScoped<IPTSConnectionManager, PTSConnectionManager>();
+        services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher>();
+        services.AddScoped<IConfigurationService, ConfigurationService>();
+        services.AddScoped<ICommandExecutor, CommandExecutor>();
+        services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
+        services.AddHttpClient<DeviceHttpCommandPusher>().SetHandlerLifetime(TimeSpan.FromMinutes(5));
+        services.AddScoped<IConfigurationService, ConfigurationService>();
+
+    }
+    static void ConfigureAuthentication(IServiceCollection services, IConfiguration configuration)
+    {
+        try
+        {
+            services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience
+                };
+            });
+            services.AddTransient<IJwtGenerator, JwtGenerator>();
+            services.AddTransient<RoleManager<Role>>();
+        }
+        catch (Exception ex)
+        {
+            var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Error configuring authentication: {Message}", ex.Message);
+            throw;
+        }
+    }
+    static void ConfigureAuthorization(IServiceCollection services)
+    {
+        //try
+        //{
+        //    services.AddAuthorization(options =>
+        //    {
+        //        using (var scope = services.BuildServiceProvider().CreateScope())
+        //        {
+        //            var serviceProvider = scope.ServiceProvider;
+        //            var mediator = serviceProvider.GetRequiredService<IMediator>();
+        //            List<PermissionDTO> permissions;
+        //            try
+        //            {
+        //                permissions = mediator.Send(new GetPermissionQuery()).Result;
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                permissions = new List<PermissionDTO>(); // or load default permissions
+        //                var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+        //                logger.LogError(ex, "Error getting permissions: {Message}", ex.Message);
+        //            }
+
+        //            foreach (var permission in permissions)
+        //            {
+        //                options.AddPolicy(permission.Name, policy =>
+        //                {
+        //                    policy.Requirements.Add(new PermissionRequirement(permission.Name));
+        //                });
+        //            }
+        //        }
+        //    });
+        //}
+        //catch (Exception ex)
+        //{
+        //    var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        //    logger.LogError(ex, "Error configuring authorization: {Message}", ex.Message);
+        //    throw;
+        //}
+    }
+    static void ConfigureCors(IServiceCollection services)
+    {
+        try
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("DevelopmentCorsPolicy", builder =>
+                {
+                    builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); // ONLY FOR DEVELOPMENT
+                });
+
+                options.AddPolicy("ProductionCorsPolicy", builder =>
+                {
+                    builder.WithOrigins( // Replace with your actual production origins
+                            "http://10.0.10.153", "https://10.0.10.153",
+                            "http://197.254.33.227", "https://197.254.33.227",
+                            "http://localhost", "https://localhost",
+                            "http://localhost:3000/", "http://10.0.10.153:3000", "http://10.0.11.90:3000" // Example
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Error configuring CORS: {Message}", ex.Message);
+            throw; // Or handle as needed
+        }
+    }
+    static void ConfigureDatabase(IServiceCollection services, IConfiguration configuration, IWebHostEnvironment env)
+    {
+        try
+        {
+
+            var connectionString = configuration.GetConnectionString("FMSConnection");
+            var naftaConnectionString = configuration.GetConnectionString("ATGConnection");
+
+            services.AddIdentity<User, Role>().AddEntityFrameworkStores<GpsdataContext>()
+                .AddDefaultTokenProviders();
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("FMS Connection string is empty.");
+            }
+
+            services.AddDbContext<GpsdataContext>(options =>
+                options.UseMySql(connectionString, new MySqlServerVersion(new Version(5, 5, 61))), ServiceLifetime.Scoped);
+
+            if (!string.IsNullOrEmpty(naftaConnectionString))
+            {
+                services.AddDbContext<NaftaContext>(options =>
+                    options.UseMySQL(naftaConnectionString));
+            }
+            else
+            {
+                throw new InvalidOperationException("Nafta Connection string is empty.");
+            }
+
+            services.ConfigureReportingServices(config =>
+            {
+                if (env.IsDevelopment()) // Access builder from outer scope if needed
+                {
+                    config.UseDevelopmentMode();
+                }
+                config.ConfigureReportDesigner(designerConfig =>
+                {
+                    designerConfig.RegisterDataSourceWizardConfigFileConnectionStringsProvider();
+                });
+                config.ConfigureWebDocumentViewer(viewerConfig =>
+                {
+                    viewerConfig.UseCachedReportSourceBuilder();
+                    viewerConfig.UseDbStorage(connectionString);
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Error configuring database: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    static void ConfigureLogging(ILoggingBuilder logging)
+    {
+        try
+        {
+            logging.ClearProviders();
+            logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+            logging.AddNLog();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting up logging: {ex.Message}"); // Fallback if logging fails
+            // ... other fallback error handling ...
+        }
+    }
+    static void ConfigureApp(WebApplication app, IWebHostEnvironment env)
+    {
+        if (!env.IsDevelopment())
+        {
+            app.UseHsts();
+            app.UseCors("ProductionCorsPolicy");
+        }
+        else
+        {
+            app.UseDeveloperExceptionPage();
+            app.UseCors("DevelopmentCorsPolicy");
+        }
+
+        app.UseHttpsRedirection();
+        app.UseStaticFiles();
+        app.UseMiddleware<UserActivityMiddleware>();
+        app.UseRouting();
+        app.UseAuthentication();
+        app.UseUserActivity();
+        app.UseAuthorization();
+        app.Use(async (context, next) =>
+        {
+            // ... request logging ...
+            await next.Invoke();
+            // ... response logging ...
+        });
+
+        app.UseDevExpressControls();
+
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+        });
+
+        app.MapControllerRoute(
+            name: "default",
+            pattern: "{controller}/{action=Index}/{id?}");
+
+
+        app.MapHub<FrontEndHub>("/signalHub"); // SignalR hub
+    }
+
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ConsumptionController.cs
+
+﻿using Microsoft.AspNetCore.Mvc;
+using FMS.Application.Queries;
+using MediatR;
+using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
+using FMS.Domain.Entities.Auth;
+using System.Globalization;
+using FMS.Application.Queries.GPSGATEServer.LoginQuery;
+using FMS.WebClient.Models.DatabaseViewModel;
+using FMS.Application.Command.DatabaseCommand.ConsumptionCmd;
+using AutoMapper;
+using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update;
+using FMS.Application.Queries.Database.FMSQuery.Consumption;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+//using FMS.Application.Queries.Database.Consumption;
+
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ConsumptionController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+        private readonly IConfiguration _configuration;
+        private readonly IMapper _mapper;
+        private readonly ILogger _logger;
+
+        public ConsumptionController(IMediator mediator, IConfiguration configuration, IMapper mapper, ILogger<ConsumptionController> logger)
+        {
+            _mapper = mapper;
+            _mediator = mediator;
+            _configuration = configuration;
+            _logger = logger;
+        }
+        [HttpGet("manualRefills")]
+        public async Task<IActionResult> GetManualConsumption([FromQuery] string startDate, string endDate)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+            var query = new GetVehicleConsumptionManualRefillQuery(_startDate, _endDate);
+
+            var results = await _mediator.Send(query);
+
+            return Ok(results);
+        }
+
+
+        [HttpGet("manualRefillsbySiteId")]
+        public async Task<IActionResult> GetManualConsumptionBySiteId([FromQuery] string startDate, string endDate, int SiteId)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (SiteId <= 0) return BadRequest("Invalid Site ID");
+
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime)) return BadRequest("Invalid date");
+
+
+            var query = new GetVehicleConsumptionManualRefillBySiteIdQuery(_startDate, _endDate, SiteId);
+
+            var results = await _mediator.Send(query);
+
+            return Ok(results);
+        }
+
+
+        [HttpGet("vehicleRefills")]
+        public async Task<IActionResult> GetManualConsumptionByVehicleID([FromQuery] string startDate, string endDate, int? vehicleId)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (vehicleId == null || vehicleId <= 0)
+            {
+                return BadRequest("Invalid vehicle ID");
+            }
+
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+            var query = new GetConsumptionManualRefillByVehicleIDQuery(_startDate, _endDate, vehicleId);
+
+            var results = await _mediator.Send(query);
+
+            return Ok(results);
+        }
+
+
+
+
+        /// <summary>
+        /// Get histroical data TODO: Search days on settings or application
+        /// </summary>
+        /// <param name="vehicleId"></param>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        [HttpGet("gethistoryconsumptionbyvehicle")]
+        public async Task<IActionResult> GetHistoryConsumptionDatabyVehicle([FromQuery] int vehicleId, [FromQuery] string datestring, [FromQuery] int entry)
+        {
+            var date = DateTime.ParseExact(datestring, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (vehicleId <= 0 || date == default(DateTime))
+            {
+                return BadRequest("Invalid vehicle ID or date");
+            }
+
+            if (entry < 5 || entry > 30)
+            {
+                return BadRequest("Entry must be between 5 and 30 days");
+            }
+            try
+            {
+
+                var query = new GetHistoryConsumptionByVehicleQuery { Entry = entry, VehicleId = vehicleId, startDate = date };
+
+                var results = await _mediator.Send(query);
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Fetching history consumption Data");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+
+        }
+
+
+        [HttpGet("getbyid")]
+        public async Task<IActionResult> GetByID(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest("invalid consumption ID");
+            }
+            try
+            {
+                var query = new GetConsumptionByIdQuery { Id = id };
+
+                var result = await _mediator.Send(query);
+
+                if (result == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Consumption data by ID");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+
+
+
+        [HttpGet]
+        public async Task<IActionResult> Get(DateTime from)
+        {
+            //load settings from appsettings.json
+
+            string? username = _configuration["GPSGateUser:Username"];
+            string? password = _configuration["GPSGateUser:Password"];
+            int? applicationID = int.Parse(_configuration["ApplicationID"] ?? "0");
+            int fuelConsumptionReportId = int.Parse(_configuration["FuelConsumptionReportID"] ?? "0");
+
+
+            var fromDate = from.Date;
+            var toDate = fromDate.AddDays(1).AddTicks(-1); //add one day to from date
+
+            var loginquery = new LoginQuery
+            {
+
+                GPSGateConections = new GPSGateConections
+                {
+                    GPSGateUser = new GPSGateUser
+                    {
+                        UserName = username,
+                        Password = password
+                    },
+                    ApplicationID = applicationID.Value
+                }
+            };
+
+            var conn = await _mediator.Send(loginquery);
+
+            var query = new GetConsumptionReportQuery(conn, fuelConsumptionReportId, fromDate, toDate);
+
+            var results = await _mediator.Send(query);
+
+            return Ok(results);
+
+        }
+
+        [HttpPost("Create")]
+        public async Task<IActionResult> ConsumptionCreate([FromBody] ConsumptionViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var command = _mapper.Map<ConsumptionCreateCmd>(model);
+
+            await _mediator.Send(command);
+
+            return Ok();
+
+        }
+
+
+
+        [HttpGet("getlist")]
+        public async Task<IActionResult> GetConsumptionList(int pagingNo = 200)
+        {
+            if (pagingNo < 0 || pagingNo > 5000) return BadRequest("Invalid Paging No");
+            var query = new GetConsumptionListQuery(pagingNo);
+            var results = await _mediator.Send(query);
+            if (results == null || !results.Any())
+            {
+                return NotFound();
+            }
+            return Ok(results);
+        }
+
+        [HttpPut("Update/{id}")]
+        public async Task<IActionResult> ConsumptionUpdate(int id, [FromBody] ConsumptionViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var command = _mapper.Map<ComsumptionUpdateCmd>(model);
+
+            command.Id = id;
+
+            await _mediator.Send(command);
+
+            return Ok();
+
+        }
+
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\CustomWebReportDesignerController.cs
+
+﻿// using DevExpress.AspNetCore.Reporting.QueryBuilder;
+// using DevExpress.AspNetCore.Reporting.QueryBuilder.Native.Services;
+// using DevExpress.AspNetCore.Reporting.ReportDesigner;
+// using DevExpress.AspNetCore.Reporting.ReportDesigner.Native.Services;
+// using DevExpress.XtraReports.Web.ReportDesigner.Services;
+// using DevExpress.AspNetCore.Reporting.WebDocumentViewer;
+// using DevExpress.AspNetCore.Reporting.WebDocumentViewer.Native.Services;
+// using Microsoft.AspNetCore.Mvc;
+// using System.ComponentModel.DataAnnotations;
+// using DevExpress.XtraReports.Web.ReportDesigner;
+// using MediatR;
+// using DevExpress.DataAccess.Sql;
+
+// namespace FMS.WebClient.Controllers
+// {
+//     [Route("DXXRD")]
+//     public class CustomWebReportDesignerController : ReportDesignerController
+//     {
+//         public CustomWebReportDesignerController(IReportDesignerMvcControllerService controllerService) : base(controllerService)
+//         {
+//         }
+//              [HttpPost("VehicleConsumptionReport")]
+//             public IActionResult GetVehicleConsumptReport(
+//             [FromForm] string reportUrl, 
+//             [FromServices] IReportDesignerClientSideModelGenerator modelGenerator) //use IReportDesignerModelBuilder
+//             {
+//                 var dataSources = new Dictionary<string, object>();
+
+//                 var ds = new SqlDataSource("FMSConnection");
+
+//                  //create a query to access VehicleConsumptiontable
+
+//                  SqlQuery query = SelectQueryFluentBuilder.AddTable("VehicleConsumption").SelectAllColumnsFromTable().Build("VehicleConsumption");
+
+//                  ds.Queries.Add(query);
+//                  ds.RebuildResultSchema();
+//                  dataSources.Add("VehicleConsumption", ds);
+
+//                  reportUrl = string.IsNullOrEmpty(reportUrl)?"vehicleconsumption":reportUrl;
+
+//                 //var designerModel = await modelGenerator.
+
+
+//                 var model = modelGenerator.GetModel(reportUrl,dataSources, ReportDesignerController.DefaultUri, WebDocumentViewerController.DefaultUri, QueryBuilderController.DefaultUri);
+//                 return DesignerModel(model);
+//             }
+
+
+
+//     }
+
+// public class CustomWebDocumentViewerController : WebDocumentViewerController
+// {
+//     public CustomWebDocumentViewerController(IWebDocumentViewerMvcControllerService controllerService) : base(controllerService)
+//     {
+//     }
+// }
+//     public class CustomQueryBuilderController : QueryBuilderController
+//         {
+//             public CustomQueryBuilderController(IQueryBuilderMvcControllerService controllerService) : base(controllerService)
+//             {
+//             }
+//         }
+// }
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\DeliveryController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
+using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
+using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+
+namespace FMS.WebClient.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class DeliveryController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+
+        public DeliveryController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
+        {
+            //var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
+
+            //if (!hasPermission) return Forbid();
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+            Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            deliveryDTO.RecordedBy = userIdClaim.Value;
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _mediator.Send(new CreateDeliveryCommand(deliveryDTO));
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetDeliveries()
+        {
+            //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
+            // if (!hasPermission) return Forbid();
+            var result = await _mediator.Send(new GetDeliveryListQuery());
+            if (result == null) return NoContent();
+            return Ok(result);
+        }
+
+
+        [HttpGet("byDateRange")]
+        [Authorize]
+
+        public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate)
+        {
+            //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
+            //if (!hasPermission) return Forbid();
+            if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
+
+            var result = await _mediator.Send(new GetDeliveryListByDateRangeQuery(startDate, endDate));
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+        [HttpGet("byDateRangebySite")]
+        [Authorize]
+        public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate, int siteId)
+        {
+            //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
+            //if (!hasPermission) return Forbid();
+            if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
+            if (siteId <= 0) return BadRequest("Invalid Site ID");
+            var result = await _mediator.Send(new GetDeliveryListQueryByDateRangeBySiteIDQuery(startDate, endDate, siteId));
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\DeviceController.cs
+
+using System.Text.RegularExpressions;
+using FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceCommands;
+using FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DeviceController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public DeviceController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    //api/Devices
+    [HttpGet]
+    [Route("getlist")]
+    public async Task<IActionResult> GetDeviceList()
+    {
+        var query = new GetDeviceListQuery();
+        var devices = await _mediator.Send(query);
+
+        return Ok(devices);
+    }
+
+
+    [HttpGet("{imei}")]
+    public async Task<ActionResult<Device>> GetDevice(string imei)
+    {
+        string imeiPattern = @"^\d{12,16}$";
+        if (string.IsNullOrEmpty(imei) || !Regex.IsMatch(imei, imeiPattern)) return BadRequest("Invalid IMEI number");
+        var query = new GetDeviceByIdQuery(int.Parse(imei));
+        var result = await _mediator.Send(query);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> CreateDevice(CreateDeviceCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetDevice), new { imei = result }, result);
+    }
+
+    [HttpPut("{imei}")]
+    public async Task<IActionResult> UpdateDevice(string imei, UpdateDeviceCommand command)
+    {
+        string imeiPattern = @"^\d{12,16}$";
+        if (string.IsNullOrEmpty(imei) || !Regex.IsMatch(imei, imeiPattern)) return BadRequest("Invalid IMEI number");
+        if (!ModelState.IsValid) return BadRequest();
+
+        if (imei != command.Device.DeviceImei.ToString())
+            return BadRequest();
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("{imei}")]
+    public async Task<IActionResult> DeleteDevice(string imei)
+    {
+        string imeiPattern = @"^\d{12,16}$";
+        if (string.IsNullOrEmpty(imei) || !Regex.IsMatch(imei, imeiPattern)) return BadRequest("Invalid IMEI number");
+        var command = new DeleteDeviceCommand(int.Parse(imei));
+        await _mediator.Send(command);
+        return NoContent();
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\DeviceManufacturer.cs
+
+using FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceManufacturerCommands;
+using FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceManufacturerQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DeviceManufacturerController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public DeviceManufacturerController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+
+    //Api: api/getlist
+    [HttpGet]
+    [Route("getlist")]
+    public async Task<IActionResult> GetDeviceManufacturerList()
+    {
+        var deviceManufacturerList = await _mediator.Send(new GetDeviceManufacturerListQuery());
+        return Ok(deviceManufacturerList);
+    }
+
+
+    //APi: 
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Devicemanufacturer>> GetDeviceManufacturer(int id)
+    {
+        if (id == 0 || id < 0) return BadRequest();
+        var query = new GetDeviceManufacturerByIdQuery(id);
+        var result = await _mediator.Send(query);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> CreateDeviceManufacturer(CreateDeviceManufacturerCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetDeviceManufacturer), new { id = result }, result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateDeviceManufacturer(int id, UpdateDeviceManufacturerCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        if (id != command.Devicemanufacturer.Id)
+            return BadRequest();
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDeviceManufacturer(int id)
+    {
+        if (id == 0 || id < 0) return BadRequest();
+        var command = new DeleteDeviceManufacturerCommand(id);
+        await _mediator.Send(command);
+        return NoContent();
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\DeviceModel.cs
+
+using FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceModelCommands;
+using FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceModelQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+namespace FMS.WebClient.Controllers;
+
+
+[ApiController]
+[Route("api/[controller]")]
+public class DeviceModelController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public DeviceModelController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+
+    //Api: api/devicemodel/getlist
+    [HttpGet]
+    [Route("getlist")]
+    public async Task<IActionResult> Get()
+    {
+        var query = new GetDeviceModelListQuery();
+        var result = await _mediator.Send(query);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+
+    //api:api/devivemodel/3
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Devicemodel>> GetDeviceModel(int id)
+    {
+        if (id == 0 || id < 0) return BadRequest();
+        var query = new GetDeviceModelByIdQuery(id);
+        var result = await _mediator.Send(query);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> CreateDeviceModel(CreateDeviceModelCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetDeviceModel), new { id = result }, result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateDeviceModel(int id, UpdateDeviceModelCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        if (id != command.Devicemodel.Id)
+            return BadRequest();
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDeviceModel(int id)
+    {
+
+        if (id == 0 || id < 0)
+        {
+            return BadRequest();
+        }
+        var command = new DeleteDeviceModelCommand(id);
+        await _mediator.Send(command);
+        return NoContent();
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\DeviceTypeController.cs
+
+using System.Text.Json.Serialization;
+using FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceTypeCommands;
+using FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceTypeQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DeviceTypeController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public DeviceTypeController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+
+    [HttpGet]
+    [Route("getlist")]
+    public async Task<IActionResult> Get()
+    {
+        var query = new GetDeviceTypeListQuery();
+        var result = await _mediator.Send(query);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    //Api: api/devicetype/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Devicetype>> GetDeviceType(int id)
+    {
+
+        if (id == 0 || id < 0) return BadRequest();
+        var query = new GetDeviceTypeByIdQuery(id);
+        var result = await _mediator.Send(query);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+    //Api: api/devicetype
+
+    [HttpPost]
+    public async Task<ActionResult<int>> CreateDeviceType(CreateDeviceTypeCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        var result = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetDeviceType), new { id = result }, result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateDeviceType(int id, UpdateDeviceTypeCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        if (id == 0 || id < 0) return BadRequest();
+        if (id != command.Devicetype.Id)
+            return BadRequest();
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDeviceType(int id)
+    {
+
+        if (id == 0 || id < 0) return BadRequest();
+        var command = new DeleteDeviceTypeCommand(id);
+        await _mediator.Send(command);
+        return NoContent();
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\EmployeeController.cs
+
+﻿using AutoMapper.Configuration.Annotations;
+using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
+using FMS.Application.ModelsDTOs.FMS.Employee;
+using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+
+    public class EmployeeController : ControllerBase
+
+    {
+        private readonly IMediator _mediator;
+
+        public EmployeeController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDto employeeDto)
+        {
+            var hasPermission = User.HasClaim("permissions", "_createEmployee");
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                            Guid.TryParse(c.Value, out _));
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            employeeDto.CreatedBy = userIdClaim.Value;
+
+
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var command = new EmployeeCreateCmd { EmployeeDto = employeeDto };
+            var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result.Message);
+            return Ok(result);
+        }
+
+
+
+        [HttpGet("site/{siteId}")]
+        [Authorize]
+        public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
+        {
+            var hasPermission = User.HasClaim("permissions", "_readEmployee");
+            if (!hasPermission) return Forbid();
+            if (siteId <= 0) return BadRequest("Invalid ID");
+            var query = new GetEmployeeBySiteIdQuery { SiteId = siteId };
+            var employees = await _mediator.Send(query);
+            return Ok(employees);
+        }
+
+
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetEmployeeList([FromQuery] bool? active)
+        {
+            var hasPermission = User.HasClaim("permissions", "_readEmployee");
+            var permissionlist = User.Claims.ToList();
+
+            if (!hasPermission) return Forbid();
+
+            var query = new GetEmployeeQuery(active ?? true);
+            var employees = await _mediator.Send(query);
+            return Ok(employees);
+        }
+
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<IActionResult> GetEmployee(int id)
+        {
+            var hasPermission = User.HasClaim("permissions", "_readEmployee");
+            if (!hasPermission) return Forbid();
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var query = new GetEmployeeByIdQuery { Id = id };
+            var employee = await _mediator.Send(query);
+
+            if (employee == null) return NotFound();
+
+            return Ok(employee);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeDto employeeDto)
+        {
+            var hasPermission = User.HasClaim("permissions", "_editEmployee");
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (id <= 0) return BadRequest("Invalid ID");
+            if (id != employeeDto.Id) return BadRequest("ID mismatch");
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            employeeDto.ModifiedBy = userIdClaim.Value;
+
+            var command = new EmployeeUpdateCmd(id, employeeDto);
+
+            var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result.Message);
+
+            return Ok(result);
+
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteEmployee(int id)
+        {
+            var hasPermission = User.HasClaim("permissions", "_deleteEmployee");
+            if (!hasPermission) return Forbid();
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var command = new EmployeeDeleteCmd(id);
+            var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result.Message);
+
+            return NoContent();
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ExpectedAVGClassificationController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.ExptAVGClassification;
+using FMS.Application.ModelsDTOs.FMS;
+using FMS.Application.Queries.Database.FMSQuery.ExpectedAvg;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ExpectedAVGClassificationController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+
+
+        public ExpectedAVGClassificationController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+
+        [HttpGet("getlist")]
+        public async Task<IActionResult> GetExpectedAVGClassification()
+        {
+            var query = new GetExpectAVGClassificationlist();
+            var expectedAVGClassification = await _mediator.Send(query);
+            return Ok(expectedAVGClassification);
+        }
+
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateExpClassfication([FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var command = new ExptAVGClassificationCreateCmd
+            {
+                ExpctAVGClassficationDTO = expectedAVGClassificationDto
+            };
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateExpectedAVGClassification(int id, [FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+            var command = new ExpectedAVGClassificationUpdateCmd
+            {
+                Id = id,
+                Name = expectedAVGClassificationDto.Name,
+                Description = expectedAVGClassificationDto.Description,
+                IskmperLiter = expectedAVGClassificationDto.IskmperLiter
+
+            };
+
+            var result = await _mediator.Send(command);
+
+            if (result == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok();
+        }
+
+
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ExpectedAVGController.cs
+
+﻿using AutoMapper;
+using FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd;
+using FMS.Application.Command.DatabaseCommand.ExptAVGClassification;
+using FMS.Application.ModelsDTOs.FMS;
+using FMS.Application.ModelsDTOs.FMS.ExpectedAVG;
+using FMS.Application.Queries.Database.FMSQuery.ExpectedAvg;
+using FMS.WebClient.Models.DatabaseViewModel.ExpectedViewModel;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ExpectedAVGController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+        private readonly IMapper _mapper;
+
+        public ExpectedAVGController(IMediator mediator, IMapper mapper)
+        {
+            _mapper = mapper;
+            _mediator = mediator;
+        }
+
+
+        [HttpGet("getlist")]
+        public async Task<IActionResult> GetExpectedAVGList()
+        {
+            var query = new GetExpectedAVGQuery();
+            var expectedAVGs = await _mediator.Send(query);
+            return Ok(expectedAVGs);
+        }
+
+        [HttpGet("getlistbyvehiclebysite")]
+        public async Task<IActionResult> GetExpectedAVGListByVehicleBySite(int vehicleId, int siteId)
+        {
+            var query = new GetExpectedAverageByVehicleBySite { VehicleId = vehicleId, SiteId = siteId };
+            var expectedAVGs = await _mediator.Send(query);
+            return Ok(expectedAVGs);
+        }
+
+        [HttpGet("classification/getlist")]
+        public async Task<IActionResult> GetClassificationList()
+        {
+            var query = new GetExpectAVGClassificationlist();
+            var classifications = await _mediator.Send(query);
+            return Ok(classifications);
+        }
+
+        [HttpPost("classification/create")]
+        public async Task<IActionResult> CreateExpClassfication([FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var command = new ExptAVGClassificationCreateCmd
+            {
+                ExpctAVGClassficationDTO = expectedAVGClassificationDto
+            };
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetExpectedAVGbyID(int id)
+        {
+            var query = new GetExpectedAVGByIdQuery { Id = id };
+            var expectedAVG = await _mediator.Send(query);
+            if (expectedAVG == null)
+            {
+                return NotFound();
+            }
+            return Ok(expectedAVG);
+        }
+
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateExpectedAVG(int id, [FromBody] ExpectedAVGDto expectedAVGDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var command = new ExpectedAVGUpdateCmd
+            {
+                ExpectedAVGDto = expectedAVGDto
+            };
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateExpectedAVG(List<ExpectedAVGViewModel> expectedAVGViewModel)
+        {
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+            var map = _mapper.Map<List<ExpectedAVGDto>>(expectedAVGViewModel); // mapping to a list
+
+            var command = new ExpectedAVGCreateCmd
+            {
+                ExpectedAVGDto = map
+            };
+            try
+            {
+                var (created, duplicates) = await _mediator.Send(command);
+                if (duplicates.Any())
+                {
+                    return Conflict($"Duplicates found: {duplicates.Count} items.");
+                }
+                return Ok(created);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
+            }
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\FuelingRuleController.cs
+
+using FMS.Application.Command.DatabaseCommand.FuelingRulesCommands;
+using FMS.Application.Command.DatabaseCommand.FuelRules;
+using FMS.Application.Command.DatabaseCommand.FuelRules.Rules;
+using FMS.Application.Command.DatabaseCommand.FuelRules.Rules.TimeWindowRules;
+using FMS.Application.Common;
+using FMS.Application.Queries.Database.FMSQuery;
+using FMS.Application.Queries.Database.FuelRulesQueries;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class FuelingRuleController : ControllerBase
+{
+    private readonly IMediator _mediator;
+    private readonly ILogger<FuelingRuleController> _logger;
+
+    public FuelingRuleController(IMediator mediator, ILogger<FuelingRuleController> logger)
+    {
+        _mediator = mediator;
+        _logger = logger;
+    }
+
+    // RuleSet Endpoints
+    [HttpPost("rulesets")]
+    public async Task<IActionResult> CreateRuleSet([FromBody] CreateFuelRuleSetCommand command)
+    {
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating rule set");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpPut("rulesets/{id}")]
+    public async Task<IActionResult> UpdateRuleSet(int id, [FromBody] UpdateFuelRuleSetCommand command)
+    {
+        if (id != command.Id)
+            return BadRequest("ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating rule set");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpDelete("rulesets/{id}")]
+    public async Task<IActionResult> DeleteRuleSet(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new DeleteFuelRuleSetCommand(id));
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting rule set");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpPost("rulesets/{ruleSetId}/assign/{tagId}")]
+    public async Task<IActionResult> AssignRuleSetToTag(int ruleSetId, int tagId)
+    {
+        try
+        {
+            var result = await _mediator.Send(new AssignFuelingRuleSetToTagCommand(tagId, ruleSetId));
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning rule set to tag");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    // Daily/Monthly Limit Rules
+    [HttpPost("rulesets/{ruleSetId}/dailymonthly")]
+    public async Task<IActionResult> CreateDailyMonthlyRule(int ruleSetId, [FromBody] CreateDailyMonthlyLimitRuleCommand command)
+    {
+        if (ruleSetId != command.RuleSetId)
+            return BadRequest("RuleSet ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating daily/monthly limit rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpPut("rules/dailymonthly/{ruleId}")]
+    public async Task<IActionResult> UpdateDailyMonthlyRule(int ruleId, [FromBody] UpdateDailyMonthlyLimitRuleCommand command)
+    {
+        if (ruleId != command.RuleId)
+            return BadRequest("Rule ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating daily/monthly limit rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpDelete("rules/dailymonthly/{ruleId}")]
+    public async Task<IActionResult> DeleteDailyMonthlyRule(int ruleId)
+    {
+        try
+        {
+            var result = await _mediator.Send(new DeleteDailyMonthlyLimitRuleCommand(ruleId));
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting daily/monthly limit rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    // Number of Refills Rules
+    [HttpPost("rulesets/{ruleSetId}/refillcount")]
+    public async Task<IActionResult> CreateRefillCountRule(int ruleSetId, [FromBody] CreateNoOfRefillRuleCommand command)
+    {
+        if (ruleSetId != command.RuleSetId)
+            return BadRequest("RuleSet ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating refill count rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpPut("rules/refillcount/{ruleId}")]
+    public async Task<IActionResult> UpdateRefillCountRule(int ruleId, [FromBody] UpdateNoOfRefillRuleCommand command)
+    {
+        if (ruleId != command.RuleId)
+            return BadRequest("Rule ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating refill count rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpDelete("rules/refillcount/{ruleId}")]
+    public async Task<IActionResult> DeleteRefillCountRule(int ruleId)
+    {
+        try
+        {
+            var result = await _mediator.Send(new DeleteNoOfRefillRuleCommand(ruleId));
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting refill count rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    // Time Window Rules
+    [HttpPost("rulesets/{ruleSetId}/timewindow")]
+    public async Task<IActionResult> CreateTimeWindowRule(int ruleSetId, [FromBody] CreateTimeWindowRuleCommand command)
+    {
+        if (ruleSetId != command.RuleSetId)
+            return BadRequest("RuleSet ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating time window rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpPut("rules/timewindow/{ruleId}")]
+    public async Task<IActionResult> UpdateTimeWindowRule(int ruleId, [FromBody] UpdateTimeWindowRuleCommand command)
+    {
+        if (ruleId != command.RuleId)
+            return BadRequest("Rule ID mismatch");
+
+        try
+        {
+            var result = await _mediator.Send(command);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating time window rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpDelete("rules/timewindow/{ruleId}")]
+    public async Task<IActionResult> DeleteTimeWindowRule(int ruleId)
+    {
+        try
+        {
+            var result = await _mediator.Send(new DeleteTimeWindowRuleCommand(ruleId));
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting time window rule");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    // Get RuleSets and Rules
+    [HttpGet("rulesets")]
+    public async Task<IActionResult> GetRuleSets()
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetAllFuelRuleSetsQuery());
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting rule sets");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    [HttpGet("rulesets/{id}")]
+    public async Task<IActionResult> GetRuleSetById(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetFuelRuleSetByIDQuery(id));
+            if (result == null)
+                return NotFound();
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting rule set by id");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\FuelRefilController.cs
+
+using FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
+using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+
+[ApiController]
+[Route("api/[controller]")]
+public class FuelRefilController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public FuelRefilController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    //api: Post fuelrefill
+    [HttpPost]
+    public async Task<IActionResult> CreateFuelRefil(FuelRefilCreateCommand command)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var id = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetFuelRefil), new { id = id }, command);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetFuelRefil(int id)
+    {
+        var fuelRefil = await _mediator.Send(new FuelRefilGetbyIDQuery(id));
+        if (fuelRefil == null)
+        {
+            return NotFound();
+        }
+        return Ok(fuelRefil);
+    }
+
+
+    [HttpGet("getlist")]
+    public async Task<IActionResult> GetFuelRefilList()
+    {
+        var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery());
+        if (fuelRefil == null)
+        {
+            return NoContent();
+        }
+        return Ok(fuelRefil);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateFuelRefil(int id, FuelRefilDTO dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+
+        var result = await _mediator.Send(new UpdateFuelRefillCommand(dto, id));
+
+        if (!result.Success) return NotFound(result.Message);
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteFuelRefil(int id)
+    {
+        var result = await _mediator.Send(new FuelRefilDeleteCommand(id));
+        if (!result)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\FuelRefillController.cs
+
+using FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
+using FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+
+namespace FMS.WebClient.Controllers;
+
+
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+public class FuelRefillController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public FuelRefillController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    //api: Post fuelrefill
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateFuelRefil([FromBody] FuelRefilDTO fuelRefilDTO)
+    {
+        var hasPermission = User.HasClaim("permissions", "_createFuelRefill");
+        if (!hasPermission) return Forbid();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+        fuelRefilDTO.FuelBy = userIdClaim.Value;
+
+        var command = new FuelRefilCreateCommand(fuelRefilDTO);
+
+        var results = await _mediator.Send(command);
+        if (!results.Success) return BadRequest(results);
+        return Ok(results);
+    }
+
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefil(int id)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
+        if (id <= 0) return BadRequest("Invalid ID");
+        var fuelRefil = await _mediator.Send(new FuelRefilGetbyIDQuery(id));
+        if (fuelRefil == null) return NotFound();
+
+        return Ok(fuelRefil);
+    }
+
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefilList(int take = 100, int skip = 0)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
+        var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery(take, skip));
+        if (fuelRefil == null) return NoContent();
+
+        return Ok(fuelRefil);
+    }
+
+
+
+
+    [HttpPut("{id}")]
+    [Authorize]
+
+    public async Task<IActionResult> UpdateFuelRefil(int id, [FromBody] FuelRefilDTO fuelRefilDTO)
+    {
+        var hasPermission = User.HasClaim("permissions", "_editFuelRefill");
+        if (!hasPermission) return Forbid();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+        fuelRefilDTO.FuelBy = userIdClaim.Value;
+
+        if (id <= 0) return BadRequest("Invalid ID");
+        if (id != fuelRefilDTO.Id) return BadRequest("ID mismatch");
+
+        var command = new UpdateFuelRefillCommand(fuelRefilDTO, id);
+
+        var result = await _mediator.Send(command);
+        if (!result.Success) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteFuelRefil(int id)
+    {
+        var hasPermission = User.HasClaim("permissions", "_deleteFuelRefill");
+        if (!hasPermission) return Forbid();
+        if (id <= 0) return BadRequest("Invalid ID");
+        var result = await _mediator.Send(new FuelRefilDeleteCommand(id));
+        if (!result) return NotFound();
+
+        return NoContent();
+    }
+
+    [HttpGet("summary")]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefillSummary([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
+
+        var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate, null));
+
+        if (summary == null || !summary.Any())
+        {
+            return NoContent();
+        }
+
+        return Ok(summary);
+    }
+
+
+    [HttpGet("summary/{siteId}")]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefillSummaryBySite([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
+
+        var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate, siteId));
+
+        if (summary == null || !summary.Any())
+        {
+            return NoContent();
+        }
+
+        return Ok(summary);
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\HealthController.cs
+
+
+using Microsoft.AspNetCore.Mvc;
+using System;
+namespace FMS.WebClient.Controllers;
+
+
+[ApiController]
+[Route("api/[controller]")]
+public class HealthController : ControllerBase
+{
+
+    [HttpGet]
+    public IActionResult Get()
+    {
+        try
+        {
+            // You can add more checks here (e.g., database connection)
+            return Ok(new { Status = "OK", Timestamp = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            // Log the exception if you have a logging mechanism
+            return StatusCode(500, new { Status = "Error", Message = ex.Message });
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\IssueTrackerController.cs
+
+using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
+using FMS.Application.ModelsDTOs.FMS.Issuetracker;
+using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using ControllerBase = Microsoft.AspNetCore.Mvc.ControllerBase;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class IssueTrackerController : ControllerBase
+{
+
+    private readonly IMediator _mediator;
+
+    public IssueTrackerController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    //Api: Get all issue tracker
+    [HttpGet]
+    public async Task<IActionResult> GetIssueTracker()
+    {
+        var query = new GetIssueListQuery();
+        var issueTrackers = await _mediator.Send(query);
+        return Ok(issueTrackers);
+    }
+
+    //Api: Get issue tracker by id
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetIssueTrackerById(GetIssueListByIdQuery query)
+    {
+        if (query is null)
+        {
+            throw new ArgumentNullException(nameof(query));
+        }
+
+        var issueTracker = await _mediator.Send(query);
+        return Ok(issueTracker);
+    }
+
+    //Api: Create issue tracker
+    [HttpPost]
+    public async Task<IActionResult> PostIssueTracker([FromBody] Issuetracker command)
+    {
+        if (command is null)
+        {
+            throw new ArgumentNullException(nameof(command));
+        }
+
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    //Api: Update issue tracker
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateIssueTracker([FromBody] UpdateIssueCommand command)
+    {
+        if (command is null)
+        {
+            throw new ArgumentNullException(nameof(command));
+        }
+
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    //Api: Delete issue tracker
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteIssueTracker(DeleteIssueCommand command)
+    {
+        if (command is null)
+        {
+            throw new ArgumentNullException(nameof(command));
+        }
+
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+
+
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\NavigationController.cs
+
+using System.Security.Claims;
+using System.Text.Json.Serialization;
+using FMS.Application.Command.DatabaseCommand.NavigationCommand;
+using FMS.Application.Queries.Database.FMSQuery.Navigation;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class NavigationController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+        public NavigationController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+
+        //Api/Navigation
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetNavigationItemList()
+        {
+            //retrieve user roles from claims (token)
+            var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role)
+                             .Select(c => c.Value).
+                             ToList();
+
+            var querry = new GetNavigationItemListByRoleQuery(userRoles);
+            var navigationItems = await _mediator.Send(querry);
+            return Ok(navigationItems);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateNavigationItem([FromBody] CreateNavigationItemCommand command)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var navigationItemId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetNavigationItemByIdQuery), new { id = navigationItemId }, command);
+        }
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllNavigationItems()
+        {
+            var navigationItems = await _mediator.Send(new GetAllNavigationItemsQuery());
+            return Ok(navigationItems);
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateNavigationItem(int id, [FromBody] UpdateNavigationCommand command)
+        {
+            if (!ModelState.IsValid) return BadRequest();
+
+            if (command.Id != id) return BadRequest();
+
+            var result = await _mediator.Send(command);
+            if (!result) return NotFound();
+
+            return NoContent();
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteNavigationItem(int id)
+        {
+            if (id == 0) return BadRequest();
+            var result = await _mediator.Send(new DeleteNavigationItemCommand(id));
+            if (!result) return NotFound();
+            return NoContent();
+        }
+        [HttpPost("AssignRoles")]
+        public async Task<IActionResult> AssignRolesToNavigationItem([FromBody] AssignRoleToNavigationCommand command)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _mediator.Send(command);
+            if (!result) return BadRequest();
+            return Ok();
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\PermissionController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands;
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+namespace FMS.WebClient.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class PermissionController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+
+        public PermissionController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        // GET: api/Permission
+        /// <summary>
+        /// Get Permissions
+        /// </summary>
+        /// 
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetPermissions()
+        {
+            var result = await _mediator.Send(new GetPermissionQuery());
+            return Ok(result);
+        }
+
+        // POST: api/Permission
+        /// <summary>
+        /// Create Permission
+        /// </summary>  
+        /// <param name="command"></param>
+        /// <returns> ok </returns>
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreatePermission([FromBody] AddPermissionCommand command)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+        // PUT: api/Permission/5
+        /// <summary>
+        /// Update Permission
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="command"></param>
+        /// <returns> ok </returns>
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdatePermission(int id, [FromBody] UpdatePermissionCommand command)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            command = command with { Id = id };  // Update the Id in the command
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+        // DELETE: api/Permission/5
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeletePermission(int id)
+        {
+            var result = await _mediator.Send(new DeletePermissionCommand(id));
+            return Ok(result);
+        }
+
+
+        ///Get /Api/Permission/role/{roleId}
+        /// <summary>
+        /// Get Permissions by RoleID 
+        /// </summary>
+        /// <param name="roleId"></param>
+        /// <returns></returns>
+        [HttpGet("role/{roleId:guid}")]
+        [Authorize]
+        public async Task<IActionResult> GetPermissionsByRoleID(string roleId)
+        {
+            if (roleId == null) return BadRequest("RoleID is null");
+
+            var result = await _mediator.Send(new GetPermissionsByRoleIDQuery(roleId));
+            return Ok(result);
+        }
+
+        ///Get /Api/Permission/user/{userId} <summary>
+        /// Get /Api/Permission/user/{userId}
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+
+        [HttpGet("user/{userId:guid}")]
+        [Authorize]
+        public async Task<IActionResult> GetPermissionsByUserID(string userId)
+        {
+            if (userId == null) return BadRequest("UserID is null");
+
+            var result = await _mediator.Send(new GetUserPermissionsQuery(userId));
+            return Ok(result);
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ReportController.cs
+
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ReportController : ControllerBase
+{
+
+    private readonly IMediator _mediatr;
+
+    public ReportController(IMediator mediatr)
+    {
+        _mediatr = mediatr;
+    }
+
+    //[HttpPost("generate")]
+    //public async Task<IActionResult> GenerateVehicleConsumptionReport([FromBody] VehicleConsumptionReportDto([FromBody]) vehicleConsumptionReportDto)
+
+    //{
+
+    //    var report = new VehicleConsumptionReport
+    //    {
+
+    //    }
+
+    //}
+
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ReportDocDesignerController.cs
+
+using FMS.WebClient.Report;
+using MediatR;
+using DevExpress.XtraReports.UI;
+using Microsoft.AspNetCore.Mvc;
+using DevExpress.XtraReports.Native;
+using Microsoft.AspNetCore.Authorization;
+using DevExpress.AspNetCore.Reporting.ReportDesigner.Native.Services;
+using DevExpress.AspNetCore.Reporting.ReportDesigner;
+using DevExpress.XtraReports.Web.ReportDesigner.Services;
+using DevExpress.XtraReports.Web.Extensions;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ReportDocDesignerController : ReportDesignerController
+{
+    public ReportDocDesignerController(IReportDesignerMvcControllerService controllerService)
+        : base(controllerService)
+    {
+
+    }
+
+    [HttpPost("GetDesignerModel")]
+    public async Task<IActionResult> GetDesignerModel(
+        [FromForm] string reportUrl,
+        [FromServices] IReportDesignerModelBuilder reportDesignerModelBuilder)
+    {
+        reportUrl = string.IsNullOrEmpty(reportUrl) ? "DefaultReport" : reportUrl;
+
+        // Check if the report exists
+
+
+        var designerModel = await reportDesignerModelBuilder
+            .Report(reportUrl)
+            .BuildModelAsync();
+
+        return DesignerModel(designerModel);
+    }
+}
+
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ReportQueryBuilder.cs
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using DevExpress.DataAccess.Sql;
+using DevExpress.XtraReports.UI;
+using System.Text;
+using DevExpress.AspNetCore.Reporting.QueryBuilder;
+using DevExpress.AspNetCore.Reporting.QueryBuilder.Native.Services;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/DXXQB/[controller]")]
+    [Authorize]
+    public class ReportQueryBuilderController : QueryBuilderController
+    {
+
+        public ReportQueryBuilderController(IQueryBuilderMvcControllerService controllerService)
+            : base(controllerService)
+        {
+        }
+
+
+    }
+
+
+}
+
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\ReportViewerController.cs
+
+﻿using FMS.WebClient.Report;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using DevExpress.AspNetCore.Reporting.WebDocumentViewer;
+using DevExpress.XtraReports.Web.WebDocumentViewer.Native.Services;
+using DevExpress.AspNetCore.Reporting.WebDocumentViewer.Native.Services;
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/DXXRDV/[controller]")]
+    [Authorize]
+    public class ReportViewerController : WebDocumentViewerController
+    {
+
+        public ReportViewerController(IWebDocumentViewerMvcControllerService controllerService)
+                  : base(controllerService)
+        {
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\RoleController.cs
+
+﻿// using DevExpress.Charts.Native;
+using FMS.Application.Command.DatabaseCommand.UserManagement;
+using FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands;
+using FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands;
+using FMS.Application.ModelsDTOs.FMS.UserManagement;
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class RoleController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public RoleController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        // create api/Role/
+        [HttpPost]
+        public async Task<IActionResult> CreateRole([FromBody] RoleCreateCommand command)
+        {
+            var roleId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetRoleById), new { id = roleId }, command);
+        }
+
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateRole(string id, [FromBody] RoleDto roleDto)
+        {
+            if (roleDto == null || id != roleDto.Id) return BadRequest();
+            var command = new RoleUpdateCommand(roleDto);
+            var result = await _mediator.Send(command);
+            if (!result) return NotFound();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> RoleDeleteCommand(string id)
+        {
+            var result = await _mediator.Send(new RoleDeleteCommand(id));
+            if (!result) return NotFound();
+            return NoContent();
+        }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetRoleById(string id)
+        {
+            var role = await _mediator.Send(new GetRoleByIDQuery(id));
+            if (role == null) return NotFound();
+            return Ok(role);
+        }
+
+        [HttpGet("getlist")]
+        public async Task<IActionResult> GetRoleList()
+        {
+            var roles = await _mediator.Send(new GetRoleListQuery());
+            return Ok(roles);
+        }
+
+        [HttpPost("AssignPermissions")]
+        [Authorize]
+        public async Task<IActionResult> AssignPermissions([FromBody] AssignPermissionsToRoleCommand command)
+        {
+
+            if (string.IsNullOrWhiteSpace(command.RoleId)) return BadRequest("invalid Role ID");
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+        [HttpPost("UpdateRoleUsers")]
+        [Authorize]
+        public async Task<IActionResult> UpdateRoleForUsers([FromBody] UpdateRoleUsersCommand command)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var result = await _mediator.Send(command);
+            if (!result.Succeeded) return BadRequest(result);
+            return Ok(result);
+        }
+
+        //api: api/role/UsersInRole/{roleId}
+        [HttpGet("UsersInRole/{roleId}")]
+        [Authorize]
+        public async Task<IActionResult> GetUsersInRole(string roleId)
+        {
+            var command = new GetUsersInRoleQuery(roleId);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+
+        [HttpGet("PermissionsByRole/{roleId}")]
+        [Authorize]
+        public async Task<IActionResult> GetPermissionsByRoleId(string roleId)
+        {
+            var command = new GetPermissionsByRoleIDQuery(roleId);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpGet("user/{userId}")]
+        [Authorize]
+        public async Task<IActionResult> GetRolesByUserId(string userId)
+        {
+            var command = new GetRolesByUserIDQuery(userId);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("AssignRolesToUser")]
+        [Authorize]
+        public async Task<IActionResult> AssignRolesToUser([FromBody] AssignUserRolesCommand command)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\SiteController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.UserManagement;
+using FMS.Application.Queries.Database.FMSQuery.SiteQuery;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+
+    public class SiteController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+
+        public SiteController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        //return list of sites
+        [HttpGet("getlist")]
+        [Authorize]
+        public async Task<IActionResult> GetSiteList()
+        {
+
+            var query = new GetSiteQuery();
+            var sites = await _mediator.Send(query);
+            return Ok(sites);
+
+        }
+
+        //return list of sites by user id
+        [HttpGet("getsitebyuserid")]
+        [Authorize]
+        public async Task<IActionResult> GetSitesByUserId()
+        {
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                 c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                 Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            var query = new GetSitesByUserIdQuery(userIdClaim.Value);
+            var sites = await _mediator.Send(query);
+            return Ok(sites);
+        }
+
+        [HttpPut("assignSitestoUser")]
+        [Authorize]
+        public async Task<IActionResult> AssignSiteToUser(AssignSitesToUserCommand command)
+        {
+            if (command == null || string.IsNullOrEmpty(command.UserId) || command.SiteIds == null || !command.SiteIds.Any())
+            {
+                return BadRequest("Invalid command payload");
+            }
+
+            try
+            {
+                var result = await _mediator.Send(command);
+
+                if (result)
+                {
+                    return Ok("Sites assigned to user successfully");
+                }
+
+                return StatusCode(500, "An error occurred while assigning sites to the user");
+            }
+            catch (Exception ex)
+            {
+                // Log the exception details
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+
+        //update site 
+
+
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\SupplierController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.SupplierCommands;
+using FMS.Application.Common;
+using FMS.Application.ModelsDTOs.FMS.Supplier;
+using FMS.Application.Queries.Database.FMSQuery.SuppliersQueries;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class SupplierController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public SupplierController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<ActionResult<List<SupplierDTO>>> GetSuppliers()
+        {
+            var query = new GetSupplierListQuery();
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Authorize]
+
+        public async Task<ActionResult<FMSResponseMessage>> CreateSupplier([FromBody] SupplierDTO supplier)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var command = new CreateSupplierCommand(supplier);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+
+        public async Task<ActionResult<FMSResponseMessage>> UpdateSupplier(int id, [FromBody] SupplierDTO supplier)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var command = new UpdateSupplierCommand(id, supplier);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+
+        public async Task<ActionResult<FMSResponseMessage>> DeleteSupplier(int id)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+            var command = new DeleteSupplierCommand(id);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\TagController.cs
+
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using FMS.Application.ModelsDTOs.FMS.Tag;
+using FMS.Application.Command.DatabaseCommand.TagCmd;
+using FMS.Application.Queries.Database.FMSQuery.TagQueries;
+
+namespace FMS.WebClient.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+[Authorize(Roles = "Admin,User")]
+public class TagController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public TagController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetTags()
+    {
+        return User.HasClaim("permissions", "_readTag")
+            ? Ok(await _mediator.Send(new GetAllTagsQuery()))
+            : Forbid();
+    }
+
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetTagById(int id)
+    {
+        var hasPermission = User.HasClaim("permissions", "_readTag");
+        if (!hasPermission) return Forbid();
+        if (id <= 0) return BadRequest("Invalid ID");
+
+        var result = await _mediator.Send(new GetTagByIdQuery(id));
+        return result != null ? Ok(result) : NotFound();
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateTag([FromBody] TagDTO tagDTO)
+    {
+        var hasPermission = User.HasClaim("permissions", "_CreateTags");
+        if (!hasPermission) return Forbid();
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var id = await _mediator.Send(new CreateTagCommand(tagDTO));
+        return CreatedAtAction(nameof(GetTagById), new { id }, tagDTO);
+    }
+
+    [HttpPut("{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateTag(int id, [FromBody] TagDTO tagDTO)
+    {
+        var hasPermission = User.HasClaim("permissions", "_EditTags");
+        if (!hasPermission) return Forbid();
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (id != tagDTO.Id) return BadRequest("ID mismatch");
+
+        var result = await _mediator.Send(new UpdateTagCommand(tagDTO));
+        return result.Success ? NoContent() : BadRequest(result);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteTag(int id)
+    {
+        var hasPermission = User.HasClaim("permissions", "_DeleteTags");
+        if (!hasPermission) return Forbid();
+
+        var result = await _mediator.Send(new DeleteTagCommand(id));
+        return result.Success ? NoContent() : BadRequest(result);
+    }
+
+    [HttpPost("assign-to-vehicle")]
+    [Authorize]
+    public async Task<IActionResult> AssignTagToVehicle([FromBody] AssignTagToVehicleDTO assignTagDTO)
+    {
+        var hasPermission = User.HasClaim("permissions", "_EditTags");
+        if (!hasPermission) return Forbid();
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _mediator.Send(new AssignToVehicleTagCommand(assignTagDTO));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\TankController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.TankCommands;
+using FMS.Application.ModelsDTOs.FMS.Tank;
+using FMS.Application.Queries.Database.FMSQuery.TankQueries;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class TankController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public TankController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<TankDTO>>> GetTanks()
+        {
+            var query = new GetTankListQuery();
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TankDTO>> GetTank(int id)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+            var query = new GetTankByIdQuery(id);
+            var result = await _mediator.Send(query);
+            if (result == null)
+            {
+                return NotFound();
+            }
+            return Ok(result);
+        }
+
+        [HttpGet("site/{siteId}")]
+        public async Task<ActionResult<List<TankDTO>>> GetTanksBySiteId(int siteId)
+        {
+            if (siteId <= 0) return BadRequest("Invalid Site ID");
+            var query = new GetTankBySiteIdQuery(siteId);
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<int>> CreateTank([FromBody] TankDTO tank)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var command = new CreateTankCommand(tank);
+            var tankId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetTank), new { id = tankId }, tankId);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateTank(int id, [FromBody] TankDTO tank)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var command = new UpdateTankCommand(id, tank);
+            var result = await _mediator.Send(command);
+            if (!result)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteTank(int id)
+        {
+            if (id == 0 || id < 0) return BadRequest();
+
+            var command = new DeleteTankCommand(id);
+            var result = await _mediator.Send(command);
+            if (!result)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\TankReconciliationController.cs
+
+﻿using FMS.Application.Queries.Database.FMSQuery.TankReconciliation;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class TankReconciliationController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public TankReconciliationController(IMediator mediator)
+        {
+            _mediator = mediator;
+
+        }
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetTankReconciliationByDate([FromQuery] DateTime startDate, DateTime endDate)
+        {
+
+            //insertPermission check here
+
+            var result = await _mediator.Send(new GetDailyTankReconcillationQuery(startDate, endDate));
+            return Ok(result);
+        }
+
+        [HttpGet("by-site")]
+        [Authorize]
+        public async Task<IActionResult> GetTankReconciliationBySite(DateTime startDate, DateTime endDate, int siteId)
+        {
+            //insertPermission check here
+
+            var result = await _mediator.Send(new GetDailyTankReconciliationBySiteQuery(startDate, endDate, siteId));
+            return Ok(result);
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\TankStockController.cs
+
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using FMS.Application.Command.DatabaseCommand.TankStockCommand;
+using FMS.Application.Queries.Database.FMSQuery.TankStock;
+using FMS.Application.ModelsDTOs.FMS.TankStock;
+
+using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
+using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
+using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
+using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
+using FMS.Application.ModelsDTOs.FMS.TankTransfer;
+using FMS.Application.Common;
+using FMS.Domain.ATGEntities.Nafta;
+namespace FMS.WebClient.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+[Authorize(Roles = "Admin,User")]
+public class TankStockController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public TankStockController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    [HttpGet]
+    [Authorize]
+
+    public async Task<IActionResult> GetTankStocks()
+    {
+        return User.HasClaim("permissions", "_Read_tankStock")
+      ? Ok(await _mediator.Send(new GetTankStockListQuery()))
+      : Forbid();
+    }
+
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetTankStockById(int id)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+        if (id <= 0) return BadRequest("Invalid ID");
+
+        var result = await _mediator.Send(new GetTankStockByIdQuery(id));
+        if (result == null)
+        {
+            return NotFound();
+        }
+        return Ok(result);
+    }
+
+
+
+    [HttpPut("update/{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateDelivery(int id, [FromBody] DeliveryDTO deliveryDTO, bool ignoreNegativesValues = false)
+    {
+        var hasPermission = User.HasClaim("permissions", "_editStock");
+        if (!hasPermission) return Forbid();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        if (id != deliveryDTO.Id) return BadRequest("ID mismatch");
+
+        var result = await _mediator.Send(new UpdateDeliveryCommand(deliveryDTO, ignoreNegativesValues));
+        if (!result.Success) return BadRequest(result);
+
+        return Ok(result);
+    }
+
+
+
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateTankStock([FromBody] TankStockDTO tankStockDTO)
+    {
+        //check if user has "_create_tankStock" permission
+        var hasPermission = User.HasClaim("permissions", "_Create_tankStock");
+        if (!hasPermission)
+        {
+            return Forbid();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        var id = await _mediator.Send(new CreateTankStockCommand(tankStockDTO));
+        return CreatedAtAction(nameof(GetTankStockById), new { id = id }, tankStockDTO);
+    }
+
+    [HttpPut("{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateTankStock(int id, [FromBody] TankStockDTO tankStockDTO)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
+        if (!hasPermission) return Forbid(new FMSResponseMessage(false, "Please sign in").ToString());
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        if (id != tankStockDTO.EntryId)
+        {
+            return BadRequest("ID mismatch");
+        }
+        var result = await _mediator.Send(new UpdateTankStockCommand(tankStockDTO, id));
+        if (!result)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteTankStock(int id)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Delete_tankStock");
+        if (!hasPermission) return Forbid();
+        var result = await _mediator.Send(new DeleteTankStockCommand(id));
+        if (!result.Success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
+
+    [HttpPost("openingstock")]
+    [Authorize]
+    public async Task<IActionResult> CreateOpeningStock([FromQuery] int tankId, decimal amount, DateTime dateTime)
+    {
+        // var hasPermission = User.HasClaim("permissions", "_openingStock");
+        // if (!hasPermission) return Forbid();
+        if (tankId <= 0) return BadRequest(new FMSResponseMessage(false, "Invalid Tank ID"));
+        if (amount <= 0) return BadRequest(new FMSResponseMessage(false, "Opening stock should be greater than 0"));
+
+        if (dateTime > DateTime.Now) return BadRequest(new FMSResponseMessage(false, "Date cannot be in the future"));
+        if (dateTime == default(DateTime)) return BadRequest(new FMSResponseMessage(false, "Invalid Date"));
+
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+               c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+               Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
+
+        var result = await _mediator.Send(new OpeningStockCommand(tankId, amount, userIdClaim.Value, dateTime));
+
+        if (!result.Success) return BadRequest(result);
+
+        return Ok(result);
+
+    }
+    [HttpPost("closingstock")]
+    [Authorize]
+    public async Task<IActionResult> CreateClosingStock([FromQuery] int tankId, decimal amount, DateTime dateTime)
+    {
+        // var hasPermission = User.HasClaim("permissions", "_closingStock");
+        // if (!hasPermission) return Forbid();
+        if (tankId <= 0) return BadRequest(new FMSResponseMessage(false, "Invalid Tank ID"));
+        if (amount <= 0) return BadRequest(new FMSResponseMessage(false, "Closing stock should be greater than 0"));
+        if (dateTime > DateTime.Now) return BadRequest(new FMSResponseMessage(false, "Date cannot be in the future"));
+        if (dateTime == default(DateTime)) return BadRequest(new FMSResponseMessage(false, "Invalid Date"));
+
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+             Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
+        var result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userIdClaim.Value, dateTime));
+
+        if (!result.Success) return BadRequest(result);
+
+        return Ok(result);
+
+    }
+
+    [HttpPost("transfer")]
+    [Authorize]
+    public async Task<IActionResult> CreateTankTransfer([FromBody] TankTransferDTO tankTransferDTO)
+    {
+        //var hasPermission = User.HasClaim("permissions", "_tankTransfer");
+        // if (!hasPermission) return Forbid();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                                Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest(new FMSResponseMessage(false, "Invalid User ID"));
+
+        tankTransferDTO.RecordedBy = userIdClaim.Value;
+
+        var result = await _mediator.Send(new CreateTankTransfer(tankTransferDTO));
+
+        if (!result.Success) return BadRequest(result);
+
+        return Ok(result);
+    }
+
+
+
+
+
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\TankVolumeHistoryController.cs
+
+﻿using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+namespace FMS.WebClient.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize(Roles = "Admin,User")]
+    public class TankVolumeHistoryController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public TankVolumeHistoryController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetTankVolumeHistory()
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            //if (!hasPermission) return Forbid();
+            var result = await _mediator.Send(new GetTankVolumeHistoryQuery());
+            if (result == null) return NoContent();
+            return Ok(result);
+        }
+
+        [HttpGet("byTankAndDateRange")]
+        [Authorize]
+        public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate, DateTime endDate, int TankId)
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            //   if (!hasPermission) return Forbid();
+            if (TankId <= 0) return BadRequest("Invalid ID");
+            if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
+
+            var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(startDate, endDate, TankId));
+            if (result == null) return NotFound();
+            if (result.Success == false) return BadRequest(result.Message);
+
+            return Ok(result.Data);
+        }
+        [HttpGet("byDateRange")]
+        [Authorize]
+        public async Task<IActionResult> GetTankVolumeHistoryByDateRange(DateTime StartDate, DateTime EndDate)
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            // if (!hasPermission) return Forbid();
+            if (StartDate == default || EndDate == default) return BadRequest("Invalid Date Range");
+            var result = await _mediator.Send(new GetTankVolumeHistoryByDateRangeQuery(StartDate, EndDate));
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+
+        [HttpGet("bySite")]
+        [Authorize]
+        public async Task<IActionResult> GetTankVolumeHistoryBySite(DateTime startDate, DateTime endDate, int siteId)
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            // if (!hasPermission) return Forbid();
+            if (siteId <= 0) return BadRequest("Invalid Site ID");
+            if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
+
+            var result = await _mediator.Send(new GetTankVolumeHistoryBySiteQuery(startDate, endDate, siteId));
+            if (result == null) return NotFound();
+
+            return Ok(result);
+        }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\UserActivitiesController.cs
+
+using FMS.Application.Queries.Database.FMSQuery.UserActivies;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UserActiviesController : ControllerBase
+{
+    private readonly IMediator _mediator;
+    public UserActiviesController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetUserActivities([FromQuery] GetUserActivitiesQuery query)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var userActivities = await _mediator.Send(query);
+        return Ok(userActivities);
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\UserController.cs
+
+using System.Configuration;
+using System.Security.Claims;
+using FMS.Application.Command.DatabaseCommand.UserManagement;
+using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UserController : ControllerBase
+
+
+{
+    private readonly IMediator _mediator;
+
+    public UserController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+
+
+
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateUser([FromBody] UserCreateCommand command)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        var result = await _mediator.Send(command);
+        //return CreatedAtAction(nameof(GetUser),new{id=userId},command));
+        return Ok(result);
+    }
+
+
+
+
+
+    //Get:api/User/{id}
+    [HttpGet("{id}")]
+    [Authorize]
+    public async Task<IActionResult> GetUser(string id)
+    {
+
+        var command = new GetUserByIdQuery(id);
+        var result = await _mediator.Send(command);
+        return Ok(result);
+
+    }
+
+    //Get user list:api/User
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> GetUserList()
+    {
+        var command = new GetUserListQuery();
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    //Delete:api/User/{id}
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        var command = new UserPermanentDeleteCommand(id);
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+
+    [HttpPut("softuserdelete/{id}")]
+    [Authorize]
+    public async Task<IActionResult> SoftDeleteUser(string id)
+    {
+        var command = new UserDeleteCommand(id);
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpPut("restoreuser/{id}")]
+    [Authorize]
+    public async Task<IActionResult> RestoreUser(string id)
+    {
+        var command = new RestoreUserCommand(id);
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    //Update:api/User/{id}
+    [HttpPut("{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateUser(string id, [FromBody] UserUpdateCommand command)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        command = command with { UserId = id };
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpPost("Login")]
+    public async Task<ActionResult<string>> Login(LoginCommand command)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var result = await _mediator.Send(command);
+            return Ok(new { Token = result });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized();
+        }
+    }
+
+    [HttpGet("details")]
+    [Authorize]
+    public async Task<IActionResult> GetUserDetails()
+    {
+        var userID = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userID))
+        {
+            return Unauthorized();
+        }
+
+        var command = new GetUserByUserNameQuery(userID);
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    [HttpPost("assignRoles")]
+    [Authorize]
+    public async Task<IActionResult> AssignRoles(AssignUserRoleCommand command)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+
+
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\VehicleController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+using FMS.Application.ModelsDTOs.FMS.Vehicle;
+using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class VehicleController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+
+        public VehicleController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetVehicleList()
+        {
+            var query = new GetVehicleQuery();
+
+            var vehicles = await _mediator.Send(query);
+
+            return Ok(vehicles);
+
+        }
+
+
+        [HttpGet("/{id}")]
+        [Authorize]
+
+        public async Task<IActionResult> GetVehicleByID(int id)
+        {
+
+            var query = new GetVehicleByIDQuery(id);
+            var vehicle = await _mediator.Send(query);
+            if (vehicle == null) return NotFound();
+            return Ok(vehicle);
+        }
+
+
+        [HttpGet("simple")]
+        [Authorize]
+
+        public async Task<IActionResult> GetSimpleVehicleList()
+        {
+            var query = new GetSimpleVehicleQuery();
+            var vehicles = await _mediator.Send(query);
+            return Ok(vehicles);
+        }
+
+
+        [HttpPut]
+        [Authorize]
+        public async Task<IActionResult> UpdateVehicle([FromBody] List<VehicleDTO> vehicleDTOs)
+        {
+
+            var hasPermission = User.HasClaim("permissions", "_EditVehicle");
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var command = new UpdateVehiclesCommand(vehicleDTOs);
+            var result = await _mediator.Send(command);
+            if (!result.Success) return BadRequest(result.Message);
+            return Ok(result);
+
+        }
+
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleDTO vehicleDTO)
+        {
+            var hasPermission = User.HasClaim("permissions", "_EditVehicle");
+            if (!hasPermission) return Forbid();
+            //  if (vehicleDTO.VehicleId != id) return BadRequest("Vehicle Id mismatch");
+            if (id == 0 || id < 0) return BadRequest("Invalid Vehicle Id");
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            vehicleDTO.VehicleId = id;
+            var command = new UpdateSingleVehicleCommand(vehicleDTO);
+            var result = await _mediator.Send(command);
+
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\VehicleManufacturerController.cs
+
+﻿using FMS.Application.Queries.Database.FMSQuery.VehicleManufacturer;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/[controller]")]
+
+    public class VehicleManufacturerController : ControllerBase
+    {
+
+        private readonly IMediator _mediator;
+
+        public VehicleManufacturerController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetVehicleManufacturer()
+        {
+            var query = new GetVehicleManufacturerQuery();
+            var vehicleManufacturer = await _mediator.Send(query);
+
+            return Ok(vehicleManufacturer);
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\VehicleModelController.cs
+
+﻿using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+using FMS.Application.Command.DatabaseCommand.VehicleModelCommand;
+using FMS.Application.ModelsDTOs.FMS;
+using FMS.Application.Queries.Database.FMSQuery.VehicleModelQuery;
+using FMS.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+
+
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+
+    public class VehicleModelController : ControllerBase
+    {
+
+
+        private readonly IMediator _mediator;
+
+        public VehicleModelController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpPost("CreateVehicleModel")]
+        [Authorize]
+        public async Task<ActionResult<int>> CreateVehicleModel([FromBody] Vehiclemodel vehicleModel)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var command = new CreateVehicleModelCommand(vehicleModel.ManufacturerId, vehicleModel.Name);
+            var results = await _mediator.Send(command);
+
+            if (!results.Success) return BadRequest(results.Message);
+
+            return Ok(results.Data);
+
+        }
+
+        [HttpGet]
+        [Authorize]
+
+        public async Task<IActionResult> GetVehicleModel()
+        {
+
+            var query = new GetVehicleModelQuery();
+            var vehicleModels = await _mediator.Send(query);
+            return Ok(vehicleModels);
+
+        }
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\VehicleTypeController.cs
+
+﻿using FMS.Application.Queries.Database.FMSQuery.VehicleTypeQuery;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+
+    public class VehicleTypeController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+        public VehicleTypeController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetVehicleType()
+        {
+            var query = new GetVehicleTypeQuery();
+            var vehicleTypes = await _mediator.Send(query);
+            return Ok(vehicleTypes);
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\PTSController\PTSConfigurationController.cs
+
+using FMS.Application.PTSServices.Configuration;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers.PTSController
+{
+    public class PTSConfigurationController : ControllerBase
+    {
+        private readonly IConfigurationService _configurationService;
+
+        public PTSConfigurationController(IConfigurationService configurationService)
+        {
+            _configurationService = configurationService;
+        }
+
+        [HttpGet("GetPumpNozzlesConfiguration/{deviceId}")]
+
+        public async Task<IActionResult> GetPumpNozzlesConfiguration(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                return BadRequest("Device ID is required");
+            }
+
+
+            var result = await _configurationService.GetPumpNozzlesConfigurationAsync(deviceId);
+            //TODO: Handle error
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\PTSController\PtsController .cs
+
+﻿using FMS.Application.Handlers.Interface;
+using FMS.Application.Validation.PTSValidators;
+using FMS.Domain.PTSCommon;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+
+namespace FMS.WebClient.Controllers.PTSControllers
+{
+
+    [ApiController]
+    [Route("jsonPTS")]
+    public class PtsController : ControllerBase
+    {
+        private readonly ILogger<PtsController> _logger;
+        private readonly IPTSMessageProcessor _messageHandler;
+
+        public PtsController(ILogger<PtsController> logger, IPTSMessageProcessor messageHandler)
+        {
+            _logger = logger;
+            _messageHandler = messageHandler;
+        }
+
+        [HttpPost("uploadStatus")]
+        [ValidateDevice]
+        public async Task<IActionResult> UploadStatus()
+        {
+            var deviceId = GetDeviceId();
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                return BadRequest("Device Id is required");
+            }
+
+            try
+            {
+                var requestBody = await new StreamReader(Request.Body).ReadToEndAsync();
+                var ptsMessage = JsonConvert.DeserializeObject<PTSMessage>(requestBody);
+                if (ptsMessage == null) return BadRequest("Invalid message format");
+
+
+                // Process message and get proper PTS protocol response
+                var response = await _messageHandler.ProcessMessageAsync(deviceId, ptsMessage);
+
+                // Set mandatory Content-Length header
+                Response.Headers["Content-Length"] = response.ToString().Length.ToString();
+
+                // Return proper PTS protocol response
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling message");
+                return StatusCode(500, "Error handling message");
+            }
+        }
+
+        protected string? GetDeviceId()
+        {
+            return HttpContext.Request.Headers["X-Pts-Id"].ToString();
+        }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\PTSController\PTSDeviceController.cs
+
+using FMS.Application.Communication;
+using FMS.Application.Communication.Tracker;
+using FMS.Application.Communication.Tracker.Common;
+using FMS.Application.Queries.Database.PTSQueries.PTSDeviceQueries;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers
+{
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PTSDeviceController : ControllerBase
+    {
+
+        private readonly ILogger<PTSDeviceController> _logger;
+        private readonly DeviceConnectionTracker _deviceConnectionTracker;
+        private readonly IMediator _mediator;
+
+        public PTSDeviceController(ILogger<PTSDeviceController> logger, IMediator mediator, DeviceConnectionTracker deviceConnectionTracker)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger)); // Null check for logger
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator)); // Null check for mediator
+            _deviceConnectionTracker = deviceConnectionTracker ?? throw new ArgumentNullException(nameof(deviceConnectionTracker)); // Null check for tracker
+        }
+
+
+
+        [HttpGet]
+        public async Task<IActionResult> GetDeviceList()
+        {
+            var devices = await _mediator.Send(new GetPTSDeviceListQuery());
+            return Ok(devices);
+        }
+
+
+
+
+        [HttpGet("summary")]
+
+        public async Task<IActionResult> GetDeviceSummary()
+        {
+            try
+            {
+                var summary = await _deviceConnectionTracker.GetConnectedDevices();
+
+                return Ok(summary);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device summary");
+                return StatusCode(500, "Error getting device summary");
+            }
+        }
+
+        [HttpGet("Device/{deviceId}")]
+        public async Task<IActionResult> GetDeviceStatus(string deviceId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(deviceId))
+                {
+                    return BadRequest("Device Id is required");
+                }
+
+                var websocketInfo = await _deviceConnectionTracker.GetWebSocketConnection(deviceId);
+                var httpInfo = await _deviceConnectionTracker.GetHttpConnection(deviceId);
+
+                var connectionDetails = new DeviceConnectionDetails
+                {
+                    DeviceId = deviceId,
+                    WebSocketStatus = websocketInfo?.Status ?? ConnectionStatus.Disconnected,
+                    LastWebSocketMessage = websocketInfo?.LastMessageAt,
+                    LastHttpPoll = httpInfo?.LastPollTime,
+                    LastStatusUpdate = httpInfo?.LastStatusUpdate,
+                    CurrentConnectionMode = DeviceConnectionDetails.DetermineConnectionMode(websocketInfo, httpInfo)
+                };
+
+                _logger.LogInformation(connectionDetails.GetConnectionSummary());
+                return Ok(connectionDetails);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device status for device {DeviceId}", deviceId); // DeviceId in log
+                return StatusCode(500, "Error getting device status");
+            }
+        }
+
+        /// <summary>
+        /// API endpoint to get a list of active WebSocket connections
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ActiveWebSockets")]
+        public async Task<IActionResult> GetActiveWebSockets()
+        {
+            try
+            {
+                var summary = await _deviceConnectionTracker.GetConnectedDevices();
+                // Filter to only devices in a non-disconnected state
+                var activeDevices = summary.WebSocketConnections; // Already filtered in GetConnectedDevices now
+                   return Ok(activeDevices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting active WebSocket connections");
+                return StatusCode(500, "Error getting active WebSocket connections");
+            }
+        }
+
+        /// <summary>
+        /// Manually broadcast the device summary to all connected clients for Admin Dashboard only
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("broadcast")]
+        public async Task<IActionResult> BroadcastDeviceSummary()
+        {
+            try
+            {
+                await _deviceConnectionTracker.BroadCastConnectedDevices();
+                return Ok("Device summary broadcast initiated");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting device summary");
+                return StatusCode(500, "Error broadcasting device summary");
+            }
+        }
+
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Controllers\PTSController\PumpController.cs
+
+using FMS.Application.Command.PTSCommand.PumpCommands;
+using FMS.Application.Common;
+using FMS.Domain.Entities.PTS;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+
+namespace FMS.WebClient.Controllers.PTSController
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class PumpController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+        private readonly ILogger<PumpController> _logger;
+
+        public PumpController(IMediator mediator, ILogger<PumpController> logger)
+        {
+            _mediator = mediator;
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// Authorizes a pump for refueling
+        /// </summary>
+        [HttpPost("authorize")]
+        public async Task<ActionResult<FMSResponseMessage<PumpAuthorizeConfirmation>>> AuthorizePump([FromBody] PumpAuthorizeCommand command)
+        {
+            try
+            {
+                var result = await _mediator.Send(command);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error authorizing pump");
+                return StatusCode(500, new FMSResponseMessage<PumpAuthorizeConfirmation>(false, "Internal server error", null!));
+            }
+        }
+
+        /// <summary>
+        /// Gets the current state of a pump
+        /// </summary>
+        [HttpGet("{deviceId}/{pumpId}/state")]
+        public async Task<ActionResult<string>> GetPumpState(string deviceId, int pumpId)
+        {
+            try
+            {
+                var command = new PumpStatusCommand(deviceId, pumpId);
+                var result = await _mediator.Send(command);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting pump state");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Stops an ongoing transaction
+        /// </summary>
+        [HttpPost("{deviceId}/{pumpId}/stop")]
+        public async Task<ActionResult> StopPump(string deviceId, int pumpId)
+        {
+            try
+            {
+                var command = new PumpStopCommand(deviceId, pumpId);
+                var result = await _mediator.Send(command);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error stopping pump");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Helper\MessageHelper.cs
+
+﻿using Newtonsoft.Json;
+
+namespace FMS.WebClient.Helper
+{
+    public static class MessageHelper
+    {
+        public static string CreateConfirmationMessage(string type, string message = "OK")
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                Protocal = "jsonPTS",
+                Packets = new[]
+                {
+                    new {Id=1,Type = type,Message = message }
+                }
+            });
+
+
+        }
+
+        public static string CreateErrorMessage(string type, int code, string message)
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                Protocal = "jsonPTS",
+                Packets = new[]
+                {
+                    new {Id=1,Type = type,Code =code,  Message = message }
+                }
+            });
+        }
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/MappingProfile\VehicleMappingProfile.cs
+
+﻿using AutoMapper;
+using FMS.Application.Command.DatabaseCommand.ConsumptionCmd;
+using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update;
+using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+using FMS.Application.ModelsDTOs.FMS.ExpectedAVG;
+using FMS.Application.ModelsDTOs.FMS.TankVolumeHistory;
+using FMS.Domain.Entities;
+using FMS.WebClient.Models.DatabaseViewModel;
+using FMS.WebClient.Models.DatabaseViewModel.ExpectedViewModel;
+
+namespace FMS.WebClient.MappingProfile
+{
+    public class VehicleMappingProfile : Profile
+    {
+
+        public VehicleMappingProfile()
+        {
+            //create map for vehicle
+            //map custom vehicleid to VehicleId
+
+
+            //expectedAverage
+            CreateMap<ExpectedAVGDto, ExpectedAVGViewModel>()
+                       .ForMember(dest => dest.ExpectedAverageValue, opt => opt.MapFrom(src => src.ExpectedAverageValue))
+                       .ForMember(dest => dest.ExpectedAverageClassificationId, opt => opt.MapFrom(src => src.ExpectedAverageClassificationId))
+                       .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
+                       .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId)).ReverseMap(); ;
+
+
+
+
+            CreateMap<ConsumptionViewModel, ComsumptionUpdateCmd>()
+              .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+              .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
+              .ForMember(dest => dest.TotalFuel, opt => opt.MapFrom(src => src.TotalFuel))
+              .ForMember(dest => dest.WorkingFuelAverage, opt => opt.MapFrom(src => src.WorkingFuelAverage))
+              .ForMember(dest => dest.WorkingEmployee, opt => opt.MapFrom(src => src.WorkingEmployee))
+              .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date))
+              .ForMember(dest => dest.MaxSpeed, opt => opt.MapFrom(src => src.MaxSpeed))
+              .ForMember(dest => dest.AvgSpeed, opt => opt.MapFrom(src => src.AvgSpeed))
+              .ForMember(dest => dest.FuelLost, opt => opt.MapFrom(src => src.FuelLost))
+              .ForMember(dest => dest.IsKmperhr, opt => opt.MapFrom(src => src.IsKmperhr))
+              .ForMember(dest => dest.IsNightShift, opt => opt.MapFrom(src => src.IsNightShift))
+              .ForMember(dest => dest.SiteID, opt => opt.MapFrom(src => src.SiteID))
+              .ForMember(dest => dest.TotalDistance, opt => opt.MapFrom(src => src.TotalDistance))
+              .ForMember(dest => dest.FlowMeterFuelUsed, opt => opt.MapFrom(src => src.FlowMeterFuelUsed))
+              .ForMember(dest => dest.FlowMeterFuelLost, opt => opt.MapFrom(src => src.FlowMeterFuelLost))
+              .ForMember(dest => dest.FlowMeterEffiency, opt => opt.MapFrom(src => src.FlowMeterEffiency))
+              .ForMember(dest => dest.EngHours, opt => opt.MapFrom(src => src.EngHours))
+              .ForMember(dest => dest.FlowMeterEngineHrs, opt => opt.MapFrom(src => src.FlowMeterEngineHrs))
+              .ForMember(dest => dest.FuelEfficiency, opt => opt.MapFrom(src => src.FuelEfficiency))
+              .ForMember(dest => dest.ExcessWorkingHrsCost, opt => opt.MapFrom(src => src.ExcessWorkingHrsCost));
+
+            CreateMap<ConsumptionViewModel, ConsumptionCreateCmd>()
+              .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
+              .ForMember(dest => dest.TotalFuel, opt => opt.MapFrom(src => src.TotalFuel))
+              .ForMember(dest => dest.WorkingFuelAverage, opt => opt.MapFrom(src => src.WorkingFuelAverage))
+              .ForMember(dest => dest.WorkingEmployee, opt => opt.MapFrom(src => src.WorkingEmployee))
+              .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date))
+              .ForMember(dest => dest.MaxSpeed, opt => opt.MapFrom(src => src.MaxSpeed))
+              .ForMember(dest => dest.AvgSpeed, opt => opt.MapFrom(src => src.AvgSpeed))
+              .ForMember(dest => dest.FuelLost, opt => opt.MapFrom(src => src.FuelLost))
+              .ForMember(dest => dest.IsKmperhr, opt => opt.MapFrom(src => src.IsKmperhr))
+              .ForMember(dest => dest.IsNightShift, opt => opt.MapFrom(src => src.IsNightShift))
+              .ForMember(dest => dest.SiteID, opt => opt.MapFrom(src => src.SiteID))
+              .ForMember(dest => dest.TotalDistance, opt => opt.MapFrom(src => src.TotalDistance))
+              .ForMember(dest => dest.FlowMeterFuelUsed, opt => opt.MapFrom(src => src.FlowMeterFuelUsed))
+              .ForMember(dest => dest.FlowMeterFuelLost, opt => opt.MapFrom(src => src.FlowMeterFuelLost))
+              .ForMember(dest => dest.FlowMeterEffiency, opt => opt.MapFrom(src => src.FlowMeterEffiency))
+              .ForMember(dest => dest.EngHours, opt => opt.MapFrom(src => src.EngHours))
+              .ForMember(dest => dest.FlowMeterEngineHrs, opt => opt.MapFrom(src => src.FlowMeterEngineHrs))
+              .ForMember(dest => dest.ExcessWorkingHrsCost, opt => opt.MapFrom(src => src.ExcessWorkingHrsCost));
+
+        }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Models\DatabaseViewModel\ConsumptionViewModel.cs
+
+using System;
+using System.Text.Json.Serialization;
+namespace FMS.WebClient.Models.DatabaseViewModel;
+
+public class ConsumptionViewModel
+{
+
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("vehicleId")]
+    public int VehicleId { get; set; }
+
+
+    [JsonPropertyName("totalFuel")]
+    public decimal? TotalFuel { get; set; }
+
+    [JsonPropertyName("workingExpectedAverage")]
+    public int? WorkingFuelAverage { get; set; }
+
+
+    [JsonPropertyName("FuelEfficiency")]
+    public decimal? FuelEfficiency { get; set; }
+
+    [JsonPropertyName("workingEmployeesID")]
+
+    public int WorkingEmployee { get; set; }
+
+    [JsonPropertyName("date")]
+
+    public DateTime Date { get; set; }
+
+    [JsonPropertyName("maxSpeed")]
+
+    public decimal? MaxSpeed { get; set; }
+
+    [JsonPropertyName("avgSpeed")]
+
+    public decimal? AvgSpeed { get; set; }
+
+    [JsonPropertyName("fuelLost")]
+
+    public decimal? FuelLost { get; set; }
+
+    [JsonPropertyName("isKmperhr")]
+
+    public bool IsKmperhr { get; set; }
+
+    [JsonPropertyName("isNightShift")]
+
+    public bool IsNightShift { get; set; }
+
+    [JsonPropertyName("workingSiteID")]
+    public int SiteID { get; set; }
+
+    [JsonPropertyName("totalDistance")]
+    public decimal? TotalDistance { get; set; }
+
+    [JsonPropertyName("flowMeterFuelUsed")]
+    public decimal? FlowMeterFuelUsed { get; set; }
+
+    [JsonPropertyName("flowMeterFuelLost")]
+    public decimal? FlowMeterFuelLost { get; set; }
+
+    [JsonPropertyName("flowMeterEffiency")]
+    public decimal? FlowMeterEffiency { get; set; }
+
+    [JsonPropertyName("engHours")]
+    public decimal? EngHours { get; set; }
+
+    [JsonPropertyName("flowMeterEngineHrs")]
+    public decimal? FlowMeterEngineHrs { get; set; }
+
+    [JsonPropertyName("excessWorkingHrsCost")]
+    public decimal? ExcessWorkingHrsCost { get; set; }
+    [JsonPropertyName("isModified")]
+    public bool? isModified { get; set; }
+
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Models\DatabaseViewModel\ExpectedViewModel\ExpectedAVGViewModel.cs
+
+﻿using System.Text.Json.Serialization;
+
+namespace FMS.WebClient.Models.DatabaseViewModel.ExpectedViewModel
+{
+
+    public class ExpectedAVGViewModel
+    {
+
+
+        [JsonPropertyName("expectedValue")]
+        public decimal ExpectedAverageValue { get; set; }
+
+        [JsonPropertyName("classification")]
+        public int ExpectedAverageClassificationId { get; set; }
+
+        [JsonPropertyName("vehicleId")]
+        public int VehicleId { get; set; }
+
+        [JsonPropertyName("workingSiteId")]
+        public int? SiteId { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Models\DatabaseViewModel\VehicleViewModel\VehicleViewModel.cs
+
+﻿using FMS.Domain.Entities;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+namespace FMS.WebClient.Models.DatabaseViewModel.VehicleViewModel
+{
+    public class VehicleViewModel
+    {
+        [JsonPropertyName("vehicleId")]
+        public int VehicleId { get; set; }
+
+        [JsonPropertyName("hyoungNo")]
+        public string? HyoungNo { get; set; }
+
+        [JsonPropertyName("vehicleTypeId")]
+        public int VehicleTypeId { get; set; }
+
+        [JsonPropertyName("vehicleModelId")]
+        public int? VehicleModelId { get; set; }
+
+        [JsonPropertyName("vehicleManufacturerId")]
+        public int? VehicleManufacturerId { get; set; }
+
+        [JsonPropertyName("yom")]
+        public string? Yom { get; set; }
+
+        [JsonPropertyName("workingExpectedAveraged")]
+        public decimal WorkingExpectedAveraged { get; set; }
+
+        [JsonPropertyName("defaultEmployeeId")]
+        public int? DefaultEmployeeId { get; set; }
+
+        [JsonPropertyName("workingSiteId")]
+        public int? WorkingSiteId { get; set; }
+
+        [JsonPropertyName("excessWorkingHrCost")]
+        public decimal? ExcessWorkingHrCost { get; set; }
+
+        [JsonPropertyName("averageKmL")]
+        public bool AverageKmL { get; set; }
+
+        [JsonPropertyName("defaultExpectedAverageId")]
+        public int? DefaultExpectedAverageId { get; set; }
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Pages\Error.cshtml.cs
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Diagnostics;
+
+namespace FMS.WebClient.Pages
+{
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public class ErrorModel : PageModel
+    {
+        private readonly ILogger<ErrorModel> _logger;
+
+        public ErrorModel(ILogger<ErrorModel> logger)
+        {
+            _logger = logger;
+        }
+
+        public string? RequestId { get; set; }
+
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+        public void OnGet()
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Report\ReportStorageService.cs
+
+﻿using DevExpress.XtraReports.UI;
+using DevExpress.XtraReports.Web.Extensions;
+using FMS.Domain.Entities.Reports;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
+
+namespace FMS.WebClient.Report
+{
+    public class ReportStorageService : ReportStorageWebExtension
+    {
+
+        private readonly GpsdataContext _context;
+
+        public ReportStorageService(GpsdataContext context)
+        {
+            _context = context;
+        }
+
+        public override bool CanSetData(string url)
+        {
+            return true;
+        }
+
+        public override bool IsValidUrl(string url)
+        {
+            return !string.IsNullOrEmpty(url);
+        }
+
+        public override byte[] GetData(string url)
+        {
+            var reportItem = _context.ReportItems.FirstOrDefault(x => x.Name == url);
+            return reportItem?.LayoutData;
+        }
+
+        public override void SetData(XtraReport report, string url)
+        {
+            using (var ms = new MemoryStream())
+            {
+                report.SaveLayoutToXml(ms);
+                var layoutData = ms.ToArray();
+
+                var existingReport = _context.ReportItems.FirstOrDefault(x => x.Name == url);
+
+                if (existingReport != null)
+                {
+                    existingReport.LayoutData = layoutData;
+                    existingReport.DisplayName = url;
+                }
+                else
+                {
+                    _context.ReportItems.Add(new ReportItem
+                    {
+                        Name = url,
+                        DisplayName = url,
+                        LayoutData = layoutData
+                    });
+                }
+
+                _context.SaveChanges();
+            }
+        }
+
+        public override string SetNewData(XtraReport report, string defaultUrl)
+        {
+            SetData(report, defaultUrl);
+            return defaultUrl;
+        }
+
+        public override Dictionary<string, string> GetUrls()
+        {
+            return _context.ReportItems
+                .ToDictionary(
+                    x => x.Name,
+                    x => x.DisplayName ?? x.Name
+                );
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/ReportTemplates\TestReport.cs
+
+﻿namespace FMS.Reports.PredefinedReports
+{
+    public partial class TestReport : DevExpress.XtraReports.UI.XtraReport
+    {
+        public TestReport()
+        {
+            InitializeComponent();
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/ReportTemplates\TestReport.Designer.cs
+
+﻿namespace FMS.Reports.PredefinedReports {
+    partial class TestReport {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary> 
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing) {
+            if(disposing && (components != null)) {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent() {
+            this.components = new System.ComponentModel.Container();
+            DevExpress.DataAccess.Sql.SelectQuery selectQuery1 = new DevExpress.DataAccess.Sql.SelectQuery();
+            DevExpress.DataAccess.Sql.Column column1 = new DevExpress.DataAccess.Sql.Column();
+            DevExpress.DataAccess.Sql.ColumnExpression columnExpression1 = new DevExpress.DataAccess.Sql.ColumnExpression();
+            DevExpress.DataAccess.Sql.Table table4 = new DevExpress.DataAccess.Sql.Table();
+            DevExpress.DataAccess.Sql.Column column2 = new DevExpress.DataAccess.Sql.Column();
+            DevExpress.DataAccess.Sql.ColumnExpression columnExpression2 = new DevExpress.DataAccess.Sql.ColumnExpression();
+            DevExpress.DataAccess.Sql.Column column3 = new DevExpress.DataAccess.Sql.Column();
+            DevExpress.DataAccess.Sql.ColumnExpression columnExpression3 = new DevExpress.DataAccess.Sql.ColumnExpression();
+            DevExpress.DataAccess.Sql.Column column4 = new DevExpress.DataAccess.Sql.Column();
+            DevExpress.DataAccess.Sql.ColumnExpression columnExpression4 = new DevExpress.DataAccess.Sql.ColumnExpression();
+            DevExpress.DataAccess.Sql.Column column5 = new DevExpress.DataAccess.Sql.Column();
+            DevExpress.DataAccess.Sql.ColumnExpression columnExpression5 = new DevExpress.DataAccess.Sql.ColumnExpression();
+            DevExpress.DataAccess.Sql.Column column6 = new DevExpress.DataAccess.Sql.Column();
+            DevExpress.DataAccess.Sql.ColumnExpression columnExpression6 = new DevExpress.DataAccess.Sql.ColumnExpression();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(TestReport));
+            this.TopMargin = new DevExpress.XtraReports.UI.TopMarginBand();
+            this.BottomMargin = new DevExpress.XtraReports.UI.BottomMarginBand();
+            this.pageInfo1 = new DevExpress.XtraReports.UI.XRPageInfo();
+            this.pageInfo2 = new DevExpress.XtraReports.UI.XRPageInfo();
+            this.ReportHeader = new DevExpress.XtraReports.UI.ReportHeaderBand();
+            this.label1 = new DevExpress.XtraReports.UI.XRLabel();
+            this.GroupHeader1 = new DevExpress.XtraReports.UI.GroupHeaderBand();
+            this.table1 = new DevExpress.XtraReports.UI.XRTable();
+            this.tableRow1 = new DevExpress.XtraReports.UI.XRTableRow();
+            this.tableCell1 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell2 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.GroupHeader2 = new DevExpress.XtraReports.UI.GroupHeaderBand();
+            this.table2 = new DevExpress.XtraReports.UI.XRTable();
+            this.tableRow2 = new DevExpress.XtraReports.UI.XRTableRow();
+            this.tableCell3 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell4 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell5 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell6 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell7 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.Detail = new DevExpress.XtraReports.UI.DetailBand();
+            this.table3 = new DevExpress.XtraReports.UI.XRTable();
+            this.tableRow3 = new DevExpress.XtraReports.UI.XRTableRow();
+            this.tableCell8 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell9 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.tableCell10 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.pictureBox1 = new DevExpress.XtraReports.UI.XRPictureBox();
+            this.tableCell11 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.pictureBox2 = new DevExpress.XtraReports.UI.XRPictureBox();
+            this.tableCell12 = new DevExpress.XtraReports.UI.XRTableCell();
+            this.pictureBox3 = new DevExpress.XtraReports.UI.XRPictureBox();
+            this.GroupFooter1 = new DevExpress.XtraReports.UI.GroupFooterBand();
+            this.label2 = new DevExpress.XtraReports.UI.XRLabel();
+            this.sqlDataSource1 = new DevExpress.DataAccess.Sql.SqlDataSource(this.components);
+            this.Title = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.GroupCaption1 = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.GroupData1 = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.DetailCaption1 = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.DetailData1 = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.GroupFooterBackground3 = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.DetailData3_Odd = new DevExpress.XtraReports.UI.XRControlStyle();
+            this.PageInfo = new DevExpress.XtraReports.UI.XRControlStyle();
+            ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.table2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.table3)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this)).BeginInit();
+            // 
+            // TopMargin
+            // 
+            this.TopMargin.Name = "TopMargin";
+            // 
+            // BottomMargin
+            // 
+            this.BottomMargin.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.pageInfo1,
+            this.pageInfo2});
+            this.BottomMargin.Name = "BottomMargin";
+            // 
+            // pageInfo1
+            // 
+            this.pageInfo1.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
+            this.pageInfo1.Name = "pageInfo1";
+            this.pageInfo1.PageInfo = DevExpress.XtraPrinting.PageInfo.DateTime;
+            this.pageInfo1.SizeF = new System.Drawing.SizeF(325F, 23F);
+            this.pageInfo1.StyleName = "PageInfo";
+            // 
+            // pageInfo2
+            // 
+            this.pageInfo2.LocationFloat = new DevExpress.Utils.PointFloat(325F, 0F);
+            this.pageInfo2.Name = "pageInfo2";
+            this.pageInfo2.SizeF = new System.Drawing.SizeF(325F, 23F);
+            this.pageInfo2.StyleName = "PageInfo";
+            this.pageInfo2.TextAlignment = DevExpress.XtraPrinting.TextAlignment.TopRight;
+            this.pageInfo2.TextFormatString = "Page {0} of {1}";
+            // 
+            // ReportHeader
+            // 
+            this.ReportHeader.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.label1});
+            this.ReportHeader.HeightF = 60F;
+            this.ReportHeader.Name = "ReportHeader";
+            // 
+            // label1
+            // 
+            this.label1.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
+            this.label1.Name = "label1";
+            this.label1.SizeF = new System.Drawing.SizeF(650F, 24.19433F);
+            this.label1.StyleName = "Title";
+            this.label1.Text = "Report";
+            // 
+            // GroupHeader1
+            // 
+            this.GroupHeader1.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.table1});
+            this.GroupHeader1.GroupFields.AddRange(new DevExpress.XtraReports.UI.GroupField[] {
+            new DevExpress.XtraReports.UI.GroupField("CategoryID", DevExpress.XtraReports.UI.XRColumnSortOrder.Ascending)});
+            this.GroupHeader1.GroupUnion = DevExpress.XtraReports.UI.GroupUnion.WithFirstDetail;
+            this.GroupHeader1.HeightF = 27F;
+            this.GroupHeader1.Level = 1;
+            this.GroupHeader1.Name = "GroupHeader1";
+            // 
+            // table1
+            // 
+            this.table1.LocationFloat = new DevExpress.Utils.PointFloat(0F, 2F);
+            this.table1.Name = "table1";
+            this.table1.Rows.AddRange(new DevExpress.XtraReports.UI.XRTableRow[] {
+            this.tableRow1});
+            this.table1.SizeF = new System.Drawing.SizeF(650F, 25F);
+            // 
+            // tableRow1
+            // 
+            this.tableRow1.Cells.AddRange(new DevExpress.XtraReports.UI.XRTableCell[] {
+            this.tableCell1,
+            this.tableCell2});
+            this.tableRow1.Name = "tableRow1";
+            this.tableRow1.Weight = 1D;
+            // 
+            // tableCell1
+            // 
+            this.tableCell1.Name = "tableCell1";
+            this.tableCell1.StyleName = "GroupCaption1";
+            this.tableCell1.Text = "CATEGORY ID";
+            this.tableCell1.Weight = 1434852.375D;
+            // 
+            // tableCell2
+            // 
+            this.tableCell2.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "Text", "[CategoryID]")});
+            this.tableCell2.Name = "tableCell2";
+            this.tableCell2.StyleName = "GroupData1";
+            this.tableCell2.Weight = 9214747D;
+            // 
+            // GroupHeader2
+            // 
+            this.GroupHeader2.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.table2});
+            this.GroupHeader2.GroupUnion = DevExpress.XtraReports.UI.GroupUnion.WithFirstDetail;
+            this.GroupHeader2.HeightF = 28F;
+            this.GroupHeader2.Level = 2;
+            this.GroupHeader2.Name = "GroupHeader2";
+            // 
+            // table2
+            // 
+            this.table2.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
+            this.table2.Name = "table2";
+            this.table2.Rows.AddRange(new DevExpress.XtraReports.UI.XRTableRow[] {
+            this.tableRow2});
+            this.table2.SizeF = new System.Drawing.SizeF(650F, 28F);
+            // 
+            // tableRow2
+            // 
+            this.tableRow2.Cells.AddRange(new DevExpress.XtraReports.UI.XRTableCell[] {
+            this.tableCell3,
+            this.tableCell4,
+            this.tableCell5,
+            this.tableCell6,
+            this.tableCell7});
+            this.tableRow2.Name = "tableRow2";
+            this.tableRow2.Weight = 1D;
+            // 
+            // tableCell3
+            // 
+            this.tableCell3.Borders = DevExpress.XtraPrinting.BorderSide.None;
+            this.tableCell3.Name = "tableCell3";
+            this.tableCell3.StyleName = "DetailCaption1";
+            this.tableCell3.StylePriority.UseBorders = false;
+            this.tableCell3.Text = "Category Name";
+            this.tableCell3.Weight = 0.29834482046274041D;
+            // 
+            // tableCell4
+            // 
+            this.tableCell4.Name = "tableCell4";
+            this.tableCell4.StyleName = "DetailCaption1";
+            this.tableCell4.Text = "Description";
+            this.tableCell4.Weight = 0.2344280066856971D;
+            // 
+            // tableCell5
+            // 
+            this.tableCell5.Name = "tableCell5";
+            this.tableCell5.StyleName = "DetailCaption1";
+            this.tableCell5.Text = "Picture";
+            this.tableCell5.Weight = 0.1609015596829928D;
+            // 
+            // tableCell6
+            // 
+            this.tableCell6.Name = "tableCell6";
+            this.tableCell6.StyleName = "DetailCaption1";
+            this.tableCell6.Text = "Icon17";
+            this.tableCell6.Weight = 0.153162841796875D;
+            // 
+            // tableCell7
+            // 
+            this.tableCell7.Name = "tableCell7";
+            this.tableCell7.StyleName = "DetailCaption1";
+            this.tableCell7.Text = "Icon25";
+            this.tableCell7.Weight = 0.15316274789663462D;
+            // 
+            // Detail
+            // 
+            this.Detail.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.table3});
+            this.Detail.HeightF = 25F;
+            this.Detail.Name = "Detail";
+            // 
+            // table3
+            // 
+            this.table3.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
+            this.table3.Name = "table3";
+            this.table3.OddStyleName = "DetailData3_Odd";
+            this.table3.Rows.AddRange(new DevExpress.XtraReports.UI.XRTableRow[] {
+            this.tableRow3});
+            this.table3.SizeF = new System.Drawing.SizeF(650F, 25F);
+            // 
+            // tableRow3
+            // 
+            this.tableRow3.Cells.AddRange(new DevExpress.XtraReports.UI.XRTableCell[] {
+            this.tableCell8,
+            this.tableCell9,
+            this.tableCell10,
+            this.tableCell11,
+            this.tableCell12});
+            this.tableRow3.Name = "tableRow3";
+            this.tableRow3.Weight = 11.5D;
+            // 
+            // tableCell8
+            // 
+            this.tableCell8.Borders = DevExpress.XtraPrinting.BorderSide.None;
+            this.tableCell8.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "Text", "[CategoryName]")});
+            this.tableCell8.Name = "tableCell8";
+            this.tableCell8.StyleName = "DetailData1";
+            this.tableCell8.StylePriority.UseBorders = false;
+            this.tableCell8.Weight = 0.29834482046274041D;
+            // 
+            // tableCell9
+            // 
+            this.tableCell9.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "Text", "[Description]")});
+            this.tableCell9.Name = "tableCell9";
+            this.tableCell9.StyleName = "DetailData1";
+            this.tableCell9.Weight = 0.2344280066856971D;
+            // 
+            // tableCell10
+            // 
+            this.tableCell10.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.pictureBox1});
+            this.tableCell10.Name = "tableCell10";
+            this.tableCell10.StyleName = "DetailData1";
+            this.tableCell10.Weight = 0.1609015596829928D;
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.AnchorHorizontal = ((DevExpress.XtraReports.UI.HorizontalAnchorStyles)((DevExpress.XtraReports.UI.HorizontalAnchorStyles.Left | DevExpress.XtraReports.UI.HorizontalAnchorStyles.Right)));
+            this.pictureBox1.AnchorVertical = ((DevExpress.XtraReports.UI.VerticalAnchorStyles)((DevExpress.XtraReports.UI.VerticalAnchorStyles.Top | DevExpress.XtraReports.UI.VerticalAnchorStyles.Bottom)));
+            this.pictureBox1.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "ImageSource", "[Picture]")});
+            this.pictureBox1.LocationFloat = new DevExpress.Utils.PointFloat(2.083333F, 0F);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.SizeF = new System.Drawing.SizeF(102.5027F, 25F);
+            this.pictureBox1.Sizing = DevExpress.XtraPrinting.ImageSizeMode.ZoomImage;
+            // 
+            // tableCell11
+            // 
+            this.tableCell11.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.pictureBox2});
+            this.tableCell11.Name = "tableCell11";
+            this.tableCell11.StyleName = "DetailData1";
+            this.tableCell11.Weight = 0.153162841796875D;
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.AnchorHorizontal = ((DevExpress.XtraReports.UI.HorizontalAnchorStyles)((DevExpress.XtraReports.UI.HorizontalAnchorStyles.Left | DevExpress.XtraReports.UI.HorizontalAnchorStyles.Right)));
+            this.pictureBox2.AnchorVertical = ((DevExpress.XtraReports.UI.VerticalAnchorStyles)((DevExpress.XtraReports.UI.VerticalAnchorStyles.Top | DevExpress.XtraReports.UI.VerticalAnchorStyles.Bottom)));
+            this.pictureBox2.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "ImageSource", "[Icon17]")});
+            this.pictureBox2.LocationFloat = new DevExpress.Utils.PointFloat(2.083333F, 0F);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.SizeF = new System.Drawing.SizeF(97.47251F, 25F);
+            this.pictureBox2.Sizing = DevExpress.XtraPrinting.ImageSizeMode.ZoomImage;
+            // 
+            // tableCell12
+            // 
+            this.tableCell12.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.pictureBox3});
+            this.tableCell12.Name = "tableCell12";
+            this.tableCell12.StyleName = "DetailData1";
+            this.tableCell12.Weight = 0.15316274789663462D;
+            // 
+            // pictureBox3
+            // 
+            this.pictureBox3.AnchorHorizontal = ((DevExpress.XtraReports.UI.HorizontalAnchorStyles)((DevExpress.XtraReports.UI.HorizontalAnchorStyles.Left | DevExpress.XtraReports.UI.HorizontalAnchorStyles.Right)));
+            this.pictureBox3.AnchorVertical = ((DevExpress.XtraReports.UI.VerticalAnchorStyles)((DevExpress.XtraReports.UI.VerticalAnchorStyles.Top | DevExpress.XtraReports.UI.VerticalAnchorStyles.Bottom)));
+            this.pictureBox3.ExpressionBindings.AddRange(new DevExpress.XtraReports.UI.ExpressionBinding[] {
+            new DevExpress.XtraReports.UI.ExpressionBinding("BeforePrint", "ImageSource", "[Icon25]")});
+            this.pictureBox3.LocationFloat = new DevExpress.Utils.PointFloat(2.083333F, 0F);
+            this.pictureBox3.Name = "pictureBox3";
+            this.pictureBox3.SizeF = new System.Drawing.SizeF(97.47245F, 25F);
+            this.pictureBox3.Sizing = DevExpress.XtraPrinting.ImageSizeMode.ZoomImage;
+            // 
+            // GroupFooter1
+            // 
+            this.GroupFooter1.Controls.AddRange(new DevExpress.XtraReports.UI.XRControl[] {
+            this.label2});
+            this.GroupFooter1.GroupUnion = DevExpress.XtraReports.UI.GroupFooterUnion.WithLastDetail;
+            this.GroupFooter1.HeightF = 6F;
+            this.GroupFooter1.Name = "GroupFooter1";
+            // 
+            // label2
+            // 
+            this.label2.Borders = DevExpress.XtraPrinting.BorderSide.None;
+            this.label2.LocationFloat = new DevExpress.Utils.PointFloat(0F, 0F);
+            this.label2.Name = "label2";
+            this.label2.SizeF = new System.Drawing.SizeF(650F, 2.08F);
+            this.label2.StyleName = "GroupFooterBackground3";
+            this.label2.StylePriority.UseBorders = false;
+            // 
+            // sqlDataSource1
+            // 
+            this.sqlDataSource1.ConnectionName = "NWindConnectionString";
+            this.sqlDataSource1.Name = "sqlDataSource1";
+            columnExpression1.ColumnName = "CategoryID";
+            table4.Name = "Categories";
+            columnExpression1.Table = table4;
+            column1.Expression = columnExpression1;
+            columnExpression2.ColumnName = "CategoryName";
+            columnExpression2.Table = table4;
+            column2.Expression = columnExpression2;
+            columnExpression3.ColumnName = "Description";
+            columnExpression3.Table = table4;
+            column3.Expression = columnExpression3;
+            columnExpression4.ColumnName = "Picture";
+            columnExpression4.Table = table4;
+            column4.Expression = columnExpression4;
+            columnExpression5.ColumnName = "Icon17";
+            columnExpression5.Table = table4;
+            column5.Expression = columnExpression5;
+            columnExpression6.ColumnName = "Icon25";
+            columnExpression6.Table = table4;
+            column6.Expression = columnExpression6;
+            selectQuery1.Columns.Add(column1);
+            selectQuery1.Columns.Add(column2);
+            selectQuery1.Columns.Add(column3);
+            selectQuery1.Columns.Add(column4);
+            selectQuery1.Columns.Add(column5);
+            selectQuery1.Columns.Add(column6);
+            selectQuery1.Name = "Categories";
+            selectQuery1.Tables.Add(table4);
+            this.sqlDataSource1.Queries.AddRange(new DevExpress.DataAccess.Sql.SqlQuery[] {
+            selectQuery1});
+            this.sqlDataSource1.ResultSchemaSerializable = resources.GetString("sqlDataSource1.ResultSchemaSerializable");
+            // 
+            // Title
+            // 
+            this.Title.BackColor = System.Drawing.Color.Transparent;
+            this.Title.BorderColor = System.Drawing.Color.Black;
+            this.Title.Borders = DevExpress.XtraPrinting.BorderSide.None;
+            this.Title.BorderWidth = 1F;
+            this.Title.Font = new DevExpress.Drawing.DXFont("Arial", 14.25F);
+            this.Title.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(70)))), ((int)(((byte)(80)))));
+            this.Title.Name = "Title";
+            this.Title.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 6, 0, 0, 100F);
+            // 
+            // GroupCaption1
+            // 
+            this.GroupCaption1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(181)))), ((int)(((byte)(211)))), ((int)(((byte)(142)))));
+            this.GroupCaption1.BorderColor = System.Drawing.Color.White;
+            this.GroupCaption1.Borders = DevExpress.XtraPrinting.BorderSide.Bottom;
+            this.GroupCaption1.BorderWidth = 2F;
+            this.GroupCaption1.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F, DevExpress.Drawing.DXFontStyle.Bold);
+            this.GroupCaption1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(228)))), ((int)(((byte)(228)))), ((int)(((byte)(228)))));
+            this.GroupCaption1.Name = "GroupCaption1";
+            this.GroupCaption1.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 2, 0, 0, 100F);
+            this.GroupCaption1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleLeft;
+            // 
+            // GroupData1
+            // 
+            this.GroupData1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(181)))), ((int)(((byte)(211)))), ((int)(((byte)(142)))));
+            this.GroupData1.BorderColor = System.Drawing.Color.White;
+            this.GroupData1.Borders = DevExpress.XtraPrinting.BorderSide.Bottom;
+            this.GroupData1.BorderWidth = 2F;
+            this.GroupData1.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F, DevExpress.Drawing.DXFontStyle.Bold);
+            this.GroupData1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(70)))), ((int)(((byte)(80)))));
+            this.GroupData1.Name = "GroupData1";
+            this.GroupData1.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 2, 0, 0, 100F);
+            this.GroupData1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleLeft;
+            // 
+            // DetailCaption1
+            // 
+            this.DetailCaption1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(181)))), ((int)(((byte)(211)))), ((int)(((byte)(142)))));
+            this.DetailCaption1.BorderColor = System.Drawing.Color.White;
+            this.DetailCaption1.Borders = DevExpress.XtraPrinting.BorderSide.Left;
+            this.DetailCaption1.BorderWidth = 2F;
+            this.DetailCaption1.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F, DevExpress.Drawing.DXFontStyle.Bold);
+            this.DetailCaption1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(70)))), ((int)(((byte)(80)))));
+            this.DetailCaption1.Name = "DetailCaption1";
+            this.DetailCaption1.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 6, 0, 0, 100F);
+            this.DetailCaption1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleLeft;
+            // 
+            // DetailData1
+            // 
+            this.DetailData1.BorderColor = System.Drawing.Color.Transparent;
+            this.DetailData1.Borders = DevExpress.XtraPrinting.BorderSide.Left;
+            this.DetailData1.BorderWidth = 2F;
+            this.DetailData1.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F);
+            this.DetailData1.ForeColor = System.Drawing.Color.Black;
+            this.DetailData1.Name = "DetailData1";
+            this.DetailData1.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 6, 0, 0, 100F);
+            this.DetailData1.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleLeft;
+            // 
+            // GroupFooterBackground3
+            // 
+            this.GroupFooterBackground3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(109)))), ((int)(((byte)(117)))), ((int)(((byte)(129)))));
+            this.GroupFooterBackground3.BorderColor = System.Drawing.Color.White;
+            this.GroupFooterBackground3.Borders = DevExpress.XtraPrinting.BorderSide.Bottom;
+            this.GroupFooterBackground3.BorderWidth = 2F;
+            this.GroupFooterBackground3.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F, DevExpress.Drawing.DXFontStyle.Bold);
+            this.GroupFooterBackground3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(228)))), ((int)(((byte)(228)))), ((int)(((byte)(228)))));
+            this.GroupFooterBackground3.Name = "GroupFooterBackground3";
+            this.GroupFooterBackground3.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 2, 0, 0, 100F);
+            this.GroupFooterBackground3.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleLeft;
+            // 
+            // DetailData3_Odd
+            // 
+            this.DetailData3_Odd.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(243)))), ((int)(((byte)(245)))), ((int)(((byte)(248)))));
+            this.DetailData3_Odd.BorderColor = System.Drawing.Color.Transparent;
+            this.DetailData3_Odd.Borders = DevExpress.XtraPrinting.BorderSide.None;
+            this.DetailData3_Odd.BorderWidth = 1F;
+            this.DetailData3_Odd.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F);
+            this.DetailData3_Odd.ForeColor = System.Drawing.Color.Black;
+            this.DetailData3_Odd.Name = "DetailData3_Odd";
+            this.DetailData3_Odd.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 6, 0, 0, 100F);
+            this.DetailData3_Odd.TextAlignment = DevExpress.XtraPrinting.TextAlignment.MiddleLeft;
+            // 
+            // PageInfo
+            // 
+            this.PageInfo.Font = new DevExpress.Drawing.DXFont("Arial", 8.25F, DevExpress.Drawing.DXFontStyle.Bold);
+            this.PageInfo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(70)))), ((int)(((byte)(80)))));
+            this.PageInfo.Name = "PageInfo";
+            this.PageInfo.Padding = new DevExpress.XtraPrinting.PaddingInfo(6, 6, 0, 0, 100F);
+            // 
+            // TestReport
+            // 
+            this.Bands.AddRange(new DevExpress.XtraReports.UI.Band[] {
+            this.TopMargin,
+            this.BottomMargin,
+            this.ReportHeader,
+            this.GroupHeader1,
+            this.GroupHeader2,
+            this.Detail,
+            this.GroupFooter1});
+            this.ComponentStorage.AddRange(new System.ComponentModel.IComponent[] {
+            this.sqlDataSource1});
+            this.DataMember = "Categories";
+            this.DataSource = this.sqlDataSource1;
+            this.Font = new DevExpress.Drawing.DXFont("Arial", 9.75F);
+            this.StyleSheet.AddRange(new DevExpress.XtraReports.UI.XRControlStyle[] {
+            this.Title,
+            this.GroupCaption1,
+            this.GroupData1,
+            this.DetailCaption1,
+            this.DetailData1,
+            this.GroupFooterBackground3,
+            this.DetailData3_Odd,
+            this.PageInfo});
+            this.Version = "22.2";
+            ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.table2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.table3)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this)).EndInit();
+
+        }
+
+        #endregion
+
+        private DevExpress.XtraReports.UI.TopMarginBand TopMargin;
+        private DevExpress.XtraReports.UI.BottomMarginBand BottomMargin;
+        private DevExpress.XtraReports.UI.XRPageInfo pageInfo1;
+        private DevExpress.XtraReports.UI.XRPageInfo pageInfo2;
+        private DevExpress.XtraReports.UI.ReportHeaderBand ReportHeader;
+        private DevExpress.XtraReports.UI.XRLabel label1;
+        private DevExpress.XtraReports.UI.GroupHeaderBand GroupHeader1;
+        private DevExpress.XtraReports.UI.XRTable table1;
+        private DevExpress.XtraReports.UI.XRTableRow tableRow1;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell1;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell2;
+        private DevExpress.XtraReports.UI.GroupHeaderBand GroupHeader2;
+        private DevExpress.XtraReports.UI.XRTable table2;
+        private DevExpress.XtraReports.UI.XRTableRow tableRow2;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell3;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell4;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell5;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell6;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell7;
+        private DevExpress.XtraReports.UI.DetailBand Detail;
+        private DevExpress.XtraReports.UI.XRTable table3;
+        private DevExpress.XtraReports.UI.XRTableRow tableRow3;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell8;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell9;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell10;
+        private DevExpress.XtraReports.UI.XRPictureBox pictureBox1;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell11;
+        private DevExpress.XtraReports.UI.XRPictureBox pictureBox2;
+        private DevExpress.XtraReports.UI.XRTableCell tableCell12;
+        private DevExpress.XtraReports.UI.XRPictureBox pictureBox3;
+        private DevExpress.XtraReports.UI.GroupFooterBand GroupFooter1;
+        private DevExpress.XtraReports.UI.XRLabel label2;
+        private DevExpress.DataAccess.Sql.SqlDataSource sqlDataSource1;
+        private DevExpress.XtraReports.UI.XRControlStyle Title;
+        private DevExpress.XtraReports.UI.XRControlStyle GroupCaption1;
+        private DevExpress.XtraReports.UI.XRControlStyle GroupData1;
+        private DevExpress.XtraReports.UI.XRControlStyle DetailCaption1;
+        private DevExpress.XtraReports.UI.XRControlStyle DetailData1;
+        private DevExpress.XtraReports.UI.XRControlStyle GroupFooterBackground3;
+        private DevExpress.XtraReports.UI.XRControlStyle DetailData3_Odd;
+        private DevExpress.XtraReports.UI.XRControlStyle PageInfo;
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/ReportViewer\CustomReportStorageWebExtension.cs
+
+using System.ServiceModel;
+using DevExpress.XtraReports.UI;
+using DevExpress.XtraReports.Web.Extensions;
+using FMS.Domain.Entities.Reports;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
+
+namespace FMS.WebClient.ReportViewer;
+
+public class CustomReportStorageWebExtension : ReportStorageWebExtension
+{
+
+    private readonly GpsdataContext _context;
+    public CustomReportStorageWebExtension(GpsdataContext context)
+    {
+        _context = context;
+    }
+
+    public override bool CanSetData(string url)
+    {
+        // Determines whether a report with the specified URL can be saved.
+        // Add custom logic that returns **false** for reports that should be read-only.
+        // Return **true** if no valdation is required.
+        // This method is called only for valid URLs (if the **IsValidUrl** method returns **true**).
+
+        return true;
+    }
+    public override bool IsValidUrl(string url)
+    {
+        // Determines whether the URL passed to the current report storage is valid.
+        // Implement your own logic to prohibit URLs that contain spaces or other specific characters.
+        // Return **true** if no validation is required.
+
+        return Path.GetFileName(url) == url;
+    }
+
+
+    public override byte[] GetData(string url)
+    {
+        try
+        {
+            var report = _context.ReportItems.FirstOrDefault(r => r.Name == url);
+            if (report != null)
+            {
+                return report.LayoutData;
+            }
+        }
+        catch (Exception)
+        {
+            throw new FaultException(new FaultReason("Could not get report data."), new FaultCode("Server"), "GetData");
+        }
+
+        throw new FaultException(new FaultReason($"Could not find report '{url}'."), new FaultCode("Server"), "GetData");
+    }
+    public override Dictionary<string, string> GetUrls()
+    {
+        // Returns a dictionary that contains the report names (URLs) and display names. 
+        // The Report Designer uses this method to populate the Open Report and Save Report dialogs.
+
+        //return Directory.GetFiles(reportDirectory, "*" + FileExtension)
+        //                      .Select(Path.GetFileNameWithoutExtension)
+        //                      .Union(ReportsFactory.Reports.Select(x => x.Key))
+        //                      .ToDictionary<string, string>(x => x);
+        return _context.ReportItems.ToDictionary(r => r.Name, r => r.DisplayName);
+    }
+
+    public override void SetData(XtraReport report, string url)
+    {
+        // Saves the specified report to the report storage with the specified name
+        // (saves existing reports only). 
+        try
+        {
+            var reportItem = _context.ReportItems.FirstOrDefault(r => r.Name == url);
+            if (reportItem == null)
+            {
+                reportItem = new ReportItem
+                {
+                    Name = url,
+                    DisplayName = url,
+
+                };
+                _context.ReportItems.Add(reportItem);
+            }
+
+            using (var ms = new MemoryStream())
+            {
+                report.SaveLayoutToXml(ms);
+                reportItem.LayoutData = ms.ToArray();
+            }
+            _context.SaveChanges();
+
+        }
+        catch (Exception ex)
+        {
+            throw new FaultException(new FaultReason("Could not set report data."), new FaultCode("Server"), "SetData");
+        }
+    }
+
+    public override string SetNewData(XtraReport report, string defaultUrl)
+    {
+        // Allows you to validate and correct the specified name (URL).
+        // This method also allows you to return the resulting name (URL),
+        // and to save your report to a storage. The method is called only for new reports.
+        SetData(report, defaultUrl);
+        return defaultUrl;
+    }
+}
+
+
+
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/ReportViewer\ReportDesignerModelWithDataSources.cs
+
+using DevExpress.XtraReports.UI;
+
+namespace FMS.WebClient.ReportViewer;
+
+public class ReportDesignerModelWithDataSources
+{
+    public XtraReport Report { get; set; }
+    public Dictionary<string, object> DataSources { get; set; }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/ReportViewer\ReportsFactory.cs
+
+﻿using System.Collections.Generic;
+using System;
+using DevExpress.XtraReports.UI;
+using FMS.WebClient.ReportViewer.Reports;
+
+namespace FMS.WebClient.ReportViewer
+{
+    public static class ReportsFactory
+    {
+        public static Dictionary<string, Func<XtraReport>> Reports = new Dictionary<string, Func<XtraReport>>()
+        {
+            //Reports are here 
+            ["VehicleConsumptionReport"] = () => new VehicleConsumptionReport()
+        };
+
+    }
+
+
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/ReportViewer\Reports\VehicleConsumptionReport.cs
+
+﻿using DevExpress.XtraReports.UI;
+
+namespace FMS.WebClient.ReportViewer.Reports
+{
+    public partial class VehicleConsumptionReport : XtraReport
+    {
+        public VehicleConsumptionReport()
+        {
+            // InitializeComponent();
+        }
+
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Signal\PtsStatusHub.cs
+
+﻿using Microsoft.AspNetCore.SignalR;
+using System.CodeDom;
+namespace FMS.WebClient.Signal
+{
+    public class PtsStatusHub : Hub
+    {
+
+        private readonly PtsStatusService _statusService;
+
+        public PtsStatusHub(PtsStatusService statusService)
+        {
+            _statusService = statusService;
+        }
+        public async Task SendStatusUpdate()
+        {
+
+            var status = _statusService.GetCurrentStatus();
+            await Clients.All.SendAsync("ReceiveStatus", status);
+        }
+
+
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Signal\PtsStatusService.cs
+
+﻿using FMS.Domain.Entities.PTS.PTSStatus;
+using System;
+
+namespace FMS.WebClient.Signal;
+
+public class PtsStatusService
+{
+
+    private UploadStatus? _currentStatus;
+
+    public void UpdateStatus(UploadStatus status)
+    {
+        _currentStatus = status;
+        // Consider triggering SignalR hub to send updates to clients
+
+    }
+
+    public UploadStatus GetCurrentStatus()
+    {
+        return _currentStatus ?? throw new InvalidOperationException("Status has not been set yet");
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.webclient/Util\UserActivityMiddleware.cs
+
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
+using System.IO;
+using System.Text;
+using System.Security.Claims;
+using MediatR;
+using FMS.Application.Command.DatabaseCommand.UserActivitiesCommands;
+
+namespace FMS.WebClient.Util
+{
+    public class UserActivityMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly ILogger<UserActivityMiddleware> _logger;
+        private readonly IMediator _mediator;
+
+        public UserActivityMiddleware(RequestDelegate next, ILogger<UserActivityMiddleware> logger, IMediator mediator)
+        {
+            _next = next;
+            _logger = logger;
+            _mediator = mediator;
+        }
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+            var user = context.User;
+            var request = context.Request;
+
+            if (user.Identity.IsAuthenticated)
+            {
+                try
+                {
+                    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var action = context.Request.Method;
+                    var controller = context.Request.RouteValues["controller"]?.ToString();
+                    var actionName = context.Request.RouteValues["action"]?.ToString();
+                    var parameters = "";
+
+                    // Only capture request body for POST/PUT requests
+                    if ((request.Method == "POST" || request.Method == "PUT") &&
+                        request.ContentType?.Contains("application/json") == true)
+                    {
+                        request.EnableBuffering();
+                        using (var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true))
+                        {
+                            parameters = await reader.ReadToEndAsync();
+                            request.Body.Position = 0;  // Reset the position to allow reading again
+                        }
+                    }
+
+                    var ipAddress = context.Connection.RemoteIpAddress?.ToString();
+
+                    var command = new CreateUserActivityCommand
+                    {
+                        UserId = userId,
+                        Action = action,
+                        Controller = controller,
+                        ActionName = actionName,
+                        Parameters = parameters,
+                        IpAddress = ipAddress,
+                        Timestamp = DateTime.UtcNow
+                    };
+
+                    // Fire and forget activity logging
+                    _ = _mediator.Send(command);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error logging user activity");
+                }
+            }
+
+            // Continue with the request pipeline
+            await _next(context);
+        }
+    }
+
+    // Extension method to make registration cleaner
+    public static class UserActivityMiddlewareExtensions
+    {
+        public static IApplicationBuilder UseUserActivity(this IApplicationBuilder builder)
+        {
+            return builder.UseMiddleware<UserActivityMiddleware>();
+        }
+    }
+}
+

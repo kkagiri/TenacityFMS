@@ -25,6 +25,6 @@ public partial class Dailytankreconciliation
     public decimal? TotalTransfersIn { get; set; }
 
     public decimal? TotalTransfersOut { get; set; }
- 
+
     public virtual Tank Tank { get; set; } = null!;
 }

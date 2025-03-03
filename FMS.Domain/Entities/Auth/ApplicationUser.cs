@@ -5,7 +5,7 @@ using System.Text;
 
 namespace FMS.Domain.Entities.Auth
 {
-   public  class ApplicationUser:IdentityUser
+    public class ApplicationUser : IdentityUser
     {
 
     }

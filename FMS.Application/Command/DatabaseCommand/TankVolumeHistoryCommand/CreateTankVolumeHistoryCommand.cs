@@ -14,8 +14,8 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
 {
-    public record CreateTankVolumeHistoryCommand (TankVolumeHistory TankVolumeHistory) : IRequest<FMSResponseMessage>;
-    
+    public record CreateTankVolumeHistoryCommand(TankVolumeHistory TankVolumeHistory) : IRequest<FMSResponseMessage>;
+
 
     public class CreateTankVolumeHistoryCommandHandler : IRequestHandler<CreateTankVolumeHistoryCommand, FMSResponseMessage>
     {
@@ -23,13 +23,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
         private readonly GpsdataContext _context;
         private readonly ILogger<CreateTankVolumeHistoryCommandHandler> _logger;
 
-        public CreateTankVolumeHistoryCommandHandler( GpsdataContext context ,ILogger<CreateTankVolumeHistoryCommandHandler> logger)
+        public CreateTankVolumeHistoryCommandHandler(GpsdataContext context, ILogger<CreateTankVolumeHistoryCommandHandler> logger)
         {
             _context = context;
             _logger = logger;
         }
-        
-        
+
+
 
         public async Task<FMSResponseMessage> Handle(CreateTankVolumeHistoryCommand request, CancellationToken cancellationToken)
         {
@@ -55,17 +55,17 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
 
                 _context.TankVolumeHistories.Add(tankVolumeHistory);
 
-              await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
 
-               return new FMSResponseMessage(true, "Tank volume history created successfully");
+                return new FMSResponseMessage(true, "Tank volume history created successfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating tank volume history");
-                return  new FMSResponseMessage(false, "Error creating tank volume history");
+                return new FMSResponseMessage(false, "Error creating tank volume history");
             }
 
-            }
         }
     }
+}
 

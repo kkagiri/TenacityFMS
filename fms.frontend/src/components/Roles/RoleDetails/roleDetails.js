@@ -1,6 +1,6 @@
 //To:do Add  delete Button..
-//To:do Add Form for adding new Role 
-//To:do Add a Reset button to reset values to original state.. 
+//To:do Add Form for adding new Role
+//To:do Add a Reset button to reset values to original state..
 
 
 
@@ -40,7 +40,7 @@ const RoleDetails = ({ roleId }) => {
   } = useSelector((state) => state.role);
 
   const selectedUsers = useSelector((state) => state.role.selectedUsers);
-  
+
   useEffect(() => {
     if (roleId) {
      // console.log('Fetching role details for role ID:', roleId);
@@ -57,8 +57,15 @@ const RoleDetails = ({ roleId }) => {
   }, [dispatch]);
 
   const onSaveData = async () => {
+    if (!rolePermissions || rolePermissions.length === 0) {
+      notify('No permissions selected to save.', 'warning', 2000);
+      return;
+    }
+
+
     try {
       setSaving(true);
+      console.log('Role Permissions to be saved:', rolePermissions); // Debugging
       await Promise.all([
        dispatch(updateRole(roleId, roleDetails)),
        dispatch(assignPermissionsToRole(roleId, rolePermissions)),
@@ -67,6 +74,7 @@ const RoleDetails = ({ roleId }) => {
 
       notify('Role updated successfully', 'success', 2000);
       dispatch(fetchRoleDetails(roleId));
+      dispatch(clearPermissions()); // Reset permissions state
     } catch (error) {
       console.error('Error saving role data:', error);
       notify(error, 'error', 2000);
@@ -87,7 +95,7 @@ const RoleDetails = ({ roleId }) => {
 
   return (
     <div style={{ padding: '20px' }}>
-    
+
         <Accordion collapsible={true}>
         <AccordionItem title={`Role Details: ${roleDetails.name}`}>
             <RoleForm editData={roleDetails} setRoleDetails={(data) => dispatch({ type: 'UPDATE_ROLE_SUCCESS', payload: data })} />
@@ -102,8 +110,8 @@ const RoleDetails = ({ roleId }) => {
         <div style={{margin:20}}>
           <Button icon='save' width={120} type="success"  text='Save' onClick={onSaveData} />
         </div>
-    
-  
+
+
   </div>
 );
 };

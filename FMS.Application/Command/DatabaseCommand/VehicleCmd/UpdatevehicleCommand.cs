@@ -20,7 +20,7 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
 
 
     public class UpdateVehiclesCommandHandler : IRequestHandler<UpdateVehiclesCommand, FMSResponseMessage<List<VehicleDTO>>>
-    { 
+    {
         private readonly GpsdataContext _context;
         private readonly ILogger<UpdateVehiclesCommandHandler> _logger;
         private readonly IMapper _mapper;
@@ -122,7 +122,7 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
                 var expectedAvg = await _context.Expectedaverages.FindAsync(vehicleDTO.DefaultExptdAvgid);
                 if (expectedAvg == null) errors.Add($"Expected Average with id {vehicleDTO.DefaultExptdAvgid} not found");
             }
-        
+
 
             return (errors.Count == 0, errors);
         }

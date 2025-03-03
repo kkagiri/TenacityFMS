@@ -1,5 +1,4 @@
 ﻿using FMS.Domain.Entities;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -17,13 +16,13 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
     /// </summary>
     /// <param name="RoleId"></param>
     /// <param name="UserIds"></param>
-   public record UpdateRoleUsersCommand (string RoleId, List<string> UserIds) : IRequest <UpdateRoleUsersResult>;
+    public record UpdateRoleUsersCommand(string RoleId, List<string> UserIds) : IRequest<UpdateRoleUsersResult>;
 
     public class UpdateRoleUsersCommandHandler : IRequestHandler<UpdateRoleUsersCommand, UpdateRoleUsersResult>
     {
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<Role> _roleManager;
-        private readonly ILogger<UpdateRoleUsersCommandHandler> _logger;    
+        private readonly ILogger<UpdateRoleUsersCommandHandler> _logger;
 
         public UpdateRoleUsersCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<UpdateRoleUsersCommandHandler> logger)
         {
@@ -32,13 +31,13 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
             _logger = logger;
         }
 
-       
+
         public async Task<UpdateRoleUsersResult> Handle(UpdateRoleUsersCommand request, CancellationToken cancellationToken)
         {
             try
             {
                 var role = await _roleManager.FindByIdAsync(request.RoleId);
-                if(role == null) return new UpdateRoleUsersResult(false,"Role not found");
+                if (role == null) return new UpdateRoleUsersResult(false, "Role not found");
 
                 var roleName = role.Name;
 
@@ -58,7 +57,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
                 foreach (var userId in request.UserIds)
                 {
                     var user = await _userManager.FindByIdAsync(userId);
-                    if (user == null) return  new UpdateRoleUsersResult(false,"User not found");
+                    if (user == null) return new UpdateRoleUsersResult(false, "User not found");
 
                     var userRoles = await _userManager.GetRolesAsync(user);
                     if (userRoles.Count > 0)
@@ -68,10 +67,11 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
 
                     await _userManager.AddToRoleAsync(user, roleName);
                 }
-                return new UpdateRoleUsersResult(true,"Role User Updated Successfully");
-            } catch (Exception ex)
+                return new UpdateRoleUsersResult(true, "Role User Updated Successfully");
+            }
+            catch (Exception ex)
             {
-               _logger.LogError("Error updating role users", ex.Message);
+                _logger.LogError("Error updating role users", ex.Message);
                 throw;
             }
         }

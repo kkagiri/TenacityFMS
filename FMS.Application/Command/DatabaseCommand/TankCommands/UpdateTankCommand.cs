@@ -40,16 +40,16 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
 
                 _mapper.Map(request.Tank, tank);
 
-                if (tank.SiteId==null) throw new ArgumentException("SiteId is required");
-                
-                    var siteExists = await _context.Sites.AnyAsync(s => s.Id == tank.SiteId, cancellationToken);
-                    if (!siteExists)
-                    {
-                        throw new ArgumentException("Invalid SiteId");
-                    }
-                
+                if (tank.SiteId == null) throw new ArgumentException("SiteId is required");
 
-                if (tank.PtsId.HasValue)
+                var siteExists = await _context.Sites.AnyAsync(s => s.Id == tank.SiteId, cancellationToken);
+                if (!siteExists)
+                {
+                    throw new ArgumentException("Invalid SiteId");
+                }
+
+
+                if (tank.PtsId != null)
                 {
                     var ptsExists = await _context.Ptsdevices.AnyAsync(p => p.Ptsid == tank.PtsId, cancellationToken);
                     if (!ptsExists)

@@ -6,7 +6,7 @@ namespace FMS.Domain.Entities;
 
 public partial class Permission
 {
-   public int Id { get; set; }
+    public int Id { get; set; }
     public string Name { get; set; } = null!;
     public int? ParentId { get; set; }  // Allow null for top-level permissions
     public virtual ICollection<Permission> InverseParent { get; set; } = new List<Permission>();

@@ -17,10 +17,10 @@ namespace FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries
     public class GetIssueListQueryHandler : IRequestHandler<GetIssueListQuery, List<Issuetracker>>
     {
 
-       private readonly GpsdataContext  _context;
-      private readonly ILogger<GetIssueListQueryHandler> _logger;
+        private readonly GpsdataContext _context;
+        private readonly ILogger<GetIssueListQueryHandler> _logger;
 
-     public GetIssueListQueryHandler(GpsdataContext context, ILogger<GetIssueListQueryHandler> logger)
+        public GetIssueListQueryHandler(GpsdataContext context, ILogger<GetIssueListQueryHandler> logger)
         {
             _context = context;
             _logger = logger;
@@ -29,23 +29,24 @@ namespace FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries
 
         public async Task<List<Issuetracker>> Handle(GetIssueListQuery request, CancellationToken cancellationToken)
         {
-             try{
-                 var issueTrackers = await _context.Issuetrackers.Include(x=>x.AssignToNavigation.Email)
-                                                                  .Include(x=>x.Site.Name).
-                                                                   Include(x=>x.StatusNavigation.Status)
-                                                                   .Include(x=>x.OpenbyNavigation.Email)
-                                                                   .Include(x=>x.PriorityNavigation.Name)
-                                                                   
-                
-                                                                       .ToListAsync(cancellationToken);
-                 return issueTrackers;
+            try
+            {
+                var issueTrackers = await _context.Issuetrackers.Include(x => x.AssignToNavigation.Email)
+                                                                 .Include(x => x.Site.Name).
+                                                                  Include(x => x.StatusNavigation.Status)
+                                                                  .Include(x => x.OpenbyNavigation.Email)
+                                                                  .Include(x => x.PriorityNavigation.Name)
 
-             }
-             catch(Exception ex)
-             {
-                 _logger.LogError(ex, "Error fetching issue trackers");
-                 throw new Exception(ex.Message);
-             }
+
+                                                                      .ToListAsync(cancellationToken);
+                return issueTrackers;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching issue trackers");
+                throw new Exception(ex.Message);
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace FMS.Domain.Entities;
 
 public partial class User : IdentityUser
-{ 
+{
 
     public bool? IsDeleted { get; set; }
 
@@ -33,7 +33,7 @@ public partial class User : IdentityUser
 
     public virtual ICollection<Loginactivity> Loginactivities { get; set; } = new List<Loginactivity>();
 
-   
+
 
     public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
 
@@ -43,7 +43,7 @@ public partial class User : IdentityUser
 
     public virtual ICollection<Site> Sites { get; set; } = new List<Site>();
 
-    public virtual ICollection<TankTransfer> TankTransfers { get; set;} = new List<TankTransfer>();
+    public virtual ICollection<TankTransfer> TankTransfers { get; set; } = new List<TankTransfer>();
 
     public virtual ICollection<TankVolumeHistory> TankVolumeHistories { get; set; } = new List<TankVolumeHistory>();
 }

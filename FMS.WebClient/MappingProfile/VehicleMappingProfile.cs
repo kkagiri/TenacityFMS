@@ -24,7 +24,7 @@ namespace FMS.WebClient.MappingProfile
                        .ForMember(dest => dest.ExpectedAverageValue, opt => opt.MapFrom(src => src.ExpectedAverageValue))
                        .ForMember(dest => dest.ExpectedAverageClassificationId, opt => opt.MapFrom(src => src.ExpectedAverageClassificationId))
                        .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-                       .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId)).ReverseMap();                       ;
+                       .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId)).ReverseMap(); ;
 
 
 
@@ -70,7 +70,7 @@ namespace FMS.WebClient.MappingProfile
               .ForMember(dest => dest.EngHours, opt => opt.MapFrom(src => src.EngHours))
               .ForMember(dest => dest.FlowMeterEngineHrs, opt => opt.MapFrom(src => src.FlowMeterEngineHrs))
               .ForMember(dest => dest.ExcessWorkingHrsCost, opt => opt.MapFrom(src => src.ExcessWorkingHrsCost));
-        
-    }
+
+        }
     }
 }

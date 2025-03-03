@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.EmployeeQuery
 {
-    public class GetEmployeeQuery:IRequest<List<EmployeeDto>>
+    public class GetEmployeeQuery : IRequest<List<EmployeeDto>>
     {
 
     }
@@ -40,9 +40,9 @@ namespace FMS.Application.Queries.Database.EmployeeQuery
         /// <returns></returns>
         public async Task<List<EmployeeDto>> Handle(GetEmployeeQuery request, CancellationToken cancellationToken)
         {
-            var employees= await _context.Employees
+            var employees = await _context.Employees
                 .Include(e => e.Vehicles)
-               .OrderByDescending(x=>x.Id)        
+               .OrderByDescending(x => x.Id)
                 .ToListAsync(cancellationToken);
 
             return _mapper.Map<List<EmployeeDto>>(employees);

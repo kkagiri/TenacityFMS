@@ -26,7 +26,7 @@ public class CreateDeviceModelCommandHandler : IRequestHandler<CreateDeviceModel
         try
         {
             var deviceManufacturer = await _context.Devicemanufacturers.FindAsync(request.Devicemodel.DevicemanufacturerId, cancellationToken);
-            if(deviceManufacturer == null) throw new Exception($"DeviceManufacturer {request.Devicemodel.DevicemanufacturerId} not found. Try adding Manufacturer first");
+            if (deviceManufacturer == null) throw new Exception($"DeviceManufacturer {request.Devicemodel.DevicemanufacturerId} not found. Try adding Manufacturer first");
             await _context.Devicemodels.AddAsync(request.Devicemodel, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -39,5 +39,5 @@ public class CreateDeviceModelCommandHandler : IRequestHandler<CreateDeviceModel
         }
     }
 
-  
+
 }

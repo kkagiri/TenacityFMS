@@ -12,19 +12,19 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.TankQueries
 {
-    public record  GetTankBySiteIdQuery(int SiteId) : IRequest<List<TankDTO>>;
-  
+    public record GetTankBySiteIdQuery(int SiteId) : IRequest<List<TankDTO>>;
+
 
     public class GetTankBySiteIdQueryHandler : IRequestHandler<GetTankBySiteIdQuery, List<TankDTO>>
     {
 
         private readonly GpsdataContext _context;
-            private readonly IMapper _mapper;
-           private readonly ILogger<GetTankBySiteIdQueryHandler> _logger;
+        private readonly IMapper _mapper;
+        private readonly ILogger<GetTankBySiteIdQueryHandler> _logger;
 
         public GetTankBySiteIdQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetTankBySiteIdQueryHandler> logger)
         {
-             _context = context;
+            _context = context;
             _mapper = mapper;
             _logger = logger;
 
@@ -35,11 +35,12 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankQueries
             try
             {
                 return _mapper.Map<List<TankDTO>>(_context.Tanks.Where(x => x.SiteId == request.SiteId).ToList());
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
 
             {
                 _logger.LogError(ex, "Error in GetTankBySiteIdQuery");
-                 throw;
+                throw;
             }
         }
     }

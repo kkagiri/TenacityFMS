@@ -1,0 +1,7 @@
+[*.cs]
+
+# Default severity for analyzer diagnostics with category 'Style'
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+dotnet_style_prefer_explicit_type_where_possible = false : warning
+dotnet_style_namespace_declarations = block-scoped : warning
+dotnet_diagnostic.IDE0058.severity = none

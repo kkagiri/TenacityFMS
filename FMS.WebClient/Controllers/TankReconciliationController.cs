@@ -19,12 +19,12 @@ namespace FMS.WebClient.Controllers
         }
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetTankReconciliationByDate([FromQuery] DateTime startDate,DateTime endDate)
+        public async Task<IActionResult> GetTankReconciliationByDate([FromQuery] DateTime startDate, DateTime endDate)
         {
 
             //insertPermission check here
 
-            var result = await _mediator.Send(new GetDailyTankReconcillationQuery ( startDate,endDate ));
+            var result = await _mediator.Send(new GetDailyTankReconcillationQuery(startDate, endDate));
             return Ok(result);
         }
 
@@ -34,7 +34,7 @@ namespace FMS.WebClient.Controllers
         {
             //insertPermission check here
 
-            var result = await _mediator.Send(new GetDailyTankReconciliationBySiteQuery(startDate,endDate,siteId));
+            var result = await _mediator.Send(new GetDailyTankReconciliationBySiteQuery(startDate, endDate, siteId));
             return Ok(result);
         }
     }

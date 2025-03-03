@@ -2,7 +2,7 @@
 using System.CodeDom;
 namespace FMS.WebClient.Signal
 {
-    public class  PtsStatusHub:Hub
+    public class PtsStatusHub : Hub
     {
 
         private readonly PtsStatusService _statusService;

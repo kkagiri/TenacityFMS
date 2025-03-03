@@ -13,7 +13,7 @@ public partial class Delivery
     public int TankId { get; set; }
 
 
-    public DateTime CreatedOn { get;set; }
+    public DateTime CreatedOn { get; set; }
     public DateTime DeliveryDate { get; set; }
 
     public decimal ManualDeliveryAmount { get; set; }

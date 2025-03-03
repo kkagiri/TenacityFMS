@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands
 {
-    public record AddPermissionCommand(string Name,int? ParentId) : IRequest<int>;
+    public record AddPermissionCommand(string Name, int? ParentId) : IRequest<int>;
     public class AddPermissionCommandHandler : IRequestHandler<AddPermissionCommand, int>
     {
 
-       private readonly GpsdataContext _context;
+        private readonly GpsdataContext _context;
         private readonly ILogger<AddPermissionCommandHandler> _logger;
         public AddPermissionCommandHandler(GpsdataContext context, ILogger<AddPermissionCommandHandler> logger)
         {
@@ -42,4 +42,4 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
         }
     }
 }
-   
+

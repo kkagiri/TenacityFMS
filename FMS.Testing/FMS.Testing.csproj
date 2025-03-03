@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -22,6 +22,12 @@
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
+    <ProjectReference Include="..\FMS.PTS.WindowsService\FMS.PTS.WindowsService.csproj" />
+    <ProjectReference Include="..\FMS.WebClient\FMS.WebClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="pts2\" />
   </ItemGroup>
 
 </Project>

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.ExpectedAvg
 {
-    public class GetExpectAVGClassificationlist:IRequest<List<ExpectedAVGClassficationDTO>>
+    public class GetExpectAVGClassificationlist : IRequest<List<ExpectedAVGClassficationDTO>>
     {
 
     }
@@ -20,7 +20,7 @@ namespace FMS.Application.Queries.Database.ExpectedAvg
     public class GetExpectAVGClassificationlistHandler : IRequestHandler<GetExpectAVGClassificationlist, List<ExpectedAVGClassficationDTO>>
     {
         private readonly GpsdataContext _context;
-        private readonly IMapper _mapper; 
+        private readonly IMapper _mapper;
 
         public GetExpectAVGClassificationlistHandler(GpsdataContext context, IMapper mapper)
         {
@@ -35,7 +35,7 @@ namespace FMS.Application.Queries.Database.ExpectedAvg
             var results = await _context.Expectedaverageclassifications.ToListAsync(cancellationToken);
 
             return _mapper.Map<List<ExpectedAVGClassficationDTO>>(results);
-       
+
         }
     }
 

@@ -7,7 +7,7 @@ using MediatR;
 
 namespace FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceModelQueries;
 
-public record GetDeviceModelByIdQuery(int Id):IRequest<Devicemodel>;
+public record GetDeviceModelByIdQuery(int Id) : IRequest<Devicemodel>;
 
 public class GetDeviceModelByIdQueryHandler : IRequestHandler<GetDeviceModelByIdQuery, Devicemodel>
 {
@@ -19,13 +19,14 @@ public class GetDeviceModelByIdQueryHandler : IRequestHandler<GetDeviceModelById
 
     public async Task<Devicemodel> Handle(GetDeviceModelByIdQuery request, CancellationToken cancellationToken)
     {
-        try{
-        var deviceModel = await _context.Devicemodels.FindAsync(request.Id, cancellationToken);
-        return deviceModel;
-        }
-        catch(Exception ex)
+        try
         {
-         throw new Exception("Error in GetDeviceModelByIdQueryHandler", ex);
+            var deviceModel = await _context.Devicemodels.FindAsync(request.Id, cancellationToken);
+            return deviceModel;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error in GetDeviceModelByIdQueryHandler", ex);
         }
 
     }

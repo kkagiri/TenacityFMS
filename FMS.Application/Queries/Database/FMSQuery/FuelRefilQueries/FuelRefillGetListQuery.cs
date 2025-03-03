@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
 
-public record FuelRefillGetListQuery(int Take = 100,int Skip =0) : IRequest<List<FuelRefilDTO>>;
+public record FuelRefillGetListQuery(int Take = 100, int Skip = 0) : IRequest<List<FuelRefilDTO>>;
 
 public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQuery, List<FuelRefilDTO>>
 {
@@ -22,25 +22,26 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
     private readonly ILogger<FuelRefillGetListQueryHandler> _logger;
     private readonly IMapper _mapper;
 
-     public FuelRefillGetListQueryHandler(GpsdataContext context, ILogger<FuelRefillGetListQueryHandler> logger, IMapper mapper)
-     {
+    public FuelRefillGetListQueryHandler(GpsdataContext context, ILogger<FuelRefillGetListQueryHandler> logger, IMapper mapper)
+    {
         _context = context;
         _logger = logger;
         _mapper = mapper;
-     }
+    }
 
     public async Task<List<FuelRefilDTO>> Handle(FuelRefillGetListQuery request, CancellationToken cancellationToken)
     {
-        try{
-               var fuelRefils = await _context.Fuelrefils.OrderByDescending(x => x.Date)
-               .Skip(request.Skip).Take(request.Take)
-               .ToListAsync(cancellationToken);
+        try
+        {
+            var fuelRefils = await _context.Fuelrefils.OrderByDescending(x => x.Date)
+            .Skip(request.Skip).Take(request.Take)
+            .ToListAsync(cancellationToken);
 
 
 
-                 var fuelRefilDTOs = _mapper.Map<List<FuelRefilDTO>>(fuelRefils);
-                    return fuelRefilDTOs;
-        } 
+            var fuelRefilDTOs = _mapper.Map<List<FuelRefilDTO>>(fuelRefils);
+            return fuelRefilDTOs;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching fuel refil data");

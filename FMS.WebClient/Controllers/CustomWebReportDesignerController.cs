@@ -31,22 +31,22 @@
 //                  //create a query to access VehicleConsumptiontable
 
 //                  SqlQuery query = SelectQueryFluentBuilder.AddTable("VehicleConsumption").SelectAllColumnsFromTable().Build("VehicleConsumption");
-                 
+
 //                  ds.Queries.Add(query);
 //                  ds.RebuildResultSchema();
 //                  dataSources.Add("VehicleConsumption", ds);
 
 //                  reportUrl = string.IsNullOrEmpty(reportUrl)?"vehicleconsumption":reportUrl;
-                
+
 //                 //var designerModel = await modelGenerator.
 
 
 //                 var model = modelGenerator.GetModel(reportUrl,dataSources, ReportDesignerController.DefaultUri, WebDocumentViewerController.DefaultUri, QueryBuilderController.DefaultUri);
 //                 return DesignerModel(model);
 //             }
-        
 
-    
+
+
 //     }
 
 // public class CustomWebDocumentViewerController : WebDocumentViewerController

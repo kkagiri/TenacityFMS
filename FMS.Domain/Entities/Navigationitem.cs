@@ -10,9 +10,9 @@ public partial class Navigationitem
     public string Page { get; set; } = null!;
 
     public string Link { get; set; } = null!;
-     public int? ParentId { get; set; }
+    public int? ParentId { get; set; }
 
-     public string Icon { get; set; } = string.Empty;
+    public string Icon { get; set; } = string.Empty;
 
     public virtual ICollection<Rolenavigation> Rolenavigations { get; set; } = new List<Rolenavigation>();
 }

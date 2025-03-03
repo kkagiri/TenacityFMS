@@ -65,6 +65,6 @@ public partial class Vehicle
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
-    
+
 }
 

@@ -26,19 +26,19 @@ namespace FMS.WebClient.Controllers
             _mediator = mediator;
         }
 
-       [HttpPost("CreateVehicleModel")]
+        [HttpPost("CreateVehicleModel")]
         [Authorize]
         public async Task<ActionResult<int>> CreateVehicleModel([FromBody] Vehiclemodel vehicleModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var command = new CreateVehicleModelCommand(vehicleModel.ManufacturerId, vehicleModel.Name);
-              var results = await _mediator.Send(command);
+            var results = await _mediator.Send(command);
 
-            if(!results.Success) return BadRequest(results.Message);
+            if (!results.Success) return BadRequest(results.Message);
 
-            return Ok(results.Data);        
-             
+            return Ok(results.Data);
+
         }
 
         [HttpGet]
@@ -52,7 +52,7 @@ namespace FMS.WebClient.Controllers
             return Ok(vehicleModels);
 
         }
-      
+
 
     }
 }

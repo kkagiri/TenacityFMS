@@ -16,7 +16,7 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
     {
         public int Id { get; set; }
 
-        public  ExpectedAVGDto ExpectedAVGDto { get; set; }
+        public ExpectedAVGDto ExpectedAVGDto { get; set; }
     }
 
     public class ExpectedAVGUpdateCmdHandler : IRequestHandler<ExpectedAVGUpdateCmd, bool>
@@ -24,7 +24,7 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
 
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
-        
+
 
         public ExpectedAVGUpdateCmdHandler(GpsdataContext context, IMapper mapper)
         {
@@ -35,22 +35,23 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
         public async Task<bool> Handle(ExpectedAVGUpdateCmd request, CancellationToken cancellationToken)
         {
             //find  exsisting record
-            var results = await _context.Expectedaverages.FindAsync(request.Id,cancellationToken);
-                
+            var results = await _context.Expectedaverages.FindAsync(request.Id, cancellationToken);
+
             if (results == null)
             {
                 return false;
             }
-                
+
             //user mapper for ExpectedAVGDto to ExpectedAVG
             _mapper.Map(request.ExpectedAVGDto, results);
-            
+
 
             _context.Expectedaverages.Update(results);
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
-            }catch (DbUpdateException ex)
+            }
+            catch (DbUpdateException ex)
             {
                 throw new Exception("Error updating record", ex);
             }

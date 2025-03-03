@@ -1,0 +1,1122 @@
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Common\PTSRequest.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Common
+{
+    public abstract class PtsRequest
+    {
+        public int Id { get; set; }
+        public string Type { get; set; }
+        public object Data { get; set; }
+
+        protected PtsRequest(int id, string type, object data)
+        {
+            Id = id;
+            Type = type;
+            Data = data;
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Common\Interfaces\IJsonConvertor.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Common.Interfaces
+{
+    public interface IJsonConvertor
+    {
+
+        T Deserialize<T>(string json);
+
+        string Serialize(object obj);
+
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\FuelDispensing\Services\FuelDispensingService.cs
+
+﻿using FMS.Persistence.DataAccess;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using FMS.Application;
+using FMS.Application.Command.PTSCommand.TagCommands;
+using FMS.Domain.Entities;
+using FMS.Services.PTS.Requests;
+
+
+namespace FMS.Services.FuelDispensing.Services
+{
+    /// <summary>
+    /// This service will handle the authentication, authorization, and communication with the PTS controller for fuel dispensing.
+    /// </summary>
+    public class FuelDispensingService
+    {
+        private readonly IMediator _mediator;
+        private readonly ReadRfidTag _readRfidTag;
+        private readonly SendAuthorization _sendAuthorization;
+
+        public FuelDispensingService(IMediator mediator, ReadRfidTag readRfidTag, SendAuthorization sendAuthorization)
+        {
+            _mediator = mediator;
+            _readRfidTag = readRfidTag;
+            _sendAuthorization = sendAuthorization;
+        }
+
+
+        public async Task InitiateFuelDispensingAsync (int pumpId, int nozzle)
+        {
+
+            //get the reader 
+
+
+            //read the RFID  tag 
+
+            var rfidTag = await _readRfidTag;
+
+            // Authenticate the tag
+            var authenticateTagCommand = new AuthenticateTagCommand(rfidTag);
+            //check if tag isEnable in the database
+            var authResult = await _mediator.Send(authenticateTagCommand);
+
+
+            if(!authResult.IsAuthenticated)
+            {
+                //notifcation not autheticated 
+                return;
+            }
+
+
+            // Tag is authorized, proceed to send authorization to PTS controller
+            await _sendAuthorization(pumpId, nozzle, authResult.Tag);
+
+        }
+
+      
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Helper\EnumerationHelper.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Helper
+{
+    public static class EnumerationHelper
+    {
+        public static string GetEnumDescription(Enum enumValue)
+        {
+            string value = enumValue.ToString();
+            FieldInfo field = enumValue.GetType().GetField(value);
+            object[] objs = field.GetCustomAttributes(typeof(DescriptionAttribute), false);
+            if (objs == null || objs.Length == 0)
+                return value;
+            DescriptionAttribute descriptionAttribute = (DescriptionAttribute)objs[0];
+            return descriptionAttribute.Description;
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\ATGModels\Alarm.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.ATGModels
+{
+    public class Alarm
+    {
+
+        //convert the array of strings into a Frag Enumration
+        public AlarmType AlarmFlags { get;private set; }    
+
+        
+        //constructor to parse the arram strings in to the alarm type
+        public Alarm (IEnumerable<string> alarmStrings)
+
+        {
+            AlarmFlags = AlarmType.None;
+
+            foreach (var alarm in alarmStrings)
+            {
+                switch (alarm)
+                {
+                    case "CriticalHighProduct":
+                        AlarmFlags |= AlarmType.CriticalHighProduct;
+                        break;
+                    case "HighProduct":
+                        AlarmFlags |= AlarmType.HighProduct;
+                        break;
+                    case "LowProduct":
+                        AlarmFlags |= AlarmType.LowProduct;
+                        break;
+                    case "CriticalLowProduct":
+                        AlarmFlags |= AlarmType.CriticalLowProduct;
+                        break;
+                    case "HighWater":
+                        AlarmFlags |= AlarmType.HighWater;
+                        break;
+                    case "TankLeakage":
+                        AlarmFlags |= AlarmType.TankLeakage;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+       
+        
+        //constructure that accepts a list of string alarms 
+        public Alarm(List<string> alarms)
+        {
+            Alarms = alarms;
+        }   
+
+        public bool HasAlarm(AlarmType alarmType)
+        {
+            return AlarmFlags.HasFlag(alarmType);
+        }
+
+        public List<string> Alarms { get; set; }
+
+
+        
+    }
+
+
+
+    [Flags]
+    public enum AlarmType
+    {
+        None = 0,
+        CriticalHighProduct = 1 << 0,
+        HighProduct = 1 << 1,
+        LowProduct = 1 << 2,
+        CriticalLowProduct = 1 << 3,
+        HighWater = 1 << 4,
+        TankLeakage = 1 << 5
+    }
+
+}
+
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\ATGModels\Derlivery.cs
+
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.ATGModels
+{
+    public class Delivery
+    {
+        [JsonProperty("DateTime")]
+        public DateTime DateTime { get; set; }
+
+        [JsonProperty("ProductHeight")]
+        public float ProductHeight { get; set; }
+
+        [JsonProperty("WaterHeight")]
+        public float WaterHeight { get; set; }
+
+        [JsonProperty("Temperature")]
+        public float Temperature { get; set; }
+
+        [JsonProperty("ProductVolume")]
+        public float ProductVolume { get; set; }
+
+        [JsonProperty("ProductTCVolume")]
+        public float ProductTCVolume { get; set; }
+
+        [JsonProperty("ProductDensity")]
+        public float? ProductDensity { get; set; }
+
+        [JsonProperty("ProductMass")]
+        public float? ProductMass { get; set; }
+
+        [JsonProperty("PumpsDispensedVolume")]
+        public float? PumpsDispensedVolume { get; set; }
+    }
+
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\ATGModels\Probe\ProbeGetMeasurementsRequest.cs
+
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.ATGModels.Probe
+{
+    public class ProbeGetMeasurementsRequest
+    {
+        [JsonProperty("Protocol")]
+        public string Protocol { get; set; } = "jsonPTS";
+
+        [JsonProperty("Packets")]
+
+        public List<ProbePacket> Packets { get; set; } = new List<ProbePacket>();
+
+
+        public ProbeGetMeasurementsRequest(int probeId)
+        {
+            Packets.Add(new ProbePacket
+            {
+                Id = 1, ///TODO: check this
+                Type = "ProbeGetMeasurements",
+                Data = new ProbeData
+                {
+                    Probe = probeId
+                }
+            });
+        }
+
+
+
+
+        public class ProbePacket
+        {
+            [JsonProperty("Id")]
+            public int Id { get; set; }
+
+            [JsonProperty("Type")]
+            public string Type { get; set; }
+
+            [JsonProperty("Data")]
+            public ProbeData Data { get; set; }
+
+          
+        }
+        public class ProbeData
+        {
+            [JsonProperty("Probe")]
+            public int Probe { get; set; }
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\ATGModels\Probe\ProbeMeasurementsResponse.cs
+
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.ATGModels.Probe
+{
+    public class ProbeMeasurementsResponse
+    {
+        [JsonProperty("Protocol")]
+        public string Protocol { get; set; }
+
+        [JsonProperty("Packets")]
+        public List<MeasurementPacket> Packets { get; set; }
+
+
+    }
+
+    public class MeasurementPacket
+    {
+        [JsonProperty("Id")]
+        public int Id { get; set; }
+
+        [JsonProperty("Type")]
+        public string Type { get; set; }
+
+        [JsonProperty("Data")]
+        public MeasurementData Data { get; set; }
+
+       
+    
+    }
+
+    public class MeasurementData
+    {
+
+     [JsonProperty("Probe")]
+     [Range(1, 50)]
+    public int Probe { get; set; }
+
+    [JsonProperty("FuelGradeId")]
+    [Range(1, 20)]
+    public int? FuelGradeId { get; set; }
+
+     [JsonProperty("FuelGradeName")]
+    [StringLength(20)]
+    public string? FuelGradeName { get; set; }
+
+
+    [JsonProperty("Status")]
+    [StringLength(7)]
+   
+    public string? Status { get; set; }
+
+
+
+   [JsonProperty("Alarms")]
+  // [JsonConverter(typeof(AlarmConverter))]
+   public Alarm Alarms { get; set; }
+
+    [JsonProperty("ProductHeight")]
+    public double ProductHeight { get; set; }
+
+    [JsonProperty("WaterHeight")]
+    public double WaterHeight { get; set; }
+
+    [JsonProperty("Temperature")]
+    public double Temperature { get; set; }
+
+    [JsonProperty("LastInTankDeliveryStart")]
+    public Delivery LastInTankDeliveryStart { get; set; }
+
+    [JsonProperty("LastInTankDeliveryEnd")]
+    public Delivery LastInTankDeliveryEnd { get; set; }
+
+    [JsonProperty("LastInTankDelivery")]
+    public Delivery LastInTankDelivery { get; set; }
+
+     public double CalculateTankFillingPercentage()
+        {
+            
+            if(LastInTankDelivery != null)
+            {
+                double totalHeight = LastInTankDelivery.ProductHeight + LastInTankDelivery.WaterHeight;
+                double tankHeight = 0;//TODO: get tank height from Service 
+
+                if(totalHeight >0 && tankHeight > 0)
+                {
+                    return (totalHeight / tankHeight) * 100;
+                }
+                else
+                {
+                    return 0; // Return 0 if calulation is not possible
+                }
+                 
+
+            }
+            else
+            {
+                return 0;
+            }
+        }
+     
+    }
+
+
+
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\PTSModels\PumpAuthorizeConfirmation.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.PTSModels
+{
+    public class PumpAuthorizeConfirmation
+    {
+        private int _pump;
+        private int _transaction;
+        /// <summary>
+        /// Pump number getter and setter
+        /// </summary>
+        public int Pump
+        {
+            get { return _pump; }
+            set { _pump = value; }
+        }
+        /// <summary>
+        /// Transaction number getter and setter
+        /// </summary>
+        public int Transaction
+        {
+            get { return _transaction; }
+            set { _transaction = value; }
+        }
+    }
+}
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\PTSModels\PumpAuthorizeData.cs
+
+﻿using FMS.Services.PTS.enums;
+using FMS.Services.PTS.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.PTSModels
+{
+    public class PumpAuthorizeData
+    {
+        private int _pump;
+        public NozzleOrFuelIdSelector _nozzleOrFuelIdSelector;
+        private int _nozzle;
+        private List<int>? _nozzles;
+        private int _fuelGradeId;
+        private List<int>? _fuelGradeIds;
+        private PumpAuthorizeType _type;
+        private double _dose;
+        private bool _priceEnabled;
+        private double _price;
+        private bool _transactionEnabled;
+        private int _transaction;
+        private bool _autoCloseTransaction;
+        /// <summary>
+        /// Pump number getter and setter
+        /// </summary>
+        public int Pump
+        {
+            get { return _pump; }
+            set { _pump = value; }
+        }
+        /// <summary>
+        /// NozzleOrFielIdSelector getter and setter
+        /// </summary>
+        public NozzleOrFuelIdSelector NozzleOrFuelIdSelector
+        {
+            get { return _nozzleOrFuelIdSelector; }
+            set { _nozzleOrFuelIdSelector = value; }
+        }
+        /// <summary>
+        /// Nozzle number getter and setter
+        /// </summary>
+        public int Nozzle
+        {
+            get { return _nozzle; }
+            set { _nozzle = value; }
+        }
+        /// <summary>
+        /// Nozzles getter and setter
+        /// </summary>
+        public List<int> Nozzles
+        {
+            get { return _nozzles; }
+            set { _nozzles = value; }
+        }
+        /// <summary>
+        /// FuelGradeId getter and setter
+        /// </summary>
+        public int FuelGradeId
+        {
+            get { return _fuelGradeId; }
+            set { _fuelGradeId = value; }
+        }
+        /// <summary>
+        /// FuelGradeIds getter and setter
+        /// </summary>
+        public List<int> FuelGradeIds
+        {
+            get { return _fuelGradeIds; }
+            set { _fuelGradeIds = value; }
+        }
+        /// <summary>
+        /// Type getter and setter
+        /// </summary>
+        public PumpAuthorizeType Type
+        {
+            get { return _type; }
+            set { _type = value; }
+        }
+        /// <summary>
+        /// Dose getter and setter
+        /// </summary>
+        public double Dose
+        {
+            get { return _dose; }
+            set { _dose = value; }
+        }
+        /// <summary>
+        /// PriceEnabled getter and setter
+        /// </summary>
+        public bool PriceEnabled
+        {
+            get { return _priceEnabled; }
+            set { _priceEnabled = value; }
+        }
+        /// <summary>
+        /// Price getter and setter
+        /// </summary>
+        public double Price
+        {
+            get { return _price; }
+            set { _price = value; }
+        }
+        /// <summary>
+        /// TransactionEnabled getter and setter
+        /// </summary>
+        public bool TransactionEnabled
+        {
+            get { return _transactionEnabled; }
+            set { _transactionEnabled = value; }
+        }
+        /// <summary>
+        /// Transaction getter and setter
+        /// </summary>
+        public int Transaction
+        {
+            get { return _transaction; }
+            set { _transaction = value; }
+        }
+        /// <summary>
+        /// AutoCloseTransaction getter and setter
+        /// </summary>
+        public bool AutoCloseTransaction
+        {
+            get { return _autoCloseTransaction; }
+            set { _autoCloseTransaction = value; }
+        }
+    }
+}
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\Models\PTSModels\ReaderTag.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.Models.PTSModels
+{
+    public class ReaderTag
+    {
+        private int _reader;
+        private string _tag;
+        private bool _online;
+        private bool _error;
+        /// <summary>
+        /// Reader getter and setter
+        /// </summary>
+        public int Reader
+        {
+            get { return _reader; }
+            set { _reader = value; }
+        }
+        /// <summary>
+        /// Tag getter and setter : to do link this to the tag model in Fms.Domain.Entities
+        /// </summary>
+        public string Tag
+        {
+            get { return _tag; }
+            set { _tag = value; }
+        }
+        /// <summary>
+        /// Online getter and setter
+        /// </summary>
+        public bool Online
+        {
+            get { return _online; }
+            set { _online = value; }
+        }
+        /// <summary>
+        /// Error getter and setter
+        /// </summary>
+        public bool Error
+        {
+            get { return _error; }
+            set { _error = value; }
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\PTS\enums\NozzleOrFuelIdSelector.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.PTS.enums
+{
+    /// <summary>
+    /// Enum that specified the nozzle(s) to authorize using PumpAuthorize request
+    /// </summary>
+    public enum NozzleOrFuelIdSelector
+    {
+        NONE,
+        NOZZLE,
+        NOZZLES,
+        FUELGRADEID,
+        FUELGRADEIDS
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\PTS\enums\PumpAuthorizeType.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.PTS.Enums;
+   /// <summary>
+   /// Types of pump authorization
+   /// </summary>
+    public enum PumpAuthorizeType
+{
+    [Description("Volume")]
+    VOLUME = 0,
+    [Description("Amount")]
+    AMOUNT = 1,
+    [Description("FullTank")]
+    FULLTANK = 2
+}
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\PTS\enums\TTResults.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.PTS.Enums
+{
+    /// <summary>
+    /// List of errors where 0 is not an error
+    /// </summary>
+    public enum TTResult
+    {
+        [Description("No error")]
+        NO_ERROR = 0,
+        [Description("Request not found")]
+        JSONPTS_ERROR_NOT_FOUND = 1,
+        [Description("Invalid JSON request")]
+        INVALID_JSON_REQUEST = 2,
+        [Description("No data")]
+        NO_DATA = 3,
+        [Description("No data for response")]
+        NO_DATA_FOR_RESPONSE = 4,
+        [Description("JSON request is too long")]
+        JSON_REQUEST_IS_TOO_LONG = 5,
+        [Description("Access forbidden")]
+        JSONPTS_ERROR_NO_PERMISSIONS = 6,
+        [Description("No SD found")]
+        JSONPTS_ERROR_NO_SD_FOUND = 7,
+        [Description("Power down detected")]
+        JSONPTS_ERROR_POWER_DOWN_DETECTED = 8,
+        [Description("SD is not mounted")]
+        JSONPTS_ERROR_SD_NOT_MOUNTED = 9,
+        [Description("File upload process running")]
+        JSONPTS_ERROR_FILE_UPLOAD_PROCESS_RUNNING = 10,
+        [Description("SD error")]
+        JSONPTS_ERROR_SD_ERROR = 11,
+        [Description("No calibration chart found")]
+        JSONPTS_ERROR_NO_CALIBRATION_CHART_FOUND_ERROR = 12,
+        [Description("Could not check file")]
+        JSONPTS_ERROR_COULD_NOT_CHECK_FILE = 13,
+        [Description("Could not delete file")]
+        JSONPTS_ERROR_COULD_NOT_DELETE_FILE = 14,
+        [Description("Incorrect pumps configuration")]
+        JSONPTS_ERROR_INCORRECT_PUMPS_CONFIGURATION = 15,
+        [Description("Incorrect probes configuration")]
+        JSONPTS_ERROR_INCORRECT_PROBES_CONFIGURATION = 16,
+        [Description("Could not get datetime")]
+        JSONPTS_ERROR_COULD_NOT_GET_DATETIME = 17,
+        [Description("Could not get pump number")]
+        JSONPTS_ERROR_COULD_NOT_GET_PUMP_NUMBER = 18,
+        [Description("Could not get pump transaction number")]
+        JSONPTS_ERROR_COULD_NOT_GET_PUMP_TRANSACTION_NUMBER = 19,
+        [Description("Pump number is out of range")]
+        JSONPTS_ERROR_PUMP_NUMBER_OUT_OF_RANGE = 20,
+        [Description("Pump transaction number is out of range")]
+        JSONPTS_ERROR_PUMP_TRANSACTION_NUMBER_OUT_OF_RANGE = 21,
+        [Description("Pump transaction not found")]
+        JSONPTS_ERROR_PUMP_TRANSACTION_NOT_FOUND = 22,
+        [Description("Tank number is out of range")]
+        JSONPTS_ERROR_TANK_NUMBER_OUT_OF_RANGE = 23,
+        [Description("Could not get tank number")]
+        JSONPTS_ERROR_COULD_NOT_GET_TANK_NUMBER = 24,
+        [Description("Could not get transaction number")]
+        JSONPTS_ERROR_COULD_NOT_GET_TRANSACTION_NUMBER = 25,
+        [Description("Transaction number is out of range")]
+        JSONPTS_ERROR_TRANSACTION_NUMBER_OUT_OF_RANGE = 26,
+        [Description("Transaction number does not match")]
+        JSONPTS_ERROR_TRANSACTION_NUMBER_NOT_MATCH = 27,
+        [Description("Transaction number already exist")]
+        JSONPTS_ERROR_TRANSACTION_NUMBER_ALREADY_EXIST = 28,
+        [Description("Could not get nozzle number")]
+        JSONPTS_ERROR_COULD_NOT_GET_NOZZLE_NUMBER = 29,
+        [Description("Could not get fuel grade Id")]
+        JSONPTS_ERROR_COULD_NOT_GET_FUEL_GRADE_ID = 30,
+        [Description("Could not get nozzle number and fuel grade Id")]
+        JSONPTS_ERROR_COULD_NOT_GET_NOZZLE_NUMBER_FUEL_GRADE_ID = 31,
+        [Description("Could not get nozzle number from fuel grade Id")]
+        JSONPTS_ERROR_COULD_NOT_GET_NOZZLE_NUMBER_FROM_GRADE_ID = 32,
+        [Description("Nozzle number is out of range")]
+        JSONPTS_ERROR_NOZZLE_NUMBER_OUT_OF_RANGE = 33,
+        [Description("Could not get type")]
+        JSONPTS_ERROR_COULD_NOT_GET_TYPE = 34,
+        [Description("Could not get name")]
+        JSONPTS_ERROR_COULD_NOT_GET_NAME = 35,
+        [Description("Type is out of range")]
+        JSONPTS_ERROR_TYPE_OUT_OF_RANGE = 36,
+        [Description("Could not get dose value")]
+        JSONPTS_ERROR_COULD_NOT_GET_DOSE_VALUE = 37,
+        [Description("Could not get price value")]
+        JSONPTS_ERROR_COULD_NOT_GET_PRICE_VALUE = 38,
+        [Description("Duplicated authorization request")]
+        JSONPTS_ERROR_DUPLICATED_AUTHORIZATION_REQUEST = 39,
+        [Description("Pump is busy by other user")]
+        JSONPTS_ERROR_PUMP_BUSY_OTHER_USER = 40,
+        [Description("Pump is busy with other request being executed")]
+        JSONPTS_ERROR_PUMP_BUSY_OTHER_REQUEST_EXECUTED = 41,
+        [Description("Pump is busy with filling")]
+        JSONPTS_ERROR_PUMP_BUSY_FILLING = 42,
+        [Description("Pump is not in filling process")]
+        JSONPTS_ERROR_PUMP_NOT_IN_FILLING_PROCESS = 43,
+        [Description("Could not get state value")]
+        JSONPTS_ERROR_COULD_NOT_GET_STATE_VALUE = 44,
+        [Description("State value is out of range")]
+        JSONPTS_ERROR_STATE_VALUE_OUT_OF_RANGE = 45,
+        [Description("User does not match")]
+        JSONPTS_ERROR_USER_NOT_MATCH = 46,
+        [Description("Date is out of range")]
+        JSONPTS_ERROR_DATE_OUT_OF_RANGE = 47,
+        [Description("Time is out of range")]
+        JSONPTS_ERROR_TIME_OUT_OF_RANGE = 48,
+        [Description("Could not get height value")]
+        JSONPTS_ERROR_COULD_NOT_GET_HEIGHT = 49,
+        [Description("Could not get probe number")]
+        JSONPTS_ERROR_COULD_NOT_GET_PROBE_NUMBER = 50,
+        [Description("Probe number is out of range")]
+        JSONPTS_ERROR_PROBE_NUMBER_OUT_OF_RANGE = 51,
+        [Description("Pump is not configured")]
+        JSONPTS_ERROR_PUMP_IS_NOT_CONFIGURED = 52,
+        [Description("Restore of configuration failed")]
+        JSONPTS_ERROR_RESTORE_CONFIGURATION_FAILED = 53,
+        [Description("Configuration file not found")]
+        JSONPTS_ERROR_CONFIGURATION_FILE_NOT_FOUND = 54,
+        [Description("Calibration chart for tank is not configured")]
+        JSONPTS_ERROR_CALIBRATION_CHART_NOT_CONFIGURED = 55,
+        [Description("Tank is not configured")]
+        JSONPTS_ERROR_TANK_NOT_CONFIGURED = 56,
+        [Description("Pump fuel grade does not correspond to the tank fuel")]
+        JSONPTS_ERROR_PUMP_GRADE_NOT_CORRESPOND_TANK = 57,
+        [Description("Incorrect tanks configuration")]
+        JSONPTS_ERROR_INCORRECT_TANKS_CONFIGURATION = 58,
+        [Description("Not inited")]
+        INIT_ERROR = 1000,
+        [Description("Network error")]
+        NETWORK_ERROR = 1001,
+        [Description("Timed out")]
+        TIMEOUT_ERROR = 1002,
+        [Description("HTTP response code is wrong")]
+        RESPONSE_CODE_ERROR = 1003,
+        [Description("Authorization error")]
+        UNAUTHORIZED_ERROR = 1004,
+        [Description("Protocol error")]
+        PROTOCOL_ERROR = 1005,
+        [Description("JSON parse error")]
+        JSON_PARSE_ERROR = 1006,
+        [Description("At last one request in sequence was failed")]
+        AT_LAST_ONE_REQUEST_IN_SEQUENCE_FAILED_ERROR = 1007,
+        [Description("Unknown error")]
+        UNKNOWN_ERROR = 1008
+    }
+}
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\PTS\Requests\ReadRfidTag .cs
+
+﻿using FMS.Domain.Entities;
+using FMS.Infrastructure.websocket;
+using FMS.Services.Models.PTSModels;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.PTS.Requests
+{
+    public class ReadRfidTag:PtsWebSocketCommunication<ReaderTag>
+    {
+        public  readonly ILogger<ReadRfidTag> _logger;
+        public static readonly string _requestName = "ReaderGetTag";
+        public static readonly string _responseName = "ReaderTag";
+        public static readonly string Key = GetKeyStatic (_requestName, _responseName);
+
+
+        public int Reader { get; private set; }
+
+        public ReadRfidTag(int reader) : base(_requestName, _responseName)
+        {
+            Reader = reader;
+        }
+
+        public override JObject RequestJSON(JContainer data = null)
+        {
+            JObject jObject = new JObject();
+
+            jObject["Reader"] = Reader;
+
+            return base.RequestJSON(jObject);
+        }
+
+        public override void ParseJSON(JObject jObject)
+        {
+            base.ParseJSON(jObject);
+
+          if(IsError())
+            {
+                return;
+            }
+
+           if(!jObject.ContainsKey("Data"))
+            {
+                //use TTProtocolErrorException
+                throw new Exception("Error: response doesn't contain Data property");
+            }
+
+           JObject dataJObject = jObject["Data"].ToObject<JObject>();
+            ReaderTag readerTag = new ReaderTag();
+
+            if(!dataJObject.ContainsKey("Reader"))
+            {
+                //use TTProtocolErrorException
+                throw new Exception("Error: response doesn't contain Reader property");
+            }
+
+            readerTag.Reader = Convert.ToInt32(dataJObject["Reader"]?.ToString());
+
+            if (!dataJObject.ContainsKey("Tag"))
+            {
+                throw new Exception("Error: response doesn't contain Tag property");
+            }
+
+            readerTag.Tag = dataJObject["Tag"]?.ToString();
+
+
+            if (!dataJObject.ContainsKey("Online"))
+            {
+                throw new Exception("Error: response doesn't contain Online property");
+            }
+
+            readerTag.Online = dataJObject.Value<bool>("Online");
+
+          
+            readerTag.Error = jObject["Error"].Value<bool>();
+
+            if (!dataJObject.ContainsKey("Error"))
+            { 
+                throw new Exception("Error: response doesn't contain Error property");
+            }
+
+            readerTag.Error = dataJObject.Value<bool>("Error");
+            _result = readerTag;
+        }
+
+        public override List<string> GetPossibleResponseNames()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetErrorCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetErrorCode(int errorCode)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+
+//c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Services\PTS\Requests\SendAuthorization .cs
+
+﻿using FMS.Infrastructure.websocket;
+using FMS.Services.Helper;
+using FMS.Services.Models.PTSModels;
+using FMS.Services.PTS.Enums;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Services.PTS.Requests
+{
+    public class SendAuthorization : PtsWebSocketCommunication<PumpAuthorizeConfirmation>
+    {
+
+        public static readonly string _requestName = "PumpAuthorize";
+         public static readonly string _responseName = "PumpAuthorizeConfirmation";
+        public static readonly string Key = GetKeyStatic(_requestName, _responseName);
+
+        public PumpAuthorizeData PumpAuthorizeData { get; private set; }  
+
+        public  SendAuthorization (PumpAuthorizeData pumpAuthorizeData) : base(_requestName, _responseName)
+        {
+            PumpAuthorizeData = pumpAuthorizeData;
+        }
+
+
+        public override JObject RequestJSON(JContainer data = null)
+        {
+            JObject dataJObject = new JObject();
+
+            dataJObject["Pump"] = PumpAuthorizeData.Pump;
+            switch(PumpAuthorizeData.NozzleOrFuelIdSelector)
+            {
+                case enums.NozzleOrFuelIdSelector.NOZZLE:
+                    dataJObject["Nozzle"] = PumpAuthorizeData.Nozzle;
+                    break;
+                case enums.NozzleOrFuelIdSelector.NOZZLES:
+                    JArray nozzles = new JArray();
+                    for(int i = 0;i<PumpAuthorizeData.Nozzles.Count;i++)
+                    {
+                        nozzles.Add(PumpAuthorizeData.Nozzles[i]);
+                    }
+                    dataJObject["Nozzles"] = nozzles;
+                    break;
+                case enums.NozzleOrFuelIdSelector.FUELGRADEID:
+                    dataJObject["FuelGradeId"] = PumpAuthorizeData.FuelGradeId;
+                    break;
+                case enums.NozzleOrFuelIdSelector.FUELGRADEIDS:
+                    JArray fuelGradeIds = new JArray();
+                    for(int i = 0;i<PumpAuthorizeData.FuelGradeIds.Count;i++)
+                    {
+                        fuelGradeIds.Add(PumpAuthorizeData.FuelGradeIds[i]);
+                    }
+                    dataJObject["FuelGradeIds"] = fuelGradeIds;
+                    break;
+                case enums.NozzleOrFuelIdSelector.NONE:
+                default:
+                     break;
+
+            }
+
+            dataJObject["Type"] = EnumerationHelper.GetEnumDescription(PumpAuthorizeData.Type);
+
+            if (PumpAuthorizeData.Type != PumpAuthorizeType.FULLTANK)
+            {
+                dataJObject["Dose"] = PumpAuthorizeData.Dose;
+            }
+
+            if (PumpAuthorizeData.PriceEnabled)
+            {
+                dataJObject["Price"] = PumpAuthorizeData.Price;
+            }
+            if (PumpAuthorizeData.TransactionEnabled)
+            {
+                dataJObject["Transaction"] = PumpAuthorizeData.Transaction;
+            }
+            dataJObject["AutoCloseTransaction"] = PumpAuthorizeData.AutoCloseTransaction.ToString().ToLower();
+
+            return base.RequestJSON(dataJObject);
+        }
+
+
+        public override void ParseJSON(JObject jObject)
+        {
+            base.ParseJSON(jObject);
+            if(IsError())
+            {
+                return;
+            }
+            if(!jObject.ContainsKey("Data"))
+            {
+                throw new Exception("Error: response doesn't contain Data property");
+            }
+
+            JObject data = jObject["Data"].ToObject<JObject>();
+            PumpAuthorizeConfirmation pumpAuthorizeConfirmation = new PumpAuthorizeConfirmation();
+
+            if(!data.ContainsKey("Pump"))
+            {
+                throw new Exception("Error: response doesn't contain Pump property");
+            }
+
+            pumpAuthorizeConfirmation.Pump = Convert.ToInt32(data["Pump"]?.ToString());
+
+            if(!data.ContainsKey("Transaction"))
+            {
+                throw new Exception("Error: response doesn't contain Transaction property");
+            } 
+            pumpAuthorizeConfirmation.Transaction = Convert.ToInt32(data["Transaction"]?.ToString());
+
+            _result = pumpAuthorizeConfirmation;
+        }
+
+        public override int GetErrorCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override List<string> GetPossibleResponseNames()
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public override void SetErrorCode(int errorCode)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+

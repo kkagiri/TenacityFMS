@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Domain.Entities
 {
-    public  partial class TankTransfer
+    public partial class TankTransfer
     {
         public int Id { get; set; }
         public int? SourceTankId { get; set; }

@@ -17,7 +17,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
     public class DeletePermissionCommandHandler : IRequestHandler<DeletePermissionCommand, bool>
     {
         private readonly GpsdataContext _context;
-        private readonly ILogger<DeletePermissionCommandHandler> _logger;   
+        private readonly ILogger<DeletePermissionCommandHandler> _logger;
 
 
         public DeletePermissionCommandHandler(GpsdataContext context, ILogger<DeletePermissionCommandHandler> logger)
@@ -42,11 +42,12 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
                 return true;
 
 
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message, "Issues deleting permission");
                 throw;
-            }   
+            }
         }
     }
 }

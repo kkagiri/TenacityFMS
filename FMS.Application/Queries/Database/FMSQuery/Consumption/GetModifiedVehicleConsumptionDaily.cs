@@ -23,7 +23,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
         private readonly ILogger<GetModifiedVehicleCosumptionDailyHandler> _logger;
         private readonly IMapper _mapper;
 
-        public GetModifiedVehicleCosumptionDailyHandler (IMapper mapper,GpsdataContext context, ILogger<GetModifiedVehicleCosumptionDailyHandler> logger)
+        public GetModifiedVehicleCosumptionDailyHandler(IMapper mapper, GpsdataContext context, ILogger<GetModifiedVehicleCosumptionDailyHandler> logger)
         {
             _context = context;
             _logger = logger;

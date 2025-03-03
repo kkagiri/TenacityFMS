@@ -9,7 +9,7 @@ namespace FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Status;
 
 public record DeleteIssueStatusCommand(int Id) : IRequest<Unit>;
 
-public class DeleteIssueStatusCommandHandler : IRequestHandler<DeleteIssueStatusCommand,Unit>
+public class DeleteIssueStatusCommandHandler : IRequestHandler<DeleteIssueStatusCommand, Unit>
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<DeleteIssueStatusCommandHandler> _logger;
@@ -22,25 +22,26 @@ public class DeleteIssueStatusCommandHandler : IRequestHandler<DeleteIssueStatus
 
     public async Task<Unit> Handle(DeleteIssueStatusCommand request, CancellationToken cancellationToken)
     {
-        try{
-        var entity = await _context.Issuestatuses.FindAsync(request.Id);
-        if (entity == null)
+        try
         {
-            _logger.LogWarning("Issue status with ID: {Id} not found", request.Id);
+            var entity = await _context.Issuestatuses.FindAsync(request.Id);
+            if (entity == null)
+            {
+                _logger.LogWarning("Issue status with ID: {Id} not found", request.Id);
+                return Unit.Value;
+            }
+
+            _context.Issuestatuses.Remove(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Issue status with ID: {Id} deleted", request.Id);
+
             return Unit.Value;
         }
-
-        _context.Issuestatuses.Remove(entity);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Issue status with ID: {Id} deleted", request.Id);
-
-        return Unit.Value;
-        }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-             _logger.LogError("Error deleting issue status ", ex);
-             throw new Exception("Error deleting issue status", ex);
+            _logger.LogError("Error deleting issue status ", ex);
+            throw new Exception("Error deleting issue status", ex);
         }
     }
 }

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement
 {
-   public record LoginCommand (string Username, string Password):IRequest<string>;
+    public record LoginCommand(string Username, string Password) : IRequest<string>;
 
     public class LoginCommandHandler : IRequestHandler<LoginCommand, string>
     {
@@ -23,7 +23,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMemoryCache _memoryCache;
 
-        public LoginCommandHandler(UserManager<User> userManager,IMemoryCache memoryCache, IJwtGenerator jwtGenerator, GpsdataContext context, IHttpContextAccessor httpContextAccessor)
+        public LoginCommandHandler(UserManager<User> userManager, IMemoryCache memoryCache, IJwtGenerator jwtGenerator, GpsdataContext context, IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _jwtGenerator = jwtGenerator;
@@ -97,7 +97,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
             _memoryCache.Remove(cacheTimeKey);
 
             // Create token
-            return await  _jwtGenerator.CreateToken(user);
+            return await _jwtGenerator.CreateToken(user);
         }
 
     }

@@ -23,20 +23,21 @@ public class FuelRefilDeleteCommandHandler : IRequestHandler<FuelRefilDeleteComm
 
     public async Task<bool> Handle(FuelRefilDeleteCommand request, CancellationToken cancellationToken)
     {
-        try{
-        var fuelRefil = await _context.Fuelrefils.FirstOrDefaultAsync(x=>x.Id == request.Id , cancellationToken);
-        if (fuelRefil == null) return false;
+        try
+        {
+            var fuelRefil = await _context.Fuelrefils.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+            if (fuelRefil == null) return false;
 
-        _context.Fuelrefils.Remove(fuelRefil);
-        await _context.SaveChangesAsync(cancellationToken);
+            _context.Fuelrefils.Remove(fuelRefil);
+            await _context.SaveChangesAsync(cancellationToken);
 
-        return true;
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in FuelRefilDeleteCommandHandler");
             throw new Exception(ex.ToString());
-            
+
         }
     }
 }

@@ -42,6 +42,7 @@ public partial class Pumptransaction
     public int? UserId { get; set; }
 
     public string? ConfigurationId { get; set; }
-        public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
+    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
 
+    public virtual Ptsdevice Pts { get; set; } = null!;
 }

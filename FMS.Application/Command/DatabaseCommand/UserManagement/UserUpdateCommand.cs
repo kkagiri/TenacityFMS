@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement
 {
-   public record UserUpdateCommand(string UserId,string Email,string UserName, string RoleName) : IRequest<bool>;
+    public record UserUpdateCommand(string UserId, string Email, string UserName, string RoleName) : IRequest<bool>;
 
     public class UserUpdateCommandHandler : IRequestHandler<UserUpdateCommand, bool>
     {
@@ -29,7 +29,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
 
         public async Task<bool> Handle(UserUpdateCommand request, CancellationToken cancellationToken)
         {
-            try{
+            try
+            {
                 var user = await _userManager.FindByIdAsync(request.UserId);
 
                 if (user == null)
@@ -43,13 +44,13 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
 
                 var result = await _userManager.UpdateAsync(user);
 
-                if(!result.Succeeded)
+                if (!result.Succeeded)
                 {
                     _logger.LogError("Update user: Error updating user");
                     throw new Exception(string.Join("; ", result.Errors.Select(e => e.Description)));
                 }
 
-                if(!string.IsNullOrEmpty(request.RoleName))
+                if (!string.IsNullOrEmpty(request.RoleName))
                 {
                     var roleExists = await _roleManager.RoleExistsAsync(request.RoleName);
                     if (!roleExists)
@@ -74,7 +75,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
                 return true;
 
 
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating user");
                 throw new Exception("Error updating user", ex);

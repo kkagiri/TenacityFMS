@@ -28,8 +28,8 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> GetSiteList()
         {
 
-           var query = new GetSiteQuery();
-            var sites =await _mediator.Send(query);
+            var query = new GetSiteQuery();
+            var sites = await _mediator.Send(query);
             return Ok(sites);
 
         }
@@ -80,9 +80,9 @@ namespace FMS.WebClient.Controllers
 
 
         //update site 
- 
 
-     
+
+
 
     }
 }

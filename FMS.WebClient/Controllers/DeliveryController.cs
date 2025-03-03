@@ -51,7 +51,7 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> GetDeliveries()
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
-           // if (!hasPermission) return Forbid();
+            // if (!hasPermission) return Forbid();
             var result = await _mediator.Send(new GetDeliveryListQuery());
             if (result == null) return NoContent();
             return Ok(result);
@@ -60,14 +60,14 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("byDateRange")]
         [Authorize]
-        
-        public async Task<IActionResult> GetDeliveryById(DateTime startDate,DateTime endDate)
+
+        public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate)
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
             //if (!hasPermission) return Forbid();
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
-            var result = await _mediator.Send(new GetDeliveryListByDateRangeQuery(startDate,endDate));
+            var result = await _mediator.Send(new GetDeliveryListByDateRangeQuery(startDate, endDate));
             if (result == null) return NotFound();
             return Ok(result);
         }
@@ -79,7 +79,7 @@ namespace FMS.WebClient.Controllers
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
             //if (!hasPermission) return Forbid();
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
-            if(siteId <= 0) return BadRequest("Invalid Site ID");
+            if (siteId <= 0) return BadRequest("Invalid Site ID");
             var result = await _mediator.Send(new GetDeliveryListQueryByDateRangeBySiteIDQuery(startDate, endDate, siteId));
             if (result == null) return NotFound();
             return Ok(result);

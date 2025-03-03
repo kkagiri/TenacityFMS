@@ -6,7 +6,7 @@ using FMS.Domain.Entities.Reports;
 
 namespace FMS.Application.ModelsDTOs.FMS.Reports;
 
-public class VehicleConsumptionReportDTO 
+public class VehicleConsumptionReportDTO
 {
-  
+
 }

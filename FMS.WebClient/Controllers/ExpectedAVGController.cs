@@ -15,11 +15,11 @@ namespace FMS.WebClient.Controllers
     [Route("api/[controller]")]
     public class ExpectedAVGController : ControllerBase
     {
-       
+
         private readonly IMediator _mediator;
         private readonly IMapper _mapper;
 
-        public ExpectedAVGController(IMediator mediator,IMapper mapper)
+        public ExpectedAVGController(IMediator mediator, IMapper mapper)
         {
             _mapper = mapper;
             _mediator = mediator;
@@ -51,7 +51,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("classification/create")]
-        public async Task <IActionResult> CreateExpClassfication([FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
+        public async Task<IActionResult> CreateExpClassfication([FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
         {
             if (!ModelState.IsValid)
             {
@@ -96,18 +96,18 @@ namespace FMS.WebClient.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateExpectedAVG(List<ExpectedAVGViewModel> expectedAVGViewModel)
         {
-          
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest();
-                }
 
-                var map = _mapper.Map<List<ExpectedAVGDto>>(expectedAVGViewModel); // mapping to a list
-           
-                var command = new ExpectedAVGCreateCmd
-                {
-                    ExpectedAVGDto = map
-                };
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+            var map = _mapper.Map<List<ExpectedAVGDto>>(expectedAVGViewModel); // mapping to a list
+
+            var command = new ExpectedAVGCreateCmd
+            {
+                ExpectedAVGDto = map
+            };
             try
             {
                 var (created, duplicates) = await _mediator.Send(command);
@@ -121,7 +121,7 @@ namespace FMS.WebClient.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
-            }
+        }
 
     }
 }

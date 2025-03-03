@@ -15,16 +15,16 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions
 {
-  public record GetPermissionsByRoleIDQuery(string RoleId) : IRequest<List<PermissionDTO>>;
+    public record GetPermissionsByRoleIDQuery(string RoleId) : IRequest<List<PermissionDTO>>;
 
 
     public class GetPermissionsByRoleIDQueryHandler : IRequestHandler<GetPermissionsByRoleIDQuery, List<PermissionDTO>>
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<GetPermissionsByRoleIDQueryHandler> _logger;
-        private readonly IMapper _mapper;   
+        private readonly IMapper _mapper;
 
-        public GetPermissionsByRoleIDQueryHandler(GpsdataContext context,IMapper mapper, ILogger<GetPermissionsByRoleIDQueryHandler> logger)
+        public GetPermissionsByRoleIDQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetPermissionsByRoleIDQueryHandler> logger)
         {
             _context = context;
             _logger = logger;
@@ -50,7 +50,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions
             .Select(rp => rp.Permission)
             .ToListAsync(cancellationToken);
 
-        return   _mapper.Map<List<PermissionDTO>>(permissions);
+                return _mapper.Map<List<PermissionDTO>>(permissions);
             }
             catch (Exception ex)
             {

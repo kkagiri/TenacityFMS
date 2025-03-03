@@ -28,7 +28,7 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
         private readonly IMapper _mapper;
         private readonly ILogger _logger;
 
-        public ExpectedAVGCreateCmdHandler(GpsdataContext context, IMapper mapper , ILogger<ExpectedAVGCreateCmdHandler> logger )
+        public ExpectedAVGCreateCmdHandler(GpsdataContext context, IMapper mapper, ILogger<ExpectedAVGCreateCmdHandler> logger)
         {
             this.context = context;
             _mapper = mapper;
@@ -40,9 +40,9 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
             var createdExpectedAVGs = new List<ExpectedAVGDto>();
             var duplicates = new List<ExpectedAVGDto>();
 
-            foreach(var dto in request.ExpectedAVGDto)
+            foreach (var dto in request.ExpectedAVGDto)
             {
-                bool isDuplicate =await  context.Expectedaverages.AnyAsync(e => e.VehicleId == dto.VehicleId &&
+                bool isDuplicate = await context.Expectedaverages.AnyAsync(e => e.VehicleId == dto.VehicleId &&
                                                      e.SiteId == dto.SiteId &&
                                                       e.ExpectedAverageClassificationId == dto.ExpectedAverageClassificationId);
 
@@ -75,8 +75,8 @@ namespace FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd
                 {
                     duplicates.Add(dto);
                 }
-         
-    }
+
+            }
 
 
             return (createdExpectedAVGs, duplicates);

@@ -41,7 +41,7 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 
             var fuelRefilDto = request.FuelRefilDTO;
 
-            var entryDate = request.FuelRefilDTO?.Date?? DateTime.Now;
+            var entryDate = request.FuelRefilDTO?.Date ?? DateTime.Now;
             //TODO: Insert check for configuration enforcement to use start of day for opening check 
             // Check if there is opening stock for the tank on the entry day 
             var existingOpeningStock = await _context.TankVolumeHistories
@@ -51,7 +51,7 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
                   .OrderByDescending(x => x.Timestamp.Date)
                   .FirstOrDefaultAsync(cancellationToken);
 
-            if( existingOpeningStock == null) return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate.Date} not found Create A new Opening Stock ");
+            if (existingOpeningStock == null) return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate.Date} not found Create A new Opening Stock ");
 
             var existingRefuel = await _context.Fuelrefils
                 .FirstOrDefaultAsync(f =>
@@ -62,8 +62,8 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
                     f.ManualFuelrefilAmount == fuelRefilDto.ManualFuelrefilAmount,
                     cancellationToken);
 
-            if (existingRefuel != null)  return new FMSResponseMessage(false, "Duplicate entry: A fuel refill with the same details already exists for this vehicle on the specified date.");
-            
+            if (existingRefuel != null) return new FMSResponseMessage(false, "Duplicate entry: A fuel refill with the same details already exists for this vehicle on the specified date.");
+
             if (request.FuelRefilDTO.ManualFuelrefilAmount <= 0) return new FMSResponseMessage(false, "Fuel refill amount should be greater than 0.");
 
             var vehicle = await _context.Vehicles
@@ -119,20 +119,20 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
             _context.Fuelrefils.Add(fuelRefil);
 
             // We check if the tank is using book keeping and update the stock accordingly
-            if(tank.UseBookKeeping == 1)
-            { 
+            if (tank.UseBookKeeping == 1)
+            {
                 //check if the date of the fuel refill is today or past date 
-               var today = DateTime.Now.Date;
+                var today = DateTime.Now.Date;
 
-                if( entryDate.Date == today)
+                if (entryDate.Date == today)
                 {
                     tank.CurrentStock -= (decimal)fuelRefil.ManualFuelrefilAmount;
                     tank.LastStockUpdate = DateTime.Now;
                 }
 
-              
+
             }
-   
+
 
             await _context.SaveChangesAsync(cancellationToken);
 

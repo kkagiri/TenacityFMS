@@ -14,7 +14,7 @@ namespace FMS.Application.ModelsDTOs.ExpectedAVG
 
         public int? vehicleID { get; set; }
 
-        public int? expectedAverageClassificationId { get; set; } 
+        public int? expectedAverageClassificationId { get; set; }
 
         public string expectedAverageClassificationName { get; set; } = null!;
 
@@ -26,7 +26,7 @@ namespace FMS.Application.ModelsDTOs.ExpectedAVG
         public string vehicleModel { get; set; } = null!;
 
         public string vehicleManufacturer { get; set; } = null!;
-        public string vehicleType { get; set; } =   null!;
+        public string vehicleType { get; set; } = null!;
 
     }
 }

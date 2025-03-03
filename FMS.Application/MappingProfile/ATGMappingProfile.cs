@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FMS.Application.ModelsDTOs.ATG;
+using FMS.Application.ModelsDTOs.FMS;
 using FMS.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -9,13 +10,14 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.MappingProfile
 {
-    public class ATGMappingProfile:Profile
+    public class ATGMappingProfile : Profile
     {
         public ATGMappingProfile()
         {
-            CreateMap<InTankDeliveryDTO,Intankdelivery>().ReverseMap();
+            CreateMap<InTankDeliveryDTO, Intankdelivery>().ReverseMap();
             //CreateMap<Pumptransaction, PumpTransactionDto>().ReverseMap();
-           CreateMap<AlertRecordDTO, Alertrecord>().ReverseMap();
+            CreateMap<AlertRecordDTO, Alertrecord>().ReverseMap();
+
         }
     }
 }

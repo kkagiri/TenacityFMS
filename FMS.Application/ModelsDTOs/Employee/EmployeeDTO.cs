@@ -24,7 +24,7 @@ namespace FMS.Application.Models.Employee
         [JsonPropertyName("employeephoneNumber")]
         public string EmployeephoneNumber { get; set; } = string.Empty;
 
-   
+
 
         [JsonPropertyName("employeestatus")]
         public string Employeestatus { get; set; } = "Active";

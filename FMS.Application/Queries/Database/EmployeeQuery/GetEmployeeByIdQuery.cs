@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.EmployeeQuery
 {
-    public class GetEmployeeByIdQuery :IRequest<EmployeeDto>
+    public class GetEmployeeByIdQuery : IRequest<EmployeeDto>
 
     {
         public int Id { get; set; }
@@ -32,8 +32,8 @@ namespace FMS.Application.Queries.Database.EmployeeQuery
         public async Task<EmployeeDto> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
         {
             var result = await _context.Employees
-                .Include(e=>e.Vehicles)
-                .FirstOrDefaultAsync(e=>e.Id==request.Id,cancellationToken);
+                .Include(e => e.Vehicles)
+                .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
 
             if (result == null)

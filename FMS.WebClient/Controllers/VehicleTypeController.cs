@@ -12,7 +12,7 @@ namespace FMS.WebClient.Controllers
 
     public class VehicleTypeController : ControllerBase
     {
-       private readonly IMediator _mediator;
+        private readonly IMediator _mediator;
         public VehicleTypeController(IMediator mediator)
         {
             _mediator = mediator;

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Category;
 
 // Command record for device status
-public record IssueCategoryCreateCommand (Issuecategory Issuecategory) : IRequest<int>;
+public record IssueCategoryCreateCommand(Issuecategory Issuecategory) : IRequest<int>;
 
 // Command handler for device status creation
 public class IssueCategoryCreateCommandHandler : IRequestHandler<IssueCategoryCreateCommand, int>

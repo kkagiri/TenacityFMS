@@ -7,9 +7,9 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceTypeCommands;
 public record DeleteDeviceTypeCommand(int Id) : IRequest<Unit>;
 
-public class DeleteDeviceTypeCommandHandler : IRequestHandler<DeleteDeviceTypeCommand,Unit>
+public class DeleteDeviceTypeCommandHandler : IRequestHandler<DeleteDeviceTypeCommand, Unit>
 {
-    
+
     private readonly GpsdataContext _context;
     private readonly ILogger<DeleteDeviceTypeCommandHandler> _logger;
 

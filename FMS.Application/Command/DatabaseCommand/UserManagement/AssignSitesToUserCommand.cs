@@ -1,6 +1,5 @@
 ﻿using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -32,7 +31,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
             {
                 var isvalidUserID = await _context.Users.AnyAsync(x => x.Id == request.UserId);
                 if (!isvalidUserID) throw new Exception("Invalid User Id");
-                
+
                 var userSites = await _context.UserSites.Where(x => x.UserId == request.UserId).ToListAsync(cancellationToken);
                 _context.UserSites.RemoveRange(userSites);
                 await _context.SaveChangesAsync(cancellationToken);
@@ -67,4 +66,3 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         }
     }
 }
-      

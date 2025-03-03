@@ -9,7 +9,7 @@ namespace FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
 public record DeleteIssueCommand(int Id) : IRequest<Unit>;
 
 
-public class DeleteIssueCommandHandler : IRequestHandler<DeleteIssueCommand,Unit>
+public class DeleteIssueCommandHandler : IRequestHandler<DeleteIssueCommand, Unit>
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<DeleteIssueCommandHandler> _logger;
@@ -22,20 +22,21 @@ public class DeleteIssueCommandHandler : IRequestHandler<DeleteIssueCommand,Unit
 
     public async Task<Unit> Handle(DeleteIssueCommand request, CancellationToken cancellationToken)
     {
-        try{
-        var entity = await _context.Issuetrackers.FindAsync(request.Id);
-        if (entity == null)
+        try
         {
-            _logger.LogWarning("Issue with ID: {Id} not found", request.Id);
+            var entity = await _context.Issuetrackers.FindAsync(request.Id);
+            if (entity == null)
+            {
+                _logger.LogWarning("Issue with ID: {Id} not found", request.Id);
+                return Unit.Value;
+            }
+
+            _context.Issuetrackers.Remove(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Issue with ID: {Id} deleted", request.Id);
+
             return Unit.Value;
-        }
-
-        _context.Issuetrackers.Remove(entity);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Issue with ID: {Id} deleted", request.Id);
-
-        return Unit.Value;
         }
         catch (Exception ex)
         {

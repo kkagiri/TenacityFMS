@@ -1,5 +1,4 @@
 ﻿using FMS.Domain.Entities;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Razor.TagHelpers;
@@ -13,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
 {
-   public record RoleCreateCommand (string RoleName,string Description) : IRequest<string>;
+    public record RoleCreateCommand(string RoleName, string Description) : IRequest<string>;
 
     public class RoleCreateCommandHandler : IRequestHandler<RoleCreateCommand, string>
     {
@@ -37,7 +36,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
                 {
                     Name = request.RoleName,
                     Description = request.Description,
-                    
+
                 };
                 var results = await _roleManager.CreateAsync(role);
 
@@ -50,11 +49,12 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
                     var errors = string.Join(", ", results.Errors.Select(e => e.Description));
                     throw new Exception($"Role creation failed: {errors}");
                 }
-            }catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 throw;
-            }   
+            }
         }
     }
 }

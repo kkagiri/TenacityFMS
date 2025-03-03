@@ -1,0 +1,1572 @@
+
+Folder: .config
+
+Folder: FMS.Application
+  File: JWTGenerator.cs
+  File: Program.cs
+  File: PTSModule.cs
+
+Folder: FMS.Application\Command
+Folder: FMS.Application\Command\DatabaseCommand
+Folder: FMS.Application\Command\DatabaseCommand\ATGCommands
+Folder: FMS.Application\Command\DatabaseCommand\ATGCommands\AlertRecordCommand
+  File: CreateAlertRecordCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ATGCommands\InTankDeliveryCommand
+  File: CreateInTankDeliveryCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ATGCommands\PumpTransactoinCommand
+  File: CreatePumpTransactionCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ATGCommands\TankMeasurementsCommand
+  File: CreateTankMeasurementCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ConsumtionCmd
+  File: ConsumptionCreateCmd.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ConsumtionCmd\Update
+  File: ComsumptionUpdate.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\DeliveriesCommands
+  File: CreateDeliveryCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\DeviceManagement
+Folder: FMS.Application\Command\DatabaseCommand\DeviceManagement\DeviceCommands
+  File: CreateDeviceCommand.cs
+  File: DeleteDeviceCommand.cs
+  File: UpdateDeviceCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\DeviceManagement\DeviceManufacturerCommands
+  File: CreateDeviceManufacturerCommand.cs
+  File: DeleteDeviceManufacturerCommand.cs
+  File: UpdateDevicemanufacturerCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\DeviceManagement\DeviceModelCommands
+  File: CreateDeviceModelCommand.cs
+  File: DeleteDeviceModelCommand.cs
+  File: UpdateDeviceModelCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\DeviceManagement\DeviceTypeCommands
+  File: CreateDeviceTypeCommand.cs
+  File: DeleteDeviceTypeCommand.cs
+  File: UpdateDeviceTypeCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\DispatchCommands
+Folder: FMS.Application\Command\DatabaseCommand\EmployeeCmd
+  File: EmployeeCreateCmd.cs
+  File: EmployeeDeleteCmd.cs
+  File: EmployeeUpdateCmd.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ExpectedAVGCmd
+  File: ExpectedAVGCreateCmd.cs
+  File: ExpectedAVGUpdateCmd.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ExptAVGClassificationCmd
+  File: ExpectedAVGClassificationUpdateCmd.cs
+  File: ExptAVGClassificationCreateCmd.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ATGCommands
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ATGCommands\AlertRecordCommand
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ATGCommands\InTankDeliveryCommand
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ATGCommands\PumpTransactoinCommand
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ATGCommands\TankMeasurementsCommand
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ConsumtionCmd
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ConsumtionCmd\Update
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ExpectedAVGCmd
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\ExptAVGClassificationCmd
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\FuelRefillCommand
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\TagCmd
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\TankManagementCommand
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\VehicleCmd
+Folder: FMS.Application\Command\DatabaseCommand\FMSCommands\VehicleModelCommand
+Folder: FMS.Application\Command\DatabaseCommand\FuelRefillCommand
+  File: CreateFuelRrefillCommand.cs
+  File: DeleteFuelRefillCommand.cs
+  File: UpdateFuelRefillCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands\AssignmentTracker
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands\Category
+  File: CreateIssueCategoryCommand.cs
+  File: DeleteIssueCategoryCommand.cs
+  File: UpdateIssueCategoryCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands\Devices
+  File: DeviceCreateCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands\Issues
+  File: CreateIssueCommand.cs
+  File: DeleteIssueCommand.cs
+  File: UpdateIssueCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands\Priority
+  File: PriorityCreateCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\IssueTrackerCommands\Status
+  File: DeleteIssueStatusCommand.cs
+  File: IssueStatusCreateCommand.cs
+  File: UpdateIssueStatusCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\NavigationCommand
+  File: AssignRoleToNavigationCommand.cs
+  File: CreateNavigationCommand.cs
+  File: DeleteNavigationCommand.cs
+  File: UpdateNavigationCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\ReportCommands
+  File: GenerateReportCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\SupplierCommands
+  File: CreateSupplierCommand.cs
+  File: DeleteSupplierCommand.cs
+  File: UpdateSupplierCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\TagCmd
+  File: TagCreateCmd.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\TankCommands
+  File: CreateTankCommand.cs
+  File: DeleteTankCommand.cs
+  File: UpdateTankCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\TankStockCommand
+  File: ClosingStockCommand.cs
+  File: CreateTankStockCommand.cs
+  File: DeleteTankStockCommand.cs
+  File: OpeningStockCommand.cs
+  File: UpdateTankStockCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\TankTransferCommand
+  File: CreateTankTransfer.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\TankVolumeHistoryCommand
+  File: CreateTankVolumeHistoryCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\UserActivitiesCommands
+  File: CreateUserActivitiesCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\UserManagement
+  File: AssignSitesToUserCommand.cs
+  File: AssignUserRoleCommand.cs
+  File: AssignUserRolesCommand.cs
+  File: RestoreUserCommand.cs
+  File: UserCreateCommand.cs
+  File: UserDeleteCommand.cs
+  File: UserLogin.cs
+  File: UserPermanentDeleteCommand.cs
+  File: UserUpdateCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\UserManagement\PermisionCommands
+  File: AddPermissionCommand.cs
+  File: AssignPermissionToRoles.cs
+  File: DeletePermissionCommand.cs
+  File: UpdatePermissionCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\UserManagement\RolesCommands
+  File: RoleCreateCommand.cs
+  File: RoleDeleteCommand.cs
+  File: RoleUpdateCommand.cs
+  File: UpdateRoleUsersCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\VehicleCmd
+  File: UpdateSingleVehicleCommand.cs
+  File: UpdatevehicleCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\VehicleModelCmd
+  File: CreateVehicleModelCommand.cs
+
+Folder: FMS.Application\Command\DatabaseCommand\VehicleModelCommand
+  File: CreateVehicleModelCommand.cs
+
+Folder: FMS.Application\Command\PTSCommand
+Folder: FMS.Application\Command\PTSCommand\ProbeCommands
+  File: SetProbeConfigurationCommand.cs
+  File: UpdateProbeMeasurementCommand.cs
+
+Folder: FMS.Application\Command\PTSCommand\PumpCommands
+  File: AuthorizePumpCommand.cs
+  File: ClosePumpTransactionCommand.cs
+  File: EmergencyStopPumpCommand.cs
+  File: PumpGetTagCommand.cs
+  File: ResumePumpCommand.cs
+  File: SetPumpPriceCommand.cs
+  File: StopPumpCommand.cs
+  File: SuspendPumpCommand.cs
+
+Folder: FMS.Application\Command\PTSCommand\SystemCommands
+  File: RestartSystemCommand.cs
+  File: SetDailyProcessingTimeCommand.cs
+  File: SetDecimalDigitsCommand.cs
+  File: SetMeasurementUnitsCommand.cs
+
+Folder: FMS.Application\Command\PTSCommand\TagCommands
+  File: AuthenticateTagCommand.cs
+
+Folder: FMS.Application\Command\PTSCommand\TankCommands
+  File: SetTankConfigurationCommand.cs
+  File: UpdateTankMeasurementCommand.cs
+
+Folder: FMS.Application\Command\SignalCommand
+Folder: FMS.Application\Common
+  File: ConfirmationMessage.cs
+  File: FMSResponse.cs
+  File: NotFoundException.cs
+
+Folder: FMS.Application\Common\Interface
+  File: ICommand.cs
+  File: IQuery.cs
+  File: IReportDataLoader.cs
+
+Folder: FMS.Application\Common\Interfacehandler
+  File: ICommandhandler.cs
+  File: IQueryHandler.cs
+
+Folder: FMS.Application\CommonInterface
+  File: IGpsGateAccessDirectory.cs
+
+Folder: FMS.Application\Features
+Folder: FMS.Application\Features\Dispatch
+Folder: FMS.Application\Features\Dispatch\Common
+Folder: FMS.Application\Features\Dispatch\Common\CheckResults
+Folder: FMS.Application\FuelDispensing
+Folder: FMS.Application\FuelDispensing\Commands
+  File: SendPumpAuthorizeCommand .cs
+  File: UploadStatusCommandHandler.cs
+
+Folder: FMS.Application\FuelDispensing\DTOs
+Folder: FMS.Application\FuelDispensing\Queries
+Folder: FMS.Application\Helpers
+  File: PtsErrorCode.cs
+
+Folder: FMS.Application\MappingProfile
+  File: ATGMappingProfile.cs
+  File: MappingProfile.cs
+
+Folder: FMS.Application\ModelsDTOs
+  File: ExpctAVGClassficationDTO.cs
+  File: VehicleConsumptionInfoDTO.cs
+  File: VehicleModelDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\ATG
+  File: AlertRecordDTO.cs
+  File: InTankDeliveryDTO.cs
+  File: PumpTransactionDto.cs
+  File: TankMeasurementDto.cs
+
+Folder: FMS.Application\ModelsDTOs\ATG\Common
+  File: PtsRequestDto.cs
+
+Folder: FMS.Application\ModelsDTOs\Employee
+  File: EmployeeDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\ExpectedAVG
+  File: ExpectedAVGDto.cs
+  File: ExpectedAVGVehicleDetailsDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS
+  File: ExpctAVGClassficationDTO.cs
+  File: TagDTO.cs
+  File: VehicleConsumptionInfoDTO.cs
+  File: VehicleModelDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Consumption
+  File: HistoryConsumptionDTO.cs
+  File: ManualDispenseConsumptionDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Delivery.cs
+  File: DeliveryDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Employee
+  File: EmployeeDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\ExpectedAVG
+  File: ExpectedAVGDto.cs
+  File: ExpectedAVGVehicleDetailsDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\FuelRefil
+  File: ExtendedRefillDetailDTO.cs
+  File: FuelRefilDTO.cs
+  File: RefillSummaryDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\IssueTracker
+  File: IssueTrackerDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Report
+  File: VehicleConsumptionReport.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Supplier
+  File: SupplierDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Tank
+  File: TankDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\TankReconciliation
+  File: TankReconcillationDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\TankStock
+  File: TankStockDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\TankTransfer
+  File: TankTransferDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\TankVolumeHistory
+  File: TankVolumeHistoryDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\UserManagement
+  File: PermissionDTO.cs
+  File: RoleDto.cs
+
+Folder: FMS.Application\ModelsDTOs\FMS\Vehicle
+  File: SimpleVehicleDto.cs
+  File: VehicleDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\NaftaATG
+  File: CardDetailsDTO.cs
+  File: SalesTranscationDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\Site
+  File: SiteDTO.cs
+
+Folder: FMS.Application\ModelsDTOs\Vehicle
+  File: SimpleVehicleDto.cs
+  File: VehicleListDTO.cs
+
+Folder: FMS.Application\Queries
+Folder: FMS.Application\Queries\Database
+Folder: FMS.Application\Queries\Database\EmployeeQuery
+  File: GetEmployee.cs
+  File: GetEmployeeByIdQuery.cs
+
+Folder: FMS.Application\Queries\Database\ExpectedAvg
+  File: GetExpectAVGClassificationlist.cs
+  File: GetExpectedAverageByVehicleBySite.cs
+  File: GetExpectedAVGByIdQuery.cs
+  File: GetExpectedAVGQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery
+Folder: FMS.Application\Queries\Database\FMSQuery\Consumption
+  File: GetConsumptionByIdQuery .cs
+  File: GetConsumptionByVehicleQuery.cs
+  File: GetConsumptionListQuery.cs
+  File: GetModifiedVehicleConsumptionDaily.cs
+  File: GetUnmodifiedConsumptionQuery.cs
+  File: GetVehicleConsumptionManualRefillByVehicleIDQuery .cs
+  File: GetVehicleConsumptionManualRefillQuery.cs
+  File: GetVehicleConsumptionManualRefillQueryBySite.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\DeliveryQueries
+  File: GetDeliveryListByDateRangeBySiteIdQuery.cs
+  File: GetDeliveryListByDateRangeQuery.cs
+  File: GetDeliveryListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\DeviceManager
+Folder: FMS.Application\Queries\Database\FMSQuery\DeviceManager\DeviceManufacturerQueries
+  File: GetDeviceManfucturerListQuery.cs
+  File: GetDeviceManufacturerByIDQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\DeviceManager\DeviceModelQueries
+  File: GetDeviceModelByIdQuery.cs
+  File: GetDeviceModelListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\DeviceManager\DeviceQueries
+  File: GetDeviceByIdQuery.cs
+  File: GetDeviceListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\DeviceManager\DeviceTypeQueries
+  File: GetDeviceTypeByIdQuery.cs
+  File: GetDeviceTypeListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\EmployeeQuery
+  File: GetEemployeeBySite.cs
+  File: GetEmployee.cs
+  File: GetEmployeeByIdQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\ExpectedAvg
+  File: GetExpectAVGClassificationlist.cs
+  File: GetExpectedAverageByVehicleBySite.cs
+  File: GetExpectedAVGByIdQuery.cs
+  File: GetExpectedAVGQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\FuelRefilQueries
+  File: FuelRefilGetbyIDQuery.cs
+  File: FuelRefillGetListQuery.cs
+  File: FuelRefillSummaryQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\IssueTrackerQueries
+  File: GetIssueListByIDQuery.cs
+  File: GetIssueListByVehiceIdQuery.cs
+  File: GetIssueListQuery.cs
+  File: GetIssuesByAssignedToQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\IssueTrackerQueries\Category
+  File: GetIssueCategoryListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\IssueTrackerQueries\Priority
+  File: GetIssuePriorityListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\IssueTrackerQueries\Status
+  File: GetIssueStatusListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\Navigation
+  File: GetNavigationItemByIdQuery.cs
+  File: GetNavigationItemListQuery.cs
+  File: GetNavigationItemListQueryByRole.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\ReportsQueries
+Folder: FMS.Application\Queries\Database\FMSQuery\SiteQuery
+  File: GetSiteQuery.cs
+  File: GetSitesByUserIdQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\SuppliersQueries
+  File: GetSupplierListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\TankManagement
+Folder: FMS.Application\Queries\Database\FMSQuery\TankQueries
+  File: GetTankByIdQuery.cs
+  File: GetTankBySiteIdQuery.cs
+  File: GetTankListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\TankReconciliation
+  File: GetDailyTankReconciliationBySiteQuery.cs
+  File: GetDailyTankReconcillationQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\TankStock
+  File: GetTankStockByIdQuery.cs
+  File: GetTankStockListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\TankVolumeHistory
+  File: GetTankVolumeHistoryByDateRangeQuery.cs
+  File: GetTankVolumeHistoryBySiteQuery.cs
+  File: GetTankVolumeHistoryByTankIdQuery.cs
+  File: GetTankVolumeHistoryQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\UserActivities
+  File: GetUserActivities.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\UserManagement
+Folder: FMS.Application\Queries\Database\FMSQuery\UserManagement\Authentication
+Folder: FMS.Application\Queries\Database\FMSQuery\UserManagement\Permissions
+  File: GetPermissionQuery.cs
+  File: GetPermissionsByRoleIDQuery.cs
+  File: GetUserPermissionQuery.cs
+  File: PermissionAuthorization.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\UserManagement\Roles
+  File: GetRoleByIDQuery.cs
+  File: GetRoleListQuery.cs
+  File: GetRolesByUserIDQuery.cs
+  File: GetUsersInRolesQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\UserManagement\UserQueries
+  File: GetUserByIdQuery.cs
+  File: GetUserByUserNameQuery.cs
+  File: GetUserListQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\UserManagement\UserTypeQueries
+Folder: FMS.Application\Queries\Database\FMSQuery\VehicleManufacturer
+  File: GetVehicleManufacturer.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\VehicleModelQuery
+  File: GetVehicleModelQuery.cs
+  File: GetVehicleModelsByManufacturerIdQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\VehicleQuery
+  File: GetlistVehicleListQuery.cs
+  File: GetSimpleVehicleQuery.cs
+  File: GetVehicleByIDQuery.cs
+
+Folder: FMS.Application\Queries\Database\FMSQuery\VehicleTypeQuery
+  File: GetVehicleTypeQuery.cs
+
+Folder: FMS.Application\Queries\Database\NaftaATGQueries
+Folder: FMS.Application\Queries\Database\NaftaATGQueries\CardDetailsQueries
+  File: GetCardDetailbyCardIDQuery.cs
+
+Folder: FMS.Application\Queries\Database\NaftaATGQueries\CardTransactionQueries
+  File: GetTransactionListQuery.cs
+
+Folder: FMS.Application\Queries\Database\PTSQueries
+  File: GetPTSDeviceConfigurationQuery.cs
+
+Folder: FMS.Application\Queries\Database\PTSQueries\TagQueries
+  File: GetDailyFuelIssuedForTagQuery.cs
+
+Folder: FMS.Application\Queries\Database\VehicleManufacturer
+  File: GetVehicleManufacturer.cs
+
+Folder: FMS.Application\Queries\Database\VehicleModelQuery
+  File: GetVehicleModelQuery.cs
+  File: GetVehicleModelsByManufacturerIdQuery.cs
+
+Folder: FMS.Application\Queries\Database\VehicleQuery
+  File: GetSimpleVehicleQuery.cs
+  File: GetVehicleQuery.cs
+  File: GetVehicleQueryHandler.cs
+
+Folder: FMS.Application\Queries\Database\VehicleTypeQuery
+  File: GetVehicleTypeQuery.cs
+
+Folder: FMS.Application\Queries\GPSGATEServer
+Folder: FMS.Application\Queries\GPSGATEServer\GetconsumptionReport
+  File: GetConsumptionReportQuery.cs
+  File: GetConsumptionReportQueryHandler.cs
+
+Folder: FMS.Application\Queries\GPSGATEServer\LoginQuery
+  File: LoginQuery.cs
+
+Folder: FMS.Application\Queries\PTS
+Folder: FMS.Application\Queries\PTSQueries
+Folder: FMS.Application\Queries\PTSQueries\PriceBoardQueries
+Folder: FMS.Application\Queries\PTSQueries\ProbeQueries
+Folder: FMS.Application\Queries\PTSQueries\PumpQueries
+  File: GetPumpDisplayDataQuery.cs
+  File: GetPumpPricesQuery.cs
+  File: GetPumpStatusQuery.cs
+  File: GetPumpTotalsQuery.cs
+  File: GetPumpTransactionInformationQuery.cs
+
+Folder: FMS.Application\Queries\PTSQueries\ReaderQueries
+Folder: FMS.Application\Queries\PTSQueries\SystemQueries
+  File: GetDailyProcessingTimeQuery.cs
+  File: GetSystemConfigurationQuery.cs
+  File: GetSystemOperationInformationQuery.cs
+
+Folder: FMS.Application\Queries\PTSQueries\TankQueries
+  File: GetTankConfigurationQuery.cs
+  File: GetTankMeasurementsQuery.cs
+
+Folder: FMS.Application\Util
+  File: PermissionHandler.cs
+  File: PermissionRequirements.cs
+  File: TransactionMiddleware.cs
+
+Folder: FMS.ATGClient
+  File: AutofacModule.cs
+  File: Program.cs
+
+Folder: FMS.ATGClient\Controllers
+  File: ATGController.cs
+  File: NaftaTransactionController.cs
+  File: PTSController.cs
+
+Folder: FMS.ATGClient\Docs
+Folder: FMS.ATGClient\Listener
+  File: PTSListener.cs
+
+Folder: FMS.ATGClient\Properties
+
+Folder: FMS.ATGClient\PTS
+Folder: FMS.ATGClient\PTS\FuelDispensing
+Folder: FMS.ATGClient\PTS\FuelDispensing\HostedService
+Folder: FMS.ATGClient\PTS\FuelDispensing\Hub
+  File: PtsStatusHub.cs
+  File: PtsStatusService.cs
+
+Folder: FMS.ATGClient\RabbitMQ
+  File: RabbitMQService.cs
+  File: UploadStatusWorker.cs
+
+Folder: FMS.ATGClient\Util
+  File: WebSocketService.cs
+
+Folder: FMS.ATGClient\__pycache__
+
+Folder: FMS.BackgroundServices
+
+Folder: FMS.BackgroundServices\FMS
+  File: AutomatedClosingStockService.cs
+  File: AutomatedOpeningStockService.cs
+
+Folder: FMS.Domain
+  File: TankTransfer.cs
+
+Folder: FMS.Domain\ATGEntities
+Folder: FMS.Domain\ATGEntities\Nafta
+  File: Additionalinfo.cs
+  File: Append.cs
+  File: Barcode.cs
+  File: BookChangeLog.cs
+  File: BookChangeReason.cs
+  File: Carwash.cs
+  File: Carwash2.cs
+  File: Carwasherr.cs
+  File: Cashform.cs
+  File: Cashformsum.cs
+  File: Cashformsumhost.cs
+  File: CashwinReceipt.cs
+  File: CashwinReceiptsInfo.cs
+  File: Client.cs
+  File: ErrorGoodsDescription.cs
+  File: Findatum.cs
+  File: Fmcashform.cs
+  File: FuelStorage.cs
+  File: Group.cs
+  File: HiddenPrice.cs
+  File: Host.cs
+  File: NaftaCardsRefill.cs
+  File: NaftaCardsTable.cs
+  File: Nakreg.cs
+  File: NewPrice.cs
+  File: NewPricesProcess.cs
+  File: Operator.cs
+  File: PetrolSheet.cs
+  File: Petrolstationinfo.cs
+  File: PetrolTerm.cs
+  File: PriceChangesLog.cs
+  File: Product.cs
+  File: ProductPolicy.cs
+  File: ProductsChanged.cs
+  File: ProductType.cs
+  File: Pump.cs
+  File: RecipesIngr.cs
+  File: Remain.cs
+  File: Rfindatum.cs
+  File: Rpump.cs
+  File: Rtank.cs
+  File: Rtrk.cs
+  File: Sale.cs
+  File: SaleDatum.cs
+  File: SalesCounter.cs
+  File: SalesDelayed.cs
+  File: SalesIngredient.cs
+  File: SalesLoyalty.cs
+  File: Saletag.cs
+  File: Section.cs
+  File: Session.cs
+  File: Sheet.cs
+  File: Talon.cs
+  File: TalonsBlacklist.cs
+  File: Tank.cs
+  File: Tankmonitor.cs
+  File: Tax.cs
+  File: Taxreg.cs
+  File: Trk.cs
+  File: Version.cs
+
+Folder: FMS.Domain\ATGEntities\Pts
+Folder: FMS.Domain\Entities
+  File: Alarm.cs
+  File: AlarmTankmeasurement.cs
+  File: Alertrecord.cs
+  File: Assest.cs
+  File: Asset.cs
+  File: Calibrationdatum.cs
+  File: Configuration.cs
+  File: Dailytankreconciliation.cs
+  File: Deduction.cs
+  File: Delivery.cs
+  File: Device.cs
+  File: Devicemanufacturer.cs
+  File: Devicemodel.cs
+  File: Devicetype.cs
+  File: Drivers.cs
+  File: Employee.cs
+  File: Expectedaverage.cs
+  File: Expectedaverageclassification.cs
+  File: Fuelrefil.cs
+  File: Fuelreportgenerate.cs
+  File: Intankdelivery.cs
+  File: Issueassignmenttracker.cs
+  File: Issuecategory.cs
+  File: Issuepriority.cs
+  File: Issuestatus.cs
+  File: Issuetracker.cs
+  File: LoginActivity.cs
+  File: Navigationitem.cs
+  File: Permission.cs
+  File: Pt.cs
+  File: Pts.cs
+  File: Ptsdevice.cs
+  File: PtsTanks.cs
+  File: PumpTransaction.cs
+  File: Role.cs
+  File: Rolenavigation.cs
+  File: Site.cs
+  File: Supplier.cs
+  File: Systemusers.cs
+  File: Tank.cs
+  File: Tankmeasurement.cs
+  File: Tankstock.cs
+  File: TankVolumeHistory.cs
+  File: User.cs
+  File: UserActivity.cs
+  File: UserSites.cs
+  File: UserTag.cs
+  File: Usertype.cs
+  File: Vehicle.cs
+  File: Vehicleconsumption.cs
+  File: Vehiclemanufacturer.cs
+  File: Vehiclemodel.cs
+  File: VehiclesCustomField.cs
+  File: VehicleTag.cs
+  File: Vehicletype.cs
+
+Folder: FMS.Domain\Entities\Auth
+  File: ApplicationUser.cs
+  File: GPSGateConections.cs
+  File: GPSGateUser.cs
+  File: RolePermission.cs
+  File: UserRole.cs
+
+Folder: FMS.Domain\Entities\Common
+  File: Entity.cs
+  File: IReport.cs
+
+Folder: FMS.Domain\Entities\enums
+  File: VolumeChangeReasonEnum.cs
+
+Folder: FMS.Domain\Entities\PTS
+  File: DateTimeSettings.cs
+  File: EastWestIndicator.cs
+  File: ErrorData.cs
+  File: FuelGrade.cs
+  File: LastInTankDelivery.cs
+  File: MeasurementUnits.cs
+  File: NorthSouthIndicator.cs
+  File: Parameter.cs
+  File: Permissions.cs
+  File: Port.cs
+  File: PriceBoard.cs
+  File: PriceBoardPort.cs
+  File: PriceBoardsConfiguration.cs
+  File: Probe.cs
+  File: ProbeMeasurements.cs
+  File: ProbePort.cs
+  File: ProbesConfiguration.cs
+  File: ProbeTankVolumeForHeight.cs
+  File: PtsNetworkSettings.cs
+  File: PTSuser.cs
+  File: Pump.cs
+  File: PumpAuthorizeConfirmation.cs
+  File: PumpAuthorizeData.cs
+  File: PumpAutomaticOperation.cs
+  File: PumpConfiguration.cs
+  File: PumpDisplayData.cs
+  File: PumpEndOfTransactionStatus.cs
+  File: PumpFillingStatus.cs
+  File: PumpIdleStatus.cs
+  File: PumpNozzles.cs
+  File: PumpOfflineStatus.cs
+  File: PumpPrices.cs
+  File: PumpsConfiguration.cs
+  File: PumpStatusBase.cs
+  File: PumpTag.cs
+  File: PumpTotals.cs
+  File: PumpTransactionInformation.cs
+  File: Reader.cs
+  File: ReaderPort.cs
+  File: ReadersConfiguration.cs
+  File: ReaderTag.cs
+  File: ReportPumpTransaction.cs
+  File: ReportTankMeasurement.cs
+  File: StateOnOff.cs
+  File: SystemDecimalDigits.cs
+  File: TagInformation.cs
+
+Folder: FMS.Domain\Entities\PTS\enums
+  File: AuthenticationType.cs
+  File: NozzleOrFuelIdSelector.cs
+  File: ProbeStatus.cs
+  File: ProtocolSecurityType.cs
+  File: PumpAuthorizeType.cs
+  File: PumpStatus.cs
+  File: TTResult.cs
+
+Folder: FMS.Domain\Entities\Reports
+  File: ReportItem.cs
+
+Folder: FMS.Domain\Entities\Settings
+  File: ApplicationSettings.cs
+
+Folder: FMS.Domain\Entities\Util
+  File: EnumerationHelper.cs
+
+Folder: fms.frontend
+  File: craco.config.js
+  File: proxyServer.js
+
+Folder: fms.frontend\build
+
+Folder: fms.frontend\build\static
+Folder: fms.frontend\build\static\css
+
+Folder: fms.frontend\build\static\js
+  File: main.f2dc1d21.js
+
+Folder: fms.frontend\build\static\media
+
+Folder: fms.frontend\public
+
+Folder: fms.frontend\src
+  File: app-info.js
+  File: app-navigation.js
+  File: app-routes.js
+  File: App.js
+  File: App.test.js
+  File: Content.js
+  File: icon.js
+  File: index.js
+  File: matchMediaMock.js
+  File: polyfills.js
+  File: reportWebVitals.js
+  File: setupTests.js
+  File: store.js
+  File: UnauthenticatedContent.js
+
+Folder: fms.frontend\src\api
+  File: axiosInstance.js
+  File: axiosInstanceGPSGate.js
+  File: gpsgateAPIClient.js
+
+Folder: fms.frontend\src\api\gpsgate
+  File: ApiClient.js
+  File: index.js
+
+Folder: fms.frontend\src\api\gpsgate\api
+  File: AccumulatorApi.js
+  File: ApplicationApi.js
+  File: DevicesApi.js
+  File: DispatchApi.js
+  File: EventsApi.js
+  File: GeocodingApi.js
+  File: GeofenceGroupsApi.js
+  File: GeofenceGroupsGeofenceApi.js
+  File: GeofencesApi.js
+  File: MessageProvidersApi.js
+  File: MessageProviderTypesApi.js
+  File: RolesApi.js
+  File: TagsApi.js
+  File: TokensApi.js
+  File: TrackInfosApi.js
+  File: TracksApi.js
+  File: UsersApi.js
+  File: VariablesApi.js
+  File: ViewsApi.js
+
+Folder: fms.frontend\src\api\gpsgate\model
+  File: AccumulatorModel.js
+  File: AccumulatorTypeModel.js
+  File: ApiKey.js
+  File: APIModel.js
+  File: ApplicationCreateModel.js
+  File: ApplicationModel.js
+  File: ApplicationTemplateModel.js
+  File: ApplicationTrackInfoModel.js
+  File: Argument.js
+  File: BoundingBox.js
+  File: CircleShape.js
+  File: Credentials.js
+  File: CustomFieldModel.js
+  File: CustomFieldsCustomFieldModel.js
+  File: DeviceCreateModel.js
+  File: DeviceMapperModel.js
+  File: DeviceModel.js
+  File: DeviceTypeModel.js
+  File: EventModel.js
+  File: EventRuleModel.js
+  File: GateUserNetStatus.js
+  File: GeocodeResult.js
+  File: GeofenceGroupModel.js
+  File: GeofenceModel.js
+  File: JobModel.js
+  File: Location.js
+  File: MessageProviderModel.js
+  File: MessageProviderTypeModel.js
+  File: MSISDN.js
+  File: OneWireBag.js
+  File: PolygonShape.js
+  File: Position.js
+  File: Position2D.js
+  File: ReverseGeocodeResult.js
+  File: RoleModel.js
+  File: RouteModel.js
+  File: RouteShape.js
+  File: ShapeType.js
+  File: TagModel.js
+  File: TokenModel.js
+  File: TrackInfoModel.js
+  File: TrackModel.js
+  File: TrackPoint.js
+  File: UserCreateModel.js
+  File: UserCustomFieldModel.js
+  File: UserEditModel.js
+  File: UserIconModel.js
+  File: UserModel.js
+  File: UserStatusModel.js
+  File: UserTypeModel.js
+  File: VariableModel.js
+  File: VariableStatusModel.js
+  File: Velocity.js
+  File: ViewModel.js
+
+Folder: fms.frontend\src\components
+  File: index.js
+
+Folder: fms.frontend\src\components\cards
+  File: TankVolumeHistoryCardLineChart.js
+
+Folder: fms.frontend\src\components\consumption
+Folder: fms.frontend\src\components\deliveryForms
+  File: TankDeliveryForm.js
+
+Folder: fms.frontend\src\components\DispensingDataGrid
+  File: manualDispenseDataGrid.js
+
+Folder: fms.frontend\src\components\employee
+  File: employeeVehicleTagBox.js
+
+Folder: fms.frontend\src\components\footer
+  File: Footer.js
+
+Folder: fms.frontend\src\components\FormPopup
+  File: formPopup.js
+  File: ManualRefilForm.js
+  File: tankStockPopup.js
+
+Folder: fms.frontend\src\components\fuelRefill
+  File: fuelRefillSummaryDatagrid.js
+
+Folder: fms.frontend\src\components\header
+  File: Header.js
+
+Folder: fms.frontend\src\components\library
+Folder: fms.frontend\src\components\library\cardMenu
+  File: cardMenu.js
+
+Folder: fms.frontend\src\components\library\cardMenu\cardAnalystics
+  File: cardAnalytics.js
+
+Folder: fms.frontend\src\components\login-form
+  File: LoginForm.js
+
+Folder: fms.frontend\src\components\PermissionTreeList
+  File: permissionTreeList.js
+  File: permissionTreeListNonEdit.js
+
+Folder: fms.frontend\src\components\ProtectedRoute
+  File: protectedRoute.js
+
+Folder: fms.frontend\src\components\reports
+  File: DocumentViewer.js
+  File: ReportDesigner.js
+
+Folder: fms.frontend\src\components\Roles
+  File: roleList.js
+
+Folder: fms.frontend\src\components\Roles\RoleDetails
+  File: roleDetails.js
+  File: roleForm.js
+
+Folder: fms.frontend\src\components\Shared
+  File: datePeriods.js
+
+Folder: fms.frontend\src\components\side-navigation-menu
+  File: SideNavigationMenu.js
+
+Folder: fms.frontend\src\components\tank
+  File: tankForm.js
+
+Folder: fms.frontend\src\components\TankDeliveryDataGrid
+  File: tankDeliverydataGrid.js
+
+Folder: fms.frontend\src\components\tankHistory.js
+  File: tankHistory.js
+
+Folder: fms.frontend\src\components\tankStock
+  File: ClosingStockForm.js
+  File: OpeningStockForm.js
+  File: tankHistoryVolumeDatagrid.js
+  File: tankStockDatagrid.js
+
+Folder: fms.frontend\src\components\tanktransfer
+  File: tankTransferForm.js
+
+Folder: fms.frontend\src\components\TickerCard
+  File: tickerCard.js
+
+Folder: fms.frontend\src\components\TickerCard\tankStockTickers
+  File: index.js
+  File: openingStockTicker.js
+  File: StockCapacityTicker.js
+  File: totalDeliveryTicker.js
+  File: totalDiscrepancyTicker.js
+  File: totalFuelDispenseTicker.js
+  File: totalFuelTransferInTicker.js
+  File: totalFuelTransferOutTicker.js
+
+Folder: fms.frontend\src\components\toolBar
+  File: toolBarAnalytic.js
+
+Folder: fms.frontend\src\components\user
+  File: userdatalist.js
+  File: userForm.js
+
+Folder: fms.frontend\src\components\user-panel
+  File: UserPanel.js
+
+Folder: fms.frontend\src\components\vehicle
+  File: vehicleDataGrid.js
+
+Folder: fms.frontend\src\components\vehicleConsumptionChartDetails
+  File: vehicleConsumptionChart.js
+
+Folder: fms.frontend\src\components\vehicleConsumptionFormDetails
+  File: vehicleConsumptionForm.js
+
+Folder: fms.frontend\src\components\vehicleConsumptionGrid
+  File: vehicleConsumptionDataGrid.js
+
+Folder: fms.frontend\src\components\vehicleConsumptionHistoryDetails
+  File: vehicleConsumptionHistoryDetails.js
+
+Folder: fms.frontend\src\components\vehicleConsumptionMapDetails
+  File: vehicleConsumptionMap.js
+
+Folder: fms.frontend\src\contexts
+  File: authContext.js
+  File: navigation.js
+
+Folder: fms.frontend\src\dataservice
+  File: deviceManagerservices.js
+  File: gpsgateApiService.js
+  File: index.js
+  File: manualFuelRefillServices.js
+  File: permissionservice.js
+  File: sampleconsumptiondata.js
+  File: userServices.js
+
+Folder: fms.frontend\src\layouts
+  File: index.js
+
+Folder: fms.frontend\src\layouts\side-nav-inner-toolbar
+  File: side-nav-inner-toolbar.js
+
+Folder: fms.frontend\src\layouts\side-nav-outer-toolbar
+  File: side-nav-outer-toolbar.js
+
+Folder: fms.frontend\src\layouts\single-card
+  File: single-card.js
+
+Folder: fms.frontend\src\pages
+  File: index.js
+  File: unauthorized.js
+
+Folder: fms.frontend\src\pages\config
+Folder: fms.frontend\src\pages\consumption
+  File: consumptionBasedonRefills.js
+
+Folder: fms.frontend\src\pages\devicemanager
+  File: devicemanager.js
+
+Folder: fms.frontend\src\pages\employees
+  File: employeePage.js
+
+Folder: fms.frontend\src\pages\home
+  File: home.js
+
+Folder: fms.frontend\src\pages\manualrefill
+  File: manualRefilPage.js
+
+Folder: fms.frontend\src\pages\Navigation
+  File: NavigationPage.js
+
+Folder: fms.frontend\src\pages\profile
+  File: profile.js
+
+Folder: fms.frontend\src\pages\reports
+  File: reportDesigner.js
+  File: reportViewer.js
+
+Folder: fms.frontend\src\pages\Role
+  File: rolepage.js
+
+Folder: fms.frontend\src\pages\tank
+  File: tankPage.js
+
+Folder: fms.frontend\src\pages\tankStock
+  File: tankStockDashBoardCards.js
+  File: tankStockPage.js
+
+Folder: fms.frontend\src\pages\tasks
+  File: tasks.js
+
+Folder: fms.frontend\src\pages\vehicles
+  File: vehiclesPage.js
+
+Folder: fms.frontend\src\redux
+Folder: fms.frontend\src\redux\actions
+  File: AuthActions.js
+  File: consumptionActions.js
+  File: dataGridActions.js
+  File: DeliveryActions.js
+  File: employeeActions.js
+  File: fuelRefillAction.js
+  File: navigationActions.js
+  File: permissionActions.js
+  File: refillSummaryActions.js
+  File: roleActions.js
+  File: siteActions.js
+  File: SupplierActions.js
+  File: tankActions.js
+  File: tankReconciliationActions.js
+  File: tankStockAction.js
+  File: tankVolumeHistoryActions.js
+  File: types.js
+  File: userActions.js
+  File: vehicleActions.js
+  File: vehicleManufacturerActions.js
+  File: vehicleModelActions.js
+  File: vehicleTypeActions.js
+
+Folder: fms.frontend\src\redux\reducers
+  File: authReducer.js
+  File: consumptionReducer.js
+  File: dataGridReducer.js
+  File: DeliveryReducer.js
+  File: employeeReducer.js
+  File: fuelRefillReducer.js
+  File: index.js
+  File: navigationReducer.js
+  File: permissionReducer.js
+  File: refillSummaryReducer.js
+  File: roleReducer.js
+  File: siteReducer.js
+  File: supplierReducer.js
+  File: tankReconciliationReducer.js
+  File: tankReducer.js
+  File: tankStockReducer.js
+  File: tankVolumeHistoryReducer.js
+  File: userReducer.js
+  File: vehicleManufacturerReducer.js
+  File: vehicleModelsReducer.js
+  File: vehicleReducer.js
+  File: vehicleTypeReducer.js
+
+Folder: fms.frontend\src\report
+  File: vehicleConsumption.js
+
+Folder: fms.frontend\src\report\vehicleConsumptionDetails
+  File: vehicleConsumptionDetails.js
+
+Folder: fms.frontend\src\report\vehicleConsumptionList
+  File: vehicleConsumptionList.js
+
+Folder: fms.frontend\src\themes
+
+Folder: fms.frontend\src\themes\generated
+
+Folder: fms.frontend\src\themes\generated\icons
+
+Folder: fms.frontend\src\utils
+  File: consumptionDataGridRules.js
+  File: dateUtils.js
+  File: default-user.js
+  File: enums.js
+  File: media-query.js
+  File: patches.js
+  File: stockDataPreparation.js
+  File: withRoleProtection.js
+
+Folder: FMS.Infrastructure
+  File: Class1.cs
+
+Folder: FMS.Infrastructure\Common
+Folder: FMS.Infrastructure\Common\JsonSerialConvertors
+Folder: FMS.Infrastructure\Common\Report
+Folder: FMS.Infrastructure\Connected Services
+Folder: FMS.Infrastructure\Connected Services\DirectoryServiceReference1
+  File: Reference.cs
+
+Folder: FMS.Infrastructure\Connected Services\ReportingServiceReference
+  File: Reference.cs
+
+Folder: FMS.Infrastructure\DependancyInjection
+  File: GpsgateAccessModule.cs
+  File: IGPSGateDirectoryWebservice.cs
+
+Folder: FMS.Infrastructure\DependancyInjection\ATG
+Folder: FMS.Infrastructure\SampleXMl
+
+Folder: FMS.Infrastructure\Webservice
+  File: GPSGateDirectoryWebservice.cs
+
+Folder: FMS.Infrastructure\Webservice\ATGService
+Folder: FMS.Infrastructure\Webservice\GPSService
+  File: GPSGateDirectoryWebservice.cs
+  File: SiteServiceModel.cs
+  File: VehicleConsumptionServiceModel.cs
+
+Folder: FMS.Infrastructure\websocket
+  File: IPTSRequest.cs
+  File: PtsWebSocketCommunication.cs
+  File: WebSocketHelper.cs
+
+Folder: FMS.Infrastructure\websocket\Errors
+  File: ErrorData.cs
+
+Folder: FMS.Persistence
+
+Folder: FMS.Persistence\DataAccess
+  File: GpsdataContext.cs
+
+Folder: FMS.Persistence\DataAccess\Nafta
+  File: NaftaContext.cs
+
+
+Folder: FMS.Persistence\Models
+  File: GpsdataContext.cs
+
+Folder: FMS.Persistence\Reporting
+Folder: FMS.Persistence\Repositories
+Folder: FMS.Persistence\Repositories\FuelDispensing
+  File: TagRepository .cs
+
+Folder: FMS.Persistence\Repositories\FuelDispensing\Common
+  File: ITagRepository.cs
+
+Folder: FMS.Persistence\temp
+Folder: FMS.PTS.WindowsService
+  File: Program.cs
+  File: Worker.cs
+
+Folder: FMS.PTS.WindowsService\Core
+Folder: FMS.PTS.WindowsService\Core\Configuration
+  File: PTSServiceSettings.cs
+
+Folder: FMS.PTS.WindowsService\Core\ErrorCodes
+  File: ErrorCodeMapper.cs
+  File: PtsErrorCode.cs
+
+Folder: FMS.PTS.WindowsService\Core\ErrorHandling
+  File: ErrorHandlingBehavior.cs
+  File: ErrorHandlingMiddleware.cs
+  File: ErrorResponse.cs
+
+Folder: FMS.PTS.WindowsService\Core\Events
+  File: DeviceConnectedEvent.cs
+  File: DeviceDisconnectedEvent.cs
+  File: PTSMessageReceivedEvent.cs
+
+Folder: FMS.PTS.WindowsService\Core\Exceptions
+Folder: FMS.PTS.WindowsService\Core\Exceptions\Base
+  File: BasePTSException.cs
+
+Folder: FMS.PTS.WindowsService\Core\Exceptions\Communication
+  File: PTSCommunicationException.cs
+
+Folder: FMS.PTS.WindowsService\Core\Exceptions\Device
+  File: PTSDeviceBusyException .cs
+  File: PTSDeviceExceptionFactory.cs
+  File: PTSDeviceNotFoundException .cs
+
+Folder: FMS.PTS.WindowsService\Core\Exceptions\Validation
+  File: PTSValidationException .cs
+
+Folder: FMS.PTS.WindowsService\Core\Handlers
+  File: MessageHandlerRegistry.cs
+
+Folder: FMS.PTS.WindowsService\Core\Handlers\Base
+  File: BaseMessageHandler .cs
+  File: IMessageTypeHandler.cs
+
+Folder: FMS.PTS.WindowsService\Core\Handlers\Probes
+Folder: FMS.PTS.WindowsService\Core\Handlers\Pump
+  File: PumpAuthorizeHandler.cs
+  File: PumpEmergencyStopHandler.cs
+  File: PumpGetTagHandler.cs
+  File: PumpStatusHandler.cs
+
+Folder: FMS.PTS.WindowsService\Core\Handlers\Reader
+Folder: FMS.PTS.WindowsService\Core\Handlers\System
+  File: SystemDecimalDigitsHandler.cs
+
+Folder: FMS.PTS.WindowsService\Core\Handlers\Tank
+  File: TankMeasurementHandler.cs
+
+Folder: FMS.PTS.WindowsService\Core\Interfaces
+  File: IEventBus.cs
+  File: IPTSMessageHandler.cs
+
+Folder: FMS.PTS.WindowsService\Core\Protocal
+Folder: FMS.PTS.WindowsService\Core\Protocal\Authentication
+  File: AuthenticationMode.cs
+  File: IPTSAuthenticationHandler.cs
+  File: PTSAuthenticationHandler.cs
+
+Folder: FMS.PTS.WindowsService\Core\Protocal\Messaging
+  File: IPTSMessageQueue.cs
+  File: PTSMessageQueue.cs
+  File: PTSResponseBuilder.cs
+  File: PTSResponseExtensions.cs
+
+Folder: FMS.PTS.WindowsService\Core\Protocal\Validation
+  File: IPTSProtocalValidator.cs
+  File: PTSProtocalValidator.cs
+
+Folder: FMS.PTS.WindowsService\Core\Services
+Folder: FMS.PTS.WindowsService\Core\Services\Interface
+  File: IPumpService.cs
+
+Folder: FMS.PTS.WindowsService\Core\Services\Pump
+  File: PumpService.cs
+
+Folder: FMS.PTS.WindowsService\Infrastructure
+Folder: FMS.PTS.WindowsService\Infrastructure\EventBus
+  File: InMemoryEventBus.cs
+
+Folder: FMS.PTS.WindowsService\Infrastructure\Logging
+  File: ErrorEvent.cs
+  File: ErrorLogger.cs
+  File: FileLogger.cs
+  File: LoggingBehavior.cs
+
+Folder: FMS.PTS.WindowsService\Infrastructure\Logging\Interface
+  File: IErrorLogger.cs
+
+Folder: FMS.PTS.WindowsService\Infrastructure\Persistence
+Folder: FMS.PTS.WindowsService\Infrastructure\Persistence\ErrorHandling
+  File: PTSErrorHandler.cs
+
+Folder: FMS.PTS.WindowsService\Infrastructure\Persistence\MessageStore
+  File: IMessageStore.cs
+  File: MessageStore.cs
+
+Folder: FMS.PTS.WindowsService\Infrastructure\WebSocket
+  File: BufferManager.cs
+  File: WebSocketExtensions.cs
+
+Folder: FMS.PTS.WindowsService\Models
+Folder: FMS.PTS.WindowsService\Models\Device
+  File: DeviceConfiguration.cs
+  File: DeviceStatus.cs
+
+Folder: FMS.PTS.WindowsService\Models\DTOs
+Folder: FMS.PTS.WindowsService\Models\DTOs\Pump
+Folder: FMS.PTS.WindowsService\Models\Messages
+  File: PTSMessage.cs
+
+Folder: FMS.PTS.WindowsService\Properties
+
+Folder: FMS.PTS.WindowsService\Scripts
+
+Folder: FMS.PTS.WindowsService\Services
+Folder: FMS.PTS.WindowsService\Services\Connection
+  File: IPTSConnectionManager.cs
+  File: PTSDeviceConnection.cs
+  File: PTSDeviceManager.cs
+
+Folder: FMS.PTS.WindowsService\Services\MessageHandling
+  File: PTSMessageHandler.cs
+  File: PTSMessageProcessorService.cs
+
+Folder: FMS.PTS.WindowsService\Services\WebSocket
+  File: PTSWebSocketListenerService.cs
+
+Folder: fms.reactclient
+
+Folder: fms.reactclient\public
+
+Folder: fms.reactclient\src
+  File: App.js
+  File: App.test.js
+  File: AppRoutes.js
+  File: index.js
+  File: reportWebVitals.js
+  File: service-worker.js
+  File: serviceWorkerRegistration.js
+  File: setupTests.js
+
+Folder: fms.reactclient\src\assets
+Folder: fms.reactclient\src\assets\css
+
+Folder: fms.reactclient\src\components
+  File: ConsumptionGrid.js
+  File: Home.js
+  File: Layout.js
+  File: NavMenu.js
+
+Folder: fms.reactclient\src\components\Employee
+  File: Employeedatagrid.js
+  File: employeevehicleTagbox.js
+
+Folder: fms.reactclient\src\components\ExpectedAVG
+  File: expectedAVGclassification.js
+  File: expectedAVGdatagrid.js
+
+Folder: fms.reactclient\src\components\Vehicle
+  File: AddVehicleModel.js
+  File: VehicleDataGrid.js
+  File: VehicleFilterPanel.js
+
+Folder: fms.reactclient\src\components\VehicleType
+  File: VehicleTypeUIComponent.js
+
+Folder: FMS.ReportDesigner
+  File: .eslintrc.js
+
+Folder: FMS.ReportDesigner\public
+
+Folder: FMS.ReportDesigner\src
+  File: app.js
+  File: index.js
+  File: reportDesigner.js
+
+Folder: FMS.Reporting
+Folder: FMS.Services
+
+Folder: FMS.Services\PTS
+Folder: FMS.Services\PTS\Interfaces
+Folder: FMS.Services\PTS\Interfaces\pump
+  File: IPumpStatusService.cs
+
+Folder: FMS.Services\PTS\Model
+Folder: FMS.Services\PTS\Model\Pump
+  File: PumpStatusDTO.cs
+
+Folder: FMS.Services\PTS\Requests
+Folder: FMS.Services\PTS\Requests\PumpServices
+  File: PumpStatusService.cs
+
+Folder: FMS.Testing
+  File: Class1.cs
+  File: GetConsumptionReportTest.cs
+
+Folder: FMS.Testing\ATGTest
+  File: ATGCommunicationServiceTests.cs
+  File: ATGCreateTankMeasurementTests.cs
+
+Folder: FMS.Testing\ConsumptionQueriesTest
+  File: GetConsumptionReportQueriesMock.cs
+
+Folder: FMS.WebClient
+  File: Program.cs
+
+Folder: FMS.WebClient\Controllers
+  File: ATGController.cs
+  File: ConsumptionController.cs
+  File: CustomWebReportDesignerController.cs
+  File: DeliveryController.cs
+  File: DeviceController.cs
+  File: DeviceManufacturer.cs
+  File: DeviceModel.cs
+  File: DeviceTypeController.cs
+  File: EmployeeController.cs
+  File: ExpectedAVGClassificationController.cs
+  File: ExpectedAVGController.cs
+  File: FuelRefillController.cs
+  File: HealthController.cs
+  File: IssueTrackerController.cs
+  File: NavigationController.cs
+  File: PermissionController.cs
+  File: ReportDocDesignerController.cs
+  File: ReportQueryBuilder.cs
+  File: ReportViewerController.cs
+  File: RoleController.cs
+  File: SiteController.cs
+  File: SupplierController.cs
+  File: TankController.cs
+  File: TankReconciliationController.cs
+  File: TankStockController.cs
+  File: TankVolumeHistoryController.cs
+  File: UserActivitiesController.cs
+  File: UserController.cs
+  File: VehicleController.cs
+  File: VehicleManufacturerController.cs
+  File: VehicleModelController.cs
+  File: VehicleTypeController.cs
+
+Folder: FMS.WebClient\Helper
+  File: MessageHelper.cs
+
+Folder: FMS.WebClient\MappingProfile
+  File: VehicleMappingProfile.cs
+
+Folder: FMS.WebClient\Models
+Folder: FMS.WebClient\Models\DatabaseViewModel
+  File: ConsumptionViewModel.cs
+
+Folder: FMS.WebClient\Models\DatabaseViewModel\ExpectedViewModel
+  File: ExpectedAVGViewModel.cs
+
+Folder: FMS.WebClient\Properties
+
+Folder: FMS.WebClient\Report
+  File: ReportStorageService.cs
+
+Folder: FMS.WebClient\ReportsDocumentStorage
+Folder: FMS.WebClient\Signal
+  File: PtsStatusHub.cs
+  File: PtsStatusService.cs
+
+Folder: FMS.WebClient\Util
+  File: UserActivityMiddleware.cs
+
+Folder: TestResults
+Folder: TestResults\Deploy_kkagiri 2018-11-02 17_29_32
+Folder: TestResults\Deploy_kkagiri 2018-11-02 17_29_32\In
+Folder: TestResults\Deploy_kkagiri 2018-11-02 17_29_32\In\LOLO
+Folder: TestResults\Deploy_kkagiri 2018-11-02 17_29_32\Out
+Folder: TestResults\Deploy_kkagiri 2018-11-05 16_11_01
+Folder: TestResults\Deploy_kkagiri 2018-11-05 16_11_01\In
+Folder: TestResults\Deploy_kkagiri 2018-11-05 16_11_01\In\LOLO
+Folder: TestResults\Deploy_kkagiri 2018-11-05 16_11_01\Out
+Folder: TestResults\Deploy_kkagiri 2018-11-05 17_22_48
+Folder: TestResults\Deploy_kkagiri 2018-11-05 17_22_48\In
+Folder: TestResults\Deploy_kkagiri 2018-11-05 17_22_48\In\LOLO
+Folder: TestResults\Deploy_kkagiri 2018-11-05 17_22_48\Out
+Folder: TestResults\fms.application GPT
+  File: .NETCoreApp,Version=v3.1.AssemblyAttributes.cs
+  File: .NETCoreApp,Version=v6.0.AssemblyAttributes.cs
+  File: .NETCoreApp,Version=v7.0.AssemblyAttributes.cs
+  File: ComsumptionUpdate.cs
+  File: ConsumptionCreateCmd.cs
+  File: CreateVehicleModelCommand.cs
+  File: EmployeeCreateCmd.cs
+  File: EmployeeDTO.cs
+  File: EmployeeUpdateCmd.cs
+  File: ExpctAVGClassficationDTO.cs
+  File: ExpectedAVGClassificationUpdateCmd.cs
+  File: ExpectedAVGCreateCmd.cs
+  File: ExpectedAVGDto.cs
+  File: ExpectedAVGUpdateCmd.cs
+  File: ExpectedAVGVehicleDetailsDTO.cs
+  File: ExptAVGClassificationCreateCmd.cs
+  File: FMS.Application.AssemblyInfo.cs
+  File: GetConsumptionReportQuery.cs
+  File: GetConsumptionReportQueryHandler.cs
+  File: GetEmployee.cs
+  File: GetEmployeeByIdQuery.cs
+  File: GetExpectAVGClassificationlist.cs
+  File: GetExpectedAverageByVehicleBySite.cs
+  File: GetExpectedAVGByIdQuery.cs
+  File: GetExpectedAVGQuery.cs
+  File: GetSimpleVehicleQuery.cs
+  File: GetSiteQuery.cs
+  File: GetVehicleManufacturer.cs
+  File: GetVehicleModelQuery.cs
+  File: GetVehicleModelsByManufacturerIdQuery.cs
+  File: GetVehicleQuery.cs
+  File: GetVehicleQueryHandler.cs
+  File: GetVehicleTypeQuery.cs
+  File: ICommand.cs
+  File: ICommandhandler.cs
+  File: IGpsGateAccessDirectory.cs
+  File: IQuery.cs
+  File: IQueryHandler.cs
+  File: LoginQuery.cs
+  File: MappingProfile.cs
+  File: NotFoundException.cs
+  File: Program.cs
+  File: SimpleVehicleDto.cs
+  File: UpdatevehicleCommand.cs
+  File: UpdateVehicleCommandHandler.cs
+  File: VehicleConsumptionInfoDTO.cs
+  File: VehicleListDTO.cs
+  File: VehicleModelDTO.cs
+
+Folder: TestResults\kkagiri_LOLO 2018-11-05 17_22_52
+Folder: TestResults\kkagiri_LOLO 2018-11-05 17_22_52\Out
+
+Folder: TextContent
+

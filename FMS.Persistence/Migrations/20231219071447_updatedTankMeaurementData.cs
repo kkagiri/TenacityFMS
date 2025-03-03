@@ -15,14 +15,14 @@ namespace FMS.Persistence.Migrations
             migrationBuilder.AlterDatabase()
                 .Annotation("MySql:CharSet", "latin1");
 
-                      
-
-          
-
-            
 
 
-           
+
+
+
+
+
+
 
             migrationBuilder.CreateIndex(
                 name: "IX_tankmeasurement_SiteId",
@@ -44,9 +44,9 @@ namespace FMS.Persistence.Migrations
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
-        { 
+        {
 
-           
+
         }
     }
 }

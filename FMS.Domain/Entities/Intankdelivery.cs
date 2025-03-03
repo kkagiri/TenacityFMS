@@ -66,4 +66,6 @@ public partial class Intankdelivery
     public string Ptsid { get; set; } = null!;
 
     public int PacketId { get; set; }
+
+    public virtual Ptsdevice Pts { get; set; } = null!;
 }

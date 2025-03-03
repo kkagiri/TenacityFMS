@@ -39,7 +39,7 @@ public partial class Tankstock
 
     public string? Comment { get; set; }
 
-    public VolumeChangeReasonEnum EntryType { get; set; } 
+    public VolumeChangeReasonEnum EntryType { get; set; }
 
     public decimal? SensorDiscrepancy { get; set; }
 

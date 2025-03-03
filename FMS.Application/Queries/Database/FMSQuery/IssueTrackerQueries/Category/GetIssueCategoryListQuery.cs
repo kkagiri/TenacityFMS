@@ -25,15 +25,16 @@ public class GetIssueCategoryListQueryHandler : IRequestHandler<GetIssueCategory
 
     public async Task<List<Issuecategory>> Handle(GetIssueCategoryListQuery request, CancellationToken cancellationToken)
     {
-      try{
-           var category = await _context.Issuecategories.ToListAsync(cancellationToken);
-           return category;
-       }
-       catch (Exception ex)
-       {
-           _logger.LogError(ex, "An error occured while getting issue category");
-           throw new Exception("Error in GetIssueCategoryListQueryHandler");
-       }
+        try
+        {
+            var category = await _context.Issuecategories.ToListAsync(cancellationToken);
+            return category;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while getting issue category");
+            throw new Exception("Error in GetIssueCategoryListQueryHandler");
+        }
     }
 
 

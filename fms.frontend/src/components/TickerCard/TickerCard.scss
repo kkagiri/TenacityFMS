@@ -10,45 +10,71 @@
   gap: var(--gap-padding);
   align-items: center;
 
-  &.success, &.green {
-    .icon-wrapper, .percentage {
-      background-color: color-mix(in sRGB, var(--success-color, #28a745) 12%, transparent);
+  &.success,
+  &.green {
+    .icon-wrapper,
+    .percentage {
+      background-color: color-mix(
+        in sRGB,
+        var(--success-color, #28a745) 12%,
+        transparent
+      );
       color: var(--success-color, #28a745);
     }
   }
 
-  &.warning, &.amber {
-    .icon-wrapper, .percentage {
-      background-color: color-mix(in sRGB, var(--warning-color, #ffc107) 12%, transparent);
+  &.warning,
+  &.amber {
+    .icon-wrapper,
+    .percentage {
+      background-color: color-mix(
+        in sRGB,
+        var(--warning-color, #ffc107) 12%,
+        transparent
+      );
       color: var(--icon-dark-warning-color, #856404);
     }
   }
 
   &.delivery {
     .icon-wrapper {
-      background-color: color-mix(in sRGB, var(--warning-color, #ee03f7) 12%, transparent);
+      background-color: color-mix(
+        in sRGB,
+        var(--warning-color, #ee03f7) 12%,
+        transparent
+      );
       color: var(--icon-dark-warning-color, #ee03f7);
     }
   }
 
   &.info {
     .icon-wrapper {
-      background-color: color-mix(in sRGB, var(--info-color, #17a2b8) 12%, transparent);
+      background-color: color-mix(
+        in sRGB,
+        var(--info-color, #17a2b8) 12%,
+        transparent
+      );
       color: var(--info-color, #17a2b8);
     }
   }
 
-  &.negative, &.red {
-    .icon-wrapper, .percentage {
-      background-color: color-mix(in sRGB, var(--error-color, #dc3545) 12%, transparent);
+  &.negative,
+  &.red {
+    .icon-wrapper,
+    .percentage {
+      background-color: color-mix(
+        in sRGB,
+        var(--error-color, #dc3545) 12%,
+        transparent
+      );
       color: var(--error-color, #dc3545);
     }
   }
 
   .icon-wrapper {
     display: flex;
-    flex: 0 0 48px;
-    height: 48px;
+    flex: 0 0 58px;
+    height: 58px;
     border-radius: 50%;
     justify-content: center;
     align-items: center;
@@ -91,7 +117,11 @@
     padding: 4px 8px;
 
     &.positive {
-      background-color: color-mix(in sRGB, var(--success-color) 12%, transparent);
+      background-color: color-mix(
+        in sRGB,
+        var(--success-color) 12%,
+        transparent
+      );
       color: var(--success-color);
     }
 

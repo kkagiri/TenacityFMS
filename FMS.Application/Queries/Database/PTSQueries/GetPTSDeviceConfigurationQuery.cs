@@ -15,12 +15,12 @@ namespace FMS.Application.Queries.Database.PTSQueries
     /// Get the PTS Device Configuration
     /// </summary>
     /// <param name="DeviceID"></param>
-    public record GetPTSDeviceConfigurationQuery(int DeviceID) :IRequest<Ptsdevice>;
+    public record GetPTSDeviceConfigurationQuery(string DeviceID) : IRequest<Ptsdevice>;
 
-    public class GetPTSDeviceConfiguaraionQueryHandler :IRequestHandler<GetPTSDeviceConfigurationQuery, Ptsdevice>
+    public class GetPTSDeviceConfiguaraionQueryHandler : IRequestHandler<GetPTSDeviceConfigurationQuery, Ptsdevice>
     {
         private readonly GpsdataContext _context;
-       private readonly ILogger _logger;
+        private readonly ILogger _logger;
         public GetPTSDeviceConfiguaraionQueryHandler(GpsdataContext context, ILogger<GetPTSDeviceConfiguaraionQueryHandler> logger)
         {
             _context = context;
@@ -39,10 +39,10 @@ namespace FMS.Application.Queries.Database.PTSQueries
                 _logger.LogError(ex.Message);
                 throw;
             }
-            
+
         }
 
-    
+
     }
 
 }

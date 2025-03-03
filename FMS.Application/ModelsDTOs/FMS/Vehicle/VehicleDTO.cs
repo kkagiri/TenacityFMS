@@ -37,7 +37,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Vehicle
         public string? Capacity { get; set; } = null;
 
         public string? Passenger { get; set; } = null!;
-        public string? CurrentPhysicalReading { get; set; } =null!;
+        public string? CurrentPhysicalReading { get; set; } = null!;
 
         public int? DefaultExptdAvgid { get; set; }
 
@@ -51,6 +51,8 @@ namespace FMS.Application.ModelsDTOs.FMS.Vehicle
 
         [JsonIgnore]
         public string CombinedExpectedAverage => $"{ExpectedAverageclassificationName} {ExpectedAverageValue}" ?? "";
+
+        public List<string> Tags { get; set; } = new List<string>();
 
     }
 }

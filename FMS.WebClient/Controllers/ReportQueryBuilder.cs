@@ -11,13 +11,13 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/DXXQB/[controller]")]
     [Authorize]
-    public class ReportQueryBuilderController : QueryBuilderController 
+    public class ReportQueryBuilderController : QueryBuilderController
     {
 
         public ReportQueryBuilderController(IQueryBuilderMvcControllerService controllerService)
             : base(controllerService)
         {
-        }   
+        }
 
 
     }

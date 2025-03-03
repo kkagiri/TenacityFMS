@@ -25,10 +25,10 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> GetVehicleManufacturer()
         {
             var query = new GetVehicleManufacturerQuery();
-            var vehicleManufacturer= await _mediator.Send(query);
+            var vehicleManufacturer = await _mediator.Send(query);
 
             return Ok(vehicleManufacturer);
         }
 
-         }
+    }
 }

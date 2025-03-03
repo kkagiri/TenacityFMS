@@ -12,14 +12,14 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
 {
-    public record  GetUserByUserNameQuery(string Username):IRequest<UserDto>;
+    public record GetUserByUserNameQuery(string Username) : IRequest<UserDto>;
 
 
     public class GetUserByUserNameQueryHandler : IRequestHandler<GetUserByUserNameQuery, UserDto>
     {
 
         private readonly UserManager<User> _userManager;
-        private readonly ILogger<GetUserByUserNameQueryHandler> _logger;    
+        private readonly ILogger<GetUserByUserNameQueryHandler> _logger;
 
         public GetUserByUserNameQueryHandler(UserManager<User> userManager, ILogger<GetUserByUserNameQueryHandler> logger)
         {
@@ -30,8 +30,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
         {
             try
             {
-                var user = await  _userManager.FindByNameAsync(request.Username);
-                if(user == null)
+                var user = await _userManager.FindByNameAsync(request.Username);
+                if (user == null)
                 {
                     throw new Exception("User not found");
                 }
@@ -43,19 +43,20 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                     Email = user.Email,
                     Roles = roles.ToList()
                 };
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 throw;
             }
         }
-    }  
+    }
 
-     public class UserDto
+    public class UserDto
     {
         public string Id { get; set; }
         public string UserName { get; set; }
         public string Email { get; set; }
         public List<string> Roles { get; set; }
-    } 
+    }
 }

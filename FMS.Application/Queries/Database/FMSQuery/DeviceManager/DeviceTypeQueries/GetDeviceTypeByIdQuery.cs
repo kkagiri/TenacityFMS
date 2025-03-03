@@ -22,16 +22,17 @@ public class GetDeviceTypeByIdQueryHandler : IRequestHandler<GetDeviceTypeByIdQu
         _context = contextm;
         _logger = logger;
     }
-    
+
 
     public async Task<Devicetype> Handle(GetDeviceTypeByIdQuery request, CancellationToken cancellationToken)
     {
-        try{
-        return await _context.Devicetypes.FindAsync(request.Id);
-        }
-        catch(Exception ex)
+        try
         {
-            _logger.LogError(ex,"Error in GetDeviceTypeByIdQueryHandler");
+            return await _context.Devicetypes.FindAsync(request.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetDeviceTypeByIdQueryHandler");
             throw new Exception("Error in GetDeviceTypeByIdQueryHandler");
         }
     }

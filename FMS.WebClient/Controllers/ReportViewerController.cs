@@ -12,9 +12,9 @@ namespace FMS.WebClient.Controllers
     [Authorize]
     public class ReportViewerController : WebDocumentViewerController
     {
-        
-  public ReportViewerController(IWebDocumentViewerMvcControllerService controllerService) 
-            : base(controllerService)
+
+        public ReportViewerController(IWebDocumentViewerMvcControllerService controllerService)
+                  : base(controllerService)
         {
         }
 

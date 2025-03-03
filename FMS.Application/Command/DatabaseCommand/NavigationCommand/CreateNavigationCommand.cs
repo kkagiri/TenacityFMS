@@ -9,29 +9,29 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.NavigationCommand;
 
-      public record CreateNavigationItemCommand(string Link,int ParentId, string Icon, string Page,List<string> Roles) : IRequest<int>;
+public record CreateNavigationItemCommand(string Link, int ParentId, string Icon, string Page, List<string> Roles) : IRequest<int>;
 
 public class CreateNavigationItemCommandHandler : IRequestHandler<CreateNavigationItemCommand, int>
 {
-     private readonly GpsdataContext _context;
-        private readonly ILogger<CreateNavigationItemCommandHandler> _logger;
+    private readonly GpsdataContext _context;
+    private readonly ILogger<CreateNavigationItemCommandHandler> _logger;
 
-        public CreateNavigationItemCommandHandler(GpsdataContext context, ILogger<CreateNavigationItemCommandHandler> logger)
-        {
-            _context = context;
-            _logger = logger;
-        }
+    public CreateNavigationItemCommandHandler(GpsdataContext context, ILogger<CreateNavigationItemCommandHandler> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
 
     public async Task<int> Handle(CreateNavigationItemCommand request, CancellationToken cancellationToken)
     {
         try
         {
-        var navigationItem = new Navigationitem
+            var navigationItem = new Navigationitem
             {
                 Link = request.Link,
                 Page = request.Page,
                 ParentId = request.ParentId,
-                Icon =  request.Icon
+                Icon = request.Icon
 
             };
             _context.Navigationitems.Add(navigationItem);

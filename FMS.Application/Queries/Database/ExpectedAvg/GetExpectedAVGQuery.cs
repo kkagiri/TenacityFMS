@@ -37,25 +37,25 @@ namespace FMS.Application.Queries.Database.ExpectedAvg
                                    Include(x => x.Vehicle.VehicleType).
                                    Include(x => x.Vehicle.WorkingSite).
                                    Select(item => new ExpectedAVGVehicleDetailsDTO
-                                   {                                              
-                                    id = item.Id,
-                                    vehicleID = item.VehicleId,
-                                    vehicleModel = item.Vehicle.VehicleModel.Name,
-                                    vehicleManufacturer = item.Vehicle.VehicleManufacturer.Name,
-                                    vehicleType = item.Vehicle.VehicleType.Name,
-                                    HyoungNo = item.Vehicle.HyoungNo,
-                                    expectedAverageClassificationId = item.ExpectedAverageClassificationId,
-                                    siteId= item.SiteId,
-                                    site = item.Vehicle.WorkingSite.Name,
-                                    expectedAverageClassificationName = item.ExpectedAverageClassification.Name,
-                                    expectedAveragevalue = item.ExpectedAverageValue
-                                    
-                                    }).
-                                   ToListAsync(cancellationToken);
-       return result;
+                                   {
+                                       id = item.Id,
+                                       vehicleID = item.VehicleId,
+                                       vehicleModel = item.Vehicle.VehicleModel.Name,
+                                       vehicleManufacturer = item.Vehicle.VehicleManufacturer.Name,
+                                       vehicleType = item.Vehicle.VehicleType.Name,
+                                       HyoungNo = item.Vehicle.HyoungNo,
+                                       expectedAverageClassificationId = item.ExpectedAverageClassificationId,
+                                       siteId = item.SiteId,
+                                       site = item.Vehicle.WorkingSite.Name,
+                                       expectedAverageClassificationName = item.ExpectedAverageClassification.Name,
+                                       expectedAveragevalue = item.ExpectedAverageValue
 
-          
+                                   }).
+                                   ToListAsync(cancellationToken);
+            return result;
+
+
         }
-}
-   
+    }
+
 }

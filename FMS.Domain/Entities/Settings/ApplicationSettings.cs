@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FMS.Domain.Entities.Settings
 {
-   public  class ApplicationSettings
+    public class ApplicationSettings
     {
 
         public int SettingsID { get; set; }

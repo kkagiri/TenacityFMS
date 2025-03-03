@@ -55,12 +55,13 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                         return new FMSResponseMessage(false, "The tank does not have enough space for the delivery");
                 }
 
-                // Validate if start stock is less than stock level at end of delivery 
+                // Validate if start stock is less than stock level at end of delivery
                 if (request.DeliveryDTO.StockBeforeDelivery > request.DeliveryDTO.StockBeforeDelivery + request.DeliveryDTO.ManualDeliveryAmount)
                     return new FMSResponseMessage(false, "Start stock should be less than stock level at end of delivery");
 
                 var delivery = _mapper.Map<Delivery>(request.DeliveryDTO);
                 delivery.DeliveryDate = deliveryDate;
+                delivery.CreatedOn = DateTime.UtcNow;
 
                 _context.Deliveries.Add(delivery);
 

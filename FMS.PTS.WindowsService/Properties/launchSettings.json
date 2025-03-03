@@ -1,0 +1,38 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "FMS.PTS.WindowsService": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "Development": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "PTSService__WebSocket__ListenPort": "8080",
+        "PTSService__WebSocket__Host": "localhost",
+        "PTSService__Device__AutoReconnect": "true",
+        "PTSService__Logging__MinimumLevel": "Debug"
+      }
+    },
+    "Staging": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Staging",
+        "PTSService__WebSocket__ListenPort": "8081",
+        "PTSService__WebSocket__Host": "*",
+        "PTSService__Device__AutoReconnect": "true",
+        "PTSService__Logging__MinimumLevel": "Information"
+      }
+    },
+    "Production": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}

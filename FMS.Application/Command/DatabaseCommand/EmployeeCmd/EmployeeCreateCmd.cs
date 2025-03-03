@@ -15,18 +15,18 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
 {
-    public class EmployeeCreateCmd:IRequest<EmployeeCreateResponse>
+    public class EmployeeCreateCmd : IRequest<EmployeeCreateResponse>
     {
-        public EmployeeDto EmployeeDto { get; set; } 
+        public EmployeeDto EmployeeDto { get; set; }
     }
 
     public class EmployeeCreateCmdHandler : IRequestHandler<EmployeeCreateCmd, EmployeeCreateResponse>
     {
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
-        private readonly ILogger<EmployeeCreateCmdHandler> _logger; 
+        private readonly ILogger<EmployeeCreateCmdHandler> _logger;
 
-        public EmployeeCreateCmdHandler(GpsdataContext context, IMapper mapper,ILogger<EmployeeCreateCmdHandler> logger)
+        public EmployeeCreateCmdHandler(GpsdataContext context, IMapper mapper, ILogger<EmployeeCreateCmdHandler> logger)
         {
             _context = context;
             _mapper = mapper;
@@ -40,9 +40,9 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
             {
                 var site = await _context.Sites.FindAsync(request.EmployeeDto.SiteId);
                 if (site == null) return new EmployeeCreateResponse(false, "Site not found", null);
-                if (string.IsNullOrWhiteSpace(request.EmployeeDto.Employeestatus)) return new EmployeeCreateResponse( false, "Employee Status cannot be empty. It should be either 'Active' or 'Terminated'.", null);
-                 string status = request.EmployeeDto.Employeestatus.Trim();
-                if (status != "Active" && status != "Terminated") return new EmployeeCreateResponse( false,"Invalid Employee Status. It should be either 'Active' or 'Terminated'.",null);
+                if (string.IsNullOrWhiteSpace(request.EmployeeDto.Employeestatus)) return new EmployeeCreateResponse(false, "Employee Status cannot be empty. It should be either 'Active' or 'Terminated'.", null);
+                string status = request.EmployeeDto.Employeestatus.Trim();
+                if (status != "Active" && status != "Terminated") return new EmployeeCreateResponse(false, "Invalid Employee Status. It should be either 'Active' or 'Terminated'.", null);
                 var employee = new Employee
                 {
                     SiteId = request.EmployeeDto.SiteId,
@@ -53,7 +53,7 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                     Site = site,
                     DateCreated = DateTime.UtcNow,
                     DateModified = DateTime.UtcNow,
-                    IsModified =false?(sbyte)1:(sbyte)0,  
+                    IsModified = false ? (sbyte)1 : (sbyte)0,
                     ModifiedBy = request.EmployeeDto.ModifiedBy,
                     CreatedBy = request.EmployeeDto.CreatedBy,
                     Vehicles = new List<Vehicle>()
@@ -64,7 +64,7 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 {
                     var result = await _context.Vehicles.FirstOrDefaultAsync(i => i.VehicleId == vehicleId);
                     if (result == null) return new EmployeeCreateResponse(false, $"Vehicle with ID {vehicleId} not found", null);
-                     employee.Vehicles.Add(result);
+                    employee.Vehicles.Add(result);
                 }
 
                 _context.Employees.Add(employee);
@@ -81,7 +81,7 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
     }
 
 
-    public record EmployeeCreateResponse(bool Success, string Message, EmployeeDto EmployeeDto );
+    public record EmployeeCreateResponse(bool Success, string Message, EmployeeDto EmployeeDto);
 
 
 

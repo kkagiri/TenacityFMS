@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FMS.Infrastructure.DependancyInjection
 {
-    public class GpsgateAccessModule 
+    public class GpsgateAccessModule
     {
 
 

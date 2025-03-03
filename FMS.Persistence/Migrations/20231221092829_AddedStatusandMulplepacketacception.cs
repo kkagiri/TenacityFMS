@@ -11,11 +11,11 @@ namespace FMS.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-           
 
-        
 
-           
+
+
+
 
             migrationBuilder.UpdateData(
                 table: "tankmeasurement",
@@ -45,7 +45,7 @@ namespace FMS.Persistence.Migrations
                 oldClrType: typeof(int),
                 oldType: "int(11)")
                 .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn);
-        
+
 
 
 

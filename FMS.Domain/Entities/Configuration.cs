@@ -15,4 +15,6 @@ public partial class Configuration
 
     public string Ptsid { get; set; } = null!;
 
+    public virtual Ptsdevice Pts { get; set; } = null!;
+
 }

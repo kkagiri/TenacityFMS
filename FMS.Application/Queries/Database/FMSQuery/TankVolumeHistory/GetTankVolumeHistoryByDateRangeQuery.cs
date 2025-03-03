@@ -19,7 +19,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
     /// </summary>
     /// <param name="StartDate"></param>
     /// <param name="EndDate"></param>
-  public record GetTankVolumeHistoryByDateRangeQuery(DateTime StartDate, DateTime EndDate) : IRequest<List<TankVolumeHistoryDTO>>;
+    public record GetTankVolumeHistoryByDateRangeQuery(DateTime StartDate, DateTime EndDate) : IRequest<List<TankVolumeHistoryDTO>>;
 
     public class GetTankVolumeHistoryByDateRangeQueryHandler : IRequestHandler<GetTankVolumeHistoryByDateRangeQuery, List<TankVolumeHistoryDTO>>
     {
@@ -36,13 +36,13 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
         }
         public async Task<List<TankVolumeHistoryDTO>> Handle(GetTankVolumeHistoryByDateRangeQuery request, CancellationToken cancellationToken)
         {
-           try
+            try
             {
 
-           var tankVolumeHistories = await _contenxt.TankVolumeHistories
-                    .Include(x => x.Tank.Site)
-                    .Where(x => x.Timestamp.Date >= request.StartDate.Date && x.Timestamp.Date <= request.EndDate.Date)
-                    .ToListAsync(cancellationToken);
+                var tankVolumeHistories = await _contenxt.TankVolumeHistories
+                         .Include(x => x.Tank.Site)
+                         .Where(x => x.Timestamp.Date >= request.StartDate.Date && x.Timestamp.Date <= request.EndDate.Date)
+                         .ToListAsync(cancellationToken);
 
                 var result = new List<TankVolumeHistoryDTO>();
 
@@ -66,14 +66,14 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
                 }
 
                 return result;
-                }
-                catch (Exception ex)
-            {
-                 _logger.LogError(ex, "Error getting tank volume history list");
-                 throw;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank volume history list");
+                throw;
             }
         }
     }
+}
 
 

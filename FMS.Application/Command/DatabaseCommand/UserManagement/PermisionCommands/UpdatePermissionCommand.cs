@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands
 {
-    public record UpdatePermissionCommand(int Id, string Name,int ParentId) : IRequest<bool>;
+    public record UpdatePermissionCommand(int Id, string Name, int ParentId) : IRequest<bool>;
     public class UpdatePermissionCommandHandler : IRequestHandler<UpdatePermissionCommand, bool>
     {
         private readonly GpsdataContext _context;

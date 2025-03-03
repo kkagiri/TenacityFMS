@@ -12,15 +12,15 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
 {
-    public record  RoleUpdateCommand(RoleDto  RoleDto) : IRequest<bool>;
+    public record RoleUpdateCommand(RoleDto RoleDto) : IRequest<bool>;
 
 
     public class RoleUpdateCommandHandler : IRequestHandler<RoleUpdateCommand, bool>
     {
         private readonly RoleManager<Role> _roleManager;
-        private readonly  ILogger<RoleUpdateCommandHandler> _logger;
+        private readonly ILogger<RoleUpdateCommandHandler> _logger;
 
-        public RoleUpdateCommandHandler(RoleManager<Role> roleManager , ILogger<RoleUpdateCommandHandler> logger)
+        public RoleUpdateCommandHandler(RoleManager<Role> roleManager, ILogger<RoleUpdateCommandHandler> logger)
         {
             _logger = logger;
             _roleManager = roleManager;
@@ -33,19 +33,21 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands
             {
                 var role = await _roleManager.FindByIdAsync(request.RoleDto.Id);
 
-                if (role == null) {
-                _logger.LogWarning($"Role with ID {request.RoleDto.Id} not found.");
-                return false;
-            };
+                if (role == null)
+                {
+                    _logger.LogWarning($"Role with ID {request.RoleDto.Id} not found.");
+                    return false;
+                };
 
                 role.Name = request.RoleDto.Name;
                 role.Description = request.RoleDto.Description;
-                
+
                 var result = await _roleManager.UpdateAsync(role);
 
                 return result.Succeeded;
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 throw;

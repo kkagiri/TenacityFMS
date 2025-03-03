@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Common
 {
-    public class NotFoundException:Exception
+    public class NotFoundException : Exception
     {
         public NotFoundException(string name, object key)
             : base($"Entity \"{name}\" ({key}) was not found.")
@@ -14,6 +14,6 @@ namespace FMS.Application.Common
 
         }
     }
-    
 
-    }
+
+}

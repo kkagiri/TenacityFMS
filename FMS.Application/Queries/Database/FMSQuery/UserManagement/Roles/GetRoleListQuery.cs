@@ -15,13 +15,13 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles
 {
-    public record  GetRoleListQuery : IRequest<List<RoleDto>>;
+    public record GetRoleListQuery : IRequest<List<RoleDto>>;
 
     public class GetRoleListQueryHandler : IRequestHandler<GetRoleListQuery, List<RoleDto>>
     {
 
-        private readonly RoleManager<Role> _roleManager;    
-        private readonly ILogger<GetRoleListQueryHandler> _logger;  
+        private readonly RoleManager<Role> _roleManager;
+        private readonly ILogger<GetRoleListQueryHandler> _logger;
         private readonly IMapper _mapper;
 
         public GetRoleListQueryHandler(RoleManager<Role> roleManager, ILogger<GetRoleListQueryHandler> logger, IMapper mapper)
@@ -34,13 +34,13 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles
         {
             try
             {
-                var roles =await _roleManager.Roles.ToListAsync();
+                var roles = await _roleManager.Roles.ToListAsync();
                 var roleDto = _mapper.Map<List<RoleDto>>(roles);
                 return roleDto;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-               _logger.LogError(ex.Message);
+                _logger.LogError(ex.Message);
                 throw new Exception(ex.Message); //
             }
         }

@@ -36,8 +36,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
                 var tankVolumeHistories = await _context.TankVolumeHistories
                     .Include(x => x.Tank.Site)
                     .Include(x => x.RecordedByNavigation)
-                    .Where(x => x.Tank.SiteId == request.SiteId && 
-                                x.Timestamp.Date >= request.StartDate.Date && 
+                    .Where(x => x.Tank.SiteId == request.SiteId &&
+                                x.Timestamp.Date >= request.StartDate.Date &&
                                 x.Timestamp.Date <= request.EndDate.Date)
                     .ToListAsync(cancellationToken);
 
@@ -72,5 +72,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
             }
         }
     }
-   
+
 }

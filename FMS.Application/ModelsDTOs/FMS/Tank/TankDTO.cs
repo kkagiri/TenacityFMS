@@ -29,7 +29,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Tank
         public DateTime LastStockUpdate { get; set; }
 
 
-[JsonIgnore]
+        [JsonIgnore]
         public string SiteName { get; set; } = null!;
     }
 }

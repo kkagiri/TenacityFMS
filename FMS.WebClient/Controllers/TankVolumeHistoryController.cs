@@ -9,14 +9,14 @@ namespace FMS.WebClient.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Admin,User")]
-    public class TankVolumeHistoryController: ControllerBase
+    public class TankVolumeHistoryController : ControllerBase
     {
-         private readonly IMediator _mediator;
+        private readonly IMediator _mediator;
 
         public TankVolumeHistoryController(IMediator mediator)
         {
-                _mediator = mediator;
-            }
+            _mediator = mediator;
+        }
 
         [HttpGet]
         [Authorize]
@@ -31,14 +31,14 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("byTankAndDateRange")]
         [Authorize]
-        public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate,DateTime endDate,  int TankId)
+        public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate, DateTime endDate, int TankId)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
             //   if (!hasPermission) return Forbid();
             if (TankId <= 0) return BadRequest("Invalid ID");
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
-            var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(startDate,endDate, TankId));
+            var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(startDate, endDate, TankId));
             if (result == null) return NotFound();
             if (result.Success == false) return BadRequest(result.Message);
 

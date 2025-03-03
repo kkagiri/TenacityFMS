@@ -29,10 +29,11 @@ public class FuelRefillSummaryQueryHandler : IRequestHandler<FuelRefillSummaryQu
         _logger = logger;
     }
 
-    public  async Task<List<RefillSummaryDTO>> Handle(FuelRefillSummaryQuery request, CancellationToken cancellationToken)
+    public async Task<List<RefillSummaryDTO>> Handle(FuelRefillSummaryQuery request, CancellationToken cancellationToken)
     {
-        try{
-       var query = from fr in _context.Fuelrefils
+        try
+        {
+            var query = from fr in _context.Fuelrefils
                         join v in _context.Vehicles on fr.VehicleId equals v.VehicleId
                         join vt in _context.Vehicletypes on v.VehicleTypeId equals vt.Id
                         join s in _context.Sites on fr.SiteId equals s.Id

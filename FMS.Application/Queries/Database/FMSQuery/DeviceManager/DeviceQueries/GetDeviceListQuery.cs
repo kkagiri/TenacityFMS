@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceQueries;
 
-public record GetDeviceListQuery(): IRequest<List<Device>>;
-public class GetDeviceListQueryHandler: IRequestHandler<GetDeviceListQuery, List<Device>>
+public record GetDeviceListQuery() : IRequest<List<Device>>;
+public class GetDeviceListQueryHandler : IRequestHandler<GetDeviceListQuery, List<Device>>
 {
     private readonly GpsdataContext _context;
     public GetDeviceListQueryHandler(GpsdataContext context)

@@ -40,7 +40,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>  
         /// <param name="command"></param>
         /// <returns> ok </returns>
-       
+
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> CreatePermission([FromBody] AddPermissionCommand command)
@@ -62,7 +62,7 @@ namespace FMS.WebClient.Controllers
         /// <returns> ok </returns>
 
         [HttpPut("{id}")]
-       [Authorize]
+        [Authorize]
         public async Task<IActionResult> UpdatePermission(int id, [FromBody] UpdatePermissionCommand command)
         {
             if (!ModelState.IsValid)
@@ -92,10 +92,10 @@ namespace FMS.WebClient.Controllers
         /// <param name="roleId"></param>
         /// <returns></returns>
         [HttpGet("role/{roleId:guid}")]
-         [Authorize]
+        [Authorize]
         public async Task<IActionResult> GetPermissionsByRoleID(string roleId)
         {
-            if (roleId == null  ) return BadRequest("RoleID is null");
+            if (roleId == null) return BadRequest("RoleID is null");
 
             var result = await _mediator.Send(new GetPermissionsByRoleIDQuery(roleId));
             return Ok(result);
@@ -108,7 +108,7 @@ namespace FMS.WebClient.Controllers
         /// <returns></returns>
 
         [HttpGet("user/{userId:guid}")]
-        [Authorize]     
+        [Authorize]
         public async Task<IActionResult> GetPermissionsByUserID(string userId)
         {
             if (userId == null) return BadRequest("UserID is null");

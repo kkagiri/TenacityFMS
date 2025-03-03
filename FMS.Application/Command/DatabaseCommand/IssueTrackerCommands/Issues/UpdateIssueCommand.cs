@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.ModelsDTOs.FMS.Issuetracker;
 using FMS.Persistence.DataAccess;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +11,7 @@ namespace FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
 
 public record UpdateIssueCommand(IssueTrackerDTO IssueTracker) : IRequest<Unit>;
 
-public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand,Unit>
+public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Unit>
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
@@ -27,20 +26,21 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand,Unit
 
     public async Task<Unit> Handle(UpdateIssueCommand request, CancellationToken cancellationToken)
     {
-        try{
-        var entity = await _context.Issuetrackers.FindAsync(request.IssueTracker.Id);
-        if (entity == null)
+        try
         {
-            _logger.LogWarning("Issue with ID: {Id} not found", request.IssueTracker.Id);
+            var entity = await _context.Issuetrackers.FindAsync(request.IssueTracker.Id);
+            if (entity == null)
+            {
+                _logger.LogWarning("Issue with ID: {Id} not found", request.IssueTracker.Id);
+                return Unit.Value;
+            }
+
+            _mapper.Map(request.IssueTracker, entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Issue with ID: {Id} updated", entity.Id);
+
             return Unit.Value;
-        }
-
-        _mapper.Map(request.IssueTracker, entity);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Issue with ID: {Id} updated", entity.Id);
-
-        return Unit.Value;
         }
         catch (Exception ex)
         {

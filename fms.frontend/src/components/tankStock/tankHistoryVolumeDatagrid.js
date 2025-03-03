@@ -8,7 +8,7 @@ import Toolbar, { Item as thvdItem } from 'devextreme-react/toolbar';
 import { useDispatch, useSelector } from 'react-redux';
 import { DataGrid, Column, Lookup, Paging, FilterRow,Selection,
       TotalItem,Toolbar as TB,
-       Item as TBItem,HeaderFilter,LoadPanel , Export,
+       Item as TBItem,HeaderFilter,LoadPanel , Export,Editing,
         Grouping, GroupPanel, FilterPanel, Summary, GroupItem } from 'devextreme-react/data-grid';
 import { formatDate } from './../../utils/dateUtils';
 import { Workbook } from 'exceljs';
@@ -70,8 +70,15 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
         return tanks.filter(tank => tank.siteId === selectedSite);
     }, [tanks, selectedSite]);
 
-    
 
+
+    const onRowUpdating = useCallback((e) => {
+        const newData = [...tankVolumeHistory];
+        const index = newData.findIndex((item) => item.id === e.key);
+        newData[index] = { ...newData[index], ...e.data };
+        // dispatch(updateTankVolumeHistory(newData));
+        e.component.cancelEditData();
+    }, []);
 
     const totalCapacity = useMemo(() => {
         return filteredTanks.reduce((sum, tank) => sum + tank.tankVolume, 0);
@@ -86,15 +93,15 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
     }, [currentTotalStock, totalCapacity]);
 
     const calculateCustomSummary = useCallback((options) => {
-        
-        
+
+
             if (options.summaryProcess === 'start') {
                 options.totalValue = { currentStock: 0, capacity: 0, count: 0, processedTanks: new Set() };
             }
             if (options.summaryProcess === 'calculate') {
                 const isSiteLevel = options.groupIndex === 0;
                 const tankId = options.value;
-                
+
                 const tank = filteredTanks.find(t => t.id === tankId);
                 if (tank) {
                     if (isSiteLevel) {
@@ -128,7 +135,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         break;
                 }
             }
-        
+
     }, [selectedPeriod, filteredTanks]);
 
 
@@ -181,12 +188,13 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
         e.cancel = true;
     }, [VolumeChangeReasonEnum]);
 
-      
+
     return (
             <div style={{ display: 'flex',  marginTop:'20px' }}>
-       
+
             <DataGrid
                 dataSource={tankVolumeHistory}
+                keyExpr={'id'}
                 showBorders={true}
                 ref={dataGridRef}
                 showColumnLines={true}
@@ -194,8 +202,16 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                 allowColumnResizing={true}
                 showColumnHeaders={true}
                 instanceName="tankHistoryVolumeGrid"
+                onRowUpdating={onRowUpdating}
 
             >
+                <Editing
+                    mode="row"
+                    allowAdding={false}
+                    allowDeleting={false}
+                    allowUpdating={true}
+                />
+
                 <FilterPanel visible={true} />
                 <GroupPanel visible={false} />
                 <Grouping visible={true} autoExpandAll={false} />
@@ -210,7 +226,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         icon: 'fa-light fa-file-export',
                         text: 'Export',
                         onClick: onExporting
-                    }}   
+                    }}
                        />
 
                 </TB>
@@ -276,7 +292,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
                         precision={2}
                         displayFormat="Total : {0} liters"
                         showInGroupFooter={true}
-                      
+
                     />
                 <TotalItem
                         column="volumeChange"

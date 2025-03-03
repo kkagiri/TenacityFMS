@@ -16,7 +16,7 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
         public decimal? PreviousMeterReading { get; set; }
         public decimal? CurrentMeterReading { get; set; }
         public int SiteId { get; set; }
-        public string SiteName { get; set; } 
+        public string SiteName { get; set; }
         public string Comment { get; set; }
         public string FuelBy { get; set; }
         public int? PumpTranscationId { get; set; }

@@ -41,7 +41,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     .ToListAsync(cancellationToken);
 
                 var fuelRefills = await _context.Fuelrefils
-                    .Where(f => f.Date >= request.StartDate.Date && f.Date <= adjustedEndDate )
+                    .Where(f => f.Date >= request.StartDate.Date && f.Date <= adjustedEndDate)
                     .Include(f => f.Driver)
                     .ToListAsync(cancellationToken);
 
@@ -86,7 +86,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
                 return result;
             }
-           
+
 
             catch (Exception ex)
             {
@@ -106,5 +106,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
             return 0;
         }
     }
-    
+
 }

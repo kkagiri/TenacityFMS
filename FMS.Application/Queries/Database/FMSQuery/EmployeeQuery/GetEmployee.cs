@@ -13,8 +13,8 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
 {
-    public record  GetEmployeeQuery (bool ActiveEmployee=true) : IRequest<List<EmployeeDto>>;
-  
+    public record GetEmployeeQuery(bool ActiveEmployee = true) : IRequest<List<EmployeeDto>>;
+
     /// <summary>
     /// Get all active employees
     /// </summary>

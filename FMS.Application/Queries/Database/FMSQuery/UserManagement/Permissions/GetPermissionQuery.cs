@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions
 {
-   public record GetPermissionQuery(): IRequest<List<PermissionDTO>>;
+    public record GetPermissionQuery() : IRequest<List<PermissionDTO>>;
 
     public class GetPermissionListHandler : IRequestHandler<GetPermissionQuery, List<PermissionDTO>>
     {
@@ -22,7 +22,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions
         private readonly GpsdataContext _context;
         private readonly ILogger<GetPermissionListHandler> _logger;
         private readonly IMapper _mapper;
-        public GetPermissionListHandler(GpsdataContext context,  ILogger<GetPermissionListHandler> logger, IMapper mapper)
+        public GetPermissionListHandler(GpsdataContext context, ILogger<GetPermissionListHandler> logger, IMapper mapper)
         {
             _logger = logger;
             _context = context;
@@ -32,11 +32,11 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions
         {
             try
             {
-                return _mapper.Map<List<PermissionDTO>>( await _context.Permissions.Include(p=>p.InverseParent).ToListAsync(cancellationToken));
+                return _mapper.Map<List<PermissionDTO>>(await _context.Permissions.Include(p => p.InverseParent).ToListAsync(cancellationToken));
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error Getting Permission list",ex.Message);
+                _logger.LogError("Error Getting Permission list", ex.Message);
                 throw;
             }
         }

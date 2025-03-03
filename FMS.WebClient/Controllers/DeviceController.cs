@@ -45,7 +45,7 @@ public class DeviceController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<int>> CreateDevice(CreateDeviceCommand command)
     {
-        if(!ModelState.IsValid) return BadRequest();
+        if (!ModelState.IsValid) return BadRequest();
         var result = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetDevice), new { imei = result }, result);
     }
@@ -55,7 +55,7 @@ public class DeviceController : ControllerBase
     {
         string imeiPattern = @"^\d{12,16}$";
         if (string.IsNullOrEmpty(imei) || !Regex.IsMatch(imei, imeiPattern)) return BadRequest("Invalid IMEI number");
-        if(!ModelState.IsValid) return BadRequest();
+        if (!ModelState.IsValid) return BadRequest();
 
         if (imei != command.Device.DeviceImei.ToString())
             return BadRequest();
@@ -66,7 +66,7 @@ public class DeviceController : ControllerBase
     [HttpDelete("{imei}")]
     public async Task<IActionResult> DeleteDevice(string imei)
     {
-         string imeiPattern = @"^\d{12,16}$";
+        string imeiPattern = @"^\d{12,16}$";
         if (string.IsNullOrEmpty(imei) || !Regex.IsMatch(imei, imeiPattern)) return BadRequest("Invalid IMEI number");
         var command = new DeleteDeviceCommand(int.Parse(imei));
         await _mediator.Send(command);

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
 {
     public record GetSimpleVehicleQuery : IRequest<List<SimpleVehicleDto>>;
- 
+
     public class GetSimpleVehicleQueryHandler : IRequestHandler<GetSimpleVehicleQuery, List<SimpleVehicleDto>>
     {
         private readonly IMapper _mapper;

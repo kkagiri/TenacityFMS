@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FMS.Domain.Entities.Reports;
 
-public  class ReportItem
+public class ReportItem
 {
     [Key]
     public int Id { get; set; }
@@ -18,9 +18,9 @@ public  class ReportItem
 
     public DateTime? UpdatedAt { get; set; }
 
-    public string ? CreatedBy { get; set; }
+    public string? CreatedBy { get; set; }
 
-    public string ? UpdatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 
 
 

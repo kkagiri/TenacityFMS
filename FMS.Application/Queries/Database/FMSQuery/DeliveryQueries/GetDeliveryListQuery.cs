@@ -43,5 +43,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.DeliveryQueries
             }
         }
     }
-   
+
 }
