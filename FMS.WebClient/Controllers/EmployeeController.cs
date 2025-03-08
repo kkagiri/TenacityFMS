@@ -5,6 +5,8 @@ using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 namespace FMS.WebClient.Controllers
 {
@@ -21,7 +23,7 @@ namespace FMS.WebClient.Controllers
             _mediator = mediator;
         }
         [HttpPost]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDto employeeDto)
         {
             var hasPermission = User.HasClaim("permissions", "_createEmployee");
@@ -45,7 +47,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("site/{siteId}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
         {
             var hasPermission = User.HasClaim("permissions", "_readEmployee");
@@ -59,7 +61,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetEmployeeList([FromQuery] bool? active)
         {
             var hasPermission = User.HasClaim("permissions", "_readEmployee");
@@ -73,7 +75,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetEmployee(int id)
         {
             var hasPermission = User.HasClaim("permissions", "_readEmployee");
@@ -115,7 +117,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             var hasPermission = User.HasClaim("permissions", "_deleteEmployee");

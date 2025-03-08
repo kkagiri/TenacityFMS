@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 namespace FMS.WebClient.Controllers;
 
@@ -24,7 +26,7 @@ public class FuelRefillController : ControllerBase
 
     //api: Post fuelrefill
     [HttpPost]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateFuelRefil([FromBody] FuelRefilDTO fuelRefilDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_createFuelRefill");
@@ -47,7 +49,7 @@ public class FuelRefillController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetFuelRefil(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
@@ -61,7 +63,7 @@ public class FuelRefillController : ControllerBase
 
 
     [HttpGet]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetFuelRefilList(int take = 100, int skip = 0)
     {
         var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
@@ -76,7 +78,7 @@ public class FuelRefillController : ControllerBase
 
 
     [HttpPut("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     public async Task<IActionResult> UpdateFuelRefil(int id, [FromBody] FuelRefilDTO fuelRefilDTO)
     {
@@ -103,7 +105,7 @@ public class FuelRefillController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> DeleteFuelRefil(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_deleteFuelRefill");
@@ -116,7 +118,7 @@ public class FuelRefillController : ControllerBase
     }
 
     [HttpGet("summary")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetFuelRefillSummary([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
     {
         var hasPermission = User.HasClaim("permissions", "_readFuelRefill");

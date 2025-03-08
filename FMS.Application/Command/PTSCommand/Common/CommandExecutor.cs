@@ -201,7 +201,7 @@ public class CommandExecutor : ICommandExecutor
     }
 
 
-    private async Task<CommandResult> HandleFailedHttpPush(string deviceId, string commandType, object commandData, int? errorCode)
+    private async Task<CommandResult> HandleFailedHttpPush(string deviceId, string commandType, object commandData, int? errorCode) //TODO: Add Priority
     {
         if (errorCode.HasValue)
         {
@@ -211,7 +211,7 @@ public class CommandExecutor : ICommandExecutor
         _logger.LogWarning("Failed to deliver command {CommandType} to device {DeviceId}, storing pending",
             commandType, deviceId);
 
-        //  await _pendingCommandRepo.SavePendingConfigurationAsync(deviceId, commandType, commandData);
+        await _pendingCommandRepo.QueueCommandAsync(deviceId, commandType, commandData, 1, "HTTP_Retry");//TODO: Add Priority
         return CommandResult.Failed("HTTP push failed and no error code found", 9999);
     }
 

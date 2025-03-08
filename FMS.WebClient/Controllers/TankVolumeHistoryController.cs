@@ -3,6 +3,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
@@ -19,7 +22,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistory()
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
@@ -30,7 +33,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("byTankAndDateRange")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate, DateTime endDate, int TankId)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
@@ -45,7 +48,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result.Data);
         }
         [HttpGet("byDateRange")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistoryByDateRange(DateTime StartDate, DateTime EndDate)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
@@ -58,7 +61,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("bySite")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistoryBySite(DateTime startDate, DateTime endDate, int siteId)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");

@@ -30,8 +30,22 @@ namespace FMS.Application.Util
             //chatgpt: Create a new scope to obtain a DbContext instance.
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-
+            var script = dbContext.Database.GenerateCreateScript();
+            _logger.LogDebug("Database create script: {script}", script);
+            try
+            {
+                // Accessing the Model property forces EF Core to build the model.
+                var model = dbContext.Model;
+                _logger.LogDebug("EF Core model built successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during EF Core model creation.");
+                throw;
+            }
             //chatgpt: Create the execution strategy from the DbContext. This strategy supports automatic retries.
+           
+
             var strategy = dbContext.Database.CreateExecutionStrategy();
 
             //chatgpt: Execute all operations inside the execution strategy's lambda.

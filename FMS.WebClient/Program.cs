@@ -364,7 +364,16 @@ public class Program
             }
 
             services.AddDbContext<GpsdataContext>(options =>
-                options.UseMySql(connectionString, new MySqlServerVersion(new Version(5, 5, 61))), ServiceLifetime.Scoped);
+            {
+                options.UseMySql(
+                    connectionString,
+                    new MySqlServerVersion(new Version(5, 5, 61))
+                )
+                .EnableDetailedErrors()
+                .EnableSensitiveDataLogging()
+                .LogTo(Console.WriteLine, LogLevel.Trace); //chatgpt: Changed LogLevel to Trace for more details.
+            },
+         ServiceLifetime.Scoped);
 
             if (!string.IsNullOrEmpty(naftaConnectionString))
             {

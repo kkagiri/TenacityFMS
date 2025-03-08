@@ -60,8 +60,8 @@ namespace FMS.WebClient.Controllers
             return Ok(vehicles);
         }
 
-        [HttpGet]
-        [Authorize]
+        [HttpGet("getlist")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetVehicleList()
         {
             var query = new GetVehicleQuery();
@@ -74,8 +74,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("/{id}")]
-        [Authorize]
-
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetVehicleByID(int id)
         {
 
@@ -90,7 +89,8 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpPut]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
         public async Task<IActionResult> UpdateVehicle([FromBody] List<VehicleDTO> vehicleDTOs)
         {
 
@@ -106,7 +106,8 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
         public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleDTO vehicleDTO)
         {
             var hasPermission = User.HasClaim("permissions", "_EditVehicle");

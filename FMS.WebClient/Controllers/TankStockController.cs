@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Queries.Database.FMSQuery.TankStock;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
-
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
@@ -14,6 +15,7 @@ using FMS.Application.ModelsDTOs.FMS.TankTransfer;
 using FMS.Application.Common;
 using FMS.Domain.ATGEntities.Nafta;
 namespace FMS.WebClient.Controllers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -28,7 +30,7 @@ public class TankStockController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     public async Task<IActionResult> GetTankStocks()
     {
@@ -38,7 +40,7 @@ public class TankStockController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetTankStockById(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
@@ -56,7 +58,7 @@ public class TankStockController : ControllerBase
 
 
     [HttpPut("update/{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> UpdateDelivery(int id, [FromBody] DeliveryDTO deliveryDTO, bool ignoreNegativesValues = false)
     {
         var hasPermission = User.HasClaim("permissions", "_editStock");
@@ -75,7 +77,7 @@ public class TankStockController : ControllerBase
 
 
     [HttpPost]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateTankStock([FromBody] TankStockDTO tankStockDTO)
     {
         //check if user has "_create_tankStock" permission
@@ -94,7 +96,7 @@ public class TankStockController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> UpdateTankStock(int id, [FromBody] TankStockDTO tankStockDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
@@ -115,7 +117,7 @@ public class TankStockController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> DeleteTankStock(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_Delete_tankStock");
@@ -130,7 +132,7 @@ public class TankStockController : ControllerBase
 
 
     [HttpPost("openingstock")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateOpeningStock([FromQuery] int tankId, decimal amount, DateTime dateTime)
     {
         // var hasPermission = User.HasClaim("permissions", "_openingStock");
@@ -155,7 +157,7 @@ public class TankStockController : ControllerBase
 
     }
     [HttpPost("closingstock")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateClosingStock([FromQuery] int tankId, decimal amount, DateTime dateTime)
     {
         // var hasPermission = User.HasClaim("permissions", "_closingStock");
@@ -179,7 +181,7 @@ public class TankStockController : ControllerBase
     }
 
     [HttpPost("transfer")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateTankTransfer([FromBody] TankTransferDTO tankTransferDTO)
     {
         //var hasPermission = User.HasClaim("permissions", "_tankTransfer");

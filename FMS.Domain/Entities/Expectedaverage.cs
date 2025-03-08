@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FMS.Domain.Entities;
 
@@ -19,7 +20,8 @@ public partial class Expectedaverage
 
     public virtual Site Site { get; set; } = null!;
 
+
     public virtual Vehicle Vehicle { get; set; } = null!;
 
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+   // public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

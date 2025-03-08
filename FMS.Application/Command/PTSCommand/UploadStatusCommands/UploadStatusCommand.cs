@@ -81,17 +81,15 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     return CommandResult.Failed("No status data received");
                 }
 
-                // Check if there is a pending configuration for this device
-                //  var (commandType, commandData) = await _pendingCommandRepo.GetPendingConfigurationAsync(request.DeviceId!);
-
-
-                //   if (!string.IsNullOrEmpty(commandType) && commandData != null)
-                //  {
-                //     //return a command result that including the pending command so UploadStatusHandler can embed it
-                //     _logger.LogInformation("Returning pending {CommandType} config for device {DeviceId}", commandType, request.DeviceId);
-                //      await _pendingCommandRepo.ClearPendingConfigurationAsync(request.DeviceId!);
-                //       return CommandResult.Succeeded(commandType, commandData);
-                //     }
+                //check if there is a pending command for this device ..
+                var pendingCommand = await _pendingCommandRepo.GetNextPendingCommandAsync(deviceId!);
+                if (pendingCommand.HasValue)
+                {
+                    var (commandId, commandType, commandData) = pendingCommand.Value;
+                    await _pendingCommandRepo.MarkCommandDeliveredAsync(commandId);
+                    _logger.LogInformation("Pending command {CommandType} marked as completed for device {DeviceId}", commandType, deviceId);
+                    return CommandResult.Succeeded(commandType, commandData);
+                }
 
                 if (uploadstatus?.Pumps != null)
                 {

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace FMS.Domain.Entities;
 
 public partial class Intankdelivery
 {
+
     public int DeliveryId { get; set; }
 
     public int Tank { get; set; }

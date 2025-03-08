@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using FMS.Application.ModelsDTOs.FMS.Tag;
 using FMS.Application.Command.DatabaseCommand.TagCmd;
 using FMS.Application.Queries.Database.FMSQuery.TagQueries;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers;
 
@@ -20,7 +21,7 @@ public class TagController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetTags()
     {
         return User.HasClaim("permissions", "_readTag")
@@ -29,7 +30,7 @@ public class TagController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetTagById(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_readTag");
@@ -41,7 +42,7 @@ public class TagController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateTag([FromBody] TagDTO tagDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_CreateTags");
@@ -54,7 +55,7 @@ public class TagController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> UpdateTag(int id, [FromBody] TagDTO tagDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_EditTags");
@@ -68,7 +69,7 @@ public class TagController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> DeleteTag(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_DeleteTags");
@@ -79,7 +80,7 @@ public class TagController : ControllerBase
     }
 
     [HttpPost("assign-to-vehicle")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> AssignTagToVehicle([FromBody] AssignTagToVehicleDTO assignTagDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_EditTags");

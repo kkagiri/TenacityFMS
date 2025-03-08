@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FMS.Domain.Entities;
 
@@ -36,8 +37,10 @@ public partial class Tank
 
 
     public virtual ICollection<TankVolumeHistory> TankVolumeHistories { get; set; } = new List<TankVolumeHistory>();
-    public virtual ICollection<TankTransfer> SourceTankTransfers { get; set; } = new List<TankTransfer>();
-    public virtual ICollection<TankTransfer> DestinationTankTransfers { get; set; } = new List<TankTransfer>();
+
+    public virtual ICollection<TankTransfer> TankTransfersAsSource { get; set; } = new List<TankTransfer>();
+
+    public virtual ICollection<TankTransfer> TankTransfersAsDestination { get; set; } = new List<TankTransfer>();
 
 
 }

@@ -6,13 +6,15 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 
 namespace FMS.WebClient.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DeliveryController : ControllerBase
     {
 
@@ -26,7 +28,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpPost]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
         {
             //var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
@@ -47,7 +49,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetDeliveries()
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
@@ -59,7 +61,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("byDateRange")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate)
         {
@@ -73,7 +75,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("byDateRangebySite")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate, int siteId)
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");

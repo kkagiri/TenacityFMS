@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace FMS.Domain.Entities;
 
 public partial class Device
 {
+    [Key]
     public int DeviceImei { get; set; }
 
     public int DeviceMakerId { get; set; }

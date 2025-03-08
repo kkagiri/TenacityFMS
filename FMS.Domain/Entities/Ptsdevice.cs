@@ -38,12 +38,11 @@ public partial class Ptsdevice
 
     public virtual ICollection<Intankdelivery> Intankdeliveries { get; set; } = new List<Intankdelivery>();
 
-    public virtual ICollection<PendingCommand> Pendingcommands { get; set; } = new List<PendingCommand>();
-
-    public virtual ICollection<PtsDeviceCommand> PtsDeviceCommands { get; set; } = new List<PtsDeviceCommand>();
+    public virtual ICollection<PtsDevicePendingCommand> PtsDevicePendingCommands { get; set; } = new List<PtsDevicePendingCommand>();
 
     public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction>();
     public virtual ICollection<Tank>? Tanks { get; set; }
+    public virtual ICollection<DeviceConnection> DeviceConnections { get; set; } = new List<DeviceConnection>();
 
     public virtual Site? SiteNavigation { get; set; }
 

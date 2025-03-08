@@ -5,12 +5,13 @@ using FMS.Application.Queries.Database.FMSQuery.SuppliersQueries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class SupplierController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -21,7 +22,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<List<SupplierDTO>>> GetSuppliers()
         {
             var query = new GetSupplierListQuery();
@@ -30,7 +31,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         public async Task<ActionResult<FMSResponseMessage>> CreateSupplier([FromBody] SupplierDTO supplier)
         {
@@ -41,7 +42,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         public async Task<ActionResult<FMSResponseMessage>> UpdateSupplier(int id, [FromBody] SupplierDTO supplier)
         {
@@ -53,7 +54,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         public async Task<ActionResult<FMSResponseMessage>> DeleteSupplier(int id)
         {

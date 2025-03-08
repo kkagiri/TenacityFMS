@@ -1,7 +1,9 @@
 using FMS.Application.Queries.Database.FMSQuery.UserActivies;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers;
 
@@ -16,7 +18,7 @@ public class UserActiviesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetUserActivities([FromQuery] GetUserActivitiesQuery query)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);

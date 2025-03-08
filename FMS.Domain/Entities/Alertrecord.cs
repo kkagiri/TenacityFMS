@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace FMS.Domain.Entities;
 
 public partial class Alertrecord
 {
+    [Key]
     public int AlertId { get; set; }
 
     public DateTime DateTime { get; set; }

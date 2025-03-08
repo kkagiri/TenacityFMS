@@ -38,8 +38,10 @@ namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
         public async Task<List<EmployeeDto>> Handle(GetEmployeeQuery request, CancellationToken cancellationToken)
         {
             var employeesQuery = _context.Employees
-             .Include(e => e.Vehicles)
-             .AsQueryable();
+    .Include(e => e.EmployeeVehicles)
+    .ThenInclude(ev => ev.Vehicle)
+    .AsNoTracking()
+    .AsQueryable();
 
             if (request.ActiveEmployee)
             {
@@ -49,6 +51,14 @@ namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
             var employees = await employeesQuery
                 .OrderByDescending(x => x.Id)
                 .ToListAsync(cancellationToken);
+
+            // Now manually map the vehicles from EmployeeVehicles to the Vehicles collection
+            foreach (var employee in employees)
+            {
+                employee.Vehicles = employee.EmployeeVehicles
+                    .Select(ev => ev.Vehicle)
+                    .ToList();
+            }
 
             return _mapper.Map<List<EmployeeDto>>(employees);
 

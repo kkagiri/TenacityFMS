@@ -6,6 +6,7 @@ using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
@@ -13,7 +14,7 @@ namespace FMS.WebClient.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     public class VehicleModelController : ControllerBase
     {
@@ -27,7 +28,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("CreateVehicleModel")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<int>> CreateVehicleModel([FromBody] Vehiclemodel vehicleModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -42,7 +43,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         public async Task<IActionResult> GetVehicleModel()
         {
