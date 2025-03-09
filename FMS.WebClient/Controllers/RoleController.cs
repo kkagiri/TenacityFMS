@@ -6,6 +6,7 @@ using FMS.Application.ModelsDTOs.FMS.UserManagement;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> UpdateRole(string id, [FromBody] RoleDto roleDto)
         {
             if (roleDto == null || id != roleDto.Id) return BadRequest();
-           var command = new RoleUpdateCommand(roleDto);
+            var command = new RoleUpdateCommand(roleDto);
             var result = await _mediator.Send(command);
             if (!result) return NotFound();
             return NoContent();
@@ -65,16 +66,19 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("AssignPermissions")]
-       [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> AssignPermissions([FromBody] AssignPermissionsToRoleCommand command)
         {
-            if(!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (string.IsNullOrWhiteSpace(command.RoleId)) return BadRequest("invalid Role ID");
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var result = await _mediator.Send(command);
-           if(!result.Success) return BadRequest(result);
+            if (!result.Success) return BadRequest(result);
             return Ok(result);
         }
         [HttpPost("UpdateRoleUsers")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> UpdateRoleForUsers([FromBody] UpdateRoleUsersCommand command)
         {
             if (!ModelState.IsValid)
@@ -82,23 +86,23 @@ namespace FMS.WebClient.Controllers
                 return BadRequest(ModelState);
             }
             var result = await _mediator.Send(command);
-           if(!result.Succeeded) return BadRequest(result);
+            if (!result.Succeeded) return BadRequest(result);
             return Ok(result);
         }
 
         //api: api/role/UsersInRole/{roleId}
         [HttpGet("UsersInRole/{roleId}")]
-       [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetUsersInRole(string roleId)
         {
             var command = new GetUsersInRoleQuery(roleId);
             var result = await _mediator.Send(command);
             return Ok(result);
         }
-        
+
 
         [HttpGet("PermissionsByRole/{roleId}")]
-       [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetPermissionsByRoleId(string roleId)
         {
             var command = new GetPermissionsByRoleIDQuery(roleId);
@@ -106,7 +110,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpGet("user/{userId}")]
-      [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetRolesByUserId(string userId)
         {
             var command = new GetRolesByUserIDQuery(userId);
@@ -114,7 +118,7 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpPost("AssignRolesToUser")]
-       [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> AssignRolesToUser([FromBody] AssignUserRolesCommand command)
         {
             if (!ModelState.IsValid)

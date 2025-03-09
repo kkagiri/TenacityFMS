@@ -22,9 +22,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
 
         private readonly GpsdataContext _context;
         private readonly ILogger<GetSiteQueryHandler> _logger;
-        private readonly IMapper _mapper; 
+        private readonly IMapper _mapper;
 
-        public GetSiteQueryHandler(GpsdataContext context,ILogger<GetSiteQueryHandler> logger,IMapper mapper)
+        public GetSiteQueryHandler(GpsdataContext context, ILogger<GetSiteQueryHandler> logger, IMapper mapper)
         {
 
             _context = context;
@@ -35,9 +35,10 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
 
         public async Task<List<SiteDTO>> Handle(GetSiteQuery request, CancellationToken cancellationToken)
         {
-            try { 
-            return _mapper.Map<List<SiteDTO>>( await _context.Sites.OrderBy(x=>x.Name).ToListAsync(cancellationToken));
-                }
+            try
+            {
+                return _mapper.Map<List<SiteDTO>>(await _context.Sites.OrderBy(x => x.Name).ToListAsync(cancellationToken));
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetSiteQuery");

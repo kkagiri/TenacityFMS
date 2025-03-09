@@ -31,13 +31,13 @@ public class FuelRefilGetbyIDQueryHandler : IRequestHandler<FuelRefilGetbyIDQuer
     {
         try
         {
-        return _mapper.Map<FuelRefilDTO>(await _context.Fuelrefils.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken));  
+            return _mapper.Map<FuelRefilDTO>(await _context.Fuelrefils.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in GetFuelRefilbyIDQueryHandler");
             throw new Exception(ex.Message);
-            
+
         }
     }
 }

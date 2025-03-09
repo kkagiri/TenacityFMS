@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceManufacturerCommands;
 public record UpdateDeviceManufacturerCommand(Devicemanufacturer Devicemanufacturer) : IRequest<Unit>;
 
-public class UpdateDeviceManufacturerCommandHandler : IRequestHandler<UpdateDeviceManufacturerCommand,Unit>
+public class UpdateDeviceManufacturerCommandHandler : IRequestHandler<UpdateDeviceManufacturerCommand, Unit>
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<UpdateDeviceManufacturerCommandHandler> _logger;
@@ -22,20 +22,21 @@ public class UpdateDeviceManufacturerCommandHandler : IRequestHandler<UpdateDevi
 
     public async Task<Unit> Handle(UpdateDeviceManufacturerCommand request, CancellationToken cancellationToken)
     {
-        try{
-        var entity = await _context.Devicemanufacturers.FindAsync(request.Devicemanufacturer.Id);
-        if (entity == null)
+        try
         {
-            _logger.LogWarning("Device manufacturer with ID: {Id} not found", request.Devicemanufacturer.Id);
+            var entity = await _context.Devicemanufacturers.FindAsync(request.Devicemanufacturer.Id);
+            if (entity == null)
+            {
+                _logger.LogWarning("Device manufacturer with ID: {Id} not found", request.Devicemanufacturer.Id);
+                return Unit.Value;
+            }
+
+            entity.Name = request.Devicemanufacturer.Name;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Device manufacturer with ID: {Id} updated", entity.Id);
+
             return Unit.Value;
-        }
-
-        entity.Name = request.Devicemanufacturer.Name;
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Device manufacturer with ID: {Id} updated", entity.Id);
-
-        return Unit.Value;
         }
         catch (Exception ex)
         {

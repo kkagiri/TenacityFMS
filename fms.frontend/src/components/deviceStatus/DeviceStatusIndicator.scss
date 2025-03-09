@@ -1,0 +1,27 @@
+.device-status-indicator {
+  display: flex;
+  align-items: center;
+
+  .device-icon {
+    position: relative;
+    margin-right: 8px; // adjust as needed
+
+    /* Optionally, if you have an icon or a button you can add more styling here */
+  }
+
+  .dx-badge {
+    position: absolute;
+    background-color: red;
+    color: white;
+    right: -10%;
+    top: -10%;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 2px 5px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+}

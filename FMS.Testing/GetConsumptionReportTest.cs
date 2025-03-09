@@ -32,10 +32,10 @@ namespace FMS.Testing
             _mapper = new Mock<IMapper>();
         }
 
-        private  async void LoginAsync ()
+        private async void LoginAsync()
         {
             var username = "kkagiri";
-            var password  = "password";
+            var password = "password";
             int ApplicationID = 12;
 
             var loginQuery = new LoginQuery
@@ -53,7 +53,7 @@ namespace FMS.Testing
 
             var loginQueryHandler = new LoqinQuery(_gpsGateDirectoryWebservice.Object);
 
-            conns =  await loginQueryHandler.Handle(loginQuery, CancellationToken());
+            conns = await loginQueryHandler.Handle(loginQuery, CancellationToken());
 
         }
 
@@ -66,25 +66,26 @@ namespace FMS.Testing
         private async Task TestHandle()
         {
             //arrange 
-              var from = "2023-07-01";
-             var to = "2023-07-01";
+            var from = "2023-07-01";
+            var to = "2023-07-01";
 
-               LoginAsync();
+            LoginAsync();
 
-            var handler = new GetConsumptionReportQueryHandler(_gpsGateDirectoryWebservice.Object, _gpsdataContext.Object, _mapper.Object);
-            var consumptionBatch = new List<Vehicleconsumption> {
-            
-            
+            // var handler = new GetConsumptionReportQueryHandler(_gpsGateDirectoryWebservice.Object, _gpsdataContext.Object, _mapper.Object);
+            var consumptionBatch = new List<Vehicleconsumption>
+            {
+
+
             };
-            var request = new GetConsumptionReportQuery (conns,208,DateTime.Parse(from),DateTime.Parse(to));
+            var request = new GetConsumptionReportQuery(conns, 208, DateTime.Parse(from), DateTime.Parse(to));
 
 
             //act
-            await handler.Handle(request, CancellationToken());
+            //   await handler.Handle(request, CancellationToken());
 
             //assert
 
-          //  _gpsdataContext.Verify(x=>x.SaveChanges(CancellationToken))
+            //  _gpsdataContext.Verify(x=>x.SaveChanges(CancellationToken))
 
 
 

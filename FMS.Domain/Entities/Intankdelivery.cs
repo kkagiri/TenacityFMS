@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace FMS.Domain.Entities;
 
 public partial class Intankdelivery
 {
+
     public int DeliveryId { get; set; }
 
     public int Tank { get; set; }
@@ -66,4 +68,6 @@ public partial class Intankdelivery
     public string Ptsid { get; set; } = null!;
 
     public int PacketId { get; set; }
+
+    public virtual Ptsdevice Pts { get; set; } = null!;
 }

@@ -31,12 +31,24 @@ namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
 
         public async Task<EmployeeDto> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
         {
-            if (request == null) { return null;}
+            if (request == null) { return null; }
+
             var result = await _context.Employees
-                .Include(e => e.Vehicles)
+                .Include(e => e.EmployeeVehicles)
+                .ThenInclude(ev => ev.Vehicle)
                 .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
-            return result != null ? _mapper.Map<EmployeeDto>(result) : null;
+            if (result != null)
+            {
+                // Manually populate the Vehicles collection from EmployeeVehicles
+                result.Vehicles = result.EmployeeVehicles
+                    .Select(ev => ev.Vehicle)
+                    .ToList();
+
+                return _mapper.Map<EmployeeDto>(result);
+            }
+
+            return null;
         }
 
 

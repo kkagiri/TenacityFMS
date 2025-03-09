@@ -1,0 +1,59 @@
+@use "../../variables.scss" as *;
+@use 'sass:math';
+
+:root {
+    --left-panel-width: 400px;
+    --right-panel-width: 360px;
+  }
+
+  .view-wrapper.view-wrapper-tag-page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding-top: var(--content-padding);
+    padding-bottom: var(--content-padding);
+
+    @media only screen and (max-width: 875px) {
+      .role-toolbar-item {
+        min-width: calc(var(--left-panel-width) + var(--right-panel-width) - 145px);
+      }
+    }
+    .dx-toolbar {
+        .toolbar-header {
+          @include header();
+        }
+
+        @media only screen and (max-width: 400px) {
+          .dx-tab {
+            min-width: 70px;
+          }
+        }
+      }
+
+    .panels {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 20px;
+
+        .left {
+            width: 20%;
+            border-right: 1px solid #ddd;
+            padding-right: 20px;
+        }
+
+        .right {
+            width: 60%;
+            padding-left: 20px;
+        }
+    }
+}
+
+.toolbar-details {
+    margin-bottom: calc(var(--toolbar-margin-bottom) / 2);
+
+    .dx-toolbar-label > div {
+      @include header();
+    }
+  }

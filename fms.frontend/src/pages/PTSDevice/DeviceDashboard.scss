@@ -1,0 +1,220 @@
+@use "../../variables.scss" as *;
+@use "sass:math";
+
+.device-dashboard {
+  &__container {
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  &__gauges {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  &__gauge-card {
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  // Summary Cards Section
+  .summary-cards {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 30px 0;
+
+    .summary-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 24px;
+      flex: 1;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      h3 {
+        margin: 0 0 10px 0;
+        color: #464646;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      p {
+        margin: 0;
+        font-size: 24px;
+        font-weight: bold;
+        color: #1976d2;
+      }
+    }
+  }
+
+  // DataGrid Section
+  .content-block {
+    .dx-datagrid {
+      height: calc(100vh - 400px);
+      min-height: 500px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  // Existing styles
+  .dx-card {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+  }
+
+  .responsive-paddings {
+    padding: 20px;
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .summary-cards {
+      flex-direction: column;
+
+      .summary-card {
+        width: 100%;
+      }
+    }
+
+    &__gauges {
+      flex-direction: column;
+    }
+
+    .content-block {
+      .dx-datagrid {
+        height: calc(100vh - 600px);
+        min-height: 400px;
+      }
+    }
+  }
+
+  @media (min-width: 700px) {
+    .dx-responsivebox {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .p-2 {
+    padding: 0.5rem;
+  }
+
+  .device-stats {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 20px 0;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 50px;
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 15px;
+      border-right: 1px solid #e0e0e0;
+      height: 100%;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      span {
+        font-size: 14px;
+        color: #464646;
+      }
+
+      .stat-value {
+        font-weight: bold;
+        color: #1976d2;
+      }
+    }
+  }
+
+  // Update responsive styles
+  @media (max-width: 768px) {
+    .device-stats {
+      flex-direction: column;
+      gap: 15px;
+
+      .stat-item {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+}
+
+.cards {
+  display: grid;
+  width: 100%;
+  margin-top: 20px;
+  gap: 20px;
+  grid-template-columns: repeat(2, calc(50% - 10px));
+
+  &.compact {
+    grid-template-columns: repeat(4, calc(25% - 15px));
+
+    .card {
+      background-color: var(--side-panel-background);
+      border: none;
+      height: 120px;
+
+      .dx-button {
+        background-color: var(--side-panel-background);
+      }
+    }
+
+    .dx-loadpanel-indicator {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  &.wide {
+    margin-right: 0;
+    grid-template-columns: repeat(1, 100%);
+  }
+}
+
+@media only screen and (max-width: 1400px) {
+  .cards.compact {
+    grid-template-columns: repeat(2, calc(50% - 10px));
+  }
+}
+
+@media only screen and (max-width: 900px) {
+  .cards {
+    grid-template-columns: repeat(1, 100%);
+  }
+}
+
+@media only screen and (max-width: 700px) {
+  .cards {
+    &.compact {
+      grid-template-columns: repeat(1, 100%);
+    }
+  }
+}

@@ -49,7 +49,7 @@ namespace FMS.BackgroundServices.FMS
                     var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
                     var tanks = await context.Tanks.Where(t => t.UseBookKeeping == 1).ToListAsync(stoppingToken);
-                    
+
                     foreach (var tank in tanks)
                     {
                         var openingStock = await GetOpeningStock(context, tank.Id, stoppingToken);
@@ -64,7 +64,7 @@ namespace FMS.BackgroundServices.FMS
 
         private async Task<decimal?> GetOpeningStock(GpsdataContext context, int tankId, CancellationToken stoppingToken)
         {
-            var priorityList = _configuration.GetSection("OpeningStockPriority").Get<List<string>>() ?? 
+            var priorityList = _configuration.GetSection("OpeningStockPriority").Get<List<string>>() ??
                 new List<string> { "Sensor", "ClosingStock", "CurrentVolume" };
 
             foreach (var priority in priorityList)
@@ -78,7 +78,7 @@ namespace FMS.BackgroundServices.FMS
 
                     case "ClosingStock":
                         var lastClosingStock = await context.TankVolumeHistories
-                            .Where(x => x.TankId == tankId && 
+                            .Where(x => x.TankId == tankId &&
                                         x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
                             .OrderByDescending(x => x.Timestamp)
                             .FirstOrDefaultAsync(stoppingToken);

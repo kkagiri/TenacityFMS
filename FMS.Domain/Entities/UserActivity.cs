@@ -5,7 +5,7 @@ namespace FMS.Domain.Entities;
 
 public partial class UserActivity
 {
-   
+
     public int Id { get; set; }
 
     public string UserId { get; set; } = null!;
@@ -17,6 +17,8 @@ public partial class UserActivity
     public string? ActionName { get; set; }
 
     public string? Parameters { get; set; }
+
+    public string? IpAddress { get; set; }
 
     public DateTime Timestamp { get; set; }
 

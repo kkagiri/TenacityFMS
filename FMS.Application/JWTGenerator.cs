@@ -17,7 +17,7 @@ using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 namespace FMS.Application;
 public interface IJwtGenerator
 {
-     Task<string> CreateToken(User user);
+    Task<string> CreateToken(User user);
 }
 
 public class JwtSettings
@@ -37,7 +37,7 @@ public class JwtGenerator : IJwtGenerator
         _jwtSettings = jwtSettings.Value;
         _mediator = mediator;
     }
-   
+
 
 
 
@@ -45,16 +45,16 @@ public class JwtGenerator : IJwtGenerator
     public async Task<string> CreateToken(User user)
     {
 
-      var userRoles = await _mediator.Send(new GetRolesByUserIDQuery(user.Id));
-    var userPermissions = await _mediator.Send(new GetUserPermissionsQuery(user.Id));
+        var userRoles = await _mediator.Send(new GetRolesByUserIDQuery(user.Id));
+        var userPermissions = await _mediator.Send(new GetUserPermissionsQuery(user.Id));
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())      
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
     };
 
-       claims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
         claims.AddRange(userPermissions.Select(permission => new Claim("permissions", permission)));
 
         var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));

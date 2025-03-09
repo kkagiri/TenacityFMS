@@ -1,0 +1,34 @@
+.tags-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.tag-link {
+    text-decoration: underline;
+    color: #007bff;
+    margin-right: 8px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+        color: #0056b3; // Darker blue on hover
+    }
+}
+
+.no-tags {
+    font-style: italic;
+    color: #888;
+    margin-right: 8px;
+}
+
+.add-new-link {
+    text-decoration: underline;
+    color: #28a745; // Green color for "Add New"
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+        color: #1e7e34; // Darker green on hover
+    }
+}

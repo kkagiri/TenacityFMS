@@ -1,6 +1,5 @@
 ﻿using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

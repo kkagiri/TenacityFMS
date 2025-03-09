@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands
 {
-    public record AssignPermissionsToRoleCommand (string RoleId, List<int> PermissionIds) : IRequest<AssignPermissionToRoleResult>;
+    public record AssignPermissionsToRoleCommand(string RoleId, List<int> PermissionIds) : IRequest<AssignPermissionToRoleResult>;
 
 
     public class AssignPermissionsToRoleCommandHandler : IRequestHandler<AssignPermissionsToRoleCommand, AssignPermissionToRoleResult>
@@ -32,6 +32,10 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
         }
         public async Task<AssignPermissionToRoleResult> Handle(AssignPermissionsToRoleCommand request, CancellationToken cancellationToken)
         {
+
+
+
+
             if (string.IsNullOrEmpty(request.RoleId))
             {
                 return new AssignPermissionToRoleResult(false, "Invalid role ID.");
@@ -44,7 +48,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
             }
             try
             {
-                var role = await _roleManager.Roles.Include(r=>r.RolePermissions).FirstOrDefaultAsync(r =>r.Id == request.RoleId, cancellationToken);
+                var role = await _roleManager.Roles.Include(r => r.RolePermissions).FirstOrDefaultAsync(r => r.Id == request.RoleId, cancellationToken);
                 if (role == null)
                 {
                     return new AssignPermissionToRoleResult(false, $"Role with id {request.RoleId} not found.");
@@ -59,7 +63,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
             {
                 _logger.LogError(ex.Message);
                 return new AssignPermissionToRoleResult(false, ex.Message);
-            }   
+            }
         }
 
 
@@ -74,6 +78,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
         {
             try
             {
+
+
 
                 var currentPermissionIds = await _context.RolePermissions
                     .Where(rp => rp.RoleId == role.Id)
@@ -127,6 +133,6 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement.PermisionComman
 
     }
 
-     public record AssignPermissionToRoleResult(bool Success, string Message);
+    public record AssignPermissionToRoleResult(bool Success, string Message);
 
 }

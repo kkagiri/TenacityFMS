@@ -32,8 +32,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.Navigation
                     .Select(n => new NavigationItemDto
                     {
                         Id = n.Id,
-                        Page = n.Page?? string.Empty,
-                        Link = n.Link?? string.Empty,
+                        Page = n.Page ?? string.Empty,
+                        Link = n.Link ?? string.Empty,
                         ParentId = n.ParentId,
                         Icon = n.Icon ?? string.Empty,
                         Roles = n.Rolenavigations.Select(rn => rn.Role.Name).ToList()

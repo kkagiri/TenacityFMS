@@ -5,7 +5,7 @@ namespace FMS.Domain.Entities;
 
 public partial class Fuelrefil
 {
-    
+
     public int Id { get; set; }
 
     public int VehicleId { get; set; }
@@ -27,12 +27,12 @@ public partial class Fuelrefil
     public int? PumpTranscationId { get; set; }
 
     public int? DriverId { get; set; }
-
+    public string TagId { get; set; } = null!;
     public int? TankId { get; set; }
-    public DateTime? DateCreated {get;set;}
-    public DateTime? DateModified {get;set;}
+    public DateTime DateCreated { get; set; }
+    public DateTime? DateModified { get; set; }
 
-    public sbyte? IsModified {get;set;}
+    public sbyte? IsModified { get; set; }
 
     public virtual Tank? Tank { get; set; }
 
@@ -44,5 +44,7 @@ public partial class Fuelrefil
 
     public virtual Site Site { get; set; } = null!;
 
+
+    public virtual Tag TagNavigation { get; set; } = null!;
     public virtual Vehicle Vehicle { get; set; } = null!;
 }

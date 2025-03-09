@@ -49,7 +49,11 @@ export default function SideNavigationMenu(props) {
 
     items.forEach(item => {
       if (item.parentId) {
-        itemMap[item.parentId].items.push(itemMap[item.id]);
+        if (itemMap[item.parentId]) {
+          itemMap[item.parentId].items.push(itemMap[item.id]);
+        } else {
+          console.warn(`Parent ID ${item.parentId} not found for item ID ${item.id}`);
+        }
       } else {
         roots.push(itemMap[item.id]);
       }

@@ -12,7 +12,7 @@ namespace FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
 public record IssueStatusCreateCommand(Issuestatus Issuestatus) : IRequest<int>;
 
 // Command handler for priority creation
-public class IssueStatusCreateCommandHandler    : IRequestHandler<IssueStatusCreateCommand, int>
+public class IssueStatusCreateCommandHandler : IRequestHandler<IssueStatusCreateCommand, int>
 {
     private readonly GpsdataContext _context;
     private readonly IMediator _mediator;

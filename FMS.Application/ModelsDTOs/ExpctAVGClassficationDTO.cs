@@ -15,7 +15,7 @@ namespace FMS.Application.Models
         public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-         public string Description { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
 
 
     }

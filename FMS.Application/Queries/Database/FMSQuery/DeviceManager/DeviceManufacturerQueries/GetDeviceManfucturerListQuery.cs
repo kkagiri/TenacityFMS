@@ -19,17 +19,17 @@ public class GetDeviceManufacturerListQueryHandler : IRequestHandler<GetDeviceMa
     private readonly GpsdataContext _context;
     private readonly ILogger<GetDeviceManufacturerListQueryHandler> _logger;
 
-    public GetDeviceManufacturerListQueryHandler (GpsdataContext context, ILogger<GetDeviceManufacturerListQueryHandler> logger)
+    public GetDeviceManufacturerListQueryHandler(GpsdataContext context, ILogger<GetDeviceManufacturerListQueryHandler> logger)
     {
         _context = context;
         _logger = logger;
-        
+
     }
     public async Task<List<Devicemanufacturer>> Handle(GetDeviceManufacturerListQuery request, CancellationToken cancellationToken)
     {
         try
         {
-            return await  _context.Devicemanufacturers.ToListAsync(cancellationToken);
+            return await _context.Devicemanufacturers.ToListAsync(cancellationToken);
         }
         catch (Exception ex)
         {

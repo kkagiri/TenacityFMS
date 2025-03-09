@@ -14,14 +14,14 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankStock;
 
 public record GetTankStockListQuery : IRequest<List<TankStockDTO>>;
 
- public class GetTankStockListQueryHandler : IRequestHandler<GetTankStockListQuery,List<TankStockDTO>>
+public class GetTankStockListQueryHandler : IRequestHandler<GetTankStockListQuery, List<TankStockDTO>>
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
 
     private readonly ILogger<GetTankStockListQueryHandler> _logger;
 
-    public GetTankStockListQueryHandler (GpsdataContext context, IMapper mapper, ILogger<GetTankStockListQueryHandler> logger)
+    public GetTankStockListQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetTankStockListQueryHandler> logger)
     {
         _context = context;
         _mapper = mapper;
@@ -41,6 +41,6 @@ public record GetTankStockListQuery : IRequest<List<TankStockDTO>>;
             throw;
         }
 
-        
+
     }
 }

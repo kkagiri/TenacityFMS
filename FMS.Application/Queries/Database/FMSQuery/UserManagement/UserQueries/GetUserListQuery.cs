@@ -1,6 +1,5 @@
 ﻿using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,15 +14,15 @@ using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
 {
-   public record GetUserListQuery : IRequest<List<UserDto>>;
+    public record GetUserListQuery : IRequest<List<UserDto>>;
 
     public class GetUserListQueryHandler : IRequestHandler<GetUserListQuery, List<UserDto>>
     {
         private readonly GpsdataContext _context;
 
         private readonly ILogger<GetUserListQueryHandler> _logger;
-        private readonly IMapper _mapper;    
-        public GetUserListQueryHandler(GpsdataContext context ,ILogger<GetUserListQueryHandler> logger, IMapper mapper)
+        private readonly IMapper _mapper;
+        public GetUserListQueryHandler(GpsdataContext context, ILogger<GetUserListQueryHandler> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
@@ -40,11 +39,11 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
             {
                 _logger.LogError(ex, "Error in GetUserListQueryHandler");
                 throw new Exception("Error in GetUserListQueryHandler", ex);
-            }   
+            }
 
-        
+
         }
 
-     
+
     }
 }

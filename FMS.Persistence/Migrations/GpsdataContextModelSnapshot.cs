@@ -3,6 +3,7 @@ using System;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -16,29 +17,45 @@ namespace FMS.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .UseCollation("latin1_swedish_ci")
-                .HasAnnotation("ProductVersion", "7.0.5")
+                .HasAnnotation("ProductVersion", "8.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "latin1");
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-            modelBuilder.Entity("Employeevehicle", b =>
+            modelBuilder.Entity("AlarmTankmeasurement", b =>
                 {
-                    b.Property<int>("VehicleId")
+                    b.Property<int>("TankMeasurementId")
                         .HasColumnType("int(11)")
-                        .HasColumnName("VehicleID");
+                        .HasColumnName("tankMeasurementID");
 
-                    b.Property<int>("EmployeeId")
+                    b.Property<int>("AlarmId")
                         .HasColumnType("int(11)")
-                        .HasColumnName("EmployeeID");
+                        .HasColumnName("alarmID");
 
-                    b.HasKey("VehicleId", "EmployeeId")
+                    b.HasKey("TankMeasurementId", "AlarmId")
                         .HasName("PRIMARY")
                         .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 
-                    b.HasIndex(new[] { "EmployeeId" }, "EmployeeID_idx");
+                    b.HasIndex(new[] { "TankMeasurementId" }, "alarmMeasurement_tankmeasurement_idx");
 
-                    b.ToTable("employeevehicles", (string)null);
+                    b.HasIndex(new[] { "AlarmId" }, "alarmmeasurement_alarm_idx");
+
+                    b.ToTable("alarm_tankmeasurement", (string)null);
+                });
+
+            modelBuilder.Entity("EmployeeVehicle", b =>
+                {
+                    b.Property<int>("EmployeesId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<int>("VehiclesVehicleId")
+                        .HasColumnType("int(11)");
+
+                    b.HasKey("EmployeesId", "VehiclesVehicleId");
+
+                    b.HasIndex("VehiclesVehicleId");
+
+                    b.ToTable("EmployeeVehicle");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Alarm", b =>
@@ -47,6 +64,12 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -64,59 +87,114 @@ namespace FMS.Persistence.Migrations
                     b.ToTable("alarm", (string)null);
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.AlarmTankmeasurement", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Alertrecord", b =>
                 {
-                    b.Property<int?>("TankMeausementId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("tankMeausementID");
+                    b.Property<int>("AlertId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Property<int?>("AlarmId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("alarmID");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AlertId"));
 
-                    b.HasKey("TankMeausementId", "AlarmId");
+                    b.Property<int>("Code")
+                        .HasColumnType("int");
 
-                    b.HasIndex(new[] { "TankMeausementId" }, "alarmMeasurement_tankmeasurement_idx");
+                    b.Property<string>("ConfigurationId")
+                        .HasColumnType("longtext");
 
-                    b.HasIndex(new[] { "AlarmId" }, "alarmmeasurement_alarm_idx");
+                    b.Property<DateTime>("DateTime")
+                        .HasColumnType("datetime");
 
-                    b.ToTable("alarm_tankmeasurement", (string)null);
+                    b.Property<int>("DeviceNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DeviceType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PacketId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Ptsid")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("AlertId");
+
+                    b.ToTable("Alertrecords");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Asset", b =>
                 {
                     b.Property<string>("AssetId")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("AssetID");
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("AssetName")
+                        .HasColumnType("longtext");
+
+                    b.Property<sbyte?>("IsActive")
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("SiteId")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("SiteID");
+                        .HasColumnType("longtext");
 
-                    b.Property<int?>("VehicleManufacturerId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("VehicleManufacturerID");
+                    b.HasKey("AssetId");
 
-                    b.Property<int?>("VehicleModelId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("VehicleModelID");
+                    b.ToTable("Assets");
+                });
 
-                    b.Property<int?>("VehicleTypeId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("VehicleTypeID");
+            modelBuilder.Entity("FMS.Domain.Entities.Auth.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.HasKey("AssetId")
-                        .HasName("PRIMARY");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.HasIndex(new[] { "VehicleManufacturerId" }, "VehicleManufacturerID");
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int(11)");
 
-                    b.HasIndex(new[] { "VehicleModelId" }, "VehicleModelID");
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasColumnType("varchar(100)");
 
-                    b.HasIndex(new[] { "VehicleTypeId" }, "VehicleTypeID");
+                    b.HasKey("Id");
 
-                    b.ToTable("asset", (string)null);
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("RoleId", "PermissionId")
+                        .IsUnique();
+
+                    b.ToTable("rolepermissions", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Auth.UserRole", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("RoleId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId", "RoleId")
+                        .IsUnique();
+
+                    b.ToTable("userroles", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Calibrationdatum", b =>
@@ -145,23 +223,208 @@ namespace FMS.Persistence.Migrations
                     b.ToTable("calibrationdata", (string)null);
                 });
 
+            modelBuilder.Entity("FMS.Domain.Entities.Configuration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Configuration1")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ConfigurationId")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PacketId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Ptsid")
+                        .IsRequired()
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ptsid");
+
+                    b.ToTable("Configurations");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Dailytankreconciliation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("ClosingLevel")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal?>("OpeningLevel")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<DateTime>("ReconciliationDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("TankId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<decimal?>("TotalDeliveries")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("TotalRefills")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("TotalTransfersIn")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("TotalTransfersOut")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TankId");
+
+                    b.ToTable("Dailytankreconciliations");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Delivery", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("DeliveryDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal?>("DeliveryDensity")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("DeliveryMass")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("DeliveryTemperature")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<string>("Lponumber")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("ManualDeliveryAmount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<string>("Product")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RecordedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RecordedByNavigationId")
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("SensorDeliveryAmount")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("StockAfterDelivery")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("StockBeforeDelivery")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<int>("TankId")
+                        .HasColumnType("int(11)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedByNavigationId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("TankId");
+
+                    b.ToTable("Deliveries");
+                });
+
             modelBuilder.Entity("FMS.Domain.Entities.Device", b =>
                 {
                     b.Property<int>("DeviceImei")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("DeviceIMEI");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("DeviceImei"));
 
                     b.Property<int>("DeviceMakerId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("DeviceMakerID");
+                        .HasColumnType("int");
 
                     b.Property<int>("DevicePhoneNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DeviceType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DeviceTypeNavigationId")
                         .HasColumnType("int(11)");
 
-                    b.HasKey("DeviceImei")
-                        .HasName("PRIMARY");
+                    b.HasKey("DeviceImei");
 
-                    b.ToTable("device", (string)null);
+                    b.HasIndex("DeviceTypeNavigationId");
+
+                    b.ToTable("Devices");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.DeviceConnection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ConnectedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("ConnectionType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("DisconnectedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("PtsdeviceId")
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PtsdeviceId");
+
+                    b.ToTable("DeviceConnections");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Devicemanufacturer", b =>
@@ -204,12 +467,44 @@ namespace FMS.Persistence.Migrations
                     b.ToTable("devicemodel", (string)null);
                 });
 
+            modelBuilder.Entity("FMS.Domain.Entities.Devicetype", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("devicetype", (string)null);
+                });
+
             modelBuilder.Entity("FMS.Domain.Entities.Employee", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("CreatedBy"), "utf8mb4");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime");
 
                     b.Property<string>("EmployeeWorkNo")
                         .ValueGeneratedOnAdd()
@@ -236,9 +531,17 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("varchar(45)")
                         .HasDefaultValueSql("'Employee Name'");
 
-                    b.Property<long?>("NationalId")
-                        .HasColumnType("bigint(20)")
-                        .HasColumnName("NationalID");
+                    b.Property<sbyte?>("IsModified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(4)")
+                        .HasDefaultValueSql("'0'");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("ModifiedBy"), "utf8mb4");
 
                     b.Property<int?>("SiteId")
                         .HasColumnType("int(11)")
@@ -247,12 +550,34 @@ namespace FMS.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
+                    b.HasIndex(new[] { "ModifiedBy" }, "Employe_modifyUser_idx");
+
                     b.HasIndex(new[] { "SiteId" }, "Employee_site_idx");
 
-                    b.HasIndex(new[] { "NationalId" }, "NationalID_UNIQUE")
-                        .IsUnique();
+                    b.HasIndex(new[] { "CreatedBy" }, "Employee_user_idx");
 
                     b.ToTable("employee", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.EmployeeVehicle", b =>
+                {
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("VehicleID");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("EmployeeID");
+
+                    b.HasKey("VehicleId", "EmployeeId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "EmployeeId" }, "EmployeeID_idx")
+                        .IsUnique();
+
+                    b.ToTable("employeevehicles", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "latin1");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Expectedaverage", b =>
@@ -262,14 +587,15 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
 
-                    b.Property<decimal>("ExpectedAverage1")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)")
-                        .HasColumnName("ExpectedAverage");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ExpectedAverageClassificationId")
                         .HasColumnType("int(11)")
                         .HasColumnName("ExpectedAverageClassificationID");
+
+                    b.Property<decimal>("ExpectedAverageValue")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("SiteId")
                         .HasColumnType("int(11)")
@@ -292,6 +618,9 @@ namespace FMS.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("expectedaverage", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Expectedaverageclassification", b =>
@@ -301,8 +630,13 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<sbyte?>("IskmperLiter")
+                        .HasColumnType("tinyint(4)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -315,40 +649,376 @@ namespace FMS.Persistence.Migrations
                     b.ToTable("expectedaverageclassification", (string)null);
                 });
 
+            modelBuilder.Entity("FMS.Domain.Entities.Features.FuelRule.FuelingRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Discriminator")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("FuelingRuleSetId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("RuleName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "FuelingRuleSetId" }, "FK_FuelingRule_FuelingRuleSet_idx");
+
+                    b.ToTable("fuelingrule", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Features.FuelRuleSet.FuelingRuleSet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("fuelingruleset", (string)null);
+                });
+
             modelBuilder.Entity("FMS.Domain.Entities.Fuelrefil", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal?>("Duration")
+                    b.Property<int?>("TankId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("TankID");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<decimal?>("CurrentMeterReading")
                         .HasPrecision(10)
                         .HasColumnType("decimal(10)");
 
-                    b.Property<decimal?>("GpsfuelRefil")
-                        .HasPrecision(10)
-                        .HasColumnType("decimal(10)")
-                        .HasColumnName("GPSFuelRefil");
-
-                    b.Property<decimal?>("ManualGpsfuelrefil")
-                        .HasPrecision(10)
-                        .HasColumnType("decimal(10)")
-                        .HasColumnName("ManualGPSFuelrefil");
-
-                    b.Property<DateTime?>("Time")
+                    b.Property<DateTime?>("Date")
                         .HasColumnType("datetime");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("DriverId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("DriverID");
+
+                    b.Property<string>("FuelBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("FuelBy"), "utf8mb4");
+
+                    b.Property<sbyte?>("IsModified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(4)")
+                        .HasDefaultValueSql("'0'");
+
+                    b.Property<decimal?>("ManualFuelrefilAmount")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<decimal?>("PreviousMeterReading")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<int?>("PumpTranscationId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("PumpTranscationID");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("SiteID");
+
+                    b.Property<string>("TagId")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("TagNavigationId")
+                        .HasColumnType("int(11)");
 
                     b.Property<int>("VehicleId")
                         .HasColumnType("int(11)")
                         .HasColumnName("vehicleID");
 
+                    b.HasKey("Id", "TankId")
+                        .HasName("PRIMARY")
+                        .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+
+                    b.HasIndex("TagNavigationId");
+
+                    b.HasIndex(new[] { "DriverId" }, "FuelRefil_Driver_idx");
+
+                    b.HasIndex(new[] { "PumpTranscationId" }, "FuelRefil_PumpTransaction_idx");
+
+                    b.HasIndex(new[] { "FuelBy" }, "FuelRefil_User_idx");
+
+                    b.HasIndex(new[] { "SiteId" }, "FuelRefil_site_idx");
+
+                    b.HasIndex(new[] { "TankId" }, "FuelRefill_tank_idx");
+
+                    b.HasIndex(new[] { "VehicleId" }, "fuelRefil_vehilce_idx");
+
+                    b.ToTable("fuelrefil", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Fuelreportgenerate", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("ApprovedDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("ModfifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime");
+
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
-                    b.ToTable("fuelrefil", (string)null);
+                    b.HasIndex(new[] { "ApprovedBy" }, "fuelregenrate_user_idx");
+
+                    b.HasIndex(new[] { "CreatedBy" }, "fuelregenrate_user_idx1");
+
+                    b.ToTable("fuelreportgenerate", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Intankdelivery", b =>
+                {
+                    b.Property<int>("DeliveryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)")
+                        .HasColumnName("DeliveryId");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("DeliveryId"));
+
+                    b.Property<float?>("AbsoluteProductDensity")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteProductDensity");
+
+                    b.Property<float?>("AbsoluteProductHeight")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteProductHeight");
+
+                    b.Property<float?>("AbsoluteProductMass")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteProductMass");
+
+                    b.Property<float?>("AbsoluteProductTcvolume")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteProductTCVolume");
+
+                    b.Property<float?>("AbsoluteProductVolume")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteProductVolume");
+
+                    b.Property<float?>("AbsoluteTemperature")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteTemperature");
+
+                    b.Property<float?>("AbsoluteWaterHeight")
+                        .HasColumnType("float")
+                        .HasColumnName("AbsoluteWaterHeight");
+
+                    b.Property<string>("ConfigurationId")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .HasColumnName("ConfigurationId");
+
+                    b.Property<DateTime?>("EndDateTime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("EndDateTime");
+
+                    b.Property<float?>("EndProductDensity")
+                        .HasColumnType("float")
+                        .HasColumnName("EndProductDensity");
+
+                    b.Property<float?>("EndProductHeight")
+                        .HasColumnType("float")
+                        .HasColumnName("EndProductHeight");
+
+                    b.Property<float?>("EndProductMass")
+                        .HasColumnType("float")
+                        .HasColumnName("EndProductMass");
+
+                    b.Property<float?>("EndProductTcvolume")
+                        .HasColumnType("float")
+                        .HasColumnName("EndProductTCVolume");
+
+                    b.Property<float?>("EndProductVolume")
+                        .HasColumnType("float")
+                        .HasColumnName("EndProductVolume");
+
+                    b.Property<float?>("EndTemperature")
+                        .HasColumnType("float")
+                        .HasColumnName("EndTemperature");
+
+                    b.Property<float?>("EndWaterHeight")
+                        .HasColumnType("float")
+                        .HasColumnName("EndWaterHeight");
+
+                    b.Property<int>("FuelGradeId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("FuelGradeId");
+
+                    b.Property<string>("FuelGradeName")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("FuelGradeName");
+
+                    b.Property<int>("PacketId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("PacketID");
+
+                    b.Property<string>("Ptsid")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("PTSId");
+
+                    b.Property<float?>("PumpsDispensedVolume")
+                        .HasColumnType("float")
+                        .HasColumnName("PumpsDispensedVolume");
+
+                    b.Property<DateTime?>("StartDateTime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("StartDateTime");
+
+                    b.Property<float?>("StartProductDensity")
+                        .HasColumnType("float")
+                        .HasColumnName("StartProductDensity");
+
+                    b.Property<float?>("StartProductHeight")
+                        .HasColumnType("float")
+                        .HasColumnName("StartProductHeight");
+
+                    b.Property<float?>("StartProductMass")
+                        .HasColumnType("float")
+                        .HasColumnName("StartProductMass");
+
+                    b.Property<float?>("StartProductTcvolume")
+                        .HasColumnType("float")
+                        .HasColumnName("StartProductTCVolume");
+
+                    b.Property<float?>("StartProductVolume")
+                        .HasColumnType("float")
+                        .HasColumnName("StartProductVolume");
+
+                    b.Property<float?>("StartTemperature")
+                        .HasColumnType("float")
+                        .HasColumnName("StartTemperature");
+
+                    b.Property<float?>("StartWaterHeight")
+                        .HasColumnType("float")
+                        .HasColumnName("StartWaterHeight");
+
+                    b.Property<int>("Tank")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("Tank");
+
+                    b.HasKey("DeliveryId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "Ptsid" }, "fk_psTID_idx");
+
+                    b.ToTable("intankdelivery", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Issueassignmenttracker", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("ID");
+
+                    b.Property<DateTime>("AssignedDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("AssignedFrom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("AssignedFrom"), "utf8mb4");
+
+                    b.Property<string>("AssignedTo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("AssignedTo"), "utf8mb4");
+
+                    b.Property<int>("Issue")
+                        .HasColumnType("int(11)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "AssignedTo" }, "AssigneTo_idx");
+
+                    b.HasIndex(new[] { "AssignedFrom" }, "AssignedFrom_idx");
+
+                    b.HasIndex(new[] { "Issue" }, "Assigned_issue_idx");
+
+                    b.ToTable("issueassignmenttracker", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Issuecategory", b =>
@@ -373,16 +1043,15 @@ namespace FMS.Persistence.Migrations
 
             modelBuilder.Entity("FMS.Domain.Entities.Issuepriority", b =>
                 {
-                    b.Property<int>("Int")
+                    b.Property<int>("Id")
                         .HasColumnType("int(11)")
-                        .HasColumnName("int");
+                        .HasColumnName("ID");
 
                     b.Property<string>("Name")
                         .HasMaxLength(45)
-                        .HasColumnType("varchar(45)")
-                        .HasColumnName("name");
+                        .HasColumnType("varchar(45)");
 
-                    b.HasKey("Int")
+                    b.HasKey("Id")
                         .HasName("PRIMARY");
 
                     b.ToTable("issuepriority", (string)null);
@@ -402,10 +1071,7 @@ namespace FMS.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
-                    b.ToTable("issuestatus", null, t =>
-                        {
-                            t.HasComment("		");
-                        });
+                    b.ToTable("issuestatus", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Issuetracker", b =>
@@ -414,22 +1080,28 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
 
-                    b.Property<int>("AssignTo")
-                        .HasColumnType("int(11)");
+                    b.Property<string>("AssignTo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("AssignTo"), "utf8mb4");
 
                     b.Property<DateTime?>("ClosingDate")
                         .HasColumnType("datetime")
                         .HasColumnName("closingDate");
 
+                    b.Property<int?>("DeviceId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("DeviceID");
+
+                    b.Property<int?>("DeviceType")
+                        .HasColumnType("int(11)");
+
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime")
                         .HasColumnName("dueDate");
-
-                    b.Property<string>("HyoungNo")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("varchar(45)")
-                        .HasColumnName("hyoungNo");
 
                     b.Property<int>("IssueCategoryId")
                         .HasColumnType("int(11)")
@@ -442,9 +1114,14 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("openDate");
 
-                    b.Property<int>("Openby")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("openby");
+                    b.Property<string>("Openby")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("openby")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("Openby"), "utf8mb4");
 
                     b.Property<int?>("Priority")
                         .HasColumnType("int(11)")
@@ -456,11 +1133,11 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("varchar(945)")
                         .HasColumnName("problemDescription");
 
-                    b.Property<string>("ProblemTitlte")
+                    b.Property<string>("ProblemTitle")
                         .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("varchar(45)")
-                        .HasColumnName("problemTitlte");
+                        .HasColumnName("problemTitle");
 
                     b.Property<int?>("RelatedIssue")
                         .HasColumnType("int(11)")
@@ -474,71 +1151,445 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("status");
 
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("VehicleID");
+
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
-                    b.HasIndex(new[] { "Priority" }, "Issuetracker_priority_idx");
+                    b.HasIndex(new[] { "Priority" }, "Issue_tracker_issuepriorty_idx");
+
+                    b.HasIndex(new[] { "AssignTo" }, "Issue_user_idx");
 
                     b.HasIndex(new[] { "Status" }, "Issuetracker_status_idx");
 
-                    b.HasIndex(new[] { "AssignTo" }, "Issuetracker_userAsssignedTo_idx");
-
-                    b.HasIndex(new[] { "Openby" }, "Issuetracker_user_idx");
+                    b.HasIndex(new[] { "DeviceType" }, "Isuse_deviceType_idx");
 
                     b.HasIndex(new[] { "IssueCategoryId" }, "issetracker_issueID_idx");
 
-                    b.HasIndex(new[] { "HyoungNo" }, "issue_vehicle_idx");
+                    b.HasIndex(new[] { "VehicleId" }, "issue_vehicle_idx");
 
                     b.HasIndex(new[] { "SiteId" }, "issuetracker_site_idx");
 
-                    b.ToTable("issuetracker", null, t =>
-                        {
-                            t.HasComment("		");
-                        });
+                    b.HasIndex(new[] { "Openby" }, "openby_idx");
+
+                    b.ToTable("issuetracker", (string)null);
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Pts", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Loginactivity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
-                        .HasColumnName("ID");
-
-                    b.Property<string>("PtsserialNo")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("varchar(45)")
-                        .HasColumnName("PTSSerialNo");
-
-                    b.Property<int>("SiteId")
                         .HasColumnType("int(11)");
 
-                    b.Property<int?>("TankId")
-                        .HasColumnType("int(11)");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("IsSuccessful")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
-                    b.HasIndex("TankId");
+                    b.HasIndex(new[] { "UserId" }, "FK_LoginActivities_Users");
 
-                    b.HasIndex(new[] { "SiteId" }, "PTS_Site_idx");
+                    b.ToTable("loginactivities", (string)null);
 
-                    b.ToTable("pts", (string)null);
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.PtsTank", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Navigationitem", b =>
                 {
-                    b.Property<int>("PtsId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)");
 
-                    b.Property<int>("TankId")
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("icon");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Page")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("parentId");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("navigationitems", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)");
 
-                    b.HasKey("PtsId", "TankId");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.HasIndex("TankId");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
-                    b.ToTable("PtsTanks");
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex(new[] { "ParentId" }, "FK_Permissions_Parent");
+
+                    b.HasIndex(new[] { "Name" }, "Name_UNIQUE")
+                        .IsUnique();
+
+                    b.ToTable("permissions", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.PtsDevicePendingCommand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CommandDataJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("CommandType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("ExpiryAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("PtsDeviceId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("PtsDeviceId");
+
+                    b.Property<string>("PtsdevicePtsid")
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("ResponseCode")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("ResponseJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("CommandType")
+                        .HasDatabaseName("IX_device_commands_CommandType");
+
+                    b.HasIndex("PtsDeviceId")
+                        .HasDatabaseName("IX_device_commands_PtsDeviceId");
+
+                    b.HasIndex("PtsdevicePtsid");
+
+                    b.HasIndex("PtsDeviceId", "Status")
+                        .HasDatabaseName("IX_device_commands_PtsDeviceId_Status");
+
+                    b.ToTable("ptsdevice_pendingcommands", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Ptsdevice", b =>
+                {
+                    b.Property<string>("Ptsid")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("PTSId");
+
+                    b.Property<sbyte>("AllowedForDirectCommands")
+                        .HasColumnType("tinyint(4)");
+
+                    b.Property<string>("AuthenticationType")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<string>("Ipaddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("IPAddress");
+
+                    b.Property<sbyte>("IsActive")
+                        .HasColumnType("tinyint(4)");
+
+                    b.Property<sbyte>("IsAuthenticated")
+                        .HasColumnType("tinyint(4)");
+
+                    b.Property<DateTime?>("LastActivity")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Login")
+                        .HasMaxLength(145)
+                        .HasColumnType("varchar(145)");
+
+                    b.Property<string>("Password")
+                        .HasMaxLength(1045)
+                        .HasColumnType("varchar(1045)");
+
+                    b.Property<int?>("PortNumber")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("ProtocolSecurityType")
+                        .HasMaxLength(145)
+                        .HasColumnType("varchar(145)");
+
+                    b.Property<int?>("Site")
+                        .HasColumnType("int(11)");
+
+                    b.Property<sbyte>("WebSocketCapable")
+                        .HasColumnType("tinyint(4)");
+
+                    b.HasKey("Ptsid")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "Site" }, "PTSDevice_site_idx");
+
+                    b.ToTable("ptsdevice", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Pumptransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<string>("ConfigurationId")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("DateTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("DateTimeStart")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("FuelGradeId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("FuelGradeName")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<int?>("Nozzle")
+                        .HasColumnType("int(11)");
+
+                    b.Property<int>("PacketId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<decimal?>("Price")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<string>("PtsId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("Pump")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("Tag")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<decimal?>("Tcvolume")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)")
+                        .HasColumnName("TCVolume");
+
+                    b.Property<decimal?>("TotalAmount")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<decimal?>("TotalVolume")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<int?>("Transaction")
+                        .HasColumnType("int(11)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<decimal?>("Volume")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "PtsId" }, "FK_pumptransaction_idx");
+
+                    b.ToTable("pumptransaction", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Reports.ReportItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<byte[]>("LayoutData")
+                        .HasColumnType("longblob");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("reportitem", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Role", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("roles", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Rolenavigation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("NavigationItemId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("navigationItemId");
+
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("NavigationItemId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("rolenavigations", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Site", b =>
@@ -547,6 +1598,8 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -563,46 +1616,59 @@ namespace FMS.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("FMS.Domain.Entities.Supplier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Contacts")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("supplier", (string)null);
+                });
+
             modelBuilder.Entity("FMS.Domain.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int(11)")
                         .HasColumnName("id");
 
+                    b.Property<int?>("FuelRuleSetId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<bool?>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValueSql("'1'");
+
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int(11)");
+
                     b.HasKey("Id")
                         .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "FuelRuleSetId" }, "FuelRuleSetId_FK_idx");
+
+                    b.HasIndex(new[] { "VehicleId" }, "TAG_Vehicle_idx");
 
                     b.ToTable("tag", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.TagGroup", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("id");
-
-                    b.Property<int>("TagId")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("tagID");
-
-                    b.Property<string>("VehicleId")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("varchar(45)")
-                        .HasColumnName("vehicleID");
-
-                    b.HasKey("Id")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex(new[] { "VehicleId" }, "Tag_Vehicle_idx");
-
-                    b.HasIndex(new[] { "TagId" }, "Taggroup_vehicle_idx");
-
-                    b.ToTable("tag_group", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Tank", b =>
@@ -611,12 +1677,38 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("CurrentStock")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<decimal?>("DiscrepancyThreshold")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("LastStockUpdate")
+                        .HasColumnType("datetime");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("varchar(45)");
 
-                    b.Property<decimal>("TankHeight")
+                    b.Property<string>("PtsId")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)")
+                        .HasColumnName("ptsID");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("SiteID");
+
+                    b.Property<decimal?>("TankHeight")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<decimal?>("TankLength")
                         .HasPrecision(10)
                         .HasColumnType("decimal(10)");
 
@@ -624,10 +1716,108 @@ namespace FMS.Persistence.Migrations
                         .HasPrecision(10)
                         .HasColumnType("decimal(10)");
 
+                    b.Property<sbyte?>("UseBookKeeping")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(4)")
+                        .HasDefaultValueSql("'0'");
+
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
+                    b.HasIndex("PtsId");
+
+                    b.HasIndex(new[] { "SiteId" }, "Tank_site_idx");
+
                     b.ToTable("tank", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.TankTransfer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("DestinationTankId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("RecordedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("SourceTankId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<DateTime?>("TransferDate")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "DestinationTankId" }, "FK_TankTransfer_DestinationTank_idx");
+
+                    b.HasIndex(new[] { "SourceTankId" }, "FK_TankTransfer_SourceTank_idx");
+
+                    b.HasIndex(new[] { "RecordedBy" }, "FK_TankTransfer_User_idx");
+
+                    b.ToTable("tanktransfer", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.TankVolumeHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChangeReason")
+                        .HasColumnType("int(11)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal?>("NewVolume")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("RecordedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int?>("TankId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal?>("VolumeChange")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "TankId" }, "FK_TankVolumeHistory_Tank_idx");
+
+                    b.HasIndex(new[] { "RecordedBy" }, "FK_TankVolumeHistory_User_idx");
+
+                    b.ToTable("tankvolumehistory", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Tankmeasurement", b =>
@@ -637,8 +1827,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("id");
 
-                    b.Property<int?>("AlarmNavigationId")
-                        .HasColumnType("int(11)");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ConfigurationId")
                         .HasMaxLength(45)
@@ -650,12 +1839,8 @@ namespace FMS.Persistence.Migrations
                     b.Property<int>("FuelGradeId")
                         .HasColumnType("int(11)");
 
-                    b.Property<string>("PTSId")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.Property<int>("PacketId")
-                        .HasColumnType("int");
+                        .HasColumnType("int(11)");
 
                     b.Property<double?>("ProductDensity")
                         .HasColumnType("double");
@@ -676,20 +1861,19 @@ namespace FMS.Persistence.Migrations
                     b.Property<double?>("ProductVolume")
                         .HasColumnType("double");
 
-                    b.Property<int?>("SiteId")
-                        .HasColumnType("int(11)");
+                    b.Property<string>("Ptsid")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("PTSId");
 
                     b.Property<string>("Status")
                         .HasMaxLength(45)
                         .HasColumnType("varchar(45)");
 
                     b.Property<int>("Tank")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TankFillingPercentage")
                         .HasColumnType("int(11)");
 
-                    b.Property<int?>("TankId")
+                    b.Property<int?>("TankFillingPercentage")
                         .HasColumnType("int(11)");
 
                     b.Property<double?>("Temperature")
@@ -705,75 +1889,282 @@ namespace FMS.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
-                    b.HasIndex("AlarmNavigationId");
-
-                    b.HasIndex("SiteId");
-
-                    b.HasIndex("TankId");
-
                     b.ToTable("tankmeasurement", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Tankstock", b =>
+                {
+                    b.Property<int>("EntryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)")
+                        .HasColumnName("EntryID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("EntryId"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal?>("Discrepancy")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("EntryType")
+                        .HasColumnType("int(11)");
+
+                    b.Property<decimal?>("ExpectedClosingLevel")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<decimal?>("ManualAmount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("ManualCalculatedUsage")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("ManualClosingLevel")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("ManualOpeningLevel")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("RecordedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("RecordedBy"), "utf8mb4");
+
+                    b.Property<decimal?>("SensorCalculatedUsage")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("SensorClosingLevel")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("SensorDiscrepancy")
+                        .HasPrecision(10)
+                        .HasColumnType("decimal(10)");
+
+                    b.Property<decimal?>("SensorOpeningLevel")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<int>("TankId")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("TankID");
+
+                    b.HasKey("EntryId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "TankId" }, "TankID_idx");
+
+                    b.HasIndex(new[] { "RecordedBy" }, "TankStock_User_idx");
+
+                    b.HasIndex(new[] { "SiteId" }, "TankStock_site_idx");
+
+                    b.ToTable("tankstock", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.User", b =>
                 {
-                    b.Property<int>("Id")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("id");
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("Id"), "utf8mb4");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int(11)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("ConcurrencyStamp"), "utf8mb4");
 
                     b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("Email"), "utf8mb4");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool?>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValueSql("'0'");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("NormalizedEmail"), "utf8mb4");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("NormalizedUserName"), "utf8mb4");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("PasswordHash"), "utf8mb4");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("PhoneNumber"), "utf8mb4");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("SecurityStamp"), "utf8mb4");
+
+                    b.Property<int?>("SiteId")
+                        .HasColumnType("int(11)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("UserName"), "utf8mb4");
+
+                    b.HasKey("Id")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("SiteId");
+
+                    b.HasIndex(new[] { "UserName" }, "UserName_UNIQUE")
+                        .IsUnique();
+
+                    b.ToTable("user", (string)null);
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.UserActivity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int(11)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("ActionName")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Controller")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Parameters")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<string>("FullName")
-                        .HasMaxLength(45)
-                        .HasColumnType("varchar(45)")
-                        .HasColumnName("Full Name");
-
-                    b.Property<string>("Password")
-                        .HasMaxLength(1045)
-                        .HasColumnType("varchar(1045)")
-                        .HasColumnName("password");
-
-                    b.Property<int?>("UserType")
-                        .HasColumnType("int(11)")
-                        .HasColumnName("userType");
-
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
-                    b.HasIndex(new[] { "UserType" }, "user_usertype_idx");
+                    b.HasIndex(new[] { "UserId" }, "UserId");
 
-                    b.ToTable("user", null, t =>
-                        {
-                            t.HasComment("	");
-                        });
+                    b.ToTable("user_activity", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_general_ci");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Usertype", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.UserSites", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("SiteId")
                         .HasColumnType("int(11)")
-                        .HasColumnName("id");
+                        .HasColumnName("SiteId");
 
-                    b.Property<string>("Type")
-                        .HasMaxLength(45)
-                        .HasColumnType("varchar(45)")
-                        .HasColumnName("type");
+                    b.Property<string>("UserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("UserId")
+                        .UseCollation("utf8mb4_general_ci");
 
-                    b.HasKey("Id")
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("UserId"), "utf8mb4");
+
+                    b.HasKey("SiteId", "UserId")
                         .HasName("PRIMARY");
 
-                    b.ToTable("usertype", null, t =>
-                        {
-                            t.HasComment("			");
-                        });
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("UserID_idx");
+
+                    b.ToTable("usersite", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehicle", b =>
                 {
                     b.Property<int>("VehicleId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("vehicleID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("VehicleId"));
 
                     b.Property<bool>("AverageKmL")
                         .HasColumnType("tinyint(1)")
@@ -791,6 +2182,10 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("DefaultEmployeeID");
 
+                    b.Property<int?>("DefaultExptdAvgid")
+                        .HasColumnType("int(11)")
+                        .HasColumnName("DefaultExptdAVGId");
+
                     b.Property<int?>("DeviceId")
                         .HasColumnType("int(11)")
                         .HasColumnName("DeviceID");
@@ -799,14 +2194,33 @@ namespace FMS.Persistence.Migrations
                         .HasPrecision(10)
                         .HasColumnType("decimal(10)");
 
+                    b.Property<sbyte?>("GpsgategeneratedId")
+                        .HasColumnType("tinyint(4)")
+                        .HasColumnName("GPSGATEGeneratedID");
+
+                    b.Property<sbyte?>("HasGPSInstalled")
+                        .HasColumnType("tinyint(4)")
+                        .HasColumnName("HasGPSInstalled");
+
                     b.Property<string>("HyoungNo")
                         .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("varchar(45)");
 
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .UseCollation("utf8mb4_general_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("ModifiedBy"), "utf8mb4");
+
                     b.Property<string>("NumberPlate")
                         .HasMaxLength(45)
                         .HasColumnType("varchar(45)");
+
+                    b.Property<string>("Passenger")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int?>("VehicleManufacturerId")
                         .HasColumnType("int(11)")
@@ -816,14 +2230,11 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("VehicleModelID");
 
-                    b.Property<int>("VehicleTypeId")
+                    b.Property<int?>("VehicleTypeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("VehicleTypeID")
                         .HasDefaultValueSql("'1'");
-
-                    b.Property<int?>("WorkingExpectedAverage")
-                        .HasColumnType("int(11)");
 
                     b.Property<int?>("WorkingSiteId")
                         .HasColumnType("int(11)")
@@ -844,7 +2255,7 @@ namespace FMS.Persistence.Migrations
 
                     b.HasIndex(new[] { "DefaultEmployeeId" }, "Vehicle_employee_idx");
 
-                    b.HasIndex(new[] { "WorkingExpectedAverage" }, "vehicleExpectedAverage_idx");
+                    b.HasIndex(new[] { "DefaultExptdAvgid" }, "vehicle_expectedAvg_idx");
 
                     b.HasIndex(new[] { "VehicleManufacturerId" }, "vehicle_manufacturer_idx");
 
@@ -853,6 +2264,8 @@ namespace FMS.Persistence.Migrations
                     b.HasIndex(new[] { "WorkingSiteId" }, "vehicle_site_idx");
 
                     b.HasIndex(new[] { "VehicleTypeId" }, "vehicle_vehicleType_idx");
+
+                    b.HasIndex(new[] { "ModifiedBy" }, "vehilce_user_idx");
 
                     b.ToTable("vehicle", (string)null);
                 });
@@ -863,6 +2276,8 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal?>("AvgSpeed")
                         .HasPrecision(10, 2)
@@ -940,6 +2355,9 @@ namespace FMS.Persistence.Migrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("ReportId")
+                        .HasColumnType("int(11)");
+
                     b.Property<int>("SiteId")
                         .HasColumnType("int(11)")
                         .HasColumnName("SiteID");
@@ -968,6 +2386,8 @@ namespace FMS.Persistence.Migrations
 
                     b.HasIndex(new[] { "ModifiedBy" }, "vehicleconsumption_user_idx");
 
+                    b.HasIndex(new[] { "ReportId" }, "vehilceconsumption_fuelreport_idx");
+
                     b.ToTable("vehicleconsumption", (string)null);
                 });
 
@@ -977,6 +2397,8 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .HasMaxLength(45)
@@ -995,6 +2417,8 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int?>("ManufacturerId")
                         .HasColumnType("int(11)")
                         .HasColumnName("ManufacturerID");
@@ -1006,14 +2430,19 @@ namespace FMS.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("PRIMARY");
 
+                    b.HasIndex("ManufacturerId");
+
                     b.ToTable("vehiclemodel", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehicletype", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int(11)")
                         .HasColumnName("ID");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Abbvr")
                         .HasMaxLength(45)
@@ -1037,64 +2466,173 @@ namespace FMS.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Employeevehicle", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("FMS.Domain.Entities.Employee", null)
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .IsRequired()
-                        .HasConstraintName("EmployeeID");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.HasOne("FMS.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .IsRequired()
-                        .HasConstraintName("VehicleID");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RoleClaims");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.AlarmTankmeasurement", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("FMS.Domain.Entities.Alarm", "Alarm")
-                        .WithMany("AlarmTankmeasurements")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserClaims");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.ToTable("UserLogins");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("varchar(95)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("varchar(95)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("UserTokens");
+                });
+
+            modelBuilder.Entity("AlarmTankmeasurement", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Alarm", null)
+                        .WithMany()
                         .HasForeignKey("AlarmId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("alarmmeasurement_alarm");
 
-                    b.HasOne("FMS.Domain.Entities.Tankmeasurement", "TankMeausement")
-                        .WithMany("AlarmTankmeasurements")
-                        .HasForeignKey("TankMeausementId")
+                    b.HasOne("FMS.Domain.Entities.Tankmeasurement", null)
+                        .WithMany()
+                        .HasForeignKey("TankMeasurementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("alarmMeasurement_tankmeasurement");
-
-                    b.Navigation("Alarm");
-
-                    b.Navigation("TankMeausement");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Asset", b =>
+            modelBuilder.Entity("EmployeeVehicle", b =>
                 {
-                    b.HasOne("FMS.Domain.Entities.Vehiclemanufacturer", "VehicleManufacturer")
-                        .WithMany("Assets")
-                        .HasForeignKey("VehicleManufacturerId")
-                        .HasConstraintName("asset_ibfk_2");
+                    b.HasOne("FMS.Domain.Entities.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("FMS.Domain.Entities.Vehiclemodel", "VehicleModel")
-                        .WithMany("Assets")
-                        .HasForeignKey("VehicleModelId")
-                        .HasConstraintName("asset_ibfk_1");
+                    b.HasOne("FMS.Domain.Entities.Vehicle", null)
+                        .WithMany()
+                        .HasForeignKey("VehiclesVehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 
-                    b.HasOne("FMS.Domain.Entities.Vehicletype", "VehicleType")
-                        .WithMany("Assets")
-                        .HasForeignKey("VehicleTypeId")
-                        .HasConstraintName("asset_ibfk_3");
+            modelBuilder.Entity("FMS.Domain.Entities.Auth.RolePermission", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_RolePermissions_Permissions");
 
-                    b.Navigation("VehicleManufacturer");
+                    b.HasOne("FMS.Domain.Entities.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_RolePermissions_Roles");
 
-                    b.Navigation("VehicleModel");
+                    b.Navigation("Permission");
 
-                    b.Navigation("VehicleType");
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Auth.UserRole", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_UserRoles_Roles");
+
+                    b.HasOne("FMS.Domain.Entities.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_UserRoles_Users");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Calibrationdatum", b =>
@@ -1106,6 +2644,73 @@ namespace FMS.Persistence.Migrations
                         .HasConstraintName("calibrationData_vehicle");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Configuration", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", "Pts")
+                        .WithMany("Configurations")
+                        .HasForeignKey("Ptsid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pts");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Dailytankreconciliation", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Tank", "Tank")
+                        .WithMany("Dailytankreconciliations")
+                        .HasForeignKey("TankId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tank");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Delivery", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.User", "RecordedByNavigation")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("RecordedByNavigationId");
+
+                    b.HasOne("FMS.Domain.Entities.Supplier", "Supplier")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMS.Domain.Entities.Tank", "Tank")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("TankId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecordedByNavigation");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("Tank");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Device", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Devicetype", "DeviceTypeNavigation")
+                        .WithMany("Devices")
+                        .HasForeignKey("DeviceTypeNavigationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DeviceTypeNavigation");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.DeviceConnection", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", "Ptsdevice")
+                        .WithMany("DeviceConnections")
+                        .HasForeignKey("PtsdeviceId");
+
+                    b.Navigation("Ptsdevice");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Devicemodel", b =>
@@ -1121,12 +2726,47 @@ namespace FMS.Persistence.Migrations
 
             modelBuilder.Entity("FMS.Domain.Entities.Employee", b =>
                 {
+                    b.HasOne("FMS.Domain.Entities.User", "CreatedByNavigation")
+                        .WithMany("EmployeeCreatedByNavigations")
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FMS.Domain.Entities.User", "ModifiedByNavigation")
+                        .WithMany("EmployeeModifiedByNavigations")
+                        .HasForeignKey("ModifiedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("FMS.Domain.Entities.Site", "Site")
                         .WithMany("Employees")
                         .HasForeignKey("SiteId")
-                        .HasConstraintName("Employee_site");
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("ModifiedByNavigation");
 
                     b.Navigation("Site");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.EmployeeVehicle", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Employee", "Employee")
+                        .WithMany("EmployeeVehicles")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("EmployeeID");
+
+                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("EmployeeVehicles")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("VehicleID");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Expectedaverage", b =>
@@ -1156,20 +2796,125 @@ namespace FMS.Persistence.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("FMS.Domain.Entities.Features.FuelRule.FuelingRule", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Features.FuelRuleSet.FuelingRuleSet", "FuelingRuleSet")
+                        .WithMany("Rules")
+                        .HasForeignKey("FuelingRuleSetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_FuelingRule_FuelingRuleSet");
+
+                    b.Navigation("FuelingRuleSet");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Fuelrefil", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Employee", "Driver")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("DriverId")
+                        .HasConstraintName("FuelRefil_Driver");
+
+                    b.HasOne("FMS.Domain.Entities.User", "FuelByNavigation")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("FuelBy")
+                        .IsRequired()
+                        .HasConstraintName("FuelRefi_Fuelby");
+
+                    b.HasOne("FMS.Domain.Entities.Pumptransaction", "PumpTranscation")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("PumpTranscationId")
+                        .HasConstraintName("FuelRefil_PumpTransaction");
+
+                    b.HasOne("FMS.Domain.Entities.Site", "Site")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("SiteId")
+                        .IsRequired()
+                        .HasConstraintName("fuelRefil_Site");
+
+                    b.HasOne("FMS.Domain.Entities.Tag", "TagNavigation")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("TagNavigationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FMS.Domain.Entities.Tank", "Tank")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("TankId")
+                        .IsRequired()
+                        .HasConstraintName("FuelRefill_tank");
+
+                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("Fuelrefils")
+                        .HasForeignKey("VehicleId")
+                        .IsRequired()
+                        .HasConstraintName("fuelRefil_vehicle");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("FuelByNavigation");
+
+                    b.Navigation("PumpTranscation");
+
+                    b.Navigation("Site");
+
+                    b.Navigation("TagNavigation");
+
+                    b.Navigation("Tank");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Intankdelivery", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", "Pts")
+                        .WithMany("Intankdeliveries")
+                        .HasForeignKey("Ptsid")
+                        .IsRequired()
+                        .HasConstraintName("fk_psTID");
+
+                    b.Navigation("Pts");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Issueassignmenttracker", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.User", "AssignedFromNavigation")
+                        .WithMany("IssueassignmenttrackerAssignedFromNavigations")
+                        .HasForeignKey("AssignedFrom")
+                        .IsRequired()
+                        .HasConstraintName("assigned_user_From");
+
+                    b.HasOne("FMS.Domain.Entities.User", "AssignedToNavigation")
+                        .WithMany("IssueassignmenttrackerAssignedToNavigations")
+                        .HasForeignKey("AssignedTo")
+                        .IsRequired()
+                        .HasConstraintName("Assigned_Issue_To");
+
+                    b.HasOne("FMS.Domain.Entities.Issuetracker", "IssueNavigation")
+                        .WithMany("Issueassignmenttrackers")
+                        .HasForeignKey("Issue")
+                        .IsRequired()
+                        .HasConstraintName("Assigned_issue");
+
+                    b.Navigation("AssignedFromNavigation");
+
+                    b.Navigation("AssignedToNavigation");
+
+                    b.Navigation("IssueNavigation");
+                });
+
             modelBuilder.Entity("FMS.Domain.Entities.Issuetracker", b =>
                 {
                     b.HasOne("FMS.Domain.Entities.User", "AssignToNavigation")
                         .WithMany("IssuetrackerAssignToNavigations")
                         .HasForeignKey("AssignTo")
                         .IsRequired()
-                        .HasConstraintName("Issuetracker_userAsssignedTo");
+                        .HasConstraintName("Issue_user");
 
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "HyoungNoNavigation")
+                    b.HasOne("FMS.Domain.Entities.Devicetype", "DeviceTypeNavigation")
                         .WithMany("Issuetrackers")
-                        .HasForeignKey("HyoungNo")
-                        .HasPrincipalKey("HyoungNo")
-                        .IsRequired()
-                        .HasConstraintName("issue_vehicle");
+                        .HasForeignKey("DeviceType")
+                        .HasConstraintName("Isuse_deviceType");
 
                     b.HasOne("FMS.Domain.Entities.Issuecategory", "IssueCategory")
                         .WithMany("Issuetrackers")
@@ -1181,12 +2926,12 @@ namespace FMS.Persistence.Migrations
                         .WithMany("IssuetrackerOpenbyNavigations")
                         .HasForeignKey("Openby")
                         .IsRequired()
-                        .HasConstraintName("Issuetracker_useropenby");
+                        .HasConstraintName("issue_ser");
 
                     b.HasOne("FMS.Domain.Entities.Issuepriority", "PriorityNavigation")
                         .WithMany("Issuetrackers")
                         .HasForeignKey("Priority")
-                        .HasConstraintName("Issuetracker_priority");
+                        .HasConstraintName("Issue_tracker_issuepriorty");
 
                     b.HasOne("FMS.Domain.Entities.Site", "Site")
                         .WithMany("Issuetrackers")
@@ -1199,9 +2944,15 @@ namespace FMS.Persistence.Migrations
                         .HasForeignKey("Status")
                         .HasConstraintName("Issuetracker_status");
 
+                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("Issuetrackers")
+                        .HasForeignKey("VehicleId")
+                        .IsRequired()
+                        .HasConstraintName("issue_vehicle");
+
                     b.Navigation("AssignToNavigation");
 
-                    b.Navigation("HyoungNoNavigation");
+                    b.Navigation("DeviceTypeNavigation");
 
                     b.Navigation("IssueCategory");
 
@@ -1212,82 +2963,263 @@ namespace FMS.Persistence.Migrations
                     b.Navigation("Site");
 
                     b.Navigation("StatusNavigation");
+
+                    b.Navigation("Vehicle");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Pts", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Loginactivity", b =>
                 {
+                    b.HasOne("FMS.Domain.Entities.User", "User")
+                        .WithMany("Loginactivities")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_LoginActivities_Users");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Permission", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Permission", "Parent")
+                        .WithMany("InverseParent")
+                        .HasForeignKey("ParentId")
+                        .HasConstraintName("FK_Permissions_Parent");
+
+                    b.HasOne("FMS.Domain.Entities.Role", null)
+                        .WithMany("Permissions")
+                        .HasForeignKey("RoleId");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.PtsDevicePendingCommand", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", "PtsDevice")
+                        .WithMany()
+                        .HasForeignKey("PtsDeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_device_commands_ptsdevice");
+
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", null)
+                        .WithMany("PtsDevicePendingCommands")
+                        .HasForeignKey("PtsdevicePtsid");
+
+                    b.Navigation("PtsDevice");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Ptsdevice", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Site", "SiteNavigation")
+                        .WithMany("Ptsdevices")
+                        .HasForeignKey("Site")
+                        .HasConstraintName("PTSDevice_site");
+
+                    b.Navigation("SiteNavigation");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Pumptransaction", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", "Pts")
+                        .WithMany("Pumptransactions")
+                        .HasForeignKey("PtsId")
+                        .IsRequired()
+                        .HasConstraintName("FK_pumptransaction");
+
+                    b.Navigation("Pts");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Rolenavigation", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Navigationitem", "NavigationItem")
+                        .WithMany("Rolenavigations")
+                        .HasForeignKey("NavigationItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_RoleNavigations_NavigationItems");
+
+                    b.HasOne("FMS.Domain.Entities.Role", "Role")
+                        .WithMany("Rolenavigations")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_RoleNavigations_Roles");
+
+                    b.Navigation("NavigationItem");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Tag", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Features.FuelRuleSet.FuelingRuleSet", "FuelRuleSet")
+                        .WithMany("Tags")
+                        .HasForeignKey("FuelRuleSetId")
+                        .HasConstraintName("FuelRuleSetId_FK");
+
+                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany("Tags")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("TAG_Vehicle");
+
+                    b.Navigation("FuelRuleSet");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Tank", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Ptsdevice", "Pts")
+                        .WithMany("Tanks")
+                        .HasForeignKey("PtsId");
+
                     b.HasOne("FMS.Domain.Entities.Site", "Site")
-                        .WithMany("Pts")
+                        .WithMany("Tanks")
                         .HasForeignKey("SiteId")
                         .IsRequired()
-                        .HasConstraintName("PTS_Site");
+                        .HasConstraintName("Tank_site");
+
+                    b.Navigation("Pts");
+
+                    b.Navigation("Site");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.TankTransfer", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Tank", "DestinationTank")
+                        .WithMany("TankTransfersAsDestination")
+                        .HasForeignKey("DestinationTankId")
+                        .HasConstraintName("FK_TankTransfer_DestinationTank");
+
+                    b.HasOne("FMS.Domain.Entities.User", "RecordedByNavigation")
+                        .WithMany("TankTransfers")
+                        .HasForeignKey("RecordedBy")
+                        .HasConstraintName("FK_TankTransfer_User");
+
+                    b.HasOne("FMS.Domain.Entities.Tank", "SourceTank")
+                        .WithMany("TankTransfersAsSource")
+                        .HasForeignKey("SourceTankId")
+                        .HasConstraintName("FK_TankTransfer_SourceTank");
+
+                    b.Navigation("DestinationTank");
+
+                    b.Navigation("RecordedByNavigation");
+
+                    b.Navigation("SourceTank");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.TankVolumeHistory", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.User", "RecordedByNavigation")
+                        .WithMany("TankVolumeHistories")
+                        .HasForeignKey("RecordedBy")
+                        .HasConstraintName("FK_TankVolumeHistory_User");
 
                     b.HasOne("FMS.Domain.Entities.Tank", "Tank")
-                        .WithMany("Pts")
-                        .HasForeignKey("TankId");
+                        .WithMany("TankVolumeHistories")
+                        .HasForeignKey("TankId")
+                        .HasConstraintName("FK_TankVolumeHistory_Tank");
+
+                    b.Navigation("RecordedByNavigation");
+
+                    b.Navigation("Tank");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Tankstock", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.User", "RecordedByNavigation")
+                        .WithMany("Tankstocks")
+                        .HasForeignKey("RecordedBy")
+                        .IsRequired()
+                        .HasConstraintName("TankStock_User");
+
+                    b.HasOne("FMS.Domain.Entities.Site", "Site")
+                        .WithMany("Tankstocks")
+                        .HasForeignKey("SiteId")
+                        .IsRequired()
+                        .HasConstraintName("TankStock_site");
+
+                    b.HasOne("FMS.Domain.Entities.Tank", "Tank")
+                        .WithMany("Tankstocks")
+                        .HasForeignKey("TankId")
+                        .IsRequired()
+                        .HasConstraintName("TankID");
+
+                    b.Navigation("RecordedByNavigation");
 
                     b.Navigation("Site");
 
                     b.Navigation("Tank");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.PtsTank", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Pts", "Pts")
-                        .WithMany("PTSTanks")
-                        .HasForeignKey("PtsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FMS.Domain.Entities.Tank", "Tank")
-                        .WithMany("PtsTanks")
-                        .HasForeignKey("TankId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pts");
-
-                    b.Navigation("Tank");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Tankmeasurement", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Alarm", "AlarmNavigation")
-                        .WithMany("Tankmeasurements")
-                        .HasForeignKey("AlarmNavigationId");
-
-                    b.HasOne("FMS.Domain.Entities.Site", null)
-                        .WithMany("Tankmeasurements")
-                        .HasForeignKey("SiteId");
-
-                    b.HasOne("FMS.Domain.Entities.Tank", null)
-                        .WithMany("Tankmeasurements")
-                        .HasForeignKey("TankId");
-
-                    b.Navigation("AlarmNavigation");
-                });
-
             modelBuilder.Entity("FMS.Domain.Entities.User", b =>
                 {
-                    b.HasOne("FMS.Domain.Entities.Usertype", "UserTypeNavigation")
+                    b.HasOne("FMS.Domain.Entities.Role", null)
                         .WithMany("Users")
-                        .HasForeignKey("UserType")
-                        .HasConstraintName("user_usertype");
+                        .HasForeignKey("RoleId");
 
-                    b.Navigation("UserTypeNavigation");
+                    b.HasOne("FMS.Domain.Entities.Site", null)
+                        .WithMany("Users")
+                        .HasForeignKey("SiteId");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.UserActivity", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.User", "User")
+                        .WithMany("UserActivities")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_UserActivity_User");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.UserSites", b =>
+                {
+                    b.HasOne("FMS.Domain.Entities.Site", "Site")
+                        .WithMany("UserSites")
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("SiteID");
+
+                    b.HasOne("FMS.Domain.Entities.User", "User")
+                        .WithMany("UserSites")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("UserID");
+
+                    b.Navigation("Site");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehicle", b =>
                 {
                     b.HasOne("FMS.Domain.Entities.Employee", "DefaultEmployee")
-                        .WithMany("VehiclesNavigation")
+                        .WithMany()
                         .HasForeignKey("DefaultEmployeeId")
                         .HasConstraintName("Vehicle_employee");
+
+                    b.HasOne("FMS.Domain.Entities.Expectedaverage", "DefaultExptdAvg")
+                        .WithMany()
+                        .HasForeignKey("DefaultExptdAvgid")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("vehicle_expectedAvg");
 
                     b.HasOne("FMS.Domain.Entities.Device", "Device")
                         .WithMany("Vehicles")
                         .HasForeignKey("DeviceId")
                         .HasConstraintName("Vehicle_Device");
+
+                    b.HasOne("FMS.Domain.Entities.User", "ModifiedByNavigation")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("ModifiedBy")
+                        .HasConstraintName("vehilce_user");
 
                     b.HasOne("FMS.Domain.Entities.Vehiclemanufacturer", "VehicleManufacturer")
                         .WithMany("Vehicles")
@@ -1302,13 +3234,7 @@ namespace FMS.Persistence.Migrations
                     b.HasOne("FMS.Domain.Entities.Vehicletype", "VehicleType")
                         .WithMany("Vehicles")
                         .HasForeignKey("VehicleTypeId")
-                        .IsRequired()
                         .HasConstraintName("vehicle_vehicleType");
-
-                    b.HasOne("FMS.Domain.Entities.Expectedaverage", "WorkingExpectedAverageNavigation")
-                        .WithMany("Vehicles")
-                        .HasForeignKey("WorkingExpectedAverage")
-                        .HasConstraintName("vehicleExpectedAverage");
 
                     b.HasOne("FMS.Domain.Entities.Site", "WorkingSite")
                         .WithMany("Vehicles")
@@ -1317,15 +3243,17 @@ namespace FMS.Persistence.Migrations
 
                     b.Navigation("DefaultEmployee");
 
+                    b.Navigation("DefaultExptdAvg");
+
                     b.Navigation("Device");
+
+                    b.Navigation("ModifiedByNavigation");
 
                     b.Navigation("VehicleManufacturer");
 
                     b.Navigation("VehicleModel");
 
                     b.Navigation("VehicleType");
-
-                    b.Navigation("WorkingExpectedAverageNavigation");
 
                     b.Navigation("WorkingSite");
                 });
@@ -1336,11 +3264,6 @@ namespace FMS.Persistence.Migrations
                         .WithMany("Vehicleconsumptions")
                         .HasForeignKey("EmployeeId")
                         .HasConstraintName("vehicleconsumption_employee");
-
-                    b.HasOne("FMS.Domain.Entities.User", "ModifiedByNavigation")
-                        .WithMany("Vehicleconsumptions")
-                        .HasForeignKey("ModifiedBy")
-                        .HasConstraintName("vehicleconsumption_user");
 
                     b.HasOne("FMS.Domain.Entities.Site", "Site")
                         .WithMany("Vehicleconsumptions")
@@ -1356,18 +3279,19 @@ namespace FMS.Persistence.Migrations
 
                     b.Navigation("Employee");
 
-                    b.Navigation("ModifiedByNavigation");
-
                     b.Navigation("Site");
 
                     b.Navigation("Vehicle");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Alarm", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Vehiclemodel", b =>
                 {
-                    b.Navigation("AlarmTankmeasurements");
+                    b.HasOne("FMS.Domain.Entities.Vehiclemanufacturer", "Manufacturer")
+                        .WithMany("Vehiclemodels")
+                        .HasForeignKey("ManufacturerId")
+                        .HasConstraintName("vehiclemodel_manufacturer");
 
-                    b.Navigation("Tankmeasurements");
+                    b.Navigation("Manufacturer");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Device", b =>
@@ -1380,21 +3304,32 @@ namespace FMS.Persistence.Migrations
                     b.Navigation("Devicemodels");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Employee", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Devicetype", b =>
                 {
-                    b.Navigation("Vehicleconsumptions");
+                    b.Navigation("Devices");
 
-                    b.Navigation("VehiclesNavigation");
+                    b.Navigation("Issuetrackers");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Expectedaverage", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Employee", b =>
                 {
-                    b.Navigation("Vehicles");
+                    b.Navigation("EmployeeVehicles");
+
+                    b.Navigation("Fuelrefils");
+
+                    b.Navigation("Vehicleconsumptions");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Expectedaverageclassification", b =>
                 {
                     b.Navigation("Expectedaverages");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Features.FuelRuleSet.FuelingRuleSet", b =>
+                {
+                    b.Navigation("Rules");
+
+                    b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Issuecategory", b =>
@@ -1412,9 +3347,54 @@ namespace FMS.Persistence.Migrations
                     b.Navigation("Issuetrackers");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Pts", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Issuetracker", b =>
                 {
-                    b.Navigation("PTSTanks");
+                    b.Navigation("Issueassignmenttrackers");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Navigationitem", b =>
+                {
+                    b.Navigation("Rolenavigations");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Permission", b =>
+                {
+                    b.Navigation("InverseParent");
+
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Ptsdevice", b =>
+                {
+                    b.Navigation("Configurations");
+
+                    b.Navigation("DeviceConnections");
+
+                    b.Navigation("Intankdeliveries");
+
+                    b.Navigation("PtsDevicePendingCommands");
+
+                    b.Navigation("Pumptransactions");
+
+                    b.Navigation("Tanks");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Pumptransaction", b =>
+                {
+                    b.Navigation("Fuelrefils");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Role", b =>
+                {
+                    b.Navigation("Permissions");
+
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("Rolenavigations");
+
+                    b.Navigation("UserRoles");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Site", b =>
@@ -1423,74 +3403,118 @@ namespace FMS.Persistence.Migrations
 
                     b.Navigation("Expectedaverages");
 
+                    b.Navigation("Fuelrefils");
+
                     b.Navigation("Issuetrackers");
 
-                    b.Navigation("Pts");
+                    b.Navigation("Ptsdevices");
 
-                    b.Navigation("Tankmeasurements");
+                    b.Navigation("Tanks");
+
+                    b.Navigation("Tankstocks");
+
+                    b.Navigation("UserSites");
+
+                    b.Navigation("Users");
 
                     b.Navigation("Vehicleconsumptions");
 
                     b.Navigation("Vehicles");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Tank", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Supplier", b =>
                 {
-                    b.Navigation("Pts");
-
-                    b.Navigation("PtsTanks");
-
-                    b.Navigation("Tankmeasurements");
+                    b.Navigation("Deliveries");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.Tankmeasurement", b =>
+            modelBuilder.Entity("FMS.Domain.Entities.Tag", b =>
                 {
-                    b.Navigation("AlarmTankmeasurements");
+                    b.Navigation("Fuelrefils");
+                });
+
+            modelBuilder.Entity("FMS.Domain.Entities.Tank", b =>
+                {
+                    b.Navigation("Dailytankreconciliations");
+
+                    b.Navigation("Deliveries");
+
+                    b.Navigation("Fuelrefils");
+
+                    b.Navigation("TankTransfersAsDestination");
+
+                    b.Navigation("TankTransfersAsSource");
+
+                    b.Navigation("TankVolumeHistories");
+
+                    b.Navigation("Tankstocks");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.User", b =>
                 {
+                    b.Navigation("Deliveries");
+
+                    b.Navigation("EmployeeCreatedByNavigations");
+
+                    b.Navigation("EmployeeModifiedByNavigations");
+
+                    b.Navigation("Fuelrefils");
+
+                    b.Navigation("IssueassignmenttrackerAssignedFromNavigations");
+
+                    b.Navigation("IssueassignmenttrackerAssignedToNavigations");
+
                     b.Navigation("IssuetrackerAssignToNavigations");
 
                     b.Navigation("IssuetrackerOpenbyNavigations");
 
-                    b.Navigation("Vehicleconsumptions");
-                });
+                    b.Navigation("Loginactivities");
 
-            modelBuilder.Entity("FMS.Domain.Entities.Usertype", b =>
-                {
-                    b.Navigation("Users");
+                    b.Navigation("TankTransfers");
+
+                    b.Navigation("TankVolumeHistories");
+
+                    b.Navigation("Tankstocks");
+
+                    b.Navigation("UserActivities");
+
+                    b.Navigation("UserRoles");
+
+                    b.Navigation("UserSites");
+
+                    b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehicle", b =>
                 {
                     b.Navigation("Calibrationdata");
 
+                    b.Navigation("EmployeeVehicles");
+
                     b.Navigation("Expectedaverages");
 
+                    b.Navigation("Fuelrefils");
+
                     b.Navigation("Issuetrackers");
+
+                    b.Navigation("Tags");
 
                     b.Navigation("Vehicleconsumptions");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehiclemanufacturer", b =>
                 {
-                    b.Navigation("Assets");
+                    b.Navigation("Vehiclemodels");
 
                     b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehiclemodel", b =>
                 {
-                    b.Navigation("Assets");
-
                     b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehicletype", b =>
                 {
-                    b.Navigation("Assets");
-
                     b.Navigation("Vehicles");
                 });
 #pragma warning restore 612, 618

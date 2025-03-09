@@ -8,23 +8,24 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.NavigationCommand;
-    public record DeleteNavigationItemCommand(int Id) : IRequest<bool>;
+public record DeleteNavigationItemCommand(int Id) : IRequest<bool>;
 
 
-        public class DeleteNavigationItemCommandHandler : IRequestHandler<DeleteNavigationItemCommand, bool>
+public class DeleteNavigationItemCommandHandler : IRequestHandler<DeleteNavigationItemCommand, bool>
+{
+    private readonly GpsdataContext _context;
+    private readonly ILogger<DeleteNavigationItemCommandHandler> _logger;
+
+    public DeleteNavigationItemCommandHandler(GpsdataContext context, ILogger<DeleteNavigationItemCommandHandler> logger)
     {
-        private readonly GpsdataContext _context;
-        private readonly ILogger<DeleteNavigationItemCommandHandler> _logger;
+        _context = context;
+        _logger = logger;
+    }
 
-        public DeleteNavigationItemCommandHandler(GpsdataContext context, ILogger<DeleteNavigationItemCommandHandler> logger)
+    public async Task<bool> Handle(DeleteNavigationItemCommand request, CancellationToken cancellationToken)
+    {
+        try
         {
-            _context = context;
-            _logger = logger;
-        }
-
-        public async Task<bool> Handle(DeleteNavigationItemCommand request, CancellationToken cancellationToken)
-        {
-            try{
             var navigationItem = await _context.Navigationitems.FindAsync(request.Id);
             if (navigationItem == null)
             {
@@ -42,11 +43,11 @@ namespace FMS.Application.Command.DatabaseCommand.NavigationCommand;
             await _context.SaveChangesAsync(cancellationToken);
 
             return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting navigation item");
-                throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting navigation item");
+            throw;
         }
     }
 }

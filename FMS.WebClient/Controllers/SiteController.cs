@@ -4,13 +4,14 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
 
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     public class SiteController : ControllerBase
     {
@@ -24,19 +25,19 @@ namespace FMS.WebClient.Controllers
 
         //return list of sites
         [HttpGet("getlist")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetSiteList()
         {
 
-           var query = new GetSiteQuery();
-            var sites =await _mediator.Send(query);
+            var query = new GetSiteQuery();
+            var sites = await _mediator.Send(query);
             return Ok(sites);
 
         }
 
         //return list of sites by user id
         [HttpGet("getsitebyuserid")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetSitesByUserId()
         {
 
@@ -52,7 +53,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("assignSitestoUser")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> AssignSiteToUser(AssignSitesToUserCommand command)
         {
             if (command == null || string.IsNullOrEmpty(command.UserId) || command.SiteIds == null || !command.SiteIds.Any())
@@ -79,10 +80,10 @@ namespace FMS.WebClient.Controllers
         }
 
 
-        //update site 
- 
+        //update site
 
-     
+
+
 
     }
 }

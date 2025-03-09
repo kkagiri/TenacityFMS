@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Queries.Database.FMSQuery.DeviceManager.DeviceModelQueries;
 
-public record GetDeviceModelListQuery():IRequest<List<Devicemodel>>;
+public record GetDeviceModelListQuery() : IRequest<List<Devicemodel>>;
 
 public class GetDeviceModelListQueryHandler : IRequestHandler<GetDeviceModelListQuery, List<Devicemodel>>
 {
@@ -21,13 +21,14 @@ public class GetDeviceModelListQueryHandler : IRequestHandler<GetDeviceModelList
 
     public async Task<List<Devicemodel>> Handle(GetDeviceModelListQuery request, CancellationToken cancellationToken)
     {
-        try{
-        var deviceModels = await _context.Devicemodels.ToListAsync(cancellationToken);
-        return deviceModels;
-        }
-        catch(Exception ex)
+        try
         {
-         throw new Exception("Error in GetDeviceModelListQueryHandler", ex);
+            var deviceModels = await _context.Devicemodels.ToListAsync(cancellationToken);
+            return deviceModels;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error in GetDeviceModelListQueryHandler", ex);
         }
 
     }

@@ -17,7 +17,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
     public class GetConsumptionByIdQuery : IRequest<Vehicleconsumption>
 
     {
-        public  int Id { get; set; }
+        public int Id { get; set; }
     }
 
 
@@ -27,7 +27,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
         private readonly GpsdataContext _context;
         private readonly ILogger _logger;
 
-        public GetConsumptionByIdQueryHandler (GpsdataContext context, ILogger<GetConsumptionByIdQueryHandler> logger)
+        public GetConsumptionByIdQueryHandler(GpsdataContext context, ILogger<GetConsumptionByIdQueryHandler> logger)
         {
             _context = context;
             _logger = logger;
@@ -37,7 +37,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
         {
             try
             {
-                var consumption = await _context.Vehicleconsumptions.Include(x=>x.Employee).FirstOrDefaultAsync(x=>x.Id== request.Id, cancellationToken);
+                var consumption = await _context.Vehicleconsumptions.Include(x => x.Employee).FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
                 return consumption;
             }
@@ -48,7 +48,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 throw new Exception("Cannot get consumption", ex);
             }
 
-            
+
         }
     }
 }

@@ -18,26 +18,27 @@ public class GetIssuesByAssignedToQueryHandler : IRequestHandler<GetIssuesByAssi
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
     private readonly ILogger<GetIssuesByAssignedToQueryHandler> _logger;
-    public GetIssuesByAssignedToQueryHandler(GpsdataContext context , IMapper mapper, ILogger<GetIssuesByAssignedToQueryHandler> logger)
+    public GetIssuesByAssignedToQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetIssuesByAssignedToQueryHandler> logger)
     {
         _mapper = mapper;
         _logger = logger;
-    
+
         _context = context;
     }
     public async Task<List<Issuetracker>> Handle(GetIssuesByAssignedToQuery request, CancellationToken cancellationToken)
     {
-        try{
-        var issues = await _context.Issuetrackers.Where(i => i.AssignTo == request.AssignedToId).ToListAsync(cancellationToken);
-        return issues;
+        try
+        {
+            var issues = await _context.Issuetrackers.Where(i => i.AssignTo == request.AssignedToId).ToListAsync(cancellationToken);
+            return issues;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "An error occured while getting issues by assigned to");
             throw new Exception(ex.Message);
-            
+
         }
     }
 }
- 
+
 

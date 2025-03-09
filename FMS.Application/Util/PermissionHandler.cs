@@ -10,14 +10,14 @@ namespace FMS.Application.Util;
 public class PermissionHandler : AuthorizationHandler<PermissionRequirements>
 {
     private readonly GpsdataContext _context;
-    public  PermissionHandler(GpsdataContext context)
+    public PermissionHandler(GpsdataContext context)
     {
         _context = context;
     }
 
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirements requirement)
     {
-       if (context.User == null)
+        if (context.User == null)
         {
             return;
         }

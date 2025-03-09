@@ -6,6 +6,7 @@ using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
@@ -13,7 +14,7 @@ namespace FMS.WebClient.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     public class VehicleModelController : ControllerBase
     {
@@ -26,23 +27,23 @@ namespace FMS.WebClient.Controllers
             _mediator = mediator;
         }
 
-       [HttpPost("CreateVehicleModel")]
-        [Authorize]
+        [HttpPost("CreateVehicleModel")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<int>> CreateVehicleModel([FromBody] Vehiclemodel vehicleModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             var command = new CreateVehicleModelCommand(vehicleModel.ManufacturerId, vehicleModel.Name);
-              var results = await _mediator.Send(command);
+            var results = await _mediator.Send(command);
 
-            if(!results.Success) return BadRequest(results.Message);
+            if (!results.Success) return BadRequest(results.Message);
 
-            return Ok(results.Data);        
-             
+            return Ok(results.Data);
+
         }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         public async Task<IActionResult> GetVehicleModel()
         {
@@ -52,7 +53,7 @@ namespace FMS.WebClient.Controllers
             return Ok(vehicleModels);
 
         }
-      
+
 
     }
 }

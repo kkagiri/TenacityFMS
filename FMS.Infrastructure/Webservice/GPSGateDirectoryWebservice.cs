@@ -263,89 +263,89 @@ namespace FMS.Infrastructure.Webservice
 
             return results.InnerText;
         }
-    
 
-    /// <summary>
-    /// Retrieves the status of the report from GPSGate.
-    /// </summary>
-    /// <param name="conn">The GPSGate connection.</param>
-    /// <param name="handleId">The handle ID of the report.</param>
-    /// <returns>A Task representing the asynchronous operation.</returns>
-    private async Task<string> GetReportStatus(GPSGateConections conn, int handleId)
-    {
-        try
+
+        /// <summary>
+        /// Retrieves the status of the report from GPSGate.
+        /// </summary>
+        /// <param name="conn">The GPSGate connection.</param>
+        /// <param name="handleId">The handle ID of the report.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        private async Task<string> GetReportStatus(GPSGateConections conn, int handleId)
         {
-            //check on GPSGATE API 
-
-            var reportStatus = await _ReportSoapClient.GetReportStatusAsync(conn.SessionID, handleId);
-
-
-            //Ensure that the result is not null or empty 
-            var resultXml = "<reportHandler>" + reportStatus.Body.GetReportStatusResult?.InnerXml + "</reportHandler>";
-
-            if (string.IsNullOrWhiteSpace(resultXml))
+            try
             {
-                throw new InvalidOperationException("Received empty or null Responce for report status");
+                //check on GPSGATE API 
+
+                var reportStatus = await _ReportSoapClient.GetReportStatusAsync(conn.SessionID, handleId);
+
+
+                //Ensure that the result is not null or empty 
+                var resultXml = "<reportHandler>" + reportStatus.Body.GetReportStatusResult?.InnerXml + "</reportHandler>";
+
+                if (string.IsNullOrWhiteSpace(resultXml))
+                {
+                    throw new InvalidOperationException("Received empty or null Responce for report status");
+                }
+
+
+
+                // Deserialize the report data into a ReportHandler object
+
+                var serializer = new XmlSerializer(typeof(ReportHandler));
+                //retrieve the handleid and state data
+
+                var reportHandler = (ReportHandler)serializer.Deserialize(new XmlTextReader(reportStatus.Body.GetReportStatusResult.ToString()));
+
+                //retrieve the handleid and state data
+
+                var state = reportHandler.State;
+                var handleID = reportHandler.HandleId;
+
+                //return the status 
+
+                return state;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+
+        }
+
+
+        public void CheckError(XmlNode element)
+        {
+            if (element != null && element.FirstChild != null && element.FirstChild.Name == "exception")
+            {
+                throw new Exception(element.SelectSingleNode("//exception/message").InnerText);
             }
 
 
 
-            // Deserialize the report data into a ReportHandler object
 
-            var serializer = new XmlSerializer(typeof(ReportHandler));
-            //retrieve the handleid and state data
-
-            var reportHandler = (ReportHandler)serializer.Deserialize(new XmlTextReader(reportStatus.Body.GetReportStatusResult.ToString()));
-
-            //retrieve the handleid and state data
-
-            var state = reportHandler.State;
-            var handleID = reportHandler.HandleId;
-
-            //return the status 
-
-            return state;
         }
-        catch (Exception e)
-        {
-            throw new Exception(e.Message);
-        }
+
 
     }
 
 
-    public void CheckError(XmlNode element)
+    [XmlRoot(ElementName = "reportHandler")]
+    public class ReportHandler
     {
-        if (element != null && element.FirstChild != null && element.FirstChild.Name == "exception")
+        [XmlElement(ElementName = "handleid")]
+        public int HandleId { get; set; }
+
+        [XmlElement(ElementName = "state")]
+        public string State { get; set; }
+
+        public static implicit operator XmlDocument(ReportHandler v)
         {
-            throw new Exception(element.SelectSingleNode("//exception/message").InnerText);
+            throw new NotImplementedException();
         }
-
-
-
-
     }
 
 
-}  
-
-
-        [XmlRoot(ElementName = "reportHandler")]
-        public class ReportHandler
-        {
-            [XmlElement(ElementName = "handleid")]
-            public int HandleId { get; set; }
-
-            [XmlElement(ElementName = "state")]
-            public string State { get; set; }
-
-            public static implicit operator XmlDocument(ReportHandler v)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-    
 
 
 }

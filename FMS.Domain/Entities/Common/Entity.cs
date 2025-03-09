@@ -2,6 +2,6 @@
 {
     public class Entity
     {
-                public virtual int ID { get; set; }
+        public virtual int ID { get; set; }
     }
 }

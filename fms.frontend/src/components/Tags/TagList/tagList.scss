@@ -1,0 +1,50 @@
+.tag-list {
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    .tag-item {
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background-color: #e9ecef;
+            transform: translateX(2px);
+        }
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        &:active {
+            background-color: #dee2e6;
+        }
+    }
+}
+
+// Dark theme support
+:global(.dx-theme-material-dark) {
+    .tag-list {
+        background-color: #2d2d2d;
+
+        .tag-item {
+            background-color: #363640;
+            border-color: #454545;
+            color: #ffffff;
+
+            &:hover {
+                background-color: #454545;
+            }
+
+            &:active {
+                background-color: #505050;
+            }
+        }
+    }
+}

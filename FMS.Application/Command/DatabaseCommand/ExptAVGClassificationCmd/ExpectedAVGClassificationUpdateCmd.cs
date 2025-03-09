@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.ExptAVGClassification
 {
-    public class ExpectedAVGClassificationUpdateCmd :IRequest<int>
+    public class ExpectedAVGClassificationUpdateCmd : IRequest<int>
     {
 
         public int Id { get; set; }
@@ -45,7 +45,7 @@ namespace FMS.Application.Command.DatabaseCommand.ExptAVGClassification
 
             entity.Name = request.Name;
             entity.Description = request.Description;
-            entity.IskmperLiter= request.IskmperLiter ? (sbyte)1:(sbyte)0;
+            entity.IskmperLiter = request.IskmperLiter ? (sbyte)1 : (sbyte)0;
             _context.Expectedaverageclassifications.Update(entity);
             await _context.SaveChangesAsync(cancellationToken);
 

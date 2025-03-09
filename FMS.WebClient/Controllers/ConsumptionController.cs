@@ -25,7 +25,7 @@ namespace FMS.WebClient.Controllers
         private readonly IMapper _mapper;
         private readonly ILogger _logger;
 
-        public ConsumptionController (IMediator mediator, IConfiguration configuration,IMapper mapper,ILogger<ConsumptionController> logger)
+        public ConsumptionController(IMediator mediator, IConfiguration configuration, IMapper mapper, ILogger<ConsumptionController> logger)
         {
             _mapper = mapper;
             _mediator = mediator;
@@ -33,38 +33,38 @@ namespace FMS.WebClient.Controllers
             _logger = logger;
         }
         [HttpGet("manualRefills")]
-        public async Task<IActionResult> GetManualConsumption([FromQuery]  string startDate,string endDate)
+        public async Task<IActionResult> GetManualConsumption([FromQuery] string startDate, string endDate)
         {
             var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
             var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
 
-            if (_startDate == default(DateTime)|| _endDate == default(DateTime))
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
             {
                 return BadRequest("Invalid date");
             }
 
-               var query = new GetVehicleConsumptionManualRefillQuery(_startDate,_endDate);
+            var query = new GetVehicleConsumptionManualRefillQuery(_startDate, _endDate);
 
-                var results = await _mediator.Send(query);
+            var results = await _mediator.Send(query);
 
-                return Ok(results);
-         }
+            return Ok(results);
+        }
 
 
         [HttpGet("manualRefillsbySiteId")]
-        public async Task<IActionResult> GetManualConsumptionBySiteId([FromQuery] string startDate, string endDate,int SiteId)
+        public async Task<IActionResult> GetManualConsumptionBySiteId([FromQuery] string startDate, string endDate, int SiteId)
         {
             var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
             var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-            if(SiteId <= 0) return BadRequest("Invalid Site ID");
-           
+            if (SiteId <= 0) return BadRequest("Invalid Site ID");
 
-            if (_startDate == default(DateTime) || _endDate == default(DateTime))  return BadRequest("Invalid date");
-           
 
-            var query = new GetVehicleConsumptionManualRefillBySiteIdQuery(_startDate, _endDate,SiteId);
+            if (_startDate == default(DateTime) || _endDate == default(DateTime)) return BadRequest("Invalid date");
+
+
+            var query = new GetVehicleConsumptionManualRefillBySiteIdQuery(_startDate, _endDate, SiteId);
 
             var results = await _mediator.Send(query);
 
@@ -73,12 +73,12 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("vehicleRefills")]
-        public async Task<IActionResult> GetManualConsumptionByVehicleID([FromQuery] string startDate, string endDate,int? vehicleId)
+        public async Task<IActionResult> GetManualConsumptionByVehicleID([FromQuery] string startDate, string endDate, int? vehicleId)
         {
             var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
             var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-            if(vehicleId == null || vehicleId <= 0)
+            if (vehicleId == null || vehicleId <= 0)
             {
                 return BadRequest("Invalid vehicle ID");
             }
@@ -89,7 +89,7 @@ namespace FMS.WebClient.Controllers
                 return BadRequest("Invalid date");
             }
 
-            var query = new GetConsumptionManualRefillByVehicleIDQuery(_startDate, _endDate,vehicleId);
+            var query = new GetConsumptionManualRefillByVehicleIDQuery(_startDate, _endDate, vehicleId);
 
             var results = await _mediator.Send(query);
 
@@ -106,16 +106,16 @@ namespace FMS.WebClient.Controllers
         /// <param name="date"></param>
         /// <returns></returns>
         [HttpGet("gethistoryconsumptionbyvehicle")]
-        public async Task<IActionResult> GetHistoryConsumptionDatabyVehicle([FromQuery]int vehicleId, [FromQuery] string datestring, [FromQuery] int entry)
+        public async Task<IActionResult> GetHistoryConsumptionDatabyVehicle([FromQuery] int vehicleId, [FromQuery] string datestring, [FromQuery] int entry)
         {
-          var date = DateTime.ParseExact(datestring, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var date = DateTime.ParseExact(datestring, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
             if (vehicleId <= 0 || date == default(DateTime))
             {
                 return BadRequest("Invalid vehicle ID or date");
             }
 
-            if(entry < 5 || entry >30 )
+            if (entry < 5 || entry > 30)
             {
                 return BadRequest("Entry must be between 5 and 30 days");
             }
@@ -128,10 +128,10 @@ namespace FMS.WebClient.Controllers
 
                 return Ok(results);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error Fetching history consumption Data");
-                return StatusCode(StatusCodes.Status500InternalServerError,new {Message = ex.Message});
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
 
         }
@@ -140,7 +140,7 @@ namespace FMS.WebClient.Controllers
         [HttpGet("getbyid")]
         public async Task<IActionResult> GetByID(int id)
         {
-            if(id <=0)
+            if (id <= 0)
             {
                 return BadRequest("invalid consumption ID");
             }
@@ -150,16 +150,17 @@ namespace FMS.WebClient.Controllers
 
                 var result = await _mediator.Send(query);
 
-                if(result==null)
+                if (result == null)
                 {
                     return NotFound();
                 }
 
                 return Ok(result);
-            }catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error Consumption data by ID");
-                return StatusCode(StatusCodes.Status500InternalServerError, new {Message = ex.Message});
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = ex.Message });
             }
         }
 
@@ -167,34 +168,36 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> Get(DateTime from) 
+        public async Task<IActionResult> Get(DateTime from)
         {
-          //load settings from appsettings.json
+            //load settings from appsettings.json
 
-          string? username = _configuration["GPSGateUser:Username"];
-          string? password = _configuration["GPSGateUser:Password"];
-          int?applicationID  = int.Parse(_configuration["ApplicationID"]??"0");
-          int fuelConsumptionReportId = int.Parse(_configuration["FuelConsumptionReportID"]??"0");
+            string? username = _configuration["GPSGateUser:Username"];
+            string? password = _configuration["GPSGateUser:Password"];
+            int? applicationID = int.Parse(_configuration["ApplicationID"] ?? "0");
+            int fuelConsumptionReportId = int.Parse(_configuration["FuelConsumptionReportID"] ?? "0");
 
 
-            var fromDate =from.Date;
+            var fromDate = from.Date;
             var toDate = fromDate.AddDays(1).AddTicks(-1); //add one day to from date
 
-          var loginquery = new LoginQuery{
+            var loginquery = new LoginQuery
+            {
 
-            GPSGateConections = new GPSGateConections{
-                GPSGateUser= new GPSGateUser 
+                GPSGateConections = new GPSGateConections
                 {
-                    UserName = username,
-                    Password = password
-                },
-                ApplicationID = applicationID.Value
-            }
-          };
+                    GPSGateUser = new GPSGateUser
+                    {
+                        UserName = username,
+                        Password = password
+                    },
+                    ApplicationID = applicationID.Value
+                }
+            };
 
-             var conn = await _mediator.Send(loginquery);
-          
-            var query = new GetConsumptionReportQuery(conn ,fuelConsumptionReportId, fromDate, toDate);
+            var conn = await _mediator.Send(loginquery);
+
+            var query = new GetConsumptionReportQuery(conn, fuelConsumptionReportId, fromDate, toDate);
 
             var results = await _mediator.Send(query);
 
@@ -205,11 +208,11 @@ namespace FMS.WebClient.Controllers
         [HttpPost("Create")]
         public async Task<IActionResult> ConsumptionCreate([FromBody] ConsumptionViewModel model)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-         
+
             var command = _mapper.Map<ConsumptionCreateCmd>(model);
 
             await _mediator.Send(command);
@@ -223,10 +226,10 @@ namespace FMS.WebClient.Controllers
         [HttpGet("getlist")]
         public async Task<IActionResult> GetConsumptionList(int pagingNo = 200)
         {
-            if(pagingNo < 0 || pagingNo > 5000) return BadRequest("Invalid Paging No");
+            if (pagingNo < 0 || pagingNo > 5000) return BadRequest("Invalid Paging No");
             var query = new GetConsumptionListQuery(pagingNo);
             var results = await _mediator.Send(query);
-            if(results == null || !results.Any())
+            if (results == null || !results.Any())
             {
                 return NotFound();
             }
@@ -236,11 +239,11 @@ namespace FMS.WebClient.Controllers
         [HttpPut("Update/{id}")]
         public async Task<IActionResult> ConsumptionUpdate(int id, [FromBody] ConsumptionViewModel model)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-         
+
             var command = _mapper.Map<ComsumptionUpdateCmd>(model);
 
             command.Id = id;

@@ -2,9 +2,9 @@
 
 namespace FMS.WebClient.Helper
 {
-    public static  class MessageHelper
+    public static class MessageHelper
     {
-        public static string CreateConfirmationMessage(string type, string message ="OK")
+        public static string CreateConfirmationMessage(string type, string message = "OK")
         {
             return JsonConvert.SerializeObject(new
             {
@@ -18,7 +18,7 @@ namespace FMS.WebClient.Helper
 
         }
 
-        public static string CreateErrorMessage(string type,int code, string message )
+        public static string CreateErrorMessage(string type, int code, string message)
         {
             return JsonConvert.SerializeObject(new
             {

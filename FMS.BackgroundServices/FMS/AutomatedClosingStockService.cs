@@ -11,12 +11,12 @@ using Microsoft.Extensions.Logging;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using FMS.Persistence.DataAccess;
-using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Domain.Entities.enums;
+using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 
 namespace FMS.BackgroundServices.FMS
 {
-    public class AutomatedClosingStockService :BackgroundService
+    public class AutomatedClosingStockService : BackgroundService
     {
         private readonly ILogger<AutomatedClosingStockService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -52,12 +52,12 @@ namespace FMS.BackgroundServices.FMS
 
                     var tanks = await context.Tanks
                         .Where(t => t.UseBookKeeping == 1)
-                        .Where(x => !x.TankVolumeHistories.Any(tvh => 
-                            tvh.Timestamp.Date == DateTime.Now.Date && 
+                        .Where(x => !x.TankVolumeHistories.Any(tvh =>
+                            tvh.Timestamp.Date == DateTime.Now.Date &&
                             tvh.ChangeReason == VolumeChangeReasonEnum.ClosingStock))
                         .ToListAsync(stoppingToken);
-   
-                    foreach(var tank in tanks)
+
+                    foreach (var tank in tanks)
                     {
                         var closingStock = await GetClosingStock(context, tank.Id, stoppingToken);
                         if (closingStock.HasValue)
@@ -79,7 +79,7 @@ namespace FMS.BackgroundServices.FMS
 
         private async Task<decimal?> GetClosingStock(GpsdataContext context, int tankId, CancellationToken stoppingToken)
         {
-            var priorityList = _configuration.GetSection("ClosingStockPriority").Get<List<string>>() ?? 
+            var priorityList = _configuration.GetSection("ClosingStockPriority").Get<List<string>>() ??
                 new List<string> { "Sensor", "LastEntry", "CurrentVolume" };
 
             foreach (var priority in priorityList)
@@ -116,6 +116,6 @@ namespace FMS.BackgroundServices.FMS
             return null;
         }
     }
-    
-    
+
+
 }

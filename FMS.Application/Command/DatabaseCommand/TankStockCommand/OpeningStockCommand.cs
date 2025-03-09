@@ -17,7 +17,7 @@ using System.Transactions;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 {
-    public record OpeningStockCommand (int TankId, decimal OpeningStock, string RecordedBy, DateTime? EntryDate = null) :IRequest<FMSResponseMessage>;
+    public record OpeningStockCommand(int TankId, decimal OpeningStock, string RecordedBy, DateTime? EntryDate = null) : IRequest<FMSResponseMessage>;
 
     public class OpeningStockCommandHandler : IRequestHandler<OpeningStockCommand, FMSResponseMessage>
     {
@@ -25,7 +25,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         public ILogger<OpeningStockCommandHandler> _logger;
         public IMediator _mediator;
 
-        public OpeningStockCommandHandler(GpsdataContext context, ILogger<OpeningStockCommandHandler> logger,IMediator mediator)
+        public OpeningStockCommandHandler(GpsdataContext context, ILogger<OpeningStockCommandHandler> logger, IMediator mediator)
         {
             _context = context;
             _logger = logger;
@@ -34,13 +34,14 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         public async Task<FMSResponseMessage> Handle(OpeningStockCommand request, CancellationToken cancellationToken)
         {
 
-            try {
+            try
+            {
 
 
 
-                var tank = await _context.Tanks.FindAsync(request.TankId,cancellationToken);
-                if (tank == null) return new FMSResponseMessage (false, $"TankID {request.TankId} not found " );
-                if(request.OpeningStock <= 0)return new FMSResponseMessage(false, "Opening stock should be greater than 0");
+                var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
+                if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
+                if (request.OpeningStock <= 0) return new FMSResponseMessage(false, "Opening stock should be greater than 0");
 
                 var entryDate = request.EntryDate?.Date ?? DateTime.Now.Date;
 
@@ -76,25 +77,26 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 }
 
                 var stockTaking = new Tankstock
-            {
-                TankId = request.TankId,
-                EntryDate = request.EntryDate ?? DateTime.Now,
-                EntryType = VolumeChangeReasonEnum.OpeningStock,
-                ManualOpeningLevel = request.OpeningStock,
-                RecordedBy = request.RecordedBy,
-                SiteId = tank.SiteId
+                {
+                    TankId = request.TankId,
+                    EntryDate = request.EntryDate ?? DateTime.Now,
+                    EntryType = VolumeChangeReasonEnum.OpeningStock,
+                    ManualOpeningLevel = request.OpeningStock,
+                    RecordedBy = request.RecordedBy,
+                    SiteId = tank.SiteId
                 };
                 _context.Tankstocks.Add(stockTaking);
 
 
-             if(entryDate.Date == DateTime.Now.Date){
-
-                if (tank.UseBookKeeping == 1)
+                if (entryDate.Date == DateTime.Now.Date)
                 {
-                    tank.CurrentStock = request.OpeningStock;
-                    tank.LastStockUpdate = DateTime.Now;
+
+                    if (tank.UseBookKeeping == 1)
+                    {
+                        tank.CurrentStock = request.OpeningStock;
+                        tank.LastStockUpdate = DateTime.Now;
+                    }
                 }
-                         }
 
                 _context.Tanks.Update(tank);
 
@@ -118,7 +120,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
 
                 return new FMSResponseMessage(true, "Opening stock created successfully");
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while creating opening stock");
                 return new FMSResponseMessage(false, $"Error while creating opening stock {ex}");

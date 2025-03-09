@@ -30,15 +30,15 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions
             var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             // Use dependency injection or a service to get permissions
 
-            var userPermission =  await _context.Users
-                .Where(u=>u.Id ==  userId)
+            var userPermission = await _context.Users
+                .Where(u => u.Id == userId)
                 .SelectMany(u => u.UserRoles)
                 .SelectMany(ur => ur.Role.RolePermissions)
-                .Select(rp => rp.Permission.Name)   
+                .Select(rp => rp.Permission.Name)
                 .Distinct().ToListAsync();
 
 
-            if(userPermission.Contains(requirement.PermisisonName))
+            if (userPermission.Contains(requirement.PermisisonName))
             {
                 context.Succeed(requirement);
             }

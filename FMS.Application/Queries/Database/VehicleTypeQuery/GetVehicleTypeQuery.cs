@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.VehicleTypeQuery
 {
-    public class GetVehicleTypeQuery:IRequest<List<Vehicletype>>
+    public class GetVehicleTypeQuery : IRequest<List<Vehicletype>>
     {
 
     }
 
-    public class GetVehicleTypeQueryHandler:IRequestHandler<GetVehicleTypeQuery, List<Vehicletype>>
+    public class GetVehicleTypeQueryHandler : IRequestHandler<GetVehicleTypeQuery, List<Vehicletype>>
     {
         private readonly GpsdataContext _context;
         public GetVehicleTypeQueryHandler(GpsdataContext context)
@@ -25,7 +25,7 @@ namespace FMS.Application.Queries.Database.VehicleTypeQuery
         }
         public async Task<List<Vehicletype>> Handle(GetVehicleTypeQuery request, CancellationToken cancellationToken)
         {
-            return await _context.Vehicletypes.OrderBy(x=>x.Name).ToListAsync(cancellationToken);
+            return await _context.Vehicletypes.OrderBy(x => x.Name).ToListAsync(cancellationToken);
         }
     }
 

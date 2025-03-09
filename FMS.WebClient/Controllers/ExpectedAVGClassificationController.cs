@@ -56,7 +56,7 @@ namespace FMS.WebClient.Controllers
                 Id = id,
                 Name = expectedAVGClassificationDto.Name,
                 Description = expectedAVGClassificationDto.Description,
-                IskmperLiter= expectedAVGClassificationDto.IskmperLiter
+                IskmperLiter = expectedAVGClassificationDto.IskmperLiter
 
             };
 

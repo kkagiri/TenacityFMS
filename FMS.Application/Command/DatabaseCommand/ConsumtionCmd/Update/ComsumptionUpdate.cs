@@ -15,7 +15,7 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
     {
         public int Id { get; set; }
         public int VehicleId { get; set; }
-   
+
         public decimal? TotalFuel { get; set; }
 
         public int? WorkingFuelAverage { get; set; }
@@ -26,7 +26,7 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
         public DateTime Date { get; set; }
         public decimal? MaxSpeed { get; set; }
         public decimal? AvgSpeed { get; set; }
-       public decimal? FuelLost { get; set; }
+        public decimal? FuelLost { get; set; }
 
         public bool IsKmperhr { get; set; }
 
@@ -51,7 +51,7 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
     }
 
 
-    public class ComsumptionUpdatebyKeyHandler : IRequestHandler<ComsumptionUpdateCmd,Unit>
+    public class ComsumptionUpdatebyKeyHandler : IRequestHandler<ComsumptionUpdateCmd, Unit>
     {
 
 
@@ -66,11 +66,11 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
         }
 
 
-        public async  Task<Unit> Handle(ComsumptionUpdateCmd request, CancellationToken cancellationToken)
+        public async Task<Unit> Handle(ComsumptionUpdateCmd request, CancellationToken cancellationToken)
         {
             var comsumption = await _gpsdataContext.Vehicleconsumptions.FindAsync(request.Id);
 
-            if(comsumption == null)
+            if (comsumption == null)
             {
                 throw new Exception("Could not find the comsumption");
             }
@@ -82,9 +82,9 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
             await _gpsdataContext.SaveChangesAsync(cancellationToken);
 
             return Unit.Value;
- 
-      }
 
-       
+        }
+
+
     }
 }

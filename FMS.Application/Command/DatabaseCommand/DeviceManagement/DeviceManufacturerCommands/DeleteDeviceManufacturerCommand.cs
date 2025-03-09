@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceManufacturerCommands;
 public record DeleteDeviceManufacturerCommand(int Id) : IRequest<Unit>;
 
-public class DeleteDeviceManufacturerCommandHandler : IRequestHandler<DeleteDeviceManufacturerCommand,Unit>
+public class DeleteDeviceManufacturerCommandHandler : IRequestHandler<DeleteDeviceManufacturerCommand, Unit>
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<DeleteDeviceManufacturerCommandHandler> _logger;
@@ -21,20 +21,21 @@ public class DeleteDeviceManufacturerCommandHandler : IRequestHandler<DeleteDevi
 
     public async Task<Unit> Handle(DeleteDeviceManufacturerCommand request, CancellationToken cancellationToken)
     {
-        try{
-        var entity = await _context.Devicemanufacturers.FindAsync(request.Id);
-        if (entity == null)
+        try
         {
-            _logger.LogWarning("Device manufacturer with ID: {Id} not found", request.Id);
+            var entity = await _context.Devicemanufacturers.FindAsync(request.Id);
+            if (entity == null)
+            {
+                _logger.LogWarning("Device manufacturer with ID: {Id} not found", request.Id);
+                return Unit.Value;
+            }
+
+            _context.Devicemanufacturers.Remove(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Device manufacturer with ID: {Id} deleted", request.Id);
+
             return Unit.Value;
-        }
-
-        _context.Devicemanufacturers.Remove(entity);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Device manufacturer with ID: {Id} deleted", request.Id);
-
-        return Unit.Value;
         }
         catch (Exception ex)
         {

@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 {
-    public record GetVehicleConsumptionManualRefillBySiteIdQuery(DateTime StartDate, DateTime EndDate , int SiteId) : IRequest<List<ManualDispenseConsumptionDTO>>;
+    public record GetVehicleConsumptionManualRefillBySiteIdQuery(DateTime StartDate, DateTime EndDate, int SiteId) : IRequest<List<ManualDispenseConsumptionDTO>>;
 
     public class GetVehicleConsumptionManualRefillBySiteIdQueryHandler : IRequestHandler<GetVehicleConsumptionManualRefillBySiteIdQuery, List<ManualDispenseConsumptionDTO>>
     {
@@ -87,7 +87,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
                 return result;
             }
-           
+
 
             catch (Exception ex)
             {
@@ -107,5 +107,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
             return 0;
         }
     }
-    
+
 }

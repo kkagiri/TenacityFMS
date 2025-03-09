@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using FMS.Application.Command.DatabaseCommand.NavigationCommand;
 using FMS.Application.Queries.Database.FMSQuery.Navigation;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,7 +23,7 @@ namespace FMS.WebClient.Controllers
 
         //Api/Navigation
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetNavigationItemList()
         {
             //retrieve user roles from claims (token)
@@ -42,12 +43,12 @@ namespace FMS.WebClient.Controllers
             var navigationItemId = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetNavigationItemByIdQuery), new { id = navigationItemId }, command);
         }
-    [HttpGet("all")]
-    public async Task<IActionResult> GetAllNavigationItems()
-    {
-        var navigationItems = await _mediator.Send(new GetAllNavigationItemsQuery());
-        return Ok(navigationItems);
-    }
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllNavigationItems()
+        {
+            var navigationItems = await _mediator.Send(new GetAllNavigationItemsQuery());
+            return Ok(navigationItems);
+        }
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateNavigationItem(int id, [FromBody] UpdateNavigationCommand command)
         {
@@ -71,7 +72,7 @@ namespace FMS.WebClient.Controllers
         [HttpPost("AssignRoles")]
         public async Task<IActionResult> AssignRolesToNavigationItem([FromBody] AssignRoleToNavigationCommand command)
         {
-            if(!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var result = await _mediator.Send(command);
             if (!result) return BadRequest();
             return Ok();

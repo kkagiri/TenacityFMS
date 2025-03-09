@@ -9,12 +9,12 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.NavigationCommand
 {
-    public record AssignRoleToNavigationCommand (List<string> RoleIds ,int NavigationItemId) : IRequest<bool> ;
+    public record AssignRoleToNavigationCommand(List<string> RoleIds, int NavigationItemId) : IRequest<bool>;
 
 
-public class AssignRoleToNavigationCommandHandler  : IRequestHandler<AssignRoleToNavigationCommand, bool>
-{
-private readonly GpsdataContext _context;
+    public class AssignRoleToNavigationCommandHandler : IRequestHandler<AssignRoleToNavigationCommand, bool>
+    {
+        private readonly GpsdataContext _context;
         private readonly ILogger<AssignRoleToNavigationCommandHandler> _logger;
 
         public AssignRoleToNavigationCommandHandler(GpsdataContext context, ILogger<AssignRoleToNavigationCommandHandler> logger)
@@ -22,9 +22,9 @@ private readonly GpsdataContext _context;
             _context = context;
             _logger = logger;
         }
-    public async Task<bool> Handle(AssignRoleToNavigationCommand request , CancellationToken cancellationToken)
-    {
-        try
+        public async Task<bool> Handle(AssignRoleToNavigationCommand request, CancellationToken cancellationToken)
+        {
+            try
             {
                 var navigationItem = await _context.Navigationitems.FindAsync(request.NavigationItemId, cancellationToken);
                 if (navigationItem == null)
@@ -59,7 +59,7 @@ private readonly GpsdataContext _context;
                 _logger.LogError(ex, "Error assigning roles to navigation item");
                 return false;
             }
-    }
+        }
 
-}
+    }
 }

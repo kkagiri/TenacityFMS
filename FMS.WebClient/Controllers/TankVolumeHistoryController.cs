@@ -3,23 +3,26 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Admin,User")]
-    public class TankVolumeHistoryController: ControllerBase
+    public class TankVolumeHistoryController : ControllerBase
     {
-         private readonly IMediator _mediator;
+        private readonly IMediator _mediator;
 
         public TankVolumeHistoryController(IMediator mediator)
         {
-                _mediator = mediator;
-            }
+            _mediator = mediator;
+        }
 
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistory()
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
@@ -30,22 +33,22 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("byTankAndDateRange")]
-        [Authorize]
-        public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate,DateTime endDate,  int TankId)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate, DateTime endDate, int TankId)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
             //   if (!hasPermission) return Forbid();
             if (TankId <= 0) return BadRequest("Invalid ID");
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
-            var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(startDate,endDate, TankId));
+            var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(startDate, endDate, TankId));
             if (result == null) return NotFound();
             if (result.Success == false) return BadRequest(result.Message);
 
             return Ok(result.Data);
         }
         [HttpGet("byDateRange")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistoryByDateRange(DateTime StartDate, DateTime EndDate)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
@@ -58,7 +61,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("bySite")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistoryBySite(DateTime startDate, DateTime endDate, int siteId)
         {
             // var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");

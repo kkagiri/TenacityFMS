@@ -17,25 +17,25 @@ public class DeviceModelController : ControllerBase
         _mediator = mediator;
     }
 
-  
-  //Api: api/devicemodel/getlist
-     [HttpGet]
-     [Route("getlist")]
-     public async Task<IActionResult> Get()
-     {
-         var query = new GetDeviceModelListQuery();
-         var result = await _mediator.Send(query);
-         if (result == null)
-             return NotFound();
-         return Ok(result);
-     }
 
-     
-     //api:api/devivemodel/3
+    //Api: api/devicemodel/getlist
+    [HttpGet]
+    [Route("getlist")]
+    public async Task<IActionResult> Get()
+    {
+        var query = new GetDeviceModelListQuery();
+        var result = await _mediator.Send(query);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
+    }
+
+
+    //api:api/devivemodel/3
     [HttpGet("{id}")]
     public async Task<ActionResult<Devicemodel>> GetDeviceModel(int id)
     {
-        if(id == 0 || id < 0) return BadRequest();
+        if (id == 0 || id < 0) return BadRequest();
         var query = new GetDeviceModelByIdQuery(id);
         var result = await _mediator.Send(query);
         if (result == null)
@@ -46,7 +46,7 @@ public class DeviceModelController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<int>> CreateDeviceModel(CreateDeviceModelCommand command)
     {
-         if(!ModelState.IsValid) return BadRequest();
+        if (!ModelState.IsValid) return BadRequest();
 
         var result = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetDeviceModel), new { id = result }, result);
@@ -55,7 +55,7 @@ public class DeviceModelController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateDeviceModel(int id, UpdateDeviceModelCommand command)
     {
-        if(!ModelState.IsValid) return BadRequest();
+        if (!ModelState.IsValid) return BadRequest();
         if (id != command.Devicemodel.Id)
             return BadRequest();
         await _mediator.Send(command);
@@ -66,7 +66,7 @@ public class DeviceModelController : ControllerBase
     public async Task<IActionResult> DeleteDeviceModel(int id)
     {
 
-        if(id == 0 || id < 0)
+        if (id == 0 || id < 0)
         {
             return BadRequest();
         }

@@ -1,0 +1,1655 @@
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/DateTimeSettings.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class DateTimeSettings
+    {
+        public DateTime DateTime { get; set; }
+        public bool AutoSynchronize { get; set; }
+        public int UTCOffset { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/EastWestIndicator.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class EastWestIndicator
+    {
+        public static readonly string EAST = "East";
+        public static readonly string WEST = "West";
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ErrorData.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+
+    public class ErrorData
+    {
+  
+        public int Pump { get; set; }
+
+        public string? PTSUser { get; set; }
+   
+        public string? Request { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/FuelGrade.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// Fuel grade data
+    /// </summary>
+    public class FuelGrade
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public double Price { get; set; }
+        public double ExpansionCoefficient { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/LastInTankDelivery.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// Class describing last in-tank delivery
+    /// </summary>
+    public class LastInTankDelivery
+    {
+        public DateTime DateTime { get; set; }
+        public double ProductHeight { get; set; }
+        public double WaterHeight { get; set; }
+        public double Temperature { get; set; }
+        public double ProductVolume { get; set; }
+        public double ProductTCVolume { get; set; }
+        public double ProductDensity { get; set; }
+        public double ProductMass { get; set; }
+        public double PumpsDispensedVolume { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/MeasurementUnits.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class MeasurementUnits
+    {
+        public string? Volume { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/NorthSouthIndicator.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class NorthSouthIndicator
+    {
+        public static readonly string NORTH = "North";
+        public static readonly string SOUTH = "South";
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/Parameter.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class Parameter
+    {
+        public string? Device { get; set; }
+        public int Number { get; set; }
+        public int Address { get; set; }
+        public string? Value { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/Permissions.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// User permissions
+    /// </summary>
+    public class PTSPermissions
+    {
+   
+        public bool Configuration { get; set; }
+ 
+        public bool Control { get; set; }
+    
+        public bool Monitoring { get; set; }
+    
+        public bool Reports { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/Port.cs
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class Port
+    {
+        public int Id { get; set; }
+        public int Protocol { get; set; }
+        public int BaudRate { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PriceBoard.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// Price board data
+    /// </summary>
+    public class PriceBoard
+    {
+        public int Id { get; set; }
+        public string? Port { get; set; }
+        public int Address { get; set; }
+        public List<int>? FuelGradeIds { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PriceBoardPort.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PriceBoardPort
+    {
+        public string? Id { get; set; }
+        public int Protocol { get; set; }
+        public int BaudRate { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PriceBoardsConfiguration.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PriceBoardsConfiguration
+    {
+        public List<PriceBoardPort>? PriceBoardPorts { get; set; }
+        public List<PriceBoard>? PriceBoards { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/Probe.cs
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// Probe class
+    /// </summary>
+    public class Probe
+    {
+        public int Id { get; set; }
+        public string? Port { get; set; }
+        public int Address { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ProbeMeasurements.cs
+
+﻿using FMS.Domain.Entities.PTS.Enums;
+using FMS.Domain.Entities.Util;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// Probe measurements used for provision of monitoring over probes/tanks. 
+    /// </summary>
+    public class ProbeMeasurements
+    {
+        public int Probe { get; set; }
+        public ProbeStatus? Status { get; set; }
+        public string? StatusDescription => Status.HasValue ? EnumerationHelper.GetEnumDescription(Status.Value) : null;
+        public List<string>? Alarms { get; set; }
+        public double ProductHeight { get; set; }
+        public double WaterHeight { get; set; }
+        public double Temperature { get; set; }
+        public double ProductVolume { get; set; }
+        public double WaterVolume { get; set; }
+        public double ProductUllage { get; set; }
+        public double ProductTCVolume { get; set; }
+        public double ProductDensity { get; set; }
+        public double ProductMass { get; set; }
+        public bool HighProductAlarm { get; set; }
+        public bool LowProductAlarm { get; set; }
+        public LastInTankDelivery? LastInTankDeliveryStart { get; set; }
+        public LastInTankDelivery? LastInTankDeliveryEnd { get; set; }
+        public LastInTankDelivery? LastInTankDelivery { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ProbePort.cs
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// ProbePort class
+    /// </summary>
+    public class ProbePort
+    {
+        public string? Id { get; set; }
+        public int Protocol { get; set; }
+        public int BaudRate { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ProbesConfiguration.cs
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ProbesConfiguration
+    {
+        public List<ProbePort>? ProbePorts { get; set; }
+        public List<Probe>? Probes { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ProbeTankVolumeForHeight.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ProbeTankVolumeForHeight
+    {
+        public int Probe { get; set; }
+        public int Height { get; set; }
+        public int Volume { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PtsNetworkSettings.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PtsNetworkSettings
+    {
+        public IPAddress? IpAddress { get; set; }
+        public IPAddress? NetMask { get; set; }
+        public IPAddress? Gateway { get; set; }
+        public short HttpPort { get; set; }
+        public short HttpsPort { get; set; }
+        public IPAddress? DNS1 { get; set; }
+        public IPAddress? DNS2 { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSuser.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PTSUser
+    {
+       
+        public int Id { get; set; }
+
+      
+        public string? Login { get; set; }
+
+       
+        public string? Password { get; set; }
+
+       
+        public PTSPermissions? Permissions { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/Pump.cs
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class Pump
+    {
+        public int Id { get; set; }
+        public int Port { get; set; }
+        public int Address { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpAuthorizeConfirmation.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpAuthorizeConfirmation
+    {
+        public int Pump { get; set; }
+        public int Transaction { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpAuthorizeData.cs
+
+﻿using FMS.Domain.Entities.PTS.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpAuthorizeData
+    {
+        public int Pump { get; set; }
+        public NozzleOrFuelIdSelector NozzleOrFuelIdSelector { get; set; }
+        public int Nozzle { get; set; }
+        public List<int>? Nozzles { get; set; }
+        public int FuelGradeId { get; set; }
+
+        public decimal Price { get; set; }
+        public bool PriceEnabled { get; set; }
+        public List<int>? FuelGradeIds { get; set; }
+        public PumpAuthorizeType Type { get; set; }
+        public double Dose { get; set; }
+        public bool AutoCloseTransaction { get; set; }
+        public bool TransactionEnabled { get; set; }
+        public int Transaction { get; set; }
+        public string? Tag { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpAutomaticOperation.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpAutomaticOperation
+    {
+        public int Pump { get; set; }
+        public string? State { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpConfiguration.cs
+
+namespace FMS.Domain.Entities.PTS;
+ public class PumpConfiguration
+    {
+        public List<Port>? _ports { get; set; }
+        public List<Pump>? _pumps  { get; set; }
+     
+    }
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpDisplayData.cs
+
+using FMS.Domain.Entities.PTS;
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.PTS.DataStruct
+{
+    public class PumpDisplayData : PumpStatusBase
+    {
+        public int LastNozzle { get; set; }
+        public double Volume { get; set; }
+       public double Amount { get; set; }
+
+        public double LastTransaction { get; set; }
+        
+        public override PumpStatus Status
+        {
+            get
+            {
+                base.Status = PumpStatus.NONE;
+                return base.Status;
+            }
+        }
+       
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpEndOfTransactionStatus.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpEndOfTransactionStatus : PumpStatusBase
+    {
+        public int Nozzle { get; set; }
+        public double Volume { get; set; }
+        public double TCVolume { get; set; }
+        public double Price { get; set; }
+        public double Amount { get; set; }
+        public int Transaction { get; set; }
+        public override PumpStatus Status
+        {
+            get
+            {
+                base.Status = PumpStatus.NONE;
+                return base.Status;
+            }
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpFillingStatus.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS;
+
+public class PumpFillingStatus : PumpStatusBase
+{
+    public override PumpStatus Status => PumpStatus.PUMP_FILLING_STATUS;
+    public int Nozzle { get; set; }
+    public double Volume { get; set; }
+    public double TCVolume { get; set; }
+    public double Price { get; set; }
+    public double Amount { get; set; }
+    public int Transaction { get; set; }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpIdleStatus.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpIdleStatus : PumpStatusBase
+    {
+        public int? Transaction { get; set; }
+        public int NozzleUp { get; set; }
+        public int LastNozzle { get; set; }
+        public int? FuelGradeId { get; set; }
+        public int? LastFuelGradeId { get; set; }
+        public string? FuelGradeName { get; set; }
+        public string? LastFuelGradeName { get; set; }
+        public double LastVolume { get; set; }
+        public double LastPrice { get; set; }
+        public double LastAmount { get; set; }
+        public int LastTransaction { get; set; }
+        public double? LastTotalVolume { get; set; }
+        public double? LastTotalAmount { get; set; }
+        public DateTime? LastDateTimeStart { get; set; }
+        public DateTime? LastDateTime { get; set; }
+        public string? Request { get; set; }
+        public string? Tag { get; set; }
+
+
+        public override PumpStatus Status
+        {
+            get => NozzleUp > 0 ? PumpStatus.NOZZLE : PumpStatus.PUMP_IDLE_STATUS;
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpNozzles.cs
+
+﻿using System;
+using System.Collections.Generic;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpNozzles
+    {
+        public int PumpId { get; set; }
+        public List<int>? FuelGradeIds { get; set; }
+        public bool TankIdsEnabled { get; set; }
+        public List<int>? TankIds { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpOfflineStatus.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpOfflineStatus : PumpStatusBase
+    {
+        public override PumpStatus Status
+        {
+            get
+            {
+                base.Status = PumpStatus.PUMP_OFFLINE_STATUS;
+                return base.Status;
+            }
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpPrices.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpPrices : PumpStatusBase
+    {
+       public List<double>? Prices { get; set; }
+
+        public override PumpStatus Status
+        {
+            get
+            {
+                base.Status = PumpStatus.NONE;
+                return base.Status;
+            }
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpsConfiguration.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpsConfiguration
+    {
+        public List<Port>? Ports { get; set; }
+        public List<Pump>? Pumps { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpStatusBase.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+using FMS.Domain.Entities.Util;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpStatusBase
+    {
+        public int? Pump { get; set; }
+        public string? User { get; set; }
+        public virtual PumpStatus Status { get; set; }
+        public string? StatusDescription => EnumerationHelper.GetEnumDescription(Status);
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpTag.cs
+
+
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS;
+
+public class PumpTag : PumpStatusBase
+{
+   public int? Nozzle { get; set; }
+
+   public string? Tag { get; set; }
+
+    public override PumpStatus Status
+    {
+        get
+        {
+            base.Status = PumpStatus.NONE;
+            return base.Status;
+        }
+    }
+
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpTotals.cs
+
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpTotals : PumpStatusBase
+    {
+        public int? Nozzle { get; set; }
+        public double? Volume { get; set; }
+        public double? Price { get; set; }
+        public double? Amount { get; set; }
+        public int? Transaction { get; set; }
+        public override PumpStatus Status
+        {
+            get => PumpStatus.NONE;
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PumpTransaction.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpTransaction
+    {
+        public int Pump { get; set; }
+        public int Transaction { get; set; }
+        public string? State { get; set; }
+        public DateTime? DateTimeStart { get; set; }
+        public DateTime? DateTime { get; set; }
+        public int Nozzle { get; set; }
+        public double Volume { get; set; }
+        public double TCVolume { get; set; }
+        public double Price { get; set; }
+        public double Amount { get; set; }
+        public double TotalVolume { get; set; }
+        public double TotalAmount { get; set; }
+        public int UserId { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/Reader.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    /// <summary>
+    /// Reader data
+    /// </summary>
+    public class Reader
+    {
+        public int Id { get; set; }
+        public  string? Port { get; set; }
+        public int Address { get; set; }
+        public int PumpId { get; set; }
+        public bool AnyPump { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ReaderPort.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ReaderPort
+    {
+        public  string? Id { get; set; }
+        public int Protocol { get; set; }
+        public int BaudRate { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ReadersConfiguration.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ReadersConfiguration
+    {
+        public List<ReaderPort>? ReaderPorts { get; set; } = null;
+        public List<Reader>? Readers { get; set; } =null;
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ReaderTag.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ReaderTag
+    {
+        public int Reader { get; set; }
+        public  string? Tag { get; set; }
+        public bool Online { get; set; }
+        public bool Error { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ReportPumpTransaction.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ReportPumpTransaction
+    {
+      
+        public DateTime DateTimeStart { get; set; }
+
+      
+        public DateTime DateTime { get; set; }
+
+     
+        public int Pump { get; set; }
+
+      
+        public int Nozzle { get; set; }
+
+     
+        public int Transaction { get; set; }
+
+      
+        public double Volume { get; set; }
+
+      
+        public double TCVolume { get; set; }
+
+    
+        public double Price { get; set; }
+
+    
+        public double Amount { get; set; }
+
+        public double TotalVolume { get; set; }
+
+       
+        public double TotalAmount { get; set; }
+
+         public int UserId { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/ReportTankMeasurement.cs
+
+﻿using FMS.Domain.Entities.PTS.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class ReportTankMeasurement
+    {
+             public DateTime DateTime { get; set; }
+
+     
+        public int Tank { get; set; }
+
+    
+        public ProbeStatus? Status { get; set; }
+
+        public List<string>? Alarms { get; set; }
+
+      
+        public double ProductHeight { get; set; }
+
+      
+        public double WaterHeight { get; set; }
+
+       
+        public double Temperature { get; set; }
+
+               public double ProductVolume { get; set; }
+
+ 
+        public double ProductDensity { get; set; }
+
+               public double ProductMass { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/StateOnOff.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class StateOnOff
+    {
+        public static readonly string ON = "On";
+        public static readonly string OFF = "Off";
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/SystemDecimalDigits.cs
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class SystemDecimalDigits
+    {
+       
+        public short Price { get; set; }
+
+    
+        public short Amount { get; set; }
+
+     
+        public short Volume { get; set; }
+
+   
+        public short AmountTotal { get; set; }
+
+    
+        public short VolumeTotal { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/TagInformation.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class TagInformation
+    {
+       
+        public string? Tag { get; set; }
+
+     
+        public string? Name { get; set; }
+
+      
+        public bool Valid { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\AuthenticationType.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    public enum AuthenticationType
+    {
+        BASIC = 0,
+        DIGEST = 1
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\NozzleOrFuelIdSelector.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    /// <summary>
+    /// Enum that specified the nozzle(s) to authorize using PumpAuthorize request
+    /// </summary>
+    public enum NozzleOrFuelIdSelector
+    {
+        NONE,
+        NOZZLE,
+        NOZZLES,
+        FUELGRADEID,
+        FUELGRADEIDS
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\ProbeStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    public enum ProbeStatus
+    {
+        [Description("OK")]
+        PROBE_OK_STATUS = 0,
+        [Description("Error")]
+        PROBE_ERROR_STATUS = 1,
+        [Description("Offline")]
+        PROBE_OFFLINE_STATUS = 2,
+        [Description("")]
+        NONE = 4
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\ProtocolSecurityType.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    public enum ProtocolSecurityType
+    {
+        HTTP = 0,
+        HTTPS = 1
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\PumpAuthorizeType.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    public enum PumpAuthorizeType
+    {
+        [Description("Volume")]
+        VOLUME = 0,
+        [Description("Amount")]
+        AMOUNT = 1,
+        [Description("FullTank")]
+        FULLTANK = 2
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\PumpStatus.cs
+
+using System.ComponentModel;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    public enum PumpStatus
+    {
+        [Description("OFFLINE")]
+        PUMP_OFFLINE_STATUS = 0,
+        [Description("IDLE")]
+        PUMP_IDLE_STATUS = 1,
+        [Description("FILLING")]
+        PUMP_FILLING_STATUS = 2,
+        [Description("NOZZLE")]
+        NOZZLE = 3,
+        [Description("")]
+        NONE = 4
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/enums\TTResult.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.Enums
+{
+    public enum TTResult
+    {
+        [Description("No error")]
+        NO_ERROR = 0,
+        [Description("Request not found")]
+        JSONPTS_ERROR_NOT_FOUND = 1,
+        [Description("Invalid JSON request")]
+        INVALID_JSON_REQUEST = 2,
+        [Description("No data")]
+        NO_DATA = 3,
+        [Description("No data for response")]
+        NO_DATA_FOR_RESPONSE = 4,
+        [Description("JSON request is too long")]
+        JSON_REQUEST_IS_TOO_LONG = 5,
+        [Description("Access forbidden")]
+        JSONPTS_ERROR_NO_PERMISSIONS = 6,
+        [Description("No SD found")]
+        JSONPTS_ERROR_NO_SD_FOUND = 7,
+        [Description("Power down detected")]
+        JSONPTS_ERROR_POWER_DOWN_DETECTED = 8,
+        [Description("SD is not mounted")]
+        JSONPTS_ERROR_SD_NOT_MOUNTED = 9,
+        [Description("File upload process running")]
+        JSONPTS_ERROR_FILE_UPLOAD_PROCESS_RUNNING = 10,
+        [Description("SD error")]
+        JSONPTS_ERROR_SD_ERROR = 11,
+        [Description("No calibration chart found")]
+        JSONPTS_ERROR_NO_CALIBRATION_CHART_FOUND_ERROR = 12,
+        [Description("Could not check file")]
+        JSONPTS_ERROR_COULD_NOT_CHECK_FILE = 13,
+        [Description("Could not delete file")]
+        JSONPTS_ERROR_COULD_NOT_DELETE_FILE = 14,
+        [Description("Incorrect pumps configuration")]
+        JSONPTS_ERROR_INCORRECT_PUMPS_CONFIGURATION = 15,
+        [Description("Incorrect probes configuration")]
+        JSONPTS_ERROR_INCORRECT_PROBES_CONFIGURATION = 16,
+        [Description("Could not get datetime")]
+        JSONPTS_ERROR_COULD_NOT_GET_DATETIME = 17,
+        [Description("Could not get pump number")]
+        JSONPTS_ERROR_COULD_NOT_GET_PUMP_NUMBER = 18,
+        [Description("Could not get pump transaction number")]
+        JSONPTS_ERROR_COULD_NOT_GET_PUMP_TRANSACTION_NUMBER = 19,
+        [Description("Pump number is out of range")]
+        JSONPTS_ERROR_PUMP_NUMBER_OUT_OF_RANGE = 20,
+        [Description("Pump transaction number is out of range")]
+        JSONPTS_ERROR_PUMP_TRANSACTION_NUMBER_OUT_OF_RANGE = 21,
+        [Description("Pump transaction not found")]
+        JSONPTS_ERROR_PUMP_TRANSACTION_NOT_FOUND = 22,
+        [Description("Tank number is out of range")]
+        JSONPTS_ERROR_TANK_NUMBER_OUT_OF_RANGE = 23,
+        [Description("Could not get tank number")]
+        JSONPTS_ERROR_COULD_NOT_GET_TANK_NUMBER = 24,
+        [Description("Could not get transaction number")]
+        JSONPTS_ERROR_COULD_NOT_GET_TRANSACTION_NUMBER = 25,
+        [Description("Transaction number is out of range")]
+        JSONPTS_ERROR_TRANSACTION_NUMBER_OUT_OF_RANGE = 26,
+        [Description("Transaction number does not match")]
+        JSONPTS_ERROR_TRANSACTION_NUMBER_NOT_MATCH = 27,
+        [Description("Transaction number already exist")]
+        JSONPTS_ERROR_TRANSACTION_NUMBER_ALREADY_EXIST = 28,
+        [Description("Could not get nozzle number")]
+        JSONPTS_ERROR_COULD_NOT_GET_NOZZLE_NUMBER = 29,
+        [Description("Could not get fuel grade Id")]
+        JSONPTS_ERROR_COULD_NOT_GET_FUEL_GRADE_ID = 30,
+        [Description("Could not get nozzle number and fuel grade Id")]
+        JSONPTS_ERROR_COULD_NOT_GET_NOZZLE_NUMBER_FUEL_GRADE_ID = 31,
+        [Description("Could not get nozzle number from fuel grade Id")]
+        JSONPTS_ERROR_COULD_NOT_GET_NOZZLE_NUMBER_FROM_GRADE_ID = 32,
+        [Description("Nozzle number is out of range")]
+        JSONPTS_ERROR_NOZZLE_NUMBER_OUT_OF_RANGE = 33,
+        [Description("Could not get type")]
+        JSONPTS_ERROR_COULD_NOT_GET_TYPE = 34,
+        [Description("Could not get name")]
+        JSONPTS_ERROR_COULD_NOT_GET_NAME = 35,
+        [Description("Type is out of range")]
+        JSONPTS_ERROR_TYPE_OUT_OF_RANGE = 36,
+        [Description("Could not get dose value")]
+        JSONPTS_ERROR_COULD_NOT_GET_DOSE_VALUE = 37,
+        [Description("Could not get price value")]
+        JSONPTS_ERROR_COULD_NOT_GET_PRICE_VALUE = 38,
+        [Description("Duplicated authorization request")]
+        JSONPTS_ERROR_DUPLICATED_AUTHORIZATION_REQUEST = 39,
+        [Description("Pump is busy by other user")]
+        JSONPTS_ERROR_PUMP_BUSY_OTHER_USER = 40,
+        [Description("Pump is busy with other request being executed")]
+        JSONPTS_ERROR_PUMP_BUSY_OTHER_REQUEST_EXECUTED = 41,
+        [Description("Pump is busy with filling")]
+        JSONPTS_ERROR_PUMP_BUSY_FILLING = 42,
+        [Description("Pump is not in filling process")]
+        JSONPTS_ERROR_PUMP_NOT_IN_FILLING_PROCESS = 43,
+        [Description("Could not get state value")]
+        JSONPTS_ERROR_COULD_NOT_GET_STATE_VALUE = 44,
+        [Description("State value is out of range")]
+        JSONPTS_ERROR_STATE_VALUE_OUT_OF_RANGE = 45,
+        [Description("User does not match")]
+        JSONPTS_ERROR_USER_NOT_MATCH = 46,
+        [Description("Date is out of range")]
+        JSONPTS_ERROR_DATE_OUT_OF_RANGE = 47,
+        [Description("Time is out of range")]
+        JSONPTS_ERROR_TIME_OUT_OF_RANGE = 48,
+        [Description("Could not get height value")]
+        JSONPTS_ERROR_COULD_NOT_GET_HEIGHT = 49,
+        [Description("Could not get probe number")]
+        JSONPTS_ERROR_COULD_NOT_GET_PROBE_NUMBER = 50,
+        [Description("Probe number is out of range")]
+        JSONPTS_ERROR_PROBE_NUMBER_OUT_OF_RANGE = 51,
+        [Description("Pump is not configured")]
+        JSONPTS_ERROR_PUMP_IS_NOT_CONFIGURED = 52,
+        [Description("Restore of configuration failed")]
+        JSONPTS_ERROR_RESTORE_CONFIGURATION_FAILED = 53,
+        [Description("Configuration file not found")]
+        JSONPTS_ERROR_CONFIGURATION_FILE_NOT_FOUND = 54,
+        [Description("Calibration chart for tank is not configured")]
+        JSONPTS_ERROR_CALIBRATION_CHART_NOT_CONFIGURED = 55,
+        [Description("Tank is not configured")]
+        JSONPTS_ERROR_TANK_NOT_CONFIGURED = 56,
+        [Description("Pump fuel grade does not correspond to the tank fuel")]
+        JSONPTS_ERROR_PUMP_GRADE_NOT_CORRESPOND_TANK = 57,
+        [Description("Incorrect tanks configuration")]
+        JSONPTS_ERROR_INCORRECT_TANKS_CONFIGURATION = 58,
+        [Description("Not inited")]
+        INIT_ERROR = 1000,
+        [Description("Network error")]
+        NETWORK_ERROR = 1001,
+        [Description("Timed out")]
+        TIMEOUT_ERROR = 1002,
+        [Description("HTTP response code is wrong")]
+        RESPONSE_CODE_ERROR = 1003,
+        [Description("Authorization error")]
+        UNAUTHORIZED_ERROR = 1004,
+        [Description("Protocol error")]
+        PROTOCOL_ERROR = 1005,
+        [Description("JSON parse error")]
+        JSON_PARSE_ERROR = 1006,
+        [Description("At last one request in sequence was failed")]
+        AT_LAST_ONE_REQUEST_IN_SEQUENCE_FAILED_ERROR = 1007,
+        [Description("Unknown error")]
+        UNKNOWN_ERROR = 1008
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\BaseStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.PTSStatus
+{
+    public abstract class BaseStatus
+    {
+        public List<int?>? Ids { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\DeviceStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.Entities.PTS.PTSStatus
+{
+    /// <summary>
+    /// Generic class representing a device with Online and Offline statuses.
+    /// This reduces duplication between ProbeStatus and ReaderStatus.
+    /// </summary>
+    public abstract class DeviceStatus
+    {
+        public OnlineStatus? OnlineStatus { get; set; }
+        public OfflineStatus? OfflineStatus { get; set; }
+    }
+
+
+    public class OnlineStatus : BaseStatus { }
+
+    public class OfflineStatus : BaseStatus { }
+
+
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\UploadStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.NetworkInformation;
+using System.Reflection.Metadata.Ecma335;
+using System.Text;
+using System.Threading.Tasks;
+using FMS.Domain.PTSStatus.FuelGradeStatus;
+using FMS.Domain.PTSStatus.ProbeStatus;
+
+namespace FMS.Domain.PTSStatus
+{
+    /// <summary>
+    /// Represents the overall uploaded status of the system.
+    /// Reduced duplication by leveraging generic device statuses and base classes where possible.
+    /// </summary
+    public class UploadStatus
+    {
+        public string? ConfigurationId { get; set; }
+        public DateTime DateTime { get; set; }
+        public DateTime FirmwareDateTime { get; set; }
+        public int StartupSeconds { get; set; }
+        public int BatteryVoltage { get; set; }
+        public int CpuTemperature { get; set; }
+        public bool PtsPowerDownDetected { get; set; }
+        public bool SdMounted { get; set; }
+        public PumpStatus.PumpStatus Pumps { get; set; } = new();
+        public ProbeStatus.ProbeStatus Probes { get; set; } = new();
+        public ReaderStatus.ReaderStatus Readers { get; set; } = new();
+        public List<FuelGradeStatus.FuelGradeStatus> FuelGrades { get; set; } = new();
+
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\FuelGradeStatus\FuelGradeStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.PTSStatus.FuelGradeStatus
+{
+    /// <summary>
+    /// Class representing the configuration of fuel grades.
+    /// </summary>
+    public class FuelGradeStatus
+    {
+        /// <summary>
+        /// Gets or sets the identifier of the fuel grade.
+        /// </summary>
+        public int? Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the fuel grade.
+        /// </summary>
+        public string? Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets the price of the fuel grade.
+        /// </summary>
+        public decimal? Price { get; set; }
+
+        /// <summary>
+        /// Gets or sets the thermal coefficient of expansion at 15 °C for the fuel grade.
+        /// </summary>
+        public decimal? ExpansionCoefficient { get; set; }
+
+        /// <summary>
+        /// Gets or sets the identifier of the first tank for blended fuel grade.
+        /// </summary>
+        public int? BlendTank1Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the blend percentage from the first tank for blended fuel grade.
+        /// </summary>
+        public int? BlendTank1Percentage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the identifier of the second tank for blended fuel grade.
+        /// </summary>
+        public int? BlendTank2Id { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\ProbeStatus\OnlineStatus.cs
+
+﻿namespace FMS.Domain.PTSStatus.ProbeStatus
+{
+     /// <summary>
+    /// Class representing the online status for probes.
+      /// </summary>
+    public class ProbeOnlineStatus :OnlineStatus
+    {
+        public List<int?>? CriticalHighProductAlarms { get; set; }
+        public List<int?>? HighProductAlarms { get; set; }
+        public List<int?>? LowProductAlarms { get; set; }
+        public List<int?>? CriticalLowProductAlarms { get; set; }
+        public List<int?>? HighWaterAlarms { get; set; }
+        public List<int?>? TankLeakageAlarms { get; set; }
+        public List<int?>? Errors { get; set; }
+        public List<ProbeMeasurement>? Measurements { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\ProbeStatus\ProbeMeasurement.cs
+
+﻿namespace FMS.Domain.Entities.PTS.PTSStatus.ProbeStatus
+{
+    public class ProbeMeasurement
+    {
+        public int ProbeNumber { get; set; }
+        public float? ProductHeight { get; set; }
+        public float? WaterHeight { get; set; }
+        public float? Temperature { get; set; }
+        public float? ProductVolume { get; set; }
+        public float? WaterVolume { get; set; }
+        public float? ProductUllage { get; set; }
+        public float? ProductTemperatureCompensatedVolume { get; set; }
+        public float? ProductDensity { get; set; }
+        public float? ProductMass { get; set; }
+        public int? TankFillingPercentage { get; set; }
+
+
+        public ProbeMeasurement(float[] measurements)
+        {
+            if (measurements.Length >= 11)
+            {
+                ProbeNumber = (int)measurements[0];
+                ProductHeight = measurements[1];
+                WaterHeight = measurements[2];
+                Temperature = measurements[3];
+                ProductVolume = measurements[4];
+                WaterVolume = measurements[5];
+                ProductUllage = measurements[6];
+                ProductTemperatureCompensatedVolume = measurements[7];
+                ProductDensity = measurements[8];
+                ProductMass = measurements[9];
+                TankFillingPercentage = (int)measurements[10];
+            }
+        }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\ProbeStatus\ProbeStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using FMS.Domain.Entities.PTS.PTSStatus;
+
+namespace FMS.Domain.Entities.PTS.PTSStatus.ProbeStatus
+{
+    public class ProbeStatus : DeviceStatus
+    {
+
+        public new ProbeOnlineStatus? OnlineStatus { get; set; }
+        public new OfflineStatus? OfflineStatus { get; set; }
+    }
+
+
+
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\PumpStatus\IdleStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.PTSStatus.PumpStatus
+{
+    /// <summary>
+    /// Base class for transaction-related pump statuses (Filling and EndOfTransaction),
+    /// reducing duplication of common fields.
+    /// </summary>
+    public class IdleStatus : PumpTransactionBaseStatus
+    {
+        public List<int>? NozzlesUp { get; set; }
+        public List<int>? LastNozzles { get; set; }
+        public List<int>? LastTransactions { get; set; }
+        public List<decimal>? LastVolumes { get; set; }
+        public List<decimal>? LastAmounts { get; set; }
+        public List<decimal>? LastPrices { get; set; }
+        public List<string>? Requests { get; set; }
+    }
+
+    /// <summary>
+    /// Status representing pumps currently filling.
+    /// Inherits from PumpTransactionBaseStatus to reduce duplication.
+    /// </summary>
+    public class FillingStatus : PumpTransactionBaseStatus
+    {
+    }
+
+    /// <summary>
+    /// Status representing pumps that have just completed a transaction.
+    /// Inherits from PumpTransactionBaseStatus to reduce duplication.
+    /// </summary>
+    public class EndOfTransactionStatus : PumpTransactionBaseStatus
+    {
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\PumpStatus\PumpOfflineStatus .cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.PTSStatus.PumpStatus
+{
+    public class PumpOfflineStatus : BaseStatus
+    {
+        public List<string>? Users { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\PumpStatus\PumpStatus.cs
+
+﻿namespace FMS.Domain.PTSStatus.PumpStatus
+{
+    /// <summary>
+    /// Class representing the status of the pumps.
+    /// </summary>
+    public class PumpStatus
+    {
+        public IdleStatus? IdleStatus { get; set; }
+        public FillingStatus? FillingStatus { get; set; }
+        public EndOfTransactionStatus? EndOfTransactionStatus { get; set; }
+        public PumpOfflineStatus? OfflineStatus { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\PumpStatus\PumpTransactionBaseStatus.cs
+
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FMS.Domain.PTSStatus.PumpStatus
+{
+    public abstract class PumpTransactionBaseStatus:BaseStatus
+    {
+        public List<int>? Nozzles { get; set; }
+        public List<int>? FuelGradeIds { get; set; }
+        public List<string>? FuelGradeNames { get; set; }
+        public List<int>? Transactions { get; set; }
+        public List<decimal>? Volumes { get; set; }
+        public List<decimal>? Amounts { get; set; }
+        public List<decimal>? Prices { get; set; }
+        public List<string>? Tags { get; set; }
+    }
+}
+
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\ReaderStatus\OfflineStatus.cs
+
+﻿using FMS.Domain.Entities.PTS.PTSStatus;
+
+namespace FMS.Domain.Entities.PTS.PTSStatus.ReaderStatus
+{
+
+    public class OfflineStatus : BaseStatus
+    {
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\ReaderStatus\OnlineStatus.cs
+
+﻿using FMS.Domain.Entities.PTS.PTSStatus;
+
+namespace FMS.Domain.Entities.PTS.PTSStatus.ReaderStatus
+{
+
+
+    public class OnlineStatus : BaseStatus
+    {
+        public List<string>? Tags { get; set; }
+        public List<int?>? Errors { get; set; }
+    }
+}
+
+//filepath://  c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Domain/Entities/PTS/PTSStatus\ReaderStatus\ReaderStatus.cs
+
+﻿
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using FMS.Domain.Entities.PTS.PTSStatus;
+
+namespace FMS.Domain.Entities.PTS.PTSStatus.ReaderStatus
+{
+    public class ReaderStatus : DeviceStatus
+    {
+        public new OnlineStatus? OnlineStatus { get; set; }
+        public new OfflineStatus? OfflineStatus { get; set; }
+    }
+}
+
+

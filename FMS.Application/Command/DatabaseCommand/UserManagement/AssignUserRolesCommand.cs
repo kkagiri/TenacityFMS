@@ -16,7 +16,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
     /// </summary>
     /// <param name="UserId"></param>
     /// <param name="Roles"></param>
-    public record AssignUserRolesCommand(string UserId, List<string> Roles):IRequest<bool>;
+    public record AssignUserRolesCommand(string UserId, List<string> Roles) : IRequest<bool>;
 
 
     public class AssignUserRolesCommandHandler : IRequestHandler<AssignUserRolesCommand, bool>
@@ -25,7 +25,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<AssignUserRolesCommandHandler> _logger;
 
-        public AssignUserRolesCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager,ILogger<AssignUserRolesCommandHandler> logger)
+        public AssignUserRolesCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<AssignUserRolesCommandHandler> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;

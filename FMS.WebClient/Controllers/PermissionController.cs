@@ -5,12 +5,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class PermissionController : ControllerBase
     {
 
@@ -25,9 +26,9 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Get Permissions
         /// </summary>
-        /// 
+        ///
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetPermissions()
         {
             var result = await _mediator.Send(new GetPermissionQuery());
@@ -37,12 +38,12 @@ namespace FMS.WebClient.Controllers
         // POST: api/Permission
         /// <summary>
         /// Create Permission
-        /// </summary>  
+        /// </summary>
         /// <param name="command"></param>
         /// <returns> ok </returns>
-       
+
         [HttpPost]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CreatePermission([FromBody] AddPermissionCommand command)
         {
             if (!ModelState.IsValid)
@@ -62,7 +63,7 @@ namespace FMS.WebClient.Controllers
         /// <returns> ok </returns>
 
         [HttpPut("{id}")]
-       [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> UpdatePermission(int id, [FromBody] UpdatePermissionCommand command)
         {
             if (!ModelState.IsValid)
@@ -77,7 +78,7 @@ namespace FMS.WebClient.Controllers
 
         // DELETE: api/Permission/5
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> DeletePermission(int id)
         {
             var result = await _mediator.Send(new DeletePermissionCommand(id));
@@ -87,15 +88,15 @@ namespace FMS.WebClient.Controllers
 
         ///Get /Api/Permission/role/{roleId}
         /// <summary>
-        /// Get Permissions by RoleID 
+        /// Get Permissions by RoleID
         /// </summary>
         /// <param name="roleId"></param>
         /// <returns></returns>
         [HttpGet("role/{roleId:guid}")]
-         [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetPermissionsByRoleID(string roleId)
         {
-            if (roleId == null  ) return BadRequest("RoleID is null");
+            if (roleId == null) return BadRequest("RoleID is null");
 
             var result = await _mediator.Send(new GetPermissionsByRoleIDQuery(roleId));
             return Ok(result);
@@ -108,7 +109,7 @@ namespace FMS.WebClient.Controllers
         /// <returns></returns>
 
         [HttpGet("user/{userId:guid}")]
-        [Authorize]     
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetPermissionsByUserID(string userId)
         {
             if (userId == null) return BadRequest("UserID is null");

@@ -55,5 +55,5 @@ public partial class Sale
 
     public double? Preamount { get; set; }
 
-    public virtual NaftaCardsTable NaftaCard {  get; set; }
+    public virtual NaftaCardsTable NaftaCard { get; set; }
 }

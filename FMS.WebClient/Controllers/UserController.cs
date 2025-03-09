@@ -3,6 +3,7 @@ using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,7 +27,7 @@ public class UserController : ControllerBase
 
 
     [HttpPost]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateUser([FromBody] UserCreateCommand command)
     {
         if (!ModelState.IsValid)
@@ -44,7 +45,7 @@ public class UserController : ControllerBase
 
     //Get:api/User/{id}
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetUser(string id)
     {
 
@@ -56,7 +57,7 @@ public class UserController : ControllerBase
 
     //Get user list:api/User
     [HttpGet]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetUserList()
     {
         var command = new GetUserListQuery();
@@ -66,7 +67,7 @@ public class UserController : ControllerBase
 
     //Delete:api/User/{id}
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> DeleteUser(string id)
     {
         var command = new UserPermanentDeleteCommand(id);
@@ -76,7 +77,7 @@ public class UserController : ControllerBase
 
 
     [HttpPut("softuserdelete/{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> SoftDeleteUser(string id)
     {
         var command = new UserDeleteCommand(id);
@@ -85,7 +86,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("restoreuser/{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> RestoreUser(string id)
     {
         var command = new RestoreUserCommand(id);
@@ -95,7 +96,7 @@ public class UserController : ControllerBase
 
     //Update:api/User/{id}
     [HttpPut("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UserUpdateCommand command)
     {
         if (!ModelState.IsValid)
@@ -103,7 +104,7 @@ public class UserController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        command = command with { UserId = id }; 
+        command = command with { UserId = id };
         var result = await _mediator.Send(command);
         return Ok(result);
     }
@@ -127,12 +128,12 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("details")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetUserDetails()
     {
         var userID = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if(string.IsNullOrEmpty(userID))
+        if (string.IsNullOrEmpty(userID))
         {
             return Unauthorized();
         }
@@ -143,7 +144,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("assignRoles")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> AssignRoles(AssignUserRoleCommand command)
     {
         if (!ModelState.IsValid)
@@ -153,6 +154,7 @@ public class UserController : ControllerBase
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+
 
 
 }

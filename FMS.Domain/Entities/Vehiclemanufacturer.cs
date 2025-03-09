@@ -10,4 +10,6 @@ public partial class Vehiclemanufacturer
     public string? Name { get; set; }
 
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+
+    public virtual ICollection<Vehiclemodel> Vehiclemodels { get; set; } = new List<Vehiclemodel>();
 }

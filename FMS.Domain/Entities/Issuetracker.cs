@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FMS.Domain.Entities;
 
@@ -41,7 +42,7 @@ public partial class Issuetracker
     public int? DeviceType { get; set; }
 
     public string AssignTo { get; set; } = null!;
-
+    [NotMapped]
     public virtual User AssignToNavigation { get; set; } = null!;
 
     public virtual Devicetype? DeviceTypeNavigation { get; set; }
@@ -49,6 +50,7 @@ public partial class Issuetracker
     public virtual Issuecategory IssueCategory { get; set; } = null!;
 
     public virtual ICollection<Issueassignmenttracker> Issueassignmenttrackers { get; set; } = new List<Issueassignmenttracker>();
+    [NotMapped]
 
     public virtual User OpenbyNavigation { get; set; } = null!;
 

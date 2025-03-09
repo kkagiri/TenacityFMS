@@ -6,7 +6,7 @@ public class ConsumptionViewModel
 {
 
     [JsonPropertyName("id")]
-    public int Id { get; set; } 
+    public int Id { get; set; }
 
     [JsonPropertyName("vehicleId")]
     public int VehicleId { get; set; }

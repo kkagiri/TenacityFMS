@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
-using FMS.PTS.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
 {
-    public record GetSitesByUserIdQuery (string UserId) : IRequest<List<SiteDTO>>;
+    public record GetSitesByUserIdQuery(string UserId) : IRequest<List<SiteDTO>>;
 
     public class GetSitesByUserIdQueryHandler : IRequestHandler<GetSitesByUserIdQuery, List<SiteDTO>>
     {
@@ -22,7 +22,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
         private readonly ILogger<GetSitesByUserIdQueryHandler> _logger;
         private readonly IMapper _mapper;
 
-        public GetSitesByUserIdQueryHandler(GpsdataContext context, ILogger<GetSitesByUserIdQueryHandler> logger , IMapper mapper)
+        public GetSitesByUserIdQueryHandler(GpsdataContext context, ILogger<GetSitesByUserIdQueryHandler> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
@@ -35,28 +35,28 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
             {
                 //To:do verify if t he userID is valid 
 
-                var userId = await _context.Users.FirstOrDefaultAsync(x=>x.Id == request.UserId);
-                if(userId == null)
+                var userId = await _context.Users.FirstOrDefaultAsync(x => x.Id == request.UserId);
+                if (userId == null)
                 {
                     throw new Exception("Invalid User Id");
                 }
-                
+
                 var sites = await _context.Sites
-                    .Join(_context.UserSites,site=>site.Id,
-                           usersite=>usersite.SiteId,
-                           (site,usersite) => new {site,usersite}) 
-                    .Where(x=>x.usersite.UserId == userId.Id)
-                    .Select(x=>x.site).ToListAsync(cancellationToken);
+                    .Join(_context.UserSites, site => site.Id,
+                           usersite => usersite.SiteId,
+                           (site, usersite) => new { site, usersite })
+                    .Where(x => x.usersite.UserId == userId.Id)
+                    .Select(x => x.site).ToListAsync(cancellationToken);
 
                 return _mapper.Map<List<SiteDTO>>(sites);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetSitesByUserIdQueryHandler");
-                throw new Exception(ex.Message);    
+                throw new Exception(ex.Message);
             }
-            
+
         }
     }
-    
+
 }

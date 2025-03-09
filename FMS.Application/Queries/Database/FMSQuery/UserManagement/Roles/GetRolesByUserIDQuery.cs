@@ -30,12 +30,13 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles
             try
             {
                 var user = await _userManager.FindByIdAsync(request.UserID);
-                if(user == null) throw new Exception("User not found");
+                if (user == null) throw new Exception("User not found");
 
                 var roles = await _userManager.GetRolesAsync(user);
 
                 return roles.ToList();
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 throw;

@@ -10,29 +10,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Command.DatabaseCommand.VehicleModelCommand
 {
-    public record CreateVehicleModelCommand (int? ManufacturerId ,string Name)  : IRequest<FMSResponseMessage<Vehiclemodel>>;
-  
+    public record CreateVehicleModelCommand(int? ManufacturerId, string Name) : IRequest<FMSResponseMessage<Vehiclemodel>>;
+
     public class CreateVehicleModelCommandHandler : IRequestHandler<CreateVehicleModelCommand, FMSResponseMessage<Vehiclemodel>>
     {
-        private readonly GpsdataContext _context;   
-        private readonly IMediator _mediator;   
+        private readonly GpsdataContext _context;
+        private readonly IMediator _mediator;
 
-         private readonly ILogger _logger;
+        private readonly ILogger _logger;
 
-        public CreateVehicleModelCommandHandler( GpsdataContext context, IMediator mediator, ILogger<CreateVehicleModelCommandHandler> logger)
+        public CreateVehicleModelCommandHandler(GpsdataContext context, IMediator mediator, ILogger<CreateVehicleModelCommandHandler> logger)
         {
             _context = context;
             _mediator = mediator;
             _logger = logger;
         }
-        
+
 
         public async Task<FMSResponseMessage<Vehiclemodel>> Handle(CreateVehicleModelCommand request, CancellationToken cancellationToken)
         {
 
-            if(string.IsNullOrEmpty(request.Name)) return new FMSResponseMessage<Vehiclemodel>(false, "Vehicle Model Name is required", null);
+            if (string.IsNullOrEmpty(request.Name)) return new FMSResponseMessage<Vehiclemodel>(false, "Vehicle Model Name is required", null);
 
-            if (!request.ManufacturerId.HasValue)return new FMSResponseMessage<Vehiclemodel>(false, "Manufacturer ID is required", null);
+            if (!request.ManufacturerId.HasValue) return new FMSResponseMessage<Vehiclemodel>(false, "Manufacturer ID is required", null);
 
             var manufacturer = await _context.Vehiclemanufacturers.FindAsync(request.ManufacturerId);
             if (manufacturer == null) return new FMSResponseMessage<Vehiclemodel>(false, $"Manufacturer with ID {request.ManufacturerId} not found", null);
@@ -69,4 +69,4 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleModelCommand
         }
 
     }
- }
+}

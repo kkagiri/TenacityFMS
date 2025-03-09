@@ -16,7 +16,6 @@
     <ItemGroup>
     <Folder Include="ATGEntities\Nafta\" />
     <Folder Include="ATGEntities\Pts\" />
-    <Folder Include="ATGStatus\PriceBoardStatus\" />
     <Folder Include="Entities\Common\Interface\" />
   </ItemGroup>
 
@@ -30,6 +29,7 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.15" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>

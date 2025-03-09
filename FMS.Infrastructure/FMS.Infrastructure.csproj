@@ -13,6 +13,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="7.0.5" />
     <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.0.0" />
+    <PackageReference Include="System.Net.WebSockets" Version="4.3.0" />
     <PackageReference Include="System.ServiceModel.Duplex" Version="4.7.*" />
     <PackageReference Include="System.ServiceModel.Http" Version="4.7.*" />
     <PackageReference Include="System.ServiceModel.NetTcp" Version="4.7.*" />
@@ -26,6 +28,7 @@
   <ItemGroup>
     <Folder Include="Common\Report\" />
     <Folder Include="DependancyInjection\ATG\" />
+    <Folder Include="MessageBus\RabbitMQ\Interface\" />
   </ItemGroup>
 
 </Project>

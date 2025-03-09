@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.DeliveryQueries
 {
-    public record GetDeliveryListQueryByDateRangeBySiteIDQuery(DateTime StartDate,DateTime EndDate,int SiteId) : IRequest<List<DeliveryDTO>>;
+    public record GetDeliveryListQueryByDateRangeBySiteIDQuery(DateTime StartDate, DateTime EndDate, int SiteId) : IRequest<List<DeliveryDTO>>;
 
     public class GetDeliveryListQueryByDateRangeBySiteIDQueryHandler : IRequestHandler<GetDeliveryListQueryByDateRangeBySiteIDQuery, List<DeliveryDTO>>
     {
@@ -33,7 +33,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.DeliveryQueries
         {
             try
             {
-                return _mapper.Map<List<DeliveryDTO>>(await _context.Deliveries.Where(x=>x.DeliveryDate.Date >= request.StartDate.Date && x.DeliveryDate.Date <= request.EndDate.Date && x.Tank.Site.Id ==request.SiteId).ToListAsync(cancellationToken));
+                return _mapper.Map<List<DeliveryDTO>>(await _context.Deliveries.Where(x => x.DeliveryDate.Date >= request.StartDate.Date && x.DeliveryDate.Date <= request.EndDate.Date && x.Tank.Site.Id == request.SiteId).ToListAsync(cancellationToken));
             }
 
             catch (Exception ex)
@@ -43,5 +43,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.DeliveryQueries
             }
         }
     }
-   
+
 }

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 namespace FMS.WebClient.Controllers;
 
@@ -24,7 +26,7 @@ public class FuelRefillController : ControllerBase
 
     //api: Post fuelrefill
     [HttpPost]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateFuelRefil([FromBody] FuelRefilDTO fuelRefilDTO)
     {
         var hasPermission = User.HasClaim("permissions", "_createFuelRefill");
@@ -42,41 +44,41 @@ public class FuelRefillController : ControllerBase
         var command = new FuelRefilCreateCommand(fuelRefilDTO);
 
         var results = await _mediator.Send(command);
-            if (!results.Success) return BadRequest(results);
+        if (!results.Success) return BadRequest(results);
         return Ok(results);
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetFuelRefil(int id)
     {
-       var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
-       if (!hasPermission) return Forbid();
+        var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid();
         if (id <= 0) return BadRequest("Invalid ID");
         var fuelRefil = await _mediator.Send(new FuelRefilGetbyIDQuery(id));
-        if (fuelRefil == null)  return NotFound();
-        
+        if (fuelRefil == null) return NotFound();
+
         return Ok(fuelRefil);
     }
 
 
     [HttpGet]
-    [Authorize]
-     public async Task<IActionResult> GetFuelRefilList(int take = 100 ,int skip= 0)
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetFuelRefilList(int take = 100, int skip = 0)
     {
         var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
         if (!hasPermission) return Forbid();
-        var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery(take,skip));
-        if (fuelRefil == null)  return NoContent();
-        
+        var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery(take, skip));
+        if (fuelRefil == null) return NoContent();
+
         return Ok(fuelRefil);
     }
 
 
-  
+
 
     [HttpPut("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     public async Task<IActionResult> UpdateFuelRefil(int id, [FromBody] FuelRefilDTO fuelRefilDTO)
     {
@@ -95,34 +97,34 @@ public class FuelRefillController : ControllerBase
         if (id <= 0) return BadRequest("Invalid ID");
         if (id != fuelRefilDTO.Id) return BadRequest("ID mismatch");
 
-        var command = new UpdateFuelRefillCommand(fuelRefilDTO,id );
+        var command = new UpdateFuelRefillCommand(fuelRefilDTO, id);
 
         var result = await _mediator.Send(command);
-        if (!result.Success)  return NotFound();
-         return Ok(result);
+        if (!result.Success) return NotFound();
+        return Ok(result);
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> DeleteFuelRefil(int id)
     {
         var hasPermission = User.HasClaim("permissions", "_deleteFuelRefill");
         if (!hasPermission) return Forbid();
         if (id <= 0) return BadRequest("Invalid ID");
         var result = await _mediator.Send(new FuelRefilDeleteCommand(id));
-        if (!result)  return NotFound();
-        
+        if (!result) return NotFound();
+
         return NoContent();
     }
 
     [HttpGet("summary")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetFuelRefillSummary([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
     {
         var hasPermission = User.HasClaim("permissions", "_readFuelRefill");
         if (!hasPermission) return Forbid();
 
-        var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate,null));
+        var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate, null));
 
         if (summary == null || !summary.Any())
         {
@@ -132,7 +134,7 @@ public class FuelRefillController : ControllerBase
         return Ok(summary);
     }
 
-    
+
     [HttpGet("summary/{siteId}")]
     [Authorize]
     public async Task<IActionResult> GetFuelRefillSummaryBySite([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId)

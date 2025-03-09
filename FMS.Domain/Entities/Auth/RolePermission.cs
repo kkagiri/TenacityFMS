@@ -8,9 +8,12 @@ namespace FMS.Domain.Entities.Auth
 {
     public class RolePermission
     {
-        public string? RoleId { get; set; }
-        public virtual Role? Role { get; set; }
+
+        //TODO: Remove this property
+        public int Id { get; set; }
+        public string RoleId { get; set; } = null!;
+        public virtual Role Role { get; set; } = null!;
         public int PermissionId { get; set; }
-        public virtual Permission? Permission { get; set; }
+        public virtual Permission Permission { get; set; } = null!;
     }
 }

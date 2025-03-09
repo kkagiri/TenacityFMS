@@ -12,7 +12,7 @@ namespace FMS.Domain.Entities
 
         public decimal Amount { get; set; }
 
-        public DeductionType  DeductionType {get;set;}
+        public DeductionType DeductionType { get; set; }
     }
 
     public enum DeductionType

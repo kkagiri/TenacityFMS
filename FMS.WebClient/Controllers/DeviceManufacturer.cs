@@ -19,8 +19,8 @@ public class DeviceManufacturerController : ControllerBase
 
 
     //Api: api/getlist
-     [HttpGet]
-     [Route("getlist")]
+    [HttpGet]
+    [Route("getlist")]
     public async Task<IActionResult> GetDeviceManufacturerList()
     {
         var deviceManufacturerList = await _mediator.Send(new GetDeviceManufacturerListQuery());
@@ -28,7 +28,7 @@ public class DeviceManufacturerController : ControllerBase
     }
 
 
-//APi: 
+    //APi: 
     [HttpGet("{id}")]
     public async Task<ActionResult<Devicemanufacturer>> GetDeviceManufacturer(int id)
     {
@@ -43,7 +43,7 @@ public class DeviceManufacturerController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<int>> CreateDeviceManufacturer(CreateDeviceManufacturerCommand command)
     {
-        if(!ModelState.IsValid) return BadRequest();
+        if (!ModelState.IsValid) return BadRequest();
         var result = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetDeviceManufacturer), new { id = result }, result);
     }
@@ -51,8 +51,8 @@ public class DeviceManufacturerController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateDeviceManufacturer(int id, UpdateDeviceManufacturerCommand command)
     {
-        if (!ModelState.IsValid) return BadRequest(); 
-               if (id != command.Devicemanufacturer.Id)
+        if (!ModelState.IsValid) return BadRequest();
+        if (id != command.Devicemanufacturer.Id)
             return BadRequest();
         await _mediator.Send(command);
         return NoContent();
@@ -61,7 +61,7 @@ public class DeviceManufacturerController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteDeviceManufacturer(int id)
     {
-        if(id == 0 || id < 0) return BadRequest();
+        if (id == 0 || id < 0) return BadRequest();
         var command = new DeleteDeviceManufacturerCommand(id);
         await _mediator.Send(command);
         return NoContent();

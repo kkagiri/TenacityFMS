@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.VehicleManufacturer
 {
-    public class GetVehicleManufacturerQuery:IRequest<List<Vehiclemanufacturer>>
+    public class GetVehicleManufacturerQuery : IRequest<List<Vehiclemanufacturer>>
     {
     }
 
-    public class GetVehicleManufacturerHandler:IRequestHandler<GetVehicleManufacturerQuery, List<Vehiclemanufacturer>>
+    public class GetVehicleManufacturerHandler : IRequestHandler<GetVehicleManufacturerQuery, List<Vehiclemanufacturer>>
     {
         private readonly GpsdataContext _context;
         public GetVehicleManufacturerHandler(GpsdataContext context)
@@ -28,5 +28,5 @@ namespace FMS.Application.Queries.Database.VehicleManufacturer
         }
     }
 
-    
+
 }

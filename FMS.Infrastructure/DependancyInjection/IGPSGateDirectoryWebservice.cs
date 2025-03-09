@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Infrastructure.DependancyInjection
 {
-  public interface IGPSGateDirectoryWebservice
+    public interface IGPSGateDirectoryWebservice
     {
 
         Task<string> LoginAsyn(GPSGateConections user);

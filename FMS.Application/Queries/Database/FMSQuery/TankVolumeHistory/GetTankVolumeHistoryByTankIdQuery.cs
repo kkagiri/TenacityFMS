@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
 {
-   public record  GetTankVolumeHistoryByTankIdQuery(DateTime StartDate,DateTime EndDate, int TankId) : IRequest<FMSResponseMessage<List<TankVolumeHistoryDTO>>>;
+    public record GetTankVolumeHistoryByTankIdQuery(DateTime StartDate, DateTime EndDate, int TankId) : IRequest<FMSResponseMessage<List<TankVolumeHistoryDTO>>>;
 
     public class GetTankVolumeHistoryByTankIdQueryHandler : IRequestHandler<GetTankVolumeHistoryByTankIdQuery, FMSResponseMessage<List<TankVolumeHistoryDTO>>>
     {
@@ -38,9 +38,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
                 var tank = await _context.Tanks.FirstOrDefaultAsync(t => t.Id == request.TankId, cancellationToken);
                 if (tank == null) return new FMSResponseMessage<List<TankVolumeHistoryDTO>>(false, $"Tank with ID {request.TankId} does not exist", null);
 
-                var response = _mapper.Map<List<TankVolumeHistoryDTO>>(await _context.TankVolumeHistories.Where(x => x.TankId == request.TankId && x.Timestamp.Date >= request.StartDate.Date && x.Timestamp.Date <=request.EndDate.Date ).ToListAsync(cancellationToken));
-            
-               return new FMSResponseMessage<List<TankVolumeHistoryDTO>>(true, "Tank Volume History List", response);
+                var response = _mapper.Map<List<TankVolumeHistoryDTO>>(await _context.TankVolumeHistories.Where(x => x.TankId == request.TankId && x.Timestamp.Date >= request.StartDate.Date && x.Timestamp.Date <= request.EndDate.Date).ToListAsync(cancellationToken));
+
+                return new FMSResponseMessage<List<TankVolumeHistoryDTO>>(true, "Tank Volume History List", response);
             }
 
             catch (Exception ex)
@@ -50,5 +50,5 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
             }
         }
     }
-  
+
 }

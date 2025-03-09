@@ -9,7 +9,7 @@ namespace FMS.Application.Command.DatabaseCommand.DeviceManagement.DeviceTypeCom
 
 public record UpdateDeviceTypeCommand(Devicetype Devicetype) : IRequest<Unit>;
 
-public class UpdateDeviceTypeCommandHandler : IRequestHandler<UpdateDeviceTypeCommand,Unit>
+public class UpdateDeviceTypeCommandHandler : IRequestHandler<UpdateDeviceTypeCommand, Unit>
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<UpdateDeviceTypeCommandHandler> _logger;

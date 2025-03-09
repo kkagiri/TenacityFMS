@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement
 {
-   public record AssignUserRoleCommand (string UserID,string RoleName) :IRequest<bool>;
+    public record AssignUserRoleCommand(string UserID, string RoleName) : IRequest<bool>;
 
     public class AssignUserRoleCommandHandler : IRequestHandler<AssignUserRoleCommand, bool>
     {
@@ -19,7 +19,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<AssignUserRoleCommandHandler> _logger;
 
-        public AssignUserRoleCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager,ILogger<AssignUserRoleCommandHandler> logger)
+        public AssignUserRoleCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<AssignUserRoleCommandHandler> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;

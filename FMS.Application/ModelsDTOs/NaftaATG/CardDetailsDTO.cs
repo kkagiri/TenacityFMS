@@ -15,5 +15,5 @@ namespace FMS.Application.ModelsDTOs.NaftaATG
         public VehicleDTO Vehicle { get; set; }
     }
 
-   
+
 }

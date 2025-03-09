@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace FMS.Infrastructure.Webservice.GPSService
 {
 
-    public  class VehicleConsumptionServiceModel
+    public class VehicleConsumptionServiceModel
     {
         private decimal? _totalDistance;
         private bool iskmperltr;
@@ -32,7 +32,7 @@ namespace FMS.Infrastructure.Webservice.GPSService
         }
 
         public int VehicleId { get; set; }
-      
+
         public decimal? EngHours
         {
 
@@ -41,11 +41,11 @@ namespace FMS.Infrastructure.Webservice.GPSService
             get
             {
                 if (enginehrs.HasValue)
-               {
-                   return enginehrs.Value / 3600;
-               }
-              else
-               { return null; }
+                {
+                    return enginehrs.Value / 3600;
+                }
+                else
+                { return null; }
             }
             set
             {
@@ -63,7 +63,7 @@ namespace FMS.Infrastructure.Webservice.GPSService
         {
             get
             {
-                if (IsAverageKm && FlowMeterFuelUsed.HasValue && TotalDistance.HasValue && TotalDistance.Value > 0 && FlowMeterFuelUsed>0)
+                if (IsAverageKm && FlowMeterFuelUsed.HasValue && TotalDistance.HasValue && TotalDistance.Value > 0 && FlowMeterFuelUsed > 0)
                 {
                     return TotalDistance / FlowMeterFuelUsed;
                 }
@@ -79,7 +79,7 @@ namespace FMS.Infrastructure.Webservice.GPSService
 
 
         }
-       
+
         //public decimal? FuelEfficiency
         //{
         //    get
@@ -105,7 +105,7 @@ namespace FMS.Infrastructure.Webservice.GPSService
 
         public bool IsAverageKm
         {
-            get;set;
+            get; set;
 
             //get
             //{
@@ -120,7 +120,7 @@ namespace FMS.Infrastructure.Webservice.GPSService
 
 
         public decimal? FuelLost
-        {  
+        {
             get
             {
                 return 0;

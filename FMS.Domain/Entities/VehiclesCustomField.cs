@@ -12,7 +12,7 @@ namespace FMS.Domain.Entities
     }
 
 
-    public class VehiclesCustomFieldValue :Entity
+    public class VehiclesCustomFieldValue : Entity
     {
         public VehiclesCustomField? VehicleField { get; set; }
 
@@ -23,7 +23,7 @@ namespace FMS.Domain.Entities
     }
 
 
-        public enum CustomFieldID
+    public enum CustomFieldID
     {
 
     }

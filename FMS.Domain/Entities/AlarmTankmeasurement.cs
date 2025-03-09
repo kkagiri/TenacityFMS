@@ -5,7 +5,7 @@ namespace FMS.Domain.Entities;
 
 public partial class AlarmTankmeasurement
 {
-  //  public int Id { get; set; }
+    //  public int Id { get; set; }
 
     public int? TankMeausementId { get; set; }
 

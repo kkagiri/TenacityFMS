@@ -6,13 +6,15 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 
 namespace FMS.WebClient.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DeliveryController : ControllerBase
     {
 
@@ -26,7 +28,7 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpPost]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
         {
             //var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
@@ -47,11 +49,11 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
         [HttpGet]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetDeliveries()
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
-           // if (!hasPermission) return Forbid();
+            // if (!hasPermission) return Forbid();
             var result = await _mediator.Send(new GetDeliveryListQuery());
             if (result == null) return NoContent();
             return Ok(result);
@@ -59,27 +61,27 @@ namespace FMS.WebClient.Controllers
 
 
         [HttpGet("byDateRange")]
-        [Authorize]
-        
-        public async Task<IActionResult> GetDeliveryById(DateTime startDate,DateTime endDate)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
+        public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate)
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
             //if (!hasPermission) return Forbid();
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
-            var result = await _mediator.Send(new GetDeliveryListByDateRangeQuery(startDate,endDate));
+            var result = await _mediator.Send(new GetDeliveryListByDateRangeQuery(startDate, endDate));
             if (result == null) return NotFound();
             return Ok(result);
         }
 
         [HttpGet("byDateRangebySite")]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate, int siteId)
         {
             //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
             //if (!hasPermission) return Forbid();
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
-            if(siteId <= 0) return BadRequest("Invalid Site ID");
+            if (siteId <= 0) return BadRequest("Invalid Site ID");
             var result = await _mediator.Send(new GetDeliveryListQueryByDateRangeBySiteIDQuery(startDate, endDate, siteId));
             if (result == null) return NotFound();
             return Ok(result);

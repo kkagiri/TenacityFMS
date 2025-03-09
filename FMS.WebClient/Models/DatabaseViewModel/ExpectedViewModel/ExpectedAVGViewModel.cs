@@ -5,7 +5,7 @@ namespace FMS.WebClient.Models.DatabaseViewModel.ExpectedViewModel
 
     public class ExpectedAVGViewModel
     {
-      
+
 
         [JsonPropertyName("expectedValue")]
         public decimal ExpectedAverageValue { get; set; }

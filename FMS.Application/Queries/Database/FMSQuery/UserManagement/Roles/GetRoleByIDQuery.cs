@@ -11,33 +11,33 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles
 {
-  public record class GetRoleByIDQuery(string RoleID) : IRequest<Role>;
+    public record class GetRoleByIDQuery(string RoleID) : IRequest<Role>;
 
 
     public class GetRoleByIDQueryHandler : IRequestHandler<GetRoleByIDQuery, Role>
     {
-       // private readonly GpsdataContext _context;
+        // private readonly GpsdataContext _context;
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<GetRoleByIDQueryHandler> _logger;
 
-        public GetRoleByIDQueryHandler(RoleManager<Role> roleManager ,ILogger<GetRoleByIDQueryHandler> logger)
+        public GetRoleByIDQueryHandler(RoleManager<Role> roleManager, ILogger<GetRoleByIDQueryHandler> logger)
         {
-         _logger = logger;
-            _roleManager = roleManager; 
+            _logger = logger;
+            _roleManager = roleManager;
         }
-    
+
         public async Task<Role> Handle(GetRoleByIDQuery request, CancellationToken cancellationToken)
         {
             try
             {
-               return await _roleManager.FindByIdAsync(request.RoleID);
+                return await _roleManager.FindByIdAsync(request.RoleID);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 throw;
             }
-        
+
         }
     }
 }

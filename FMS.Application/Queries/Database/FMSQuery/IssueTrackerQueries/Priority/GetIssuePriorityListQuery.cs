@@ -15,7 +15,7 @@ public record GetIssuePriorityListQuery : IRequest<List<Issuepriority>>;
 public class GetIssuePriorityListQueryHandler : IRequestHandler<GetIssuePriorityListQuery, List<Issuepriority>>
 {
     private readonly GpsdataContext _context;
-    private readonly ILogger<GetIssuePriorityListQueryHandler> _logger; 
+    private readonly ILogger<GetIssuePriorityListQueryHandler> _logger;
 
     public GetIssuePriorityListQueryHandler(GpsdataContext context, ILogger<GetIssuePriorityListQueryHandler> logger)
     {
@@ -25,15 +25,17 @@ public class GetIssuePriorityListQueryHandler : IRequestHandler<GetIssuePriority
 
     public async Task<List<Issuepriority>> Handle(GetIssuePriorityListQuery request, CancellationToken cancellationToken)
     {
-       try{
-           var result = await _context.Issuepriorities.ToListAsync(cancellationToken);
-           return result;
-       }catch(Exception ex)
+        try
+        {
+            var result = await _context.Issuepriorities.ToListAsync(cancellationToken);
+            return result;
+        }
+        catch (Exception ex)
 
-       {
-           _logger.LogError(ex, "An error occured while getting issue priority list");
-           throw new Exception(ex.Message);
+        {
+            _logger.LogError(ex, "An error occured while getting issue priority list");
+            throw new Exception(ex.Message);
 
-       }
+        }
     }
-}   
+}
