@@ -5,32 +5,64 @@ on:
       - productionv1
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, Windows, X64, HYFMS]
+    runs-on: [self-hosted, Windows, X64, HY-FMS]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       
+      - name: Check directory structure
+        run: |
+          dir
+          echo "Checking for fms.frontend directory:"
+          if (Test-Path -Path "fms.frontend") {
+            echo "fms.frontend directory exists"
+          } else {
+            echo "fms.frontend directory does NOT exist"
+            echo "Listing all directories in the repository:"
+            Get-ChildItem -Directory | ForEach-Object { $_.Name }
+          }
+        shell: pwsh
+      
+      # Only run these steps if the directories exist
       - name: Install React dependencies
         run: |
-          cd fms.frontend
-          npm ci
-        shell: bash
+          if (Test-Path -Path "fms.frontend") {
+            cd fms.frontend
+            npm ci
+          } else {
+            echo "Skipping - fms.frontend directory not found"
+            exit 1
+          }
+        shell: pwsh
       
       - name: Build React app
         run: |
-          cd fms.frontend
-          npm run build
-        shell: bash
+          if (Test-Path -Path "fms.frontend") {
+            cd fms.frontend
+            npm run build
+          } else {
+            echo "Skipping - fms.frontend directory not found"
+            exit 1
+          }
+        shell: pwsh
       
       - name: Publish .NET Web API
         run: |
-          cd FMS.WebClient
-          dotnet publish -c Release -o publish
-        shell: bash
+          if (Test-Path -Path "FMS.WebClient") {
+            cd FMS.WebClient
+            dotnet publish -c Release -o publish
+          } else {
+            echo "Skipping - FMS.WebClient directory not found"
+            exit 1
+          }
+        shell: pwsh
       
       - name: Run deploy script
         run: |
-          powershell -File ./deploy.ps1
-        env:
-          # These override any values from config file if needed
-          GITHUB_WORKSPACE: '${{ github.workspace }}'
+          if (Test-Path -Path "deploy.ps1") {
+            ./deploy.ps1
+          } else {
+            echo "deploy.ps1 not found"
+            exit 1
+          }
+        shell: pwsh
