@@ -10,59 +10,69 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       
-      - name: Check directory structure
+      - name: Check directory structure (CMD)
         run: |
           dir
-          echo "Checking for fms.frontend directory:"
+          echo "Listing all directories in the repository:"
+          dir /AD /B
+        shell: cmd
+        
+      - name: Check directory structure (PowerShell)
+        run: |
+          Write-Host "Checking for fms.frontend directory:"
           if (Test-Path -Path "fms.frontend") {
-            echo "fms.frontend directory exists"
+            Write-Host "fms.frontend directory exists"
           } else {
-            echo "fms.frontend directory does NOT exist"
-            echo "Listing all directories in the repository:"
+            Write-Host "fms.frontend directory does NOT exist"
+            Write-Host "Listing all directories in the repository:"
             Get-ChildItem -Directory | ForEach-Object { $_.Name }
           }
-        shell: pwsh
+        shell: powershell
       
       # Only run these steps if the directories exist
       - name: Install React dependencies
+        if: ${{ success() }}
         run: |
-          if (Test-Path -Path "fms.frontend") {
+          IF EXIST "fms.frontend" (
             cd fms.frontend
             npm ci
-          } else {
+          ) ELSE (
             echo "Skipping - fms.frontend directory not found"
             exit 1
-          }
-        shell: pwsh
+          )
+        shell: cmd
       
       - name: Build React app
+        if: ${{ success() }}
         run: |
-          if (Test-Path -Path "fms.frontend") {
+          IF EXIST "fms.frontend" (
             cd fms.frontend
             npm run build
-          } else {
+          ) ELSE (
             echo "Skipping - fms.frontend directory not found"
             exit 1
-          }
-        shell: pwsh
+          )
+        shell: cmd
       
       - name: Publish .NET Web API
+        if: ${{ success() }}
         run: |
-          if (Test-Path -Path "FMS.WebClient") {
+          IF EXIST "FMS.WebClient" (
             cd FMS.WebClient
             dotnet publish -c Release -o publish
-          } else {
+          ) ELSE (
             echo "Skipping - FMS.WebClient directory not found"
             exit 1
-          }
-        shell: pwsh
+          )
+        shell: cmd
       
       - name: Run deploy script
+        if: ${{ success() }}
         run: |
-          if (Test-Path -Path "deploy.ps1") {
-            ./deploy.ps1
-          } else {
+          IF EXIST "deploy.ps1" (
+            powershell -File ./deploy.ps1
+          ) ELSE (
             echo "deploy.ps1 not found"
             exit 1
-          }
-        shell: pwsh
+          )
+        shell: cmd
