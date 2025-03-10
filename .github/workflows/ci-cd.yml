@@ -7,42 +7,32 @@ jobs:
   build-and-deploy:
     runs-on: [self-hosted, Windows, X64, HY-FMS]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: '8.0.X'  # adjust this to your .NET version
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '20.15'  # adjust this to your Node.js version
-
-    - name: Install dependencies
-      run: |
-        cd fms.frontend
-        npm ci
-      shell: bash
-
-    - name: Build React app
-      run: |
-        cd fms.frontend
-        npm run build
-      shell: bash
-
-    - name: Publish .NET Web API
-      run: |
-        cd FMS.WebClient
-        dotnet publish -c Release -o publish
-      shell: bash
-
-    - name: Run deploy script
-      run: |
-        bash ./deploy.sh
-      env:
-        REACT_BUILD_PATH: '${{ github.workspace }}/fms.frontend/build'
-        WEBAPI_BUILD_PATH: '${{ github.workspace }}/FMS.WebClient/publish'
-        REACT_DEPLOYMENT_PATH: 'C:/inetpub/wwwroot/hyoungFMS/reactApp'
-        WEBAPI_DEPLOYMENT_PATH: 'C:/inetpub/wwwroot/hyoungFMS/webAPI'
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Install React dependencies
+        run: |
+          cd fms.frontend
+          npm ci
+        shell: bash
+      
+      - name: Build React app
+        run: |
+          cd fms.frontend
+          npm run build
+        shell: bash
+      
+      - name: Publish .NET Web API
+        run: |
+          cd FMS.WebClient
+          dotnet publish -c Release -o publish
+        shell: bash
+      
+      - name: Run deploy script
+        run: |
+          powershell -File ./deploy.ps1
+        env:
+          REACT_BUILD_PATH: '${{ github.workspace }}/fms.frontend/build'
+          WEBAPI_BUILD_PATH: '${{ github.workspace }}/FMS.WebClient/publish'
+          REACT_DEPLOYMENT_PATH: 'C:/inetpub/wwwroot/hyoungFMS/reactApp'
+          WEBAPI_DEPLOYMENT_PATH: 'C:/inetpub/wwwroot/hyoungFMS/webAPI'
