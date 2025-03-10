@@ -1,15 +1,20 @@
+# Load configuration
+. ./config-loader.ps1
+
 # Print debug information
 Write-Host "Starting deployment process..."
 Write-Host "REACT_BUILD_PATH: $env:REACT_BUILD_PATH"
 Write-Host "WEBAPI_BUILD_PATH: $env:WEBAPI_BUILD_PATH"
 Write-Host "REACT_DEPLOYMENT_PATH: $env:REACT_DEPLOYMENT_PATH"
 Write-Host "WEBAPI_DEPLOYMENT_PATH: $env:WEBAPI_DEPLOYMENT_PATH"
+Write-Host "IIS_SITE_NAME: $env:IIS_SITE_NAME"
+Write-Host "IIS_APP_POOL: $env:IIS_APP_POOL"
 
 # Stop the IIS site and application pool
 Write-Host "Stopping IIS services..."
 Import-Module WebAdministration
-$siteName = "ReactApp" # Adjust if your site name is different
-$appPoolName = "apihyoungfms" # Adjust if your app pool name is different
+$siteName = $env:IIS_SITE_NAME
+$appPoolName = $env:IIS_APP_POOL
 
 try {
     if (Get-Website -Name $siteName) {
