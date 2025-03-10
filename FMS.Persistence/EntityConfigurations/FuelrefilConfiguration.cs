@@ -31,6 +31,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("int(11)")
                     .HasColumnName("TankID");
                 builder.Property(e => e.Comment).HasMaxLength(500);
+                builder.Property(e=>e.TagId).
+                HasMaxLength(50)
+                .HasColumnType("varchar(50)")
+                .HasColumnName("TagID");
                 builder.Property(e => e.CurrentMeterReading).HasPrecision(10);
                 builder.Property(e => e.DriverId)
                     .HasColumnType("int(11)")
@@ -87,6 +91,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.VehicleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("fuelRefil_vehicle");
+                builder .HasOne(d => d.TagNavigation)
+                    .WithMany(p => p.Fuelrefils)
+                    .HasForeignKey(d => d.TagId)
+                    .HasPrincipalKey(p => p.Name)
+                    .HasConstraintName("FuelRefil_Tag");
+
+
             }
 
 

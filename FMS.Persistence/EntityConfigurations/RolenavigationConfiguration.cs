@@ -19,7 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("rolenavigations");
+                builder.ToTable("rolenavigation");
 
                 builder.Property(e => e.Id).HasColumnType("int(11)");
 

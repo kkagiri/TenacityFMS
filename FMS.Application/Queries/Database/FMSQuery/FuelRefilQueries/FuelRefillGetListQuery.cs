@@ -35,7 +35,7 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
         {
             var fuelRefils = await _context.Fuelrefils.OrderByDescending(x => x.Date)
             .Skip(request.Skip).Take(request.Take)
-            .ToListAsync(cancellationToken);
+           .ToListAsync(cancellationToken);
 
 
 

@@ -60,7 +60,7 @@ namespace FMS.WebClient.Controllers
             return Ok(vehicles);
         }
 
-        [HttpGet("getlist")]
+
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetVehicleList()
         {

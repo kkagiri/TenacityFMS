@@ -85,6 +85,7 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
                 .ForMember(dest => dest.DateCreated, opt => opt.MapFrom(src => src.DateCreated.ToString("yyyy-MM-ddTHH:mm:ssZ")))
                 .ReverseMap()
+                .ForMember(d=>d.TagId,opt=>opt.MapFrom(src=>src.TagId))
                 .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified ? (sbyte)1 : (sbyte)0));
 
             // Role mappings

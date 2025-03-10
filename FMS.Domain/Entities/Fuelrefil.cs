@@ -27,7 +27,7 @@ public partial class Fuelrefil
     public int? PumpTranscationId { get; set; }
 
     public int? DriverId { get; set; }
-    public string TagId { get; set; } = null!;
+    public string? TagId { get; set; }
     public int? TankId { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? DateModified { get; set; }

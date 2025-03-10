@@ -19,7 +19,7 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
         public int SiteId { get; set; }
 
         public string? Comment { get; set; }
-
+        public string? TagId { get; set; } = null!;
         public string FuelBy { get; set; } = null!;
 
         public int? PumpTranscationId { get; set; }

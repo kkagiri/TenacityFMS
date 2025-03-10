@@ -57,6 +57,7 @@ using Role = FMS.Domain.Entities.Role;
 using FMS.Application.Handlers;
 using FMS.Application.Communication.Redis;
 using FMS.Application.ModelsDTOs.FMS.UserManagement;
+using System.Net;
 
 namespace FMS.WebClient;
 
@@ -86,6 +87,42 @@ public class Program
         ConfigureServices(builder.Services, builder.Configuration);
         ConfigureDatabase(builder.Services, builder.Configuration, builder.Environment);
 
+int httpPort = 7009; // Default port
+        int httpsPort = 7010; // Default HTTPS port
+bool httpPortInUse = IsPortInUse(7009);
+bool httpsPortInUse = IsPortInUse(7010);
+
+if (httpPortInUse || httpsPortInUse)
+{
+    Log.Warning($"Default ports are already in use. HTTP port in use: {httpPortInUse}, HTTPS port in use: {httpsPortInUse}");
+
+    // Start looking from higher ports
+    int basePort = 7020;
+    while (IsPortInUse(basePort) || IsPortInUse(basePort + 1))
+    {
+        basePort += 10;
+        if (basePort > 8000)
+        {
+            throw new InvalidOperationException("Unable to find available ports in the range 7020-8000");
+        }
+    }
+
+    httpPort = basePort;
+    httpsPort = basePort + 1;
+    Log.Information($"Found available ports: HTTP on {httpPort}, HTTPS on {httpsPort}");
+}
+
+// Configure Kestrel with the selected ports
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    // Use explicit IPAddress.Loopback instead of ListenLocalhost
+    serverOptions.Listen(IPAddress.Any, httpPort);
+    serverOptions.Listen(IPAddress.Any
+    , httpsPort, listenOptions =>
+    {
+        listenOptions.UseHttps();
+    });
+});
         var app = builder.Build();
         ConfigureApp(app, builder.Environment);
 
@@ -104,7 +141,36 @@ public class Program
             Log.CloseAndFlush();
         }
     }
+private static bool IsPortInUse(int port)
+{
+    try
+    {
+        using var socket = new System.Net.Sockets.Socket(
+            System.Net.Sockets.AddressFamily.InterNetwork,
+            System.Net.Sockets.SocketType.Stream,
+            System.Net.Sockets.ProtocolType.Tcp);
 
+        socket.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, port));
+        return false; // Port is available
+    }
+    catch
+    {
+        return true; // Port is in use
+    }
+}
+
+// Helper method to find an available port in a range
+private static int FindAvailablePort(int startPort, int endPort)
+{
+    for (int port = startPort; port <= endPort; port++)
+    {
+        if (!IsPortInUse(port))
+        {
+            return port;
+        }
+    }
+    throw new InvalidOperationException($"No available ports found in range {startPort}-{endPort}");
+}
     static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         try
