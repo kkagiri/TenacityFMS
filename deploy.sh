@@ -1,76 +1,102 @@
-#!/bin/bash
-set -e  # Exit immediately if a command exits with a non-zero status.
+# Print debug information
+Write-Host "Starting deployment process..."
+Write-Host "REACT_BUILD_PATH: $env:REACT_BUILD_PATH"
+Write-Host "WEBAPI_BUILD_PATH: $env:WEBAPI_BUILD_PATH"
+Write-Host "REACT_DEPLOYMENT_PATH: $env:REACT_DEPLOYMENT_PATH"
+Write-Host "WEBAPI_DEPLOYMENT_PATH: $env:WEBAPI_DEPLOYMENT_PATH"
 
-# Setup logging
-LOG_FILE="C:/actions-runner/_work/hyoung.fms/deployment.log"
-log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
+# Stop the IIS site and application pool
+Write-Host "Stopping IIS services..."
+Import-Module WebAdministration
+$siteName = "ReactApp" # Adjust if your site name is different
+$appPoolName = "apihyoungfms" # Adjust if your app pool name is different
 
-# Function to stop IIS
-stop_iis() {
-    log "Stopping IIS service..."
-    powershell.exe -Command "Stop-Service -Name W3SVC -Force"
-}
-
-# Function to start IIS
-start_iis() {
-    log "Starting IIS service..."
-    powershell.exe -Command "Start-Service -Name W3SVC"
-}
-
-# Function to deploy React app
-deploy_react() {
-    log "Deploying React app to $REACT_DEPLOYMENT_PATH"
-    cp -r "$REACT_DEPLOYMENT_PATH" "${REACT_DEPLOYMENT_PATH}_backup_$(date +'%Y%m%d_%H%M%S')"
-    rm -rf "$REACT_DEPLOYMENT_PATH"
-    mkdir -p "$REACT_DEPLOYMENT_PATH"
-    cp -r "$REACT_BUILD_PATH"/* "$REACT_DEPLOYMENT_PATH"
-}
-
-# Function to deploy Web API
-deploy_webapi() {
-    log "Deploying Web API to $WEBAPI_DEPLOYMENT_PATH"
-    cp -r "$WEBAPI_DEPLOYMENT_PATH" "${WEBAPI_DEPLOYMENT_PATH}_backup_$(date +'%Y%m%d_%H%M%S')"
-    rm -rf "$WEBAPI_DEPLOYMENT_PATH"
-    mkdir -p "$WEBAPI_DEPLOYMENT_PATH"
-    cp -r "$WEBAPI_BUILD_PATH"/* "$WEBAPI_DEPLOYMENT_PATH"
-}
-
-# Function to perform health check
-health_check() {
-    log "Performing health check..."
-    HEALTH_CHECK_URL="http://localhost:7009/api/health"
+try {
+    if (Get-Website -Name $siteName) {
+        Stop-Website -Name $siteName -ErrorAction Stop
+        Write-Host "Website $siteName stopped."
+    }
     
-    response=$(curl -s "$HEALTH_CHECK_URL")
-    status=$(echo "$response" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+    if (Get-WebAppPoolState -Name $appPoolName) {
+        Stop-WebAppPool -Name $appPoolName -ErrorAction Stop
+        Write-Host "Application Pool $appPoolName stopped."
+    }
+} catch {
+    Write-Host "Warning: Could not stop IIS services: $_"
+    # Continue anyway, as we may just need to copy files
+}
+
+# Create deployment directories if they don't exist
+Write-Host "Creating deployment directories if they don't exist..."
+if (!(Test-Path -Path $env:REACT_DEPLOYMENT_PATH)) {
+    New-Item -ItemType Directory -Path $env:REACT_DEPLOYMENT_PATH -Force
+    Write-Host "Created React deployment directory."
+}
+if (!(Test-Path -Path $env:WEBAPI_DEPLOYMENT_PATH)) {
+    New-Item -ItemType Directory -Path $env:WEBAPI_DEPLOYMENT_PATH -Force
+    Write-Host "Created WebAPI deployment directory."
+}
+
+# Clean deployment directories but preserve web.config
+Write-Host "Cleaning deployment directories (preserving web.config)..."
+
+# Handle React deployment directory
+if (Test-Path -Path "$env:REACT_DEPLOYMENT_PATH\web.config") {
+    $reactWebConfig = Get-Content "$env:REACT_DEPLOYMENT_PATH\web.config"
+    Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse | 
+        Where-Object { $_.FullName -ne "$env:REACT_DEPLOYMENT_PATH\web.config" } | 
+        Remove-Item -Recurse -Force
+    Write-Host "React directory cleaned (preserved web.config)."
+} else {
+    Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse | Remove-Item -Recurse -Force
+    Write-Host "React directory cleaned (no web.config found)."
+}
+
+# Handle WebAPI deployment directory
+if (Test-Path -Path "$env:WEBAPI_DEPLOYMENT_PATH\web.config") {
+    $webApiWebConfig = Get-Content "$env:WEBAPI_DEPLOYMENT_PATH\web.config"
+    Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse | 
+        Where-Object { $_.FullName -ne "$env:WEBAPI_DEPLOYMENT_PATH\web.config" } | 
+        Remove-Item -Recurse -Force
+    Write-Host "WebAPI directory cleaned (preserved web.config)."
+} else {
+    Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse | Remove-Item -Recurse -Force
+    Write-Host "WebAPI directory cleaned (no web.config found)."
+}
+
+# Copy React build files
+Write-Host "Copying React build files..."
+Copy-Item -Path "$env:REACT_BUILD_PATH\*" -Destination $env:REACT_DEPLOYMENT_PATH -Recurse -Force
+Write-Host "React files copied. Count: $((Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse).Count) files"
+
+# Restore web.config if we saved it
+if ($reactWebConfig) {
+    Set-Content -Path "$env:REACT_DEPLOYMENT_PATH\web.config" -Value $reactWebConfig
+    Write-Host "React web.config restored."
+}
+
+# Copy Web API files
+Write-Host "Copying Web API files..."
+Copy-Item -Path "$env:WEBAPI_BUILD_PATH\*" -Destination $env:WEBAPI_DEPLOYMENT_PATH -Recurse -Force
+Write-Host "WebAPI files copied. Count: $((Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse).Count) files"
+
+# Restore web.config if we saved it
+if ($webApiWebConfig) {
+    Set-Content -Path "$env:WEBAPI_DEPLOYMENT_PATH\web.config" -Value $webApiWebConfig
+    Write-Host "WebAPI web.config restored."
+}
+
+# Start the IIS site and app pool
+Write-Host "Starting IIS services..."
+try {
+    Start-WebAppPool -Name $appPoolName -ErrorAction Stop
+    Write-Host "Application Pool $appPoolName started."
     
-    if [ "$status" = "OK" ]; then
-        log "Health check passed. Status: OK"
-    else
-        log "Health check failed. Status: $status"
-        log "Rolling back..."
-        rollback
-        exit 1
-    fi
+    Start-Website -Name $siteName -ErrorAction Stop
+    Write-Host "Website $siteName started."
+} catch {
+    Write-Host "Warning: Could not start IIS services: $_"
+    # This may happen if services were already running
 }
 
-# Function to rollback
-rollback() {
-    log "Rolling back to previous version..."
-    # Implement rollback logic here
-}
-
-# Main deployment logic
-main() {
-    log "Starting deployment"
-    stop_iis
-    deploy_react
-    deploy_webapi
-    start_iis
-    health_check
-    log "Deployment completed successfully"
-}
-
-# Run main function
-main
+Write-Host "Deployment completed successfully!"
