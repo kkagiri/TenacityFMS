@@ -5,7 +5,7 @@ on:
       - productionv1
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    runs-on: [self-hosted, Windows, X64, HYFMS]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
