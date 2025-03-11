@@ -1,78 +1,138 @@
-name: Deploy
+name: Selective Deploy
 on:
   push:
     branches:
       - productionv1
 jobs:
-  build-and-deploy:
-    runs-on: [self-hosted, Windows, X64, HYFMS]
+  detect-changes:
+    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    outputs:
+      frontend-changed: ${{ steps.check-changes.outputs.frontend-changed }}
+      backend-changed: ${{ steps.check-changes.outputs.backend-changed }}
+      package-changed: ${{ steps.check-changes.outputs.package-changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
-      - name: Check directory structure (CMD)
+        with:
+          fetch-depth: 2
+
+      - name: Check for changes
+        id: check-changes
         run: |
-          dir
-          echo "Listing all directories in the repository:"
-          dir /AD /B
+          $changedFiles = git diff --name-only HEAD^ HEAD
+          
+          $frontendChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/*" }) -ne $null
+          $backendChanged = ($changedFiles | Where-Object { $_ -like "FMS.WebClient/*" }) -ne $null
+          $packageChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/package*.json" }) -ne $null
+          
+          Write-Host "::set-output name=frontend-changed::$frontendChanged"
+          Write-Host "::set-output name=backend-changed::$backendChanged"
+          Write-Host "::set-output name=package-changed::$packageChanged"
+          
+          Write-Host "Frontend changed: $frontendChanged"
+          Write-Host "Backend changed: $backendChanged"
+          Write-Host "Package files changed: $packageChanged"
+        shell: powershell
+
+  deploy-frontend:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' }}
+    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install React dependencies
+        if: ${{ needs.detect-changes.outputs.package-changed == 'True' }}
+        run: |
+          cd fms.frontend
+          npm ci
         shell: cmd
         
-      - name: Check directory structure (PowerShell)
+      - name: Skip dependencies installation (using cached node_modules)
+        if: ${{ needs.detect-changes.outputs.package-changed != 'True' }}
         run: |
-          Write-Host "Checking for fms.frontend directory:"
-          if (Test-Path -Path "fms.frontend") {
-            Write-Host "fms.frontend directory exists"
-          } else {
-            Write-Host "fms.frontend directory does NOT exist"
-            Write-Host "Listing all directories in the repository:"
-            Get-ChildItem -Directory | ForEach-Object { $_.Name }
-          }
-        shell: powershell
-      
-      # Only run these steps if the directories exist
-      - name: Install React dependencies
-        if: ${{ success() }}
-        run: |
-          IF EXIST "fms.frontend" (
-            cd fms.frontend
-            npm ci
-          ) ELSE (
-            echo "Skipping - fms.frontend directory not found"
-            exit 1
-          )
+          echo "Skipping npm ci - no changes to package.json or package-lock.json detected"
         shell: cmd
       
       - name: Build React app
-        if: ${{ success() }}
         run: |
-          IF EXIST "fms.frontend" (
-            cd fms.frontend
-            npm run build
+          cd fms.frontend
+          npm run build
+        shell: cmd
+      
+      - name: Deploy frontend
+        run: |
+          # Modify this to only deploy frontend files
+          # For example, you might have a separate script:
+          IF EXIST "deploy-frontend.ps1" (
+            powershell -File ./deploy-frontend.ps1
           ) ELSE (
-            echo "Skipping - fms.frontend directory not found"
-            exit 1
+            # Fallback to the main deploy script if you don't have a separate one
+            powershell -File ./deploy.ps1 -frontendOnly
           )
+        shell: cmd
+
+  deploy-backend:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.backend-changed == 'True' }}
+    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Publish .NET Web API
+        run: |
+          cd FMS.WebClient
+          dotnet publish -c Release -o publish
+        shell: cmd
+      
+      - name: Deploy backend
+        run: |
+          # Modify this to only deploy backend files
+          # For example, you might have a separate script:
+          IF EXIST "deploy-backend.ps1" (
+            powershell -File ./deploy-backend.ps1
+          ) ELSE (
+            # Fallback to the main deploy script if you don't have a separate one
+            powershell -File ./deploy.ps1 -backendOnly
+          )
+        shell: cmd
+
+  deploy-both:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed == 'True' }}
+    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install React dependencies
+        if: ${{ needs.detect-changes.outputs.package-changed == 'True' }}
+        run: |
+          cd fms.frontend
+          npm ci
+        shell: cmd
+        
+      - name: Skip dependencies installation (using cached node_modules)
+        if: ${{ needs.detect-changes.outputs.package-changed != 'True' }}
+        run: |
+          echo "Skipping npm ci - no changes to package.json or package-lock.json detected"
+        shell: cmd
+      
+      - name: Build React app
+        run: |
+          cd fms.frontend
+          npm run build
         shell: cmd
       
       - name: Publish .NET Web API
-        if: ${{ success() }}
         run: |
-          IF EXIST "FMS.WebClient" (
-            cd FMS.WebClient
-            dotnet publish -c Release -o publish
-          ) ELSE (
-            echo "Skipping - FMS.WebClient directory not found"
-            exit 1
-          )
+          cd FMS.WebClient
+          dotnet publish -c Release -o publish
         shell: cmd
       
-      - name: Run deploy script
-        if: ${{ success() }}
+      - name: Run full deploy script
         run: |
-          IF EXIST "deploy.ps1" (
-            powershell -File ./deploy.ps1
-          ) ELSE (
-            echo "deploy.ps1 not found"
-            exit 1
-          )
+          powershell -File ./deploy.ps1
         shell: cmd
