@@ -3,7 +3,7 @@ param (
     [switch]$backendOnly,
     [string]$logFile = "./deployment_log.txt"
 )
-
+$pathsValid = $true
 # Start logging
 function Write-Log {
     param (
@@ -24,11 +24,11 @@ function Write-Log {
 # Function to handle errors
 function Handle-Error {
     param (
-        [string]$StepName,
+        [string]$Operation,
         [System.Management.Automation.ErrorRecord]$ErrorRecord
     )
 
-    Write-Log "ERROR during $StepName: $($ErrorRecord.Exception.Message)" -Level "ERROR"
+    Write-Log "ERROR during '$Operation': $($ErrorRecord.Exception.Message)" -Level "ERROR"
     Write-Log "Stack Trace: $($ErrorRecord.ScriptStackTrace)" -Level "ERROR"
 
     # You could also send notifications here (email, Teams, etc.)
@@ -53,7 +53,7 @@ try {
     . ./config-loader.ps1
     Write-Log "Configuration loaded successfully"
 } catch {
-    Handle-Error "configuration loading" $_
+    Handle-Error -Operation "configuration loading" -ErrorRecord $_
     exit 1
 }
 
@@ -74,26 +74,118 @@ if (-not $env:BACKEND_SITE_NAME) {
     Write-Log "Using frontend site name for backend: $env:BACKEND_SITE_NAME"
 }
 
-# Validate paths before proceeding
-$pathsValid = $true
+# Validate paths or create them if they don't exist
 if (-not $backendOnly) {
     if (-not (Test-Path -Path $env:REACT_BUILD_PATH)) {
-        Write-Log "React build path does not exist: $env:REACT_BUILD_PATH" -Level "ERROR"
-        Write-Log "Current directory: $(Get-Location)" -Level "INFO"
-        Write-Log "Directory contents:" -Level "INFO"
-        Get-ChildItem -Path (Split-Path $env:REACT_BUILD_PATH -Parent) -ErrorAction SilentlyContinue | ForEach-Object { Write-Log "  $_" }
-        $pathsValid = $false
+        Write-Log "React build path does not exist: $env:REACT_BUILD_PATH - Creating it..." -Level "WARN"
+
+        # Create the directory
+        try {
+            New-Item -ItemType Directory -Path $env:REACT_BUILD_PATH -Force | Out-Null
+            Write-Log "Created empty React build directory." -Level "INFO"
+
+            # If we're in the GitHub Actions workflow, we should also build the React app
+            # Check if we're in the repo root and the frontend directory exists
+            $frontendDir = Split-Path $env:REACT_BUILD_PATH -Parent
+
+            if (Test-Path -Path $frontendDir) {
+                Write-Log "Frontend source directory exists. Attempting to build React app..." -Level "INFO"
+
+                $currentLocation = Get-Location
+                Set-Location -Path $frontendDir
+
+                # Check if package.json exists, indicating a valid React app
+                if (Test-Path -Path "package.json") {
+                    try {
+                        # Install dependencies if node_modules doesn't exist
+                        if (-not (Test-Path -Path "node_modules")) {
+                            Write-Log "Installing npm dependencies..." -Level "INFO"
+                            $npmInstallOutput = (npm ci) 2>&1
+                            Write-Log "NPM install completed: $npmInstallOutput" -Level "INFO"
+                        }
+
+                        # Run the build command
+                        Write-Log "Building React app..." -Level "INFO"
+                        $buildOutput = (npm run build) 2>&1
+                        Write-Log "Build output: $buildOutput" -Level "INFO"
+
+                        # Verify the build directory now has content
+                        if (Test-Path -Path "build" -PathType Container) {
+                            $fileCount = (Get-ChildItem -Path "build" -Recurse | Measure-Object).Count
+                            Write-Log "Build completed successfully. Generated $fileCount files." -Level "INFO"
+                        } else {
+                            Write-Log "Build directory still not found after build attempt." -Level "WARN"
+                        }
+                    } catch {
+                        Write-Log "Error building React app: $_" -Level "ERROR"
+                    }
+                } else {
+                    Write-Log "No package.json found in $frontendDir - cannot build React app" -Level "WARN"
+                }
+
+                # Return to the original location
+                Set-Location -Path $currentLocation
+            }
+        } catch {
+            Write-Log "Error creating React build directory: $_" -Level "ERROR"
+            $pathsValid = $false
+        }
     } else {
-        Write-Log "React build path exists with $(Get-ChildItem -Path $env:REACT_BUILD_PATH -Recurse | Measure-Object).Count files" -Level "INFO"
+       $fileCount = (Get-ChildItem -Path $env:REACT_BUILD_PATH -Recurse | Measure-Object).Count
+            Write-Log "React build path exists with $fileCount files" -Level "INFO"
     }
 }
+
 if (-not $frontendOnly) {
     if (-not (Test-Path -Path $env:WEBAPI_BUILD_PATH)) {
-        Write-Log "WebAPI build path does not exist: $env:WEBAPI_BUILD_PATH" -Level "ERROR"
-        Write-Log "Current directory: $(Get-Location)" -Level "INFO"
-        Write-Log "Directory contents:" -Level "INFO"
-        Get-ChildItem -Path (Split-Path $env:WEBAPI_BUILD_PATH -Parent) -ErrorAction SilentlyContinue | ForEach-Object { Write-Log "  $_" }
-        $pathsValid = $false
+        Write-Log "WebAPI build path does not exist: $env:WEBAPI_BUILD_PATH - Creating it..." -Level "WARN"
+
+        # Create the directory
+        try {
+            New-Item -ItemType Directory -Path $env:WEBAPI_BUILD_PATH -Force | Out-Null
+            Write-Log "Created empty WebAPI publish directory." -Level "INFO"
+
+            # If we're in the GitHub Actions workflow, we should also build the .NET app
+            # Check if we're in the repo root and the WebAPI project directory exists
+            $webApiProjectDir = Split-Path $env:WEBAPI_BUILD_PATH -Parent
+
+            if (Test-Path -Path $webApiProjectDir) {
+                Write-Log "WebAPI project directory exists. Attempting to build .NET app..." -Level "INFO"
+
+                $currentLocation = Get-Location
+                Set-Location -Path $webApiProjectDir
+
+                # Check if any .csproj file exists, indicating a valid .NET project
+                $csprojFiles = Get-ChildItem -Path "*.csproj" -ErrorAction SilentlyContinue
+
+                if ($csprojFiles -and $csprojFiles.Count -gt 0) {
+                    try {
+                        # Run the dotnet publish command
+                        Write-Log "Publishing .NET WebAPI..." -Level "INFO"
+                        $publishOutput = (dotnet publish -c Release -o publish) 2>&1
+                        Write-Log "Publish output: $publishOutput" -Level "INFO"
+
+                        # Verify the publish directory now has content
+                        if (Test-Path -Path "publish" -PathType Container) {
+                            $fileCount = (Get-ChildItem -Path "publish" -Recurse | Measure-Object).Count
+                            Write-Log "Publish completed successfully. Generated $fileCount files." -Level "INFO"
+                        } else {
+                            Write-Log "Publish directory still not found after publish attempt." -Level "WARN"
+                        }
+                    } catch {
+                        Write-Log "Error publishing .NET WebAPI: $_" -Level "ERROR"
+                    }
+                } else {
+                    Write-Log "No .csproj files found in $webApiProjectDir - cannot build WebAPI" -Level "WARN"
+                }
+
+                # Return to the original location
+                Set-Location -Path $currentLocation
+            }
+        } catch {
+            Write-Log "Error creating WebAPI publish directory: $_" -Level "ERROR"
+            $pathsValid = $false
+        }
     } else {
         Write-Log "WebAPI build path exists with $(Get-ChildItem -Path $env:WEBAPI_BUILD_PATH -Recurse | Measure-Object).Count files" -Level "INFO"
     }
@@ -239,7 +331,7 @@ if (-not $backendOnly) {
                 }
             }
 
-            Handle-Error "React build path not found" (New-Object System.IO.DirectoryNotFoundException "Directory not found: $env:REACT_BUILD_PATH")
+            Handle-Error -Operation "React build path not found" -ErrorRecord (New-Object System.Management.Automation.ErrorRecord ([System.IO.DirectoryNotFoundException]::new("Directory not found: $env:REACT_BUILD_PATH"), "PathNotFound", "ObjectNotFound", $null))
             exit 1
         }
 
@@ -253,7 +345,7 @@ if (-not $backendOnly) {
             Write-Log "React web.config restored."
         }
     } catch {
-        Handle-Error "React files deployment" $_
+        Handle-Error -Operation "React files deployment" -ErrorRecord $_
         exit 1
     }
 }
@@ -321,7 +413,7 @@ if (-not $frontendOnly) {
                 }
             }
 
-            Handle-Error "WebAPI build path not found" (New-Object System.IO.DirectoryNotFoundException "Directory not found: $env:WEBAPI_BUILD_PATH")
+            Handle-Error -Operation "WebAPI build path not found" -ErrorRecord (New-Object System.Management.Automation.ErrorRecord ([System.IO.DirectoryNotFoundException]::new("Directory not found: $env:WEBAPI_BUILD_PATH"), "PathNotFound", "ObjectNotFound", $null))
             exit 1
         }
 
@@ -335,7 +427,7 @@ if (-not $frontendOnly) {
             Write-Log "WebAPI web.config restored."
         }
     } catch {
-        Handle-Error "WebAPI files deployment" $_
+        Handle-Error -Operation "WebAPI files deployment" -ErrorRecord $_
         exit 1
     }
 }

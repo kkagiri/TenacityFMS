@@ -20,15 +20,15 @@ jobs:
         id: check-changes
         run: |
           $changedFiles = git diff --name-only HEAD^ HEAD
-          
+
           $frontendChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/*" }) -ne $null
           $backendChanged = ($changedFiles | Where-Object { $_ -like "FMS.WebClient/*" }) -ne $null
           $packageChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/package*.json" }) -ne $null
-          
+
           Write-Host "::set-output name=frontend-changed::$frontendChanged"
           Write-Host "::set-output name=backend-changed::$backendChanged"
           Write-Host "::set-output name=package-changed::$packageChanged"
-          
+
           Write-Host "Frontend changed: $frontendChanged"
           Write-Host "Backend changed: $backendChanged"
           Write-Host "Package files changed: $packageChanged"
@@ -48,25 +48,25 @@ jobs:
           cd fms.frontend
           npm ci
         shell: cmd
-        
+
       - name: Skip dependencies installation (using cached node_modules)
         if: ${{ needs.detect-changes.outputs.package-changed != 'True' }}
         run: |
           echo "Skipping npm ci - no changes to package.json or package-lock.json detected"
         shell: cmd
-      
+
       - name: Build React app
         run: |
           cd fms.frontend
           npm run build
         shell: cmd
-      
+
       - name: Deploy frontend
         run: |
           # Check if deploy script exists
           IF EXIST "deploy.ps1" (
             echo "Deploy script found at ./deploy.ps1"
-            
+
             # Run with error checking and log file
             powershell -File ./deploy.ps1 -frontendOnly -logFile "./frontend_deploy_log.txt"
             IF %ERRORLEVEL% NEQ 0 (
@@ -99,13 +99,13 @@ jobs:
           cd FMS.WebClient
           dotnet publish -c Release -o publish
         shell: cmd
-      
+
       - name: Deploy backend
         run: |
           # Check if deploy script exists
           IF EXIST "deploy.ps1" (
             echo "Deploy script found at ./deploy.ps1"
-            
+
             # Run with error checking and log file
             powershell -File ./deploy.ps1 -backendOnly -logFile "./backend_deploy_log.txt"
             IF %ERRORLEVEL% NEQ 0 (
@@ -139,32 +139,32 @@ jobs:
           cd fms.frontend
           npm ci
         shell: cmd
-        
+
       - name: Skip dependencies installation (using cached node_modules)
         if: ${{ needs.detect-changes.outputs.package-changed != 'True' }}
         run: |
           echo "Skipping npm ci - no changes to package.json or package-lock.json detected"
         shell: cmd
-      
+
       - name: Build React app
         run: |
           cd fms.frontend
           npm run build
         shell: cmd
-      
+
       - name: Publish .NET Web API
         run: |
           cd FMS.WebClient
           dotnet publish -c Release -o publish
         shell: cmd
-      
+
       - name: Run full deploy script
         run: |
           # Check if deploy script exists and show its path
           IF EXIST "deploy.ps1" (
             echo "Deploy script found at ./deploy.ps1"
             powershell -Command "Get-ChildItem ./deploy.ps1 | Select-Object FullName, LastWriteTime, Length | Format-List"
-            
+
             # Execute the script with error checking and log file
             powershell -File ./deploy.ps1 -logFile "./full_deploy_log.txt"
             IF %ERRORLEVEL% NEQ 0 (
@@ -176,7 +176,7 @@ jobs:
               echo "Full deployment completed successfully"
               echo "Last 10 lines of deployment log:"
               powershell -Command "Get-Content -Path './full_deploy_log.txt' -Tail 10"
-              
+
               # Upload log file as an artifact in GitHub Actions
               echo "Creating deployment summary..."
               powershell -Command "if (Test-Path './full_deploy_log.txt') { Copy-Item './full_deploy_log.txt' './deployment-summary.txt' }"
