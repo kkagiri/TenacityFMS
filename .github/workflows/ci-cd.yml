@@ -63,13 +63,26 @@ jobs:
       
       - name: Deploy frontend
         run: |
-          # Modify this to only deploy frontend files
-          # For example, you might have a separate script:
-          IF EXIST "deploy-frontend.ps1" (
-            powershell -File ./deploy-frontend.ps1
+          # Check if deploy script exists
+          IF EXIST "deploy.ps1" (
+            echo "Deploy script found at ./deploy.ps1"
+            
+            # Run with error checking and log file
+            powershell -File ./deploy.ps1 -frontendOnly -logFile "./frontend_deploy_log.txt"
+            IF %ERRORLEVEL% NEQ 0 (
+              echo "Error: Frontend deployment failed with exit code %ERRORLEVEL%"
+              echo "Deployment log contents:"
+              type "./frontend_deploy_log.txt"
+              exit %ERRORLEVEL%
+            ) ELSE (
+              echo "Frontend deployment completed successfully"
+              echo "Last 10 lines of deployment log:"
+              powershell -Command "Get-Content -Path './frontend_deploy_log.txt' -Tail 10"
+            )
           ) ELSE (
-            # Fallback to the main deploy script if you don't have a separate one
-            powershell -File ./deploy.ps1 -frontendOnly
+            echo "Error: deploy.ps1 not found in the repository root"
+            dir
+            exit 1
           )
         shell: cmd
 
@@ -89,13 +102,26 @@ jobs:
       
       - name: Deploy backend
         run: |
-          # Modify this to only deploy backend files
-          # For example, you might have a separate script:
-          IF EXIST "deploy-backend.ps1" (
-            powershell -File ./deploy-backend.ps1
+          # Check if deploy script exists
+          IF EXIST "deploy.ps1" (
+            echo "Deploy script found at ./deploy.ps1"
+            
+            # Run with error checking and log file
+            powershell -File ./deploy.ps1 -backendOnly -logFile "./backend_deploy_log.txt"
+            IF %ERRORLEVEL% NEQ 0 (
+              echo "Error: Backend deployment failed with exit code %ERRORLEVEL%"
+              echo "Deployment log contents:"
+              type "./backend_deploy_log.txt"
+              exit %ERRORLEVEL%
+            ) ELSE (
+              echo "Backend deployment completed successfully"
+              echo "Last 10 lines of deployment log:"
+              powershell -Command "Get-Content -Path './backend_deploy_log.txt' -Tail 10"
+            )
           ) ELSE (
-            # Fallback to the main deploy script if you don't have a separate one
-            powershell -File ./deploy.ps1 -backendOnly
+            echo "Error: deploy.ps1 not found in the repository root"
+            dir
+            exit 1
           )
         shell: cmd
 
@@ -134,5 +160,31 @@ jobs:
       
       - name: Run full deploy script
         run: |
-          powershell -File ./deploy.ps1
+          # Check if deploy script exists and show its path
+          IF EXIST "deploy.ps1" (
+            echo "Deploy script found at ./deploy.ps1"
+            powershell -Command "Get-ChildItem ./deploy.ps1 | Select-Object FullName, LastWriteTime, Length | Format-List"
+            
+            # Execute the script with error checking and log file
+            powershell -File ./deploy.ps1 -logFile "./full_deploy_log.txt"
+            IF %ERRORLEVEL% NEQ 0 (
+              echo "Error: Full deployment failed with exit code %ERRORLEVEL%"
+              echo "Deployment log contents:"
+              type "./full_deploy_log.txt"
+              exit %ERRORLEVEL%
+            ) ELSE (
+              echo "Full deployment completed successfully"
+              echo "Last 10 lines of deployment log:"
+              powershell -Command "Get-Content -Path './full_deploy_log.txt' -Tail 10"
+              
+              # Upload log file as an artifact in GitHub Actions
+              echo "Creating deployment summary..."
+              powershell -Command "if (Test-Path './full_deploy_log.txt') { Copy-Item './full_deploy_log.txt' './deployment-summary.txt' }"
+            )
+          ) ELSE (
+            echo "Error: deploy.ps1 not found in the repository root"
+            echo "Current directory contents:"
+            dir
+            exit 1
+          )
         shell: cmd
