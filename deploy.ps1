@@ -10,13 +10,13 @@ function Write-Log {
         [string]$Message,
         [string]$Level = "INFO"
     )
-    
+
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logMessage = "[$timestamp] [$Level] $Message"
-    
+
     # Output to console
     Write-Host $logMessage
-    
+
     # Append to log file
     Add-Content -Path $logFile -Value $logMessage
 }
@@ -27,12 +27,12 @@ function Handle-Error {
         [string]$StepName,
         [System.Management.Automation.ErrorRecord]$ErrorRecord
     )
-    
+
     Write-Log "ERROR during $StepName: $($ErrorRecord.Exception.Message)" -Level "ERROR"
     Write-Log "Stack Trace: $($ErrorRecord.ScriptStackTrace)" -Level "ERROR"
-    
+
     # You could also send notifications here (email, Teams, etc.)
-    
+
     # Return false to indicate failure
     return $false
 }
@@ -63,22 +63,39 @@ Write-Log "REACT_BUILD_PATH: $env:REACT_BUILD_PATH"
 Write-Log "WEBAPI_BUILD_PATH: $env:WEBAPI_BUILD_PATH"
 Write-Log "REACT_DEPLOYMENT_PATH: $env:REACT_DEPLOYMENT_PATH"
 Write-Log "WEBAPI_DEPLOYMENT_PATH: $env:WEBAPI_DEPLOYMENT_PATH"
-Write-Log "IIS_SITE_NAME: $env:IIS_SITE_NAME"
-Write-Log "IIS_APP_POOL: $env:IIS_APP_POOL"
+Write-Log "IIS_SITE_NAME (Frontend): $env:IIS_SITE_NAME"
+Write-Log "IIS_APP_POOL (Shared): $env:IIS_APP_POOL"
+Write-Log "BACKEND_SITE_NAME: $env:BACKEND_SITE_NAME"
 Write-Log "ENVIRONMENT: $env:ENVIRONMENT"
+
+# Set default values for backend site if not explicitly defined
+if (-not $env:BACKEND_SITE_NAME) {
+    $env:BACKEND_SITE_NAME = $env:IIS_SITE_NAME
+    Write-Log "Using frontend site name for backend: $env:BACKEND_SITE_NAME"
+}
 
 # Validate paths before proceeding
 $pathsValid = $true
 if (-not $backendOnly) {
     if (-not (Test-Path -Path $env:REACT_BUILD_PATH)) {
         Write-Log "React build path does not exist: $env:REACT_BUILD_PATH" -Level "ERROR"
+        Write-Log "Current directory: $(Get-Location)" -Level "INFO"
+        Write-Log "Directory contents:" -Level "INFO"
+        Get-ChildItem -Path (Split-Path $env:REACT_BUILD_PATH -Parent) -ErrorAction SilentlyContinue | ForEach-Object { Write-Log "  $_" }
         $pathsValid = $false
+    } else {
+        Write-Log "React build path exists with $(Get-ChildItem -Path $env:REACT_BUILD_PATH -Recurse | Measure-Object).Count files" -Level "INFO"
     }
 }
 if (-not $frontendOnly) {
     if (-not (Test-Path -Path $env:WEBAPI_BUILD_PATH)) {
         Write-Log "WebAPI build path does not exist: $env:WEBAPI_BUILD_PATH" -Level "ERROR"
+        Write-Log "Current directory: $(Get-Location)" -Level "INFO"
+        Write-Log "Directory contents:" -Level "INFO"
+        Get-ChildItem -Path (Split-Path $env:WEBAPI_BUILD_PATH -Parent) -ErrorAction SilentlyContinue | ForEach-Object { Write-Log "  $_" }
         $pathsValid = $false
+    } else {
+        Write-Log "WebAPI build path exists with $(Get-ChildItem -Path $env:WEBAPI_BUILD_PATH -Recurse | Measure-Object).Count files" -Level "INFO"
     }
 }
 
@@ -98,18 +115,40 @@ try {
     Write-Log "Unable to retrieve Git information" -Level "WARN"
 }
 
-# Stop the IIS site and application pool
+# Stop the IIS sites and application pools
 Write-Log "Stopping IIS services..."
 Import-Module WebAdministration
-$siteName = $env:IIS_SITE_NAME
-$appPoolName = $env:IIS_APP_POOL
+
+# Define site names (frontend and backend)
+$frontendSiteName = $env:IIS_SITE_NAME          # ReactApp
+$backendSiteName = $env:BACKEND_SITE_NAME       # Use if configured, otherwise use same as frontend
+if (-not $backendSiteName) {
+    $backendSiteName = $frontendSiteName        # Default to same site if not specified
+}
+
+# Define app pool names (frontend and backend)
+$appPoolName = $env:IIS_APP_POOL        # apihyoungfms (shared between frontend and backend)
+
+Write-Log "Frontend Site: $frontendSiteName, App Pool: $appPoolName"
+Write-Log "Backend Site: $backendSiteName, App Pool: $appPoolName"
 
 try {
-    if (Get-Website -Name $siteName) {
-        Stop-Website -Name $siteName -ErrorAction Stop
-        Write-Log "Website $siteName stopped."
+    # Stop sites first
+    if (-not $backendOnly) {
+        if (Get-Website -Name $frontendSiteName) {
+            Stop-Website -Name $frontendSiteName -ErrorAction Stop
+            Write-Log "Frontend website $frontendSiteName stopped."
+        }
     }
-    
+
+    if (-not $frontendOnly -and $backendSiteName -ne $frontendSiteName) {
+        if (Get-Website -Name $backendSiteName) {
+            Stop-Website -Name $backendSiteName -ErrorAction Stop
+            Write-Log "Backend website $backendSiteName stopped."
+        }
+    }
+
+    # Then stop shared app pool (only once)
     if (Get-WebAppPoolState -Name $appPoolName) {
         Stop-WebAppPool -Name $appPoolName -ErrorAction Stop
         Write-Log "Application Pool $appPoolName stopped."
@@ -140,7 +179,7 @@ $backupRoot = $env:BACKUP_DIR
 
 if ($backupRoot -and (Test-Path $backupRoot)) {
     Write-Log "Creating backup of current deployment..."
-    
+
     if (-not $backendOnly -and (Test-Path $env:REACT_DEPLOYMENT_PATH)) {
         $reactBackupPath = Join-Path $backupRoot "react_$timestamp"
         try {
@@ -150,7 +189,7 @@ if ($backupRoot -and (Test-Path $backupRoot)) {
             Write-Log "Failed to backup React app: $_" -Level "WARN"
         }
     }
-    
+
     if (-not $frontendOnly -and (Test-Path $env:WEBAPI_DEPLOYMENT_PATH)) {
         $webApiBackupPath = Join-Path $backupRoot "webapi_$timestamp"
         try {
@@ -165,26 +204,49 @@ if ($backupRoot -and (Test-Path $backupRoot)) {
 # Clean and deploy React app
 if (-not $backendOnly) {
     Write-Log "Deploying React application..."
-    
+
     # Handle React deployment directory
     if (Test-Path -Path "$env:REACT_DEPLOYMENT_PATH\web.config") {
         $reactWebConfig = Get-Content "$env:REACT_DEPLOYMENT_PATH\web.config"
-        Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse | 
-            Where-Object { $_.FullName -ne "$env:REACT_DEPLOYMENT_PATH\web.config" } | 
+        Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse |
+            Where-Object { $_.FullName -ne "$env:REACT_DEPLOYMENT_PATH\web.config" } |
             Remove-Item -Recurse -Force
         Write-Log "React directory cleaned (preserved web.config)."
     } else {
         Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse | Remove-Item -Recurse -Force
         Write-Log "React directory cleaned (no web.config found)."
     }
-    
+
     # Copy React build files
     try {
         Write-Log "Copying React build files..."
+
+        # Check path again and provide more debugging info if not found
+        if (-not (Test-Path -Path $env:REACT_BUILD_PATH)) {
+            Write-Log "ERROR: React build path still not found at deployment time" -Level "ERROR"
+
+            # Check for case variations of the directory name
+            $parentDir = Split-Path $env:REACT_BUILD_PATH -Parent
+            $buildDirName = Split-Path $env:REACT_BUILD_PATH -Leaf
+
+            if (Test-Path -Path $parentDir) {
+                Write-Log "Parent directory exists. Checking for case variations..." -Level "INFO"
+                Get-ChildItem -Path $parentDir | ForEach-Object {
+                    Write-Log "Found directory: $($_.Name)" -Level "INFO"
+                    if ($_.Name -like $buildDirName) {
+                        Write-Log "Possible case mismatch. Found similar directory: $($_.FullName)" -Level "INFO"
+                    }
+                }
+            }
+
+            Handle-Error "React build path not found" (New-Object System.IO.DirectoryNotFoundException "Directory not found: $env:REACT_BUILD_PATH")
+            exit 1
+        }
+
         Copy-Item -Path "$env:REACT_BUILD_PATH\*" -Destination $env:REACT_DEPLOYMENT_PATH -Recurse -Force
         $fileCount = (Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse).Count
         Write-Log "React files copied. Count: $fileCount files"
-        
+
         # Restore web.config if we saved it
         if ($reactWebConfig) {
             Set-Content -Path "$env:REACT_DEPLOYMENT_PATH\web.config" -Value $reactWebConfig
@@ -199,26 +261,74 @@ if (-not $backendOnly) {
 # Clean and deploy WebAPI
 if (-not $frontendOnly) {
     Write-Log "Deploying WebAPI application..."
-    
+
     # Handle WebAPI deployment directory
     if (Test-Path -Path "$env:WEBAPI_DEPLOYMENT_PATH\web.config") {
         $webApiWebConfig = Get-Content "$env:WEBAPI_DEPLOYMENT_PATH\web.config"
-        Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse | 
-            Where-Object { $_.FullName -ne "$env:WEBAPI_DEPLOYMENT_PATH\web.config" } | 
+        Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse |
+            Where-Object { $_.FullName -ne "$env:WEBAPI_DEPLOYMENT_PATH\web.config" } |
             Remove-Item -Recurse -Force
         Write-Log "WebAPI directory cleaned (preserved web.config)."
     } else {
         Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse | Remove-Item -Recurse -Force
         Write-Log "WebAPI directory cleaned (no web.config found)."
     }
-    
+
     # Copy Web API files
     try {
         Write-Log "Copying Web API files..."
+
+        # Check path again and provide more debugging info if not found
+        if (-not (Test-Path -Path $env:WEBAPI_BUILD_PATH)) {
+            Write-Log "ERROR: WebAPI build path still not found at deployment time" -Level "ERROR"
+
+            # Check for case variations of the directory name
+            $parentDir = Split-Path $env:WEBAPI_BUILD_PATH -Parent
+            $buildDirName = Split-Path $env:WEBAPI_BUILD_PATH -Leaf
+
+            if (Test-Path -Path $parentDir) {
+                Write-Log "Parent directory exists. Checking for case variations..." -Level "INFO"
+                Get-ChildItem -Path $parentDir | ForEach-Object {
+                    Write-Log "Found directory: $($_.Name)" -Level "INFO"
+                    if ($_.Name -like $buildDirName) {
+                        Write-Log "Possible case mismatch. Found similar directory: $($_.FullName)" -Level "INFO"
+                    }
+                }
+            }
+
+            # Check if files are in use
+            if (Test-Path -Path $env:WEBAPI_DEPLOYMENT_PATH) {
+                Write-Log "Checking if files are in use in deployment directory..." -Level "INFO"
+                try {
+                    $lockedFiles = Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse -File |
+                        Where-Object {
+                            try {
+                                $fileStream = [System.IO.File]::Open($_.FullName, 'Open', 'Read', 'None')
+                                $fileStream.Close()
+                                $fileStream.Dispose()
+                                $false
+                            } catch {
+                                $true
+                            }
+                        } | Select-Object -ExpandProperty FullName
+
+                    if ($lockedFiles) {
+                        Write-Log "Found locked files that may be preventing deployment:" -Level "WARN"
+                        $lockedFiles | ForEach-Object { Write-Log "  $_" -Level "WARN" }
+                    }
+                } catch {
+                    Write-Log "Error checking locked files: $_" -Level "WARN"
+                }
+            }
+
+            Handle-Error "WebAPI build path not found" (New-Object System.IO.DirectoryNotFoundException "Directory not found: $env:WEBAPI_BUILD_PATH")
+            exit 1
+        }
+
         Copy-Item -Path "$env:WEBAPI_BUILD_PATH\*" -Destination $env:WEBAPI_DEPLOYMENT_PATH -Recurse -Force
         $fileCount = (Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse).Count
         Write-Log "WebAPI files copied. Count: $fileCount files"
-        
+
         # Restore web.config if we saved it
         if ($webApiWebConfig) {
             Set-Content -Path "$env:WEBAPI_DEPLOYMENT_PATH\web.config" -Value $webApiWebConfig
@@ -230,14 +340,23 @@ if (-not $frontendOnly) {
     }
 }
 
-# Start the IIS site and app pool
+# Start the IIS sites and app pool
 Write-Log "Starting IIS services..."
 try {
+    # Start app pool first (shared between both sites)
     Start-WebAppPool -Name $appPoolName -ErrorAction Stop
     Write-Log "Application Pool $appPoolName started."
-    
-    Start-Website -Name $siteName -ErrorAction Stop
-    Write-Log "Website $siteName started."
+
+    # Then start websites
+    if (-not $backendOnly) {
+        Start-Website -Name $frontendSiteName -ErrorAction Stop
+        Write-Log "Frontend website $frontendSiteName started."
+    }
+
+    if (-not $frontendOnly -and $backendSiteName -ne $frontendSiteName) {
+        Start-Website -Name $backendSiteName -ErrorAction Stop
+        Write-Log "Backend website $backendSiteName started."
+    }
 } catch {
     Write-Log "Warning: Could not start IIS services: $_" -Level "WARN"
     # This may happen if services were already running
@@ -247,12 +366,12 @@ try {
 if ($env:HEALTH_CHECK_URL) {
     Write-Log "Performing health check..."
     $healthCheckSuccess = $false
-    
+
     for ($i = 1; $i -le [int]$env:HEALTH_CHECK_RETRIES; $i++) {
         try {
             Write-Log "Health check attempt $i of $($env:HEALTH_CHECK_RETRIES)..."
             $response = Invoke-WebRequest -Uri $env:HEALTH_CHECK_URL -TimeoutSec 30 -UseBasicParsing
-            
+
             if ($response.StatusCode -eq 200) {
                 Write-Log "Health check passed: Status $($response.StatusCode)"
                 $healthCheckSuccess = $true
@@ -263,13 +382,13 @@ if ($env:HEALTH_CHECK_URL) {
         } catch {
             Write-Log "Health check failed: $_" -Level "WARN"
         }
-        
+
         if ($i -lt [int]$env:HEALTH_CHECK_RETRIES) {
             Write-Log "Waiting $($env:HEALTH_CHECK_RETRY_DELAY) seconds before next retry..."
             Start-Sleep -Seconds [int]$env:HEALTH_CHECK_RETRY_DELAY
         }
     }
-    
+
     if (-not $healthCheckSuccess) {
         Write-Log "All health checks failed. Deployment may be unstable." -Level "ERROR"
         # You might want to trigger alerts here or rollback
