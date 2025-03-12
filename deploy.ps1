@@ -2,7 +2,8 @@ param (
     [switch]$frontendOnly,
     [switch]$backendOnly,
     [string]$logFile = "./deployment_log.txt",
-    [switch]$buildOnServer # New parameter to control whether to build on server
+    [bool]$buildOnServer = $false
+ # New parameter to control whether to build on server
 )
 
 # Import supporting modules
