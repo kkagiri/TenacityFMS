@@ -1,7 +1,8 @@
 param (
     [switch]$frontendOnly,
     [switch]$backendOnly,
-    [string]$logFile = "./deployment_log.txt"
+    [string]$logFile = "./deployment_log.txt",
+    [switch]$buildOnServer # New parameter to control whether to build on server
 )
 
 # Import supporting modules
@@ -11,6 +12,7 @@ param (
 . ./deployment/error-handling.ps1
 . ./deployment/iis-operations.ps1
 . ./deployment/deployment.ps1
+. ./deployment/config-loader.ps1
 
 # Initialize log file from environment variable if set
 if ($env:logFile) {
@@ -32,11 +34,11 @@ if (Test-Path $logFile) {
 }
 
 # Record deployment parameters
-Write-Log -Message "Deployment started with parameters: frontendOnly=$frontendOnly, backendOnly=$backendOnly" -LogFile $logFile
+Write-Log -Message "Deployment started with parameters: frontendOnly=$frontendOnly, backendOnly=$backendOnly, buildOnServer=$buildOnServer" -LogFile $logFile
 
 # Load configuration
 try {
-    . ./config-loader.ps1
+    . ./deployment/config-loader.ps1
     Write-Log -Message "Configuration loaded successfully" -LogFile $logFile
 } catch {
     Handle-Error -Operation "configuration loading" -ErrorRecord $_ -LogFile $logFile
@@ -58,6 +60,86 @@ Write-Log -Message "ENVIRONMENT: $env:ENVIRONMENT" -LogFile $logFile
 if (-not $env:BACKEND_SITE_NAME) {
     $env:BACKEND_SITE_NAME = $env:IIS_SITE_NAME
     Write-Log -Message "Using frontend site name for backend: $env:BACKEND_SITE_NAME" -LogFile $logFile
+}
+
+# Build projects on server if requested
+if ($buildOnServer) {
+    # Build React app if needed
+    if (-not $backendOnly) {
+        Write-Log -Message "Building React application on server..." -LogFile $logFile
+        try {
+            # Get the frontend source directory (parent of build path)
+            $frontendSourceDir = Split-Path $env:REACT_BUILD_PATH -Parent
+            if (Test-Path -Path "$frontendSourceDir/package.json") {
+                # Go to frontend directory
+                Push-Location $frontendSourceDir
+                Write-Log -Message "Changed directory to $frontendSourceDir" -LogFile $logFile
+
+                # Check if node_modules exists, install dependencies if not
+                if (-not (Test-Path -Path "node_modules")) {
+                    Write-Log -Message "Installing npm dependencies..." -LogFile $logFile
+                    & npm ci
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "npm ci failed with exit code $LASTEXITCODE"
+                    }
+                }
+
+                # Build React app
+                Write-Log -Message "Building React app with npm run build..." -LogFile $logFile
+                & npm run build
+                if ($LASTEXITCODE -ne 0) {
+                    throw "npm run build failed with exit code $LASTEXITCODE"
+                }
+
+                Write-Log -Message "React build completed successfully" -LogFile $logFile
+                Pop-Location
+            } else {
+                Write-Log -Message "Frontend source directory does not contain package.json at $frontendSourceDir" -Level "WARN" -LogFile $logFile
+            }
+        } catch {
+            Pop-Location
+            Handle-Error -Operation "React build" -ErrorRecord $_ -LogFile $logFile
+            exit 1
+        }
+    }
+
+    # Build .NET WebAPI if needed
+    if (-not $frontendOnly) {
+        Write-Log -Message "Building .NET WebAPI on server..." -LogFile $logFile
+        try {
+            # Determine WebAPI project directory
+            $webApiProjectDir = "FMS.WebClient"
+            if (-not (Test-Path -Path $webApiProjectDir)) {
+                $webApiProjectDir = Split-Path $env:WEBAPI_BUILD_PATH -Parent
+            }
+
+            if (Test-Path -Path "$webApiProjectDir/*.csproj") {
+                # Go to WebAPI directory
+                Push-Location $webApiProjectDir
+                Write-Log -Message "Changed directory to $webApiProjectDir" -LogFile $logFile
+
+                # Run dotnet publish
+                Write-Log -Message "Publishing .NET WebAPI with dotnet publish..." -LogFile $logFile
+                & dotnet publish -c Release -o $env:WEBAPI_BUILD_PATH
+                if ($LASTEXITCODE -ne 0) {
+                    throw "dotnet publish failed with exit code $LASTEXITCODE"
+                }
+
+                Write-Log -Message ".NET WebAPI build completed successfully" -LogFile $logFile
+                Pop-Location
+
+                # Verify the build output
+                $fileCount = (Get-ChildItem -Path $env:WEBAPI_BUILD_PATH -Recurse).Count
+                Write-Log -Message "WebAPI build output contains $fileCount files" -LogFile $logFile
+            } else {
+                Write-Log -Message "WebAPI project directory does not contain .csproj files at $webApiProjectDir" -Level "WARN" -LogFile $logFile
+            }
+        } catch {
+            Pop-Location
+            Handle-Error -Operation ".NET WebAPI build" -ErrorRecord $_ -LogFile $logFile
+            exit 1
+        }
+    }
 }
 
 # Validate paths
