@@ -95,8 +95,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Publish .NET Web API
-        run: |
-          cd FMS.WebClient
+        run: |       
           powershell -File ./deploy.ps1 -logFile "./full_deploy_log.txt" -buildOnServer $true
         shell: cmd
 
@@ -153,8 +152,7 @@ jobs:
         shell: cmd
 
       - name: Publish .NET Web API
-        run: |
-          cd FMS.WebClient
+        run: |      
           powershell -File ./deploy.ps1 -logFile "./full_deploy_log.txt" -buildOnServer $true
 
         shell: cmd
