@@ -20,7 +20,157 @@ function Write-Log {
     # Append to log file
     Add-Content -Path $logFile -Value $logMessage
 }
+function Rollback-Deployment {
+    param (
+        [switch]$frontendOnly,
+        [switch]$backendOnly,
+        [string]$frontendBackupPath,
+        [string]$backendBackupPath
+    )
 
+    Write-Log "Starting deployment rollback..." -Level "WARN"
+
+    # Define site names (frontend and backend)
+    $frontendSiteName = $env:IIS_SITE_NAME
+    $backendSiteName = $env:BACKEND_SITE_NAME
+    if (-not $backendSiteName) {
+        $backendSiteName = $frontendSiteName
+    }
+
+    # Define app pool name (shared between frontend and backend)
+    $appPoolName = $env:IIS_APP_POOL
+
+    # Stop IIS services before rollback
+    try {
+        Write-Log "Stopping IIS services for rollback..." -Level "INFO"
+
+        # Stop sites first
+        if (-not $backendOnly) {
+            if (Get-Website -Name $frontendSiteName) {
+                Stop-Website -Name $frontendSiteName -ErrorAction Stop
+                Write-Log "Frontend website $frontendSiteName stopped for rollback."
+            }
+        }
+
+        if (-not $frontendOnly -and $backendSiteName -ne $frontendSiteName) {
+            if (Get-Website -Name $backendSiteName) {
+                Stop-Website -Name $backendSiteName -ErrorAction Stop
+                Write-Log "Backend website $backendSiteName stopped for rollback."
+            }
+        }
+
+        # Then stop app pool (only once)
+        if (Get-WebAppPoolState -Name $appPoolName) {
+            Stop-WebAppPool -Name $appPoolName -ErrorAction Stop
+            Write-Log "Application Pool $appPoolName stopped for rollback."
+        }
+    }
+    catch {
+        Write-Log "Warning: Could not stop all IIS services for rollback: $_" -Level "WARN"
+        # Continue with rollback anyway
+    }
+
+    # Rollback frontend if needed
+    if (-not $backendOnly -and $frontendBackupPath -and (Test-Path $frontendBackupPath)) {
+        Write-Log "Rolling back frontend deployment..." -Level "INFO"
+
+        try {
+            # Preserve web.config if it exists
+            $frontendWebConfig = $null
+            if (Test-Path -Path "$env:REACT_DEPLOYMENT_PATH\web.config") {
+                $frontendWebConfig = Get-Content "$env:REACT_DEPLOYMENT_PATH\web.config"
+                Write-Log "Preserved frontend web.config for rollback."
+            }
+
+            # Clear current deployment directory
+            Get-ChildItem -Path $env:REACT_DEPLOYMENT_PATH -Recurse |
+                Where-Object { $_.FullName -ne "$env:REACT_DEPLOYMENT_PATH\web.config" } |
+                Remove-Item -Recurse -Force
+            Write-Log "Cleaned frontend deployment directory for rollback."
+
+            # Copy backup files
+            Copy-Item -Path "$frontendBackupPath\*" -Destination $env:REACT_DEPLOYMENT_PATH -Recurse -Force
+            Write-Log "Restored frontend files from backup."
+
+            # Restore preserved web.config if needed
+            if ($frontendWebConfig) {
+                Set-Content -Path "$env:REACT_DEPLOYMENT_PATH\web.config" -Value $frontendWebConfig
+                Write-Log "Restored frontend web.config after rollback."
+            }
+
+            Write-Log "Frontend rollback completed successfully." -Level "INFO"
+        }
+        catch {
+            Write-Log "Error during frontend rollback: $_" -Level "ERROR"
+        }
+    }
+    elseif (-not $backendOnly) {
+        Write-Log "No frontend backup found at $frontendBackupPath. Cannot rollback frontend." -Level "WARN"
+    }
+
+    # Rollback backend if needed
+    if (-not $frontendOnly -and $backendBackupPath -and (Test-Path $backendBackupPath)) {
+        Write-Log "Rolling back backend deployment..." -Level "INFO"
+
+        try {
+            # Preserve web.config if it exists
+            $backendWebConfig = $null
+            if (Test-Path -Path "$env:WEBAPI_DEPLOYMENT_PATH\web.config") {
+                $backendWebConfig = Get-Content "$env:WEBAPI_DEPLOYMENT_PATH\web.config"
+                Write-Log "Preserved backend web.config for rollback."
+            }
+
+            # Clear current deployment directory
+            Get-ChildItem -Path $env:WEBAPI_DEPLOYMENT_PATH -Recurse |
+                Where-Object { $_.FullName -ne "$env:WEBAPI_DEPLOYMENT_PATH\web.config" } |
+                Remove-Item -Recurse -Force
+            Write-Log "Cleaned backend deployment directory for rollback."
+
+            # Copy backup files
+            Copy-Item -Path "$backendBackupPath\*" -Destination $env:WEBAPI_DEPLOYMENT_PATH -Recurse -Force
+            Write-Log "Restored backend files from backup."
+
+            # Restore preserved web.config if needed
+            if ($backendWebConfig) {
+                Set-Content -Path "$env:WEBAPI_DEPLOYMENT_PATH\web.config" -Value $backendWebConfig
+                Write-Log "Restored backend web.config after rollback."
+            }
+
+            Write-Log "Backend rollback completed successfully." -Level "INFO"
+        }
+        catch {
+            Write-Log "Error during backend rollback: $_" -Level "ERROR"
+        }
+    }
+    elseif (-not $frontendOnly) {
+        Write-Log "No backend backup found at $backendBackupPath. Cannot rollback backend." -Level "WARN"
+    }
+
+    # Start IIS services after rollback
+    try {
+        Write-Log "Starting IIS services after rollback..." -Level "INFO"
+
+        # Start app pool first
+        Start-WebAppPool -Name $appPoolName -ErrorAction Stop
+        Write-Log "Application Pool $appPoolName started after rollback."
+
+        # Then start websites
+        if (-not $backendOnly) {
+            Start-Website -Name $frontendSiteName -ErrorAction Stop
+            Write-Log "Frontend website $frontendSiteName started after rollback."
+        }
+
+        if (-not $frontendOnly -and $backendSiteName -ne $frontendSiteName) {
+            Start-Website -Name $backendSiteName -ErrorAction Stop
+            Write-Log "Backend website $backendSiteName started after rollback."
+        }
+    }
+    catch {
+        Write-Log "Warning: Could not start all IIS services after rollback: $_" -Level "WARN"
+    }
+
+    Write-Log "Deployment rollback completed." -Level "WARN"
+}
 # Function to handle errors
 function Handle-Error {
     param (
@@ -36,6 +186,8 @@ function Handle-Error {
     # Return false to indicate failure
     return $false
 }
+
+
 
 # Initialize log file
 if (Test-Path $logFile) {
@@ -264,7 +416,8 @@ if (-not $frontendOnly) {
         Write-Log "Created WebAPI deployment directory."
     }
 }
-
+$currentFrontendBackup = $null
+$currentBackendBackup = $null
 # Backup current deployment (optional)
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $backupRoot = $env:BACKUP_DIR
@@ -277,6 +430,8 @@ if ($backupRoot -and (Test-Path $backupRoot)) {
         try {
             Copy-Item -Path $env:REACT_DEPLOYMENT_PATH -Destination $reactBackupPath -Recurse -Force
             Write-Log "React app backed up to $reactBackupPath"
+              # Store the backup path for potential rollback
+              $currentFrontendBackup = $reactBackupPath
         } catch {
             Write-Log "Failed to backup React app: $_" -Level "WARN"
         }
@@ -287,6 +442,7 @@ if ($backupRoot -and (Test-Path $backupRoot)) {
         try {
             Copy-Item -Path $env:WEBAPI_DEPLOYMENT_PATH -Destination $webApiBackupPath -Recurse -Force
             Write-Log "WebAPI backed up to $webApiBackupPath"
+            $currentBackendBackup = $webApiBackupPath
         } catch {
             Write-Log "Failed to backup WebAPI: $_" -Level "WARN"
         }
@@ -428,7 +584,72 @@ if (-not $frontendOnly) {
         }
     } catch {
         Handle-Error -Operation "WebAPI files deployment" -ErrorRecord $_
+        if ($currentFrontendBackup -or $currentBackendBackup) {
+            Write-Log "Attempting to rollback deployment due to errors..." -Level "WARN"
+            Rollback-Deployment -frontendOnly:$frontendOnly -backendOnly:$backendOnly -frontendBackupPath $currentFrontendBackup -backendBackupPath $currentBackendBackup
+        }
         exit 1
+    }
+
+    # Verify configuration files
+    Write-Log "Verifying configuration files..."
+
+    # Check for essential configuration files
+    $requiredConfigFiles = @(
+        "appsettings.json",
+        "nlog.config",
+        "app.config"
+    )
+
+    $missingFiles = @()
+    foreach ($file in $requiredConfigFiles) {
+        $filePath = Join-Path -Path $env:WEBAPI_DEPLOYMENT_PATH -ChildPath $file
+        if (-not (Test-Path -Path $filePath)) {
+            $missingFiles += $file
+            Write-Log "MISSING CONFIG FILE: $file" -Level "ERROR"
+        }
+    }
+
+    # If any files are missing, try to recover them
+    if ($missingFiles.Count -gt 0) {
+        Write-Log "Attempting to recover missing configuration files..." -Level "WARN"
+
+        # Try to find configuration files in the build directory
+        foreach ($file in $missingFiles) {
+            $buildFilePath = Join-Path -Path $env:WEBAPI_BUILD_PATH -ChildPath $file
+            $deployFilePath = Join-Path -Path $env:WEBAPI_DEPLOYMENT_PATH -ChildPath $file
+
+            if (Test-Path -Path $buildFilePath) {
+                Write-Log "Copying $file from build directory..." -Level "INFO"
+                Copy-Item -Path $buildFilePath -Destination $deployFilePath -Force
+            } else {
+                # Check for config backup location if defined
+                if ($env:CONFIG_BACKUP_PATH -and (Test-Path -Path $env:CONFIG_BACKUP_PATH)) {
+                    $backupFilePath = Join-Path -Path $env:CONFIG_BACKUP_PATH -ChildPath $file
+
+                    if (Test-Path -Path $backupFilePath) {
+                        Write-Log "Copying $file from backup directory..." -Level "INFO"
+                        Copy-Item -Path $backupFilePath -Destination $deployFilePath -Force
+                    }
+                }
+            }
+        }
+
+        # Double-check if we recovered all files
+        $stillMissing = @()
+        foreach ($file in $missingFiles) {
+            $filePath = Join-Path -Path $env:WEBAPI_DEPLOYMENT_PATH -ChildPath $file
+            if (-not (Test-Path -Path $filePath)) {
+                $stillMissing += $file
+            }
+        }
+
+        if ($stillMissing.Count -gt 0) {
+            Write-Log "Still missing essential configuration files: $($stillMissing -join ', ')" -Level "ERROR"
+            Write-Log "Application may fail to start due to missing configuration!" -Level "ERROR"
+        } else {
+            Write-Log "All configuration files recovered successfully" -Level "INFO"
+        }
     }
 }
 
