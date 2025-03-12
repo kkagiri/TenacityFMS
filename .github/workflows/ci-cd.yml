@@ -34,10 +34,10 @@ jobs:
           Write-Host "Package files changed: $packageChanged"
         shell: powershell
 
-  deploy-frontend:
+  deploy-frontend-only:
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' }}
-    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed != 'True' }}
+    runs-on: [self-hosted, Windows, X64, HYFMS]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -86,10 +86,10 @@ jobs:
           )
         shell: cmd
 
-  deploy-backend:
+  deploy-backend-only:
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.backend-changed == 'True' }}
-    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    if: ${{ needs.detect-changes.outputs.backend-changed == 'True' && needs.detect-changes.outputs.frontend-changed != 'True' }}
+    runs-on: [self-hosted, Windows, X64, HYFMS]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -128,7 +128,7 @@ jobs:
   deploy-both:
     needs: detect-changes
     if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed == 'True' }}
-    runs-on: [self-hosted, Windows, X64, HY-FMS]
+    runs-on: [self-hosted, Windows, X64, HYFMS]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
