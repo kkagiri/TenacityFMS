@@ -5,7 +5,7 @@ on:
       - productionv1
 jobs:
   detect-changes:
-    runs-on: [self-hosted, Windows, X64, HYFMS]
+    runs-on: [self-hosted, Windows, X64, HY-FMS]
     outputs:
       frontend-changed: ${{ steps.check-changes.outputs.frontend-changed }}
       backend-changed: ${{ steps.check-changes.outputs.backend-changed }}
