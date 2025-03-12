@@ -15,7 +15,7 @@ public class HealthController : ControllerBase
         try
         {
             // You can add more checks here (e.g., database connection)
-            return Ok(new { Status = "OK", Timestamp = DateTime.UtcNow });
+            return Ok(new { Status = "OK", Timestamp = DateTime.UtcNow, Message = "FMS.WebClient is up and running" });
         }
         catch (Exception ex)
         {
