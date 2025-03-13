@@ -1,7 +1,7 @@
 # Function to parse the deploy.config file and set environment variables
 function Load-DeployConfig {
     param(
-        [string]$ConfigPath = "./deploy.config"
+        [string]$ConfigPath = "./deployment/deploy.config"
     )
 
     Write-Host "Loading configuration from $ConfigPath"
