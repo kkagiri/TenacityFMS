@@ -8,14 +8,9 @@ on:
         default: 'full'
         type: choice
         options:
-        - full
-        - frontend
-        - backend
-      buildOnServer:
-        description: 'Build on server'
-        required: true
-        default: 'true'
-        type: boolean
+          - full
+          - frontend
+          - backend
 
 jobs:
   manual-deployment:
@@ -28,25 +23,31 @@ jobs:
         if: ${{ inputs.deploymentType == 'frontend' }}
         run: |
           echo "Running frontend-only deployment test..."
-          powershell -File ./deploy.ps1 -frontendOnly -logFile "./frontend_test_deploy_log.txt"
+          powershell -File ./deploy.ps1 -frontendOnly
           echo "Test deployment completed with exit code %ERRORLEVEL%"
-          powershell -Command "Get-Content -Path './frontend_test_deploy_log.txt' -Tail 10"
+          
+          echo "Recent deployment log:"
+          powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName -Tail 10 }"
         shell: cmd
 
       - name: Execute deployment (Backend only)
         if: ${{ inputs.deploymentType == 'backend' }}
         run: |
           echo "Running backend-only deployment test..."
-          powershell -File ./deploy.ps1 -backendOnly -buildOnServer -logFile "./backend_test_deploy_log.txt"
+          powershell -File ./deploy.ps1 -backendOnly
           echo "Test deployment completed with exit code %ERRORLEVEL%"
-          powershell -Command "Get-Content -Path './backend_test_deploy_log.txt' -Tail 10"
+          
+          echo "Recent deployment log:"
+          powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName -Tail 10 }"
         shell: cmd
 
       - name: Execute deployment (Full)
         if: ${{ inputs.deploymentType == 'full' }}
         run: |
           echo "Running full deployment test..."
-          powershell -File ./deploy.ps1 -buildOnServer -logFile "./full_test_deploy_log.txt"
+          powershell -File ./deploy.ps1
           echo "Test deployment completed with exit code %ERRORLEVEL%"
-          powershell -Command "Get-Content -Path './full_test_deploy_log.txt' -Tail 10"
+          
+          echo "Recent deployment log:"
+          powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName -Tail 10 }"
         shell: cmd
