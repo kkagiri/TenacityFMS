@@ -1,9 +1,25 @@
+#Deploy.ps1
+#PS script to deploy the application to the server
+#This script is responsible for building and deploying the frontend and backend components of the application to the server. It takes several parameters to control the deployment process, such as whether to deploy only the frontend or backend, whether to build the projects on the server, and the log file path. The script imports several supporting modules for logging, notifications, rollback, error handling, IIS operations, and deployment logic. It also loads configuration values from a separate configuration file.
+
 param (
     [switch]$frontendOnly,
     [switch]$backendOnly,
-    [string]$logFile = "./deployment_log.txt",
-    [switch]$buildOnServer # New parameter to control whether to build on server
+    [string]$logFile = ""
 )
+
+# Generate timestamp-based log file if none provided
+if ([string]::IsNullOrEmpty($logFile)) {
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    # Create logs directory if it doesn't exist
+    $logDir = "./logs"
+    if (-not (Test-Path -Path $logDir)) {
+        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+    }
+
+    # Set log file with timestamp
+    $logFile = "$logDir/deployment_log_$timestamp.txt"
+}
 
 # Import supporting modules
 . ./deployment/logging.ps1
@@ -14,27 +30,18 @@ param (
 . ./deployment/deployment.ps1
 . ./deployment/config-loader.ps1
 
-# Initialize log file from environment variable if set
-if ($env:logFile) {
-    $logFile = $env:logFile
-}
-
 # Create log directory if it doesn't exist
 $logDir = Split-Path -Path $logFile -Parent
 if (-not (Test-Path -Path $logDir)) {
     New-Item -Path $logDir -ItemType Directory -Force | Out-Null
 }
 
-# Initialize log file
-if (Test-Path $logFile) {
-    Add-Content -Path $logFile -Value "`n------ New Deployment Started $(Get-Date) ------`n"
-} else {
-    New-Item -Path $logFile -ItemType File -Force | Out-Null
-    Add-Content -Path $logFile -Value "------ Deployment Log Created $(Get-Date) ------`n"
-}
+# Initialize log file - always create a new one
+New-Item -Path $logFile -ItemType File -Force | Out-Null
+Add-Content -Path $logFile -Value "------ Deployment Log Created $(Get-Date) ------`n"
 
 # Record deployment parameters
-Write-Log -Message "Deployment started with parameters: frontendOnly=$frontendOnly, backendOnly=$backendOnly, buildOnServer=$buildOnServer" -LogFile $logFile
+Write-Log -Message "Deployment started with parameters: frontendOnly=$frontendOnly, backendOnly=$backendOnly, logFile=$logFile" -LogFile $logFile
 
 # Load configuration
 try {
@@ -62,85 +69,7 @@ if (-not $env:BACKEND_SITE_NAME) {
     Write-Log -Message "Using frontend site name for backend: $env:BACKEND_SITE_NAME" -LogFile $logFile
 }
 
-# Build projects on server if requested
-if ($buildOnServer) {
-    # Build React app if needed
-    if (-not $backendOnly) {
-        Write-Log -Message "Building React application on server..." -LogFile $logFile
-        try {
-            # Get the frontend source directory (parent of build path)
-            $frontendSourceDir = Split-Path $env:REACT_BUILD_PATH -Parent
-            if (Test-Path -Path "$frontendSourceDir/package.json") {
-                # Go to frontend directory
-                Push-Location $frontendSourceDir
-                Write-Log -Message "Changed directory to $frontendSourceDir" -LogFile $logFile
-
-                # Check if node_modules exists, install dependencies if not
-                if (-not (Test-Path -Path "node_modules")) {
-                    Write-Log -Message "Installing npm dependencies..." -LogFile $logFile
-                    & npm ci
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "npm ci failed with exit code $LASTEXITCODE"
-                    }
-                }
-
-                # Build React app
-                Write-Log -Message "Building React app with npm run build..." -LogFile $logFile
-                & npm run build
-                if ($LASTEXITCODE -ne 0) {
-                    throw "npm run build failed with exit code $LASTEXITCODE"
-                }
-
-                Write-Log -Message "React build completed successfully" -LogFile $logFile
-                Pop-Location
-            } else {
-                Write-Log -Message "Frontend source directory does not contain package.json at $frontendSourceDir" -Level "WARN" -LogFile $logFile
-            }
-        } catch {
-            Pop-Location
-            Handle-Error -Operation "React build" -ErrorRecord $_ -LogFile $logFile
-            exit 1
-        }
-    }
-
-    # Build .NET WebAPI if needed
-    if (-not $frontendOnly) {
-        Write-Log -Message "Building .NET WebAPI on server..." -LogFile $logFile
-        try {
-            # Determine WebAPI project directory
-            $webApiProjectDir = "FMS.WebClient"
-            if (-not (Test-Path -Path $webApiProjectDir)) {
-                $webApiProjectDir = Split-Path $env:WEBAPI_BUILD_PATH -Parent
-            }
-
-            if (Test-Path -Path "$webApiProjectDir/*.csproj") {
-                # Go to WebAPI directory
-                Push-Location $webApiProjectDir
-                Write-Log -Message "Changed directory to $webApiProjectDir" -LogFile $logFile
-
-                # Run dotnet publish
-                Write-Log -Message "Publishing .NET WebAPI with dotnet publish..." -LogFile $logFile
-                & dotnet publish -c Release -o $env:WEBAPI_BUILD_PATH
-                if ($LASTEXITCODE -ne 0) {
-                    throw "dotnet publish failed with exit code $LASTEXITCODE"
-                }
-
-                Write-Log -Message ".NET WebAPI build completed successfully" -LogFile $logFile
-                Pop-Location
-
-                # Verify the build output
-                $fileCount = (Get-ChildItem -Path $env:WEBAPI_BUILD_PATH -Recurse).Count
-                Write-Log -Message "WebAPI build output contains $fileCount files" -LogFile $logFile
-            } else {
-                Write-Log -Message "WebAPI project directory does not contain .csproj files at $webApiProjectDir" -Level "WARN" -LogFile $logFile
-            }
-        } catch {
-            Pop-Location
-            Handle-Error -Operation ".NET WebAPI build" -ErrorRecord $_ -LogFile $logFile
-            exit 1
-        }
-    }
-}
+# Note: Build functionality removed as all builds will be done on the backend
 
 # Validate paths
 $pathsValid = Validate-DeploymentPaths -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
@@ -230,6 +159,9 @@ $deploymentSummary = Generate-DeploymentSummary -FrontendOnly $frontendOnly -Bac
 
 # Send success notification with summary
 Send-Notification -Subject "Deployment Completed Successfully" -Body $deploymentSummary -IncludeLog -LogFile $logFile
+
+# Write log file path to console for easy access
+Write-Host "Deployment log saved to: $((Get-Item $logFile).FullName)" -ForegroundColor Green
 
 # Return success exit code
 exit 0
