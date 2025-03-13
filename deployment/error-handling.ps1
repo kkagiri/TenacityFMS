@@ -58,18 +58,6 @@ function Validate-DeploymentPaths {
                                 $npmInstallOutput = (npm ci) 2>&1
                                 Write-Log -Message "NPM install completed: $npmInstallOutput" -Level "INFO" -LogFile $LogFile
                             }
-            } catch {
-                Write-Log -Message "Error creating WebAPI publish directory: $_" -Level "ERROR" -LogFile $LogFile
-                $pathsValid = $false
-            }
-        } else {
-            $fileCount = (Get-ChildItem -Path $env:WEBAPI_BUILD_PATH -Recurse | Measure-Object).Count
-            Write-Log -Message "WebAPI build path exists with $fileCount files" -Level "INFO" -LogFile $LogFile
-        }
-    }
-
-    return $pathsValid
-}
 
                             # Run the build command
                             Write-Log -Message "Building React app..." -Level "INFO" -LogFile $LogFile
@@ -98,8 +86,8 @@ function Validate-DeploymentPaths {
                 $pathsValid = $false
             }
         } else {
-           $fileCount = (Get-ChildItem -Path $env:REACT_BUILD_PATH -Recurse | Measure-Object).Count
-                Write-Log -Message "React build path exists with $fileCount files" -Level "INFO" -LogFile $LogFile
+            $fileCount = (Get-ChildItem -Path $env:REACT_BUILD_PATH -Recurse | Measure-Object).Count
+            Write-Log -Message "React build path exists with $fileCount files" -Level "INFO" -LogFile $LogFile
         }
     }
 
@@ -149,3 +137,101 @@ function Validate-DeploymentPaths {
                     # Return to the original location
                     Set-Location -Path $currentLocation
                 }
+            } catch {
+                Write-Log -Message "Error creating WebAPI publish directory: $_" -Level "ERROR" -LogFile $LogFile
+                $pathsValid = $false
+            }
+        } else {
+            $fileCount = (Get-ChildItem -Path $env:WEBAPI_BUILD_PATH -Recurse | Measure-Object).Count
+            Write-Log -Message "WebAPI build path exists with $fileCount files" -Level "INFO" -LogFile $LogFile
+        }
+    }
+
+    return $pathsValid
+}
+
+# Check if a process is running
+function Check-ProcessRunning {
+    param (
+        [string]$ProcessName,
+        [string]$LogFile = "./deployment_log.txt"
+    )
+
+    $process = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
+
+    if ($process) {
+        Write-Log -Message "Process '$ProcessName' is running" -Level "INFO" -LogFile $LogFile
+        return $true
+    } else {
+        Write-Log -Message "Process '$ProcessName' is not running" -Level "INFO" -LogFile $LogFile
+        return $false
+    }
+}
+
+# Check if files are locked
+function Check-FilesLocked {
+    param (
+        [string]$Path,
+        [string]$LogFile = "./deployment_log.txt"
+    )
+
+    $lockedFiles = @()
+
+    try {
+        Write-Log -Message "Checking for locked files in $Path..." -Level "INFO" -LogFile $LogFile
+
+        if (Test-Path -Path $Path) {
+            Get-ChildItem -Path $Path -Recurse -File | ForEach-Object {
+                try {
+                    $fileStream = [System.IO.File]::Open($_.FullName, 'Open', 'Read', 'None')
+                    $fileStream.Close()
+                    $fileStream.Dispose()
+                } catch {
+                    $lockedFiles += $_.FullName
+                    Write-Log -Message "Found locked file: $($_.FullName)" -Level "WARN" -LogFile $LogFile
+                }
+            }
+        } else {
+            Write-Log -Message "Path does not exist: $Path" -Level "WARN" -LogFile $LogFile
+        }
+    } catch {
+        Write-Log -Message "Error checking for locked files: $_" -Level "ERROR" -LogFile $LogFile
+    }
+
+    if ($lockedFiles.Count -gt 0) {
+        Write-Log -Message "Found $($lockedFiles.Count) locked files" -Level "WARN" -LogFile $LogFile
+        return $lockedFiles
+    } else {
+        Write-Log -Message "No locked files found" -Level "INFO" -LogFile $LogFile
+        return $null
+    }
+}
+
+# Verify configuration files
+function Verify-ConfigFiles {
+    param (
+        [string]$Path,
+        [string[]]$RequiredFiles,
+        [string]$LogFile = "./deployment_log.txt"
+    )
+
+    $missingFiles = @()
+
+    Write-Log -Message "Verifying configuration files in $Path..." -Level "INFO" -LogFile $LogFile
+
+    foreach ($file in $RequiredFiles) {
+        $filePath = Join-Path -Path $Path -ChildPath $file
+        if (-not (Test-Path -Path $filePath)) {
+            $missingFiles += $file
+            Write-Log -Message "Missing required file: $file" -Level "WARN" -LogFile $LogFile
+        }
+    }
+
+    if ($missingFiles.Count -gt 0) {
+        Write-Log -Message "Found $($missingFiles.Count) missing files: $($missingFiles -join ', ')" -Level "WARN" -LogFile $LogFile
+        return $missingFiles
+    } else {
+        Write-Log -Message "All required configuration files are present" -Level "INFO" -LogFile $LogFile
+        return $null
+    }
+}
