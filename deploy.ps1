@@ -5,21 +5,9 @@
 param (
     [switch]$frontendOnly,
     [switch]$backendOnly,
-    [string]$logFile = ""
+    [string]$logFile = "./deployment_log.txt",
+    [switch]$buildOnServer # New parameter to control whether to build on server
 )
-
-# Generate timestamp-based log file if none provided
-if ([string]::IsNullOrEmpty($logFile)) {
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    # Create logs directory if it doesn't exist
-    $logDir = "./logs"
-    if (-not (Test-Path -Path $logDir)) {
-        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
-    }
-
-    # Set log file with timestamp
-    $logFile = "$logDir/deployment_log_$timestamp.txt"
-}
 
 # Import supporting modules
 . ./deployment/logging.ps1
