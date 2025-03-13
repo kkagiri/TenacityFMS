@@ -85,10 +85,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Publish .NET Web API
+      - name: Check .NET Web API project
         run: |
-          cd FMS.WebClient
-          powershell -File ./deploy.ps1 -logFile "./full_deploy_log.txt" -buildOnServer $true
+          echo "Using pre-built .NET Web API project"
+          if exist "FMS.WebClient" (
+            echo "FMS.WebClient directory found"
+          ) else (
+            echo "Warning: FMS.WebClient directory not found"
+          )
         shell: cmd
 
       - name: Deploy backend
@@ -126,27 +130,18 @@ jobs:
 
       - name: Check project directories
         run: |
-          cd fms.frontend
-          npm ci
-        shell: cmd
+          echo "Using pre-built projects"
+          if exist "fms.frontend" (
+            echo "fms.frontend directory found"
+          ) else (
+            echo "Warning: fms.frontend directory not found"
+          )
 
-      - name: Skip dependencies installation (using cached node_modules)
-        if: ${{ needs.detect-changes.outputs.package-changed != 'True' }}
-        run: |
-          echo "Skipping npm ci - no changes to package.json or package-lock.json detected"
-        shell: cmd
-
-      - name: Build React app
-        run: |
-          cd fms.frontend
-          npm run build
-        shell: cmd
-
-      - name: Publish .NET Web API
-        run: |
-          cd FMS.WebClient
-          powershell -File ./deploy.ps1 -logFile "./full_deploy_log.txt" -buildOnServer $true
-
+          if exist "FMS.WebClient" (
+            echo "FMS.WebClient directory found"
+          ) else (
+            echo "Warning: FMS.WebClient directory not found"
+          )
         shell: cmd
 
       - name: Run full deploy script
