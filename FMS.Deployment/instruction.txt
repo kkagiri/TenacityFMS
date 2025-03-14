@@ -1,0 +1,187 @@
+Create a new C# .NET Core Console Application
+
+Open Visual Studio or use the dotnet new CLI command
+Name the project HyoungFMS.Deployment
+Target .NET 8.0
+
+
+Add Required NuGet Packages
+
+Microsoft.Extensions.Configuration
+Microsoft.Extensions.Configuration.Json
+Microsoft.Extensions.Configuration.EnvironmentVariables
+Microsoft.Extensions.Configuration.CommandLine
+Microsoft.Extensions.DependencyInjection
+Microsoft.Extensions.Logging
+Microsoft.Web.Administration (for IIS management)
+Serilog (including Serilog.Sinks.File and Serilog.Sinks.Email)
+CommandLineParser (for parameter parsing)
+
+
+
+2. Create the Project Structure
+
+Create Folders
+
+/Interfaces - For interface definitions
+/Services - For service implementations
+/Models - For data models
+
+
+Create Initial Configuration Files
+
+appsettings.json - Main configuration
+appsettings.development.json - Development environment config
+appsettings.production.json - Production environment config
+
+
+
+3. Define Core Interfaces
+
+Create IDeploymentService.cs
+
+Define the main deployment orchestration interface
+Include methods for executing deployments with frontend/backend flags
+
+
+Create IIISManager.cs
+
+Define methods for managing IIS components
+Include methods for stopping/starting services and releasing locks
+
+
+Create IFileManager.cs
+
+Define methods for file operations
+Include methods for backups, deployments, and builds
+
+
+Create INotificationService.cs
+
+Define methods for sending notifications
+Include methods for success and error notifications
+
+
+
+4. Create Model Classes
+
+Create CommandLineOptions.cs
+
+Define command-line parameters like frontendOnly and backendOnly
+Add help text for each parameter
+
+
+Create DeploymentSummary.cs
+
+Define properties for deployment summary information
+Include timing, file counts, and success status
+
+
+
+5. Implement Service Classes
+
+Create DeploymentService.cs
+
+Implement the main deployment orchestration
+Coordinate IIS, file, and notification operations
+
+
+Create IISManager.cs
+
+Implement IIS service management using Microsoft.Web.Administration
+Include fallbacks using appcmd.exe for reliability
+
+
+Create FileManager.cs
+
+Implement file operations using robocopy for reliability
+Handle special cases like web.config preservation
+
+
+Create EmailNotificationService.cs
+
+Implement email notifications
+Include log attachment capabilities
+
+
+
+6. Create Main Program File
+
+Update Program.cs
+
+Set up configuration
+Configure dependency injection
+Handle command-line parsing
+Set up logging with Serilog
+Implement main execution flow
+
+
+
+7. Configure Application Settings
+
+Configure appsettings.json
+
+Add deployment paths
+Add IIS settings
+Add email notification settings
+Add health check settings
+Add build settings
+
+
+
+8. Create Supporting Scripts
+
+Create deployment.cmd
+
+Wrapper script for command-line usage
+Include common command-line options
+
+
+Create install.ps1
+
+PowerShell script to install the deployment tool
+Set up necessary permissions
+
+
+
+9. Create GitHub Actions Integration
+
+Update GitHub Workflow YAML File
+
+Modify to call the new deployment application
+Pass the right parameters based on detected changes
+
+
+
+10. Testing and Deployment
+
+Test in Development Environment
+
+Verify frontend-only deployment
+Verify backend-only deployment
+Verify full deployment
+Test error handling and notifications
+
+
+Deploy to Production
+
+Install the application on the production server
+Configure with production settings
+Update GitHub Actions to use the new tool
+
+
+
+11. Documentation
+
+Create README.md
+
+Include usage instructions
+Document configuration options
+Explain integration with GitHub Actions
+
+
+Create Troubleshooting Guide
+
+Common issues and solutions
+Log file locations
+Error code explanations

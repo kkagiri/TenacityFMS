@@ -1,0 +1,912 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Mail;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Web.Administration;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.Email;
+using CommandLine;
+
+namespace HyoungFMS.Deployment
+{
+    class Program
+    {
+        static async Task<int> Main(string[] args)
+        {
+            // Define command line options
+            var parser = new CommandLine.Parser(with => with.HelpWriter = Console.Error);
+            var result = parser.ParseArguments<CommandLineOptions>(args);
+
+            return await result.MapResult(
+                async options => await RunDeploymentAsync(options),
+                _ => Task.FromResult(1) // Invalid options, error code 1
+            );
+        }
+
+        private static async Task<int> Main(CommandLineOptions options)
+        {
+            // Create timestamp for logging
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            // Set up configuration
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ENVIRONMENT")}.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            // Determine log file path
+            string logFilePath = configuration["LogSettings:FilePath"] ?? $"./logs/deployment_log_{timestamp}.txt";
+            Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
+
+            // Set up logging
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+            var serviceProvider = ConfigureServices(configuration);
+            var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+
+            try
+            {
+                logger.LogInformation("Starting deployment process");
+                logger.LogInformation($"Deployment parameters: FrontendOnly={options.FrontendOnly}, BackendOnly={options.BackendOnly}");
+
+                // Create deployment service
+                var deploymentService = serviceProvider.GetRequiredService<IDeploymentService>();
+
+                // Execute deployment
+                bool success = await deploymentService.ExecuteDeploymentAsync(options.FrontendOnly, options.BackendOnly);
+
+                if (success)
+                {
+                    logger.LogInformation("Deployment completed successfully");
+                    return 0;
+                }
+                else
+                {
+                    logger.LogError("Deployment failed");
+                    return 1;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "Fatal error during deployment");
+                await SendErrorNotificationAsync(configuration, ex, logFilePath);
+                return 1;
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
+        }
+
+        private static IServiceProvider ConfigureServices(IConfiguration configuration)
+        {
+            var services = new ServiceCollection();
+
+            // Add logging
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.AddSerilog(dispose: true);
+            });
+
+            // Add configuration
+            services.AddSingleton(configuration);
+
+            // Add services
+            services.AddTransient<IIISManager, IISManager>();
+            services.AddTransient<IFileManager, FileManager>();
+            services.AddTransient<INotificationService, EmailNotificationService>();
+            services.AddTransient<IDeploymentService, DeploymentService>();
+
+            // Add HttpClient
+            services.AddHttpClient();
+
+            return services.BuildServiceProvider();
+        }
+
+        private static async Task SendErrorNotificationAsync(IConfiguration configuration, Exception ex, string logFilePath)
+        {
+            try
+            {
+                string smtpServer = configuration["EmailSettings:SmtpServer"];
+                int smtpPort = int.Parse(configuration["EmailSettings:SmtpPort"] ?? "25");
+                bool useSsl = bool.Parse(configuration["EmailSettings:UseSsl"] ?? "false");
+                string username = configuration["EmailSettings:Username"];
+                string password = configuration["EmailSettings:Password"];
+                string from = configuration["EmailSettings:From"];
+                string to = configuration["EmailSettings:To"];
+
+                if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(from) || string.IsNullOrEmpty(to))
+                {
+                    return;
+                }
+
+                using var client = new SmtpClient(smtpServer, smtpPort)
+                {
+                    EnableSsl = useSsl
+                };
+
+                if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                {
+                    client.Credentials = new NetworkCredential(username, password);
+                }
+
+                var message = new MailMessage
+                {
+                    From = new MailAddress(from),
+                    Subject = $"DEPLOYMENT ERROR: {Environment.MachineName} - {DateTime.Now}",
+                    Body = $"A fatal error occurred during deployment:\n\n{ex}\n\nSee log file for details: {logFilePath}",
+                    IsBodyHtml = false
+                };
+
+                foreach (var recipient in to.Split(',', ';'))
+                {
+                    message.To.Add(recipient.Trim());
+                }
+
+                // Attach log file if it exists
+                if (File.Exists(logFilePath))
+                {
+                    message.Attachments.Add(new Attachment(logFilePath));
+                }
+
+                await client.SendMailAsync(message);
+            }
+            catch
+            {
+                // Fail silently - we don't want errors in error handling
+            }
+        }
+    }
+
+    public class CommandLineOptions
+    {
+        [Option('f', "frontend-only", Required = false, HelpText = "Deploy only the frontend component")]
+        public bool FrontendOnly { get; set; }
+
+        [Option('b', "backend-only", Required = false, HelpText = "Deploy only the backend component")]
+        public bool BackendOnly { get; set; }
+
+        [Option('l', "log-file", Required = false, HelpText = "Custom log file path")]
+        public string LogFile { get; set; }
+    }
+
+    #region Interfaces
+
+    public interface IDeploymentService
+    {
+        Task<bool> ExecuteDeploymentAsync(bool frontendOnly, bool backendOnly);
+    }
+
+    public interface IIISManager
+    {
+        Task<bool> StopRequiredServicesAsync(bool frontendOnly, bool backendOnly);
+        Task<bool> StartRequiredServicesAsync(bool frontendOnly, bool backendOnly);
+        Task ReleaseLogDirectoryLocksAsync();
+    }
+
+    public interface IFileManager
+    {
+        Task<bool> BackupCurrentDeploymentAsync(bool frontendOnly, bool backendOnly);
+        Task<bool> DeployFrontendAsync();
+        Task<bool> DeployBackendAsync();
+        Task<bool> BuildFrontendAsync();
+        Task<bool> BuildBackendAsync();
+    }
+
+    public interface INotificationService
+    {
+        Task SendDeploymentNotificationAsync(DeploymentSummary summary, bool success);
+        Task SendErrorNotificationAsync(Exception ex);
+    }
+
+    #endregion
+
+    #region Implementation Classes
+
+    public class DeploymentService : IDeploymentService
+    {
+        private readonly ILogger<DeploymentService> _logger;
+        private readonly IConfiguration _config;
+        private readonly IIISManager _iisManager;
+        private readonly IFileManager _fileManager;
+        private readonly INotificationService _notificationService;
+        private readonly HttpClient _httpClient;
+        private readonly DateTime _startTime;
+
+        public DeploymentService(
+            ILogger<DeploymentService> logger,
+            IConfiguration config,
+            IIISManager iisManager,
+            IFileManager fileManager,
+            INotificationService notificationService,
+            IHttpClientFactory httpClientFactory)
+        {
+            _logger = logger;
+            _config = config;
+            _iisManager = iisManager;
+            _fileManager = fileManager;
+            _notificationService = notificationService;
+            _httpClient = httpClientFactory.CreateClient();
+            _startTime = DateTime.Now;
+        }
+
+        public async Task<bool> ExecuteDeploymentAsync(bool frontendOnly, bool backendOnly)
+        {
+            string deploymentType = DetermineDeploymentType(frontendOnly, backendOnly);
+            _logger.LogInformation($"Starting {deploymentType} deployment");
+
+            try
+            {
+                // 1. Stop IIS services
+                _logger.LogInformation("Stopping IIS services");
+                if (!await _iisManager.StopRequiredServicesAsync(frontendOnly, backendOnly))
+                {
+                    _logger.LogWarning("Failed to completely stop IIS services, will try to proceed anyway");
+                    await _iisManager.ReleaseLogDirectoryLocksAsync();
+
+                    // Add a pause to give IIS more time to release locks
+                    _logger.LogInformation("Waiting 10 seconds for processes to release file handles");
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+                }
+
+                // 2. Backup current deployment
+                _logger.LogInformation("Backing up current deployment");
+                await _fileManager.BackupCurrentDeploymentAsync(frontendOnly, backendOnly);
+
+                // 3. Deploy components based on parameters
+                bool deploymentSuccess = true;
+
+                if (!backendOnly)
+                {
+                    _logger.LogInformation("Starting frontend deployment");
+                    // Build frontend if needed
+                    if (bool.Parse(_config["BuildSettings:BuildFrontendOnServer"] ?? "false"))
+                    {
+                        if (!await _fileManager.BuildFrontendAsync())
+                        {
+                            _logger.LogError("Frontend build failed");
+                            return false;
+                        }
+                    }
+
+                    // Deploy frontend
+                    if (!await _fileManager.DeployFrontendAsync())
+                    {
+                        _logger.LogError("Frontend deployment failed");
+                        return false;
+                    }
+                    _logger.LogInformation("Frontend deployment completed successfully");
+                }
+                else
+                {
+                    _logger.LogInformation("Skipping frontend deployment (backendOnly flag is set)");
+                }
+
+                if (!frontendOnly)
+                {
+                    _logger.LogInformation("Starting backend deployment");
+                    // Build backend if needed
+                    if (bool.Parse(_config["BuildSettings:BuildBackendOnServer"] ?? "false"))
+                    {
+                        if (!await _fileManager.BuildBackendAsync())
+                        {
+                            _logger.LogError("Backend build failed");
+                            return false;
+                        }
+                    }
+
+                    // Deploy backend
+                    if (!await _fileManager.DeployBackendAsync())
+                    {
+                        _logger.LogError("Backend deployment failed");
+                        return false;
+                    }
+                    _logger.LogInformation("Backend deployment completed successfully");
+                }
+                else
+                {
+                    _logger.LogInformation("Skipping backend deployment (frontendOnly flag is set)");
+                }
+
+                // 4. Start IIS services
+                _logger.LogInformation("Starting IIS services");
+                if (!await _iisManager.StartRequiredServicesAsync(frontendOnly, backendOnly))
+                {
+                    _logger.LogWarning("Failed to start all IIS services, application may not be fully functional");
+                }
+
+                // 5. Perform health check
+                bool healthCheckSuccess = await PerformHealthCheckAsync();
+                if (!healthCheckSuccess)
+                {
+                    _logger.LogWarning("Health checks failed. Consider manual verification.");
+                }
+
+                // 6. Generate deployment summary
+                var summary = GenerateDeploymentSummary(frontendOnly, backendOnly, deploymentSuccess, healthCheckSuccess);
+
+                // 7. Send notification
+                await _notificationService.SendDeploymentNotificationAsync(summary, deploymentSuccess && healthCheckSuccess);
+
+                return deploymentSuccess && healthCheckSuccess;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"{deploymentType} deployment failed with error");
+                await _notificationService.SendErrorNotificationAsync(ex);
+                return false;
+            }
+        }
+
+        private string DetermineDeploymentType(bool frontendOnly, bool backendOnly)
+        {
+            if (frontendOnly) return "Frontend Only";
+            if (backendOnly) return "Backend Only";
+            return "Full (Frontend and Backend)";
+        }
+
+        private async Task<bool> PerformHealthCheckAsync()
+        {
+            string healthCheckUrl = _config["DeploymentSettings:HealthCheckUrl"];
+            if (string.IsNullOrEmpty(healthCheckUrl))
+            {
+                _logger.LogInformation("No health check URL configured, skipping health check");
+                return true;
+            }
+
+            _logger.LogInformation($"Performing health check against: {healthCheckUrl}");
+            int retryCount = int.Parse(_config["DeploymentSettings:HealthCheckRetries"] ?? "3");
+            int retryDelaySeconds = int.Parse(_config["DeploymentSettings:HealthCheckRetryDelay"] ?? "5");
+
+            for (int i = 0; i < retryCount; i++)
+            {
+                try
+                {
+                    _logger.LogInformation($"Health check attempt {i + 1} of {retryCount}");
+                    var response = await _httpClient.GetAsync(healthCheckUrl);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation($"Health check passed: Status {(int)response.StatusCode}");
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Health check returned non-200 status: {(int)response.StatusCode}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Health check failed");
+                }
+
+                if (i < retryCount - 1)
+                {
+                    _logger.LogInformation($"Waiting {retryDelaySeconds} seconds before next retry");
+                    await Task.Delay(TimeSpan.FromSeconds(retryDelaySeconds));
+                }
+            }
+
+            _logger.LogError("All health checks failed. Deployment may be unstable.");
+            return false;
+        }
+
+        private DeploymentSummary GenerateDeploymentSummary(bool frontendOnly, bool backendOnly, bool deploymentSuccess, bool healthCheckSuccess)
+        {
+            string deploymentType = DetermineDeploymentType(frontendOnly, backendOnly);
+            DateTime endTime = DateTime.Now;
+            TimeSpan duration = endTime - _startTime;
+
+            int frontendFileCount = 0;
+            int backendFileCount = 0;
+
+            // Count files in deployment directories
+            if (!backendOnly && !string.IsNullOrEmpty(_config["DeploymentSettings:ReactDeploymentPath"]))
+            {
+                string reactPath = _config["DeploymentSettings:ReactDeploymentPath"];
+                if (Directory.Exists(reactPath))
+                {
+                    frontendFileCount = Directory.GetFiles(reactPath, "*", SearchOption.AllDirectories).Length;
+                }
+            }
+
+            if (!frontendOnly && !string.IsNullOrEmpty(_config["DeploymentSettings:WebApiDeploymentPath"]))
+            {
+                string webApiPath = _config["DeploymentSettings:WebApiDeploymentPath"];
+                if (Directory.Exists(webApiPath))
+                {
+                    backendFileCount = Directory.GetFiles(webApiPath, "*", SearchOption.AllDirectories).Length;
+                }
+            }
+
+            return new DeploymentSummary
+            {
+                DeploymentType = deploymentType,
+                StartTime = _startTime,
+                EndTime = endTime,
+                Duration = duration,
+                Success = deploymentSuccess,
+                HealthCheckSuccess = healthCheckSuccess,
+                Environment = _config["DeploymentSettings:Environment"],
+                ServerName = Environment.MachineName,
+                FrontendSite = _config["DeploymentSettings:IisSiteName"],
+                BackendSite = _config["DeploymentSettings:BackendSiteName"],
+                ApplicationPool = _config["DeploymentSettings:IisAppPool"],
+                FrontendFileCount = frontendFileCount,
+                BackendFileCount = backendFileCount
+            };
+        }
+    }
+
+    public class IISManager : IIISManager
+    {
+        private readonly ILogger<IISManager> _logger;
+        private readonly IConfiguration _config;
+
+        public IISManager(ILogger<IISManager> logger, IConfiguration config)
+        {
+            _logger = logger;
+            _config = config;
+        }
+
+        public async Task<bool> StopRequiredServicesAsync(bool frontendOnly, bool backendOnly)
+        {
+            _logger.LogInformation("Performing complete IIS shutdown");
+
+            if (!IsAdministrator())
+            {
+                _logger.LogWarning("Not running as Administrator. IIS operations will likely fail.");
+            }
+
+            // Use Task.Run to move the blocking IIS operations to a background thread
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using (ServerManager serverManager = new ServerManager())
+                    {
+                        // 1. Stop all running websites first
+                        _logger.LogInformation("Stopping ALL running websites");
+                        foreach (var site in serverManager.Sites)
+                        {
+                            if (site.State == ObjectState.Started)
+                            {
+                                _logger.LogInformation($"Stopping site: {site.Name}");
+                                try
+                                {
+                                    site.Stop();
+                                    _logger.LogInformation($"Successfully stopped site: {site.Name}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, $"Failed to stop site {site.Name}");
+                                    // Try using appcmd as fallback
+                                    TryStopSiteWithAppCmd(site.Name);
+                                }
+                            }
+                        }
+
+                        // 2. Stop all application pools
+                        _logger.LogInformation("Stopping ALL application pools");
+                        foreach (var appPool in serverManager.ApplicationPools)
+                        {
+                            if (appPool.State == ObjectState.Started)
+                            {
+                                _logger.LogInformation($"Stopping application pool: {appPool.Name}");
+                                try
+                                {
+                                    appPool.Stop();
+                                    _logger.LogInformation($"Successfully stopped application pool: {appPool.Name}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, $"Failed to stop application pool {appPool.Name}");
+                                    // Try using appcmd as fallback
+                                    TryStopAppPoolWithAppCmd(appPool.Name);
+                                }
+                            }
+                        }
+
+                        // 3. Verify all sites are stopped
+                        bool allSitesStopped = true;
+                        foreach (var site in serverManager.Sites)
+                        {
+                            if (site.State == ObjectState.Started)
+                            {
+                                _logger.LogWarning($"Site still running: {site.Name}");
+                                allSitesStopped = false;
+                            }
+                        }
+
+                        // 4. Verify all app pools are stopped
+                        bool allPoolsStopped = true;
+                        foreach (var appPool in serverManager.ApplicationPools)
+                        {
+                            if (appPool.State == ObjectState.Started)
+                            {
+                                _logger.LogWarning($"Application pool still running: {appPool.Name}");
+                                allPoolsStopped = false;
+                            }
+                        }
+
+                        // 5. Last resort - kill w3wp.exe processes
+                        if (!allSitesStopped || !allPoolsStopped)
+                        {
+                            _logger.LogWarning("Attempting to terminate IIS worker processes (w3wp.exe)");
+                            try
+                            {
+                                var w3wpProcesses = Process.GetProcessesByName("w3wp");
+                                if (w3wpProcesses.Length > 0)
+                                {
+                                    foreach (var process in w3wpProcesses)
+                                    {
+                                        _logger.LogWarning($"Terminating w3wp process with ID: {process.Id}");
+                                        process.Kill();
+                                        process.WaitForExit(5000);
+                                    }
+                                    _logger.LogInformation("All w3wp processes terminated");
+                                }
+                                else
+                                {
+                                    _logger.LogInformation("No w3wp processes found running");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error terminating w3wp processes");
+                            }
+                        }
+
+                        // 6. Check for file locks on deployment directories
+                        CheckDeploymentDirectoryLocks();
+
+                        if (allSitesStopped && allPoolsStopped)
+                        {
+                            _logger.LogInformation("All IIS components successfully stopped");
+                            return true;
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Some IIS components could not be stopped. Deployment may experience file locking issues.");
+                            return false;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error stopping IIS services");
+                    return false;
+                }
+            });
+        }
+
+        public async Task<bool> StartRequiredServicesAsync(bool frontendOnly, bool backendOnly)
+        {
+            _logger.LogInformation("Starting IIS services");
+
+            string frontendSiteName = _config["DeploymentSettings:IisSiteName"];
+            string backendSiteName = _config["DeploymentSettings:BackendSiteName"] ?? frontendSiteName;
+            string appPoolName = _config["DeploymentSettings:IisAppPool"];
+
+            if (string.IsNullOrEmpty(frontendSiteName) || string.IsNullOrEmpty(appPoolName))
+            {
+                _logger.LogError("Missing required IIS configuration settings");
+                return false;
+            }
+
+            // Use Task.Run to move the blocking IIS operations to a background thread
+            return await Task.Run(() =>
+            {
+                bool allSuccess = true;
+
+                try
+                {
+                    using (ServerManager serverManager = new ServerManager())
+                    {
+                        // 1. Start app pool first
+                        try
+                        {
+                            var appPool = serverManager.ApplicationPools[appPoolName];
+                            if (appPool != null)
+                            {
+                                _logger.LogInformation($"Starting application pool: {appPoolName}");
+                                if (appPool.State != ObjectState.Started)
+                                {
+                                    appPool.Start();
+                                    _logger.LogInformation($"Application pool {appPoolName} started");
+                                }
+                                else
+                                {
+                                    _logger.LogInformation($"Application pool {appPoolName} already started");
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogError($"Application pool {appPoolName} not found");
+                                allSuccess = false;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Error starting application pool {appPoolName}");
+                            allSuccess = false;
+                            // Try using appcmd as fallback
+                            TryStartAppPoolWithAppCmd(appPoolName);
+                        }
+
+                        // 2. Start websites
+                        if (!backendOnly)
+                        {
+                            try
+                            {
+                                var frontendSite = serverManager.Sites[frontendSiteName];
+                                if (frontendSite != null)
+                                {
+                                    _logger.LogInformation($"Starting frontend website: {frontendSiteName}");
+                                    if (frontendSite.State != ObjectState.Started)
+                                    {
+                                        frontendSite.Start();
+                                        _logger.LogInformation($"Frontend website {frontendSiteName} started");
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation($"Frontend website {frontendSiteName} already started");
+                                    }
+                                }
+                                else
+                                {
+                                    _logger.LogError($"Frontend website {frontendSiteName} not found");
+                                    allSuccess = false;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, $"Error starting frontend website {frontendSiteName}");
+                                allSuccess = false;
+                                // Try using appcmd as fallback
+                                TryStartSiteWithAppCmd(frontendSiteName);
+                            }
+                        }
+
+                        if (!frontendOnly && backendSiteName != frontendSiteName)
+                        {
+                            try
+                            {
+                                var backendSite = serverManager.Sites[backendSiteName];
+                                if (backendSite != null)
+                                {
+                                    _logger.LogInformation($"Starting backend website: {backendSiteName}");
+                                    if (backendSite.State != ObjectState.Started)
+                                    {
+                                        backendSite.Start();
+                                        _logger.LogInformation($"Backend website {backendSiteName} started");
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation($"Backend website {backendSiteName} already started");
+                                    }
+                                }
+                                else
+                                {
+                                    _logger.LogError($"Backend website {backendSiteName} not found");
+                                    allSuccess = false;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, $"Error starting backend website {backendSiteName}");
+                                allSuccess = false;
+                                // Try using appcmd as fallback
+                                TryStartSiteWithAppCmd(backendSiteName);
+                            }
+                        }
+                    }
+
+                    if (!allSuccess)
+                    {
+                        _logger.LogWarning("Some IIS services could not be started. Application may not be fully functional.");
+                    }
+
+                    return allSuccess;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error starting IIS services");
+                    return false;
+                }
+            });
+        }
+
+        public async Task ReleaseLogDirectoryLocksAsync()
+        {
+            _logger.LogInformation("Attempting to release locks on log directories");
+
+            await Task.Run(() =>
+            {
+                string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
+                if (string.IsNullOrEmpty(webApiDeploymentPath))
+                {
+                    _logger.LogWarning("WebAPI deployment path not configured, skipping log directory lock release");
+                    return;
+                }
+
+                string logDir = Path.Combine(webApiDeploymentPath, "logs");
+                if (!Directory.Exists(logDir))
+                {
+                    _logger.LogInformation($"Log directory does not exist: {logDir}");
+                    return;
+                }
+
+                _logger.LogInformation($"Checking log directory: {logDir}");
+
+                try
+                {
+                    // Try to create and delete a test file
+                    string testFile = Path.Combine(logDir, "_test_delete_me.tmp");
+                    File.WriteAllText(testFile, "Test");
+                    File.Delete(testFile);
+                    _logger.LogInformation("Log directory appears accessible");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Log directory appears locked");
+
+                    try
+                    {
+                        // Try to handle each log file specifically
+                        foreach (var file in Directory.GetFiles(logDir, "*", SearchOption.AllDirectories))
+                        {
+                            try
+                            {
+                                // Force GC to release any handles
+                                GC.Collect();
+                                GC.WaitForPendingFinalizers();
+
+                                // Try to rename the file temporarily to release locks
+                                string tempName = $"{file}.old";
+                                if (File.Exists(tempName))
+                                {
+                                    File.Delete(tempName);
+                                }
+                                File.Move(file, tempName);
+                                File.Move(tempName, file);
+
+                                _logger.LogInformation($"Successfully released locks on: {Path.GetFileName(file)}");
+                            }
+                            catch (Exception fileEx)
+                            {
+                                _logger.LogWarning(fileEx, $"Could not release locks on: {Path.GetFileName(file)}");
+                            }
+                        }
+                    }
+                    catch (Exception dirEx)
+                    {
+                        _logger.LogError(dirEx, "Error processing log files");
+                    }
+
+                    // Last resort - try to use robocopy to clear the directory
+                    try
+                    {
+                        string tempDir = $"{logDir}.temp";
+                        if (!Directory.Exists(tempDir))
+                        {
+                            Directory.CreateDirectory(tempDir);
+                        }
+
+                        // Use Process to run robocopy
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = "robocopy.exe",
+                            Arguments = $"\"{tempDir}\" \"{logDir}\" /MIR /R:1 /W:1",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+
+                        using var process = Process.Start(startInfo);
+                        var output = process.StandardOutput.ReadToEnd();
+                        var error = process.StandardError.ReadToEnd();
+                        process.WaitForExit();
+
+                        _logger.LogInformation($"Robocopy output: {output}");
+                        if (!string.IsNullOrEmpty(error))
+                        {
+                            _logger.LogWarning($"Robocopy error: {error}");
+                        }
+
+                        // Clean up temp dir
+                        Directory.Delete(tempDir, true);
+                        _logger.LogInformation("Used robocopy to clear locked log directory");
+                    }
+                    catch (Exception robocopyEx)
+                    {
+                        _logger.LogError(robocopyEx, "Failed to use robocopy to clear log directory");
+                    }
+                }
+            });
+        }
+
+        private void CheckDeploymentDirectoryLocks()
+        {
+            string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
+            string reactDeploymentPath = _config["DeploymentSettings:ReactDeploymentPath"];
+
+            var pathsToCheck = new List<string>();
+
+            if (!string.IsNullOrEmpty(webApiDeploymentPath) && Directory.Exists(webApiDeploymentPath))
+            {
+                pathsToCheck.Add(webApiDeploymentPath);
+            }
+
+            if (!string.IsNullOrEmpty(reactDeploymentPath) && Directory.Exists(reactDeploymentPath))
+            {
+                pathsToCheck.Add(reactDeploymentPath);
+            }
+
+            foreach (var path in pathsToCheck)
+            {
+                _logger.LogInformation($"Checking for file locks on deployment directory: {path}");
+                try
+                {
+                    // Try to create a temporary file to check if directory is locked
+                    string testFilePath = Path.Combine(path, "_locktest.tmp");
+                    File.WriteAllText(testFilePath, "Test file to check for locks");
+                    File.Delete(testFilePath);
+                    _logger.LogInformation($"Directory {path} is accessible and not locked");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Warning: Directory {path} appears to be locked");
+
+                    // Try to identify what's locking the directory if handle.exe is available
+                    try
+                    {
+                        if (File.Exists("handle.exe"))
+                        {
+                            _logger.LogInformation("Checking locks with handle.exe...");
+                            var startInfo = new ProcessStartInfo
+                            {
+                                FileName = "handle.exe",
+                                Arguments = $"\"{path}\"",
+                                RedirectStandardOutput = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
+
+                            using var process = Process.Start(startInfo);
+                            var output = process.StandardOutput.ReadToEnd();
+                            process.WaitForExit();
+
+                            _logger.LogInformation($"Handle.exe output: {output}");
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Handle.exe not found. Cannot check locks in detail.");
+                        }
+                    }
+                    catch (Exception handleEx)
+                    {
+                        _logger.LogError(handleEx, "Error checking file locks");
+                    }
+                }
+            }

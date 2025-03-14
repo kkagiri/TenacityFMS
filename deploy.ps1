@@ -1,187 +1,145 @@
-#Deploy.ps1
-#PS script to deploy the application to the server
-#This script is responsible for building and deploying the frontend and backend components of the application to the server. It takes several parameters to control the deployment process, such as whether to deploy only the frontend or backend, whether to build the projects on the server, and the log file path. The script imports several supporting modules for logging, notifications, rollback, error handling, IIS operations, and deployment logic. It also loads configuration values from a separate configuration file.
+# HyoungFMS Deployment Wrapper Script
+# This script ensures the deployment tool runs with administrator privileges
+# and handles command-line arguments for GitHub Actions integration
 
 param (
     [switch]$frontendOnly,
     [switch]$backendOnly,
-    [string]$logFile = ""
+    [string]$environment = "production",
+    [switch]$verbose,
+    [switch]$noBackup,
+    [switch]$skipHealthCheck,
+    [switch]$rollbackOnFailure,
+    [string]$logFile
 )
 
-# Generate timestamp-based log file if none provided
-if ([string]::IsNullOrEmpty($logFile)) {
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    # Create logs directory if it doesn't exist
-    $logDir = "./logs"
-    if (-not (Test-Path -Path $logDir)) {
+# Function to check if running as administrator
+function Test-Administrator {
+    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# Function to run a command with elevated privileges
+function Invoke-ElevatedCommand {
+    param (
+        [string]$Command
+    )
+
+    $deploymentToolPath = "C:\HyoungFMS\Deployment\deployment.cmd"
+
+    # Check if the deployment tool exists at the expected path
+    if (-not (Test-Path $deploymentToolPath)) {
+        Write-Warning "Deployment tool not found at $deploymentToolPath"
+        Write-Host "Checking if we need to install the tool..."
+
+        # Check if we have the installation script
+        $installScriptPath = Join-Path $PSScriptRoot "FMS.Deployment\install.ps1"
+        if (Test-Path $installScriptPath) {
+            Write-Host "Found installation script at $installScriptPath"
+
+            # Run the installation script with elevated privileges
+            Write-Host "Installing deployment tool..."
+            Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$installScriptPath`" -Force" -Verb RunAs -Wait
+
+            # Check if installation was successful
+            if (-not (Test-Path $deploymentToolPath)) {
+                Write-Error "Failed to install deployment tool"
+                exit 1
+            }
+
+            Write-Host "Deployment tool installed successfully"
+        } else {
+            Write-Error "Deployment tool not found and installation script not available"
+            exit 1
+        }
+    }
+
+    # Build the command arguments
+    $cmdArgs = ""
+    if ($frontendOnly) { $cmdArgs += " -f" }
+    if ($backendOnly) { $cmdArgs += " -b" }
+    if ($environment) { $cmdArgs += " -e $environment" }
+    if ($verbose) { $cmdArgs += " -v" }
+    if ($noBackup) { $cmdArgs += " -n" }
+    if ($skipHealthCheck) { $cmdArgs += " -s" }
+    if ($rollbackOnFailure) { $cmdArgs += " -r" }
+    if ($logFile) { $cmdArgs += " -l `"$logFile`"" }
+
+    # Create a log directory in the current location if it doesn't exist
+    $logDir = Join-Path $PSScriptRoot "logs"
+    if (-not (Test-Path $logDir)) {
         New-Item -Path $logDir -ItemType Directory -Force | Out-Null
     }
 
-    # Set log file with timestamp
-    $logFile = "$logDir/deployment_log_$timestamp.txt"
+    # Execute the command with elevated privileges
+    Write-Host "Running deployment command: $deploymentToolPath$cmdArgs"
+
+    if (Test-Administrator) {
+        # Already running as admin, execute directly
+        $process = Start-Process -FilePath $deploymentToolPath -ArgumentList $cmdArgs -NoNewWindow -PassThru -Wait
+    } else {
+        # Need to elevate
+        $process = Start-Process -FilePath $deploymentToolPath -ArgumentList $cmdArgs -Verb RunAs -PassThru -Wait
+    }
+
+    return $process.ExitCode
 }
 
-# Import supporting modules
-. ./deployment/logging.ps1
-. ./deployment/notifications.ps1
-. ./deployment/rollback.ps1
-. ./deployment/error-handling.ps1
-. ./deployment/iis-operations.ps1
-. ./deployment/deployment.ps1
-. ./deployment/config-loader.ps1
-
-# Create log directory if it doesn't exist
-$logDir = Split-Path -Path $logFile -Parent
-if (-not (Test-Path -Path $logDir)) {
-    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
-}
-
-# Initialize log file - always create a new one
-New-Item -Path $logFile -ItemType File -Force | Out-Null
-Add-Content -Path $logFile -Value "------ Deployment Log Created $(Get-Date) ------`n"
-
-# Record deployment parameters
-Write-Log -Message "Deployment started with parameters: frontendOnly=$frontendOnly, backendOnly=$backendOnly, logFile=$logFile" -LogFile $logFile
-
-# Load configuration
+# Main script execution
 try {
-    . ./deployment/config-loader.ps1
-    Write-Log -Message "Configuration loaded successfully" -LogFile $logFile
-} catch {
-    Handle-Error -Operation "configuration loading" -ErrorRecord $_ -LogFile $logFile
-    exit 1
-}
+    # Check if running in GitHub Actions
+    $inGitHubActions = $env:GITHUB_ACTIONS -eq "true"
 
-# Print debug information
-Write-Log -Message "CONFIGURATION VALUES:" -LogFile $logFile
-Write-Log -Message "REACT_BUILD_PATH: $env:REACT_BUILD_PATH" -LogFile $logFile
-Write-Log -Message "WEBAPI_BUILD_PATH: $env:WEBAPI_BUILD_PATH" -LogFile $logFile
-Write-Log -Message "REACT_DEPLOYMENT_PATH: $env:REACT_DEPLOYMENT_PATH" -LogFile $logFile
-Write-Log -Message "WEBAPI_DEPLOYMENT_PATH: $env:WEBAPI_DEPLOYMENT_PATH" -LogFile $logFile
-Write-Log -Message "IIS_SITE_NAME (Frontend): $env:IIS_SITE_NAME" -LogFile $logFile
-Write-Log -Message "IIS_APP_POOL (Shared): $env:IIS_APP_POOL" -LogFile $logFile
-Write-Log -Message "BACKEND_SITE_NAME: $env:BACKEND_SITE_NAME" -LogFile $logFile
-Write-Log -Message "ENVIRONMENT: $env:ENVIRONMENT" -LogFile $logFile
+    if ($inGitHubActions) {
+        Write-Host "Running in GitHub Actions environment"
 
-# Set default values for backend site if not explicitly defined
-if (-not $env:BACKEND_SITE_NAME) {
-    $env:BACKEND_SITE_NAME = $env:IIS_SITE_NAME
-    Write-Log -Message "Using frontend site name for backend: $env:BACKEND_SITE_NAME" -LogFile $logFile
-}
+        # In GitHub Actions, the runner should already have the necessary permissions
+        # We'll use the deployment tool directly
+        $exitCode = Invoke-ElevatedCommand
 
-# Note: Build functionality removed as all builds will be done on the backend
+        if ($exitCode -ne 0) {
+            Write-Error "Deployment failed with exit code $exitCode"
+            exit $exitCode
+        }
 
-# Validate paths
-$pathsValid = Validate-DeploymentPaths -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
+        Write-Host "Deployment completed successfully"
+    } else {
+        Write-Host "Running in local environment"
 
-if (-not $pathsValid) {
-    Write-Log -Message "Deployment aborted due to missing build paths" -Level "ERROR" -LogFile $logFile
-    Send-Notification -Subject "Deployment Aborted" -Body "Deployment aborted due to missing build paths" -Level "ERROR" -IncludeLog -IsError -LogFile $logFile
-    exit 1
-}
+        # Check if running as administrator
+        if (-not (Test-Administrator)) {
+            Write-Warning "Not running as administrator. Attempting to elevate privileges..."
 
-# Record git commit information if available
-try {
-    $gitCommit = git rev-parse HEAD 2>$null
-    $gitBranch = git rev-parse --abbrev-ref HEAD 2>$null
-    if ($gitCommit -and $gitBranch) {
-        Write-Log -Message "Deploying Git commit: $gitCommit on branch: $gitBranch" -LogFile $logFile
+            # Relaunch the script with elevated privileges
+            $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+
+            # Add the original parameters
+            if ($frontendOnly) { $arguments += " -frontendOnly" }
+            if ($backendOnly) { $arguments += " -backendOnly" }
+            if ($environment -ne "production") { $arguments += " -environment `"$environment`"" }
+            if ($verbose) { $arguments += " -verbose" }
+            if ($noBackup) { $arguments += " -noBackup" }
+            if ($skipHealthCheck) { $arguments += " -skipHealthCheck" }
+            if ($rollbackOnFailure) { $arguments += " -rollbackOnFailure" }
+            if ($logFile) { $arguments += " -logFile `"$logFile`"" }
+
+            $process = Start-Process powershell.exe -ArgumentList $arguments -Verb RunAs -PassThru -Wait
+            exit $process.ExitCode
+        } else {
+            # Already running as administrator
+            Write-Host "Running with administrator privileges"
+
+            $exitCode = Invoke-ElevatedCommand
+
+            if ($exitCode -ne 0) {
+                Write-Error "Deployment failed with exit code $exitCode"
+                exit $exitCode
+            }
+
+            Write-Host "Deployment completed successfully"
+        }
     }
 } catch {
-    Write-Log -Message "Unable to retrieve Git information" -Level "WARN" -LogFile $logFile
+    Write-Error "An error occurred: $_"
+    exit 1
 }
-
-# Stop IIS services
-$iisServicesResult = Stop-IISServices  -LogFile $logFile
-if (-not $iisServicesResult) {
-    Write-Log -Message "Warning: Could not completely stop all IIS components. Will try to proceed anyway." -Level "WARN" -LogFile $logFile
-
-    # Try to specifically handle log directory locks
-    Release-LogDirectoryLocks -LogFile $logFile
-
-    # Add a longer delay to give IIS more time
-    Write-Log -Message "Waiting 10 seconds for processes to release file handles..." -Level "INFO" -LogFile $logFile
-    Start-Sleep -Seconds 10
-}
-#Create-DeploymentDirectories -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
-$deploymentSummary = Generate-DeploymentSummary -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
-
-# Backup current deployment
-# $backupPaths = Backup-CurrentDeployment -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
-# $currentFrontendBackup = $backupPaths.FrontendBackup
-# $currentBackendBackup = $backupPaths.BackendBackup
-
-if (-not $backendOnly) {
-    Write-Log -Message "Starting frontend deployment..." -LogFile $logFile
-    try {
-        $frontendDeployResult = Deploy-Frontend -LogFile $logFile
-        if (-not $frontendDeployResult) {
-            Write-Log -Message "Frontend deployment returned a failure status" -Level "ERROR" -LogFile $logFile
-            Send-Notification -Subject "Frontend Deployment Failed" -Body "Frontend deployment failed with status code: false" -Level "ERROR" -IncludeLog -IsError -LogFile $logFile
-            exit 1
-        }
-        Write-Log -Message "Frontend deployment completed successfully" -LogFile $logFile
-    } catch {
-        Handle-Error -Operation "Frontend deployment" -ErrorRecord $_ -LogFile $logFile
-        if ($currentFrontendBackup -or $currentBackendBackup) {
-            Write-Log -Message "Attempting to rollback deployment due to errors..." -Level "WARN" -LogFile $logFile
-            Rollback-Deployment -FrontendOnly $frontendOnly -BackendOnly $backendOnly -FrontendBackupPath $currentFrontendBackup -BackendBackupPath $currentBackendBackup -LogFile $logFile
-        }
-        exit 1
-    }
-} else {
-    Write-Log -Message "Skipping frontend deployment (backendOnly flag is set)" -LogFile $logFile
-}
-
-# Deploy Backend
-if (-not $frontendOnly) {
-    Write-Log -Message "Starting backend deployment..." -LogFile $logFile
-    try {
-        $backendDeployResult = Deploy-Backend -LogFile $logFile
-        if (-not $backendDeployResult) {
-            Write-Log -Message "Backend deployment returned a failure status" -Level "ERROR" -LogFile $logFile
-            Send-Notification -Subject "Backend Deployment Failed" -Body "Backend deployment failed with status code: false" -Level "ERROR" -IncludeLog -IsError -LogFile $logFile
-            exit 1
-        }
-        Write-Log -Message "Backend deployment completed successfully" -LogFile $logFile
-    } catch {
-        Handle-Error -Operation "Backend deployment" -ErrorRecord $_ -LogFile $logFile
-        if ($currentFrontendBackup -or $currentBackendBackup) {
-            Write-Log -Message "Attempting to rollback deployment due to errors..." -Level "WARN" -LogFile $logFile
-            Rollback-Deployment -FrontendOnly $frontendOnly -BackendOnly $backendOnly -FrontendBackupPath $currentFrontendBackup -BackendBackupPath $currentBackendBackup -LogFile $logFile
-        }
-        exit 1
-    }
-} else {
-    Write-Log -Message "Skipping backend deployment (frontendOnly flag is set)" -LogFile $logFile
-}
-
-# Start IIS services
-Start-IISServices -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
-
-# Perform health check
-if ($env:HEALTH_CHECK_URL) {
-    $healthCheckResult = Perform-HealthCheck -LogFile $logFile
-
-    if (-not $healthCheckResult) {
-        Write-Log -Message "Health check failed. Consider manual verification." -Level "WARN" -LogFile $logFile
-
-        # Uncomment to enable automatic rollback on health check failure
-        # if ($currentFrontendBackup -or $currentBackendBackup) {
-        #     Write-Log "Attempting to rollback deployment due to failed health checks..." -Level "WARN" -LogFile $logFile
-        #     Rollback-Deployment -FrontendOnly $frontendOnly -BackendOnly $backendOnly -FrontendBackupPath $currentFrontendBackup -BackendBackupPath $currentBackendBackup -LogFile $logFile
-        # }
-    }
-}
-
-# Generate and log deployment summary
-$deploymentSummary = Generate-DeploymentSummary -FrontendOnly:$frontendOnly -BackendOnly:$backendOnly -LogFile $logFile
-
-# Send success notification with summary
-Send-Notification -Subject "Deployment Completed Successfully" -Body $deploymentSummary -IncludeLog -LogFile $logFile
-
-# Write log file path to console for easy access
-Write-Host "Deployment log saved to: $((Get-Item $logFile).FullName)" -ForegroundColor Green
-
-# Return success exit code
-exit 0
