@@ -92,23 +92,35 @@ try {
 }
 
 # Stop IIS services
-$iisServicesResult = Stop-IISServices -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
+$iisServicesResult = Stop-IISServices  -LogFile $logFile
+if (-not $iisServicesResult) {
+    Write-Log -Message "Warning: Could not completely stop all IIS components. Will try to proceed anyway." -Level "WARN" -LogFile $logFile
 
-# Create deployment directories if needed
-Create-DeploymentDirectories -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
+    # Try to specifically handle log directory locks
+    Release-LogDirectoryLocks -LogFile $logFile
+
+    # Add a longer delay to give IIS more time
+    Write-Log -Message "Waiting 10 seconds for processes to release file handles..." -Level "INFO" -LogFile $logFile
+    Start-Sleep -Seconds 10
+}
+#Create-DeploymentDirectories -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
+$deploymentSummary = Generate-DeploymentSummary -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
 
 # Backup current deployment
-$backupPaths = Backup-CurrentDeployment -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
-$currentFrontendBackup = $backupPaths.FrontendBackup
-$currentBackendBackup = $backupPaths.BackendBackup
+# $backupPaths = Backup-CurrentDeployment -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
+# $currentFrontendBackup = $backupPaths.FrontendBackup
+# $currentBackendBackup = $backupPaths.BackendBackup
 
-# Deploy Frontend
 if (-not $backendOnly) {
+    Write-Log -Message "Starting frontend deployment..." -LogFile $logFile
     try {
         $frontendDeployResult = Deploy-Frontend -LogFile $logFile
         if (-not $frontendDeployResult) {
-            throw "Frontend deployment failed"
+            Write-Log -Message "Frontend deployment returned a failure status" -Level "ERROR" -LogFile $logFile
+            Send-Notification -Subject "Frontend Deployment Failed" -Body "Frontend deployment failed with status code: false" -Level "ERROR" -IncludeLog -IsError -LogFile $logFile
+            exit 1
         }
+        Write-Log -Message "Frontend deployment completed successfully" -LogFile $logFile
     } catch {
         Handle-Error -Operation "Frontend deployment" -ErrorRecord $_ -LogFile $logFile
         if ($currentFrontendBackup -or $currentBackendBackup) {
@@ -117,15 +129,21 @@ if (-not $backendOnly) {
         }
         exit 1
     }
+} else {
+    Write-Log -Message "Skipping frontend deployment (backendOnly flag is set)" -LogFile $logFile
 }
 
 # Deploy Backend
 if (-not $frontendOnly) {
+    Write-Log -Message "Starting backend deployment..." -LogFile $logFile
     try {
         $backendDeployResult = Deploy-Backend -LogFile $logFile
         if (-not $backendDeployResult) {
-            throw "Backend deployment failed"
+            Write-Log -Message "Backend deployment returned a failure status" -Level "ERROR" -LogFile $logFile
+            Send-Notification -Subject "Backend Deployment Failed" -Body "Backend deployment failed with status code: false" -Level "ERROR" -IncludeLog -IsError -LogFile $logFile
+            exit 1
         }
+        Write-Log -Message "Backend deployment completed successfully" -LogFile $logFile
     } catch {
         Handle-Error -Operation "Backend deployment" -ErrorRecord $_ -LogFile $logFile
         if ($currentFrontendBackup -or $currentBackendBackup) {
@@ -134,6 +152,8 @@ if (-not $frontendOnly) {
         }
         exit 1
     }
+} else {
+    Write-Log -Message "Skipping backend deployment (frontendOnly flag is set)" -LogFile $logFile
 }
 
 # Start IIS services
@@ -155,7 +175,7 @@ if ($env:HEALTH_CHECK_URL) {
 }
 
 # Generate and log deployment summary
-$deploymentSummary = Generate-DeploymentSummary -FrontendOnly $frontendOnly -BackendOnly $backendOnly -LogFile $logFile
+$deploymentSummary = Generate-DeploymentSummary -FrontendOnly:$frontendOnly -BackendOnly:$backendOnly -LogFile $logFile
 
 # Send success notification with summary
 Send-Notification -Subject "Deployment Completed Successfully" -Body $deploymentSummary -IncludeLog -LogFile $logFile
