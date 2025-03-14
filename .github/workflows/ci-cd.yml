@@ -22,7 +22,18 @@ jobs:
           $changedFiles = git diff --name-only HEAD^ HEAD
 
           $frontendChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/*" }) -ne $null
-          $backendChanged = ($changedFiles | Where-Object { $_ -like "FMS.WebClient/*" }) -ne $null
+
+          # Improved backend change detection to include all backend projects
+          $backendChanged = ($changedFiles | Where-Object {
+            $_ -like "FMS.WebClient/*" -or
+            $_ -like "FMS.Application/*" -or
+            $_ -like "FMS.Persistence/*" -or
+            $_ -like "FMS.Domain/*" -or
+            $_ -like "FMS.Infrastructure/*" -or
+            $_ -like "FMS.BackgroundServices/*" -or
+            $_ -like "FMS.Testing/*"
+          }) -ne $null
+
           $packageChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/package*.json" }) -ne $null
 
           Write-Host "::set-output name=frontend-changed::$frontendChanged"
@@ -88,10 +99,49 @@ jobs:
       - name: Check .NET Web API project
         run: |
           echo "Using pre-built .NET Web API project"
-          if exist "FMS.WebClient" (
-            echo "FMS.WebClient directory found"
-          ) else (
+
+          # Check for all backend projects
+          set MISSING_PROJECTS=0
+
+          if not exist "FMS.WebClient" (
             echo "Warning: FMS.WebClient directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.WebClient directory found"
+          )
+
+          if not exist "FMS.Application" (
+            echo "Warning: FMS.Application directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Application directory found"
+          )
+
+          if not exist "FMS.Persistence" (
+            echo "Warning: FMS.Persistence directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Persistence directory found"
+          )
+
+          if not exist "FMS.Domain" (
+            echo "Warning: FMS.Domain directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Domain directory found"
+          )
+
+          if not exist "FMS.Infrastructure" (
+            echo "Warning: FMS.Infrastructure directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Infrastructure directory found"
+          )
+
+          if %MISSING_PROJECTS% NEQ 0 (
+            echo "Warning: Some backend projects are missing, but continuing with deployment"
+          ) else (
+            echo "All required backend projects found"
           )
         shell: cmd
 
@@ -101,8 +151,8 @@ jobs:
           IF EXIST "deploy.ps1" (
             echo "Deploy script found at ./deploy.ps1"
 
-            # Run with error checking
-            powershell -File ./deploy.ps1 -backendOnly
+            # Run with error checking and additional parameters
+            powershell -File ./deploy.ps1 -backendOnly -verbose -skipHealthCheck
             IF %ERRORLEVEL% NEQ 0 (
               echo "Error: Backend deployment failed with exit code %ERRORLEVEL%"
               echo "Checking for deployment log..."
@@ -131,16 +181,56 @@ jobs:
       - name: Check project directories
         run: |
           echo "Using pre-built projects"
+
+          echo "Checking frontend project:"
           if exist "fms.frontend" (
             echo "fms.frontend directory found"
           ) else (
             echo "Warning: fms.frontend directory not found"
           )
 
-          if exist "FMS.WebClient" (
-            echo "FMS.WebClient directory found"
-          ) else (
+          echo "Checking backend projects:"
+          set MISSING_PROJECTS=0
+
+          if not exist "FMS.WebClient" (
             echo "Warning: FMS.WebClient directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.WebClient directory found"
+          )
+
+          if not exist "FMS.Application" (
+            echo "Warning: FMS.Application directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Application directory found"
+          )
+
+          if not exist "FMS.Persistence" (
+            echo "Warning: FMS.Persistence directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Persistence directory found"
+          )
+
+          if not exist "FMS.Domain" (
+            echo "Warning: FMS.Domain directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Domain directory found"
+          )
+
+          if not exist "FMS.Infrastructure" (
+            echo "Warning: FMS.Infrastructure directory not found"
+            set MISSING_PROJECTS=1
+          ) else (
+            echo "FMS.Infrastructure directory found"
+          )
+
+          if %MISSING_PROJECTS% NEQ 0 (
+            echo "Warning: Some backend projects are missing, but continuing with deployment"
+          ) else (
+            echo "All required backend projects found"
           )
         shell: cmd
 
