@@ -18,11 +18,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
-using DevExpress.AspNetCore;
-using DevExpress.AspNetCore.Reporting;
-using DevExpress.AspNetCore.Reporting.ReportDesigner.Native.Services;
-using DevExpress.AspNetCore.Reporting.WebDocumentViewer.Native.Services;
-using DevExpress.XtraReports.Web.Extensions;
+
 using FMS.Application;
 using FMS.Application.Command.DatabaseCommand.TagCmd;
 using FMS.Application.MappingProfile;
@@ -50,7 +46,6 @@ using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
 using FMS.PTS.WindowsService.Services.Pump;
-using FMS.WebClient.Report;
 using FMS.WebClient.Util;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
@@ -120,7 +115,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Listen(IPAddress.Any
     , httpsPort, listenOptions =>
     {
-        listenOptions.UseHttps();
+      //  listenOptions.UseHttps();
     });
 });
         var app = builder.Build();
