@@ -14,7 +14,7 @@ namespace HyoungFMS.Deployment.Interfaces
         /// <param name="backendOnly">If true, only backup the backend component</param>
         /// <returns>True if backup was successful, false otherwise</returns>
         Task<bool> BackupCurrentDeploymentAsync(bool frontendOnly, bool backendOnly);
-
+    string GetCurrentVersionNumber();
         /// <summary>
         /// Deploys the frontend component
         /// </summary>

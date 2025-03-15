@@ -34,7 +34,9 @@ namespace HyoungFMS.Deployment.Services
             if (string.IsNullOrEmpty(backupDir))
             {
                 backupDir = Path.Combine(Path.GetTempPath(), "HyoungFMS_Backups");
-                _logger.LogWarning($"Backup directory not configured, using temporary directory: {backupDir}");
+                _logger.LogWarning(
+                    $"Backup directory not configured, using temporary directory: {backupDir}"
+                );
             }
 
             // Create backup directory if it doesn't exist
@@ -67,22 +69,35 @@ namespace HyoungFMS.Deployment.Services
                 }
                 else if (!Directory.Exists(reactDeploymentPath))
                 {
-                    _logger.LogWarning($"Frontend deployment path does not exist: {reactDeploymentPath}");
+                    _logger.LogWarning(
+                        $"Frontend deployment path does not exist: {reactDeploymentPath}"
+                    );
                 }
                 else
                 {
-                    string frontendBackupPath = Path.Combine(backupDir, $"frontend_backup_{timestamp}");
-                    _logger.LogInformation($"Backing up frontend from {reactDeploymentPath} to {frontendBackupPath}");
+                    string frontendBackupPath = Path.Combine(
+                        backupDir,
+                        $"frontend_backup_{timestamp}"
+                    );
+                    _logger.LogInformation(
+                        $"Backing up frontend from {reactDeploymentPath} to {frontendBackupPath}"
+                    );
 
                     try
                     {
                         // Use robocopy for reliable copying
-                        bool frontendBackupSuccess = await RunRobocopyAsync(reactDeploymentPath, frontendBackupPath, "/MIR /R:3 /W:5 /MT:8 /NFL /NDL");
+                        bool frontendBackupSuccess = await RunRobocopyAsync(
+                            reactDeploymentPath,
+                            frontendBackupPath,
+                            "/MIR /R:3 /W:5 /MT:8 /NFL /NDL"
+                        );
 
                         if (frontendBackupSuccess)
                         {
                             _currentFrontendBackup = frontendBackupPath;
-                            _logger.LogInformation($"Frontend backup completed successfully: {frontendBackupPath}");
+                            _logger.LogInformation(
+                                $"Frontend backup completed successfully: {frontendBackupPath}"
+                            );
                         }
                         else
                         {
@@ -109,22 +124,35 @@ namespace HyoungFMS.Deployment.Services
                 }
                 else if (!Directory.Exists(webApiDeploymentPath))
                 {
-                    _logger.LogWarning($"Backend deployment path does not exist: {webApiDeploymentPath}");
+                    _logger.LogWarning(
+                        $"Backend deployment path does not exist: {webApiDeploymentPath}"
+                    );
                 }
                 else
                 {
-                    string backendBackupPath = Path.Combine(backupDir, $"backend_backup_{timestamp}");
-                    _logger.LogInformation($"Backing up backend from {webApiDeploymentPath} to {backendBackupPath}");
+                    string backendBackupPath = Path.Combine(
+                        backupDir,
+                        $"backend_backup_{timestamp}"
+                    );
+                    _logger.LogInformation(
+                        $"Backing up backend from {webApiDeploymentPath} to {backendBackupPath}"
+                    );
 
                     try
                     {
                         // Use robocopy for reliable copying
-                        bool backendBackupSuccess = await RunRobocopyAsync(webApiDeploymentPath, backendBackupPath, "/MIR /R:3 /W:5 /MT:8 /NFL /NDL");
+                        bool backendBackupSuccess = await RunRobocopyAsync(
+                            webApiDeploymentPath,
+                            backendBackupPath,
+                            "/MIR /R:3 /W:5 /MT:8 /NFL /NDL"
+                        );
 
                         if (backendBackupSuccess)
                         {
                             _currentBackendBackup = backendBackupPath;
-                            _logger.LogInformation($"Backend backup completed successfully: {backendBackupPath}");
+                            _logger.LogInformation(
+                                $"Backend backup completed successfully: {backendBackupPath}"
+                            );
                         }
                         else
                         {
@@ -173,21 +201,32 @@ namespace HyoungFMS.Deployment.Services
                 try
                 {
                     Directory.CreateDirectory(reactDeploymentPath);
-                    _logger.LogInformation($"Created frontend deployment directory: {reactDeploymentPath}");
+                    _logger.LogInformation(
+                        $"Created frontend deployment directory: {reactDeploymentPath}"
+                    );
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Failed to create frontend deployment directory: {reactDeploymentPath}");
+                    _logger.LogError(
+                        ex,
+                        $"Failed to create frontend deployment directory: {reactDeploymentPath}"
+                    );
                     return false;
                 }
             }
 
-            _logger.LogInformation($"Deploying frontend from {reactBuildPath} to {reactDeploymentPath}");
+            _logger.LogInformation(
+                $"Deploying frontend from {reactBuildPath} to {reactDeploymentPath}"
+            );
 
             try
             {
                 // Use robocopy for reliable copying
-                bool deploySuccess = await RunRobocopyAsync(reactBuildPath, reactDeploymentPath, "/MIR /R:3 /W:5 /MT:8");
+                bool deploySuccess = await RunRobocopyAsync(
+                    reactBuildPath,
+                    reactDeploymentPath,
+                    "/MIR /R:3 /W:5 /MT:8"
+                );
 
                 if (deploySuccess)
                 {
@@ -233,11 +272,16 @@ namespace HyoungFMS.Deployment.Services
                 try
                 {
                     Directory.CreateDirectory(webApiDeploymentPath);
-                    _logger.LogInformation($"Created backend deployment directory: {webApiDeploymentPath}");
+                    _logger.LogInformation(
+                        $"Created backend deployment directory: {webApiDeploymentPath}"
+                    );
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Failed to create backend deployment directory: {webApiDeploymentPath}");
+                    _logger.LogError(
+                        ex,
+                        $"Failed to create backend deployment directory: {webApiDeploymentPath}"
+                    );
                     return false;
                 }
             }
@@ -250,16 +294,25 @@ namespace HyoungFMS.Deployment.Services
             {
                 // Preserve existing web.config
                 _logger.LogInformation("Preserving existing web.config");
-                tempWebConfig = Path.Combine(Path.GetTempPath(), $"web.config.backup_{DateTime.Now:yyyyMMdd_HHmmss}");
+                tempWebConfig = Path.Combine(
+                    Path.GetTempPath(),
+                    $"web.config.backup_{DateTime.Now:yyyyMMdd_HHmmss}"
+                );
                 File.Copy(destWebConfig, tempWebConfig, true);
             }
 
-            _logger.LogInformation($"Deploying backend from {webApiBuildPath} to {webApiDeploymentPath}");
+            _logger.LogInformation(
+                $"Deploying backend from {webApiBuildPath} to {webApiDeploymentPath}"
+            );
 
             try
             {
                 // Use robocopy for reliable copying
-                bool deploySuccess = await RunRobocopyAsync(webApiBuildPath, webApiDeploymentPath, "/MIR /R:3 /W:5 /MT:8");
+                bool deploySuccess = await RunRobocopyAsync(
+                    webApiBuildPath,
+                    webApiDeploymentPath,
+                    "/MIR /R:3 /W:5 /MT:8"
+                );
 
                 // Restore web.config if needed
                 if (tempWebConfig != null)
@@ -294,7 +347,10 @@ namespace HyoungFMS.Deployment.Services
                     }
                     catch (Exception webConfigEx)
                     {
-                        _logger.LogError(webConfigEx, "Failed to restore web.config after deployment error");
+                        _logger.LogError(
+                            webConfigEx,
+                            "Failed to restore web.config after deployment error"
+                        );
                     }
                 }
 
@@ -305,15 +361,139 @@ namespace HyoungFMS.Deployment.Services
         /// <inheritdoc />
         public async Task<bool> BuildFrontendAsync()
         {
-            _logger.LogInformation("Building frontend is not implemented in this version");
-            return true;
+            _logger.LogInformation("Building frontend using NPM...");
+
+            string frontendPath = _config["BuildSettings:FrontendSourcePath"];
+            if (string.IsNullOrEmpty(frontendPath))
+            {
+                _logger.LogError("Frontend source path not configured");
+                return false;
+            }
+
+            if (!Directory.Exists(frontendPath))
+            {
+                _logger.LogError($"Frontend source path does not exist: {frontendPath}");
+                return false;
+            }
+
+            try
+            {
+                // First run npm install to ensure dependencies are up to date
+                // bool npmInstallSuccess = await RunProcessAsync("npm", "install", frontendPath);
+                // if (!npmInstallSuccess)
+                // {
+                //     _logger.LogError("NPM install failed");
+                //     return false;
+                // }
+
+                // Then run npm build
+                bool npmBuildSuccess = await RunProcessAsync("npm", "run build", frontendPath);
+                if (!npmBuildSuccess)
+                {
+                    _logger.LogError("NPM build failed");
+                    return false;
+                }
+
+                _logger.LogInformation("Frontend build completed successfully");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during frontend build");
+                return false;
+            }
         }
 
         /// <inheritdoc />
         public async Task<bool> BuildBackendAsync()
         {
-            _logger.LogInformation("Building backend is not implemented in this version");
-            return true;
+            _logger.LogInformation("Building backend using dotnet...");
+
+            string backendSolutionPath = _config["BuildSettings:BackendSolutionPath"];
+            if (string.IsNullOrEmpty(backendSolutionPath))
+            {
+                _logger.LogError("Backend solution path not configured");
+                return false;
+            }
+
+            if (!File.Exists(backendSolutionPath))
+            {
+                _logger.LogError($"Backend solution file does not exist: {backendSolutionPath}");
+                return false;
+            }
+
+            string buildConfiguration = _config["BuildSettings:BuildConfiguration"] ?? "Release";
+            string outputPath = _config["DeploymentSettings:WebApiBuildPath"];
+
+            try
+            {
+                // Clean and restore first
+                bool restoreSuccess = await RunProcessAsync(
+                    "dotnet",
+                    $"restore \"{backendSolutionPath}\"",
+                    Path.GetDirectoryName(backendSolutionPath)
+                );
+                if (!restoreSuccess)
+                {
+                    _logger.LogError("Dotnet restore failed");
+                    return false;
+                }
+
+                // Then build with output to the specified directory
+                string buildArgs =
+                    $"build \"{backendSolutionPath}\" --configuration {buildConfiguration} --no-restore";
+                if (!string.IsNullOrEmpty(outputPath))
+                {
+                    buildArgs += $" --output \"{outputPath}\"";
+                }
+
+                bool buildSuccess = await RunProcessAsync(
+                    "dotnet",
+                    buildArgs,
+                    Path.GetDirectoryName(backendSolutionPath)
+                );
+                if (!buildSuccess)
+                {
+                    _logger.LogError("Dotnet build failed");
+                    return false;
+                }
+
+                // Also publish the WebClient project (which is the actual API)
+                string webClientPath = Path.Combine(
+                    Path.GetDirectoryName(backendSolutionPath),
+                    "FMS.WebClient",
+                    "FMS.WebClient.csproj"
+                );
+                if (File.Exists(webClientPath))
+                {
+                    string publishArgs =
+                        $"publish \"{webClientPath}\" --configuration {buildConfiguration} --no-build --output \"{outputPath}\"";
+                    bool publishSuccess = await RunProcessAsync(
+                        "dotnet",
+                        publishArgs,
+                        Path.GetDirectoryName(backendSolutionPath)
+                    );
+                    if (!publishSuccess)
+                    {
+                        _logger.LogError("Dotnet publish failed");
+                        return false;
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        $"WebClient project not found at {webClientPath}. Skipping publish step."
+                    );
+                }
+
+                _logger.LogInformation("Backend build completed successfully");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during backend build");
+                return false;
+            }
         }
 
         /// <inheritdoc />
@@ -323,7 +503,11 @@ namespace HyoungFMS.Deployment.Services
             bool success = true;
 
             // Restore frontend if needed
-            if (!backendOnly && !string.IsNullOrEmpty(_currentFrontendBackup) && Directory.Exists(_currentFrontendBackup))
+            if (
+                !backendOnly
+                && !string.IsNullOrEmpty(_currentFrontendBackup)
+                && Directory.Exists(_currentFrontendBackup)
+            )
             {
                 string reactDeploymentPath = _config["DeploymentSettings:ReactDeploymentPath"];
                 if (string.IsNullOrEmpty(reactDeploymentPath))
@@ -333,12 +517,18 @@ namespace HyoungFMS.Deployment.Services
                 }
                 else
                 {
-                    _logger.LogInformation($"Restoring frontend from {_currentFrontendBackup} to {reactDeploymentPath}");
+                    _logger.LogInformation(
+                        $"Restoring frontend from {_currentFrontendBackup} to {reactDeploymentPath}"
+                    );
 
                     try
                     {
                         // Use robocopy for reliable copying
-                        bool frontendRestoreSuccess = await RunRobocopyAsync(_currentFrontendBackup, reactDeploymentPath, "/MIR /R:3 /W:5 /MT:8");
+                        bool frontendRestoreSuccess = await RunRobocopyAsync(
+                            _currentFrontendBackup,
+                            reactDeploymentPath,
+                            "/MIR /R:3 /W:5 /MT:8"
+                        );
 
                         if (frontendRestoreSuccess)
                         {
@@ -363,7 +553,11 @@ namespace HyoungFMS.Deployment.Services
             }
 
             // Restore backend if needed
-            if (!frontendOnly && !string.IsNullOrEmpty(_currentBackendBackup) && Directory.Exists(_currentBackendBackup))
+            if (
+                !frontendOnly
+                && !string.IsNullOrEmpty(_currentBackendBackup)
+                && Directory.Exists(_currentBackendBackup)
+            )
             {
                 string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
                 if (string.IsNullOrEmpty(webApiDeploymentPath))
@@ -373,12 +567,18 @@ namespace HyoungFMS.Deployment.Services
                 }
                 else
                 {
-                    _logger.LogInformation($"Restoring backend from {_currentBackendBackup} to {webApiDeploymentPath}");
+                    _logger.LogInformation(
+                        $"Restoring backend from {_currentBackendBackup} to {webApiDeploymentPath}"
+                    );
 
                     try
                     {
                         // Use robocopy for reliable copying
-                        bool backendRestoreSuccess = await RunRobocopyAsync(_currentBackendBackup, webApiDeploymentPath, "/MIR /R:3 /W:5 /MT:8");
+                        bool backendRestoreSuccess = await RunRobocopyAsync(
+                            _currentBackendBackup,
+                            webApiDeploymentPath,
+                            "/MIR /R:3 /W:5 /MT:8"
+                        );
 
                         if (backendRestoreSuccess)
                         {
@@ -408,7 +608,9 @@ namespace HyoungFMS.Deployment.Services
         /// <inheritdoc />
         public async Task<bool> CleanupOldBackupsAsync(int maxBackupsToKeep)
         {
-            _logger.LogInformation($"Cleaning up old backups, keeping {maxBackupsToKeep} most recent");
+            _logger.LogInformation(
+                $"Cleaning up old backups, keeping {maxBackupsToKeep} most recent"
+            );
 
             string backupDir = _config["BackupSettings:BackupDirectory"];
             if (string.IsNullOrEmpty(backupDir) || !Directory.Exists(backupDir))
@@ -420,13 +622,15 @@ namespace HyoungFMS.Deployment.Services
             try
             {
                 // Get frontend backups
-                var frontendBackups = Directory.GetDirectories(backupDir, "frontend_backup_*")
+                var frontendBackups = Directory
+                    .GetDirectories(backupDir, "frontend_backup_*")
                     .OrderByDescending(d => d)
                     .Skip(maxBackupsToKeep)
                     .ToList();
 
                 // Get backend backups
-                var backendBackups = Directory.GetDirectories(backupDir, "backend_backup_*")
+                var backendBackups = Directory
+                    .GetDirectories(backupDir, "backend_backup_*")
                     .OrderByDescending(d => d)
                     .Skip(maxBackupsToKeep)
                     .ToList();
@@ -445,7 +649,9 @@ namespace HyoungFMS.Deployment.Services
                     Directory.Delete(backup, true);
                 }
 
-                _logger.LogInformation($"Cleanup completed. Deleted {frontendBackups.Count} frontend backups and {backendBackups.Count} backend backups");
+                _logger.LogInformation(
+                    $"Cleanup completed. Deleted {frontendBackups.Count} frontend backups and {backendBackups.Count} backend backups"
+                );
                 return true;
             }
             catch (Exception ex)
@@ -455,7 +661,11 @@ namespace HyoungFMS.Deployment.Services
             }
         }
 
-        private async Task<bool> RunRobocopyAsync(string source, string destination, string arguments)
+        private async Task<bool> RunRobocopyAsync(
+            string source,
+            string destination,
+            string arguments
+        )
         {
             return await Task.Run(() =>
             {
@@ -468,10 +678,12 @@ namespace HyoungFMS.Deployment.Services
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
                     };
 
-                    _logger.LogInformation($"Running robocopy: {startInfo.FileName} {startInfo.Arguments}");
+                    _logger.LogInformation(
+                        $"Running robocopy: {startInfo.FileName} {startInfo.Arguments}"
+                    );
 
                     using var process = Process.Start(startInfo);
                     var output = process.StandardOutput.ReadToEnd();
@@ -486,7 +698,9 @@ namespace HyoungFMS.Deployment.Services
                     // 4+ = Failure
                     if (process.ExitCode >= 0 && process.ExitCode <= 3)
                     {
-                        _logger.LogInformation($"Robocopy completed with exit code {process.ExitCode}");
+                        _logger.LogInformation(
+                            $"Robocopy completed with exit code {process.ExitCode}"
+                        );
                         _logger.LogDebug($"Robocopy output: {output}");
                         return true;
                     }
@@ -505,5 +719,384 @@ namespace HyoungFMS.Deployment.Services
                 }
             });
         }
+
+        /// <summary>
+        /// Gets the next version number for backups
+        /// </summary>
+        private string GetNextVersionNumber(string backupDir, string prefix)
+        {
+            if (!Directory.Exists(backupDir))
+                return "v1.0.0";
+
+            var versionPattern = new Regex($@"{prefix}_v(\d+)\.(\d+)\.(\d+)");
+            int major = 0,
+                minor = 0,
+                patch = 0;
+
+            // Find existing versions
+            var existingVersions = Directory
+                .GetDirectories(backupDir, $"{prefix}_v*")
+                .Select(d => Path.GetFileName(d))
+                .Where(d => versionPattern.IsMatch(d))
+                .ToList();
+
+            foreach (var version in existingVersions)
+            {
+                var match = versionPattern.Match(version);
+                if (match.Success)
+                {
+                    int currMajor = int.Parse(match.Groups[1].Value);
+                    int currMinor = int.Parse(match.Groups[2].Value);
+                    int currPatch = int.Parse(match.Groups[3].Value);
+
+                    // Find highest version
+                    if (
+                        currMajor > major
+                        || (currMajor == major && currMinor > minor)
+                        || (currMajor == major && currMinor == minor && currPatch > patch)
+                    )
+                    {
+                        major = currMajor;
+                        minor = currMinor;
+                        patch = currPatch;
+                    }
+                }
+            }
+
+            // Increment the patch version
+            patch++;
+
+            // Every 10 patches, increment minor version and reset patch
+            if (patch > 9)
+            {
+                minor++;
+                patch = 0;
+            }
+
+            // Every 10 minor versions, increment major version
+            if (minor > 9)
+            {
+                major++;
+                minor = 0;
+            }
+
+            return $"v{major}.{minor}.{patch}";
+        }
+
+        public string GetCurrentVersionNumber()
+        {
+            return _currentVersionNumber;
+        }
+
+        /// <inheritdoc />
+        public async Task<bool> BackupCurrentDeploymentAsync(bool frontendOnly, bool backendOnly)
+        {
+            _logger.LogInformation("Starting backup of current deployment");
+
+            string backupDir = _config["BackupSettings:BackupDirectory"];
+            if (string.IsNullOrEmpty(backupDir))
+            {
+                backupDir = Path.Combine(Path.GetTempPath(), "HyoungFMS_Backups");
+                _logger.LogWarning(
+                    $"Backup directory not configured, using temporary directory: {backupDir}"
+                );
+            }
+
+            // Create backup directory if it doesn't exist
+            if (!Directory.Exists(backupDir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(backupDir);
+                    _logger.LogInformation($"Created backup directory: {backupDir}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to create backup directory: {backupDir}");
+                    return false;
+                }
+            }
+
+            // Generate version for backup folders
+            _currentVersionNumber = GetNextVersionNumber(backupDir, "backup");
+            _logger.LogInformation($"Using version {_currentVersionNumber} for this backup");
+
+            bool success = true;
+
+            // Backup frontend if needed
+            if (!backendOnly)
+            {
+                string reactDeploymentPath = _config["DeploymentSettings:ReactDeploymentPath"];
+                if (string.IsNullOrEmpty(reactDeploymentPath))
+                {
+                    _logger.LogError("Frontend deployment path not configured");
+                    success = false;
+                }
+                else if (!Directory.Exists(reactDeploymentPath))
+                {
+                    _logger.LogWarning(
+                        $"Frontend deployment path does not exist: {reactDeploymentPath}"
+                    );
+                }
+                else
+                {
+                    string frontendBackupPath = Path.Combine(
+                        backupDir,
+                        $"frontend_backup_{_currentVersionNumber}"
+                    );
+                    _logger.LogInformation(
+                        $"Backing up frontend from {reactDeploymentPath} to {frontendBackupPath}"
+                    );
+
+                    try
+                    {
+                        // Use robocopy for reliable copying
+                        bool frontendBackupSuccess = await RunRobocopyAsync(
+                            reactDeploymentPath,
+                            frontendBackupPath,
+                            "/MIR /R:3 /W:5 /MT:8 /NFL /NDL"
+                        );
+
+                        if (frontendBackupSuccess)
+                        {
+                            _currentFrontendBackup = frontendBackupPath;
+                            _logger.LogInformation(
+                                $"Frontend backup completed successfully: {frontendBackupPath}"
+                            );
+
+                            // Create a version.txt file in the backup to record version and timestamp
+                            string versionFilePath = Path.Combine(
+                                frontendBackupPath,
+                                "version.txt"
+                            );
+                            File.WriteAllText(
+                                versionFilePath,
+                                $"Version: {_currentVersionNumber}\nTimestamp: {DateTime.Now}\nType: Frontend"
+                            );
+                        }
+                        else
+                        {
+                            _logger.LogError("Frontend backup failed");
+                            success = false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during frontend backup");
+                        success = false;
+                    }
+                }
+            }
+
+            // Backup backend if needed
+            if (!frontendOnly)
+            {
+                string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
+                if (string.IsNullOrEmpty(webApiDeploymentPath))
+                {
+                    _logger.LogError("Backend deployment path not configured");
+                    success = false;
+                }
+                else if (!Directory.Exists(webApiDeploymentPath))
+                {
+                    _logger.LogWarning(
+                        $"Backend deployment path does not exist: {webApiDeploymentPath}"
+                    );
+                }
+                else
+                {
+                    string backendBackupPath = Path.Combine(
+                        backupDir,
+                        $"backend_backup_{_currentVersionNumber}"
+                    );
+                    _logger.LogInformation(
+                        $"Backing up backend from {webApiDeploymentPath} to {backendBackupPath}"
+                    );
+
+                    try
+                    {
+                        // Use robocopy for reliable copying
+                        bool backendBackupSuccess = await RunRobocopyAsync(
+                            webApiDeploymentPath,
+                            backendBackupPath,
+                            "/MIR /R:3 /W:5 /MT:8 /NFL /NDL"
+                        );
+
+                        if (backendBackupSuccess)
+                        {
+                            _currentBackendBackup = backendBackupPath;
+                            _logger.LogInformation(
+                                $"Backend backup completed successfully: {backendBackupPath}"
+                            );
+
+                            // Create a version.txt file in the backup to record version and timestamp
+                            string versionFilePath = Path.Combine(backendBackupPath, "version.txt");
+                            File.WriteAllText(
+                                versionFilePath,
+                                $"Version: {_currentVersionNumber}\nTimestamp: {DateTime.Now}\nType: Backend"
+                            );
+                        }
+                        else
+                        {
+                            _logger.LogError("Backend backup failed");
+                            success = false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during backend backup");
+                        success = false;
+                    }
+                }
+            }
+
+            // Clean up old backups
+            int maxBackupsToKeep = int.Parse(_config["BackupSettings:MaxBackupsToKeep"] ?? "5");
+            await CleanupOldBackupsAsync(maxBackupsToKeep);
+
+            return success;
+        }
+
+        /// <inheritdoc />
+        public async Task<bool> CleanupOldBackupsAsync(int maxBackupsToKeep)
+        {
+            _logger.LogInformation(
+                $"Cleaning up old backups, keeping {maxBackupsToKeep} most recent"
+            );
+
+            string backupDir = _config["BackupSettings:BackupDirectory"];
+            if (string.IsNullOrEmpty(backupDir) || !Directory.Exists(backupDir))
+            {
+                _logger.LogWarning("Backup directory not configured or does not exist");
+                return false;
+            }
+
+            try
+            {
+                // Get frontend backups sorted by version (rather than by name)
+                var versionPattern = new Regex(@"frontend_backup_v(\d+)\.(\d+)\.(\d+)");
+                var frontendBackups = Directory
+                    .GetDirectories(backupDir, "frontend_backup_v*")
+                    .Select(d => new
+                    {
+                        Path = d,
+                        Match = versionPattern.Match(Path.GetFileName(d)),
+                    })
+                    .Where(x => x.Match.Success)
+                    .Select(x => new
+                    {
+                        Path = x.Path,
+                        Major = int.Parse(x.Match.Groups[1].Value),
+                        Minor = int.Parse(x.Match.Groups[2].Value),
+                        Patch = int.Parse(x.Match.Groups[3].Value),
+                    })
+                    .OrderByDescending(x => x.Major)
+                    .ThenByDescending(x => x.Minor)
+                    .ThenByDescending(x => x.Patch)
+                    .Skip(maxBackupsToKeep)
+                    .Select(x => x.Path)
+                    .ToList();
+
+                // Get backend backups sorted by version
+                versionPattern = new Regex(@"backend_backup_v(\d+)\.(\d+)\.(\d+)");
+                var backendBackups = Directory
+                    .GetDirectories(backupDir, "backend_backup_v*")
+                    .Select(d => new
+                    {
+                        Path = d,
+                        Match = versionPattern.Match(Path.GetFileName(d)),
+                    })
+                    .Where(x => x.Match.Success)
+                    .Select(x => new
+                    {
+                        Path = x.Path,
+                        Major = int.Parse(x.Match.Groups[1].Value),
+                        Minor = int.Parse(x.Match.Groups[2].Value),
+                        Patch = int.Parse(x.Match.Groups[3].Value),
+                    })
+                    .OrderByDescending(x => x.Major)
+                    .ThenByDescending(x => x.Minor)
+                    .ThenByDescending(x => x.Patch)
+                    .Skip(maxBackupsToKeep)
+                    .Select(x => x.Path)
+                    .ToList();
+
+                // Delete old frontend backups
+                foreach (var backup in frontendBackups)
+                {
+                    _logger.LogInformation($"Deleting old frontend backup: {backup}");
+                    Directory.Delete(backup, true);
+                }
+
+                // Delete old backend backups
+                foreach (var backup in backendBackups)
+                {
+                    _logger.LogInformation($"Deleting old backend backup: {backup}");
+                    Directory.Delete(backup, true);
+                }
+
+                _logger.LogInformation(
+                    $"Cleanup completed. Deleted {frontendBackups.Count} frontend backups and {backendBackups.Count} backend backups"
+                );
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up old backups");
+                return false;
+            }
+        }
+    }
+
+    private async Task<bool> RunProcessAsync(
+        string fileName,
+        string arguments,
+        string workingDirectory
+    )
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    WorkingDirectory = workingDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+
+                _logger.LogInformation(
+                    $"Running process: {fileName} {arguments} in {workingDirectory}"
+                );
+
+                using var process = Process.Start(startInfo);
+                var output = process.StandardOutput.ReadToEnd();
+                var error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0)
+                {
+                    _logger.LogInformation($"Process completed successfully");
+                    _logger.LogDebug($"Process output: {output}");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogError($"Process failed with exit code {process.ExitCode}");
+                    _logger.LogError($"Process error: {error}");
+                    _logger.LogError($"Process output: {output}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error executing process {fileName}");
+                return false;
+            }
+        });
     }
 }

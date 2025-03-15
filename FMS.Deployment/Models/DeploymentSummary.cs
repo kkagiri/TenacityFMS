@@ -3,6 +3,11 @@ using System.Text;
 
 namespace HyoungFMS.Deployment.Models
 {
+
+      /// <summary>
+        /// Version number of this deployment
+        /// </summary>
+        public string VersionNumber { get; set; }
     /// <summary>
     /// Summary information about a deployment
     /// </summary>
@@ -82,6 +87,7 @@ namespace HyoungFMS.Deployment.Models
             var sb = new StringBuilder();
 
             sb.AppendLine("=== DEPLOYMENT SUMMARY ===");
+                        sb.AppendLine($"Version: {VersionNumber}");
             sb.AppendLine($"Deployment Type: {DeploymentType}");
             sb.AppendLine($"Environment: {Environment}");
             sb.AppendLine($"Server: {ServerName}");

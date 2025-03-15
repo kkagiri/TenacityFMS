@@ -28,7 +28,8 @@ namespace HyoungFMS.Deployment.Services
             IIISManager iisManager,
             IFileManager fileManager,
             INotificationService notificationService,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory
+        )
         {
             _logger = logger;
             _config = config;
@@ -58,11 +59,15 @@ namespace HyoungFMS.Deployment.Services
                 _logger.LogInformation("Stopping IIS services");
                 if (!await _iisManager.StopRequiredServicesAsync(frontendOnly, backendOnly))
                 {
-                    _logger.LogWarning("Failed to completely stop IIS services, will try to proceed anyway");
+                    _logger.LogWarning(
+                        "Failed to completely stop IIS services, will try to proceed anyway"
+                    );
                     await _iisManager.ReleaseLogDirectoryLocksAsync();
 
                     // Add a pause to give IIS more time to release locks
-                    _logger.LogInformation("Waiting 10 seconds for processes to release file handles");
+                    _logger.LogInformation(
+                        "Waiting 10 seconds for processes to release file handles"
+                    );
                     await Task.Delay(TimeSpan.FromSeconds(10));
                 }
 
@@ -77,7 +82,7 @@ namespace HyoungFMS.Deployment.Services
                 {
                     _logger.LogInformation("Starting frontend deployment");
                     // Build frontend if needed
-                    if (bool.Parse(_config["BuildSettings:BuildFrontendOnServer"] ?? "false"))
+                    if (bool.Parse(_config["BuildSettings:BuildFrontendOnServer"] ?? "true"))
                     {
                         if (!await _fileManager.BuildFrontendAsync())
                         {
@@ -96,14 +101,16 @@ namespace HyoungFMS.Deployment.Services
                 }
                 else
                 {
-                    _logger.LogInformation("Skipping frontend deployment (backendOnly flag is set)");
+                    _logger.LogInformation(
+                        "Skipping frontend deployment (backendOnly flag is set)"
+                    );
                 }
 
                 if (!frontendOnly)
                 {
                     _logger.LogInformation("Starting backend deployment");
                     // Build backend if needed
-                    if (bool.Parse(_config["BuildSettings:BuildBackendOnServer"] ?? "false"))
+                    if (bool.Parse(_config["BuildSettings:BuildBackendOnServer"] ?? "true"))
                     {
                         if (!await _fileManager.BuildBackendAsync())
                         {
@@ -122,14 +129,18 @@ namespace HyoungFMS.Deployment.Services
                 }
                 else
                 {
-                    _logger.LogInformation("Skipping backend deployment (frontendOnly flag is set)");
+                    _logger.LogInformation(
+                        "Skipping backend deployment (frontendOnly flag is set)"
+                    );
                 }
 
                 // 5. Start IIS services
                 _logger.LogInformation("Starting IIS services");
                 if (!await _iisManager.StartRequiredServicesAsync(frontendOnly, backendOnly))
                 {
-                    _logger.LogWarning("Failed to start all IIS services, application may not be fully functional");
+                    _logger.LogWarning(
+                        "Failed to start all IIS services, application may not be fully functional"
+                    );
                 }
 
                 // 6. Perform health check
@@ -140,10 +151,18 @@ namespace HyoungFMS.Deployment.Services
                 }
 
                 // 7. Generate deployment summary
-                var summary = GenerateDeploymentSummary(frontendOnly, backendOnly, deploymentSuccess, healthCheckSuccess);
+                var summary = GenerateDeploymentSummary(
+                    frontendOnly,
+                    backendOnly,
+                    deploymentSuccess,
+                    healthCheckSuccess
+                );
 
                 // 8. Send notification
-                await _notificationService.SendDeploymentNotificationAsync(summary, deploymentSuccess && healthCheckSuccess);
+                await _notificationService.SendDeploymentNotificationAsync(
+                    summary,
+                    deploymentSuccess && healthCheckSuccess
+                );
 
                 return deploymentSuccess && healthCheckSuccess;
             }
@@ -168,8 +187,12 @@ namespace HyoungFMS.Deployment.Services
                 string reactDeploymentPath = _config["DeploymentSettings:ReactDeploymentPath"];
                 string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
 
-                if (string.IsNullOrEmpty(reactBuildPath) || string.IsNullOrEmpty(webApiBuildPath) ||
-                    string.IsNullOrEmpty(reactDeploymentPath) || string.IsNullOrEmpty(webApiDeploymentPath))
+                if (
+                    string.IsNullOrEmpty(reactBuildPath)
+                    || string.IsNullOrEmpty(webApiBuildPath)
+                    || string.IsNullOrEmpty(reactDeploymentPath)
+                    || string.IsNullOrEmpty(webApiDeploymentPath)
+                )
                 {
                     _logger.LogError("One or more required paths are not configured");
                     return false;
@@ -177,7 +200,8 @@ namespace HyoungFMS.Deployment.Services
 
                 // 2. Check if IIS site and app pool exist
                 string frontendSiteName = _config["DeploymentSettings:IisSiteName"];
-                string backendSiteName = _config["DeploymentSettings:BackendSiteName"] ?? frontendSiteName;
+                string backendSiteName =
+                    _config["DeploymentSettings:BackendSiteName"] ?? frontendSiteName;
                 string appPoolName = _config["DeploymentSettings:IisAppPool"];
 
                 if (string.IsNullOrEmpty(frontendSiteName) || string.IsNullOrEmpty(appPoolName))
@@ -192,7 +216,10 @@ namespace HyoungFMS.Deployment.Services
                     return false;
                 }
 
-                if (frontendSiteName != backendSiteName && !await _iisManager.SiteExistsAsync(backendSiteName))
+                if (
+                    frontendSiteName != backendSiteName
+                    && !await _iisManager.SiteExistsAsync(backendSiteName)
+                )
                 {
                     _logger.LogError($"Backend IIS site '{backendSiteName}' does not exist");
                     return false;
@@ -223,13 +250,17 @@ namespace HyoungFMS.Deployment.Services
                     if (!Directory.Exists(reactDeploymentPath))
                     {
                         Directory.CreateDirectory(reactDeploymentPath);
-                        _logger.LogInformation($"Created frontend deployment directory: {reactDeploymentPath}");
+                        _logger.LogInformation(
+                            $"Created frontend deployment directory: {reactDeploymentPath}"
+                        );
                     }
 
                     if (!Directory.Exists(webApiDeploymentPath))
                     {
                         Directory.CreateDirectory(webApiDeploymentPath);
-                        _logger.LogInformation($"Created backend deployment directory: {webApiDeploymentPath}");
+                        _logger.LogInformation(
+                            $"Created backend deployment directory: {webApiDeploymentPath}"
+                        );
                     }
                 }
                 catch (Exception ex)
@@ -259,11 +290,16 @@ namespace HyoungFMS.Deployment.Services
                 _logger.LogInformation("Stopping IIS services for rollback");
                 if (!await _iisManager.StopRequiredServicesAsync(frontendOnly, backendOnly))
                 {
-                    _logger.LogWarning("Failed to completely stop IIS services for rollback, will try to proceed anyway");
+                    _logger.LogWarning(
+                        "Failed to completely stop IIS services for rollback, will try to proceed anyway"
+                    );
                 }
 
                 // 2. Restore from backup
-                bool restoreSuccess = await _fileManager.RestoreFromBackupAsync(frontendOnly, backendOnly);
+                bool restoreSuccess = await _fileManager.RestoreFromBackupAsync(
+                    frontendOnly,
+                    backendOnly
+                );
 
                 if (!restoreSuccess)
                 {
@@ -271,7 +307,8 @@ namespace HyoungFMS.Deployment.Services
                     await _notificationService.SendCustomNotificationAsync(
                         "Rollback Failed",
                         "Failed to restore from backup during rollback operation. Manual intervention may be required.",
-                        isError: true);
+                        isError: true
+                    );
                     return false;
                 }
 
@@ -279,14 +316,17 @@ namespace HyoungFMS.Deployment.Services
                 _logger.LogInformation("Starting IIS services after rollback");
                 if (!await _iisManager.StartRequiredServicesAsync(frontendOnly, backendOnly))
                 {
-                    _logger.LogWarning("Failed to start all IIS services after rollback, application may not be fully functional");
+                    _logger.LogWarning(
+                        "Failed to start all IIS services after rollback, application may not be fully functional"
+                    );
                 }
 
                 // 4. Send notification
                 await _notificationService.SendCustomNotificationAsync(
                     "Deployment Rolled Back",
                     "The deployment has been rolled back to the previous version due to errors or health check failures.",
-                    isError: false);
+                    isError: false
+                );
 
                 _logger.LogInformation("Rollback completed successfully");
                 return true;
@@ -301,8 +341,10 @@ namespace HyoungFMS.Deployment.Services
 
         private string DetermineDeploymentType(bool frontendOnly, bool backendOnly)
         {
-            if (frontendOnly) return "Frontend Only";
-            if (backendOnly) return "Backend Only";
+            if (frontendOnly)
+                return "Frontend Only";
+            if (backendOnly)
+                return "Backend Only";
             return "Full (Frontend and Backend)";
         }
 
@@ -317,7 +359,9 @@ namespace HyoungFMS.Deployment.Services
 
             _logger.LogInformation($"Performing health check against: {healthCheckUrl}");
             int retryCount = int.Parse(_config["DeploymentSettings:HealthCheckRetries"] ?? "3");
-            int retryDelaySeconds = int.Parse(_config["DeploymentSettings:HealthCheckRetryDelay"] ?? "5");
+            int retryDelaySeconds = int.Parse(
+                _config["DeploymentSettings:HealthCheckRetryDelay"] ?? "5"
+            );
 
             for (int i = 0; i < retryCount; i++)
             {
@@ -328,12 +372,16 @@ namespace HyoungFMS.Deployment.Services
 
                     if (response.IsSuccessStatusCode)
                     {
-                        _logger.LogInformation($"Health check passed: Status {(int)response.StatusCode}");
+                        _logger.LogInformation(
+                            $"Health check passed: Status {(int)response.StatusCode}"
+                        );
                         return true;
                     }
                     else
                     {
-                        _logger.LogWarning($"Health check returned non-200 status: {(int)response.StatusCode}");
+                        _logger.LogWarning(
+                            $"Health check returned non-200 status: {(int)response.StatusCode}"
+                        );
                     }
                 }
                 catch (Exception ex)
@@ -343,7 +391,9 @@ namespace HyoungFMS.Deployment.Services
 
                 if (i < retryCount - 1)
                 {
-                    _logger.LogInformation($"Waiting {retryDelaySeconds} seconds before next retry");
+                    _logger.LogInformation(
+                        $"Waiting {retryDelaySeconds} seconds before next retry"
+                    );
                     await Task.Delay(TimeSpan.FromSeconds(retryDelaySeconds));
                 }
             }
@@ -352,7 +402,12 @@ namespace HyoungFMS.Deployment.Services
             return false;
         }
 
-        private DeploymentSummary GenerateDeploymentSummary(bool frontendOnly, bool backendOnly, bool deploymentSuccess, bool healthCheckSuccess)
+        private DeploymentSummary GenerateDeploymentSummary(
+            bool frontendOnly,
+            bool backendOnly,
+            bool deploymentSuccess,
+            bool healthCheckSuccess
+        )
         {
             string deploymentType = DetermineDeploymentType(frontendOnly, backendOnly);
             DateTime endTime = DateTime.Now;
@@ -360,23 +415,34 @@ namespace HyoungFMS.Deployment.Services
 
             int frontendFileCount = 0;
             int backendFileCount = 0;
+            string versionNumber = _fileManager.GetCurrentVersionNumber() ?? "v0.0.0";
 
             // Count files in deployment directories
-            if (!backendOnly && !string.IsNullOrEmpty(_config["DeploymentSettings:ReactDeploymentPath"]))
+            if (
+                !backendOnly
+                && !string.IsNullOrEmpty(_config["DeploymentSettings:ReactDeploymentPath"])
+            )
             {
                 string reactPath = _config["DeploymentSettings:ReactDeploymentPath"];
                 if (Directory.Exists(reactPath))
                 {
-                    frontendFileCount = Directory.GetFiles(reactPath, "*", SearchOption.AllDirectories).Length;
+                    frontendFileCount = Directory
+                        .GetFiles(reactPath, "*", SearchOption.AllDirectories)
+                        .Length;
                 }
             }
 
-            if (!frontendOnly && !string.IsNullOrEmpty(_config["DeploymentSettings:WebApiDeploymentPath"]))
+            if (
+                !frontendOnly
+                && !string.IsNullOrEmpty(_config["DeploymentSettings:WebApiDeploymentPath"])
+            )
             {
                 string webApiPath = _config["DeploymentSettings:WebApiDeploymentPath"];
                 if (Directory.Exists(webApiPath))
                 {
-                    backendFileCount = Directory.GetFiles(webApiPath, "*", SearchOption.AllDirectories).Length;
+                    backendFileCount = Directory
+                        .GetFiles(webApiPath, "*", SearchOption.AllDirectories)
+                        .Length;
                 }
             }
 
@@ -394,7 +460,7 @@ namespace HyoungFMS.Deployment.Services
                 BackendSite = _config["DeploymentSettings:BackendSiteName"],
                 ApplicationPool = _config["DeploymentSettings:IisAppPool"],
                 FrontendFileCount = frontendFileCount,
-                BackendFileCount = backendFileCount
+                BackendFileCount = backendFileCount,
             };
         }
     }

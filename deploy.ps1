@@ -18,6 +18,130 @@ function Test-Administrator {
     $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     return $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
+function Build-Frontend {
+    param (
+        [string]$Path
+    )
+
+    if (-not (Test-Path $Path)) {
+        Write-Error "Frontend path not found: $Path"
+        return $false
+    }
+
+    Write-Host "Building frontend with NPM..."
+
+
+
+    # Navigate to frontend directory
+    Push-Location $Path
+
+    try {
+        # Install dependencies
+        Write-Host "Installing NPM dependencies..."
+        $npmInstall = Start-Process -FilePath "npm" -ArgumentList "install" -NoNewWindow -PassThru -Wait
+
+        if ($npmInstall.ExitCode -ne 0) {
+            Write-Error "NPM install failed with exit code: $($npmInstall.ExitCode)"
+            Pop-Location
+            return $false
+        }
+
+        # Build the project
+        Write-Host "Building frontend project..."
+        $npmBuild = Start-Process -FilePath "npm" -ArgumentList "run build" -NoNewWindow -PassThru -Wait
+
+        if ($npmBuild.ExitCode -ne 0) {
+            Write-Error "NPM build failed with exit code: $($npmBuild.ExitCode)"
+            Pop-Location
+            return $false
+        }
+
+        Write-Host "Frontend build completed successfully"
+        Pop-Location
+        return $true
+    } catch {
+        Write-Error "An error occurred during frontend build: $_"
+        Pop-Location
+        return $false
+    }
+}
+
+# Function to build backend with dotnet
+function Build-Backend {
+    param (
+        [string]$SolutionPath
+    )
+
+    if (-not (Test-Path $SolutionPath)) {
+        Write-Error "Backend solution not found: $SolutionPath"
+        return $false
+    }
+
+    Write-Host "Building backend with dotnet..."
+
+    # Check if dotnet is installed
+    try {
+        $dotnetVersion = dotnet --version
+        Write-Host "Using .NET SDK version: $dotnetVersion"
+    } catch {
+        Write-Error ".NET SDK not found. Please install .NET SDK."
+        return $false
+    }
+
+    # Get solution directory
+    $solutionDir = Split-Path -Parent $SolutionPath
+
+    # Navigate to solution directory
+    Push-Location $solutionDir
+
+    try {
+        # Restore packages
+        Write-Host "Restoring NuGet packages..."
+        $dotnetRestore = Start-Process -FilePath "dotnet" -ArgumentList "restore `"$SolutionPath`"" -NoNewWindow -PassThru -Wait
+
+        if ($dotnetRestore.ExitCode -ne 0) {
+            Write-Error "Dotnet restore failed with exit code: $($dotnetRestore.ExitCode)"
+            Pop-Location
+            return $false
+        }
+
+        # Build solution
+        Write-Host "Building backend solution..."
+        $dotnetBuild = Start-Process -FilePath "dotnet" -ArgumentList "build `"$SolutionPath`" --configuration Release --no-restore" -NoNewWindow -PassThru -Wait
+
+        if ($dotnetBuild.ExitCode -ne 0) {
+            Write-Error "Dotnet build failed with exit code: $($dotnetBuild.ExitCode)"
+            Pop-Location
+            return $false
+        }
+
+        # Find the WebClient project
+        $webClientProject = Join-Path (Split-Path -Parent $SolutionPath) "FMS.WebClient\FMS.WebClient.csproj"
+        if (Test-Path $webClientProject) {
+            # Publish WebClient project
+            Write-Host "Publishing WebClient project..."
+            $outputPath = Join-Path $PSScriptRoot "build\webapi"
+            $dotnetPublish = Start-Process -FilePath "dotnet" -ArgumentList "publish `"$webClientProject`" --configuration Release --no-build --output `"$outputPath`"" -NoNewWindow -PassThru -Wait
+
+            if ($dotnetPublish.ExitCode -ne 0) {
+                Write-Error "Dotnet publish failed with exit code: $($dotnetPublish.ExitCode)"
+                Pop-Location
+                return $false
+            }
+        } else {
+            Write-Warning "WebClient project not found at expected path. Skipping publish step."
+        }
+
+        Write-Host "Backend build completed successfully"
+        Pop-Location
+        return $true
+    } catch {
+        Write-Error "An error occurred during backend build: $_"
+        Pop-Location
+        return $false
+    }
+}
+
 
 # Function to run a command with elevated privileges
 function Invoke-ElevatedCommand {

@@ -27,11 +27,11 @@ namespace HyoungFMS.Deployment.Services
         /// <inheritdoc />
         public async Task SendDeploymentNotificationAsync(DeploymentSummary summary, bool success)
         {
-            string subject = success
-                ? $"Deployment Completed Successfully - {summary.DeploymentType} - {summary.Environment}"
-                : $"Deployment Failed - {summary.DeploymentType} - {summary.Environment}";
+           string subject = success
+        ? $"Deployment {summary.VersionNumber} Completed Successfully - {summary.DeploymentType} - {summary.Environment}"
+        : $"Deployment {summary.VersionNumber} Failed - {summary.DeploymentType} - {summary.Environment}";
 
-            string body = $@"
+    string body = $@"
 <html>
 <head>
     <style>
@@ -45,12 +45,13 @@ namespace HyoungFMS.Deployment.Services
     </style>
 </head>
 <body>
-    <h2>Deployment {(success ? "<span class='success'>Completed Successfully</span>" : "<span class='failure'>Failed</span>")}</h2>
+    <h2>Deployment {summary.VersionNumber} {(success ? "<span class='success'>Completed Successfully</span>" : "<span class='failure'>Failed</span>")}</h2>
 
     <div class='summary'>
         <h3>Deployment Summary</h3>
         <table>
             <tr><th>Property</th><th>Value</th></tr>
+            <tr><td>Version</td><td><strong>{summary.VersionNumber}</strong></td></tr>
             <tr><td>Deployment Type</td><td>{summary.DeploymentType}</td></tr>
             <tr><td>Environment</td><td>{summary.Environment}</td></tr>
             <tr><td>Server</td><td>{summary.ServerName}</td></tr>
