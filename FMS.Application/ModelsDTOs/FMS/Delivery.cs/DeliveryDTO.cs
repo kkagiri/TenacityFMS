@@ -15,7 +15,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs
 
         [Ignore]
         [JsonIgnore]
-        public string Site { get; set; } = null!;
+        public string? Site { get; set; }
         public DateTime? DeliveryDate { get; set; }
         public DateTime CreatedOn { get; set; }
         public decimal ManualDeliveryAmount { get; set; }
@@ -25,9 +25,9 @@ namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs
         public decimal? DeliveryMass { get; set; }
         public decimal StockBeforeDelivery { get; set; }
         public decimal StockAfterDelivery { get; set; }
-        public string RecordedBy { get; set; } = null!;
+        public string? RecordedBy { get; set; }
         public int SupplierId { get; set; }
-        public string Lponumber { get; set; } = null!;
-        public string Product { get; set; } = null!;
+        public string? Lponumber { get; set; }
+        public string? Product { get; set; }
     }
 }
