@@ -1,4 +1,5 @@
-﻿using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
+﻿using System.Diagnostics;
+using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
 using FMS.Domain.Entities;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Linq;
 
 
 
@@ -26,14 +28,18 @@ namespace FMS.WebClient.Controllers
         }
 
 
-
-        [HttpPost]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [ApiExplorerSettings(IgnoreApi = false)]
+        
+        [HttpPost("Create")]
+       [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
         {
-            //var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
+            // Added for debugging to confirm method call
+            Debug.WriteLine("Entered CreateDelivery");
 
-            //if (!hasPermission) return Forbid();
+            var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
+
+            if (!hasPermission) return Forbid();
 
             var userIdClaim = User.Claims.FirstOrDefault(c =>
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&

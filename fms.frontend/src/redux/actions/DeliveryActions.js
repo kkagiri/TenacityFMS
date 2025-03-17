@@ -38,7 +38,7 @@ export const createDelivery = (delivery) => async (dispatch) => {
 
 try
 {
-    const response = await axiosInstance.post('/delivery', delivery);
+    const response = await axiosInstance.post('/delivery/create', delivery);
 
     if(response.data.success)
     {
@@ -55,7 +55,7 @@ catch (error) {
     const errorMessage = error.response?.data?.message || error.message || "Error Delivery";
 
     dispatch({ type: CREATE_DELIVERY_FAILURE, payload: errorMessage });
-    
-    return {sucess:false, message:errorMessage};    
+
+    return {sucess:false, message:errorMessage};
 }
 };
