@@ -71,7 +71,7 @@ const useInterval = (callback, delay) => {
 
 
 
-const useFetchData = (selectedSite, initialDateRange, user) => {
+const useFetchData = (selectedSite, initialDateRange) => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -95,8 +95,8 @@ const useFetchData = (selectedSite, initialDateRange, user) => {
       await Promise.all([
         dispatch(fetchTanks()),
         dispatch(fetchSiteList()),
-        dispatch(fetchUsers()),
-        dispatch(fetchpermissionbyUserId(user.id))
+      //  dispatch(fetchUsers()),
+      //  dispatch(fetchpermissionbyUserId(user.id))
       ]);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -104,7 +104,7 @@ const useFetchData = (selectedSite, initialDateRange, user) => {
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, selectedSite, user.id]);
+  }, [dispatch, selectedSite]);
 
   useEffect(() => {
     fetchData();
@@ -142,7 +142,7 @@ const TankStockPage = () => {
     const today = formatDateForAPI(new Date());
     return [today, today];
   });
-  
+
   const [isFilterPopupVisible, setIsFilterPopupVisible] = useState(false);
   const [activeFilterType, setActiveFilterType] = useState('period');
   const [appliedFilterType, setAppliedFilterType] = useState('period');
@@ -199,7 +199,7 @@ const TankStockPage = () => {
         setSelectedEndDate(new Date(dateRange[1]));
     }
 }, [dateRange]);
-  const { isLoading, fetchData } = useFetchData(selectedSite, dateRange, user);
+  const { isLoading, fetchData } = useFetchData(selectedSite, dateRange);
 
   const handleApplyFilter = useCallback(() => {
     let newDateRange;
@@ -208,7 +208,7 @@ const TankStockPage = () => {
       setAppliedPeriod(tempSelectedPeriod);
       setSelectedPeriod(tempSelectedPeriod);
       localStorage.setItem('selectedPeriod', tempSelectedPeriod);
-      
+
       // Calculate new date range based on selected period
       const periodDates = Analytics_period[tempSelectedPeriod]?.period.split('/');
       newDateRange = periodDates ? periodDates.map(date => formatDateForAPI(new Date(date))) : [formatDateForAPI(new Date()), formatDateForAPI(new Date())];
@@ -217,17 +217,17 @@ const TankStockPage = () => {
       setAppliedCustomDateRange(tempCustomDateRange);
       newDateRange = tempCustomDateRange.map(date => formatDateForAPI(date));
     }
-    
+
     // Update dateRange state
     setDateRange(newDateRange);
-    
+
     // Close popup and trigger data fetch
     setIsFilterPopupVisible(false);
     fetchData(newDateRange);
   }, [activeFilterType, tempSelectedPeriod, tempCustomDateRange, Analytics_period, fetchData]);
-  
 
-  
+
+
   useEffect(() => {
     localStorage.setItem('selectedSite', selectedSite);
   }, [selectedSite]);
@@ -346,7 +346,7 @@ const TankStockPage = () => {
 
 
   const handleStockSubmit = useCallback(async (formData, actionType) => {
-   
+
     setSaving(true);
     try {
       let action, successMessage, errorMessage, prepareData, isQuery;
@@ -389,7 +389,7 @@ const TankStockPage = () => {
       if (submittedDate < new Date(startDate) || submittedDate > new Date(endDate)) {
         setIsInsertingHistorical(true);
       }
-    
+
       let response;
 
 
@@ -431,7 +431,7 @@ const TankStockPage = () => {
   const handleClosingStockSubmit = useCallback((formData) => handleStockSubmit(formData, 'closing'), [handleStockSubmit]);
   const handleDeliverySubmit = useCallback((formData) => handleStockSubmit(formData, 'delivery'), [handleStockSubmit]);
   const handleTransferSubmit = useCallback((formData) => handleStockSubmit(formData, 'transfer'), [handleStockSubmit]);
- 
+
   if (isLoading || saving) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -502,10 +502,10 @@ const TankStockPage = () => {
   itemTitleRender={itemTitleRender}
 >
   <Item title="All Tank Volume History">
-    <TankHistoryVolumeDatagrid 
-      tankVolumeHistory={tankVolumeHistory} 
-      selectedSite={selectedSite} 
-      selectedPeriod={selectedPeriod} 
+    <TankHistoryVolumeDatagrid
+      tankVolumeHistory={tankVolumeHistory}
+      selectedSite={selectedSite}
+      selectedPeriod={selectedPeriod}
     />
   </Item>
   <Item title="Deliveries">

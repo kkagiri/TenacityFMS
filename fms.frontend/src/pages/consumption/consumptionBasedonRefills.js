@@ -26,7 +26,7 @@ const ConsumptionBasedonRefills = () => {
 
 
     const exportFormats = ['xlsx'];
-    
+
     const fetchData = useCallback(() => {
         if (startDate && endDate) {
             // NEW: Added date validation
@@ -73,16 +73,16 @@ const ConsumptionBasedonRefills = () => {
 
     const onExporting = useCallback((e) => {
         console.log('Export started', { event: e });
-    
+
         try {
             const workbook = new Workbook();
             const worksheet = workbook.addWorksheet('Consumption Based on Refills');
-            
+
             console.log('Workbook and worksheet created');
             notify('Preparing export...', 'info', 2000);
-    
+
             console.log('Starting exportDataGrid with component:', e.component);
-            
+
             exportDataGrid({
                 component: e.component,
                 worksheet,
@@ -112,7 +112,7 @@ const ConsumptionBasedonRefills = () => {
                 console.error("exportDataGrid error:", err);
                 notify('Export failed', 'error', 2000);
             });
-    
+
             e.cancel = true;
         } catch (error) {
             console.error("General export error:", error);
@@ -127,7 +127,7 @@ const ConsumptionBasedonRefills = () => {
         <DataGrid
             dataSource={consumption}
             ref={dataGridRef}
-            keyExpr="id" 
+            keyExpr="id"
             showBorders={true}
             focusedRowEnabled={true}
             height={'100%'}
@@ -136,21 +136,21 @@ const ConsumptionBasedonRefills = () => {
             <Paging enabled={true} defaultPageSize={30} />
             <FilterRow visible={true} />
             {/* <Pager visible={true} showPageSizeSelector={true} showInfo={true} /> */}
-             <Scrolling mode="infinite" />  
+             <Scrolling mode="infinite" />
             <SearchPanel visible={true} />
             <HeaderFilter visible={true} />
-            <Selection 
+            <Selection
                 mode="multiple"
                 deferred={true}  // Add this
                 selectAllMode="page"  // Add this
             />
-            <LoadPanel enabled={true} /> 
+            <LoadPanel enabled={true} />
            <Grouping autoExpandAll={true} />
            <GroupPanel visible={true} />
 
            <StateStoring enabled={true} type="sessionStorage" storageKey="refuelingGridState" />
 
-            <Export 
+            <Export
                 enabled={true}
                 formats={['xlsx']}
                 allowExportSelectedData={true}
@@ -197,18 +197,18 @@ const ConsumptionBasedonRefills = () => {
                 onClick={refresh}
             />
         </TItems>
-           <TItems name="exportButton" 
+           <TItems name="exportButton"
            locateInMenu={'auto'}
-           
+
 />
 
 </Toolbar>
-<Column 
-        caption="#" 
+<Column
+        caption="#"
         cellRender={(cellData) => {
           return cellData.rowType === 'data' ? dataCounter[cellData.key] : '';
-        }} 
-        width={70} 
+        }}
+        width={70}
       />
            <Column dataField={'vehicleId'} caption={'ID'} width={100}  visible={false}/>
             <Column dataField="hyoungNo" caption="Vehicle Number"  />
@@ -216,14 +216,14 @@ const ConsumptionBasedonRefills = () => {
             <Column dataField="vehicleType" caption="Vehicle Type" />
             <Column dataField="workingSiteName" caption="Working Site" groupIndex={0} />
             <Column dataField="totalFuelAmount" caption="Fuel Amount"format="fixedPoint" precision={0} />
-            <Column 
-                dataField="consumption" 
-                caption="Consumption" 
-                dataType="number" 
+            <Column
+                dataField="consumption"
+                caption="Consumption"
+                dataType="number"
                 format="#,##0.0"
                 calculateCellValue={(rowData) => {
                     if (rowData.consumption === 0 && rowData.distanceOrEngineHours > 0 && rowData.manualFuelrefilAmount > 0) {
-                        return rowData.isKmL 
+                        return rowData.isKmL
                             ? (rowData.distanceOrEngineHours / rowData.manualFuelrefilAmount).toFixed(2)
                             : (rowData.manualFuelrefilAmount / rowData.distanceOrEngineHours).toFixed(2);
                     }
@@ -254,14 +254,14 @@ const ConsumptionBasedonRefills = () => {
                         displayFormat="Total: {0} vehicles"
                     />
             </Summary>
-                   
+
             <MasterDetail
                     enabled={true}
                     component={renderDetail}
                 />
 
         </DataGrid>
-        </div>  
+        </div>
 
     );
 
@@ -287,7 +287,7 @@ const RefillDetails = ({ vehicleId, startDate, endDate }) => {
             <Column dataField="previousMeterReading" caption="Previous Reading" />
             <Column dataField="currentMeterReading" caption="Current Reading" />
             <Column dataField="distanceOrEngineHours" caption="Distance/Engine Hours" dataType="number" format="fixedPoint" precision={0} />
-            <Column dataField="consumption" caption="Consumption" dataType="number" format="fixedPoint" precision={1} />
+            <Column dataField="consumption" caption="Consumption" dataType="number"  format={{ type: "fixedPoint", precision: 1 }} />
             <Column dataField="siteName" caption="Site" />
             <Column dataField="fuelBy" caption="Fuel By" />
             <Column dataField="driverName" caption="Driver" />
