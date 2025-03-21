@@ -24,6 +24,8 @@ import ptsDeviceReducer from "./ptsReducers/ptsDeviceReducer";
 import fuelingRuleReducer from "./fuelingRuleReducer";
 import pumpReducer from "./pumpReducer";
 import ptsPumpEventsReducer from "./ptsReducers/ptsPumpEventsReducer";
+import atgReducer from "./atgReducer";
+import realtimeStatusReducer from "./ptsReducers/realtimeStatusReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -51,6 +53,7 @@ const rootReducer = combineReducers({
   fuelingRule: fuelingRuleReducer,
   pump: pumpReducer,
   ptsPumpEvents: ptsPumpEventsReducer,
+  realtimeStatus: realtimeStatusReducer,
 });
 
 export default rootReducer;

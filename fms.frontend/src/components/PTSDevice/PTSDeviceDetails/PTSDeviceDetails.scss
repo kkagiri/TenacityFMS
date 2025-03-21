@@ -1,0 +1,534 @@
+.pts-device-details {
+  padding: 15px;
+  background-color: var(--base-bg, #fafafa);
+  border-radius: 8px;
+
+  &.empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--secondary-text-color, #6c757d);
+  }
+
+  .details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background-color: var(--base-bg, #fff);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+      i {
+        margin-right: 5px;
+        font-size: 14px;
+      }
+    }
+
+    .device-title {
+      h4 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      span {
+        color: var(--secondary-text-color, #6c757d);
+        font-size: 14px;
+      }
+    }
+  }
+
+  .dx-tabs {
+    margin-bottom: 15px;
+    background-color: var(--base-bg, #fff);
+    border-radius: 4px;
+
+    .dx-tab {
+      padding: 10px 15px;
+    }
+  }
+
+  .tab-content {
+    padding: 15px;
+    background-color: var(--base-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  h5 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+  }
+
+  .empty-message {
+    color: var(--secondary-text-color, #6c757d);
+    font-style: italic;
+    text-align: center;
+    padding: 15px;
+  }
+
+  // System Info Panel
+  .system-info-panel {
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .info-box {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .info-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+
+      label {
+        font-size: 12px;
+        color: var(--secondary-text-color, #6c757d);
+        margin-bottom: 5px;
+      }
+
+      span {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          margin-right: 5px;
+        }
+      }
+    }
+  }
+
+  // Pumps and Fueling Panel
+  .pumps-panel {
+    .status-section {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+
+      .status-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+
+        i {
+          margin-right: 10px;
+          font-size: 16px;
+        }
+
+        h5 {
+          margin: 0;
+        }
+
+        &.active-fueling {
+          color: var(--success-color, #28a745);
+
+          h5 {
+            color: var(--success-color, #28a745);
+          }
+        }
+
+        &.error {
+          color: var(--error-color, #dc3545);
+
+          h5 {
+            color: var(--error-color, #dc3545);
+          }
+        }
+      }
+
+      .section-label {
+        font-size: 12px;
+        color: var(--secondary-text-color, #6c757d);
+        margin-bottom: 10px;
+      }
+
+      .transaction-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 10px;
+      }
+
+      .transaction-card {
+        background-color: var(--base-bg, #fff);
+        border-radius: 6px;
+        padding: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+        &.active {
+          border-left: 3px solid var(--success-color, #28a745);
+        }
+
+        .transaction-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          font-size: 12px;
+          color: var(--secondary-text-color, #6c757d);
+
+          .active-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--success-color, #28a745);
+            margin-right: 5px;
+          }
+        }
+
+        .transaction-details {
+          display: flex;
+          justify-content: space-between;
+
+          .value {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+          }
+
+          .label {
+            display: block;
+            font-size: 12px;
+            color: var(--secondary-text-color, #6c757d);
+          }
+
+          .amount {
+            text-align: right;
+          }
+        }
+      }
+
+      .error-message {
+        color: var(--error-color, #dc3545);
+        font-size: 14px;
+        padding: 5px 10px;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 4px;
+      }
+    }
+  }
+
+  // Tanks Panel
+  .tanks-panel {
+    .tanks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .tank-card {
+      background-color: var(--base-bg, #fff);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+      .tank-header {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 15px;
+
+        .tank-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: rgba(0, 123, 255, 0.1);
+          border-radius: 8px;
+          margin-right: 10px;
+
+          i {
+            font-size: 20px;
+            color: var(--primary-color, #007bff);
+          }
+        }
+
+        .tank-title {
+          flex: 1;
+
+          h5 {
+            margin: 0 0 5px 0;
+          }
+
+          .fuel-type {
+            font-size: 12px;
+            color: var(--secondary-text-color, #6c757d);
+          }
+        }
+
+        .tank-capacity {
+          text-align: right;
+
+          .current-level {
+            display: block;
+            font-weight: 600;
+            font-size: 16px;
+          }
+
+          .total-capacity {
+            display: block;
+            font-size: 12px;
+            color: var(--secondary-text-color, #6c757d);
+          }
+        }
+      }
+
+      .tank-level {
+        margin-bottom: 15px;
+
+        .level-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+          font-size: 12px;
+        }
+
+        .level-bar {
+          height: 10px;
+          background-color: #e9ecef;
+          border-radius: 5px;
+          overflow: hidden;
+
+          .level-fill {
+            height: 100%;
+            border-radius: 5px;
+          }
+        }
+      }
+
+      .probe-details {
+        margin-bottom: 15px;
+
+        .detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .detail-item {
+          display: flex;
+          flex-direction: column;
+
+          label {
+            font-size: 11px;
+            color: var(--secondary-text-color, #6c757d);
+            margin-bottom: 3px;
+          }
+
+          span {
+            font-size: 13px;
+          }
+        }
+
+        .alarms {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+
+          .alarm {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+
+            &.critical-high,
+            &.critical-low,
+            &.leakage {
+              background-color: rgba(220, 53, 69, 0.1);
+              color: var(--error-color, #dc3545);
+            }
+
+            &.high,
+            &.low {
+              background-color: rgba(255, 193, 7, 0.1);
+              color: var(--icon-dark-warning-color, #856404);
+            }
+
+            &.water {
+              background-color: rgba(23, 162, 184, 0.1);
+              color: var(--info-color, #17a2b8);
+            }
+          }
+        }
+      }
+
+      .tank-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+
+        .dx-button {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+
+  // Reader Panel
+  .reader-panel {
+    .reader-status {
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+
+      .tags-container {
+        .section-label {
+          font-size: 12px;
+          color: var(--secondary-text-color, #6c757d);
+          margin-bottom: 10px;
+        }
+
+        .tags-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+
+          .tag-chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            background-color: rgba(0, 123, 255, 0.1);
+            color: var(--primary-color, #007bff);
+            border-radius: 15px;
+          }
+        }
+      }
+
+      .reader-error {
+        display: flex;
+        align-items: center;
+        margin-top: 15px;
+        padding: 8px;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 4px;
+
+        i {
+          margin-right: 8px;
+        }
+
+        span {
+          font-size: 13px;
+        }
+      }
+    }
+
+    .reader-offline {
+      .error-message {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 8px;
+        color: var(--error-color, #dc3545);
+
+        i {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  // Fuel Grades Panel
+  .fuel-grades-panel {
+    .fuel-grades-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .fuel-grade-card {
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+
+      .grade-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .grade-price {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 15px;
+      }
+
+      .grade-details {
+        .detail-item {
+          margin-bottom: 8px;
+
+          label {
+            display: block;
+            font-size: 11px;
+            color: var(--secondary-text-color, #6c757d);
+            margin-bottom: 3px;
+          }
+
+          span {
+            display: block;
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+
+  // Common Colors
+  .text-primary {
+    color: var(--primary-color, #007bff);
+  }
+  .text-success {
+    color: var(--success-color, #28a745);
+  }
+  .text-warning {
+    color: var(--warning-color, #ffc107);
+  }
+  .text-danger {
+    color: var(--error-color, #dc3545);
+  }
+  .text-secondary {
+    color: var(--secondary-text-color, #6c757d);
+  }
+
+  .bg-success {
+    background-color: var(--success-color, #28a745);
+  }
+  .bg-warning {
+    background-color: var(--warning-color, #ffc107);
+  }
+  .bg-danger {
+    background-color: var(--error-color, #dc3545);
+  }
+  .bg-primary {
+    background-color: var(--primary-color, #007bff);
+  }
+}

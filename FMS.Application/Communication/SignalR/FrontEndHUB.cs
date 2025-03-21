@@ -67,5 +67,12 @@ namespace FMS.Application.Communication.SignalR
         {
             await Clients.All.SendAsync("DashboardMetricsUpdate", metrics);
         }
+
+        // New method to broadcast upload status updates
+        public async Task BroadcastUploadStatusUpdate(string deviceId, object status)
+        {
+            // Broadcast to all clients or to specific groups depending on your needs
+            await Clients.All.SendAsync("UploadStatusUpdate", new { deviceId, status });
+        }
     }
 }

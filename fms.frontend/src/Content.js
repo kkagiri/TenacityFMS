@@ -1,21 +1,20 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import React, { useEffect, useMemo } from 'react';
-import appInfo from './app-info';
-import { SideNavInnerToolbar as SideNavBarLayout } from './layouts';
-import { Footer } from './components';
+import { Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect, useMemo } from "react";
+import appInfo from "./app-info";
+import { SideNavInnerToolbar as SideNavBarLayout } from "./layouts";
+import { Footer } from "./components";
 
-
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchNavigationItems } from './redux/actions/navigationActions';
-import resolvedComponents from './app-routes';
-import withRoleProtection from './utils/withRoleProtection';
-import Unauthorized from './pages/unauthorized';
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNavigationItems } from "./redux/actions/navigationActions";
+import resolvedComponents from "./app-routes";
+import withRoleProtection from "./utils/withRoleProtection";
+import Unauthorized from "./pages/unauthorized";
+import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
 
 export default function Content() {
   const dispatch = useDispatch();
   const { navigationItems } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
-
 
   useEffect(() => {
     if (user) {
@@ -41,18 +40,21 @@ export default function Content() {
     <SideNavBarLayout title={appInfo.title}>
       <Routes>
         {dynamicRoutes}
-        <Route path='/unauthorized' element={<Unauthorized />} />
-
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        {/* ToDo: Remove this stupid links below */}
+        <Route path="/atg/:ptsId" element={<FuelingProcess />} />
         <Route
-          path='*'
-          element={<Navigate to='/home' />}
+          path="/atg"
+          element={React.createElement(resolvedComponents("atg"))}
         />
-
+        <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>
-        Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc. Version:1.1.0
+        Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
+        Version:1.1.0
         <br />
-        Develop  by Kevin.kagiri@hyoung.co.ke. All trademarks or registered trademarks are property of Hyoung EA Co. Ltd.
+        Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
+        trademarks are property of Hyoung EA Co. Ltd.
       </Footer>
     </SideNavBarLayout>
   );

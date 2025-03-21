@@ -45,6 +45,8 @@ namespace FMS.WebClient.Controllers
 
 
 
+
+
         /// <summary>
         /// API endpoint to get a summary of the device connections
         /// </summary>
@@ -281,6 +283,11 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        /// <summary>
+        /// API endpoint to create a new PTS device in the database
+        /// </summary>
+        /// <param name="ptsDevice"></param>
+        /// <returns></returns>
         [HttpPost("create")]
         public async Task<IActionResult> CreatePTSDevice([FromBody] CreatePTSDeviceDTO ptsDevice)
         {
@@ -298,6 +305,12 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        /// <summary>
+        /// API endpoint to update a PTS device by ID in the database
+        /// </summary>
+        /// <param name="deviceId"></param>
+        /// <param name="ptsDevice"></param>
+        /// <returns></returns>
         [HttpPut("update/{deviceId}")]
         public async Task<IActionResult> UpdatePTSDevice(int deviceId, [FromBody] Ptsdevice ptsDevice)
         {
@@ -315,6 +328,11 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        /// <summary>
+        /// API endpoint to delete a PTS device by ID from the database
+        /// </summary>
+        /// <param name="deviceId"></param>
+        /// <returns></returns>
         [HttpDelete("delete/{deviceId}")]
         public async Task<IActionResult> DeletePTSDevice(int deviceId)
         {
@@ -332,6 +350,11 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        /// <summary>
+        /// API endpoint to get a PTS device by ID
+        /// </summary>
+        /// <param name="deviceId"></param>
+        /// <returns></returns>
         [HttpGet("GetById/{deviceId}")]
         public async Task<IActionResult> GetPTSDeviceById(string deviceId)
         {

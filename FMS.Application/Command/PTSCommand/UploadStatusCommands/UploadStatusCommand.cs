@@ -81,15 +81,34 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     return CommandResult.Failed("No status data received");
                 }
 
-                //check if there is a pending command for this device ..
-                var pendingCommand = await _pendingCommandRepo.GetNextPendingCommandAsync(deviceId!);
-                if (pendingCommand.HasValue)
+                // Broadcast the upload status update via SignalR
+                if (deviceId != null)
                 {
-                    var (commandId, commandType, commandData) = pendingCommand.Value;
-                    await _pendingCommandRepo.MarkCommandDeliveredAsync(commandId);
-                    _logger.LogInformation("Pending command {CommandType} marked as completed for device {DeviceId}", commandType, deviceId);
-                    return CommandResult.Succeeded(commandType, commandData);
+                    // Create a status object with the relevant data to send to the client
+                    var statusUpdate = new
+                    {
+                        deviceId = deviceId,
+                        timestamp = DateTime.UtcNow,
+                        pumps = uploadstatus.Pumps,
+                        probes = uploadstatus.Probes,
+                        readers = uploadstatus.Readers
+                    };
+
+                    // Send the upload status update directly using the hub context
+                    await _hubContext.Clients.All.SendAsync("UploadStatusUpdate", new { deviceId, status = statusUpdate });
+                    _logger.LogInformation("Upload status broadcasted for device {DeviceId}", deviceId);
                 }
+
+                //TODO: uncomment this when the database is ready
+                //check if there is a pending command for this device ..
+                // var pendingCommand = await _pendingCommandRepo.GetNextPendingCommandAsync(deviceId!);
+                // if (pendingCommand.HasValue)
+                // {
+                //     var (commandId, commandType, commandData) = pendingCommand.Value;
+                //     await _pendingCommandRepo.MarkCommandDeliveredAsync(commandId);
+                //     _logger.LogInformation("Pending command {CommandType} marked as completed for device {DeviceId}", commandType, deviceId);
+                //     return CommandResult.Succeeded(commandType, commandData);
+                // }
 
                 if (uploadstatus?.Pumps != null)
                 {
