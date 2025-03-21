@@ -1,0 +1,56 @@
+.pts-device-list {
+  margin-top: 1rem;
+
+  .device-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+
+    button {
+      margin-right: 0.5rem;
+    }
+  }
+
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+
+    h3 {
+      margin: 0;
+    }
+  }
+
+  .d-flex {
+    display: flex;
+  }
+
+  .align-items-center {
+    align-items: center;
+  }
+
+  .me-2 {
+    margin-right: 8px;
+  }
+
+  .text-success {
+    color: var(--success-color, #28a745);
+  }
+
+  .text-warning {
+    color: var(--warning-color, #ffc107);
+  }
+
+  .text-danger {
+    color: var(--error-color, #dc3545);
+  }
+
+  .text-secondary {
+    color: var(--secondary-text-color, #6c757d);
+  }
+}

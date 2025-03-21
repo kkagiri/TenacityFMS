@@ -156,21 +156,22 @@ namespace FMS.Application.Communication
             string serializedInfo = JsonSerializer.Serialize(connectionInfo);
             await _redisDb.HashSetAsync(HttpConnectionHashKey, deviceId, serializedInfo);
 
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+            //TODO: uncomment this when the database is ready
+            // using (var scope = _scopeFactory.CreateScope())
+            // {
+            //     var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                // Save to database
-                await mediator.Send(new SaveDeviceConnectionCommand
-                {
-                    DeviceId = deviceId,
-                    IpAddress = ipAddress,
-                    ConnectedAt = connectionInfo.LastPollTime,
-                    LastActivityAt = connectionInfo.LastPollTime,
-                    ConnectionType = "HTTP",
-                    Status = "Connected"
-                });
-            }
+            //     // Save to database
+            //     await mediator.Send(new SaveDeviceConnectionCommand
+            //     {
+            //         DeviceId = deviceId,
+            //         IpAddress = ipAddress,
+            //         ConnectedAt = connectionInfo.LastPollTime,
+            //         LastActivityAt = connectionInfo.LastPollTime,
+            //         ConnectionType = "HTTP",
+            //         Status = "Connected"
+            //     });
+            // }
 
             _logger.LogTrace("Tracked HTTP poll for device {DeviceId} in Redis and database", deviceId);
         }

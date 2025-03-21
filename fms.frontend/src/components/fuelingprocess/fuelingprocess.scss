@@ -1,0 +1,291 @@
+.fueling-process-container {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .header-card {
+    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+
+      .header-left {
+        display: flex;
+        align-items: center;
+
+        .header-info {
+          margin-left: 15px;
+
+          h2 {
+            margin: 0;
+            font-size: 1.5rem;
+          }
+        }
+      }
+
+      .header-middle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+
+        .device-status {
+          margin-bottom: 10px;
+          p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #6c757d;
+          }
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 10px;
+
+          button {
+            min-width: 100px;
+          }
+        }
+      }
+
+      .header-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+
+        .tanks-container {
+          display: flex;
+          gap: 15px;
+          margin-bottom: 10px;
+
+          .tank-info-card {
+            display: flex;
+            align-items: center;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+            .tank-icon-container {
+              margin-right: 10px;
+              text-align: center;
+
+              .tank-grade {
+                font-size: 0.8rem;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+
+              .tank-icon {
+                width: 20px;
+                height: 50px;
+                border: 2px solid #ccc;
+                border-radius: 3px;
+                position: relative;
+                overflow: hidden;
+
+                .tank-fill {
+                  position: absolute;
+                  bottom: 0;
+                  width: 100%;
+                  transition: height 0.5s ease;
+                }
+              }
+            }
+
+            .tank-details {
+              display: flex;
+              flex-direction: column;
+
+              .tank-values {
+                font-size: 0.8rem;
+                margin: 0 0 5px 0;
+              }
+
+              .tank-percentage {
+                font-size: 0.9rem;
+                font-weight: bold;
+                margin: 5px 0 0 0;
+                text-align: center;
+              }
+            }
+          }
+        }
+
+        .tank-level-info {
+          text-align: center;
+          background-color: #f8f8f8;
+          padding: 10px;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+          .tank-level-label {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #6c757d;
+          }
+
+          .tank-level-value {
+            margin: 5px 0 0 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+          }
+        }
+      }
+    }
+  }
+
+  .main-content {
+    padding: 0 15px;
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    h3 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .dx-fieldset {
+      margin-bottom: 20px;
+    }
+
+    .dx-field {
+      margin-bottom: 15px;
+    }
+
+    .pump-tile,
+    .nozzle-tile {
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      &.active {
+        border-color: #007bff;
+      }
+
+      &.disabled {
+        pointer-events: none;
+      }
+
+      h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+      }
+
+      p {
+        margin: 5px 0;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .fueling-progress,
+  .fueling-complete,
+  .navigation-dialog {
+    padding: 20px;
+
+    .progress-indicator {
+      margin-bottom: 20px;
+
+      .progress-text {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+    }
+
+    .progress-message {
+      text-align: center;
+      font-size: 16px;
+      color: #6c757d;
+    }
+
+    p {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .receipt-details {
+      margin-bottom: 20px;
+
+      .receipt-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .label {
+          font-weight: bold;
+          color: #6c757d;
+        }
+
+        .value {
+          font-weight: 500;
+        }
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+
+      .dx-button {
+        flex: 1;
+        margin: 0 5px;
+
+        &:first-child {
+          margin-left: 0;
+        }
+
+        &:last-child {
+          margin-right: 0;
+        }
+      }
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+
+      .header-left,
+      .header-middle,
+      .header-right {
+        width: 100%;
+        margin-bottom: 15px;
+        align-items: center;
+      }
+
+      .header-right {
+        .tanks-container {
+          flex-direction: column;
+
+          .tank-info-card {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}

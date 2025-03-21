@@ -12,6 +12,9 @@ import DocumentViewer from "./components/reports/DocumentViewer";
 import ReportDesignerComponent from "./components/reports/ReportDesigner";
 import Tagpage from "./pages/tag/tagPage";
 import DeviceDashboard from "./pages/PTSDevice/DeviceDashboard";
+import EditPTSDevice from "./pages/PTSDevice/EditPTSDevice";
+import ATGDashboard from "./pages/ATG/ATGDashboard";
+import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -41,8 +44,14 @@ const resolvedComponents = (pageName) => {
       return ReportDesignerComponent;
     case "tags":
       return Tagpage;
+    case "automatic fueling":
+      return ATGDashboard;
+    case "ptsdevice":
+      return DeviceDashboard; // windsurf comment
     case "atg":
-      return DeviceDashboard;
+      return ATGDashboard;
+    case "edit-pts-device":
+      return EditPTSDevice;
 
     case "unauthorized":
       return unauthorized;
