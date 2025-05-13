@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
-    <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
+    <!-- <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" /> -->
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
   </ItemGroup>
 

@@ -133,14 +133,34 @@ const VehicleDataGrid = () => {
 
     try {
       setSaving(true);
-      const { vehicleId, ...updatedData } = e.data;
-      const response = await dispatch(updateVehicle(vehicleId, updatedData));
+
+      // Create a deep copy of the data to avoid mutation
+      const updatedData = JSON.parse(JSON.stringify(e.data));
+      const { vehicleId, ...cleanData } = updatedData;
+
+      // Handle workingSiteId specifically
+      if (cleanData.workingSiteId === 0) {
+        cleanData.workingSiteId = null;
+      }
+
+      // Create a new object for the update
+      const updatePayload = {
+        vehicleId,
+        ...cleanData,
+      };
+
+      const response = await dispatch(updateVehicle(vehicleId, cleanData));
 
       if (response.success) {
+        // Instead of refetching all data, update the grid data directly
         if (gridRef.current && gridRef.current.instance) {
+          const currentData = gridRef.current.instance.getDataSource().items();
+          const updatedData = currentData.map((item) =>
+            item.vehicleId === vehicleId ? { ...item, ...cleanData } : item
+          );
+          gridRef.current.instance.getDataSource().items(updatedData);
           gridRef.current.instance.cancelEditData();
         }
-        await fetchData();
         notify(response.message, "success", 3000);
       } else {
         throw new Error(response.message);

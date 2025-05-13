@@ -24,8 +24,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using StackExchange.Redis;
+using FMS.Application.Communication;
 
 namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 {
@@ -47,12 +50,21 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly IPendingCommandRepository _pendingCommandRepo;
         private readonly IAuthorizationStateTracker _authTracker;
         private readonly GpsdataContext _context;
-
         private readonly IHubContext<FrontEndHub> _hubContext;
         private readonly IMediator _mediator;
+        private readonly IDatabase _redisDb; //Cursor
+        private readonly DeviceConnectionTracker _connectionTracker; //Cursor
 
 
-        public UploadStatusCommandHandler(IHubContext<FrontEndHub> hubContext, GpsdataContext context, IMediator mediator, ILogger<UploadStatusCommandHandler> logger, IPendingCommandRepository pendingCommandRepository, IAuthorizationStateTracker authorizationState)
+        public UploadStatusCommandHandler(
+            IHubContext<FrontEndHub> hubContext,
+            GpsdataContext context,
+            IMediator mediator,
+            ILogger<UploadStatusCommandHandler> logger,
+            IPendingCommandRepository pendingCommandRepository,
+            IAuthorizationStateTracker authorizationState,
+            IConnectionMultiplexer redisConnection, //Cursor
+            DeviceConnectionTracker connectionTracker) //Cursor
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -60,6 +72,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _pendingCommandRepo = pendingCommandRepository;
             _authTracker = authorizationState;
             _context = context;
+            _redisDb = redisConnection.GetDatabase(); //Cursor
+            _connectionTracker = connectionTracker; //Cursor
         }
 
 
@@ -67,296 +81,330 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
         {
-
             try
-
             {
                 var uploadstatus = request.UploadStatus;
-
-
                 var deviceId = request.DeviceId;
+
                 if (uploadstatus == null)
                 {
                     _logger.LogWarning("No status data received for device {DeviceId}", deviceId);
                     return CommandResult.Failed("No status data received");
                 }
 
-                // Broadcast the upload status update via SignalR
-                if (deviceId != null)
-                {
-                    // Create a status object with the relevant data to send to the client
-                    var statusUpdate = new
-                    {
-                        deviceId = deviceId,
-                        timestamp = DateTime.UtcNow,
-                        pumps = uploadstatus.Pumps,
-                        probes = uploadstatus.Probes,
-                        readers = uploadstatus.Readers
-                    };
+                // Broadcast ONLY the complete upload status update
+                await BroadcastUploadStatusUpdate(deviceId, uploadstatus);
 
-                    // Send the upload status update directly using the hub context
-                    await _hubContext.Clients.All.SendAsync("UploadStatusUpdate", new { deviceId, status = statusUpdate });
-                    _logger.LogInformation("Upload status broadcasted for device {DeviceId}", deviceId);
+                // Store the status update in Redis //Cursor
+                await StoreUploadStatusInRedis(deviceId, uploadstatus); //Cursor
+
+                // Update the last activity time for the WebSocket connection
+                if (!string.IsNullOrEmpty(deviceId))
+                {
+                    await _connectionTracker.UpdateWebSocketLastMessageTime(deviceId);
                 }
 
-                //TODO: uncomment this when the database is ready
-                //check if there is a pending command for this device ..
-                // var pendingCommand = await _pendingCommandRepo.GetNextPendingCommandAsync(deviceId!);
-                // if (pendingCommand.HasValue)
+                // Process specific components INTERNALLY (e.g., update auth state)
+                // but DO NOT broadcast granular events from here anymore.
+                // if (uploadstatus?.Pumps != null)
                 // {
-                //     var (commandId, commandType, commandData) = pendingCommand.Value;
-                //     await _pendingCommandRepo.MarkCommandDeliveredAsync(commandId);
-                //     _logger.LogInformation("Pending command {CommandType} marked as completed for device {DeviceId}", commandType, deviceId);
-                //     return CommandResult.Succeeded(commandType, commandData);
+                //     await ProcessLivePumpStatusInternally(deviceId!, uploadstatus.Pumps);
                 // }
 
-                if (uploadstatus?.Pumps != null)
-                {
-                    await ProcessLivePumpStatus(deviceId!, uploadstatus.Pumps);
-                }
-
-                if (uploadstatus?.Probes != null)
-                {
-                    await ProcessLiveProbeStatus(deviceId!, uploadstatus.Probes);
-                }
-
+                // // Optional: Internal processing for probes/readers - NO Hub calls
+                //  if (uploadstatus?.Probes != null)
+                //  {
+                //      await ProcessLiveProbeStatusInternalLogic(deviceId!, uploadstatus.Probes);
+                //  }
+                //  if (uploadstatus?.Readers != null)
+                //  {
+                //      await ProcessLiveReaderStatusInternalLogic(deviceId!, uploadstatus.Readers);
+                //  }
 
                 return CommandResult.Succeeded("OK", null!);
-
-
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing status update");
-                throw; // continue to the next handler
+                throw;
             }
-
-
-
         }
 
-
-
-        private async Task ProcessLiveProbeStatus(string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus)
-
+        // New method to store the upload status in Redis //Cursor
+        private async Task StoreUploadStatusInRedis(string deviceId, UploadStatus status)
         {
-            if (probeStatus.OnlineStatus.Ids != null)
+            try
             {
-                foreach (var probeId in probeStatus.OnlineStatus.Ids)
+                if (string.IsNullOrEmpty(deviceId) || status == null)
                 {
-                    //save to db .. get the tank Associated
+                    _logger.LogWarning("Cannot store upload status in Redis: device ID or status is null");
+                    return;
                 }
 
+                var redisKey = $"device:{deviceId}:status";
+                var statusJson = JsonSerializer.Serialize(status);
 
+                await _redisDb.StringSetAsync(
+                    redisKey,
+                    statusJson,
+                    expiry: TimeSpan.FromMinutes(30) // Keep status for 30 minutes
+                );
+
+                // Also set a timestamp key to track when the status was last updated
+                await _redisDb.StringSetAsync(
+                    $"device:{deviceId}:status:timestamp",
+                    DateTime.UtcNow.ToString("o"),
+                    expiry: TimeSpan.FromMinutes(30)
+                );
+
+                _logger.LogInformation("Stored UploadStatus in Redis for device {DeviceId}", deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error storing upload status in Redis for device {DeviceId}", deviceId);
+                // Don't rethrow - we still want to continue processing if Redis storage fails
             }
         }
 
-
-
-        private async Task ProcessLivePumpStatus(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpStatus pumpStatus)
+        // Keep this method for broadcasting the full status
+        private async Task BroadcastUploadStatusUpdate(string deviceId, UploadStatus status)
         {
-            // Handle Idle Status - Check for nozzles up and tags
+            try
+            {
+                var statusUpdate = new
+                {
+                    deviceId = deviceId,
+                    timestamp = DateTime.UtcNow,
+                    status = new // Pass the full nested status object
+                    {
+                        configurationId = status.ConfigurationId,
+                        dateTime = status.DateTime,
+                        firmwareDateTime = status.FirmwareDateTime,
+                        startupSeconds = status.StartupSeconds,
+                        batteryVoltage = status.BatteryVoltage,
+                        cpuTemperature = status.CpuTemperature,
+                        ptsPowerDownDetected = status.PtsPowerDownDetected,
+                        sdMounted = status.SdMounted,
+                        pumps = status.Pumps, // Send the whole Pumps object
+                        probes = status.Probes, // Send the whole Probes object
+                        readers = status.Readers, // Send the whole Readers object
+                        fuelGrades = status.FuelGrades
+                    }
+                };
+
+                await _hubContext.Clients.All.SendAsync("UploadStatusUpdate", statusUpdate);
+                 _logger.LogInformation("[Broadcast] Sent UploadStatusUpdate for {DeviceId}", deviceId);
+            }
+            catch (Exception ex)
+            {
+                 _logger.LogError(ex, "Error broadcasting upload status update for device {DeviceId}", deviceId);
+            }
+        }
+
+        // Internal processing logic - NO Hub calls
+        private Task ProcessLiveReaderStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.ReaderStatus.ReaderStatus readerStatus)
+        {
+             _logger.LogTrace("[Internal] Processing Reader Status for {DeviceId}", deviceId);
+             // Example: Log online/offline readers
+             // if (readerStatus?.OnlineStatus?.Ids != null) { /* Log IDs */ }
+             // if (readerStatus?.OfflineStatus?.Ids != null) { /* Log IDs */ }
+             return Task.CompletedTask;
+        }
+
+        // Internal processing logic - NO Hub calls
+        private Task ProcessLiveProbeStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus)
+        {
+             _logger.LogTrace("[Internal] Processing Probe Status for {DeviceId}", deviceId);
+             // Example: Log online/offline probes
+             // if (probeStatus.OnlineStatus?.Ids != null) { /* Log IDs and maybe measurements */ }
+             // if (probeStatus.OfflineStatus?.Ids != null) { /* Log IDs */ }
+             return Task.CompletedTask;
+        }
+
+        // Renamed to indicate internal processing only
+        private async Task ProcessLivePumpStatusInternally(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpStatus pumpStatus)
+        {
+             _logger.LogTrace("[Internal] Processing Pump Status for {DeviceId}", deviceId);
+            // Handle Idle Status - Check for nozzles up and tags (for internal logic like events/auth)
             if (pumpStatus.IdleStatus != null)
             {
-
-                await PublishNozzleAndTagStates(deviceId, pumpStatus.IdleStatus);
+                await ProcessIdleStatusInternalLogic(deviceId, pumpStatus.IdleStatus);
             }
 
-            // Handle Filling Status
+            // Handle Filling Status (update auth state)
             if (pumpStatus.FillingStatus != null)
             {
-                await ProcessFillingStatus(deviceId, pumpStatus.FillingStatus);
+                await ProcessFillingStatusInternalLogic(deviceId, pumpStatus.FillingStatus);
             }
 
-            // Handle End of Transaction
+            // Handle End of Transaction (update auth state)
             if (pumpStatus.EndOfTransactionStatus != null)
             {
-                await ProcessEndOfTransactionStatus(deviceId, pumpStatus.EndOfTransactionStatus);
+                await ProcessEndOfTransactionStatusInternalLogic(deviceId, pumpStatus.EndOfTransactionStatus);
             }
 
-            // Handle Offline Status
+            // Handle Offline Status (update auth state)
             if (pumpStatus.OfflineStatus != null)
             {
-                await ProcessOfflineStatus(deviceId, pumpStatus.OfflineStatus);
+                await ProcessOfflineStatusInternalLogic(deviceId, pumpStatus.OfflineStatus);
             }
-
         }
 
-        private async Task ProcessOfflineStatus(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpOfflineStatus offlineStatus)
+        // Renamed, only internal logic, NO hub broadcast
+        private async Task ProcessOfflineStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpOfflineStatus offlineStatus)
         {
-            //check if the pump that are on idle status are in the list of pumps on the device
             if (offlineStatus.Ids == null || !offlineStatus.Ids.Any()) return;
-
-            foreach (var pumpId in offlineStatus.Ids)
+            // Iterate through nullable ints, check HasValue before using Value
+            foreach (var pumpIdNullable in offlineStatus.Ids)
             {
-                await _authTracker.ClearAuthorization(deviceId, pumpId.Value);
-            }
-            await _hubContext.Clients.All.SendAsync("PumpOffline", new { deviceId, pumpId = offlineStatus.Ids });
+                 if (!pumpIdNullable.HasValue) continue; // Skip null entries
+                 var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
 
+                 try
+                 {
+                    await _authTracker.ClearAuthorization(deviceId, pumpId);
+                    _logger.LogInformation("[Internal] Cleared auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                 } catch (Exception ex) {
+                     _logger.LogError(ex, "[Internal] Error clearing auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                 }
+            }
+            // NO _hubContext call here
         }
 
-        private async Task PublishNozzleAndTagStates(string deviceId, IdleStatus idleStatus)
+        // Renamed, only internal logic (e.g., publishing MediatR events), NO hub broadcast
+        private async Task ProcessIdleStatusInternalLogic(string deviceId, IdleStatus idleStatus)
         {
-            //check if the pump that are on idle status are in the list of pumps on the device
-            if (idleStatus.Ids == null || !idleStatus.Ids.Any()) return;
+            // if (idleStatus.Ids == null || !idleStatus.Ids.Any()) return;
 
-            for (int i = 0; i < idleStatus.Ids.Count; i++)
-            {
-                var pumpId = idleStatus.Ids[i];
-                if (!pumpId.HasValue || pumpId.Value < 1 || pumpId > 50)
-                {
-                    _logger.LogWarning("Invalid pump ID {PumpId} for device {DeviceId}", pumpId, deviceId);
-                    continue;
-                }
+            // for (int i = 0; i < idleStatus.Ids.Count; i++)
+            // {
+            //     var pumpIdNullable = idleStatus.Ids[i];
+            //     if (!pumpIdNullable.HasValue) continue; // Skip null entries
+            //     var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
 
-                //process Nozzle State
-                if (idleStatus.NozzlesUp?.Count > i)
-                {
-                    var nozzleNumber = idleStatus.NozzlesUp[i];
+            //     if (pumpId < 1 || pumpId > 50) continue; // Validate range
 
-                    if (nozzleNumber < 1 || nozzleNumber > 6) //Protocal specific Range
-                    {
-                        var nozzleEvent = new NozzleStateChangeEvent(
-                             deviceId: deviceId,
-                           pumpId: pumpId.Value,
-                           nozzleNumber: nozzleNumber
+            //     // Internal: Process Nozzle State for MediatR event
+            //     if (idleStatus.NozzlesUp?.Count > i)
+            //     {
+            //         var nozzleNumber = idleStatus.NozzlesUp[i];
+            //         if (nozzleNumber >= 1 && nozzleNumber <= 6) // Check valid range for nozzles up
+            //         {
+            //             try
+            //             {
+            //                 var nozzleEvent = new NozzleStateChangeEvent(
+            //                     deviceId: deviceId,
+            //                     pumpId: pumpId,
+            //                     nozzleNumber: nozzleNumber
+            //                 );
+            //                 // Add last transaction details if available
+            //                 if (idleStatus.LastTransactions?.Count > i && idleStatus.LastTransactions[i] && idleStatus.LastTransactions[i] > 0)
+            //                 {
+            //                      nozzleEvent = nozzleEvent with
+            //                      {
+            //                          LastNozzle = idleStatus.LastNozzles?.ElementAtOrDefault(i),
+            //                          LastTransaction = idleStatus.LastTransactions[i], // Use .Value for nullable decimal?
+            //                          LastAmount = idleStatus.LastAmounts?.ElementAtOrDefault(i),
+            //                          LastVolume = idleStatus.LastVolumes?.ElementAtOrDefault(i),
+            //                          LastPrice = idleStatus.LastPrices?.ElementAtOrDefault(i)
+            //                      };
+            //                 }
+            //                 await _mediator.Publish(nozzleEvent); // Publish internal event
+            //                  _logger.LogTrace("[Internal] Published NozzleStateChange event for Pump {PumpId}, Nozzle {Nozzle}", pumpId, nozzleNumber);
+            //             } catch (Exception ex) {
+            //                  _logger.LogError(ex, "[Internal] Error publishing NozzleStateChange event for Pump {PumpId}", pumpId);
+            //             }
+            //              // NO _hubContext call here
+            //         }
+            //     }
 
-                          );
-
-                        //include last Transaction Data if Available
-                        if (idleStatus.LastTransactions?.Count > i && idleStatus.LastTransactions[i] > 0)
-                        {
-
-                            nozzleEvent = nozzleEvent with
-                            {
-                                LastNozzle = idleStatus.LastNozzles?.ElementAtOrDefault(i),
-                                LastTransaction = idleStatus.LastTransactions[i],
-                                LastAmount = idleStatus.LastAmounts?.ElementAtOrDefault(i),
-                                LastVolume = idleStatus.LastVolumes?.ElementAtOrDefault(i),
-                                LastPrice = idleStatus.LastPrices?.ElementAtOrDefault(i),
-
-                            };
-
-                        }
-
-                        await _mediator.Publish(nozzleEvent);
-                        await _hubContext.Clients.All.SendAsync("NozzleStateChange", nozzleEvent);
-                    }
-
-                }
-
-
-                //process Tag Read
-                if (idleStatus.Tags?.Count > i && !string.IsNullOrEmpty(idleStatus.Tags[i].ToString()))
-                {
-                    var tag = idleStatus.Tags[i].ToString();
-                    if (tag.Length <= 48 && IsValidHexString(tag))
-                    {
-                        await _mediator.Publish(new TagReadEvent(deviceId, pumpId.Value, idleStatus.NozzlesUp?.ElementAtOrDefault(i) ?? 9, tag));
-                        await _hubContext.Clients.All.SendAsync("UploadstatusTagRead", new TagReadEvent(deviceId, pumpId.Value, idleStatus.NozzlesUp?.ElementAtOrDefault(i) ?? 9, tag));
-                    }
-                }
-
-
-            }
+            //     // Internal: Process Tag Read for MediatR event
+            //     if (idleStatus.Tags?.Count > i && !string.IsNullOrEmpty(idleStatus.Tags[i]?.ToString()))
+            //     {
+            //         var tag = idleStatus.Tags[i].ToString();
+            //         if (tag.Length <= 48 && IsValidHexString(tag))
+            //         {
+            //              try
+            //              {
+            //                  var tagEvent = new TagReadEvent(deviceId, pumpId, idleStatus.NozzlesUp?.ElementAtOrDefault(i) ?? 0, tag);
+            //                  await _mediator.Publish(tagEvent); // Publish internal event
+            //                   _logger.LogTrace("[Internal] Published TagReadEvent event for Pump {PumpId}", pumpId);
+            //              } catch (Exception ex) {
+            //                   _logger.LogError(ex, "[Internal] Error publishing TagReadEvent event for Pump {PumpId}", pumpId);
+            //              }
+            //             // NO _hubContext call here
+            //         }
+            //     }
+            // }
         }
-        private async Task ProcessFillingStatus(string deviceId, FillingStatus fillingStatus)
+
+        // Renamed, only internal logic (update auth state), NO hub broadcast
+        private async Task ProcessFillingStatusInternalLogic(string deviceId, FillingStatus fillingStatus)
         {
             if (fillingStatus.Ids == null) return;
-
             for (int i = 0; i < fillingStatus.Ids.Count; i++)
             {
-                var pumpId = fillingStatus.Ids[i];
-                if (!pumpId.HasValue || pumpId.Value < 1 || pumpId > 50)
-                {
-                    _logger.LogWarning("Invalid pump ID {PumpId} for device {DeviceId}", pumpId, deviceId);
-                    continue;
-                }
+                var pumpIdNullable = fillingStatus.Ids[i];
+                if (!pumpIdNullable.HasValue) continue; // Skip null entries
+                var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
+
+                if (pumpId < 1 || pumpId > 50) continue; // Validate range
 
                 try
                 {
-
-                    var transactionDetails = new TransactionDetails
-                    {
-                        Nozzle = fillingStatus.Nozzles?.ElementAtOrDefault(i) ?? 0,
-                        FuelGradeId = fillingStatus.FuelGradeIds?.ElementAtOrDefault(i) ?? 0,
-                        FuelGradeName = fillingStatus.FuelGradeNames?.ElementAtOrDefault(i) ?? "",
-                        Transaction = fillingStatus.Transactions?.ElementAtOrDefault(i) ?? 0,
-                        Volume = fillingStatus.Volumes?.ElementAtOrDefault(i) ?? 0,
-                        Amount = fillingStatus.Amounts?.ElementAtOrDefault(i) ?? 0,
-                        Price = fillingStatus.Prices?.ElementAtOrDefault(i) ?? 0,
-                        Tag = fillingStatus.Tags?.ElementAtOrDefault(i) ?? ""
-                    };
-
-
-                    await _authTracker.UpdateAuthState(deviceId, pumpId.Value, "InProgress");
-
-                    _logger.LogInformation("Pump {PumpId} on device {DeviceId} is now fueling", pumpId, deviceId);
-
-                    await _hubContext.Clients.All.SendAsync("FillingStatus", new { deviceId, pumpId = pumpId.Value, transactionDetails });
-
-
+                    await _authTracker.UpdateAuthState(deviceId, pumpId, "InProgress");
+                    _logger.LogInformation("[Internal] Updated auth state to InProgress for Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                    // NO _hubContext call here
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error processing filling status for pump {PumpId} on device {DeviceId}",
-                        pumpId, deviceId);
+                    _logger.LogError(ex, "[Internal] Error processing filling status for pump {PumpId} on device {DeviceId}", pumpId, deviceId);
                 }
             }
         }
 
+        // Keep IsValidHexString helper
         private bool IsValidHexString(string input)
         {
             return input.All(c => "0123456789ABCDEFabcdef".Contains(char.ToUpper(c)));
         }
 
 
-
-        private async Task ProcessEndOfTransactionStatus(string deviceId, EndOfTransactionStatus eotStatus)
+        // Renamed, only internal logic (update auth state), NO hub broadcast
+        private async Task ProcessEndOfTransactionStatusInternalLogic(string deviceId, EndOfTransactionStatus eotStatus)
         {
             if (eotStatus.Ids == null) return;
-
-            foreach (var pumpId in eotStatus.Ids.Where(id => id.HasValue))
+            // Iterate through nullable ints, check HasValue before using Value
+            foreach (var pumpIdNullable in eotStatus.Ids)
             {
+                 if (!pumpIdNullable.HasValue) continue; // Skip null entries
+                 var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
                 try
                 {
-                    await _authTracker.ClearAuthorization(deviceId, pumpId.Value);
-                    await _hubContext.Clients.All.SendAsync("PumpTransactionCompleted", new { deviceId, pumpId = pumpId.Value });
-                    _logger.LogInformation(
-                        "Transaction completed for pump {PumpId} on device {DeviceId}",
-                        pumpId, deviceId);
+                    await _authTracker.ClearAuthorization(deviceId, pumpId);
+                    _logger.LogInformation("[Internal] Cleared auth for EOT on Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                     // NO _hubContext call here
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
-                        "Error processing end of transaction for pump {PumpId} on device {DeviceId}",
-                        pumpId, deviceId);
+                    _logger.LogError(ex, "[Internal] Error processing end of transaction for pump {PumpId} on device {DeviceId}", pumpId, deviceId);
                 }
             }
         }
 
-
-
-
-
-
-
-
-
-
-
     }
 
+    // Keep TransactionDetails record
     public record TransactionDetails
     {
-        public int Nozzle { get; init; }
-        public int FuelGradeId { get; init; }
-        public string? FuelGradeName { get; init; }
-        public int Transaction { get; init; }
-        public decimal Volume { get; init; }
-        public decimal Amount { get; init; }
-        public decimal Price { get; init; }
-        public string? Tag { get; init; }
+         // Ensure types match domain model (might be nullable)
+         public int? Nozzle { get; init; }
+         public int? FuelGradeId { get; init; }
+         public string? FuelGradeName { get; init; }
+         public int? Transaction { get; init; }
+         public decimal? Volume { get; init; }
+         public decimal? Amount { get; init; }
+         public decimal? Price { get; init; }
+         public string? Tag { get; init; }
     }
 }

@@ -3,7 +3,6 @@ using FMS.Application.Command.DatabaseCommand.Common;
 using FMS.Application.MappingProfile;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Domain.Entities;
-using FMS.Infrastructure.DependancyInjection;
 using FMS.Persistence.DataAccess;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

@@ -85,12 +85,12 @@ jobs:
             echo "✓ FMS.Domain directory found"
           )
 
-          if not exist "FMS.Infrastructure" (
-            echo "⚠ Warning: FMS.Infrastructure directory not found"
-            set MISSING_BACKEND=1
-          ) else (
-            echo "✓ FMS.Infrastructure directory found"
-          )
+          # if not exist "FMS.Infrastructure" (
+          #   echo "⚠ Warning: FMS.Infrastructure directory not found"
+          #   set MISSING_BACKEND=1
+          # ) else (
+          #   echo "✓ FMS.Infrastructure directory found"
+          # )
 
           if not exist "FMS.BackgroundServices" (
             echo "⚠ Warning: FMS.BackgroundServices directory not found (optional)"

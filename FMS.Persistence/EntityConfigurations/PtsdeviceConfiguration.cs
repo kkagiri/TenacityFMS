@@ -40,6 +40,8 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.ProtocolSecurityType).HasMaxLength(145);
                 builder.Property(e => e.Site).HasColumnType("int(11)");
                 builder.Property(e => e.WebSocketCapable).HasColumnType("tinyint(4)");
+                builder.Property(e => e.ConnectionStatus).HasMaxLength(20);
+                builder.Property(e => e.LastActivity).HasColumnType("datetime");
 
                 // Relationships
                 builder.HasOne(d => d.SiteNavigation).WithMany(p => p.Ptsdevices)

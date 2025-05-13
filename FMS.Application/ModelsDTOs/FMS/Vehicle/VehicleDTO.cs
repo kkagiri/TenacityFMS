@@ -1,15 +1,13 @@
-﻿using FMS.Domain.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using FMS.Domain.Entities;
 
-namespace FMS.Application.ModelsDTOs.FMS.Vehicle
-{
-    public class VehicleDTO
-    {
+namespace FMS.Application.ModelsDTOs.FMS.Vehicle {
+    public class VehicleDTO {
         public string HyoungNo { get; set; } = null!;
 
         public int VehicleId { get; set; }
@@ -30,6 +28,9 @@ namespace FMS.Application.ModelsDTOs.FMS.Vehicle
 
         public decimal? ExcessWorkingHrCost { get; set; }
 
+        /// <summary>
+        /// Do not change this property name to NumberPlate, use HyoungNo instead
+        /// </summary>
         public string? NumberPlate { get; set; } = null!;
 
         public bool AverageKmL { get; set; }
@@ -48,11 +49,10 @@ namespace FMS.Application.ModelsDTOs.FMS.Vehicle
         [JsonIgnore]
         public decimal? ExpectedAverageValue { get; set; }
 
-
         [JsonIgnore]
         public string CombinedExpectedAverage => $"{ExpectedAverageclassificationName} {ExpectedAverageValue}" ?? "";
 
-        public List<string> Tags { get; set; } = new List<string>();
+        public List<string> Tags { get; set; } = new List<string> ();
 
     }
 }

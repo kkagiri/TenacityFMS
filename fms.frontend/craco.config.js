@@ -1,12 +1,22 @@
-const path = require('path');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+const path = require("path");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
+  style: {
+    postcss: {
+      loaderOptions: {
+        postcssOptions: {
+          plugins: [require("tailwindcss"), require("autoprefixer")],
+        },
+      },
+    },
+  },
   webpack: {
     configure: (webpackConfig, { env, paths }) => {
       // Remove the ModuleScopePlugin
       webpackConfig.resolve.plugins = webpackConfig.resolve.plugins.filter(
-        plugin => !(plugin instanceof require('react-dev-utils/ModuleScopePlugin'))
+        (plugin) =>
+          !(plugin instanceof require("react-dev-utils/ModuleScopePlugin"))
       );
 
       // Add support for importing files from outside of src/
@@ -17,13 +27,13 @@ module.exports = {
         new CopyWebpackPlugin({
           patterns: [
             {
-              from: path.resolve(__dirname, 'src', 'assests', 'fontawesome'),
-              to: path.resolve(paths.appBuild, 'assets', 'fontawesome'),
+              from: path.resolve(__dirname, "src", "assests", "fontawesome"),
+              to: path.resolve(paths.appBuild, "assets", "fontawesome"),
               noErrorOnMissing: true,
             },
             {
-              from: path.resolve(__dirname, 'public', 'web.config'),
-              to: path.resolve(paths.appBuild, 'web.config'),
+              from: path.resolve(__dirname, "public", "web.config"),
+              to: path.resolve(paths.appBuild, "web.config"),
             },
           ],
         })

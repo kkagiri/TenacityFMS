@@ -1,153 +1,99 @@
-using System.Threading;
-using System.Threading.Tasks;
-using MediatR;
-using FMS.Application.Infrastructure.DistCacheTracker;
-using Microsoft.Extensions.Logging;
-using FMS.Application.Command.PTSCommand.TagCommands;
-using FMS.Application.Command.PTSCommand.PumpCommands;
-using FMS.Domain.Entities.PTS.Enums;
+//For the moment, the refueling event handler is not used.
+// using System.Threading;
+// using System.Threading.Tasks;
+// using FMS.Application.Command.PTSCommand.PumpCommands;
+// using FMS.Application.Infrastructure.DistCacheTracker;
+// using FMS.Application.Queries.Database.FMSQuery.TagQueries;
+// using FMS.Domain.Entities.PTS.Enums;
+// using MediatR;
+// using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Events.Pump.Handler
-{
-    public class RefuelingEventHandler : INotificationHandler<NozzleStateChangeEvent>, INotificationHandler<TagReadEvent>, INotificationHandler<PumpStateChangeEvent>, INotificationHandler<TransactionCompletedEvent>
-    {
+// namespace FMS.Application.Events.Pump.Handler {
+//     public class RefuelingEventHandler : INotificationHandler<NozzleStateChangeEvent>, INotificationHandler<TagReadEvent>, INotificationHandler<PumpStateChangeEvent>, INotificationHandler<TransactionCompletedEvent> {
 
-        private readonly IMediator _mediator;
-        private readonly ILogger<RefuelingEventHandler> _logger;
-        private readonly IAuthorizationStateTracker _authTracker;
+//         private readonly IMediator _mediator;
+//         private readonly ILogger<RefuelingEventHandler> _logger;
+//         private readonly IAuthorizationStateTracker _authTracker;
 
-        public RefuelingEventHandler(IMediator mediator, IAuthorizationStateTracker authTracker, ILogger<RefuelingEventHandler> logger)
-        {
-            _mediator = mediator;
-            _authTracker = authTracker;
-            _logger = logger;
-        }
+//         public RefuelingEventHandler (IMediator mediator, IAuthorizationStateTracker authTracker, ILogger<RefuelingEventHandler> logger) {
+//             _mediator = mediator;
+//             _authTracker = authTracker;
+//             _logger = logger;
+//         }
 
+//         public async Task Handle (NozzleStateChangeEvent notification, CancellationToken cancellationToken) {
+//             try {
+//                 // Assuming NozzleStateChangeEvent has IsUp and NozzleId properties
 
-        public async Task Handle(NozzleStateChangeEvent notification, CancellationToken cancellationToken)
-        {
-            try
-            {
-                _logger.LogInformation("Nozzle state changed for device {DeviceId}, pump {PumpId}, nozzle {NozzleId}", notification.DeviceId, notification.PumpId, notification.NozzleId);
+//                 _logger.LogInformation ("Nozzle state changed for device {DeviceId}, pump {PumpId}, nozzle {NozzleId}. IsUp: {IsUp}", notification.DeviceId, notification.PumpId, notification.NozzleId, notification.IsUp);
 
-                await _authTracker.UpdateNozzleState(notification.DeviceId, notification.PumpId, notification.NozzleId, true);
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error handling NozzleStateChangeEvent");
-                return;
-            }
-        }
+//                 await _authTracker.UpdateNozzleState (notification.DeviceId, notification.PumpId, notification.NozzleId, notification.IsUp);
+//             } catch (System.Exception ex) {
+//                 _logger.LogError (ex, "Error handling NozzleStateChangeEvent");
+//             }
+//         }
 
-        public async Task Handle(TagReadEvent notification, CancellationToken cancellationToken)
-        {
-            try
-            {
-                _logger.LogInformation("Tag read for device {DeviceId}, pump {PumpId}, nozzle {NozzleId}, tag {TagId}", notification.DeviceId, notification.PumpId, notification.NozzleId, notification.TagId);
-                var IsNozzleUp = await _authTracker.IsNozzleUp(notification.DeviceId, notification.PumpId);
+//         public async Task Handle (TagReadEvent notification, CancellationToken cancellationToken) {
+//             _logger.LogInformation ("TagReadEvent received for Device: {DeviceId}, Pump: {PumpId}, Nozzle: {NozzleId}, Tag: {TagId}",
+//                 notification.DeviceId, notification.PumpId, notification.NozzleId, notification.TagId);
+//             // UI-less auto-authorization logic was here, now commented out as per user instruction.
+//             await Task.CompletedTask;
+//         }
 
-                if (!IsNozzleUp)
-                {
-                    _logger.LogInformation("Nozzle is not up for device {DeviceId}, pump {PumpId}", notification.DeviceId, notification.PumpId);
-                    return;
-                }
-                //check if the pump is authorized
-                if (await _authTracker.IsAuthorized(notification.DeviceId, notification.NozzleId))
-                {
-                    _logger.LogInformation(
-                    "Tag read ignored - pump already authorized for device {DeviceId}, pump {PumpId}",
-                    notification.DeviceId, notification.PumpId);
-                    return;
-                }
-                //authorize the Tag
+//         public async Task Handle (PumpStateChangeEvent notification, CancellationToken cancellationToken) {
+//             try {
+//                 int nozzleIdToUpdate = notification.NozzleId ?? 0;
+//                 if (nozzleIdToUpdate <= 0) {
+//                     _logger.LogWarning ("PumpStateChangeEvent for Device {DeviceId}, Pump {PumpId} received with no specific NozzleId. Status: {State}. Auth state updates might be ambiguous.",
+//                         notification.DeviceId, notification.PumpId, notification.State);
+//                 }
 
-                var tagAuthentication = await _mediator.Send(new AuthenticateTagCommand(notification.TagId), cancellationToken);
+//                 _logger.LogInformation ("Pump state changed for device {DeviceId}, pump {PumpId}, Nozzle {NozzleId}, state {State}", notification.DeviceId, notification.PumpId, nozzleIdToUpdate, notification.State);
 
-                if (!tagAuthentication.IsAuthenticated)
-                {
-                    _logger.LogInformation("Tag read ignored - tag not authenticated for device {DeviceId}, pump {PumpId}", notification.DeviceId, notification.PumpId);
-                    return;
-                }
-                var authorizeCommand = new PumpAuthorizeCommand
-                {
-                    DeviceId = notification.DeviceId,
-                    PumpId = notification.PumpId,
-                    Tag = notification.TagId,
-                    Type = PumpAuthorizeType.VOLUME,
-                    Dose = (double)tagAuthentication.dose,
-                    AutoCloseTransaction = true,
-                    TransactionEnabled = true
-                };
+//                 if (nozzleIdToUpdate > 0) {
+//                     string newStatusForAuth = notification.State?.ToUpperInvariant () switch {
+//                         "IDLE" => "Idle",
+//                         "OFFLINE" => "Offline",
+//                         "FILLING" => "InProgress",
+//                         "AUTHORIZED" => "Authorized",
+//                         "ENDOFTRANSACTION" => "Completed",
+//                         _ => notification.State
+//                     };
 
-                var result = await _mediator.Send(authorizeCommand, cancellationToken);
+//                     var currentAuthState = await _authTracker.GetAuthorizationState (notification.DeviceId, nozzleIdToUpdate);
+//                     if (currentAuthState != null) {
+//                         await _authTracker.UpdateAuthState (notification.DeviceId, nozzleIdToUpdate, newStatusForAuth);
+//                     } else {
+//                         _logger.LogInformation ("No active AuthState found for Device {DeviceId}, Nozzle {NozzleId} during PumpStateChangeEvent to {State}. No state updated.",
+//                             notification.DeviceId, nozzleIdToUpdate, notification.State);
+//                     }
 
-                if (result == null)
-                {
-                    _logger.LogInformation("Tag read ignored - pump not authorized for device {DeviceId}, pump {PumpId}", notification.DeviceId, notification.PumpId);
-                    return;
-                }
+//                     switch (notification.State?.ToUpperInvariant ()) {
+//                         case "IDLE":
+//                         case "OFFLINE":
+//                             await _authTracker.ClearAuthorization (notification.DeviceId, nozzleIdToUpdate);
+//                             _logger.LogInformation ("Auth cleared for Device {DeviceId}, Nozzle {NozzleId} due to state: {State}", notification.DeviceId, nozzleIdToUpdate, notification.State);
+//                             break;
+//                     }
+//                 }
+//             } catch (System.Exception ex) {
+//                 _logger.LogError (ex, "Error handling PumpStateChangeEvent");
+//             }
+//         }
+//         public async Task Handle (TransactionCompletedEvent notification, CancellationToken cancellationToken) {
+//             _logger.LogInformation ("TransactionCompletedEvent (FMS internal) for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, Nozzle {NozzleId}",
+//                 notification.DeviceId, notification.PumpId, notification.TrasactionId, notification.NozzleId);
+//             try {
+//                 if (notification.NozzleId > 0) {
+//                     await _authTracker.ClearAuthorization (notification.DeviceId, notification.NozzleId ?? 0);
+//                     _logger.LogInformation ("Auth cleared via TransactionCompletedEvent for Device {DeviceId}, Nozzle {NozzleId}", notification.DeviceId, notification.NozzleId);
+//                 } else {
+//                     _logger.LogWarning ("TransactionCompletedEvent for Device {DeviceId}, Pump {PumpId} has no NozzleId. Cannot clear specific AuthState.", notification.DeviceId, notification.PumpId);
+//                 }
 
-                _logger.LogInformation("Pump authorized for device {DeviceId}, pump {PumpId}", notification.DeviceId, notification.PumpId);
-
-
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error handling TagReadEvent");
-                return;
-            }
-        }
-
-
-
-        public async Task Handle(PumpStateChangeEvent notification, CancellationToken cancellationToken)
-        {
-            try
-            {
-                _logger.LogInformation("Pump state changed for device {DeviceId}, pump {PumpId}, state {State}", notification.DeviceId, notification.PumpId, notification.State);
-
-                await _authTracker.UpdateAuthState(notification.DeviceId, notification.PumpId, notification.State);
-
-                switch (notification.State.ToUpper())
-                {
-                    case "IDLE":
-                        await _authTracker.ClearAuthorization(notification.DeviceId, notification.PumpId);
-                        break;
-                    case "OFFLINE":
-                        await _authTracker.ClearAuthorization(notification.DeviceId, notification.PumpId);
-                        break;
-                    case "FILLING":
-                        //trigger the pump to start filling
-                        break;
-
-
-                    default:
-                        break;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error handling PumpStateChangeEvent");
-                return;
-            }
-        }
-        public async Task Handle(TransactionCompletedEvent notification, CancellationToken cancellationToken)
-        {
-            try
-            {
-                _logger.LogInformation("Transaction completed for device {DeviceId}, pump {PumpId}, transaction {TransactionId}", notification.DeviceId, notification.PumpId, notification.TrasactionId);
-                await _authTracker.ClearAuthorization(notification.DeviceId, notification.PumpId);
-
-                //Update the transaction Record
-                //var transaction = await _mediator.Send(new GetTransactionByIdQuery(notification.TransactionId), cancellationToken);
-                //
-
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error handling TransactionCompletedEvent");
-                return;
-            }
-        }
-    }
-}
+//             } catch (System.Exception ex) {
+//                 _logger.LogError (ex, "Error handling TransactionCompletedEvent (FMS internal)");
+//             }
+//         }
+//     }
+// }

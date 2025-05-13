@@ -19,7 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("deviceconnection");
+                builder.ToTable("deviceconnections");
 
                 builder.HasIndex(e => e.PtsdeviceId, "DeviceConnection_PtsdeviceId_idx");
 
@@ -30,20 +30,17 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.LastActivityAt).HasColumnType("datetime");
                 builder.Property(e => e.ConnectionType).HasMaxLength(20);
                 builder.Property(e => e.Status).HasMaxLength(20);
-                builder.Property(e => e.PtsdeviceId).HasMaxLength(50);
+                builder.Property(e => e.PtsdeviceId).HasMaxLength(100);
 
                 builder.HasOne(d => d.Ptsdevice)
                     .WithMany(p => p.DeviceConnections)
                     .HasForeignKey(d => d.PtsdeviceId)
                     .HasConstraintName("FK_DeviceConnection_Ptsdevice");
             }
-
-
             catch (Exception ex)
             {
-                Console.WriteLine($"Error configuring  : {ex.Message}");
-
-                throw new Exception($"Error configuring DeviceConnectionConfiguration: {ex.Message}", ex);
+                Console.WriteLine($"Error configuring Deviceconnection: {ex.Message}");
+                throw new Exception($"Error configuring DeviceconnectionConfiguration: {ex.Message}", ex);
             }
         }
     }

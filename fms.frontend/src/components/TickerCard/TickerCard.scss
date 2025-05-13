@@ -97,12 +97,43 @@
       font-weight: 600;
       line-height: 24px;
       color: var(--base-text-color);
+
+      .ticker-unit {
+        font-size: 14px;
+        color: var(--secondary-text-color);
+        margin-left: 4px;
+      }
     }
 
     .total {
       font-size: 14px;
       line-height: 20px;
       color: var(--secondary-text-color);
+    }
+
+    .ticker-change {
+      margin-top: 4px;
+      font-size: 14px;
+
+      .positive {
+        color: var(--success-color, #28a745);
+        &:before {
+          content: "↑";
+          margin-right: 2px;
+        }
+      }
+
+      .negative {
+        color: var(--error-color, #dc3545);
+        &:before {
+          content: "↓";
+          margin-right: 2px;
+        }
+      }
+
+      .neutral {
+        color: var(--secondary-text-color, #6c757d);
+      }
     }
   }
 

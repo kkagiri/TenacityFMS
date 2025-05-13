@@ -1,0 +1,28 @@
+using FMS.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace FMS.Persistence.EntityConfigurations {
+    public class TagMonitoringConfigConfiguration : EntityTypeConfiguration<TagMonitoringConfig> {
+        public override void Configure (EntityTypeBuilder<TagMonitoringConfig> builder) {
+            builder.HasKey (e => e.Id).HasName ("PRIMARY");
+            builder.ToTable ("tag_monitoring_config");
+
+            builder.Property (e => e.Id)
+                .ValueGeneratedOnAdd ()
+                .HasColumnType ("int(11)")
+                .HasColumnName ("id");
+
+            builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
+            builder.Property (e => e.TagName).HasMaxLength (100);
+            builder.Property (e => e.IsEnabled).HasDefaultValueSql ("'1'");
+            builder.Property (e => e.IgnoredLocations).HasMaxLength (255);
+            builder.Property (e => e.Monitored).HasDefaultValueSql ("'1'");
+
+            builder.HasOne (e => e.Vehicle)
+                .WithMany ()
+                .HasForeignKey (e => e.VehicleId)
+                .HasConstraintName ("FK_TagMonitoringConfig_Vehicle");
+        }
+    }
+}

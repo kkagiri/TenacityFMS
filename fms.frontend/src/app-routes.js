@@ -1,6 +1,6 @@
 import { HomePage, Vehicles } from "./pages";
 import ConsumptionBasedonRefills from "./pages/consumption/consumptionBasedonRefills";
-import VehicleConsumptionDetails from "./report/vehicleConsumptionDetails/vehicleConsumptionDetails";
+import FuelReportImporter from "./pages/FuelReportImporter/FuelReportImporter";
 import VehicleManualRefill from "./pages/manualrefill/manualRefilPage";
 import PermissionTreeList from "./components/PermissionTreeList/permissionTreeList";
 import Rolepage from "./pages/Role/rolepage";
@@ -15,6 +15,7 @@ import DeviceDashboard from "./pages/PTSDevice/DeviceDashboard";
 import EditPTSDevice from "./pages/PTSDevice/EditPTSDevice";
 import ATGDashboard from "./pages/ATG/ATGDashboard";
 import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
+import TailwindExample from "./components/TailwindExample";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -28,8 +29,8 @@ const resolvedComponents = (pageName) => {
     case "consumption":
       return ConsumptionBasedonRefills;
 
-    case "vehicleConsumptionDetails":
-      return VehicleConsumptionDetails;
+    case "Fuel Report Importer":
+      return FuelReportImporter;
     case "manual refill":
       return VehicleManualRefill;
     case "employees":
@@ -41,7 +42,7 @@ const resolvedComponents = (pageName) => {
     case "navigations":
       return NavigationPage;
     case "reports":
-      return ReportDesignerComponent;
+      return FuelReportImporter;
     case "tags":
       return Tagpage;
     case "automatic fueling":

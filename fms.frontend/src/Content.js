@@ -10,6 +10,7 @@ import resolvedComponents from "./app-routes";
 import withRoleProtection from "./utils/withRoleProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
+import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
 
 export default function Content() {
   const dispatch = useDispatch();
@@ -41,8 +42,24 @@ export default function Content() {
       <Routes>
         {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
-        {/* ToDo: Remove this stupid links below */}
-        <Route path="/atg/:ptsId" element={<FuelingProcess />} />
+        {/* Fueling routes with proper error handling */}
+        <Route
+          path="/fueling/:ptsId"
+          element={
+            <ErrorBoundary>
+              <FuelingProcess />
+            </ErrorBoundary>
+          }
+        />
+        {/* Keep the old route for backward compatibility */}
+        <Route
+          path="/atg/:ptsId"
+          element={
+            <Navigate
+              to={(location) => location.pathname.replace("/atg/", "/fueling/")}
+            />
+          }
+        />
         <Route
           path="/atg"
           element={React.createElement(resolvedComponents("atg"))}

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 //claude import needed components from devextreme
@@ -14,133 +20,705 @@ import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 //claude import icons and confirm dialog
 import { Tooltip } from "devextreme-react/tooltip";
+import PumpIcon from "../icons/PumpIcon";
+import NozzleIcon from "../icons/NozzleIcon";
+import { RadioGroup } from "devextreme-react/radio-group";
+import { LoadPanel } from "devextreme-react/load-panel";
 
 // Import styles
 import "./fuelingprocess.scss"; //claude import scss file
 
-// Sample data - To replace with live data from redux/API
-const pumps = [
-  { id: 1, name: "Pump 1", status: "idle", fuelType: "Diesel" },
-  { id: 2, name: "Pump 2", status: "busy", fuelType: "Petrol" },
-  { id: 3, name: "Pump 3", status: "idle", fuelType: "Diesel" },
-  { id: 4, name: "Pump 4", status: "maintenance", fuelType: "Petrol" },
-];
+// Import modular components
+import FuelingProcessRenderer from "./FuelingProcessRenderer";
+import FuelingPopupRenderer from "./FuelingPopupRenderer";
+import FuelingHeader from "./FuelingHeader";
+import FuelingUtils from "./FuelingUtils";
+import TagSelector from "./TagSelector"; //Cursor
+import FuelingRulePopup from "./FuelingRulePopup"; //Cursor
 
-const nozzles = [
-  { id: 1, name: "Nozzle 1", status: "idle" },
-  { id: 2, name: "Nozzle 2", status: "idle" },
-];
+// Import custom hooks
+import { useDeviceData } from "../../hooks/useDeviceData";
+import pumpControlService from "../../services/pumpControlService";
+import { createFuelingEvent } from "../../redux/actions/fuelingEventActions";
+import { fetchVehicleList } from "../../redux/actions/vehicleActions"; //Cursor
+import {
+  fetchTagsByVehicleId,
+  fetchTagDetails,
+  validateTag,
+  validateVehicle,
+} from "../../redux/actions/tagActions"; //Cursor
+import { fetchSiteList } from "../../redux/actions/siteActions"; //Cursor
 
-const vehicleDetails = {
-  monthlyLimit: 2000,
-  monthlyUsed: 1200,
-  dailyLimit: 100,
-  dailyUsed: 50,
-  fuelingLimit: 60,
-};
+//Cursor: Import ScanStep
+import ScanStep from "./ScanStep";
 
-//To:DOlink required
-// 1. Redux actions for PTSDevices, tanks, pumps, nozzles
-// 2. API services for fueling transactions
-// 3. Vehicle information/limits API
-// 4. Authentication/user permissions
-// 5. SignalR for real-time fueling status
+// Import the new memoized components
+import PumpSelectionStep from "./PumpSelectionStep";
+import NozzleSelectionStep from "./NozzleSelectionStep";
+import FuelingDetailsStep from "./FuelingDetailsStep";
 
 const FuelingProcess = () => {
   const dispatch = useDispatch();
   const { ptsId } = useParams();
   const navigate = useNavigate();
+  const previousPumpStatuses = useRef({}); // Ref to store previous pump statuses FOR EVENT DETECTION
 
-  // In a real implementation, these would come from Redux/API
-  const [ptsDevice, setPtsDevice] = useState(null);
+  // --- Local UI State ---
+  // Define selectedVehicleId early, before using it in selectors
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null); // ID of selected vehicle
+
+  // Use our device data hook
+  const {
+    devicePumpStatus, // Parsed pump status object { pumpId: { status, volume, ... } }
+    pumps: availablePumps, // Derived array of pump objects for selection UI
+    activeFuelingProcesses, // Derived array of fueling/EOT processes for display/checks
+    lastUpdated: deviceLastUpdated, // Timestamp from Redux
+    isLiveDataEnabled, // From Redux
+    getPumpDetails, // Function to get parsed details for a specific pump
+    getNozzlesForPump, // Function to get derived nozzle info for a specific pump
+    rawUploadStatus, // Cursor: Pass raw status object
+    fuelGrades, // Cursor: Fuel grades from status
+  } = useDeviceData(ptsId);
+
+  // Get PTS device info from Redux store (static info)
+  const ptsDevice = useSelector((state) =>
+    state.ptsDevice.ptsDeviceList.find((dev) => dev.ptsid === ptsId)
+  );
+
+  // Get sites from Redux store //Cursor
+  const sites = useSelector((state) => state.site.sites);
+
+  // Get site name for the current device //Cursor
+  const siteName = useCallback(() => {
+    if (!ptsDevice || !sites || !sites.length) return null;
+    const siteId = ptsDevice.site;
+    const site = sites.find((site) => site.id === siteId);
+    return site ? site.name : null;
+  }, [ptsDevice, sites]);
+
+  // Get fueling events for the list component
+  const fuelingEvents = useSelector((state) =>
+    state.fuelingEvents.events.filter((e) => e.deviceId === ptsId)
+  );
+
+  // Get vehicles from Redux store
+  const vehicles = useSelector((state) => state.vehicle.vehicles);
+  //Cursor: Ensure isLoadingVehicles defaults to false if state path is missing
+  const isLoadingVehicles = useSelector(
+    (state) => state.vehicle?.loading ?? false
+  );
+
+  // Get tag-related data from Redux using vehicleId from state
+  const vehicleTags = useSelector((state) => {
+    const tagsForVehicle = state.tag?.tagsByVehicle?.[selectedVehicleId] || [];
+    return tagsForVehicle;
+  });
+  const isTagsLoading = useSelector((state) => state.tag?.loading);
+  const validatedTag = useSelector((state) => state.tag?.validatedTag);
+  const tagError = useSelector((state) => state.tag?.error);
+
+  // --- Local UI State ---
   const [isLoading, setIsLoading] = useState(true);
   const [showNavigationDialog, setShowNavigationDialog] = useState(false);
   const [navigateTo, setNavigateTo] = useState(null);
+  const [step, setStep] = useState("pump"); // Current UI step
+  const [selectedPump, setSelectedPump] = useState(null); // Pump selected in UI *by the user*
+  const [selectedNozzle, setSelectedNozzle] = useState(null); // Nozzle selected in UI *by the user*
+  const [vehicleReg, setVehicleReg] = useState(""); // Entered/scanned vehicle reg
+  const [isAuthorizing, setIsAuthorizing] = useState(false); // API call in progress
+  const [isScanning, setIsScanning] = useState(false); // Scan API call in progress
+  const [scanResult, setScanResult] = useState(null); // Tag read during scan
+  const [vehicleInfo, setVehicleInfo] = useState(null); // Info from tag validation
+  const [fuelingComplete, setFuelingComplete] = useState(false); // Controls completion popup visibility
+  const [fuelPrice, setFuelPrice] = useState(3.99); // TODO: Get from FuelGrade status in Redux
+  const [selectedType, setSelectedType] = useState("Amount"); // Preset type (Amount/Volume/Full)
+  const [amount, setAmount] = useState(""); // Preset Amount input
+  const [volume, setVolume] = useState(""); // Preset Volume input
+  const [showFuelingPopup, setShowFuelingPopup] = useState(false); // Controls visibility of progress popup
+  const [showAllFuelingPopup, setShowAllFuelingPopup] = useState(false);
+  const [currentTransactionId, setCurrentTransactionId] = useState(null); // Store ID from authorize/status
+  const [activePumpForPopup, setActivePumpForPopup] = useState(null); // Pump currently shown *in the progress popup*
+  const [activeNozzleForPopup, setActiveNozzleForPopup] = useState(null); // Nozzle currently shown *in the progress popup*
+  const [tagDetails, setTagDetails] = useState(null); // Details for selected/scanned tag
+  const [selectedTag, setSelectedTag] = useState(null); // Currently selected tag
 
-  // Step management
-  const [step, setStep] = useState("pump");
-  const [selectedPump, setSelectedPump] = useState(null);
-  const [selectedNozzle, setSelectedNozzle] = useState(null);
-  const [vehicleReg, setVehicleReg] = useState("");
-  const [isFueling, setIsFueling] = useState(false);
-  const [fuelingComplete, setFuelingComplete] = useState(false);
-  const [fuelingAmount, setFuelingAmount] = useState(0);
+  // Add the company vehicle checkbox state and rule popup state
+  const [isCompanyVehicle, setIsCompanyVehicle] = useState(false); //Cursor
+  const [showFuelingRulePopup, setShowFuelingRulePopup] = useState(false); //Cursor
+  const [vehicleForRules, setVehicleForRules] = useState(null); //Cursor
 
-  // Fetch PTS device data when component mounts
+  // Add state for connection status
+  const [deviceConnectionStatus, setDeviceConnectionStatus] =
+    useState("connecting");
+  const [isDeviceDisconnected, setIsDeviceDisconnected] = useState(false);
+
+  // --- Selector Definitions ---
+  const loggedInUser = useSelector((state) => state.auth.user);
+  const userMasterTag = loggedInUser?.masterTag || null; // DEFINED HERE
+
+  // Add state for master tag usage
+  const [useMasterTag, setUseMasterTag] = useState(false);
+
+  // Add state for selection method
+  const [selectionMethod, setSelectionMethod] = useState("lookup"); // Already defined
+
+  // Fetch vehicles and sites when component mounts //Cursor
   useEffect(() => {
-    // In a real implementation, this would be:
-    // dispatch(fetchPTSDeviceById(ptsId))
-    //   .then(() => setIsLoading(false))
-    //   .catch(error => {
-    //     notify(error.message, 'error', 3000);
-    //     setIsLoading(false);
-    //   });
+    dispatch(fetchVehicleList());
+    dispatch(fetchSiteList());
+  }, [dispatch]);
 
-    // Simulate API call with timeout
-    setTimeout(() => {
-      setPtsDevice({
-        id: ptsId,
-        name: `PTS Device ${ptsId}`,
-        deviceId: `PTS00${ptsId}`,
-        status: "online",
-        lastSync: "2 mins ago",
-        tanks: 4,
-        pumps: 8,
-        tankLevel: 75,
-      });
-      setIsLoading(false);
-    }, 1000);
-  }, [ptsId, dispatch]);
-
-  // Simulate fueling progress
+  // Update UI when validated tag changes
   useEffect(() => {
-    if (isFueling) {
-      const interval = setInterval(() => {
-        setFuelingAmount((prev) => {
-          if (prev >= 45) {
-            clearInterval(interval);
-            setTimeout(() => {
-              setIsFueling(false);
-              setFuelingComplete(true);
-            }, 1000);
-            return 45;
-          }
-          return prev + 1;
-        });
-      }, 200);
-      return () => clearInterval(interval);
+    if (validatedTag && validatedTag.isValid) {
+      setTagDetails(validatedTag);
+      setVehicleInfo(validatedTag.vehicleInfo);
     }
-  }, [isFueling]);
+  }, [validatedTag]);
 
-  const startFueling = () => {
-    // In a real implementation, we would call an API here
-    // dispatch(startFuelingTransaction({
-    //   ptsId,
-    //   pumpId: selectedPump.id,
-    //   nozzleId: selectedNozzle.id,
-    //   vehicleReg
-    // }))
-    setIsFueling(true);
+  // Set initial loading state
+  useEffect(() => {
+    if (ptsDevice) {
+      const timer = setTimeout(() => setIsLoading(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [ptsDevice]);
+
+  // New effect to request device status for this specific device
+  useEffect(() => {
+    if (ptsId && isLiveDataEnabled) {
+      // Request status updates for this specific device when component mounts
+      import("../../signalR/SignalRService").then((module) => {
+        const SignalRService = module.default;
+
+        if (SignalRService.state === "connected") {
+          console.log(`[FuelingProcess] Requesting status for device ${ptsId}`);
+          SignalRService.requestDeviceStatus(ptsId);
+
+          // Set up interval to periodically request status
+          const statusInterval = setInterval(() => {
+            if (SignalRService.state === "connected") {
+              SignalRService.requestDeviceStatus(ptsId);
+            }
+          }, 5000); // Request every 5 seconds
+
+          return () => {
+            clearInterval(statusInterval);
+          };
+        }
+      });
+    }
+  }, [ptsId, isLiveDataEnabled]);
+
+  // --- Effect to Update Popup State Based on Redux ---
+  useEffect(() => {
+    // Check status of the pump currently selected FOR THE POPUP
+    const pumpDetails = activePumpForPopup
+      ? getPumpDetails(activePumpForPopup.id)
+      : null;
+
+    if (pumpDetails?.status === "fueling") {
+      // Pump for popup is fueling -> show popup, update details
+      setShowFuelingPopup(true);
+      setFuelingComplete(false);
+      if (!currentTransactionId && pumpDetails.currentTransaction) {
+        setCurrentTransactionId(pumpDetails.currentTransaction);
+      }
+    } else if (pumpDetails?.status === "endOfTransaction") {
+      // Pump for popup just finished -> hide progress, show completion
+      setShowFuelingPopup(false);
+      setFuelingComplete(true); // Trigger completion popup
+      if (!currentTransactionId && pumpDetails.transaction) {
+        setCurrentTransactionId(pumpDetails.transaction); // Capture final transaction ID
+      }
+    } else {
+      // Pump for popup is idle, offline, nozzleUp, or not selected
+      // Hide the progress popup if it was showing for this pump
+      if (showFuelingPopup && activePumpForPopup?.id === pumpDetails?.id) {
+        setShowFuelingPopup(false);
+      }
+      // Don't automatically hide completion popup here, let user dismiss it via 'completeFueling'
+    }
+  }, [devicePumpStatus, activePumpForPopup, getPumpDetails, showFuelingPopup]); // Dependency: Redux state & popup context
+
+  // --- Effect to Dispatch Fueling Events for FuelingEventsList ---
+  useEffect(() => {
+    const currentStatuses = devicePumpStatus || {};
+    const previousStatuses = previousPumpStatuses.current || {};
+
+    // Iterate through pumps in the current status
+    Object.keys(currentStatuses).forEach((pumpIdStr) => {
+      const pumpId = parseInt(pumpIdStr, 10);
+      const current = currentStatuses[pumpId];
+      const previous = previousStatuses[pumpId];
+
+      // Skip if status hasn't changed (or pump is new)
+      if (previous?.status === current.status) return;
+
+      console.log(
+        `[Event Detection] Pump ${pumpId}: ${previous?.status} -> ${current.status}`
+      );
+
+      // Detect Transitions and Dispatch Events
+      if (
+        (previous?.status === "idle" || !previous) &&
+        current.status === "nozzleUp"
+      ) {
+        dispatch(
+          createFuelingEvent("nozzle", ptsId, {
+            pumpId: current.id,
+            nozzleNumber: current.nozzleUp,
+            lastTransaction: current.lastTransaction,
+            lastVolume: current.lastVolume,
+            lastAmount: current.lastAmount,
+          })
+        );
+      } else if (
+        (previous?.status === "nozzleUp" || previous?.status === "idle") && // Allow direct idle -> fueling
+        current.status === "fueling"
+      ) {
+        dispatch(
+          createFuelingEvent("filling", ptsId, {
+            pumpId: current.id,
+            transactionId: current.currentTransaction,
+            nozzleNumber: current.activeNozzle,
+            transactionDetails: {
+              Volume: current.currentVolume,
+              Amount: current.currentAmount,
+              Price: current.currentPrice, // Added price
+              Tag: current.tag, // Added tag
+            },
+          })
+        );
+      } else if (
+        previous?.status === "fueling" &&
+        current.status === "endOfTransaction"
+      ) {
+        dispatch(
+          createFuelingEvent("completed", ptsId, {
+            pumpId: current.id,
+            transactionId: current.transaction,
+            nozzleNumber: current.nozzle, // Use EOT nozzle
+            transactionDetails: {
+              Volume: current.volume,
+              Amount: current.amount,
+              Price: current.price, // Added price
+              Tag: current.tag, // Added tag
+            },
+          })
+        );
+      } else if (
+        previous?.status !== "offline" &&
+        current.status === "offline"
+      ) {
+        dispatch(
+          createFuelingEvent("offline", ptsId, {
+            pumpId: current.id,
+          })
+        );
+      }
+
+      // Detect Tag Read (can happen in idle or fueling)
+      // Check if tag exists now but didn't before (or changed)
+      if (current.tag && current.tag !== previous?.tag) {
+        dispatch(
+          createFuelingEvent("tag", ptsId, {
+            pumpId: current.id,
+            tag: current.tag,
+            // Determine nozzle context based on status
+            nozzleNumber:
+              current.status === "fueling"
+                ? current.activeNozzle
+                : current.status === "nozzleUp"
+                ? current.nozzleUp
+                : current.status === "endOfTransaction"
+                ? current.nozzle
+                : 0,
+          })
+        );
+      }
+    });
+
+    // Detect pumps that disappeared (implicitly offline?) - Optional
+    // Object.keys(previousStatuses).forEach(pumpIdStr => {
+    //    if (!currentStatuses[pumpIdStr]) {
+    //       // Pump existed before, now gone
+    //       // Potentially dispatch offline event if not already offline
+    //    }
+    // });
+
+    // Update previous statuses for next comparison
+    previousPumpStatuses.current = currentStatuses;
+  }, [devicePumpStatus, ptsId, dispatch]);
+
+  // Helper to get current fueling amount for the popup pump
+  const getCurrentPopupAmount = useCallback(() => {
+    const details = activePumpForPopup
+      ? getPumpDetails(activePumpForPopup.id)
+      : null;
+    return details?.currentAmount ?? details?.amount ?? 0; // Fueling amount or EOT amount
+  }, [activePumpForPopup, getPumpDetails]);
+
+  // Helper to get current fueling cost for the popup pump
+  const getCurrentPopupCost = useCallback(() => {
+    // For now, let's simplify and use Amount as Cost, as Price might not be in EOT easily
+    // Ideally, calculate Cost = Volume * Price if possible
+    const details = activePumpForPopup
+      ? getPumpDetails(activePumpForPopup.id)
+      : null;
+    return details?.currentAmount ?? details?.amount ?? 0; // Fueling amount or EOT amount
+  }, [activePumpForPopup, getPumpDetails]);
+
+  // Helper to get current fueling volume for the popup pump
+  const getCurrentPopupVolume = useCallback(() => {
+    const details = activePumpForPopup
+      ? getPumpDetails(activePumpForPopup.id)
+      : null;
+    return details?.currentVolume ?? details?.volume ?? 0; // Fueling volume or EOT volume
+  }, [activePumpForPopup, getPumpDetails]);
+
+  // --- Actions ---
+
+  // Effect to determine if device is disconnected
+  useEffect(() => {
+    setIsDeviceDisconnected(deviceConnectionStatus === "disconnected");
+  }, [deviceConnectionStatus]);
+
+  // Function to handle connection status updates from header
+  const handleConnectionStatusChange = (status) => {
+    setDeviceConnectionStatus(status);
+
+    // If device disconnects during an active fueling process, show warning
+    if (
+      status === "disconnected" &&
+      activeFuelingProcesses?.some((p) => p.status === "fueling")
+    ) {
+      notify(
+        "Device disconnected! Active fueling processes may be affected.",
+        "warning",
+        5000
+      );
+    }
   };
 
-  const completeFueling = () => {
-    // In a real implementation:
-    // dispatch(completeFuelingTransaction({
-    //   transactionId,
-    //   amount: fuelingAmount
-    // }))
-    navigate("/");
+  const startFueling = async () => {
+    // Check if device is disconnected first
+    if (isDeviceDisconnected) {
+      notify("Cannot start fueling - device is disconnected", "error", 3000);
+      return;
+    }
+
+    if (!selectedPump || !selectedNozzle) {
+      notify("Please select a pump and nozzle first.", "warning", 2000);
+      return;
+    }
+
+    // Check if the selected pump is actually available (not offline/fueling)
+    const pumpCurrentStatus = getPumpDetails(selectedPump.id)?.status;
+    if (
+      pumpCurrentStatus === "offline" ||
+      pumpCurrentStatus === "fueling" ||
+      pumpCurrentStatus === "endOfTransaction"
+    ) {
+      notify(
+        `Pump ${selectedPump.id} is currently ${pumpCurrentStatus} and cannot be authorized.`,
+        "error",
+        3000
+      );
+      return;
+    }
+
+    try {
+      setIsAuthorizing(true);
+
+      // Get selected nozzle's fuel grade and price //Cursor
+      let fuelGradeId = 0;
+      let fuelPrice = 0;
+
+      // Try to find the fuel grade for this nozzle
+      if (selectedNozzle.fuelType) {
+        const matchingGrade = fuelGrades.find(
+          (grade) =>
+            grade.name.toLowerCase() === selectedNozzle.fuelType.toLowerCase()
+        );
+
+        if (matchingGrade) {
+          fuelGradeId = matchingGrade.id;
+          fuelPrice = matchingGrade.price;
+        } else {
+          fuelPrice = selectedNozzle?.price || 3.99; // Fallback price
+        }
+      }
+
+      // Get the tag to use - prioritize scan result, then tag from status, then selected tag, then vehicle reg
+      const tagToUse =
+        scanResult ||
+        (selectedPump ? getPumpDetails(selectedPump.id)?.tag : null) ||
+        (selectedTag ? selectedTag.name : null) ||
+        (tagDetails ? tagDetails.tagId : null) ||
+        vehicleReg ||
+        "";
+
+      console.log("[Authorize] Using tag:", tagToUse);
+
+      const authParams = {
+        pump: selectedPump.id,
+        nozzle: selectedNozzle.id,
+        type: selectedType, // Amount, Volume, Full
+        dose:
+          selectedType === "Amount"
+            ? parseFloat(amount) || 0 // Ensure valid number
+            : selectedType === "Volume"
+            ? parseFloat(volume) || 0 // Ensure valid number
+            : 0, // Full dose is 0
+        price: fuelPrice, // Use correct price from fuel grade
+        fuelGradeId: fuelGradeId, // Include fuel grade ID if available
+        tag: useMasterTag ? userMasterTag : tagToUse, // Use the determined tag or master tag
+      };
+
+      console.log("[Authorize] Sending auth request:", authParams);
+      const response = await pumpControlService.authorizePump(
+        ptsId,
+        authParams
+      );
+      console.log("[Authorize] Received response:", response);
+
+      if (response && response.success) {
+        setCurrentTransactionId(response.transactionId || null); // Store transaction ID if provided
+        // Set the context for which pump/nozzle we expect fueling to start on
+        setActivePumpForPopup(selectedPump);
+        setActiveNozzleForPopup(selectedNozzle);
+        // Don't setShowFuelingPopup(true) here - let the useEffect based on Redux state handle it
+        notify(
+          `Pump ${selectedPump.id} authorized successfully. Transaction ID: ${
+            response.transactionId || "N/A"
+          }. Lift nozzle ${selectedNozzle.id} to start fueling.`,
+          "success",
+          5000 // Longer duration
+        );
+        // Potentially clear selection/move step, or wait for nozzleUp status change
+        // For now, stay on details step, user needs to lift nozzle
+        // setStep('pump'); // Optional: Go back to pump selection
+      } else {
+        notify(response?.message || "Failed to authorize pump", "error", 3000);
+        // Clear potentially stale popup context if auth fails
+        setActivePumpForPopup(null);
+        setActiveNozzleForPopup(null);
+      }
+    } catch (error) {
+      console.error("[Authorize] Error:", error);
+      notify(
+        `Error authorizing pump: ${error.message || "Unknown error"}`,
+        "error",
+        3000
+      );
+      // Clear potentially stale popup context on error
+      setActivePumpForPopup(null);
+      setActiveNozzleForPopup(null);
+    } finally {
+      setIsAuthorizing(false);
+    }
+  };
+
+  const stopFueling = async () => {
+    // Check if device is disconnected first
+    if (isDeviceDisconnected) {
+      notify(
+        "Cannot stop fueling - device is disconnected. The physical stop button on the pump may still work.",
+        "warning",
+        5000
+      );
+      return;
+    }
+
+    // Stop the pump currently shown *in the popup*
+    if (!activePumpForPopup) {
+      notify("No active pump selected to stop.", "warning", 2000);
+      return;
+    }
+    // Check if the pump is actually fueling
+    const pumpCurrentStatus = getPumpDetails(activePumpForPopup.id)?.status;
+    if (pumpCurrentStatus !== "fueling") {
+      notify(
+        `Pump ${activePumpForPopup.id} is not currently fueling. Cannot send stop command.`,
+        "warning",
+        3000
+      );
+      return;
+    }
+
+    try {
+      console.log(
+        `[Stop] Sending stop command for Pump ${activePumpForPopup.id}`
+      );
+      const response = await pumpControlService.stopPump(
+        ptsId,
+        activePumpForPopup.id
+      );
+      console.log(
+        `[Stop] Received response for Pump ${activePumpForPopup.id}:`,
+        response
+      );
+      if (response && response.success) {
+        notify(
+          `Stop command sent for Pump ${activePumpForPopup.id}`,
+          "success",
+          2000
+        );
+        // Let the useEffect based on Redux state handle UI changes (popup hiding, status change)
+      } else {
+        notify(response?.message || "Failed to stop pump", "error", 3000);
+      }
+    } catch (error) {
+      console.error(
+        `[Stop] Error stopping pump ${activePumpForPopup.id}:`,
+        error
+      );
+      notify(
+        `Error stopping pump: ${error.message || "Unknown error"}`,
+        "error",
+        3000
+      );
+    }
+  };
+
+  const completeFueling = async () => {
+    // Complete the transaction for the pump shown *in the popup* after EOT status received
+    if (!activePumpForPopup) {
+      notify(
+        "Cannot complete: No pump context for the completed transaction.",
+        "error",
+        3000
+      );
+      // Reset UI anyway if possible
+      setFuelingComplete(false);
+      startNewFueling();
+      return;
+    }
+
+    const pumpDetails = getPumpDetails(activePumpForPopup.id);
+    const transactionIdToClose =
+      currentTransactionId || pumpDetails?.transaction;
+
+    // Ensure we have a transaction ID and the status is EOT
+    if (pumpDetails?.status !== "endOfTransaction") {
+      notify(
+        `Cannot complete: Pump ${
+          activePumpForPopup.id
+        } is not in EndOfTransaction status. Current status: ${
+          pumpDetails?.status || "Unknown"
+        }.`,
+        "warning",
+        4000
+      );
+      // Optionally hide completion popup if status changed back
+      // setFuelingComplete(false);
+      return;
+    }
+    if (!transactionIdToClose) {
+      notify(
+        `Cannot complete: Missing transaction ID for Pump ${activePumpForPopup.id}.`,
+        "error",
+        3000
+      );
+      // Reset UI anyway
+      setFuelingComplete(false);
+      startNewFueling();
+      return;
+    }
+
+    try {
+      console.log(
+        `[Complete] Sending close command for Pump ${activePumpForPopup.id}, Txn ${transactionIdToClose}`
+      );
+      // NOTE: Backend `closeTransaction` might not be necessary if EOT status
+      // automatically implies completion. This depends on backend logic.
+      // If closeTransaction is required to finalize records, keep it.
+      // Otherwise, this might just be a UI cleanup action.
+      // Let's assume it's needed for now.
+      const response = await pumpControlService.closeTransaction(
+        ptsId,
+        activePumpForPopup.id,
+        transactionIdToClose
+      );
+      console.log(
+        `[Complete] Received response for Pump ${activePumpForPopup.id}, Txn ${transactionIdToClose}:`,
+        response
+      );
+
+      if (response && response.success) {
+        notify(
+          `Transaction ${transactionIdToClose} completed successfully`,
+          "success",
+          2000
+        );
+        // Dispatch final completed event? Might be redundant if EOT already did.
+        // dispatch(createFuelingEvent('completed', ptsId, { pumpId: activePumpForPopup.id, transactionId: transactionIdToClose }));
+      } else {
+        // Even if backend fails, proceed with UI reset as EOT was received.
+        notify(
+          response?.message ||
+            `Failed to explicitly close transaction ${transactionIdToClose} (Pump ${activePumpForPopup.id}). Resetting UI based on EndOfTransaction status.`,
+          "warning", // Downgrade to warning as UI should still reset
+          4000
+        );
+      }
+
+      // --- UI Reset Logic ---
+      setFuelingComplete(false); // Hide completion popup
+      startNewFueling(); // Reset selection state and step
+    } catch (error) {
+      console.error(
+        `[Complete] Error completing transaction ${transactionIdToClose} for pump ${activePumpForPopup.id}:`,
+        error
+      );
+      notify(
+        `Error completing transaction: ${
+          error.message || "Unknown error"
+        }. Resetting UI.`,
+        "error",
+        3000
+      );
+      // --- UI Reset Logic on Error ---
+      setFuelingComplete(false);
+      startNewFueling();
+    }
+  };
+
+  // Start a new fueling process UI flow
+  const startNewFueling = () => {
+    console.log("[UI] Starting new fueling process flow.");
+    // Reset UI selection state
+    setSelectedPump(null);
+    setSelectedNozzle(null);
+    setVehicleReg("");
+    setVehicleInfo(null);
+    setCurrentTransactionId(null);
+    setActivePumpForPopup(null); // Clear popup context
+    setActiveNozzleForPopup(null); // Clear popup context
+    setShowFuelingPopup(false); // Hide progress popup
+    setFuelingComplete(false); // Hide completion popup
+    setAmount(""); // Clear preset amount
+    setVolume(""); // Clear preset volume
+    setScanResult(null); // Clear scanned tag
+    setStep("pump"); // Go back to pump selection
   };
 
   // Navigation with fueling process check
   const handleNavigation = (path) => {
-    if (isFueling) {
+    // Check if any pump in Redux state is actually fueling
+    const isAnyPumpFueling = Object.values(devicePumpStatus || {}).some(
+      (p) => p.status === "fueling"
+    );
+    if (isAnyPumpFueling) {
       setNavigateTo(path);
       setShowNavigationDialog(true);
     } else {
       navigate(path);
     }
   };
+
+  // ... (confirmNavigation, cancelNavigation remain the same) ...
 
   const confirmNavigation = () => {
     setShowNavigationDialog(false);
@@ -154,336 +732,343 @@ const FuelingProcess = () => {
     setNavigateTo(null);
   };
 
-  const renderPumpSelection = () => {
-    const availablePumps = pumps.filter((pump) => pump.status === "idle");
+  // Function to handle vehicle selection from the vehicle lookup
+  const handleVehicleSelected = async (vehicle) => {
+    setSelectedVehicleId(vehicle?.vehicleId || null);
+    if (vehicle?.vehicleId) {
+      try {
+        // Show loading state by clearing vehicleInfo first
+        setVehicleInfo(null);
 
-    return (
-      <div className="dx-card responsive-paddings">
-        <h3>Select Pump</h3>
-        <div className="dx-fieldset">
-          <TileView
-            items={pumps}
-            baseItemHeight={100}
-            baseItemWidth={200}
-            itemMargin={10}
-            itemRender={(item) => (
-              <div
-                className={`pump-tile ${
-                  item.status === "idle" ? "active" : "disabled"
-                }`}
-                style={{
-                  padding: "15px",
-                  borderRadius: "8px",
-                  height: "100%",
-                  border: "1px solid #ddd",
-                  backgroundColor: item.status === "idle" ? "#f8f8f8" : "#eee",
-                  opacity: item.status === "idle" ? 1 : 0.6,
-                  cursor: item.status === "idle" ? "pointer" : "not-allowed",
-                }}
-              >
-                <h4>{item.name}</h4>
-                <p>Type: {item.fuelType}</p>
-                <p>
-                  Status:{" "}
-                  <span
-                    style={{
-                      color:
-                        item.status === "idle"
-                          ? "green"
-                          : item.status === "busy"
-                          ? "orange"
-                          : "red",
-                    }}
-                  >
-                    {item.status}
-                  </span>
-                </p>
-              </div>
-            )}
-            onItemClick={(e) => {
-              if (e.itemData.status === "idle") {
-                setSelectedPump(e.itemData);
-                setStep("nozzle");
-              }
-            }}
+        // Validate the vehicle
+        const validationResult = await dispatch(
+          validateVehicle(vehicle.vehicleId)
+        );
+
+        console.log("[Vehicle Selection] Validation result:", validationResult);
+
+        if (validationResult && validationResult.isValid) {
+          // Store the vehicle info from validation result
+          setVehicleInfo(validationResult.vehicleInfo);
+        } else {
+          notify(
+            `Vehicle validation failed: ${
+              validationResult?.message || "Unknown error"
+            }`,
+            "error",
+            3000
+          );
+          // Clear selected vehicle ID on validation failure
+          setSelectedVehicleId(null);
+        }
+      } catch (error) {
+        console.error("[Vehicle Selection] Error during validation:", error);
+        notify(
+          `Error during vehicle validation: ${
+            error.message || "Unknown error"
+          }`,
+          "error",
+          3000
+        );
+        // Clear selected vehicle ID on error
+        setSelectedVehicleId(null);
+      }
+    } else {
+      // Clear vehicle info if no vehicle selected
+      setVehicleInfo(null);
+    }
+  };
+
+  let scanningTimeoutId = null;
+
+  const processScanResult = async (tagId) => {
+    if (!tagId) return;
+    setScanResult(tagId);
+    notify(`Tag detected: ${tagId}. Validating...`, "info", 2000);
+    try {
+      // Dispatch action to validate the tag
+      const validationResult = await dispatch(validateTag(tagId));
+      console.log(
+        `[Scan] Validation result for tag ${tagId}:`,
+        validationResult
+      );
+      if (validationResult && validationResult.isValid) {
+        // Validation data is now in Redux store
+        setTagDetails(validationResult);
+        setVehicleInfo(validationResult.vehicleInfo);
+        // Accept the scan result automatically
+        acceptScanResult(validationResult.vehicleInfo);
+      } else {
+        notify(
+          `Tag ${tagId} validation failed. Please try again.`,
+          "error",
+          3000
+        );
+        setScanResult(null);
+      }
+    } catch (error) {
+      console.error("[Scan] Error during tag validation:", error);
+      notify(
+        `Error during tag validation: ${error.message || "Unknown error"}`,
+        "error",
+        3000
+      );
+      setScanResult(null);
+    } finally {
+      setIsScanning(false);
+      if (scanningTimeoutId) {
+        clearTimeout(scanningTimeoutId);
+        scanningTimeoutId = null;
+      }
+    }
+  };
+  // Enhanced tag scan handling
+  const startScan = async () => {
+    setIsScanning(true);
+    setScanResult(null);
+    setVehicleInfo(null);
+    setTagDetails(null);
+
+    try {
+      console.log("[Scan] Starting tag scan...");
+
+      // Check if there's a tag already in the current pump status initially
+      const pumpDetails = selectedPump ? getPumpDetails(selectedPump.id) : null;
+      const initialTag = pumpDetails?.tag;
+
+      if (initialTag && initialTag.trim() !== "") {
+        // Tag is already present at scan start
+        console.log(`[Scan] Tag found in pump status: ${initialTag}`);
+        processScanResult(initialTag);
+      } else {
+        // No tag yet, setup a timeout for scanning
+        const scanTimeout = 20000; // 20 seconds timeout
+        const scanStartTime = Date.now();
+
+        // Start a polling process to check for tags
+        const checkForTag = async () => {
+          // Only check if still in scanning mode
+          if (!isScanning) return;
+
+          // Check if timeout exceeded
+          if (Date.now() - scanStartTime > scanTimeout) {
+            notify("No tag detected within timeout period.", "warning", 3000);
+            cancelScan();
+            return;
+          }
+
+          // Check current pump status for tag
+          const currentPumpDetails = selectedPump
+            ? getPumpDetails(selectedPump.id)
+            : null;
+          const detectedTag = currentPumpDetails?.tag;
+
+          if (detectedTag && detectedTag.trim() !== "") {
+            // Tag detected during polling
+            console.log(`[Scan] Tag detected during polling: ${detectedTag}`);
+            processScanResult(detectedTag);
+          } else {
+            // Continue polling every 500ms
+            setTimeout(checkForTag, 500);
+          }
+        };
+
+        // Start the polling process
+        checkForTag();
+      }
+    } catch (error) {
+      console.error("[Scan] Error during scan:", error);
+      notify(
+        `Error during scan: ${error.message || "Unknown error"}`,
+        "error",
+        3000
+      );
+      setScanResult(null);
+      cancelScan();
+    }
+  };
+  const cancelScan = () => {
+    console.log("[Scan] Cancelling scan process");
+    setIsScanning(false);
+
+    // Clear any pending timeout
+    if (scanningTimeoutId) {
+      clearTimeout(scanningTimeoutId);
+      scanningTimeoutId = null;
+    }
+
+    // Reset scan-related states
+    setScanResult(null);
+    setVehicleInfo(null);
+    setTagDetails(null);
+
+    // Keep the current step (don't reset to "scan" as in original code)
+    // This allows user to stay on the same screen while changing their selection method
+  };
+
+  // Modified to accept vehicle info directly
+  const acceptScanResult = (validatedVehicleInfo) => {
+    console.log("acceptScanResult", validatedVehicleInfo);
+
+    // Handle master tag case first
+    if (validatedVehicleInfo?.isMasterTag) {
+      console.log("[Scan] Accepted master tag");
+      setUseMasterTag(true);
+      setStep("details"); // Move to fueling details step
+      return;
+    }
+
+    // Handle vehicle info case
+    const reg = validatedVehicleInfo?.hyoungNo;
+    if (reg) {
+      console.log(`[Scan] Accepted tag for vehicle: ${reg}`);
+      setVehicleReg(reg); // Set registration number
+      setVehicleInfo(validatedVehicleInfo); // Ensure full info is stored
+      setStep("details"); // Move to fueling details step
+    } else {
+      notify("No valid vehicle registration found.", "error", 3000);
+      // Stay on current step
+    }
+  };
+
+  // Add a function to open the fueling rule popup
+  const openFuelingRulePopup = (vehicleData) => {
+    //Cursor
+    setVehicleForRules(vehicleData);
+    setShowFuelingRulePopup(true);
+  };
+
+  // Determine display details for steps
+  const displayDetails = tagDetails || vehicleInfo;
+
+  // Add useCallback for stable function references
+  const handleStepChange = useCallback((newStep) => {
+    setStep(newStep);
+  }, []);
+
+  const handlePumpSelection = useCallback((pump) => {
+    setSelectedPump(pump);
+    setStep("nozzle");
+  }, []);
+
+  const handleNozzleSelection = useCallback((nozzle) => {
+    setSelectedNozzle(nozzle);
+    setStep("scan");
+  }, []);
+
+  const handleBackToPumps = useCallback(() => {
+    setStep("pump");
+  }, []);
+
+  const handleBackToNozzles = useCallback(() => {
+    setStep("nozzle");
+  }, []);
+
+  const handleBackToScan = useCallback(() => {
+    setStep("scan");
+  }, []);
+
+  // Memoize derived data
+  const nozzlesForSelectedPump = useMemo(() => {
+    return getNozzlesForPump(selectedPump?.id, rawUploadStatus);
+  }, [selectedPump?.id, rawUploadStatus, getNozzlesForPump]);
+
+  // Update renderCurrentStep
+  const renderCurrentStep = () => {
+    switch (step) {
+      case "pump":
+        return (
+          <PumpSelectionStep
+            availablePumps={availablePumps}
+            activePumps={activeFuelingProcesses}
+            setSelectedPump={handlePumpSelection}
+            setStep={handleStepChange}
+            setActivePump={setActivePumpForPopup}
+            setShowFuelingPopup={setShowFuelingPopup}
           />
-        </div>
-      </div>
-    );
-  };
-
-  const renderNozzleSelection = () => {
-    return (
-      <div className="dx-card responsive-paddings">
-        <h3>Select Nozzle</h3>
-        <div className="dx-fieldset">
-          <TileView
-            items={nozzles}
-            baseItemHeight={100}
-            baseItemWidth={200}
-            itemMargin={10}
-            itemRender={(item) => (
-              <div
-                className="nozzle-tile"
-                style={{
-                  padding: "15px",
-                  borderRadius: "8px",
-                  height: "100%",
-                  border: "1px solid #ddd",
-                  backgroundColor: "#f8f8f8",
-                  cursor: "pointer",
-                }}
-              >
-                <h4>{item.name}</h4>
-                <p>Status: {item.status}</p>
-              </div>
-            )}
-            onItemClick={(e) => {
-              setSelectedNozzle(e.itemData);
-              setStep("vehicle");
-            }}
+        );
+      case "nozzle":
+        return (
+          <NozzleSelectionStep
+            nozzles={nozzlesForSelectedPump}
+            setSelectedNozzle={handleNozzleSelection}
+            setStep={handleStepChange}
           />
-        </div>
-        <Button
-          text="Back"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => setStep("pump")}
-        />
-      </div>
-    );
+        );
+      case "scan":
+        return (
+          <ScanStep
+            isScanning={isScanning}
+            scanResult={scanResult}
+            vehicleInfo={vehicleInfo}
+            cancelScan={cancelScan}
+            startScan={startScan}
+            acceptScanResult={acceptScanResult}
+            setStep={handleStepChange}
+            selectionMethod={selectionMethod}
+            setSelectionMethod={setSelectionMethod}
+            vehicles={vehicles}
+            isLoadingVehicles={isLoadingVehicles}
+            selectedVehicleId={selectedVehicleId}
+            handleVehicleSelected={handleVehicleSelected}
+            vehicleReg={vehicleReg}
+            selectedNozzle={selectedNozzle}
+            setScanResult={setScanResult}
+            ptsId={ptsId}
+          />
+        );
+      case "details":
+        return (
+          <FuelingDetailsStep
+            selectedPump={selectedPump}
+            selectedNozzle={selectedNozzle}
+            activeFuelingProcesses={activeFuelingProcesses}
+            selectedType={selectedType}
+            setSelectedType={setSelectedType}
+            amount={amount}
+            setAmount={setAmount}
+            volume={volume}
+            setVolume={setVolume}
+            vehicleReg={vehicleReg}
+            displayDetails={displayDetails}
+            isAuthorizing={isAuthorizing}
+            startFueling={startFueling}
+            setStep={handleStepChange}
+            useMasterTag={useMasterTag}
+            userMasterTag={userMasterTag}
+            vehicleInfo={vehicleInfo}
+            scanResult={scanResult}
+          />
+        );
+      default:
+        return <div>Invalid step: {step}</div>;
+    }
   };
 
-  const renderVehicleSelection = () => {
-    return (
-      <div className="dx-card responsive-paddings">
-        <h3>Vehicle Information</h3>
-        <div className="dx-fieldset">
-          <div className="dx-field">
-            <Button
-              text="Enter Vehicle Registration"
-              width="100%"
-              height={60}
-              stylingMode="contained"
-              type="default"
-              onClick={() => setStep("reg")}
-              icon="car"
-            />
-          </div>
-          <div className="dx-field">
-            <Button
-              text="Scan RFID Tag"
-              width="100%"
-              height={60}
-              stylingMode="contained"
-              type="default"
-              onClick={() => setStep("reg")}
-              icon="barcode"
-            />
-          </div>
-        </div>
-        <Button
-          text="Back"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => setStep("nozzle")}
-        />
-      </div>
-    );
-  };
+  // Get details for the popup
+  const popupPumpDetails = activePumpForPopup
+    ? getPumpDetails(activePumpForPopup.id)
+    : null;
+  const popupAmount =
+    popupPumpDetails?.currentAmount ?? popupPumpDetails?.amount ?? 0;
+  const popupVolume =
+    popupPumpDetails?.currentVolume ?? popupPumpDetails?.volume ?? 0;
+  // Calculate cost using price from status if available, fallback if necessary
+  const priceToUse =
+    popupPumpDetails?.currentPrice ?? popupPumpDetails?.price ?? fuelPrice; // Get price from fueling or EOT status, or fallback
+  const calculatedCost = popupVolume * priceToUse;
+  const popupCost = calculatedCost; // Keep as number
 
-  const renderVehicleRegistration = () => {
-    return (
-      <div className="dx-card responsive-paddings">
-        <h3>Enter Vehicle Details</h3>
-        <div className="dx-fieldset">
-          <div className="dx-field">
-            <TextBox
-              value={vehicleReg}
-              onValueChanged={(e) => setVehicleReg(e.value)}
-              placeholder="Enter vehicle registration"
-            />
-          </div>
+  // --- Popup Data Calculation ---
+  // This calculation is also *INSIDE* FuelingProcess
+  const tagForPopups =
+    popupPumpDetails?.tag ||
+    (useMasterTag ? userMasterTag : selectedTag?.name || tagDetails?.tagId) ||
+    vehicleReg;
 
-          <div className="dx-field">
-            <div className="dx-field-label">Monthly Limit</div>
-            <div className="dx-field-value">
-              <ProgressBar
-                min={0}
-                max={vehicleDetails.monthlyLimit}
-                value={vehicleDetails.monthlyUsed}
-                showStatus={true}
-                statusFormat={(value) =>
-                  `${value}/${vehicleDetails.monthlyLimit}L`
-                }
-              />
-            </div>
-          </div>
-
-          <div className="dx-field">
-            <div className="dx-field-label">Daily Limit</div>
-            <div className="dx-field-value">
-              <ProgressBar
-                min={0}
-                max={vehicleDetails.dailyLimit}
-                value={vehicleDetails.dailyUsed}
-                showStatus={true}
-                statusFormat={(value) =>
-                  `${value}/${vehicleDetails.dailyLimit}L`
-                }
-              />
-            </div>
-          </div>
-
-          <div className="dx-field">
-            <div className="dx-field-label">Fueling Limit</div>
-            <div className="dx-field-value">
-              <span>{vehicleDetails.fuelingLimit}L</span>
-            </div>
-          </div>
-
-          <div className="dx-field">
-            <Button
-              text="Start Fueling"
-              width="100%"
-              type="success"
-              stylingMode="contained"
-              onClick={startFueling}
-              disabled={!vehicleReg.trim()}
-            />
-          </div>
-        </div>
-        <Button
-          text="Back"
-          type="normal"
-          stylingMode="outlined"
-          onClick={() => setStep("vehicle")}
-        />
-      </div>
-    );
-  };
-
-  const renderFuelingProgressPopup = () => {
-    return (
-      <Popup
-        visible={isFueling}
-        dragEnabled={false}
-        closeOnOutsideClick={false}
-        showTitle={true}
-        title="Fueling in Progress"
-        width={400}
-        height={250}
-        showCloseButton={false}
-      >
-        <div className="fueling-progress">
-          <div className="progress-indicator">
-            <ProgressBar min={0} max={45} value={fuelingAmount} width="100%" />
-            <div className="progress-text">
-              {fuelingAmount.toFixed(1)}L / 45.0L
-            </div>
-          </div>
-          <p className="progress-message">Fueling in progress...</p>
-        </div>
-      </Popup>
-    );
-  };
-
-  const renderFuelingCompletePopup = () => {
-    return (
-      <Popup
-        visible={fuelingComplete}
-        dragEnabled={false}
-        closeOnOutsideClick={false}
-        showTitle={true}
-        title="Fueling Complete"
-        width={400}
-        height={320}
-        showCloseButton={false}
-      >
-        <div className="fueling-complete">
-          <div className="receipt-details">
-            <div className="receipt-item">
-              <span className="label">Amount:</span>
-              <span className="value">45.0L</span>
-            </div>
-            <div className="receipt-item">
-              <span className="label">Vehicle:</span>
-              <span className="value">{vehicleReg}</span>
-            </div>
-            <div className="receipt-item">
-              <span className="label">Pump:</span>
-              <span className="value">{selectedPump?.name}</span>
-            </div>
-            <div className="receipt-item">
-              <span className="label">Time:</span>
-              <span className="value">{new Date().toLocaleTimeString()}</span>
-            </div>
-          </div>
-          <div className="action-buttons">
-            <Button
-              text="Done"
-              icon="check"
-              type="success"
-              stylingMode="contained"
-              onClick={completeFueling}
-            />
-            <Button
-              text="Print"
-              icon="print"
-              type="default"
-              stylingMode="contained"
-              onClick={() => window.print()}
-            />
-            <Button
-              text="Close"
-              icon="close"
-              type="normal"
-              stylingMode="contained"
-              onClick={completeFueling}
-            />
-          </div>
-        </div>
-      </Popup>
-    );
-  };
-
-  const renderNavigationDialog = () => {
-    return (
-      <Popup
-        visible={showNavigationDialog}
-        dragEnabled={false}
-        closeOnOutsideClick={false}
-        showTitle={true}
-        title="Fueling in Progress"
-        width={400}
-        height={200}
-        showCloseButton={false}
-      >
-        <div className="navigation-dialog">
-          <p>
-            A fueling process is currently in progress. Are you sure you want to
-            leave this page?
-          </p>
-          <div className="action-buttons">
-            <Button
-              text="Continue Fueling"
-              type="default"
-              onClick={cancelNavigation}
-              stylingMode="contained"
-            />
-            <Button
-              text="Leave Anyway"
-              type="danger"
-              onClick={confirmNavigation}
-              stylingMode="contained"
-            />
-          </div>
-        </div>
-      </Popup>
-    );
-  };
-
+  // --- Return JSX ---
   if (isLoading) {
+    // Check 1: Still loading?
     return (
       <div
         className="loading-container"
@@ -500,9 +1085,11 @@ const FuelingProcess = () => {
   }
 
   if (!ptsDevice) {
+    // Check 2: Loading finished, but device still not found?
     return (
       <div className="error-container dx-card">
         <h2>PTS Device Not Found</h2>
+        <p>Could not find details for PTS ID: {ptsId}</p>
         <Button
           text="Return to Dashboard"
           onClick={() => navigate("/")}
@@ -512,65 +1099,136 @@ const FuelingProcess = () => {
     );
   }
 
+  // --- Main Render ---
+  // If execution reaches here, isLoading is false AND ptsDevice is defined.
   return (
     <div className="fueling-process-container">
-      {/* Header */}
-      <div className="dx-card responsive-paddings header-card">
-        <div className="header-content">
-          <div className="header-left">
-            <Button
-              icon="arrowleft"
-              onClick={() => handleNavigation("/atg")}
-              type="normal"
-              stylingMode="text"
-            />
-            <div className="header-info">
-              <h2>{ptsDevice.name}</h2>
-              <p className="dx-field-description">ID: {ptsDevice.deviceId}</p>
-            </div>
-          </div>
+      <FuelingHeader
+        ptsDevice={ptsDevice} // Safe to pass here if the above checks are solid
+        lastUpdated={deviceLastUpdated} // Pass timestamp from hook
+        rawUploadStatus={rawUploadStatus} // Cursor: Pass raw status object
+        activeFuelingProcesses={activeFuelingProcesses} // Pass derived state
+        setShowAllFuelingPopup={setShowAllFuelingPopup}
+        startNewFueling={startNewFueling}
+        handleNavigation={handleNavigation}
+        siteName={siteName()} // Use the siteName function to get the site name
+        onConnectionStatusChange={handleConnectionStatusChange} // New prop
+      />
 
-          {/* Middle header section with action buttons */}
-          <div className="header-middle">
-            <div className="device-status">
-              <p>Last Seen: {ptsDevice.lastSync}</p>
-            </div>
-            <div className="action-buttons">
-              <Button
-                icon="clock"
-                text="History"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => handleNavigation("/fueling-history")}
-                hint="View Fueling History"
-              />
-              <Button
-                icon="preferences"
-                text="Settings"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => handleNavigation("/pts-settings")}
-                hint="PTS Settings"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
+      {/* Main Content - Disable interaction when disconnected */}
       <ScrollView>
-        <div className="main-content">
-          {step === "pump" && renderPumpSelection()}
-          {step === "nozzle" && renderNozzleSelection()}
-          {step === "vehicle" && renderVehicleSelection()}
-          {step === "reg" && renderVehicleRegistration()}
+        <div
+          className={`main-content ${
+            isDeviceDisconnected ? "tw-opacity-60 tw-pointer-events-none" : ""
+          }`}
+        >
+          {renderCurrentStep()}
         </div>
+
+        {/* Overlay message when disconnected */}
+        {isDeviceDisconnected && (
+          <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-z-50 tw-pointer-events-none">
+            <div className="tw-bg-white tw-rounded-lg tw-p-6 tw-shadow-xl tw-max-w-md tw-mx-auto tw-pointer-events-auto">
+              <div className="tw-flex tw-items-center tw-mb-4">
+                <i className="fa-solid fa-wifi-slash tw-text-red-500 tw-text-3xl tw-mr-4"></i>
+                <h3 className="tw-text-xl tw-font-bold tw-text-red-700">
+                  Device Disconnected
+                </h3>
+              </div>
+              <p className="tw-text-gray-700 tw-mb-4">
+                The fueling terminal is currently disconnected from the server.
+                Fueling operations are disabled until connection is restored.
+              </p>
+              <div className="tw-flex tw-justify-end">
+                <Button
+                  text="Check Device Settings"
+                  type="danger"
+                  stylingMode="outlined"
+                  onClick={() =>
+                    handleNavigation(
+                      `/ptsdevice/${ptsDevice.ptsid || ptsDevice.deviceId}`
+                    )
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </ScrollView>
 
-      {/* Popups */}
-      {renderFuelingProgressPopup()}
-      {renderFuelingCompletePopup()}
-      {renderNavigationDialog()}
+      {/* Popups - Pass derived data */}
+      {FuelingPopupRenderer.renderFuelingProgressPopup(
+        showFuelingPopup,
+        activePumpForPopup,
+        activeNozzleForPopup,
+        popupVolume, // Use derived volume
+        popupCost, // Use derived cost
+        tagForPopups, // Use the calculated tagForPopups
+        stopFueling,
+        () => setShowFuelingPopup(false)
+      )}
+
+      {FuelingPopupRenderer.renderFuelingCompletePopup(
+        fuelingComplete, // Controlled by useEffect watching Redux state
+        popupVolume, // Use derived final volume
+        popupCost, // Use derived final cost
+        activePumpForPopup,
+        activeNozzleForPopup,
+        tagForPopups, // Use the calculated tagForPopups
+        completeFueling // Action to finalize/reset
+      )}
+
+      {FuelingPopupRenderer.renderNavigationDialog(
+        showNavigationDialog,
+        cancelNavigation,
+        confirmNavigation
+      )}
+
+      {FuelingPopupRenderer.renderAllFuelingProcessesPopup(
+        showAllFuelingPopup,
+        activeFuelingProcesses, // Pass derived state
+        availablePumps, // Pass derived state
+        (pumpFromList) => {
+          // Callback when user clicks a pump in the 'all processes' popup
+          const process = activeFuelingProcesses.find(
+            (p) => p.pumpId === pumpFromList.id
+          );
+          if (process) {
+            const pumpObj = availablePumps.find((p) => p.id === process.pumpId);
+            // Derive nozzle object based on the process data
+            const nozzleId = process.nozzleId;
+            const nozzleObj = nozzleId
+              ? { id: nozzleId, name: `Nozzle ${nozzleId}` }
+              : null;
+
+            // Set the popup context to show details for this ongoing process
+            setActivePumpForPopup(pumpObj);
+            setActiveNozzleForPopup(nozzleObj);
+            setCurrentTransactionId(process.transactionId); // Ensure correct txn ID is set
+
+            // Reset user selection state as we are now viewing an ongoing process, not starting a new one
+            setSelectedPump(null);
+            setSelectedNozzle(null);
+            setVehicleReg(""); // Clear UI state vehicle reg
+            setVehicleInfo(null);
+            setAmount("");
+            setVolume("");
+
+            // Show the individual progress popup
+            setShowFuelingPopup(true); // Show progress popup (useEffect will manage based on status)
+            setShowAllFuelingPopup(false); // Hide the list popup
+            setStep("pump"); // Go back to base step view behind the popup
+          }
+        },
+        setShowAllFuelingPopup
+      )}
+
+      {/* Add the FuelingRulePopup */}
+      <FuelingRulePopup
+        isVisible={showFuelingRulePopup}
+        onClose={() => setShowFuelingRulePopup(false)}
+        vehicleData={vehicleForRules}
+      />
     </div>
   );
 };

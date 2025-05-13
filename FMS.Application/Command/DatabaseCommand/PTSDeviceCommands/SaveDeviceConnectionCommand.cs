@@ -38,55 +38,66 @@ namespace FMS.Application.Command.DatabaseCommand.PTSDeviceCommands
             {
                 // Try to find the PTS device ID if it exists
                 var ptsDevice = await _context.Ptsdevices
-                    .FirstOrDefaultAsync(p => p.Ptsid.ToString() == request.DeviceId, cancellationToken);
+                    .FirstOrDefaultAsync(p => p.Ptsid == request.DeviceId, cancellationToken);
 
                 if (ptsDevice == null)
                 {
-                    throw new Exception("Device not found");
+                    throw new Exception($"Device with ID {request.DeviceId} not found");
                 }
-                //check if there is an existing connection for this device
-                var existingConnection = await _context.DeviceConnections.FirstOrDefaultAsync(d => d.PtsdeviceId == request.DeviceId, cancellationToken);
+
+                // Update the PTS device's connection status and last activity
+                ptsDevice.ConnectionStatus = request.Status;
+                ptsDevice.LastActivity = request.LastActivityAt;
+                ptsDevice.Ipaddress = request.IpAddress;
+
+                // Check if there is an existing connection for this device
+                var existingConnection = await _context.DeviceConnections
+                    .FirstOrDefaultAsync(d => d.PtsdeviceId == request.DeviceId && d.DisconnectedAt == null, cancellationToken);
+
                 if (existingConnection != null)
                 {
                     _logger.LogInformation("Device connection already exists for device {DeviceId}, updating connection", request.DeviceId);
                     existingConnection.IpAddress = request.IpAddress;
-                    existingConnection.LastActivityAt = DateTime.UtcNow;
+                    existingConnection.LastActivityAt = request.LastActivityAt;
                     existingConnection.Status = request.Status;
                     existingConnection.ConnectionType = request.ConnectionType;
-                    existingConnection.ConnectedAt = DateTime.UtcNow;
-                    //  existingConnection.DisconnectedAt = request.DisconnectedAt;
+
+                    // Only update DisconnectedAt if it's provided and we're setting status to Disconnected
+                    if (request.DisconnectedAt.HasValue && request.Status.Equals("Disconnected", StringComparison.OrdinalIgnoreCase))
+                    {
+                        existingConnection.DisconnectedAt = request.DisconnectedAt;
+                    }
                 }
-                else
+                else  //If no existing connection, create a new one
                 {
                     var connection = new DeviceConnection
                     {
                         PtsdeviceId = request.DeviceId,
                         IpAddress = request.IpAddress,
                         ConnectedAt = request.ConnectedAt,
-                        //DisconnectedAt = request.DisconnectedAt,
+                        DisconnectedAt = request.Status.Equals("Disconnected", StringComparison.OrdinalIgnoreCase) ? request.DisconnectedAt : null,
                         LastActivityAt = request.LastActivityAt,
                         ConnectionType = request.ConnectionType,
                         Status = request.Status
                     };
 
-
                     _context.DeviceConnections.Add(connection);
                 }
+
                 await _context.SaveChangesAsync(cancellationToken);
 
-
-
                 _logger.LogInformation(
-                    "Saved device connection for device {DeviceId} of type {ConnectionType}",
+                    "Saved device connection for device {DeviceId} of type {ConnectionType} with status {Status}",
                     request.DeviceId,
-                    request.ConnectionType);
+                    request.ConnectionType,
+                    request.Status);
 
                 return new FMSResponseMessage<int>(true, "Device connection saved successfully", 0);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving device connection for device {DeviceId}", request.DeviceId);
-                throw;
+                return new FMSResponseMessage<int>(false, $"Error saving device connection: {ex.Message}", 0);
             }
         }
     }

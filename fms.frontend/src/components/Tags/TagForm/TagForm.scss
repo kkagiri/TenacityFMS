@@ -1,0 +1,317 @@
+// TagForm Styles with fueling form inspired design
+.tag-form-popup {
+  .dx-popup-content {
+    padding: 0 !important;
+  }
+
+  .tag-form-container {
+    padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+    gap: 16px;
+
+    .form-mode-selector {
+      background: #fff;
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 0;
+
+      h3 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1.2em;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+      }
+
+      .dx-radiogroup {
+        background-color: transparent;
+        padding: 0;
+      }
+
+      // Custom tabs styles
+      .tabs-container {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 5px;
+
+        .tab-item {
+          padding: 10px 16px;
+          cursor: pointer;
+          border: 1px solid transparent;
+          border-bottom: none;
+          border-radius: 4px 4px 0 0;
+          transition: all 0.2s ease;
+          margin-right: 2px;
+          display: flex;
+          align-items: center;
+
+          &:hover {
+            background-color: #f8f8f8;
+          }
+
+          &.active {
+            background-color: #fff;
+            border-color: #ddd;
+            border-bottom-color: #fff;
+            margin-bottom: -1px;
+            font-weight: 500;
+            color: #0d6efd;
+
+            i {
+              color: #0d6efd;
+            }
+          }
+
+          i {
+            margin-right: 8px;
+          }
+        }
+      }
+    }
+
+    .form-content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    // Add new styles for the form bottom container
+    .form-bottom {
+      margin-top: auto; // Push to bottom of flex container
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end; // Ensure buttons are always aligned to the right
+      gap: 16px;
+      background: #fff;
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      align-items: center;
+      button {
+        min-width: 100px;
+      }
+    }
+
+    .dx-form {
+      background: #fff;
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 0;
+
+      .dx-field-item {
+        margin-bottom: 15px;
+      }
+    }
+
+    .rule-set-info {
+      margin-top: 0;
+      background: #fff;
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      h4 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1.2em;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+        color: #333;
+      }
+
+      .rule-description {
+        margin-bottom: 10px;
+        font-style: italic;
+        color: #555;
+      }
+
+      .rule-limits {
+        .limit-item {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+
+          .limit-label {
+            font-weight: 500;
+          }
+
+          .limit-value {
+            color: #0069d9;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+
+    // Tag scanning specific styles
+    .tag-scan-container {
+      background: #fff;
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      .scan-controls {
+        margin: 15px 0;
+        display: flex;
+        justify-content: center;
+      }
+
+      // Device item styles
+      .device-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        border-bottom: 1px solid #f0f0f0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .device-name {
+          font-weight: 500;
+          color: #333;
+        }
+
+        .device-status {
+          border-radius: 12px;
+          padding: 3px 8px;
+          font-size: 11px;
+          font-weight: 500;
+
+          &.device-status-online {
+            background-color: #d1fae5;
+            color: #047857;
+          }
+
+          &.device-status-offline {
+            background-color: #fee2e2;
+            color: #b91c1c;
+          }
+        }
+      }
+
+      // Reader status section
+      .reader-status {
+        background: #f9f9f9;
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 16px;
+
+        h4 {
+          margin-top: 0;
+          margin-bottom: 12px;
+          font-size: 1.1em;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 4px;
+          color: #333;
+        }
+      }
+
+      .detected-tags {
+        margin-top: 20px;
+
+        h4 {
+          margin-top: 0;
+          margin-bottom: 12px;
+          font-size: 1.2em;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 4px;
+          color: #333;
+        }
+
+        // Style for display-only tags list
+        .dx-list {
+          border: 1px solid #e5e7eb;
+          border-radius: 4px;
+          overflow: hidden;
+
+          .dx-scrollable-content {
+            padding: 4px 0;
+          }
+
+          // Remove interactive styles
+          .dx-list-item {
+            cursor: default; // Change cursor to default instead of pointer
+            user-select: text; // Allow text selection
+
+            &:hover {
+              background-color: transparent;
+            }
+
+            &:active {
+              background-color: transparent;
+            }
+          }
+        }
+
+        .detected-tag-item {
+          display: flex;
+          flex-direction: column;
+          padding: 10px;
+          border-bottom: 1px solid #eee;
+          margin-bottom: 0;
+          transition: none;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .tag-id {
+            font-weight: bold;
+            font-size: 16px;
+            color: #0056b3;
+          }
+
+          .reader-info,
+          .time {
+            font-size: 12px;
+            color: #666;
+          }
+        }
+
+        .help-text {
+          font-style: italic;
+          color: #666;
+          font-size: 12px;
+          margin-top: 5px;
+        }
+      }
+
+      .no-tags-detected,
+      .no-device-selected {
+        margin-top: 20px;
+        padding: 16px;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+
+        p {
+          margin: 0;
+          color: #666;
+        }
+      }
+
+      .no-tags-detected {
+        border-left: 4px solid #17a2b8;
+      }
+
+      .no-device-selected {
+        border-left: 4px solid #ffc107;
+      }
+    }
+  }
+}

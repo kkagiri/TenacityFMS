@@ -1,30 +1,29 @@
 .live-status-control {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 15px;
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
 
   &.compact {
-    gap: 0.5rem;
-
-    .status-text {
-      font-size: 0.8rem;
-    }
+    padding: 6px 10px;
+    gap: 10px;
   }
 
   .live-indicator {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      display: inline-block;
 
       &.active {
         background-color: #28a745;
-        box-shadow: 0 0 8px #28a745;
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
         animation: pulse 2s infinite;
       }
 
@@ -32,16 +31,38 @@
         background-color: #dc3545;
       }
     }
+
+    .status-text {
+      font-size: 14px;
+      font-weight: 500;
+
+      .compact & {
+        font-size: 12px;
+      }
+    }
   }
 
-  .frequency-selector {
+  .frequency-control {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-  }
+    gap: 10px;
 
-  .live-toggle-btn {
-    min-width: 150px;
+    .frequency-label {
+      font-size: 14px;
+      color: #6c757d;
+
+      .compact & {
+        display: none;
+      }
+    }
+
+    .frequency-select {
+      min-width: 120px;
+
+      .compact & {
+        min-width: 100px;
+      }
+    }
   }
 }
 

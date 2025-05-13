@@ -4,13 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Domain.Entities.Auth
-{
-    public class RolePermission
-    {
-
-        //TODO: Remove this property
-        public int Id { get; set; }
+namespace FMS.Domain.Entities.Auth {
+    public class RolePermission {
         public string RoleId { get; set; } = null!;
         public virtual Role Role { get; set; } = null!;
         public int PermissionId { get; set; }

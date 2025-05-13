@@ -34,6 +34,8 @@ namespace FMS.WebClient.Controllers.PTSControllers
                 return BadRequest("Device Id is required");
             }
 
+            _logger.LogDebug("HTTP status upload from device ID: '{DeviceId}' (type: {Type}, length: {Length})", deviceId, deviceId.GetType().Name, deviceId.Length);
+
             try
             {
                 var requestBody = await new StreamReader(Request.Body).ReadToEndAsync();

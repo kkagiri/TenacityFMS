@@ -1,11 +1,8 @@
 using MediatR;
 
-namespace FMS.Application.Events.Pump
-{
+namespace FMS.Application.Events.Pump {
 
-
-    public record NozzleStateChangeEvent : INotification
-    {
+    public record NozzleStateChangeEvent : INotification {
         // Required primary fields
         public string DeviceId { get; init; }
         public int PumpId { get; init; }
@@ -18,8 +15,10 @@ namespace FMS.Application.Events.Pump
         public decimal? LastAmount { get; init; }
         public decimal? LastPrice { get; init; }
 
+        public bool IsUp { get; init; }
+
         // Constructor for creating the event
-        public NozzleStateChangeEvent(
+        public NozzleStateChangeEvent (
             string deviceId,
             int pumpId,
             int nozzleNumber,
@@ -27,8 +26,7 @@ namespace FMS.Application.Events.Pump
             int? lastTransaction = null,
             decimal? lastVolume = null,
             decimal? lastAmount = null,
-            decimal? lastPrice = null)
-        {
+            decimal? lastPrice = null) {
             DeviceId = deviceId;
             PumpId = pumpId;
             NozzleId = nozzleNumber;
@@ -40,9 +38,9 @@ namespace FMS.Application.Events.Pump
         }
     }
 
-    public record TagReadEvent(string DeviceId, int PumpId, int NozzleId, string TagId) : INotification;
+    public record TagReadEvent (string DeviceId, int PumpId, int NozzleId, string TagId) : INotification;
 
-    public record PumpStateChangeEvent(string DeviceId, int PumpId, string State) : INotification;
+    public record PumpStateChangeEvent (string DeviceId, int PumpId, string State, int? NozzleId) : INotification;
 
-    public record TransactionCompletedEvent(string DeviceId, int PumpId, int TrasactionId) : INotification;
+    public record TransactionCompletedEvent (string DeviceId, int PumpId, int TrasactionId, int? NozzleId) : INotification;
 }

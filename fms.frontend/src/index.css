@@ -1,14 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
 .view-wrapper {
@@ -17,4 +21,22 @@ code {
   flex-grow: 1;
   flex-direction: column;
   padding: 0 var(--page-padding);
+}
+
+/* DevExtreme form adjustments - Prevent conflicts with Tailwind */ /* //Cursor */
+.dx-popup-content {
+  padding: 20px !important;
+}
+
+.dx-popup .dx-form {
+  padding: 10px;
+}
+
+.dx-popup .dx-box-item-content {
+  max-width: 100%;
+}
+
+/* Form item spacing */
+.dx-form .dx-layout-manager .dx-field-item {
+  padding-bottom: 10px;
 }

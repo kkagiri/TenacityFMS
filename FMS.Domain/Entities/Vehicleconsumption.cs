@@ -3,8 +3,7 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-public partial class Vehicleconsumption
-{
+public partial class Vehicleconsumption {
     public int Id { get; set; }
 
     public int VehicleId { get; set; }
@@ -21,7 +20,7 @@ public partial class Vehicleconsumption
 
     public decimal? TotalDistance { get; set; }
 
-    public int? EmployeeId { get; set; }
+    public string? EmployeeName { get; set; }
 
     public string? Comments { get; set; }
 
@@ -53,9 +52,7 @@ public partial class Vehicleconsumption
 
     public sbyte? IsModified { get; set; }
 
-    public int? ReportId { get; set; }
-
-    public virtual Employee? Employee { get; set; }
+    public string? ReportId { get; set; }
 
     public virtual Site Site { get; set; } = null!;
 

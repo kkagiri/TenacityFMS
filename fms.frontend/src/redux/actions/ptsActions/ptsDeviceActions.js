@@ -41,6 +41,9 @@ export const fetchDashboardMetrics = () => async (dispatch) => {
 
 export const fetchPTSDeviceList = () => async (dispatch) => {
   try {
+    // Dispatch request action to set loading state
+    dispatch({ type: "FETCH_PTS_DEVICE_LIST_REQUEST" });
+
     const response = await axiosInstance.get("/PTSDevice");
     dispatch({
       type: FETCH_PTS_DEVICE_LIST_SUCCESS,

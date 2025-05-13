@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+        if you use any class component uses Tailwind CSS add tw-
+        <span className="tw-font-semibold">tw-</span> prefix to avoid conflicts
+        with DevExtreme.
+
+        if you see any comment code .. do not remove the code just leave the code with the comment
+
+        if you find To:Do comment , Remind me if the to do task has been done
+    
+
+

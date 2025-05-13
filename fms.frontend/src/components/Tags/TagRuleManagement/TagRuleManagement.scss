@@ -1,0 +1,410 @@
+// Tag Rule Management Styles
+.tag-rule-management {
+  padding: 20px;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+  }
+
+  .rule-set-actions {
+    display: flex;
+    gap: 5px;
+  }
+
+  .rule-count {
+    text-align: center;
+    .badge {
+      background-color: #007bff;
+      color: white;
+      border-radius: 50%;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  .rule-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .rule-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      border-left: 3px solid #6c757d;
+
+      .rule-type {
+        flex: 0 0 100px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: #6c757d;
+      }
+
+      .rule-name {
+        flex: 1;
+        font-weight: 500;
+        padding: 0 10px;
+      }
+    }
+
+    .no-rules {
+      color: #6c757d;
+      font-style: italic;
+    }
+  }
+}
+
+// Rule Set Form Styles
+.rule-set-form-popup {
+  .rule-set-form-container {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .form-info {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f0f9ff;
+      border-radius: 4px;
+      border-left: 4px solid #0ea5e9;
+
+      .info-text {
+        margin: 0;
+        color: #334155;
+        font-size: 14px;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 20px;
+    }
+  }
+}
+
+// Rule Detail Form Styles
+.rule-detail-form-popup {
+  .rule-detail-form-container {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .rule-type-selector {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e2e8f0;
+
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 500;
+        color: #334155;
+      }
+    }
+
+    .rule-form {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .time-range-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+
+      .spacer {
+        flex-grow: 1;
+      }
+    }
+  }
+}
+
+// Tag Rule Assignment Styles - Fueling Form inspired
+.tag-rule-assignment-popup {
+  .dx-popup-content {
+    padding: 0 !important;
+  }
+
+  .tag-rule-assignment-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: #fafafa;
+    height: 100%;
+    overflow-y: auto;
+
+    .step {
+      background: #fff;
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      h3 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1.2em;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+      }
+    }
+
+    .selected-rule-details {
+      margin-top: 10px;
+      padding: 16px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+
+      h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-weight: 500;
+      }
+
+      .rule-detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        .detail-label {
+          font-weight: 500;
+          color: #555;
+        }
+
+        .detail-value {
+          color: #212529;
+        }
+      }
+    }
+
+    .filter-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .filter-row {
+        display: flex;
+        align-items: center;
+
+        label {
+          flex: 0 0 80px;
+          font-weight: 500;
+        }
+
+        .dx-textbox,
+        .dx-selectbox {
+          flex: 1;
+        }
+      }
+    }
+
+    .simple-list-container {
+      margin-top: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+
+      .list-header {
+        display: flex;
+        background-color: #f5f5f5;
+        font-weight: 500;
+        padding: 8px 0;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .list-header-item {
+        padding: 0 10px;
+      }
+
+      .simple-list {
+        max-height: 300px;
+        overflow-y: auto;
+
+        .list-row {
+          display: flex;
+          padding: 8px 0;
+          border-bottom: 1px solid #eee;
+          cursor: pointer;
+          transition: background 0.3s ease;
+
+          &:hover {
+            background: #e6f7ff;
+          }
+
+          &.selected {
+            background: #d0f0c0;
+          }
+
+          .list-item {
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+          }
+        }
+
+        .no-data-message {
+          padding: 20px;
+          text-align: center;
+          color: #6c757d;
+          font-style: italic;
+        }
+      }
+
+      .checkbox-col {
+        flex: 0 0 60px;
+        justify-content: center;
+      }
+
+      .id-col {
+        flex: 1;
+      }
+
+      .type-col {
+        flex: 0 0 100px;
+      }
+
+      .vehicle-col {
+        flex: 1;
+      }
+
+      .rule-col {
+        flex: 1;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  }
+}
+
+// Tag Form Styles (in TagForm)
+.tag-form-popup {
+  .tag-form-container {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 20px;
+    }
+
+    .rule-set-info {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f0f9ff;
+      border-radius: 4px;
+      border: 1px solid #e0f2fe;
+
+      h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #0284c7;
+      }
+
+      .rule-description {
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: #475569;
+      }
+
+      .rule-limits {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .limit-item {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+
+          .limit-label {
+            color: #64748b;
+          }
+
+          .limit-value {
+            font-weight: 500;
+            color: #334155;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Common styles
+.dx-popup-content {
+  padding: 0 !important;
+}
+
+// Tag List Styles
+.tag-list-container {
+  padding: 20px;
+
+  h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: #333;
+  }
+
+  .rule-info {
+    display: flex;
+    flex-direction: column;
+
+    .rule-name {
+      font-weight: 500;
+      color: #0284c7;
+    }
+
+    .rule-description {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 3px;
+    }
+  }
+
+  .no-rule {
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .unknown-rule {
+    color: #ef4444;
+    font-style: italic;
+  }
+}

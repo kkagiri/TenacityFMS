@@ -50,6 +50,30 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Cursor: Add response interceptor to handle authentication errors
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (
+      error.response &&
+      (error.response.status === 401 || error.response.status === 404)
+    ) {
+      // Check if it's a login redirect
+      if (
+        error.response.config &&
+        error.response.config.url.includes("Login")
+      ) {
+        console.error("Authentication error - redirecting to login page");
+        // Redirect to login or handle auth error
+        // window.location.href = '/login'; // Uncomment if you want automatic redirect
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const initializeAxiosInstance = async () => {
   axiosInstance.defaults.baseURL = await determineApiUrl();
 };
