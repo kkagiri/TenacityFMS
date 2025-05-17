@@ -437,7 +437,7 @@ namespace FMS.Testing {
                 Dose = null, // No dose provided
                 Nozzle = 2,
                 Type = PumpAuthorizeType.VOLUME,
-                Tag = "TAG123"
+                Tag = "123456789"
             };
 
             _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
@@ -598,6 +598,134 @@ namespace FMS.Testing {
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException> (() => _handler.Handle (request, CancellationToken.None));
+        }
+
+        /// <summary>
+        /// Verifies that Handle correctly uses the lower of Tag dose limit or request dose when both are provided.
+        /// This ensures tag limits are always respected even when a specific dose is requested.
+        /// </summary>
+        [Fact]
+        public async Task Handle_UsesLowerOfTagLimitAndRequestDose_WhenBothProvided () {
+            // Arrange
+            var requestDose = 30.0;
+            var tagDoseLimit = 20.0m; // Lower than request dose
+
+            var request = new PumpAuthorizeCommand {
+                DeviceId = "DEVICE001",
+                PumpId = 1,
+                Dose = requestDose, // Higher than tag limit
+                Nozzle = 2,
+                Type = PumpAuthorizeType.VOLUME,
+                Tag = "TAG123"
+            };
+
+            _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
+                .ReturnsAsync (false);
+
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+                .ReturnsAsync (new AuthenticateTagResult (true, null, tagDoseLimit, false));
+
+            _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
+                .ReturnsAsync (new PumpAuthorizeConfirmation { Pump = 1, Transaction = 123 });
+
+            // Act
+            var result = await _handler.Handle (request, CancellationToken.None);
+
+            // Assert
+            // Verify the PumpService was called with the tag's dose limit (lower value)
+            _mockPumpService.Verify (x => x.PumpAuthorizeAsync (
+                It.IsAny<string> (),
+                It.Is<PumpAuthorizeData> (d => d.Dose == (double) tagDoseLimit)
+            ), Times.Once);
+
+            Assert.True (result.Success);
+        }
+
+        /// <summary>
+        /// Verifies that Handle properly generates and passes a transaction ID when TransactionEnabled is true.
+        /// This ensures proper tracking of transactions in the system.
+        /// </summary>
+        [Fact]
+        public async Task Handle_GeneratesAndPassesTransactionId_WhenTransactionEnabled () {
+            // Arrange
+            var request = new PumpAuthorizeCommand {
+                DeviceId = "DEVICE001",
+                PumpId = 1,
+                Dose = 20.0,
+                Nozzle = 2,
+                Type = PumpAuthorizeType.VOLUME,
+                TransactionEnabled = true // Transaction should be generated
+            };
+
+            _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
+                .ReturnsAsync (false);
+
+            _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
+                .ReturnsAsync (new PumpAuthorizeConfirmation { Pump = 1, Transaction = 123 });
+
+            // Act
+            var result = await _handler.Handle (request, CancellationToken.None);
+
+            // Assert
+            _mockPumpService.Verify (x => x.PumpAuthorizeAsync (
+                It.IsAny<string> (),
+                It.Is<PumpAuthorizeData> (d =>
+                    d.TransactionEnabled == true &&
+                    d.Transaction > 0) // Transaction ID should be generated
+            ), Times.Once);
+
+            Assert.True (result.Success);
+        }
+
+        /// <summary>
+        /// Verifies that the complete TagId from authentication is properly passed in the PumpAuthorizeData.
+        /// This ensures the tag identification is properly tracked in the PTS system.
+        /// </summary>
+        [Fact]
+        public async Task Handle_PassesTagIdToAuthData_WhenTagIsAuthenticated () {
+            // Arrange
+            string tagId = "TAG123";
+            var tag = new FMS.Domain.Entities.Tag {
+                Id = 1,
+                Name = tagId,
+                IsEnabled = true
+            };
+
+            var request = new PumpAuthorizeCommand {
+                DeviceId = "DEVICE001",
+                PumpId = 1,
+                Dose = 20.0,
+                Nozzle = 2,
+                Type = PumpAuthorizeType.VOLUME,
+                Tag = tagId
+            };
+
+            _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
+                .ReturnsAsync (false);
+
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+                .ReturnsAsync (new AuthenticateTagResult (true, tag, 30, false));
+
+            _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
+                .ReturnsAsync (new PumpAuthorizeConfirmation { Pump = 1, Transaction = 123 });
+
+            // Act
+            var result = await _handler.Handle (request, CancellationToken.None);
+
+            // Assert
+            // Verify Tag ID is passed correctly to both PumpService and AuthTracker
+            _mockPumpService.Verify (x => x.PumpAuthorizeAsync (
+                It.IsAny<string> (),
+                It.Is<PumpAuthorizeData> (d => d.Tag == tagId)
+            ), Times.Once);
+
+            _mockAuthTracker.Verify (x => x.SetAuthorized (
+                It.IsAny<string> (),
+                It.IsAny<int> (),
+                It.Is<AuthState> (s => s.TagId == tagId)
+            ), Times.Once);
+
+            Assert.True (result.Success);
         }
 
         #endregion

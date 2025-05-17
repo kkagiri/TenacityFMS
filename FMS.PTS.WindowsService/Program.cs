@@ -36,6 +36,7 @@ using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
+using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.Services;
 using FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandling;
 using Microsoft.AspNetCore.SignalR;
@@ -342,7 +343,7 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
             services.AddScoped<IConfigurationService, ConfigurationService> ();
             services.AddScoped<IPumpService, PumpService> ();
-            services.AddScoped<IJwtGenerator, JwtGenerator> ();
+            services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator> ();
             services.AddScoped<IDeviceCommunicationService, DeviceCommunicationService> ();
             services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher> ();
             services.AddScoped<IDeviceValidator, DeviceValidator> ();

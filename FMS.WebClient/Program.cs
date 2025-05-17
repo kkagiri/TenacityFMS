@@ -15,6 +15,7 @@ using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.MappingProfile;
 using FMS.Application.PTSServices.Configuration;
 using FMS.Application.PTSServices.PumpService;
@@ -320,7 +321,7 @@ public class Program {
                         }
                 };
             });
-        services.AddTransient<IJwtGenerator, JwtGenerator> ();
+        services.AddTransient<IJwtTokenGenerator, JwtTokenGenerator> ();
         services.AddTransient<RoleManager<Role>> ();
     }
 

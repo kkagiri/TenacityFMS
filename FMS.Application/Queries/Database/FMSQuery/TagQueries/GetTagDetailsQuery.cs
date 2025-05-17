@@ -66,22 +66,29 @@ namespace FMS.Application.Queries.Database.FMSQuery.TagQueries {
                 }
             }
 
-            var vehicle = await _context.Vehicles.FindAsync (tag.VehicleId);
-            var vehicleType = await _context.Vehicletypes.FindAsync (vehicle?.VehicleTypeId);
-            // Create and return the DTO
+            // Get vehicle and vehicle type with null checks
+            var vehicle = tag.VehicleId.HasValue ? await _context.Vehicles.FindAsync (tag.VehicleId.Value) : null;
+
+            // Only attempt to get vehicle type if vehicle exists and has a vehicle type ID
+            string vehicleTypeName = null;
+            if (vehicle != null && vehicle.VehicleTypeId.HasValue) {
+                var vehicleType = await _context.Vehicletypes.FindAsync (vehicle.VehicleTypeId.Value);
+                vehicleTypeName = vehicleType?.Name;
+            }
+
+            // Create and return the DTO with safe null handling
             return new TagDetailsDto {
                 TagId = request.TagName,
                     VehicleId = tag.VehicleId,
-                    HyoungNo = tag.Vehicle?.HyoungNo ?? "Unknown",
+                    HyoungNo = vehicle?.HyoungNo,
                     DailyUsed = dailyUsed,
                     DailyLimit = dailyLimit,
                     MonthlyUsed = monthlyUsed,
                     MonthlyLimit = monthlyLimit,
                     FuelingLimit = fuelingLimit,
                     IsEnabled = tag.IsEnabled ?? true,
-                    VehicleType = tag.Vehicle?.VehicleType?.Name ?? "Unknown"
+                    VehicleType = vehicleTypeName
             };
         }
-
     }
 }

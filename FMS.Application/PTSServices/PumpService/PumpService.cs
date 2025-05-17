@@ -42,6 +42,87 @@ namespace FMS.PTS.WindowsService.Services.Pump {
         }
 
         /// <summary>
+        /// Gets detailed information about a specific pump transaction
+        /// </summary>
+        /// <param name="pTSDeviceId">ID of the PTS device</param>
+        /// <param name="pumpId">Pump number (1-50)</param>
+        /// <param name="transactionId">Transaction ID to retrieve, or null for the last transaction</param>
+        /// <returns>Transaction details if found</returns>
+        public async Task<Pumptransaction> GetPumpTransactionInfoAsync (string pTSDeviceId, int pumpId, int? transactionId) {
+            //Cursor: Start implementation
+            try {
+                if (string.IsNullOrEmpty (pTSDeviceId)) throw new ArgumentNullException (nameof (pTSDeviceId), "Device ID cannot be empty");
+                if (pumpId <= 0 || pumpId > 50) throw new ArgumentException ("Invalid pump number. Must be between 1 and 50.");
+
+                // Create command data for the request
+                object commandData;
+                if (transactionId.HasValue && transactionId.Value > 0) {
+                    commandData = new {
+                        Pump = pumpId,
+                        Transaction = transactionId.Value
+                    };
+                } else {
+                    // If transaction ID is not provided, get the last transaction
+                    commandData = new { Pump = pumpId };
+                }
+
+                // Execute the command to get transaction information
+                var result = await _commandExecution.ExecuteCommandAsync (pTSDeviceId, "PumpGetTransactionInformation", commandData);
+
+                if (!result.Success) {
+                    if (result.Code.HasValue) {
+                        var errorCode = (PtsErrorCode) result.Code.Value;
+                        var errorMessage = EnumExtensions.GetDescription (errorCode);
+                        throw new PTSDeviceException (errorMessage);
+                    }
+                    throw new PTSDeviceException (result.Message ?? "Failed to get transaction information.");
+                }
+
+                // Parse the response
+                if (result.CommandData == null) {
+                    throw new InvalidOperationException ("PumpGetTransactionInformation response data is missing");
+                }
+
+                try {
+                    // Convert CommandData to JObject for property access
+                    var responseData = JObject.FromObject (result.CommandData);
+
+                    // Extract transaction details
+                    var transaction = new Pumptransaction {
+                        PtsId = pTSDeviceId,
+                        Pump = pumpId,
+                        Transaction = responseData.Value<int?> ("Transaction"),
+                        Nozzle = responseData.Value<int?> ("Nozzle"),
+                        FuelGradeId = responseData.Value<int?> ("FuelGradeId"),
+                        FuelGradeName = responseData.Value<string> ("FuelGradeName"),
+                        Volume = responseData.Value<decimal?> ("Volume"),
+                        Tcvolume = responseData.Value<decimal?> ("TCVolume"),
+                        Price = responseData.Value<decimal?> ("Price"),
+                        Amount = responseData.Value<decimal?> ("Amount"),
+                        DateTime = responseData.Value<DateTime?> ("DateTime") ?? DateTime.UtcNow,
+                        DateTimeStart = responseData.Value<DateTime?> ("DateTimeStart"),
+                        Tag = responseData.Value<string> ("Tag"),
+                        UserId = responseData.Value<int?> ("UserId"),
+                        ConfigurationId = responseData.Value<string> ("ConfigurationId")
+                    };
+
+                    _logger.LogInformation ("Retrieved transaction {Transaction} for device {DeviceId}, pump {Pump}",
+                        transaction.Transaction, pTSDeviceId, pumpId);
+
+                    return transaction;
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Error parsing transaction response for device {DeviceId}, pump {Pump}, transaction {Transaction}",
+                        pTSDeviceId, pumpId, transactionId);
+                    throw new PTSDeviceException ("Error processing transaction information response");
+                }
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error getting transaction information for device {DeviceId}, pump {Pump}, transaction {Transaction}",
+                    pTSDeviceId, pumpId, transactionId);
+                throw;
+            }
+        }
+
+        /// <summary>
         ///Sets preset and nozzle price, allows filling for specified nozzle
         /// </summary>
         /// <param name="pumpAuthorizeData"></param>
@@ -340,11 +421,9 @@ namespace FMS.PTS.WindowsService.Services.Pump {
             }
 
         }
-        public Task<Pumptransaction> GetPumpTransactionInfoAsync (string pTSDeviceId, int pumpId, int? transactionId) {
-            throw new NotImplementedException ();
-        }
 
         public async Task<FMSResponseMessage> StopPumpAsync (string pTSDeviceId, int pumpId) {
+            //Cursor: Restore implementation
             try {
                 var commandData = new { Pump = pumpId };
 
@@ -353,7 +432,6 @@ namespace FMS.PTS.WindowsService.Services.Pump {
                 if (!result.Success) return new FMSResponseMessage (false, result.Message ?? "Failed to stop pump.");
 
                 return new FMSResponseMessage (true, "Pump stopped successfully.");
-
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error stopping pump {Pump}", pumpId);
                 return new FMSResponseMessage (false, ex.Message);

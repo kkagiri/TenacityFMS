@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -19,6 +20,7 @@ using FMS.Domain.Entities.PTS.Enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis; //Cursor
 
 namespace FMS.Application.Command.PTSCommand.PumpCommands {
     public record PumpAuthorizeCommand : IRequest<FMSResponseMessage<PumpAuthorizeConfirmation>> {
@@ -37,6 +39,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
         public bool TransactionEnabled { get; set; }
         public int Transaction { get; set; }
         public string? Tag { get; set; }
+        public int? TankId { get; set; }
 
         public int? VehicleId { get; set; }
 
@@ -50,12 +53,20 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
         private readonly IMediator _mediator;
 
         private readonly IPumpService _pumpService;
+        private readonly IDatabase _redisDb; //Cursor
 
-        public PumpAuthorizeCommandHandler (IAuthorizationStateTracker authstatetracker, IMediator mediator, GpsdataContext context, IPumpService pumpService, ILogger<PumpAuthorizeCommandHandler> logger) {
+        public PumpAuthorizeCommandHandler (
+            IAuthorizationStateTracker authstatetracker,
+            IMediator mediator,
+            GpsdataContext context,
+            IPumpService pumpService,
+            IConnectionMultiplexer redisConnection, //Cursor
+            ILogger<PumpAuthorizeCommandHandler> logger) {
             _authTracker = authstatetracker;
             _mediator = mediator;
             _context = context;
             _pumpService = pumpService;
+            _redisDb = redisConnection.GetDatabase (); //Cursor
             _logger = logger;
         }
 
@@ -107,15 +118,20 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
                 if (!string.IsNullOrEmpty (request.Tag)) {
 
-                    var tagAuthentications = await _mediator.Send (new AuthenticateTagQuery (request.Tag), cancellationToken);
+                    tagAuthentication = await _mediator.Send (new AuthenticateTagQuery (request.Tag), cancellationToken);
 
-                    if (!tagAuthentication.IsAuthenticated) {
+                    if (tagAuthentication == null || !tagAuthentication.IsAuthenticated) {
                         _logger.LogInformation ("Tag read ignored - tag not authenticated for device {DeviceId}, pump {PumpId}", request.DeviceId, request.PumpId);
                         return new FMSResponseMessage<PumpAuthorizeConfirmation> (false, "Tag not authenticated", null!);
                     }
 
-                    //use the tag doss limi if not provided
+                    //use the tag dose limit if not provided, or use the lower value if both are provided
                     if (!request.Dose.HasValue) {
+                        request = request with { Dose = (double) tagAuthentication.dose };
+                    } else if (tagAuthentication.dose < (decimal) request.Dose.Value) {
+                        // Use the lower of tag limit and request dose for safety
+                        _logger.LogInformation ("Limiting dose to tag limit: {TagLimit} (requested: {RequestedDose}) for device {DeviceId}, pump {PumpId}",
+                            tagAuthentication.dose, request.Dose.Value, request.DeviceId, request.PumpId);
                         request = request with { Dose = (double) tagAuthentication.dose };
                     }
                 }
@@ -132,7 +148,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                     AutoCloseTransaction = request.AutoCloseTransaction,
                     TransactionEnabled = request.TransactionEnabled,
                     Transaction = PacketIdGenerator.GetNextId (),
-                    Tag = request.Tag
+                    Tag = request.Tag,
+
                 };
 
                 var confirmation = await _pumpService.PumpAuthorizeAsync (request.DeviceId!, pumpAuthorizeData);
@@ -140,18 +157,23 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                 //log the confirmation
                 if (confirmation != null) {
                     _logger.LogInformation ("Pump {PumpId} authorized successfully for device {DeviceId}. Transaction: {TransactionId}", request.PumpId, request.DeviceId, confirmation.Transaction);
-                    await _authTracker.SetAuthorized (request.DeviceId!, request.Nozzle, new AuthState {
-                        DeviceId = request.DeviceId!,
-                            PumpId = request.PumpId,
-                            TagId = request.Tag,
 
-                            NozzleId = request.Nozzle,
-                            ExpiresAt = DateTime.UtcNow.AddMinutes (5),
-                            Status = "Authorized",
-                            TransactionId = confirmation.Transaction,
-                            AuthorizedAt = DateTime.UtcNow,
-                            AuthorizedAmount = (decimal) (request.Dose ?? 0)
-                    });
+                    var authState = new AuthState {
+                        DeviceId = request.DeviceId!,
+                        PumpId = request.PumpId,
+                        TagId = request.Tag,
+                        NozzleId = request.Nozzle,
+                        ExpiresAt = DateTime.UtcNow.AddMinutes (5),
+                        Status = "Authorized",
+                        TransactionId = confirmation.Transaction,
+                        AuthorizedAt = DateTime.UtcNow,
+                        AuthorizedAmount = (decimal) (request.Dose ?? 0)
+                    };
+
+                    await _authTracker.SetAuthorized (request.DeviceId!, request.Nozzle, authState);
+
+                    //Cursor: Store transaction context in Redis for later correlation
+                    await StoreTransactionContextInRedis (request.DeviceId!, confirmation.Transaction, request.TankId, request.VehicleId);
 
                     return new FMSResponseMessage<PumpAuthorizeConfirmation> (true, "Pump authorized", confirmation);
                 }
@@ -166,11 +188,41 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                     request.PumpId, request.DeviceId);
                 throw;
             }
-
         }
+
+        //Cursor: New method to store transaction context in Redis
+        private async Task StoreTransactionContextInRedis (string deviceId, int transactionId, int? tankId, int? vehicleId) {
+            try {
+                var transactionContext = new {
+                    DeviceId = deviceId,
+                    TransactionId = transactionId,
+                    TankId = tankId,
+                    VehicleId = vehicleId,
+                    AuthorizedAt = DateTime.UtcNow
+                };
+
+                var redisKey = $"device:{deviceId}:transaction:{transactionId}";
+                var contextJson = JsonSerializer.Serialize (transactionContext);
+
+                // Store with 24 hour expiry to ensure it doesn't stay forever if transaction never completes
+                await _redisDb.StringSetAsync (redisKey, contextJson, expiry : TimeSpan.FromHours (24));
+
+                _logger.LogInformation ("Stored transaction context in Redis for device {DeviceId}, transaction {TransactionId}",
+                    deviceId, transactionId);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error storing transaction context in Redis for device {DeviceId}, transaction {TransactionId}",
+                    deviceId, transactionId);
+                // Don't rethrow - we still want to continue even if Redis storage fails
+            }
+        }
+
+        //TODO: change this to use FluentValidation
 
         private async Task<bool> ValidateRequest (PumpAuthorizeCommand request) {
             if (string.IsNullOrEmpty (request.DeviceId)) return false;
+            //validate if tankID and VehicleId provide are available in _context
+            if (request.TankId.HasValue && !_context.Tanks.Any (t => t.Id == request.TankId.Value)) return false;
+            if (request.VehicleId.HasValue && !_context.Vehicles.Any (v => v.VehicleId == request.VehicleId.Value)) return false;
 
             if (request.PumpId <= 0 || request.PumpId > 50) return false;
 
@@ -179,6 +231,5 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
             if (request.NozzleOrFuelIdSelector == NozzleOrFuelIdSelector.FUELGRADEID && request.FuelGradeId <= 0) return false;
             return true;
         }
-
     }
 }

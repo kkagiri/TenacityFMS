@@ -39,7 +39,9 @@ public partial class Vehicle {
 
     public string? Passenger { get; set; }
     public string? CurrentPhysicalReading { get; set; }
+    public sbyte? IsCompanyVehicle { get; set; }
 
+    public sbyte? IsActive { get; set; }
     public sbyte? GpsgategeneratedId { get; set; }
 
     public int? DefaultExptdAvgid { get; set; }
@@ -84,6 +86,7 @@ public partial class Vehicle {
     // Many-to-many relationship mapping.
     public virtual ICollection<Employee> Employees { get; set; } = new List<Employee> ();
 
+    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction> ();
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag> ();
 
 }

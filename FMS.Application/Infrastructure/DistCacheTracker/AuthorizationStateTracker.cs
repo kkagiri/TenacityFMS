@@ -13,6 +13,8 @@ namespace FMS.Application.Infrastructure.DistCacheTracker {
         public int PumpId { get; set; }
         public int NozzleId { get; set; }
         public string? TagId { get; set; }
+        public int? TankId { get; set; }
+        public int? VehicleId { get; set; }
         public DateTime AuthorizedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
         public decimal? AuthorizedAmount { get; set; }
