@@ -23,6 +23,9 @@ import { Popup } from "devextreme-react/popup";
 import LoadIndicator from "devextreme-react/load-indicator";
 import Button from "devextreme-react/button";
 import "./VehicleDataGrid.scss"; // Import the SCSS file
+import { Workbook } from 'exceljs';
+import saveAs from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
 import DataGrid, {
   Paging,
   HeaderFilter,
@@ -158,6 +161,47 @@ const VehicleDataGrid = () => {
 
   const canEdit = permissions.includes("_EditVehicle");
 
+  const onExporting = useCallback((e) => {
+    try {
+      const workbook = new Workbook();
+      const worksheet = workbook.addWorksheet('Vehicles');
+
+      notify('Preparing export...', 'info', 2000);
+
+      exportDataGrid({
+        component: e.component,
+        worksheet,
+        autoFilterEnabled: true,
+        customizeCell: ({ gridCell, excelCell }) => {
+          if (gridCell.rowType === 'data') {
+            excelCell.font = { size: 12 };
+          }
+          if (gridCell.rowType === 'header') {
+            excelCell.font = { bold: true };
+          }
+        }
+      }).then(() => {
+        workbook.xlsx.writeBuffer()
+          .then((buffer) => {
+            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Vehicles.xlsx');
+            notify('Export complete', 'success', 2000);
+          })
+          .catch(err => {
+            console.error("Buffer creation error:", err);
+            notify('Export failed', 'error', 2000);
+          });
+      }).catch(err => {
+        console.error("exportDataGrid error:", err);
+        notify('Export failed', 'error', 2000);
+      });
+
+      e.cancel = true;
+    } catch (error) {
+      console.error("General export error:", error);
+      notify('Export failed', 'error', 2000);
+    }
+  }, []);
+
   if (loading || saving) {
     return (
       <div
@@ -237,6 +281,7 @@ const VehicleDataGrid = () => {
         repaintChangesOnly={true}
         onRowUpdated={onRowUpdated}
         onEditorPreparing={onEditorPreparing}
+        onExporting={onExporting}
       >
         <Export
           enabled={true}
