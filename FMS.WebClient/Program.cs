@@ -196,7 +196,8 @@ public class Program
             var sp = services.BuildServiceProvider();
             //var configuration = sp.GetRequiredService<IConfiguration>();
             var redisConnectionString = Environment.GetEnvironmentVariable(
-                "ConnectionStrings__RedisConnection"
+                "ConnectionStrings__RedisConnection",
+                EnvironmentVariableTarget.Machine
             );
 
             if (!string.IsNullOrEmpty(redisConnectionString))
@@ -287,13 +288,44 @@ public class Program
     static void ConfigureAuthentication(IServiceCollection services, IConfiguration configuration)
     {
         var jwtSecretKey =
-            Environment.GetEnvironmentVariable("JwtSettings__SecretKey")
+            Environment.GetEnvironmentVariable(
+                "JwtSettings__SecretKey",
+                EnvironmentVariableTarget.Machine
+            )
             ?? throw new InvalidOperationException(
                 "JwtSettings__SecretKey is missing from environment variables."
             );
+        var jwtIssuer =
+            Environment.GetEnvironmentVariable(
+                "JwtSettings__Issuer",
+                EnvironmentVariableTarget.Machine
+            )
+            ?? throw new InvalidOperationException(
+                "JwtSettings__Issuer is missing from environment variables."
+            );
+        var jwtAudience =
+            Environment.GetEnvironmentVariable(
+                "JwtSettings__Audience",
+                EnvironmentVariableTarget.Machine
+            )
+            ?? throw new InvalidOperationException(
+                "JwtSettings__Audience is missing from environment variables."
+            );
+        var jwtExpireDays =
+            Environment.GetEnvironmentVariable(
+                "JwtSettings__ExpireDays",
+                EnvironmentVariableTarget.Machine
+            ) ?? "7"; // Default to 7 days if not specified
 
-        var jwtIssuer = Environment.GetEnvironmentVariable("JwtSettings__Issuer");
-        var jwtAudience = Environment.GetEnvironmentVariable("JwtSettings__Audience");
+        // Configure JwtSettings
+        services.Configure<JwtSettings>(options =>
+        {
+            options.SecretKey = jwtSecretKey;
+            options.Issuer = jwtIssuer;
+            options.Audience = jwtAudience;
+            options.ExpireDays = int.Parse(jwtExpireDays);
+        });
+
         services
             .AddAuthentication(options =>
             {
@@ -310,7 +342,7 @@ public class Program
                     ClockSkew = TimeSpan.Zero,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings.SecretKey)
+                        Encoding.UTF8.GetBytes(jwtSecretKey)
                     ),
                     ValidIssuer = jwtIssuer,
                     ValidAudience = jwtAudience,
@@ -443,12 +475,16 @@ public class Program
         try
         {
             var fmsConnectionString =
-                Environment.GetEnvironmentVariable("ConnectionStrings__FMSConnection")
+                Environment.GetEnvironmentVariable(
+                    "ConnectionStrings__FMSConnection",
+                    EnvironmentVariableTarget.Machine
+                )
                 ?? throw new InvalidOperationException(
                     "FMS Connection string is missing from environment variables."
                 );
             var naftaConnectionString = Environment.GetEnvironmentVariable(
-                "ConnectionStrings__ATGConnection"
+                "ConnectionStrings__ATGConnection",
+                EnvironmentVariableTarget.Machine
             ); //Removed the default value as it is not needed
             services
                 .AddIdentity<User, Role>()
