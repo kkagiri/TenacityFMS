@@ -10,6 +10,7 @@
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.5.2",
     "axios": "^1.6.8",
+    "craco": "^0.0.3",
     "date-fns": "^3.6.0",
     "devexpress-reporting": "23.2.8",
     "devextreme": "23.2.8",
@@ -36,10 +37,9 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "build:dev": "env-cmd -f .env.development craco build",
-    "build:prod.internal": "env-cmd -f .env.production.internal craco build",
-    "build:prod.external": "env-cmd -f .env.production.external craco build",
-    "test": "craco test",
+    "build:dev": "env-cmd -f .env.development npx craco build",
+    "build:prod": "env-cmd -f .env.production npx craco build",
+    "test": "npx craco test",
     "eject": "react-scripts eject",
     "build-themes": "devextreme build",
     "postinstall": "npm run build-themes"
