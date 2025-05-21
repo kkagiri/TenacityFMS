@@ -31,6 +31,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.WorkingSiteId, "vehicle_site_idx");
                 builder.HasIndex(e => e.VehicleTypeId, "vehicle_vehicleType_idx");
                 builder.HasIndex(e => e.ModifiedBy, "vehilce_user_idx");
+                builder.HasIndex(e => e.CreatedBy, "vehicle_user1_idx");
 
                 builder.Property(e => e.VehicleId)
                     .HasColumnType("int(11)")
@@ -55,11 +56,27 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.HasGPSInstalled)
                     .HasColumnType("tinyint(4)")
                     .HasColumnName("HasGPSInstalled");
+                builder.Property(e => e.IsCompanyVehicle)
+                    .HasColumnType("tinyint(4)")
+                    .HasColumnName("IsCompanyVehicle");
+                builder.Property(e => e.IsActive)
+                    .HasColumnType("tinyint(4)")
+                    .HasColumnName("IsActive");
                 builder.Property(e => e.HyoungNo).HasMaxLength(45);
                 builder.Property(e => e.ModifiedBy)
                     .HasMaxLength(100)
                     .UseCollation("utf8mb4_general_ci")
                     .HasCharSet("utf8mb4");
+                builder.Property(e => e.CreatedBy)
+                    .HasMaxLength(100)
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+                builder.Property(e => e.DateCreated)
+                    .HasColumnType("datetime")
+                    .HasColumnName("DateCreated");
+                builder.Property(e => e.DateModified)
+                    .HasColumnType("datetime")
+                    .HasColumnName("DateModified");
                 builder.Property(e => e.NumberPlate).HasMaxLength(45);
                 builder.Property(e => e.Passenger).HasMaxLength(100);
                 builder.Property(e => e.VehicleManufacturerId)
@@ -101,6 +118,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.ModifiedBy)
                     .HasConstraintName("vehilce_user");
 
+                builder.HasOne(d => d.CreatedByNavigation).WithMany()
+                    .HasForeignKey(d => d.CreatedBy)
+                    .HasConstraintName("vehicle_user1");
+
                 builder.HasOne(d => d.VehicleManufacturer).WithMany(p => p.Vehicles)
                     .HasForeignKey(d => d.VehicleManufacturerId)
                     .HasConstraintName("vehicle_manufacturer");
@@ -117,35 +138,8 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.WorkingSiteId)
                     .HasConstraintName("vehicle_site");
 
-                // Many-to-many relationship configuration using the new navigation properties:
-                // builder.HasMany(v => v.Employees)
-                //     .WithMany(e => e.Vehicles)
-                //     .UsingEntity<Dictionary<string, object>>(
-                //         "Employeevehicle",
-                //         r => r.HasOne<Employee>()
-                //               .WithMany()
-                //               .HasForeignKey("EmployeeId")
-                //               .OnDelete(DeleteBehavior.ClientSetNull)
-                //               .HasConstraintName("EmployeeID"),
-                //         l => l.HasOne<Vehicle>()
-                //               .WithMany()
-                //               .HasForeignKey("VehicleId")
-                //               .OnDelete(DeleteBehavior.ClientSetNull)
-                //               .HasConstraintName("VehicleID"),
-                //         j =>
-                //         {
-                //             j.HasKey("VehicleId", "EmployeeId")
-                //              .HasName("PRIMARY")
-                //              .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
-                //             j.ToTable("employeevehicles");
-                //             j.HasIndex(new[] { "EmployeeId" }, "EmployeeID_idx");
-                //             j.IndexerProperty<int>("VehicleId")
-                //              .HasColumnType("int(11)")
-                //              .HasColumnName("VehicleID");
-                //             j.IndexerProperty<int>("EmployeeId")
-                //              .HasColumnType("int(11)")
-                //              .HasColumnName("EmployeeID");
-                //         });
+                // Many-to-many relationship is already configured through EmployeeVehicleConfiguration
+                // We don't need to duplicate it here, as it could cause conflicts
             }
             catch (Exception ex)
             {

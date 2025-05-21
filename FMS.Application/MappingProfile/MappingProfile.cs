@@ -23,6 +23,7 @@ using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.ModelsDTOs.FMS.Tag;
 using FMS.Application.ModelsDTOs.FMS.PTSDevice;
+using FMS.Application.ModelsDTOs.FMS.UserActivities;
 
 namespace FMS.Application.MappingProfile
 {
@@ -37,6 +38,11 @@ namespace FMS.Application.MappingProfile
 
             // User mappings
             CreateMap<User, UserDto>().ReverseMap();
+
+            // UserActivity mappings
+            CreateMap<UserActivity, UserActivityDTO>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.UserName : "Unknown"))
+                .ReverseMap();
 
             // Delivery mappings
             CreateMap<Delivery, DeliveryDTO>().ReverseMap();

@@ -8,6 +8,7 @@ using System.Text;
 using System.Security.Claims;
 using MediatR;
 using FMS.Application.Command.DatabaseCommand.UserActivitiesCommands;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace FMS.WebClient.Util
 {
@@ -29,34 +30,89 @@ namespace FMS.WebClient.Util
             var user = context.User;
             var request = context.Request;
 
-            if (user.Identity.IsAuthenticated)
+            // Continue with the request pipeline first
+            await _next(context);
+
+            // Then log the activity (to avoid blocking the main request flow)
+            if (user.Identity?.IsAuthenticated == true)
             {
                 try
                 {
-                    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                    // Use exactly the same approach as in your working controller code
+                    var userIdClaim = user.Claims.FirstOrDefault(c =>
+                        c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                        Guid.TryParse(c.Value, out _));
+
+                    if (userIdClaim == null)
+                    {
+                        _logger.LogWarning("User is authenticated but no valid user ID claim was found");
+                        return;
+                    }
+
+                    var userId = userIdClaim.Value;
+                    _logger.LogDebug("Using user ID: {UserId} for activity logging", userId);
+
                     var action = context.Request.Method;
                     var controller = context.Request.RouteValues["controller"]?.ToString();
                     var actionName = context.Request.RouteValues["action"]?.ToString();
                     var parameters = "";
 
+                    // Skip certain paths to avoid excessive logging
+                    var path = context.Request.Path.ToString().ToLowerInvariant();
+                    if (path.StartsWith("/api/useractivies") ||
+                        path.Contains("favicon") ||
+                        path.Contains("signalr") ||
+                        path.Contains("GetNavigationItemList") ||
+                        path.Contains("GetUser") ||
+                        path.Contains("GetUserActivities") ||
+                        path.Contains("GetUserByEmail") ||
+                        path.Contains("GetUserByPhoneNumber"))
+                    {
+                        return;
+                    }
+
                     // Only capture request body for POST/PUT requests
                     if ((request.Method == "POST" || request.Method == "PUT") &&
                         request.ContentType?.Contains("application/json") == true)
                     {
-                        request.EnableBuffering();
-                        using (var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true))
+                        try
                         {
-                            parameters = await reader.ReadToEndAsync();
-                            request.Body.Position = 0;  // Reset the position to allow reading again
+                            request.EnableBuffering();
+                            request.Body.Position = 0;  // Rewind the stream
+                            using (var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true))
+                            {
+                                parameters = await reader.ReadToEndAsync();
+                                request.Body.Position = 0;  // Reset the position for other middleware
+                            }
+
+                            // Don't log sensitive info or large payloads
+                            if (parameters.Length > 1000)
+                            {
+                                parameters = $"[Truncated payload: {parameters.Length} bytes]";
+                            }
+
+                            // Don't log auth-related payloads
+                            if (controller?.ToLowerInvariant() == "auth" ||
+                                path.Contains("login") ||
+                                path.Contains("password"))
+                            {
+                                parameters = "[Sensitive data redacted]";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error reading request body for activity logging");
+                            parameters = "[Error reading request body]";
                         }
                     }
 
                     var ipAddress = context.Connection.RemoteIpAddress?.ToString();
+                    var statusCode = context.Response.StatusCode;
 
                     var command = new CreateUserActivityCommand
                     {
                         UserId = userId,
-                        Action = action,
+                        Action = $"{action} - {statusCode}",
                         Controller = controller,
                         ActionName = actionName,
                         Parameters = parameters,
@@ -64,17 +120,16 @@ namespace FMS.WebClient.Util
                         Timestamp = DateTime.UtcNow
                     };
 
-                    // Fire and forget activity logging
-                    _ = _mediator.Send(command);
+                    // Actually await the operation
+                    var activityId = await _mediator.Send(command);
+                    _logger.LogInformation("Activity logged for user {UserId}, action {Action}, controller {Controller}, activityId: {ActivityId}",
+                        userId, action, controller, activityId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error logging user activity");
+                    _logger.LogError(ex, "Error logging user activity: {Message}", ex.Message);
                 }
             }
-
-            // Continue with the request pipeline
-            await _next(context);
         }
     }
 

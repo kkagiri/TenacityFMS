@@ -41,6 +41,14 @@ export default function Content() {
       <Routes>
         {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* User routes */}
+        <Route path="/users/:id" element={React.createElement(resolvedComponents("user-details"))} />
+        <Route path="/users/:id/edit" element={React.createElement(resolvedComponents("user-edit"))} />
+        <Route path="/users/:id/activities" element={React.createElement(resolvedComponents("user-activities"))} />
+        <Route path="/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
+        <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
+
         {/* ToDo: Remove this stupid links below */}
         <Route path="/atg/:ptsId" element={<FuelingProcess />} />
         <Route

@@ -41,6 +41,13 @@ public partial class Vehicle
 
     public int? DefaultExptdAvgid { get; set; }
 
+    // Added properties based on schema
+    public DateTime? DateCreated { get; set; }
+    public DateTime? DateModified { get; set; }
+    public string? CreatedBy { get; set; }
+    public sbyte? IsCompanyVehicle { get; set; }
+    public sbyte? IsActive { get; set; }
+
     public virtual ICollection<Calibrationdatum> Calibrationdata { get; set; } = new List<Calibrationdatum>();
 
     // One-to-many relationship mapping.
@@ -63,6 +70,8 @@ public partial class Vehicle
 
     public virtual User? ModifiedByNavigation { get; set; }
     public string? ModifiedBy { get; set; }
+
+    public virtual User? CreatedByNavigation { get; set; }
 
     public virtual Vehiclemodel? VehicleModel { get; set; }
 

@@ -8,15 +8,44 @@ export const DELETE_USER_SUCCESS = 'DELETE_USER_SUCCESS';
 export const UPDATE_USER_SUCCESS = 'UPDATE_USER_SUCCESS';
 export const FETCH_USER_ACTIVITIES_SUCCESS = 'FETCH_USER_ACTIVITIES_SUCCESS';
 export const FETCH_USER_ACTIVITIES_FAILURE = 'FETCH_USER_ACTIVITIES_FAILURE';
+export const FETCH_USER_BY_ID_SUCCESS = 'FETCH_USER_BY_ID_SUCCESS';
+export const FETCH_USER_BY_ID_FAILURE = 'FETCH_USER_BY_ID_FAILURE';
+export const CREATE_USER_SUCCESS = 'CREATE_USER_SUCCESS';
+export const CREATE_USER_FAILURE = 'CREATE_USER_FAILURE';
+export const FETCH_USER_SITES_SUCCESS = 'FETCH_USER_SITES_SUCCESS';
+export const FETCH_USER_SITES_FAILURE = 'FETCH_USER_SITES_FAILURE';
+export const UPDATE_USER_SITES_SUCCESS = 'UPDATE_USER_SITES_SUCCESS';
+export const RESTORE_USER_SUCCESS = 'RESTORE_USER_SUCCESS';
+export const SOFT_DELETE_USER_SUCCESS = 'SOFT_DELETE_USER_SUCCESS';
+export const FETCH_ALL_SITES_SUCCESS = 'FETCH_ALL_SITES_SUCCESS';
+export const FETCH_ALL_SITES_FAILURE = 'FETCH_ALL_SITES_FAILURE';
+export const FETCH_ALL_ACTIVITIES_SUCCESS = 'FETCH_ALL_ACTIVITIES_SUCCESS';
+export const FETCH_ALL_ACTIVITIES_FAILURE = 'FETCH_ALL_ACTIVITIES_FAILURE';
+export const FETCH_USER_ROLES_SUCCESS = 'FETCH_USER_ROLES_SUCCESS';
+export const FETCH_USER_ROLES_FAILURE = 'FETCH_USER_ROLES_FAILURE';
+export const FETCH_USER_PERMISSIONS_SUCCESS = 'FETCH_USER_PERMISSIONS_SUCCESS';
+export const FETCH_USER_PERMISSIONS_FAILURE = 'FETCH_USER_PERMISSIONS_FAILURE';
 
 // Action Creators
 export const fetchUsers = () => async (dispatch) => {
     try {
         const response = await axiosInstance.get(`/user`);
         dispatch({ type: FETCH_USERS_SUCCESS, payload: response.data });
+        return response.data;
     } catch (error) {
         dispatch({ type: FETCH_USERS_FAILURE, payload: error.message });
         throw new Error('Data loading error');
+    }
+};
+
+export const fetchUserById = (userId) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get(`/user/${userId}`);
+        dispatch({ type: FETCH_USER_BY_ID_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_USER_BY_ID_FAILURE, payload: error.message });
+        throw new Error('Error loading user details');
     }
 };
 
@@ -24,6 +53,17 @@ export const setSelectedUser = (user) => ({
     type: SET_SELECTED_USER,
     payload: user
 });
+
+export const createUser = (userData) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.post('/user', userData);
+        dispatch({ type: CREATE_USER_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
+        throw new Error('Error creating user');
+    }
+};
 
 export const deleteUser = (userId) => async (dispatch) => {
     try {
@@ -34,28 +74,117 @@ export const deleteUser = (userId) => async (dispatch) => {
     }
 };
 
+export const softDeleteUser = (userId) => async (dispatch) => {
+    try {
+        await axiosInstance.put(`/user/softuserdelete/${userId}`);
+        dispatch({ type: SOFT_DELETE_USER_SUCCESS, payload: userId });
+    } catch (error) {
+        throw new Error('Error soft deleting user');
+    }
+};
+
+export const restoreUser = (userId) => async (dispatch) => {
+    try {
+        await axiosInstance.put(`/user/restoreuser/${userId}`);
+        dispatch({ type: RESTORE_USER_SUCCESS, payload: userId });
+    } catch (error) {
+        throw new Error('Error restoring user');
+    }
+};
+
 export const updateUser = (userId, userData) => async (dispatch) => {
     try {
         const response = await axiosInstance.put(`/user/${userId}`, userData);
         dispatch({ type: UPDATE_USER_SUCCESS, payload: response.data });
+        return response.data;
     } catch (error) {
         throw new Error('Error updating user');
     }
 };
 
-export const fetchUserActivities = (filters) => async (dispatch) => {
+export const fetchUserActivities = (userId) => async (dispatch) => {
     try {
-        const queryParams = new URLSearchParams({
-            startDate: filters.startDate,
-            endDate: filters.endDate,
-            module: filters.module,
-            userId: filters.userId
-        }).toString();
-
-        const response = await axiosInstance.get(`/user/activities?${queryParams}`);
+        const response = await axiosInstance.get(`/useractivities?UserId=${userId}`);
         dispatch({ type: FETCH_USER_ACTIVITIES_SUCCESS, payload: response.data });
+        return response.data;
     } catch (error) {
         dispatch({ type: FETCH_USER_ACTIVITIES_FAILURE, payload: error.message });
         throw new Error('Error loading user activities');
+    }
+};
+
+export const fetchAllUserActivities = (filters = {}) => async (dispatch) => {
+    try {
+        let queryString = '';
+        if (Object.keys(filters).length > 0) {
+            queryString = '?' + new URLSearchParams(filters).toString();
+        }
+
+        console.log(`Fetching user activities with queryString: ${queryString}`);
+        const response = await axiosInstance.get(`/useractivities${queryString}`);
+        console.log('User activities response:', response.data);
+        dispatch({ type: FETCH_ALL_ACTIVITIES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user activities:', error);
+        dispatch({ type: FETCH_ALL_ACTIVITIES_FAILURE, payload: error.message });
+        throw new Error('Error loading activities: ' + (error.response?.data?.message || error.message));
+    }
+};
+
+export const fetchAllSites = () => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get('/site/getlist');
+        dispatch({ type: FETCH_ALL_SITES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_ALL_SITES_FAILURE, payload: error.message });
+        throw new Error('Error loading sites');
+    }
+};
+
+export const fetchUserSites = (userId) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get(`/site/getsitebyuserid?userId=${userId}`);
+        dispatch({ type: FETCH_USER_SITES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_USER_SITES_FAILURE, payload: error.message });
+        throw new Error('Error loading user sites');
+    }
+};
+
+export const updateUserSites = (userId, siteIds) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.put(`/site/assignSitestoUser`, {
+            UserId: userId,
+            SiteIds: siteIds
+        });
+        dispatch({ type: UPDATE_USER_SITES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        throw new Error('Error updating user sites');
+    }
+};
+
+export const fetchUserRoles = (userId) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get(`/role/user/${userId}`);
+        dispatch({ type: FETCH_USER_ROLES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_USER_ROLES_FAILURE, payload: error.message });
+        throw new Error('Error loading user roles');
+    }
+};
+
+export const fetchUserPermissions = (userId) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get(`/permission/user/${userId}`);
+        dispatch({ type: FETCH_USER_PERMISSIONS_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_USER_PERMISSIONS_FAILURE, payload: error.message });
+        throw new Error('Error loading user permissions');
     }
 };

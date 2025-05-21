@@ -85,7 +85,28 @@ namespace FMS.WebClient.Controllers
         }
 
 
+        [HttpPost]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> CreateVehicle([FromBody] VehicleDTO vehicleDTO)
+        {
+            var hasPermission = User.HasClaim("permissions", "_CreateVehicle");
+            if (!hasPermission) return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            vehicleDTO.CreatedBy = userIdClaim.Value;
+
+            var command = new CreateVehicleCommand(vehicleDTO);
+            var result = await _mediator.Send(command);
+
+            if (!result.Success) return BadRequest(result);
+            return CreatedAtAction(nameof(GetVehicleByID), new { id = result.Data.VehicleId }, result);
+        }
 
 
         [HttpPut]
@@ -97,6 +118,17 @@ namespace FMS.WebClient.Controllers
             var hasPermission = User.HasClaim("permissions", "_EditVehicle");
             if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
+            foreach (var vehicle in vehicleDTOs)
+            {
+                vehicle.ModifiedBy = userIdClaim.Value;
+            }
 
             var command = new UpdateVehiclesCommand(vehicleDTOs);
             var result = await _mediator.Send(command);
@@ -116,8 +148,31 @@ namespace FMS.WebClient.Controllers
             if (id == 0 || id < 0) return BadRequest("Invalid Vehicle Id");
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+            if (userIdClaim == null) return BadRequest("Invalid User ID");
+
             vehicleDTO.VehicleId = id;
+            vehicleDTO.ModifiedBy = userIdClaim.Value;
+
             var command = new UpdateSingleVehicleCommand(vehicleDTO);
+            var result = await _mediator.Send(command);
+
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> DeleteVehicle(int id)
+        {
+            var hasPermission = User.HasClaim("permissions", "_DeleteVehicle");
+            if (!hasPermission) return Forbid();
+            if (id <= 0) return BadRequest("Invalid Vehicle Id");
+
+            var command = new DeleteVehicleCommand(id);
             var result = await _mediator.Send(command);
 
             if (!result.Success) return BadRequest(result);
