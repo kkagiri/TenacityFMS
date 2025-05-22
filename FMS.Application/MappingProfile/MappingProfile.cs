@@ -19,6 +19,7 @@ using FMS.Application.ModelsDTOs.FMS.TankReconciliation;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
 using FMS.Application.ModelsDTOs.FMS.TankTransfer;
 using FMS.Application.ModelsDTOs.FMS.TankVolumeHistory;
+using FMS.Application.ModelsDTOs.FMS.UserActivities;
 using FMS.Application.ModelsDTOs.FMS.UserManagement;
 using FMS.Application.ModelsDTOs.FMS.Vehicle;
 using FMS.Application.ModelsDTOs.Vehicle;
@@ -35,6 +36,11 @@ namespace FMS.Application.MappingProfile {
 
             // User mappings
             CreateMap<User, UserDto> ().ReverseMap ();
+
+            // UserActivity mappings
+            CreateMap<UserActivity, UserActivityDTO> ()
+                .ForMember (dest => dest.UserName, opt => opt.MapFrom (src => src.User != null ? src.User.UserName : "Unknown"))
+                .ReverseMap ();
 
             // Delivery mappings
             CreateMap<Delivery, DeliveryDTO> ().ReverseMap ();

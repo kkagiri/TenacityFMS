@@ -16,6 +16,12 @@ import EditPTSDevice from "./pages/PTSDevice/EditPTSDevice";
 import ATGDashboard from "./pages/ATG/ATGDashboard";
 import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
 import TailwindExample from "./components/TailwindExample";
+import UserPage from "./pages/user/userPage";
+import UserDetailsPage from "./pages/user/userDetailsPage";
+import UserActivitiesPage from "./pages/user/userActivitiesPage";
+import UserSitesPage from "./pages/user/userSitesPage";
+import UserActivityDashboard from "./pages/user/userActivityDashboard";
+import UserEditPage from "./pages/user/userEditPage";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -53,6 +59,18 @@ const resolvedComponents = (pageName) => {
       return ATGDashboard;
     case "edit-pts-device":
       return EditPTSDevice;
+    case "users":
+      return UserPage;
+    case "user-details":
+      return UserDetailsPage;
+    case "user-activities":
+      return UserActivitiesPage;
+    case "user-sites":
+      return UserSitesPage;
+    case "activity-dashboard":
+      return UserActivityDashboard;
+    case "user-edit":
+      return UserEditPage;
 
     case "unauthorized":
       return unauthorized;

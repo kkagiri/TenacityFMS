@@ -41,7 +41,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserActivitiesCommands
                     Controller = request.Controller,
                     ActionName = request.ActionName,
                     Parameters = request.Parameters,
-                    Timestamp = request.Timestamp
+                    Timestamp = request.Timestamp,
+                    IpAddress = request.IpAddress
                 };
 
                 _context.UserActivities.Add(activity);

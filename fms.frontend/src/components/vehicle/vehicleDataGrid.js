@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchVehicleList,
   updateVehicle,
+  createVehicle,
 } from "../../redux/actions/vehicleActions";
 import { fetchVehicleManufacturers } from "../../redux/actions/vehicleManufacturerActions";
 import { fetchVehicleModels } from "../../redux/actions/vehicleModelActions";
@@ -23,6 +24,9 @@ import { Popup } from "devextreme-react/popup";
 import LoadIndicator from "devextreme-react/load-indicator";
 import Button from "devextreme-react/button";
 import "./VehicleDataGrid.scss"; // Import the SCSS file
+import { Workbook } from 'exceljs';
+import saveAs from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
 import DataGrid, {
   Paging,
   HeaderFilter,
@@ -176,7 +180,81 @@ const VehicleDataGrid = () => {
     }
   };
 
+  const onRowInserted = async (e) => {
+    e.cancel = true;
+    if (saving) return;
+
+    try {
+      setSaving(true);
+      const response = await dispatch(createVehicle(e.data));
+
+      if (response.success) {
+        if (gridRef.current && gridRef.current.instance) {
+          gridRef.current.instance.cancelEditData();
+        }
+        await fetchData();
+        notify(response.message, "success", 3000);
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      notify(error.message, "error", 5000);
+      if (gridRef.current && gridRef.current.instance) {
+        gridRef.current.instance.cancelEditData();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const canEdit = permissions.includes("_EditVehicle");
+  const canCreate = permissions.includes("_CreateVehicle");
+
+  const onExporting = useCallback((e) => {
+    try {
+      const workbook = new Workbook();
+      const worksheet = workbook.addWorksheet('Vehicles');
+
+      notify('Preparing export...', 'info', 2000);
+
+      exportDataGrid({
+        component: e.component,
+        worksheet,
+        autoFilterEnabled: true,
+        customizeCell: ({ gridCell, excelCell }) => {
+          if (gridCell.rowType === 'data') {
+            excelCell.font = { size: 12 };
+          }
+          if (gridCell.rowType === 'header') {
+            excelCell.font = { bold: true };
+          }
+        }
+      }).then(() => {
+        workbook.xlsx.writeBuffer()
+          .then((buffer) => {
+            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Vehicles.xlsx');
+            notify('Export complete', 'success', 2000);
+          })
+          .catch(err => {
+            console.error("Buffer creation error:", err);
+            notify('Export failed', 'error', 2000);
+          });
+      }).catch(err => {
+        console.error("exportDataGrid error:", err);
+        notify('Export failed', 'error', 2000);
+      });
+
+      e.cancel = true;
+    } catch (error) {
+      console.error("General export error:", error);
+      notify('Export failed', 'error', 2000);
+    }
+  }, []);
+
+  const addRow = () => {
+    gridRef.current.instance.addRow();
+  };
 
   if (loading || saving) {
     return (
@@ -245,6 +323,7 @@ const VehicleDataGrid = () => {
 
   return (
     <div>
+      <h2 className={'content-block'}>Vehicles</h2>
       <DataGrid
         ref={gridRef}
         dataSource={vehicles}
@@ -256,7 +335,9 @@ const VehicleDataGrid = () => {
         rowAlernationEnable={true}
         repaintChangesOnly={true}
         onRowUpdated={onRowUpdated}
+        onRowInserted={onRowInserted}
         onEditorPreparing={onEditorPreparing}
+        onExporting={onExporting}
       >
         <Export
           enabled={true}
@@ -276,11 +357,41 @@ const VehicleDataGrid = () => {
         <Selection mode="multiple" />
         <Sorting mode="multiple" />
         <Editing
-          mode="batch"
-          allowUpdating={true}
+          mode="row"
+          allowUpdating={canEdit}
+          allowAdding={canCreate}
+          allowDeleting={false}
           selectTextOnEditStart={true}
           startEditAction="dblClick"
         />
+
+        <Toolbar>
+          <TItems location="before" locateInMenu="auto">
+            <Button
+              icon="plus"
+              text="Add Vehicle"
+              type="default"
+              stylingMode="contained"
+              onClick={addRow}
+              visible={canCreate}
+            />
+          </TItems>
+          <TItems name="exportButton" locateInMenu={'auto'} />
+          <TItems name="columnChooserButton" />
+          <TItems
+            location='after'
+            showText='inMenu'
+            widget='dxButton'
+          >
+            <Button
+              icon='refresh'
+              text='Refresh'
+              stylingMode='text'
+              onClick={refresh}
+            />
+          </TItems>
+        </Toolbar>
+
         <Column
           dataField="vehicleId"
           caption="Vehicle ID"
@@ -295,7 +406,9 @@ const VehicleDataGrid = () => {
           caption="Hyoung No"
           allowEditing={true}
           minWidth={100}
-        />
+        >
+          <RequiredRule />
+        </Column>
         <Column dataField="passenger" caption="Passenger" minWidth={150} />
         <Column dataField="workingSiteId" caption="Working Site" minWidth={100}>
           <Lookup dataSource={site} valueExpr="id" displayExpr="name" />

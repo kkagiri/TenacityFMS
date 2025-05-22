@@ -39,7 +39,6 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
                 var updatedVehicles = new List<VehicleDTO>();
                 var errors = new List<string>();
 
-
                 foreach (var vehicleDTO in request.VehicleDTOs)
                 {
                     var existingVehicle = await _context.Vehicles.FindAsync(vehicleDTO.VehicleId);
@@ -55,6 +54,13 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
                         errors.AddRange(validationResult.Errors);
                         continue;
                     }
+
+                    // Set the update date
+                    vehicleDTO.DateModified = DateTime.UtcNow;
+
+                    // Preserve the creation info
+                    vehicleDTO.DateCreated = existingVehicle.DateCreated;
+                    vehicleDTO.CreatedBy = existingVehicle.CreatedBy;
 
                     _mapper.Map(vehicleDTO, existingVehicle);
                     _context.Vehicles.Update(existingVehicle);

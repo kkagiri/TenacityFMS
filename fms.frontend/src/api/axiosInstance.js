@@ -27,8 +27,34 @@ const axiosInstance = axios.create({
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
+    "Accept": "application/json",
   },
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => {
+    console.log(`Response from ${response.config.url}:`, {
+      status: response.status,
+      statusText: response.statusText
+    });
+    return response;
+  },
+  (error) => {
+    if (error.message === "Network Error") {
+      console.error("Network error - possibly CORS related:", error);
+    }
+
+    if (error.response) {
+      console.error(`Error response from ${error.config?.url}:`, {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 axiosInstance.interceptors.request.use(
   async (config) => {

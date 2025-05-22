@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.Xml;
 using System.Text;
@@ -12,11 +14,15 @@ using FMS.Application.Command.PTSCommand.Common;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Connection;
 using FMS.Application.Communication.HttpPolling;
+using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.SignalR;
+using FMS.Application.Communication.Tracker;
+using FMS.Application.Handlers;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.MappingProfile;
+using FMS.Application.ModelsDTOs.FMS.UserManagement;
 using FMS.Application.PTSServices.Configuration;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
@@ -25,14 +31,15 @@ using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Domain.Entities;
-//using FMS.Infrastructure.DependancyInjection;
-//using FMS.Infrastructure.Webservice.GPSService;
+using FMS.Infrastructure.DependancyInjection;
+using FMS.Infrastructure.Webservice.GPSService;
 using FMS.Persistence.DataAccess;
 using FMS.Persistence.DataAccess.Nafta;
 using FMS.PTS;
 using FMS.PTS.WindowsService.Services.Pump;
 using FMS.WebClient.Controllers;
-//using FMS.WebClient.MappingProfile;
+using FMS.WebClient.MappingProfile;
+using FMS.WebClient.Services;
 using FMS.WebClient.Signal;
 using FMS.WebClient.Util;
 using MediatR;
@@ -41,6 +48,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -48,16 +57,6 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
-using System.Collections.Concurrent;
-using System.Net;
-using FMS.Application.Communication.Redis;
-using FMS.Application.Communication.SignalR;
-using FMS.Application.Communication.Tracker;
-using FMS.Application.Handlers;
-using FMS.Application.ModelsDTOs.FMS.UserManagement;
-using FMS.WebClient.Services;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
 
 namespace FMS.WebClient;
 
@@ -128,6 +127,7 @@ public class Program {
             Log.CloseAndFlush ();
         }
     }
+
     private static bool IsPortInUse (int port) {
         try {
             using var socket = new System.Net.Sockets.Socket (
@@ -151,6 +151,7 @@ public class Program {
         }
         throw new InvalidOperationException ($"No available ports found in range {startPort}-{endPort}");
     }
+
     static void ConfigureServices (IServiceCollection services, IConfiguration configuration) {
         try {
             services.AddControllers ()
@@ -159,97 +160,104 @@ public class Program {
                     options.JsonSerializerOptions.MaxDepth = 0;
                 });
 
-            // Replace distributed memory cache with Redis cache
-            // services.AddDistributedMemoryCache(); //Cursor
-            services.AddStackExchangeRedisCache (options => //Cursor
-                {
-                    options.Configuration = configuration.GetConnectionString ("RedisConnection"); //Cursor
-                    options.InstanceName = "FMS:"; //Cursor
-                });
-
-            services.AddSingleton<DeviceConnectionTracker> ();
-
-            // Configure SignalR with Redis Backplane
-            services.AddSignalR ()
-                .AddStackExchangeRedis (configuration.GetConnectionString ("RedisConnection"), options => {
-                    // Using a channel prefix is recommended in multi-server environments
-                    // to prevent conflicts if Redis is used for other purposes.
-                    options.Configuration.ChannelPrefix = RedisChannel.Literal ("FMS_SignalR");
-                });
-
-            // services.AddDevExpressControls();
-            services.AddHttpContextAccessor ();
-
+            RegisterSignalR (services);
             RegisterMediatR (services);
             RegisterAutoMapper (services);
-            RegisterCustomServices (services);
+            RegisterHttpContextAccessor (services);
+            RegisterCors (services);
+            RegisterHealthChecks (services);
             RegisterRedisCommandService (services);
+            RegisterCustomServices (services);
             ConfigureAuthentication (services, configuration);
             ConfigureAuthorization (services);
-            ConfigureCors (services);
-
-            // Add Redis health checks
-            services.AddHealthChecks ()
-                .AddRedis (
-                    configuration.GetConnectionString ("RedisConnection"),
-                    name: "redis",
-                    failureStatus : Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded);
-
-            // Add connection monitoring service
-            services.AddSingleton<ConnectionMonitor> ();
-            services.AddHostedService<ConnectionMonitorService> ();
-
-            // Add status broadcast service to periodically push device status from Redis to connected clients
-            services.AddHostedService<StatusBroadcastService> ();
+            //InfrastructureServicesConfiguration.Configure (services, configuration);
         } catch (Exception ex) {
-            using (var serviceProvider = services.BuildServiceProvider ()) {
-                var logger = serviceProvider.GetRequiredService<ILogger<Program>> ();
-                logger.LogError (ex, "Error configuring services: {Message}", ex.Message);
-            }
+            Console.WriteLine (ex);
             throw;
         }
     }
 
-    static void RegisterRedisCommandService (IServiceCollection services) {
-        services.AddSingleton<IConnectionMultiplexer> (sp => {
-            var configuration = sp.GetRequiredService<IConfiguration> ();
-            var redisConnectionString = configuration["ConnectionStrings:RedisConnection"];
-            if (string.IsNullOrEmpty (redisConnectionString))
-                throw new InvalidOperationException ("Redis connection string is missing.");
-            return ConnectionMultiplexer.Connect (redisConnectionString);
-        });
-        services.AddSingleton<StackExchange.Redis.IDatabase> (sp => {
-            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer> ();
-            return multiplexer.GetDatabase ();
-        });
-        services.AddSingleton<IRedisPublisher, RedisPublisher> ();
-        services.AddSingleton<IRedisSubscriber, RedisSubscriber> ();
-        services.AddSingleton<RedisCommandService> ();
+    static void RegisterSignalR (IServiceCollection services) {
+        try {
+            var redisConnectionString = Environment.GetEnvironmentVariable ("ConnectionStrings__RedisConnection", EnvironmentVariableTarget.Machine);
+            if (!string.IsNullOrEmpty (redisConnectionString)) {
+                Console.WriteLine ($"Redis connection string: {redisConnectionString}");
+                services.AddSignalR ()
+                    .AddStackExchangeRedis (redisConnectionString, options => {
+                        options.Configuration.ChannelPrefix = "FMS";
+                    });
+            } else {
+                Console.WriteLine ("Redis connection string is missing, using in-memory for SignalR");
+                services.AddSignalR ();
+            }
+        } catch (Exception ex) {
+            Console.WriteLine (ex);
+            throw;
+        }
+    }
 
-        // Register DeviceStatusHelper for accessing device status from Redis
-        services.AddSingleton<DeviceStatusHelper> (sp => {
-            var logger = sp.GetRequiredService<ILogger<DeviceStatusHelper>> ();
-            var redisConnection = sp.GetRequiredService<IConnectionMultiplexer> ();
-            return new DeviceStatusHelper (logger, redisConnection);
-        });
+    static void RegisterHealthChecks (IServiceCollection services) {
+        try {
+            var redisConnectionString = Environment.GetEnvironmentVariable ("ConnectionStrings__RedisConnection", EnvironmentVariableTarget.Machine);
+            services.AddHealthChecks ()
+                .AddCheck ("self", () => HealthCheckResult.Healthy ())
+                .AddRedis (redisConnectionString, tags : new [] { "redis" });
+        } catch (Exception ex) {
+            Console.WriteLine (ex);
+            throw;
+        }
     }
 
     static void RegisterMediatR (IServiceCollection services) {
         services.AddMediatR (cfg => {
-            cfg.RegisterServicesFromAssemblyContaining<Program> ();
-            cfg.RegisterServicesFromAssembly (typeof (ConsumptionController).Assembly);
-            cfg.RegisterServicesFromAssemblies (typeof (VehicleController).Assembly);
-            //cfg.RegisterServicesFromAssembly (typeof (GetConsumptionReportQueryHandler).Assembly);
+            cfg.RegisterServicesFromAssembly (typeof (GetVehicleByIdQuery).Assembly);
+            cfg.RegisterServicesFromAssembly (typeof (GetConsumptionReportByDateRangeQuery).Assembly);
+            cfg.RegisterServicesFromAssembly (typeof (CreateRoleCommand).Assembly);
             cfg.RegisterServicesFromAssembly (typeof (CreateTagCommand).Assembly);
         });
     }
 
-    static void RegisterAutoMapper (IServiceCollection services) {
+    static void RegisterHttpContextAccessor (IServiceCollection services) {
+        services.AddHttpContextAccessor ();
+    }
 
+    static void RegisterRedisCommandService (IServiceCollection services) {
+        try {
+            var redisConnectionString = Environment.GetEnvironmentVariable (
+                "ConnectionStrings__RedisConnection",
+                EnvironmentVariableTarget.Machine
+            );
+
+            if (!string.IsNullOrEmpty (redisConnectionString)) {
+                services.AddSingleton<IConnectionMultiplexer> (sp =>
+                    ConnectionMultiplexer.Connect (redisConnectionString)
+                );
+                services.AddSingleton<StackExchange.Redis.IDatabase> (sp =>
+                    sp.GetRequiredService<IConnectionMultiplexer> ().GetDatabase ()
+                );
+                services.AddSingleton<IRedisPublisher, RedisPublisher> ();
+                services.AddSingleton<IRedisSubscriber, RedisSubscriber> ();
+                services.AddSingleton<RedisCommandService> ();
+            } else {
+                Log.Warning ("Redis connection string is missing, skipping Redis services registration");
+                // Register null implementations or fallbacks if needed
+            }
+        } catch (Exception ex) {
+            Log.Error (ex, "Error configuring Redis services: {Message}", ex.Message);
+            // Register null implementations or fallbacks if needed
+        }
+
+        // Register DeviceStatusHelper for accessing device status from Redis
+        services.AddSingleton<DeviceStatusHelper> ();
+    }
+
+    static void RegisterAutoMapper (IServiceCollection services) {
         services.AddAutoMapper (typeof (MainMappingProfile).Assembly);
     }
 
     static void RegisterCustomServices (IServiceCollection services) {
+        services.AddTransient<RoleManager<Role>> ();
+
         services.AddMemoryCache ();
         services.AddSingleton<PtsStatusService> ();
         services.AddScoped<UserManager<User>> ();
@@ -259,39 +267,72 @@ public class Program {
         services.AddScoped<IPumpService, PumpService> ();
         services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker> ();
         services.AddScoped<IAuthorizationHandler, PermissionAuthorization> ();
-        //services.AddScoped<IGPSGateDirectoryWebservice, GPSGateDirectoryWebservice> (); //Todo Implement GPSGateDirectoryWebservice
+        services.AddScoped<IGPSGateDirectoryWebservice, GPSGateDirectoryWebservice> ();
         services.AddScoped<IPendingCommandRepository, PendingCommandsRepository> ();
         services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker> ();
         services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService> ();
         services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
         services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
+
         // services.AddScoped<IWebDocumentViewerMvcControllerService, WebDocumentViewerMvcControllerService>();
         // services.AddScoped<IReportDesignerMvcControllerService, ReportDesignerMvcControllerService>();
-        services.AddScoped<IPTSConnectionManager, PTSConnectionManager> ();
-        services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher> ();
-        services.AddScoped<IConfigurationService, ConfigurationService> ();
+        services.AddScoped<CacheTracker> ();
+
         services.AddScoped<ICommandExecutor, CommandExecutor> ();
         // services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
         services.AddHttpClient<DeviceHttpCommandPusher> ().SetHandlerLifetime (TimeSpan.FromMinutes (5));
         services.AddScoped<IConfigurationService, ConfigurationService> ();
 
-        services.Scan (scan => scan
-            .FromAssemblyOf<UploadStatusHandler> ()
+        services.Scan (scan =>
+            scan.FromAssemblyOf<UploadStatusHandler> ()
             .AddClasses (classes => classes.AssignableTo<IPacketHandler> ())
             .AsSelf ()
             .AsImplementedInterfaces ()
-            .WithScopedLifetime ());
+            .WithScopedLifetime ()
+        );
     }
 
     static void ConfigureAuthentication (IServiceCollection services, IConfiguration configuration) {
-        var jwtSettingsSection = configuration.GetSection ("JwtSettings");
-        if (!jwtSettingsSection.Exists () || !jwtSettingsSection.GetChildren ().Any ()) {
-            throw new InvalidOperationException ("JwtSettings section is missing or empty in the configuration.");
-        }
-        services.Configure<JwtSettings> (jwtSettingsSection);
-        var jwtSettings = jwtSettingsSection.Get<JwtSettings> ();
+        var jwtSecretKey =
+            Environment.GetEnvironmentVariable (
+                "JwtSettings__SecretKey",
+                EnvironmentVariableTarget.Machine
+            ) ??
+            throw new InvalidOperationException (
+                "JwtSettings__SecretKey is missing from environment variables."
+            );
+        var jwtIssuer =
+            Environment.GetEnvironmentVariable (
+                "JwtSettings__Issuer",
+                EnvironmentVariableTarget.Machine
+            ) ??
+            throw new InvalidOperationException (
+                "JwtSettings__Issuer is missing from environment variables."
+            );
+        var jwtAudience =
+            Environment.GetEnvironmentVariable (
+                "JwtSettings__Audience",
+                EnvironmentVariableTarget.Machine
+            ) ??
+            throw new InvalidOperationException (
+                "JwtSettings__Audience is missing from environment variables."
+            );
+        var jwtExpireDays =
+            Environment.GetEnvironmentVariable (
+                "JwtSettings__ExpireDays",
+                EnvironmentVariableTarget.Machine
+            ) ?? "7"; // Default to 7 days if not specified
 
-        services.AddAuthentication (options => {
+        // Configure JwtSettings
+        services.Configure<JwtSettings> (options => {
+            options.SecretKey = jwtSecretKey;
+            options.Issuer = jwtIssuer;
+            options.Audience = jwtAudience;
+            options.ExpireDays = int.Parse (jwtExpireDays);
+        });
+
+        services
+            .AddAuthentication (options => {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
@@ -302,9 +343,11 @@ public class Program {
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero,
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey (Encoding.UTF8.GetBytes (jwtSettings.SecretKey)),
-                ValidIssuer = jwtSettings.Issuer,
-                ValidAudience = jwtSettings.Audience
+                IssuerSigningKey = new SymmetricSecurityKey (
+                Encoding.UTF8.GetBytes (jwtSecretKey)
+                ),
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
                 };
 
                 options.Events = new JwtBearerEvents {
@@ -318,35 +361,22 @@ public class Program {
                             context.Response.StatusCode = 401;
                             await context.Response.WriteAsync ("Unauthorized");
                             context.HandleResponse ();
-                        }
+                        },
                 };
             });
-        services.AddTransient<IJwtTokenGenerator, JwtTokenGenerator> ();
-        services.AddTransient<RoleManager<Role>> ();
+        services.AddTransient<IJwtGenerator, JwtGenerator> ();
     }
 
     static void ConfigureAuthorization (IServiceCollection services) {
         try {
-            services.AddAuthorization (options => {
-                using (var scope = services.BuildServiceProvider ().CreateScope ()) {
-                    var serviceProvider = scope.ServiceProvider;
-                    var mediator = serviceProvider.GetRequiredService<IMediator> ();
-                    List<PermissionDTO> permissions;
-                    try {
-                        permissions = mediator.Send (new GetPermissionQuery ()).Result;
-                    } catch (Exception ex) {
-                        permissions = new List<PermissionDTO> ();
-                        var logger = serviceProvider.GetRequiredService<ILogger<Program>> ();
-                        logger.LogError (ex, "Error getting permissions: {Message}", ex.Message);
-                    }
-
-                    foreach (var permission in permissions) {
-                        options.AddPolicy (permission.Name, policy => {
-                            policy.Requirements.Add (new PermissionRequirement (permission.Name));
-                        });
-                    }
-                }
-            });
+            // services.AddAuthorization(options =>
+            // {
+            //     // Configure policy-based authorization with requirements
+            //     options.AddPolicy(
+            //         "RequireAdminRole",
+            //         policy => policy.RequireRole("Admin")
+            //     );
+            // });
         } catch (Exception ex) {
             using (var serviceProvider = services.BuildServiceProvider ()) {
                 var logger = serviceProvider.GetRequiredService<ILogger<Program>> ();
@@ -359,33 +389,42 @@ public class Program {
     static void ConfigureCors (IServiceCollection services) {
         try {
             services.AddCors (options => {
-                options.AddPolicy ("DevelopmentCorsPolicy", builder => {
-                    builder
-                        .WithOrigins (
-                            "http://localhost:3000",
-                            "http://localhost:7009",
-                            "https://localhost:7009"
-                        )
-                        .AllowAnyHeader ()
-                        .AllowAnyMethod ()
-                        .AllowCredentials ()
-                        .WithExposedHeaders ("Content-Type", "Authorization")
-                        .SetPreflightMaxAge (TimeSpan.FromMinutes (10));
-                });
+                options.AddPolicy (
+                    "DevelopmentCorsPolicy",
+                    builder => {
+                        builder
+                            .WithOrigins (
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000"
+                            ) // Added both localhost and 127.0.0.1
+                            .AllowAnyHeader ()
+                            .AllowAnyMethod ()
+                            .AllowCredentials (); // Now we can use credentials
+                    }
+                );
 
-                options.AddPolicy ("ProductionCorsPolicy", builder => {
-                    builder.WithOrigins (
-                            "http://10.0.10.153", "https://10.0.10.153",
-                            "http://197.254.33.227", "https://197.254.33.227",
-                            "http://localhost", "https://localhost",
-                            "http://localhost:3000", "http://10.0.10.153:3000", "http://10.0.11.90:3000"
-                        )
-                        .AllowAnyHeader ()
-                        .AllowAnyMethod ()
-                        .AllowCredentials ()
-                        .WithExposedHeaders ("Content-Type", "Authorization")
-                        .SetPreflightMaxAge (TimeSpan.FromMinutes (10));
-                });
+                options.AddPolicy (
+                    "ProductionCorsPolicy",
+                    builder => {
+                        builder
+                            .WithOrigins (
+                                "http://10.0.10.153",
+                                "https://10.0.10.153",
+                                "http://10.0.10.153:3000",
+                                "https://10.0.10.153:3000",
+                                "http://10.0.10.113",
+                                "https://10.0.10.113",
+                                "http://10.0.10.113:3000",
+                                "https://10.0.10.113:3000",
+                                "http://10.0.11.90",
+                                "https://10.0.11.90",
+                                "http://10.0.11.90:3000"
+                            )
+                            .AllowAnyHeader ()
+                            .AllowAnyMethod ()
+                            .AllowCredentials ();
+                    }
+                );
             });
         } catch (Exception ex) {
             using (var serviceProvider = services.BuildServiceProvider ()) {
@@ -398,52 +437,36 @@ public class Program {
 
     static void ConfigureDatabase (IServiceCollection services, IConfiguration configuration, IWebHostEnvironment env) {
         try {
-            var connectionString = configuration.GetConnectionString ("FMSConnection");
-            var naftaConnectionString = configuration.GetConnectionString ("ATGConnection");
-
-            services.AddIdentity<User, Role> ().AddEntityFrameworkStores<GpsdataContext> ()
+            var fmsConnectionString =
+                Environment.GetEnvironmentVariable (
+                    "ConnectionStrings__FMSConnection",
+                    EnvironmentVariableTarget.Machine
+                ) ??
+                throw new InvalidOperationException (
+                    "FMS Connection string is missing from environment variables."
+                );
+            var naftaConnectionString = Environment.GetEnvironmentVariable (
+                "ConnectionStrings__ATGConnection",
+                EnvironmentVariableTarget.Machine
+            ); //Removed the default value as it is not needed
+            services
+                .AddIdentity<User, Role> ()
+                .AddEntityFrameworkStores<GpsdataContext> ()
                 .AddDefaultTokenProviders ();
 
-            if (string.IsNullOrEmpty (connectionString)) {
-                throw new InvalidOperationException ("FMS Connection string is empty.");
-            }
-
-            services.AddDbContext<GpsdataContext> (options => {
-                    options.UseMySql (
-                            connectionString,
+            services.AddDbContext<GpsdataContext> (
+                options => {
+                    options
+                        .UseMySql (
+                            fmsConnectionString,
                             new MySqlServerVersion (new Version (5, 5, 61))
                         )
                         .EnableDetailedErrors ()
-                        .EnableSensitiveDataLogging (env.IsDevelopment ());
-
-                    var consoleLogLevel = env.IsDevelopment () ? LogLevel.Warning : LogLevel.Error;
-                    options.LogTo (Console.WriteLine, consoleLogLevel);
+                        .EnableSensitiveDataLogging ()
+                        .LogTo (Console.WriteLine, LogLevel.Trace); // Changed LogLevel to Trace for more details.
                 },
-                ServiceLifetime.Scoped);
-
-            // if (!string.IsNullOrEmpty (naftaConnectionString)) {
-            //     services.AddDbContext<NaftaContext> (options =>
-            //         options.UseMySQL (naftaConnectionString));
-            // } else {
-            //     throw new InvalidOperationException ("Nafta Connection string is empty.");
-            // }
-
-            // services.ConfigureReportingServices(config =>
-            // {
-            //     if (env.IsDevelopment())
-            //     {
-            //         config.UseDevelopmentMode();
-            //     }
-            //     config.ConfigureReportDesigner(designerConfig =>
-            //     {
-            //      //   designerConfig.RegisterDataSourceWizardConfigFileConnectionStringsProvider();
-            //     });
-            //     config.ConfigureWebDocumentViewer(viewerConfig =>
-            //     {
-            //        // viewerConfig.UseCachedReportSourceBuilder();
-            //       //  viewerConfig.UseDbStorage(connectionString);
-            //     });
-            // });
+                ServiceLifetime.Scoped
+            );
         } catch (Exception ex) {
             using (var serviceProvider = services.BuildServiceProvider ()) {
                 var logger = serviceProvider.GetRequiredService<ILogger<Program>> ();
@@ -454,72 +477,62 @@ public class Program {
     }
 
     static void ConfigureApp (WebApplication app, IWebHostEnvironment env) {
-        app.UseRouting ();
-
+        // Register development exception page first
         if (env.IsDevelopment ()) {
             app.UseDeveloperExceptionPage ();
+        }
+
+        // First middleware in the pipeline
+        app.Use (
+            async (context, next) => {
+                Console.WriteLine ($"Request Path: {context.Request.Path}");
+                Console.WriteLine ($"Request Method: {context.Request.Method}");
+                await next ();
+                Console.WriteLine ($"Response Status Code: {context.Response.StatusCode}");
+            }
+        );
+
+        // Application middleware order is critical:
+        // 1. Use routing first
+        app.UseRouting ();
+
+        // 2. Use CORS after routing but before auth
+        if (env.IsDevelopment ()) {
             app.UseCors ("DevelopmentCorsPolicy");
         } else {
             app.UseCors ("ProductionCorsPolicy");
         }
 
-        // Add connection tracking middleware
+        // 3. Add CORS error handling middleware
         app.Use (async (context, next) => {
-            var connectionId = context.Connection.Id;
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>> ();
+            // Process the request
+            await next ();
 
-            logger.LogInformation ("New connection {ConnectionId} from {IpAddress}",
-                connectionId,
-                context.Connection.RemoteIpAddress);
-
-            try {
-                await next ();
-            } finally {
-                logger.LogInformation ("Connection {ConnectionId} completed", connectionId);
+            // Add CORS headers for error responses
+            if (context.Response.StatusCode >= 400) {
+                if (!context.Response.Headers.ContainsKey ("Access-Control-Allow-Origin")) {
+                    context.Response.Headers.Append ("Access-Control-Allow-Origin",
+                        context.Request.Headers["Origin"].ToString ());
+                    context.Response.Headers.Append ("Access-Control-Allow-Credentials", "true");
+                    context.Response.Headers.Append ("Access-Control-Allow-Headers", "*");
+                    context.Response.Headers.Append ("Access-Control-Allow-Methods", "*");
+                }
             }
         });
 
-        app.UseHttpsRedirection ();
-        app.UseMiddleware<UserActivityMiddleware> ();
-
+        // 4. Authentication and Authorization come after CORS
         app.UseAuthentication ();
         app.UseAuthorization ();
 
+        // 5. Add user activity logging *after* authentication so it has access to user info
+        app.UseUserActivity (); // Use the extension method instead of UseMiddleware
+
+        //app.UseDevExpressControls();
+
+        // 6. Finally set up endpoints
         app.UseEndpoints (endpoints => {
             endpoints.MapControllers ();
-
-            // Configure SignalR with more detailed options
-            endpoints.MapHub<FrontEndHub> ("/signalHub", options => {
-                    options.ApplicationMaxBufferSize = 64 * 1024; // 64KB
-                    options.TransportMaxBufferSize = 64 * 1024;
-                    options.LongPolling.PollTimeout = TimeSpan.FromSeconds (30);
-                    options.WebSockets.CloseTimeout = TimeSpan.FromSeconds (10);
-                    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
-                        Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
-                })
-                .RequireCors (env.IsDevelopment () ? "DevelopmentCorsPolicy" : "ProductionCorsPolicy");
+            endpoints.MapHub<FrontEndHub> ("/signalHub");
         });
-    }
-}
-
-// Add new connection monitoring classes
-
-public class ConnectionMonitorService : BackgroundService {
-    private readonly ConnectionMonitor _monitor;
-    private readonly ILogger<ConnectionMonitorService> _logger;
-
-    public ConnectionMonitorService (
-        ConnectionMonitor monitor,
-        ILogger<ConnectionMonitorService> logger) {
-        _monitor = monitor;
-        _logger = logger;
-    }
-
-    protected override async Task ExecuteAsync (CancellationToken stoppingToken) {
-        while (!stoppingToken.IsCancellationRequested) {
-            // Log connection statistics periodically
-            _logger.LogInformation ("Connection monitor heartbeat");
-            await Task.Delay (TimeSpan.FromMinutes (1), stoppingToken);
-        }
     }
 }

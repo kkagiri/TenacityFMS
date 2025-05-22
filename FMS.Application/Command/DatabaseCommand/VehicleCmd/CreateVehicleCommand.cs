@@ -1,43 +1,41 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.Vehicle;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.VehicleCmd;
 
-public record UpdateSingleVehicleCommand(VehicleDTO VehicleDTO) : IRequest<FMSResponseMessage<VehicleDTO>>;
+public record CreateVehicleCommand(VehicleDTO VehicleDTO) : IRequest<FMSResponseMessage<VehicleDTO>>;
 
-
-public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVehicleCommand, FMSResponseMessage<VehicleDTO>>
+public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand, FMSResponseMessage<VehicleDTO>>
 {
     private readonly GpsdataContext _context;
-    private readonly ILogger<UpdateSingleVehicleCommandHandler> _logger;
+    private readonly ILogger<CreateVehicleCommandHandler> _logger;
     private readonly IMapper _mapper;
 
-    public UpdateSingleVehicleCommandHandler(GpsdataContext context, ILogger<UpdateSingleVehicleCommandHandler> logger, IMapper mapper)
+    public CreateVehicleCommandHandler(GpsdataContext context, ILogger<CreateVehicleCommandHandler> logger, IMapper mapper)
     {
         _context = context;
         _logger = logger;
         _mapper = mapper;
     }
 
-    public async Task<FMSResponseMessage<VehicleDTO>> Handle(UpdateSingleVehicleCommand request, CancellationToken cancellationToken)
+    public async Task<FMSResponseMessage<VehicleDTO>> Handle(CreateVehicleCommand request, CancellationToken cancellationToken)
     {
-
         try
         {
-            var existingVehicle = await _context.Vehicles.FindAsync(request.VehicleDTO.VehicleId);
-            if (existingVehicle == null)
+            // Check if hyoungNo already exists
+            if (_context.Vehicles.Any(v => v.HyoungNo == request.VehicleDTO.HyoungNo))
             {
-                return new FMSResponseMessage<VehicleDTO>(false, $"Vehicle with id {request.VehicleDTO.VehicleId} not found", null);
+                return new FMSResponseMessage<VehicleDTO>(false, $"Vehicle with Hyoung No {request.VehicleDTO.HyoungNo} already exists", null);
             }
 
             var validationResult = await ValidateVehicleDTO(request.VehicleDTO);
@@ -46,30 +44,43 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
                 return new FMSResponseMessage<VehicleDTO>(false, string.Join(", ", validationResult.Errors), null);
             }
 
-            // Set the update date
+            // Set creation date and default values
+            request.VehicleDTO.DateCreated = DateTime.UtcNow;
             request.VehicleDTO.DateModified = DateTime.UtcNow;
 
-            // Preserve the creation info
-            request.VehicleDTO.DateCreated = existingVehicle.DateCreated;
-            request.VehicleDTO.CreatedBy = existingVehicle.CreatedBy;
+            // Default to active
+            if (!request.VehicleDTO.IsActive.HasValue)
+            {
+                request.VehicleDTO.IsActive = true;
+            }
 
-            _mapper.Map(request.VehicleDTO, existingVehicle);
-            _context.Vehicles.Update(existingVehicle);
+            var vehicle = _mapper.Map<Vehicle>(request.VehicleDTO);
 
+            _context.Vehicles.Add(vehicle);
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new FMSResponseMessage<VehicleDTO>(true, "Vehicle updated successfully", request.VehicleDTO);
+            // Update the DTO with the new ID
+            request.VehicleDTO.VehicleId = vehicle.VehicleId;
+
+            return new FMSResponseMessage<VehicleDTO>(true, "Vehicle created successfully", request.VehicleDTO);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating vehicle");
-            return new FMSResponseMessage<VehicleDTO>(false, "Error updating vehicle", null);
+            _logger.LogError(ex, "Error creating vehicle");
+            return new FMSResponseMessage<VehicleDTO>(false, "Error creating vehicle: " + ex.Message, null);
         }
     }
 
     private async Task<(bool IsValid, string[] Errors)> ValidateVehicleDTO(VehicleDTO vehicleDTO)
     {
         var errors = new List<string>();
+
+        // HyoungNo is required
+        if (string.IsNullOrWhiteSpace(vehicleDTO.HyoungNo))
+        {
+            errors.Add("Hyoung No is required");
+        }
+
         if (vehicleDTO.VehicleTypeId.HasValue)
         {
             var vehicleType = await _context.Vehicletypes.FindAsync(vehicleDTO.VehicleTypeId);
@@ -111,8 +122,7 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
             var expectedAvg = await _context.Expectedaverages.FindAsync(vehicleDTO.DefaultExptdAvgid);
             if (expectedAvg == null) errors.Add($"Expected Average with id {vehicleDTO.DefaultExptdAvgid} not found");
         }
+
         return (errors.Count == 0, errors.ToArray());
-
     }
-
 }

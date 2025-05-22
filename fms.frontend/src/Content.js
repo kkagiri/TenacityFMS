@@ -42,6 +42,7 @@ export default function Content() {
       <Routes>
         {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
+
         {/* Fueling routes with proper error handling */}
         <Route
           path="/fueling/:ptsId"
@@ -51,6 +52,14 @@ export default function Content() {
             </ErrorBoundary>
           }
         />
+
+        {/* User routes */}
+        <Route path="/users/:id" element={React.createElement(resolvedComponents("user-details"))} />
+        <Route path="/users/:id/edit" element={React.createElement(resolvedComponents("user-edit"))} />
+        <Route path="/users/:id/activities" element={React.createElement(resolvedComponents("user-activities"))} />
+        <Route path="/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
+        <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
+
         {/* Keep the old route for backward compatibility */}
         <Route
           path="/atg/:ptsId"
@@ -60,6 +69,7 @@ export default function Content() {
             />
           }
         />
+
         <Route
           path="/atg"
           element={React.createElement(resolvedComponents("atg"))}

@@ -12,6 +12,11 @@ import 'devextreme-react/text-area';
 import 'devextreme-react/select-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import NumberBox from 'devextreme-react/number-box';
+import { Workbook } from 'exceljs';
+import saveAs from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import { jsPDF } from 'jspdf';
+import { exportDataGrid as exportDataGridToPdf } from 'devextreme/pdf_exporter';
 
 import {fetchVehicleList} from '../../redux/actions/vehicleActions';
 import {fetchEmployees} from '../../redux/actions/employeeActions';
@@ -41,7 +46,7 @@ export default function Fuelrefil() {
    const exportFormats = ['pdf','xlsx'];
 
     const [formVisible, setFormVisible] = useState(false);
-    const [loading, setLoading] = useState(false); 
+    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [fuelLevel, setFuelLevel] = useState(null);
     const gridRef = useRef(null);
@@ -68,7 +73,7 @@ export default function Fuelrefil() {
         console.log("data",data)
         const previousMeterReadingProvided = data.previousMeterReading !== null && data.previousMeterReading !== undefined && data.previousMeterReading !== ''; // chatgptcomment
         const currentMeterReadingProvided = data.currentMeterReading !== null && data.currentMeterReading !== undefined && data.currentMeterReading !== ''; // chatgptcomment
-    
+
         // Validate meter readings if both are provided
         if (previousMeterReadingProvided && currentMeterReadingProvided) {
             if (data.previousMeterReading >= data.currentMeterReading) {
@@ -78,7 +83,7 @@ export default function Fuelrefil() {
                 return { isValid: false, message: "Difference between readings cannot be more than 5000. Check " };
             }
         }
-    
+
         // Validate that comment is provided if both meter readings are empty
         if (!previousMeterReadingProvided && !currentMeterReadingProvided && !data.comment) {
             return { isValid: false, message: "Comment cannot be empty if meter readings are empty." };
@@ -87,8 +92,8 @@ export default function Fuelrefil() {
         if (!data.siteId) {
             return { isValid: false, message: "Please select a site." };
         }
-    
-       
+
+
         if (new Date(data.date) > new Date()) {
             return { isValid: false, message: "Date cannot be in the future." };
         }
@@ -96,7 +101,7 @@ export default function Fuelrefil() {
     };
     const fetchData = useCallback(async () => {
         try {
-            
+
             await Promise.all([
                 dispatch(fetchFuelRefills(take)),
                 dispatch(fetchVehicleList()),
@@ -114,15 +119,15 @@ export default function Fuelrefil() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
-   
 
-   
+
+
     const onSaving = async (e) => {
         if (e.changes.length > 0) {
             const change = e.changes[0];
             setSaving(true);
             setLoading(true);
-    
+
             try {
                 if (change.type === 'remove') {
                     // Handle delete operation
@@ -132,13 +137,13 @@ export default function Fuelrefil() {
                     // Handle insert and update operations
                     const updatedData = { ...formData, ...change.data };
                     const validation = validateRow(updatedData);
-    
+
                     if (!validation.isValid) {
                         e.cancel = true;
                         notify(validation.message, 'error', 3000);
                         return;
                     }
-    
+
                     const formattedData = {
                         ...updatedData,
                         date: updatedData.date,
@@ -147,7 +152,7 @@ export default function Fuelrefil() {
                         siteId: updatedData.siteId,
                         tankId: updatedData.tankId
                     };
-    
+
                     if (change.type === 'insert') {
 
                     const response =    await dispatch(createFuelRefill(formattedData));
@@ -173,10 +178,10 @@ export default function Fuelrefil() {
                 }
 
                 e.component.refresh(true);
-    
+
             } catch (error) {
                 e.cancel = true;
-                notify('An unexpected error occurred while processing the fuel refill operation.', 'error', 3000);               
+                notify('An unexpected error occurred while processing the fuel refill operation.', 'error', 3000);
                 if (change.type === 'insert' || change.type === 'update') {
                     e.component.editRow(e.key);
                 }
@@ -238,13 +243,13 @@ export default function Fuelrefil() {
             ...prevData,
             siteId: selectedSiteId,
             tankId: null // Reset tank when site changes
-        }));  
+        }));
         const tanksForSite = tanks.filter(tank => tank.siteId === selectedSiteId);
         setFilteredTanks(tanksForSite);
         setNoTanksAvailable(tanksForSite.length === 0);
     };
-    
-    
+
+
 const handleTankChange = (e) => {
     const selectedTankId = e.value;
     setFormData(prevData => ({
@@ -252,7 +257,7 @@ const handleTankChange = (e) => {
         tankId: selectedTankId
     }));
 };
-    
+
     const onEditorPreparing = (e) => {
         if (e.parentType === 'dataRow' && e.dataField === 'tankId') {
           const isSiteNotSet = e.row.data.siteId === undefined;
@@ -267,19 +272,19 @@ const handleTankChange = (e) => {
         rowData.tankId = null; // Reset the tankId when siteId changes
         rowData.siteId = value;
     };
-    
+
      const formatDateTime = (cellInfo) => {
         if (!cellInfo.value) return '';
 
         // Parse the ISO 8601 date string
         const utcDate = new Date(cellInfo.value);
-      
+
         // Check if the date is valid
         if (isNaN(utcDate.getTime())) {
           console.error('Invalid date:', cellInfo.value);
           return cellInfo.value;
         }
-      
+
         // Format the date and time in local timezone
         return utcDate.toLocaleString('en-GB', {
           year: 'numeric',
@@ -298,6 +303,67 @@ const handleTankChange = (e) => {
     const canDelete = permissions.includes('_deleteFuelRefill');
     const canCreate = permissions.includes('_createFuelRefill');
 
+    const onExporting = useCallback((e) => {
+        const format = e.format;
+
+        if (format === 'xlsx') {
+            try {
+                const workbook = new Workbook();
+                const worksheet = workbook.addWorksheet('Manual Fuel Refills');
+
+                notify('Preparing export...', 'info', 2000);
+
+                exportDataGrid({
+                    component: e.component,
+                    worksheet,
+                    autoFilterEnabled: true,
+                    customizeCell: ({ gridCell, excelCell }) => {
+                        if (gridCell.rowType === 'data') {
+                            excelCell.font = { size: 12 };
+                        }
+                        if (gridCell.rowType === 'header') {
+                            excelCell.font = { bold: true };
+                        }
+                    }
+                }).then(() => {
+                    workbook.xlsx.writeBuffer()
+                        .then((buffer) => {
+                            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'ManualFuelRefills.xlsx');
+                            notify('Export complete', 'success', 2000);
+                        })
+                        .catch(err => {
+                            console.error("Buffer creation error:", err);
+                            notify('Export failed', 'error', 2000);
+                        });
+                }).catch(err => {
+                    console.error("exportDataGrid error:", err);
+                    notify('Export failed', 'error', 2000);
+                });
+
+                e.cancel = true;
+            } catch (error) {
+                console.error("General export error:", error);
+                notify('Export failed', 'error', 2000);
+            }
+        } else if (format === 'pdf') {
+            const doc = new jsPDF();
+
+            exportDataGridToPdf({
+                jsPDFDocument: doc,
+                component: e.component,
+                indent: 5,
+            }).then(() => {
+                doc.save('ManualFuelRefills.pdf');
+                notify('Export complete', 'success', 2000);
+            }).catch(err => {
+                console.error("PDF export error:", err);
+                notify('Export failed', 'error', 2000);
+            });
+
+            e.cancel = true;
+        }
+    }, []);
+
     if (loading || saving) {
         return (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -308,10 +374,10 @@ const handleTankChange = (e) => {
 
 
     return (
-        
+
         <div>
-            
-    
+
+
             <h2 className={'content-block'}>Manual Fuel Refill</h2>
             <div className={'content-block'}>
                 <DataGrid
@@ -329,6 +395,7 @@ const handleTankChange = (e) => {
                      onRowRemoved={onRowRemoved}
                     onSaving={onSaving}
                     onEditorPreparing={onEditorPreparing}
+                    onExporting={onExporting}
 
 
                 >
@@ -336,7 +403,7 @@ const handleTankChange = (e) => {
                     <Position
                      my="right top"
                      at="right top"
-                    />                          
+                    />
                      </ColumnChooser>
                     <LoadPanel enabled={true} />
                     <Paging enabled={true} defaultPageSize={30} />
@@ -344,7 +411,7 @@ const handleTankChange = (e) => {
                     <StateStoring enabled={true} type="sessionStorage" storageKey="dispensingGridState" />
 
                    <FilterRow visible={true} />
-                   <HeaderFilter visible={true} />  
+                   <HeaderFilter visible={true} />
                     <SearchPanel visible placeholder='Data Search' />
                     <Sorting mode="multiple" />
                     <Selection mode="multiple" />
@@ -361,13 +428,13 @@ const handleTankChange = (e) => {
                     >
                      <Popup title="Add Fuel Refill"  showTitle={true} width={800} />
 
-                    
+
                      <Form  formData={formData}    onFieldDataChanged={handleFieldChange}  >
-   
-                           
+
+
                             <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
-                            <FItem dataField="date" editorType="dxDateBox" editorOptions={{ 
-    type: 'datetime', 
+                            <FItem dataField="date" editorType="dxDateBox" editorOptions={{
+    type: 'datetime',
     displayFormat: 'dd/MM/yyyy HH:mm',
     dateSerializationFormat: 'yyyy-MM-ddTHH:mm:ss'
 }}>
@@ -378,12 +445,12 @@ const handleTankChange = (e) => {
                                 <FItem dataField={'driverId'} editorType={'dxSelectBox'} editorOptions={{ dataSource: employees, valueExpr: 'id', displayExpr: 'fullName' }}>
                                     <RequiredRule />
                                 </FItem>
-                                <FItem dataField="siteId" editorType="dxSelectBox" editorOptions={{ 
-                                    dataSource: sites, 
+                                <FItem dataField="siteId" editorType="dxSelectBox" editorOptions={{
+                                    dataSource: sites,
                                     valueExpr: 'id',
                                      displayExpr: 'name',
                                     onValueChanged: handleSiteChange,
-                                    value: formData.siteId                                    
+                                    value: formData.siteId
                                 }}>
                                 </FItem>
                                 <FItem dataField="tankId"
@@ -411,7 +478,7 @@ const handleTankChange = (e) => {
                             </FItem>
                             <FItem dataField="comment" editorType="dxTextArea" editorOptions={{ height: 100 }} colSpan={2} />
                             <FItem itemType={'group'} caption={'Integration'} colCount={2} colSpan={2}>
-                                
+
                                 <FItem dataField="fuelBy" editorType="dxTextBox" disabled ={true} value={user.userName}>
                                 </FItem>
                             </FItem>
@@ -466,7 +533,7 @@ const handleTankChange = (e) => {
                         <TItems name="columnChooserButton" />
 
 
-                    </Toolbar> 
+                    </Toolbar>
 
                     <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true}  defaultValue={new Date().toISOString()} />
                     <Column dataField="vehicleId" caption="Vehicle" minWidth={150}>
@@ -485,13 +552,13 @@ const handleTankChange = (e) => {
                         />
 
                     </Column>
-               
 
-                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" minWidth={100}>       
+
+                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" minWidth={100}>
                     </Column>
-                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>       
+                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>
                     </Column>
-                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150}hidingPriority={3} >       
+                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150}hidingPriority={3} >
                     </Column>
                     <Column dataField="driverId" caption="Driver" minWidth={180} hidingPriority={3}>
                         <Lookup
@@ -501,8 +568,8 @@ const handleTankChange = (e) => {
                         />
                         </Column>
 
-                  
-               
+
+
                     <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3}/>
                     <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={3}
                         cellRender={(cellData) => {
@@ -521,7 +588,7 @@ const handleTankChange = (e) => {
                     setVisible={setFormVisible}
                     onSave={handleFormSave}
                     width={800}
-                   
+
                 >
                     <ManualFuelRefillForm
                         initData={formData}
@@ -530,7 +597,7 @@ const handleTankChange = (e) => {
                 </FormPopup>
             )} */}
             </div>
-            
+
         </div>
     );
 
