@@ -170,6 +170,7 @@ public class Program {
             RegisterCustomServices (services);
             ConfigureAuthentication (services, configuration);
             ConfigureAuthorization (services);
+            RegisterDistributedCache (services);
             //InfrastructureServicesConfiguration.Configure (services, configuration);
         } catch (Exception ex) {
             Console.WriteLine (ex);
@@ -298,6 +299,30 @@ public class Program {
         );
     }
 
+    static void RegisterDistributedCache (IServiceCollection services) {
+        try {
+            var redisConnectionString = Environment.GetEnvironmentVariable ("ConnectionStrings__RedisConnection", EnvironmentVariableTarget.Machine);
+
+            if (!string.IsNullOrEmpty (redisConnectionString)) {
+                // Configure Redis cache if connection string exists
+                services.AddStackExchangeRedisCache (options => {
+                    options.Configuration = redisConnectionString;
+                    options.InstanceName = "FMS:";
+                });
+                Log.Information ("Using Redis for distributed cache");
+            } else {
+                // Fallback to memory cache if Redis is not available
+                services.AddDistributedMemoryCache ();
+                Log.Warning ("Redis connection string is missing, using in-memory distributed cache instead");
+            }
+        } catch (Exception ex) {
+            Log.Error (ex, "Error configuring distributed cache: {Message}", ex.Message);
+            // Fallback to memory cache if there's an error
+            services.AddDistributedMemoryCache ();
+            Log.Warning ("Falling back to in-memory distributed cache due to error");
+        }
+    }
+
     static void ConfigureAuthentication (IServiceCollection services, IConfiguration configuration) {
         var jwtSecretKey =
             Environment.GetEnvironmentVariable (
@@ -372,6 +397,7 @@ public class Program {
             });
         // Temporarily commenting out the JWT Generator registration
         // services.AddScoped<IJwtGenerator, JwtGenerator> ();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator> ();
     }
 
     static void ConfigureAuthorization (IServiceCollection services) {

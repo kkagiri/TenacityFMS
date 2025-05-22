@@ -76,7 +76,12 @@ namespace FMS.Application.MappingProfile {
 
             // Vehicle mappings
             CreateMap<Vehicle, VehicleDTO> ()
-                .ForMember (dest => dest.Tags, opt => opt.MapFrom (src => src.Tags.Select (t => t.Name).ToList ())).ReverseMap ();
+                .ForMember (dest => dest.IsCompanyVehicle, opt => opt.MapFrom (src => src.IsCompanyVehicle.HasValue && src.IsCompanyVehicle.Value != 0))
+                .ForMember (dest => dest.IsActive, opt => opt.MapFrom (src => src.IsActive.HasValue && src.IsActive.Value != 0))
+                .ForMember (dest => dest.Tags, opt => opt.MapFrom (src => src.Tags.Select (t => t.Name).ToList ()))
+                .ReverseMap ()
+                .ForMember (dest => dest.IsCompanyVehicle, opt => opt.MapFrom (src => src.IsCompanyVehicle.HasValue ? (sbyte?) (src.IsCompanyVehicle.Value ? 1 : 0) : null))
+                .ForMember (dest => dest.IsActive, opt => opt.MapFrom (src => src.IsActive.HasValue ? (sbyte?) (src.IsActive.Value ? 1 : 0) : null));
             CreateMap<Vehicle, SimpleVehicleDto> ()
                 .ForMember (dest => dest.VehicleId, opt => opt.MapFrom (src => src.VehicleId))
                 .ForMember (dest => dest.HyoungNo, opt => opt.MapFrom (src => src.HyoungNo))

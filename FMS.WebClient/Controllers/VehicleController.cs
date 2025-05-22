@@ -96,7 +96,7 @@ namespace FMS.WebClient.Controllers {
             return Ok (vehicles);
         }
 
-        [HttpGet ("/{id}")]
+        [HttpGet ("{id}")]
         [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetVehicleByID (int id) {
             // Try to get from cache first
@@ -198,7 +198,7 @@ namespace FMS.WebClient.Controllers {
             vehicleDTO.VehicleId = id; // Make sure the ID is set correctly
 
             // Create and send the command
-            var command = new UpdateSingleVehicleCommand (vehicleDTO); //Cursor
+            var command = new UpdateSingleVehicleCommand (vehicleDTO);
             var result = await _mediator.Send (command);
 
             if (result.Success) {
@@ -227,7 +227,7 @@ namespace FMS.WebClient.Controllers {
             // Add a log entry before deleting
             // Note: userIdClaim.Value would be used for auditing purposes
 
-            var command = new DeleteVehicleCommand (id); //Cursor
+            var command = new DeleteVehicleCommand (id);
             var result = await _mediator.Send (command);
 
             if (result.Success) {
