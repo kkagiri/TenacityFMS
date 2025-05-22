@@ -9,6 +9,18 @@ export const TAG_ACTIONS = {
   UPDATE_TAG_SUCCESS: "UPDATE_TAG_SUCCESS",
   DELETE_TAG_SUCCESS: "DELETE_TAG_SUCCESS",
   ASSIGN_TAG_SUCCESS: "ASSIGN_TAG_SUCCESS",
+  FETCH_TAGS_BY_VEHICLE_REQUEST: "FETCH_TAGS_BY_VEHICLE_REQUEST",
+  FETCH_TAGS_BY_VEHICLE_SUCCESS: "FETCH_TAGS_BY_VEHICLE_SUCCESS",
+  FETCH_TAGS_BY_VEHICLE_FAILURE: "FETCH_TAGS_BY_VEHICLE_FAILURE",
+  FETCH_TAG_DETAILS_REQUEST: "FETCH_TAG_DETAILS_REQUEST",
+  FETCH_TAG_DETAILS_SUCCESS: "FETCH_TAG_DETAILS_SUCCESS",
+  FETCH_TAG_DETAILS_FAILURE: "FETCH_TAG_DETAILS_FAILURE",
+  VALIDATE_TAG_REQUEST: "VALIDATE_TAG_REQUEST",
+  VALIDATE_TAG_SUCCESS: "VALIDATE_TAG_SUCCESS",
+  VALIDATE_TAG_FAILURE: "VALIDATE_TAG_FAILURE",
+  VALIDATE_VEHICLE_REQUEST: "VALIDATE_VEHICLE_REQUEST",
+  VALIDATE_VEHICLE_SUCCESS: "VALIDATE_VEHICLE_SUCCESS",
+  VALIDATE_VEHICLE_FAILURE: "VALIDATE_VEHICLE_FAILURE",
 };
 
 export const fetchTags = () => async (dispatch) => {
@@ -28,6 +40,83 @@ export const setSelectedTag = (tag) => ({
   type: TAG_ACTIONS.SET_SELECTED_TAG,
   payload: tag,
 });
+
+export const fetchTagsByVehicleId = (vehicleId) => async (dispatch) => {
+  dispatch({ type: TAG_ACTIONS.FETCH_TAGS_BY_VEHICLE_REQUEST });
+  try {
+    const response = await axiosInstance.get(`/tag/by-vehicle/${vehicleId}`);
+    dispatch({
+      type: TAG_ACTIONS.FETCH_TAGS_BY_VEHICLE_SUCCESS,
+      payload: { vehicleId, tags: response.data },
+    });
+    return response.data;
+  } catch (error) {
+    dispatch({
+      type: TAG_ACTIONS.FETCH_TAGS_BY_VEHICLE_FAILURE,
+      payload: error.response?.data || "Failed to fetch tags for vehicle",
+    });
+    throw error;
+  }
+};
+
+export const fetchTagDetails = (tagName) => async (dispatch) => {
+  dispatch({ type: TAG_ACTIONS.FETCH_TAG_DETAILS_REQUEST });
+  try {
+    const response = await axiosInstance.get(`/tag/details/${tagName}`);
+    dispatch({
+      type: TAG_ACTIONS.FETCH_TAG_DETAILS_SUCCESS,
+      payload: response.data,
+    });
+    return response.data;
+  } catch (error) {
+    dispatch({
+      type: TAG_ACTIONS.FETCH_TAG_DETAILS_FAILURE,
+      payload: error.response?.data || "Failed to fetch tag details",
+    });
+    throw error;
+  }
+};
+
+export const validateVehicle = (vehicleId) => async (dispatch) => {
+  dispatch({ type: TAG_ACTIONS.VALIDATE_VEHICLE_REQUEST });
+  try {
+    //Cursor: Use correct URL format for vehicle validation
+    const response = await axiosInstance.get(
+      `/tag/validate-vehicle/${vehicleId}`
+    );
+    dispatch({
+      type: TAG_ACTIONS.VALIDATE_VEHICLE_SUCCESS,
+      payload: response.data,
+    });
+    return response.data;
+  } catch (error) {
+    dispatch({
+      type: TAG_ACTIONS.VALIDATE_VEHICLE_FAILURE,
+      payload: error.response?.data || "Failed to validate vehicle",
+    });
+    throw error;
+  }
+};
+
+export const validateTag = (tagId) => async (dispatch) => {
+  dispatch({ type: TAG_ACTIONS.VALIDATE_TAG_REQUEST });
+  try {
+    const response = await axiosInstance.post("/tag/validate", {
+      tagId,
+    });
+    dispatch({
+      type: TAG_ACTIONS.VALIDATE_TAG_SUCCESS,
+      payload: response.data,
+    });
+    return response.data;
+  } catch (error) {
+    dispatch({
+      type: TAG_ACTIONS.VALIDATE_TAG_FAILURE,
+      payload: error.response?.data || "Failed to validate tag",
+    });
+    throw error;
+  }
+};
 
 export const createTag = (tagData) => async (dispatch) => {
   try {

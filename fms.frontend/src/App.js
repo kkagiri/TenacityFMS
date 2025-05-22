@@ -28,6 +28,7 @@ import { fetchNavigationItems } from "./redux/actions/navigationActions";
 import SignalRService from "./signalR/SignalRService";
 import { loadUser } from "./redux/actions/AuthActions";
 import { initializeAxiosInstance } from "./api/axiosInstance"; // Import the initialization function
+import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
 
 function App() {
   const dispatch = useDispatch();

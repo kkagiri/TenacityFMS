@@ -15,6 +15,13 @@ public partial class Configuration
 
     public string Ptsid { get; set; } = null!;
 
-    public virtual Ptsdevice Pts { get; set; } = null!;
+    // Default timeouts in seconds
+    public const int DEFAULT_WEBSOCKET_TIMEOUT = 30;
+    public const int DEFAULT_HTTP_TIMEOUT = 60;
 
+    // Configuration keys for timeouts
+    public const string WEBSOCKET_TIMEOUT_KEY = "DeviceActivity.WebSocketTimeout";
+    public const string HTTP_TIMEOUT_KEY = "DeviceActivity.HttpTimeout";
+
+    public virtual Ptsdevice Pts { get; set; } = null!;
 }

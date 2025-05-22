@@ -22,6 +22,8 @@ public partial class Ptsdevice
 
     public int? Site { get; set; }
 
+    //This means the device is allowed to connect to the server and save data to the database
+    //ToDo: Check if this is the correct way to do this
     public sbyte IsActive { get; set; }
 
     public sbyte IsAuthenticated { get; set; }
@@ -32,9 +34,11 @@ public partial class Ptsdevice
 
     public DateTime? LastActivity { get; set; }
 
+    public string? ConnectionStatus { get; set; }
 
 
-    public virtual ICollection<Configuration> Configurations { get; set; } = new List<Configuration>();
+
+    public virtual ICollection<Configuration> Configuration { get; set; } = new List<Configuration>();
 
     public virtual ICollection<Intankdelivery> Intankdeliveries { get; set; } = new List<Intankdelivery>();
 

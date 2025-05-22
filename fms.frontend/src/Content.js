@@ -10,6 +10,7 @@ import resolvedComponents from "./app-routes";
 import withRoleProtection from "./utils/withRoleProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
+import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
 
 export default function Content() {
   const dispatch = useDispatch();
@@ -42,6 +43,16 @@ export default function Content() {
         {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
+        {/* Fueling routes with proper error handling */}
+        <Route
+          path="/fueling/:ptsId"
+          element={
+            <ErrorBoundary>
+              <FuelingProcess />
+            </ErrorBoundary>
+          }
+        />
+
         {/* User routes */}
         <Route path="/users/:id" element={React.createElement(resolvedComponents("user-details"))} />
         <Route path="/users/:id/edit" element={React.createElement(resolvedComponents("user-edit"))} />
@@ -49,8 +60,16 @@ export default function Content() {
         <Route path="/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
 
-        {/* ToDo: Remove this stupid links below */}
-        <Route path="/atg/:ptsId" element={<FuelingProcess />} />
+        {/* Keep the old route for backward compatibility */}
+        <Route
+          path="/atg/:ptsId"
+          element={
+            <Navigate
+              to={(location) => location.pathname.replace("/atg/", "/fueling/")}
+            />
+          }
+        />
+
         <Route
           path="/atg"
           element={React.createElement(resolvedComponents("atg"))}

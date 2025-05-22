@@ -1,17 +1,17 @@
-import axiosInstance from './../../api/axiosInstance';
+import axiosInstance from "./../../api/axiosInstance";
 // Action types
-export const FETCH_SITES_SUCCESS = 'FETCH_SITES_SUCCESS';
-export const FETCH_SITES_FAILURE = 'FETCH_SITES_FAILURE';
+export const FETCH_SITES_SUCCESS = "FETCH_SITES_SUCCESS";
+export const FETCH_SITES_FAILURE = "FETCH_SITES_FAILURE";
 
 // Action creators
 export const fetchSitesSuccess = (sites) => ({
   type: FETCH_SITES_SUCCESS,
-  payload: sites
+  payload: sites,
 });
 
 export const fetchSitesFailure = (error) => ({
   type: FETCH_SITES_FAILURE,
-  payload: error
+  payload: error,
 });
 
 
@@ -26,11 +26,11 @@ export const fetchSiteList = () => async (dispatch) => {
   }
 };
 
-export const fetchSitebyUserId =() => async (dispatch) => {
+export const fetchSitebyUserId = () => async (dispatch) => {
   try {
     const response = await axiosInstance.get(`/site/getsitebyuserid`);
     dispatch(fetchSitesSuccess(response.data));
   } catch (error) {
     dispatch(fetchSitesFailure(error.message));
   }
-}
+};

@@ -3,8 +3,7 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-public partial class Fuelrefil
-{
+public partial class Fuelrefil {
 
     public int Id { get; set; }
 
@@ -27,10 +26,17 @@ public partial class Fuelrefil
     public int? PumpTranscationId { get; set; }
 
     public int? DriverId { get; set; }
+    /// <summary>
+    /// TagId is the name of the tag example : 123ABC1234
+    /// </summary>
+    /// <value>123ABC1234</value>
+    //TODO: make a foreign key to the Tag table
     public string? TagId { get; set; }
     public int? TankId { get; set; }
     public DateTime DateCreated { get; set; }
+    public string? CreatedBy { get; set; }
     public DateTime? DateModified { get; set; }
+    public string? ModifiedBy { get; set; }
 
     public sbyte? IsModified { get; set; }
 
@@ -43,7 +49,6 @@ public partial class Fuelrefil
     public virtual Pumptransaction? PumpTranscation { get; set; }
 
     public virtual Site Site { get; set; } = null!;
-
 
     public virtual Tag TagNavigation { get; set; } = null!;
     public virtual Vehicle Vehicle { get; set; } = null!;

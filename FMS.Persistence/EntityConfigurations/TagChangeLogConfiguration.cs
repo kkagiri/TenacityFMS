@@ -1,0 +1,31 @@
+using FMS.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace FMS.Persistence.EntityConfigurations {
+    public class TagChangeLogConfiguration : EntityTypeConfiguration<TagChangeLog> {
+        public override void Configure (EntityTypeBuilder<TagChangeLog> builder) {
+            builder.HasKey (e => e.Id).HasName ("PRIMARY");
+            builder.ToTable ("tag_change_log");
+
+            builder.Property (e => e.Id)
+                .ValueGeneratedOnAdd ()
+                .HasColumnType ("int(11)")
+                .HasColumnName ("id");
+
+            builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
+            builder.Property (e => e.Username).HasMaxLength (100);
+            builder.Property (e => e.OldTag).HasMaxLength (100);
+            builder.Property (e => e.NewTag).HasMaxLength (100);
+            builder.Property (e => e.Location).HasMaxLength (255);
+            builder.Property (e => e.Timestamp).HasColumnType ("datetime");
+            builder.Property (e => e.Action).HasMaxLength (50);
+            builder.Property (e => e.Note).HasMaxLength (255);
+
+            builder.HasOne (e => e.Vehicle)
+                .WithMany ()
+                .HasForeignKey (e => e.VehicleId)
+                .HasConstraintName ("FK_TagChangeLog_Vehicle");
+        }
+    }
+}

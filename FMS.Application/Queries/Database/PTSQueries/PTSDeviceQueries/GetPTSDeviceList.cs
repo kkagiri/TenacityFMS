@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
@@ -27,7 +28,9 @@ namespace FMS.Application.Queries.Database.PTSQueries.PTSDeviceQueries
         {
             try
             {
-                return await _context.Ptsdevices.ToListAsync(cancellationToken);
+
+                return await _context.Ptsdevices
+                    .ToListAsync(cancellationToken);
             }
             catch (Exception ex)
             {

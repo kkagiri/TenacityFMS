@@ -11,6 +11,8 @@ import {
   FilterRow,
   HeaderFilter,
   LoadPanel,
+  MasterDetail,
+  Lookup,
 } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
 import { Popup } from "devextreme-react/popup";
@@ -33,166 +35,133 @@ import Chart, {
 } from "devextreme-react/chart";
 import { TickerCard } from "../../components/TickerCard/tickerCard";
 
-// Sample data - To be replaced with live data from API/Redux
-const tickerData = {
-  fuelDispensed: { value: "12,450", unit: "L", change: "+2.5%" },
-  tankLevels: { value: "45,000", unit: "L", change: "-1.2%" },
-  fuelPrice: { value: "1.85", unit: "$/L", change: "+0.3%" },
-  onlinePumps: { value: "24", unit: "Active", change: "96%" },
-};
-
-const ptsList = [
-  {
-    id: 1,
-    name: "Main Site PTS",
-    deviceId: "PTS001",
-    status: "online",
-    lastSync: "2 mins ago",
-    tanks: 4,
-    pumps: 8,
-    tankLevel: 75,
-  },
-  {
-    id: 2,
-    name: "North Station",
-    deviceId: "PTS002",
-    status: "online",
-    lastSync: "5 mins ago",
-    tanks: 2,
-    pumps: 4,
-    tankLevel: 60,
-  },
-  {
-    id: 3,
-    name: "South Terminal",
-    deviceId: "PTS003",
-    status: "offline",
-    lastSync: "1 hour ago",
-    tanks: 3,
-    pumps: 6,
-    tankLevel: 45,
-  },
-];
+// Import selectors and actions
+import {
+  selectAllDevices,
+  selectDashboardMetrics,
+} from "../../redux/selectors/deviceSelectors";
+import { fetchPTSDeviceList } from "../../redux/actions/ptsActions/ptsDeviceActions";
+import {
+  fetchFuelRefills,
+  fetchFuelRefillsbyDateRange,
+} from "../../redux/actions/fuelRefillAction";
+import { fetchSiteList } from "../../redux/actions/siteActions";
+import { fetchTanks } from "../../redux/actions/tankActions";
 
 const ATGDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
 
-  // In a real implementation, this would come from Redux
-  // const ptsDevices = useSelector(state => state.ptsDevice.devices);
-  const [ptsDevices, setPtsDevices] = useState([]);
+  // Use the updated selector
+  const ptsDevices = useSelector(selectAllDevices);
+  const sites = useSelector((state) => state.site.sites);
 
-  // Simulating API call to fetch PTS devices
+  // Track loading state
+  const isDeviceListLoading = useSelector((state) => state.ptsDevice.loading);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Load initial data
   useEffect(() => {
-    // In a real implementation, this would be:
-    // dispatch(fetchPTSDevices())
-    //   .then(() => setIsLoading(false))
-    //   .catch(error => {
-    //     notify(error.message, 'error', 3000);
-    //     setIsLoading(false);
-    //   });
-
-    setTimeout(() => {
-      setPtsDevices(ptsList);
-      setIsLoading(false);
-    }, 1000);
+    dispatch(fetchPTSDeviceList());
+    dispatch(fetchSiteList()); // Assuming sites are needed for lookup
+    // Set initial load flag to false after a delay or when data arrives
+    const timer = setTimeout(() => setIsInitialLoad(false), 1500); // Adjust delay as needed
+    return () => clearTimeout(timer);
   }, [dispatch]);
 
   const handleStartFueling = (ptsId) => {
-    navigate(`/atg/${ptsId}`);
+    navigate(`/fueling/${ptsId}`);
   };
 
-  // Function to check if the device is suitable for action (only online devices can be used)
+  // Updated canStartFueling based on selector data
   const canStartFueling = (device) => {
-    return device.status === "online";
+    //console.log("canStartFueling Device ", device);
+    // console.log(
+    //   "Checking canStartFueling for:",
+    //   device.ptsid,
+    //   "Status:",
+    //   device.connectionStatus,
+    //   "Type:",
+    //   device.connectionType
+    // );
+
+    // Status should be 'Active' or 'Connected' (as strings from selector use connectionStatus instead of status)
+    const isOnlineStatus =
+      device.connectionStatus === "Connected" ||
+      device.connectionStatus === "Active";
+    // Connection must be WebSocket
+    const hasWebSocket = device.connectionType === "WebSocket";
+    // Check for recent activity
+    let isRecent = false;
+    if (device.lastActivity) {
+      try {
+        const lastActivityDate = new Date(device.lastActivity);
+        const now = new Date();
+        const diffMinutes =
+          (now.getTime() - lastActivityDate.getTime()) / (1000 * 60);
+        isRecent = diffMinutes < 10; // e.g., within 10 minutes
+        console.log(
+          `Device ${device.ptsid}: Last activity ${diffMinutes.toFixed(
+            1
+          )} mins ago. Recent: ${isRecent}`
+        );
+      } catch (e) {
+        console.error(
+          "Error parsing lastActivity date:",
+          device.lastActivity,
+          e
+        );
+        isRecent = false; // Treat as not recent if date parsing fails
+      }
+    } else {
+      console.log(`Device ${device.ptsid}: No last activity found.`);
+    }
+
+    return isOnlineStatus && hasWebSocket && isRecent;
   };
 
-  // Main render
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <LoadIndicator width={60} height={60} />
-      </div>
-    );
-  }
+  // Helper to format the lastActivity timestamp
+  const formatLastActivity = (isoTimestamp) => {
+    if (!isoTimestamp) return "Never";
+    try {
+      const date = new Date(isoTimestamp);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const activityDate = new Date(isoTimestamp);
+      activityDate.setHours(0, 0, 0, 0);
 
-  // Add media queries for mobile responsiveness
-  const styles = {
-    "@media (max-width: 768px)": {
-      ".ticker-card": {
-        flexDirection: "column",
-        alignItems: "center",
-      },
-      ".ticker-icon": {
-        marginBottom: "10px",
-      },
-    },
+      if (activityDate.getTime() === today.getTime()) {
+        // It's today, show only time
+        return date.toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      } else {
+        // It's not today, show date and time
+        return date.toLocaleString(undefined, {
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+    } catch (e) {
+      console.error("Error formatting date:", isoTimestamp, e);
+      return "Invalid Date";
+    }
   };
 
   return (
-    <ScrollView className="content-block" style={styles}>
+    <ScrollView className="content-block">
+      {isInitialLoad && (
+        <LoadPanel visible={true} message="Loading Devices..." />
+      )}
       <div style={{ padding: "20px" }}>
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <h2 className="content-block-header">Fuel Management Dashboard</h2>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "14px", color: "#6c757d" }}>
-              Last updated: Just now
-            </span>
-            <Button
-              icon="refresh"
-              onClick={() => {
-                setIsLoading(true);
-                setTimeout(() => setIsLoading(false), 500);
-              }}
-            />
-          </div>
-        </div>
+        {/* ... Ticker Cards or other dashboard elements ... */}
 
-        {/* Ticker Cards */}
-        <div className="cards compact">
-          <TickerCard
-            title="Fuel Dispensed Today"
-            icon="fa-light fa-fuel"
-            value={tickerData.fuelDispensed.value}
-            tone="success"
-          />
-          <TickerCard
-            title="Tank Levels"
-            icon="fa-light fa-product"
-            value={tickerData.tankLevels.value}
-            tone="warning"
-          />
-          <TickerCard
-            title="Current Fuel Price"
-            icon="fa-light fa-money"
-            value={tickerData.fuelPrice.value}
-            tone="info"
-          />
-          <TickerCard
-            title="Pumps Online"
-            icon="fa-light fa-preferences"
-            value={tickerData.onlinePumps.value}
-            tone="success"
-          />
-        </div>
-
-        {/* PTS Devices Section */}
-        <div className="dx-card " style={{ marginTop: "20px" }}>
+        <div className="dx-card" style={{ marginTop: "20px" }}>
           <div
             className="responsive-paddings"
             style={{
@@ -202,133 +171,120 @@ const ATGDashboard = () => {
               marginBottom: "20px",
             }}
           >
-            <i className="dx-icon-home" style={{ fontSize: "24px" }}></i>
-            <h3 style={{ margin: 0 }}>PTS Devices</h3>
+            <i className="dx-icon-car" style={{ fontSize: "24px" }}></i>{" "}
+            {/* Changed icon */}
+            <h3 style={{ margin: 0 }}>PTS Devices Status</h3>
           </div>
 
           <DataGrid
             dataSource={ptsDevices}
+            keyExpr="ptsid" // Use ptsid as key if unique
             showBorders={true}
             columnAutoWidth={true}
             rowAlternationEnabled={true}
             columnHidingEnabled={true}
             width="100%"
-            adaptColumnWidthByRatio={true}
+            noDataText="No PTS devices found or still loading..."
           >
-            <LoadPanel enabled={true} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
             <Paging defaultPageSize={10} />
-
+            <LoadPanel enabled={isDeviceListLoading && !isInitialLoad} />{" "}
+            {/* Show load panel only during background updates */}
             <Column
-              dataField="name"
+              dataField="site"
               caption="Site Name"
-              hidingPriority={9}
-              minWidth={250}
+              minWidth={200} // Adjusted width
               allowHiding={false}
               sortOrder="asc"
-            />
-
+            >
+              <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
+            </Column>
+            <Column dataField="ptsid" caption="Device ID" minWidth={150} />
             <Column
-              dataField="deviceId"
-              caption="Device ID"
-              hidingPriority={3}
-              minWidth={150}
-            />
-            <Column
-              dataField="status"
+              dataField="connectionStatus" // This now comes directly from the live status map
               caption="Status"
-              hidingPriority={7}
-              width={120}
-              cellRender={(data) => (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    color: data.value === "online" ? "#198754" : "#dc3545",
-                  }}
-                >
-                  <i
-                    className={`dx-icon-${
-                      data.value === "online" ? "check" : "clear"
-                    }`}
-                    style={{ marginRight: "5px" }}
-                  ></i>
-                  <span style={{ textTransform: "capitalize" }}>
-                    {data.value}
-                  </span>
-                </div>
-              )}
-            />
-            <Column
-              dataField="lastSync"
-              caption="Last Sync"
-              hidingPriority={6}
-              width={150}
-            />
-            <Column
-              dataField="tanks"
-              caption="Tanks"
-              hidingPriority={5}
-              width={100}
-            />
-            <Column
-              dataField="pumps"
-              caption="Pumps"
-              hidingPriority={4}
-              width={100}
-            />
-            <Column
-              dataField="tankLevel"
-              caption="Tank Level"
-              hidingPriority={9}
-              width={150}
-              cellRender={(data) => (
-                <div
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
+              width={140} // Increased width slightly
+              alignment="left"
+              cellRender={(data) => {
+                const statusText = data.value || "Disconnected"; // Default to Disconnected
+                const connectionType = data.data.connectionType;
+
+                let iconClass = "dx-icon-clear";
+                let color = "#dc3545"; // Red for disconnected
+
+                switch (statusText) {
+                  case "Active":
+                    iconClass = "dx-icon-check";
+                    color = "#198754"; // Green
+                    break;
+                  case "Connected":
+                    iconClass = "dx-icon-check";
+                    color = "#0dcaf0"; // Cyan/Info for connected but maybe not active message
+                    break;
+                  case "Idle":
+                    iconClass = "dx-icon-clock";
+                    color = "#ffc107"; // Yellow/Warning for idle
+                    break;
+                  case "Disconnected":
+                  default:
+                    iconClass = "dx-icon-clear";
+                    color = "#dc3545";
+                    break;
+                }
+
+                return (
                   <div
                     style={{
-                      width: "100%",
-                      height: "10px",
-                      backgroundColor: "#e9ecef",
-                      borderRadius: "5px",
-                      overflow: "hidden",
+                      display: "flex",
+                      alignItems: "center",
+                      color: color,
                     }}
                   >
-                    <div
-                      style={{
-                        width: `${data.value}%`,
-                        height: "100%",
-                        backgroundColor:
-                          data.value > 70
-                            ? "#198754"
-                            : data.value > 30
-                            ? "#ffc107"
-                            : "#dc3545",
-                      }}
-                    ></div>
+                    <i
+                      className={iconClass}
+                      style={{ marginRight: "8px", fontSize: "16px" }}
+                    />
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span
+                        style={{ textTransform: "capitalize", fontWeight: 500 }}
+                      >
+                        {statusText}
+                      </span>
+                      {connectionType && (
+                        <span style={{ fontSize: "0.8em", color: "#6c757d" }}>
+                          via {connectionType}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span style={{ marginLeft: "10px" }}>{data.value}%</span>
-                </div>
-              )}
+                );
+              }}
             />
             <Column
+              dataField="lastActivity" // This comes from the live status map
+              caption="Last Activity"
+              width={180} // Adjusted width
+              dataType="datetime"
+              cellRender={(data) => {
+                return <span>{formatLastActivity(data.value)}</span>;
+              }}
+              sortOrder="desc" // Sort by last activity descending by default
+            />
+            <Column dataField="ipAddress" caption="IP Address" width={130} />
+            <Column
               caption="Actions"
-              hidingPriority={8}
               width={150}
               allowHiding={false}
               cellRender={(cellData) => (
                 <Button
                   text="Start Fueling"
+                  icon="chevrondoubleright" // Use an icon
                   type="default"
                   stylingMode="contained"
-                  disabled={!canStartFueling(cellData.data)}
-                  onClick={() => handleStartFueling(cellData.data.id)}
+                  hint="Initiate fueling process for this device"
+                  disabled={!canStartFueling(cellData.data)} //TODO: check why this is not working
+                  onClick={() => handleStartFueling(cellData.data.ptsid)} // Ensure using the correct ID field (ptsid)
                 />
               )}
             />

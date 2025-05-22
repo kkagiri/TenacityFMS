@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.ATG
-{
-    public class PumpTransactionDto
-    {
+namespace FMS.Application.ModelsDTOs.ATG {
+    public class PumpTransactionDto {
         public string PtsId { get; set; }
         public int PacketId { get; set; }
         public DateTime DateTimeStart { get; set; }
@@ -26,5 +24,12 @@ namespace FMS.Application.ModelsDTOs.ATG
         public string? Tag { get; set; }
         public int? UserId { get; set; }
         public string? ConfigurationId { get; set; }
+
+        // Add these fields to match PumpAuthorizeCommand
+        public int? TankId { get; set; }
+        public int? VehicleId { get; set; }
+
+        // Processing flag
+        public bool HasBeenProcessed { get; set; } = false; //Cursor
     }
 }

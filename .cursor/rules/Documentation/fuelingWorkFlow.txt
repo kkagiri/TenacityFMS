@@ -1,0 +1,100 @@
+sequenceDiagram
+    autonumber
+
+    %%-------------------------------------------------------------
+    %% Define participant groups with color-coded boxes
+    %%-------------------------------------------------------------
+    box "Client Layer" rgb(255, 224, 224)
+      participant C as Client or External System
+    end
+
+    box "Server: Controllers" rgb(217, 234, 247)
+      participant PC as PumpController (REST API)
+      participant PTC as PtsController (/jsonPTS)
+    end
+
+    box "Server: Core Services & Execution" rgb(226, 247, 226)
+      participant M as MediatR
+      participant PAH as PumpAuthorizeCommandHandler
+      participant PS as PumpService
+      participant CE as CommandExecutor
+      participant CM as PTSConnectionManager
+      participant DHP as DeviceHttpCommandPusher
+      participant PCR as IPendingCommandRepository
+    end
+
+    box "Device Side" rgb(255, 242, 204)
+      participant Dev as Device (PTS)
+      participant WsSvc as PTSWebSocketListenerService
+    end
+
+    %%-------------------------------------------------------------
+    %% Main flow: Client calling PumpController
+    %%-------------------------------------------------------------
+
+    Note over C, PC: (1) Client calls server (e.g. POST /api/Pump/authorize)
+
+    C->>PC: POST /api/Pump/authorize + JSON (PumpAuthorizeCommand)
+    PC->>M: mediator.Send(PumpAuthorizeCommand)
+    M->>PAH: Instantiate & execute PumpAuthorizeCommandHandler
+    PAH->>PAH: Validate request (pump range, dose, etc.)
+
+    alt Tag Provided
+        PAH->>M: Send(AuthenticateTagCommand)
+        M->>???: Check Tag authenticity (details omitted)
+        ???-->>PAH: Tag = Authenticated or Not Authenticated
+
+        alt Tag not authenticated
+            PAH-->>PC: FMSResponseMessage(false, "Tag not authenticated")
+            PC-->>C: HTTP 400 + JSON error
+            note right of PC: This branch ends the process
+        else Tag authenticated
+            note right of PAH: Proceed with PumpAuthorize logic
+        end
+    end
+
+    PAH->>PS: pumpService.PumpAuthorizeAsync(deviceId, pumpAuthorizeData)
+    PS->>CE: ExecuteCommandAsync(deviceId, "PumpAuthorize", commandData)
+
+    note over CE: Decide best way to reach the device
+
+    alt WebSocket active
+        CE->>CM: SendMessageAsync(deviceId, ptsMessage)
+        CM->>Dev: (via PTSDeviceConnection) Send JSON
+        Dev-->>CM: Acknowledge / respond with success/fail
+        CM-->>CE: Command result
+    else Known IP
+        CE->>DHP: SendPTSMessageAsync(ip, port, ptsMessage)
+        DHP->>Dev: HTTP POST /executeCommand
+        Dev-->>DHP: JSON result (success or error)
+        DHP-->>CE: success/fail
+    else Neither WebSocket nor IP
+        CE->>PCR: SavePendingConfigurationAsync(deviceId, commandType, commandData)
+        note right of CE: Commands stored for next device poll
+    end
+
+    CE-->>PS: Return CommandResult
+    PS-->>PAH: Return PumpAuthorizeConfirmation or error
+    PAH->>PAH: If success, update authorization state
+    PAH-->>PC: FMSResponseMessage<PumpAuthorizeConfirmation>
+    PC-->>C: HTTP 200 + JSON (PumpAuthorizeConfirmation)
+
+    %%-------------------------------------------------------------
+    %% Polling Scenario: device can't be pushed to
+    %%-------------------------------------------------------------
+
+    Note over Dev, PTC: (2) Device polls the server
+
+    Dev->>PTC: POST /jsonPTS/uploadStatus
+    PTC->>M: _messageHandler.ProcessMessageAsync(deviceId, ptsMessage)
+    M->>PCR: Check if any pending commands
+
+    alt Commands pending
+        M-->>Dev: Return PTSMessage with pending commands (HTTP response)
+        Dev->>Dev: Device executes commands from response
+        M->>PCR: Clear delivered commands
+    else No commands
+        M-->>Dev: Return basic ack/status
+    end
+
+    Dev-->>Dev: Will repeat polling as needed

@@ -1,0 +1,55 @@
+sequenceDiagram
+    participant Web API (Command Sender)
+    participant Redis Pub/Sub
+    participant PTSWebSocketListenerService
+    participant PTSCommandProcessor
+    participant IPTSConnectionManager
+    participant PTSDeviceConnection
+    participant PTS Device
+
+    Web API (Command Sender)->>Redis Pub/Sub: Publish Command (RedisCommandMessage) to "pts-commands" Channel
+    activate Redis Pub/Sub
+    Redis Pub/Sub-->>PTSWebSocketListenerService: Push Command (RedisCommandMessage)
+    deactivate Redis Pub/Sub
+    activate PTSWebSocketListenerService
+    PTSWebSocketListenerService->>PTSCommandProcessor: Delegate ProcessCommandAsync(RedisCommandMessage)
+    activate PTSCommandProcessor
+    PTSCommandProcessor->>IPTSConnectionManager: Check HasActiveConnection(DeviceId)
+    activate IPTSConnectionManager
+    IPTSConnectionManager-->>PTSCommandProcessor: Connection Status (true)
+    deactivate IPTSConnectionManager
+    PTSCommandProcessor->>IPTSConnectionManager: SendMessageAsync(DeviceId, PTSMessage) via WebSocket
+    activate IPTSConnectionManager
+    IPTSConnectionManager->>PTSDeviceConnection: Get Device Connection (DeviceId)
+    activate PTSDeviceConnection
+    IPTSDeviceConnection-->>IPTSConnectionManager: Device Connection
+    deactivate PTSDeviceConnection
+    IPTSConnectionManager->>PTSDeviceConnection: Send PTSMessage (over WebSocket)
+    activate PTSDeviceConnection
+    PTSDeviceConnection-->>PTS Device: Send PTS Message (WebSocket Command)
+    deactivate PTSDeviceConnection
+    activate PTS Device
+    PTS Device-->>PTSDeviceConnection: Send PTS Response (WebSocket Response)
+    deactivate PTS Device
+    activate PTSDeviceConnection
+    PTSDeviceConnection-->>IPTSConnectionManager: Receive PTS Response
+    deactivate PTSDeviceConnection
+    IPTSConnectionManager-->>PTSCommandProcessor: Return PTS Response
+    deactivate IPTSConnectionManager
+    PTSCommandProcessor->>PTSCommandProcessor: ProcessPTSResponse(PTSMessage Response)
+    PTSCommandProcessor->>PTSCommandProcessor: ConvertCommandResultToFMSResponse(CommandResult)
+    PTSCommandProcessor->>Redis Pub/Sub: Publish Response (RedisResponseMessage) to Response Channel (e.g., "pts-command-responses")
+    activate Redis Pub/Sub
+    Redis Pub/Sub-->>Web API (Response Receiver): Push Response (RedisResponseMessage)
+    deactivate Redis Pub/Sub
+    PTSCommandProcessor-->>PTSWebSocketListenerService: Return from ProcessCommandAsync
+    deactivate PTSCommandProcessor
+    deactivate PTSWebSocketListenerService
+    Web API (Response Receiver)->>Web API (Response Receiver): Process Redis Response (RedisResponseMessage)
+
+
+    Note over Web API (Command Sender),Redis Pub/Sub: Web API Initiates Command
+    Note over PTSWebSocketListenerService,PTSCommandProcessor: Command Processing and Dispatching
+    Note over IPTSConnectionManager,PTSDeviceConnection: WebSocket Communication with Device
+    Note over PTSCommandProcessor,Redis Pub/Sub: Response Publishing
+    Note over Web API (Response Receiver),Web API (Response Receiver): API Receives and Handles Response

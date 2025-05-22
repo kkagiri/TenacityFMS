@@ -20,12 +20,17 @@ import deliveryReducer from "./DeliveryReducer";
 import supplierReducer from "./supplierReducer";
 import refillSummaryReducer from "./refillSummaryReducer";
 import tagReducer from "./tagReducer";
+import tagMonitoringReducer from "./tagMonitoringReducer";
 import ptsDeviceReducer from "./ptsReducers/ptsDeviceReducer";
 import fuelingRuleReducer from "./fuelingRuleReducer";
-import pumpReducer from "./pumpReducer";
-import ptsPumpEventsReducer from "./ptsReducers/ptsPumpEventsReducer";
+import pumpReducer from "./ptsReducers/pumpReducer";
 import atgReducer from "./atgReducer";
 import realtimeStatusReducer from "./ptsReducers/realtimeStatusReducer";
+import deviceConnectionReducer from "./deviceConnectionReducer";
+import fuelingEventsReducer from "./fuelingEventsReducer";
+import configReducer from "./configReducer";
+import fuelReportReducer from "./fuelReportReducer";
+import notificationReducer from "./notificationReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -49,11 +54,16 @@ const rootReducer = combineReducers({
   supplier: supplierReducer,
   refillSummary: refillSummaryReducer,
   tag: tagReducer,
+  tagMonitoring: tagMonitoringReducer,
   ptsDevice: ptsDeviceReducer,
   fuelingRule: fuelingRuleReducer,
   pump: pumpReducer,
-  ptsPumpEvents: ptsPumpEventsReducer,
   realtimeStatus: realtimeStatusReducer,
+  deviceConnections: deviceConnectionReducer,
+  fuelingEvents: fuelingEventsReducer,
+  config: configReducer,
+  fuelReport: fuelReportReducer,
+  notification: notificationReducer,
 });
 
 export default rootReducer;

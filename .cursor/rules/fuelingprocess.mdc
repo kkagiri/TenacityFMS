@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+-Anything regarding fuelingprocess make sure you read [readme.txt](mdc:fms.frontend/src/pages/ATG/readme.txt) and look at the code , i ask you to make adjustment on code regarding fuel process with the files from readme .. i want you to put Notification that changes are required to be made in the readme file and poitn to which section.. this is a moving document 
+

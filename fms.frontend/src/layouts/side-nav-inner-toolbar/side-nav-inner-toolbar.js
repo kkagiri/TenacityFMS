@@ -68,7 +68,7 @@ export default function SideNavInnerToolbar({ title, children }) {
       <Header
         menuToggleEnabled={isXSmall}
         toggleMenu={toggleMenu}
-        // title={title}
+        title={title}
       />
 
       <Drawer

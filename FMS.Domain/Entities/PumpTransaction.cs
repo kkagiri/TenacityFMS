@@ -3,8 +3,7 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-public partial class Pumptransaction
-{
+public partial class Pumptransaction {
     public int Id { get; set; }
 
     public string PtsId { get; set; } = null!;
@@ -39,10 +38,37 @@ public partial class Pumptransaction
 
     public string? Tag { get; set; }
 
+    /// <summary>
+    /// PTS User Id not to be confused with the UserId in the User table
+    /// </summary>
     public int? UserId { get; set; }
 
+    /// <summary>
+    /// PTS Configuration Id
+    /// </summary>
     public string? ConfigurationId { get; set; }
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil>();
+
+    /// <summary>
+    /// FK to Tank table - identifies which tank supplied the fuel
+    /// </summary>
+    public int? TankId { get; set; }
+
+    /// <summary>
+    /// FK to Vehicle table - identifies which vehicle received the fuel
+    /// </summary>
+    public int? VehicleId { get; set; }
+
+    /// <summary>
+    /// Indicates whether this transaction has been processed by business logic
+    /// </summary>
+    public bool HasBeenProcessed { get; set; } = false; //Cursor
+
+    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
 
     public virtual Ptsdevice Pts { get; set; } = null!;
+
+    // Navigation properties to Tank and Vehicle
+    public virtual Tank? Tank { get; set; }
+
+    public virtual Vehicle? Vehicle { get; set; }
 }

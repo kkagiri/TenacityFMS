@@ -10,10 +10,12 @@ import {
   FETCH_DASHBOARD_METRICS_SUCCESS,
   FETCH_DASHBOARD_METRICS_FAILURE,
   RECEIVE_UPLOAD_STATUS_UPDATE,
+  CLEAR_PTS_DEVICE_LIST,
+  CLEAR_DEVICE_CONNECTIONS,
 } from "../../actions/types";
 
 const initialState = {
-  loading: false,
+  loading: true,
   error: null,
   ptsDeviceList: [],
   dashboardMetrics: {
@@ -32,8 +34,8 @@ const initialState = {
     WebSocketPercentages: 0,
   },
   onlineDevices: [],
-  currentDevice: null, // windsurf comment: Added currentDevice property
-  uploadStatusUpdates: {}, // Store the latest upload status updates by device ID
+  currentDevice: null,
+  uploadStatusUpdates: {},
 };
 
 const ptsDeviceReducer = (state = initialState, action) => {
@@ -42,7 +44,7 @@ const ptsDeviceReducer = (state = initialState, action) => {
       return {
         ...state,
         dashboardMetrics: action.payload,
-        loading: true,
+        loading: false,
       };
     case FETCH_DASHBOARD_METRICS_FAILURE:
       return {
@@ -69,10 +71,10 @@ const ptsDeviceReducer = (state = initialState, action) => {
         error: action.payload,
       };
     case FETCH_ONLINE_DEVICES_SUCCESS:
-      //console.log("Data in reducer", action.payload);
       return {
         ...state,
         onlineDevices: action.payload,
+        loading: false,
         deviceSummary: {
           ...state.deviceSummary,
           TotalConnectedDevices: action.payload.TotalConnectedDevices,
@@ -91,10 +93,39 @@ const ptsDeviceReducer = (state = initialState, action) => {
         loading: false,
         error: action.payload,
       };
+    case CLEAR_PTS_DEVICE_LIST:
+      return {
+        ...state,
+        ptsDeviceList: [],
+        loading: true,
+        error: null,
+      };
+    case "FETCH_PTS_DEVICE_LIST_REQUEST":
+      return {
+        ...state,
+        loading: true,
+        error: null,
+      };
     case FETCH_PTS_DEVICE_LIST_SUCCESS:
       return {
         ...state,
         ptsDeviceList: action.payload,
+        loading: false,
+        error: null,
+      };
+    case "PTS_DEVICE_LIST_TIMEOUT":
+      return {
+        ...state,
+        loading: false,
+        error: "Loading timeout",
+        ptsDeviceList: state.ptsDeviceList,
+      };
+    case "HANDLE_EMPTY_DEVICE_LIST":
+      return {
+        ...state,
+        loading: false,
+        ptsDeviceList: [],
+        error: null,
       };
     case FETCH_PTS_DEVICE_LIST_FAILURE:
       return {
@@ -113,13 +144,11 @@ const ptsDeviceReducer = (state = initialState, action) => {
             lastUpdated: new Date().toISOString(),
           },
         },
-        // Also update the device in the ptsDeviceList if it exists
         ptsDeviceList: state.ptsDeviceList.map((device) =>
           device.ptsid === deviceId
             ? {
                 ...device,
                 lastActivity: new Date().toISOString(),
-                // You can add more fields from status as needed
               }
             : device
         ),
@@ -134,7 +163,6 @@ const ptsDeviceReducer = (state = initialState, action) => {
             ? updatedDevice
             : device
         ),
-        // If this is the current device, update that too
         currentDevice:
           state.currentDevice &&
           (state.currentDevice.id === updatedDevice.id ||
@@ -143,16 +171,17 @@ const ptsDeviceReducer = (state = initialState, action) => {
             : state.currentDevice,
       };
 
-    // New PTS device actions
     case "CREATE_PTS_DEVICE_SUCCESS":
       return {
         ...state,
         ptsDeviceList: [...state.ptsDeviceList, action.payload],
+        loading: false,
       };
     case "CREATE_PTS_DEVICE_FAILURE":
       return {
         ...state,
         error: action.payload,
+        loading: false,
       };
     case "UPDATE_PTS_DEVICE_SUCCESS":
       return {
@@ -160,11 +189,13 @@ const ptsDeviceReducer = (state = initialState, action) => {
         ptsDeviceList: state.ptsDeviceList.map((device) =>
           device.ptsid === action.payload.ptsid ? action.payload : device
         ),
+        loading: false,
       };
     case "UPDATE_PTS_DEVICE_FAILURE":
       return {
         ...state,
         error: action.payload,
+        loading: false,
       };
     case "DELETE_PTS_DEVICE_SUCCESS":
       return {
@@ -172,22 +203,32 @@ const ptsDeviceReducer = (state = initialState, action) => {
         ptsDeviceList: state.ptsDeviceList.filter(
           (device) => device.ptsid !== action.payload.ptsid
         ),
+        loading: false,
       };
     case "DELETE_PTS_DEVICE_FAILURE":
       return {
         ...state,
         error: action.payload,
+        loading: false,
       };
     case "GET_PTS_DEVICE_BY_ID_SUCCESS":
       return {
         ...state,
         selectedPTSDevice: action.payload,
-        currentDevice: action.payload, // windsurf comment: Added currentDevice assignment
+        currentDevice: action.payload,
+        loading: false,
       };
     case "GET_PTS_DEVICE_BY_ID_FAILURE":
       return {
         ...state,
         error: action.payload,
+        loading: false,
+      };
+    case CLEAR_DEVICE_CONNECTIONS:
+      return {
+        ...state,
+        deviceConnections: {},
+        loading: false,
       };
 
     default:

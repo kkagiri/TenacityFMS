@@ -4,6 +4,7 @@ import Button from "devextreme-react/button";
 
 import DeviceStatusIndicator from "../deviceStatus/deviceStatusIndicator";
 import UserPanel from "../user-panel/UserPanel";
+import NotificationCenter from "../notifications/NotificationCenter";
 import "./Header.scss";
 import { Template } from "devextreme-react/core/template";
 
@@ -35,7 +36,17 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
         <Item
           location={"after"}
           locateInMenu={"auto"}
-          menuItemTemplate={"userPanelTemplate"}
+          cssClass={"notification-item"}
+        >
+          <div className="header-notification-wrapper">
+            <NotificationCenter />
+          </div>
+        </Item>
+
+        <Item
+          location={"after"}
+          locateInMenu={"auto"}
+          cssClass={"user-panel-item"}
         >
           <Button
             className={"user-button authorization"}
