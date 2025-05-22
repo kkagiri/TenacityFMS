@@ -45,7 +45,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                     return new FMSResponseMessage (false, "Refill amount must be greater than zero");
                 }
 
-                var vehicle = await _context.Vehicles.FirstOrDefaultAsync (v => v.Id == request.VehicleId, cancellationToken);
+                var vehicle = await _context.Vehicles.FirstOrDefaultAsync (v => v.VehicleId == request.VehicleId, cancellationToken);
                 if (vehicle == null) {
                     return new FMSResponseMessage (false, $"Vehicle with ID {request.VehicleId} not found");
                 }
@@ -56,16 +56,16 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                 }
 
                 // Create new fuel refill
-                var fuelRefill = new FuelRefill {
+                var fuelRefill = new Fuelrefil {
                     VehicleId = request.VehicleId,
                     TankId = request.TankId,
-                    RefillDate = request.RefillDate,
-                    Amount = request.Amount,
-                    CreatedOn = DateTime.UtcNow,
+                    Date = request.RefillDate,
+                    ManualFuelrefilAmount = request.Amount,
+                    DateCreated = DateTime.UtcNow,
                     CreatedBy = request.UserId
                 };
 
-                _context.FuelRefills.Add (fuelRefill);
+                _context.Fuelrefils.Add (fuelRefill);
                 await _context.SaveChangesAsync (cancellationToken);
 
                 // After saving the fuel refill, update tank volume history
@@ -122,16 +122,16 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                     return new FMSResponseMessage (false, "Refill amount must be greater than zero");
                 }
 
-                var fuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+                var fuelRefill = await _context.Fuelrefils.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
                 if (fuelRefill == null) {
                     return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
                 }
 
                 // Update fuel refill
-                fuelRefill.RefillDate = request.RefillDate;
-                fuelRefill.Amount = request.NewAmount;
-                fuelRefill.UpdatedOn = DateTime.UtcNow;
-                fuelRefill.UpdatedBy = request.UserId;
+                fuelRefill.Date = request.RefillDate;
+                fuelRefill.ManualFuelrefilAmount = request.NewAmount;
+                fuelRefill.DateModified = DateTime.UtcNow;
+                fuelRefill.ModifiedBy = request.UserId;
 
                 await _context.SaveChangesAsync (cancellationToken);
 
@@ -186,12 +186,12 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
 
         public async Task<FMSResponseMessage> Handle (DeleteSampleFuelRefillCommand request, CancellationToken cancellationToken) {
             try {
-                var fuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+                var fuelRefill = await _context.Fuelrefils.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
                 if (fuelRefill == null) {
                     return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
                 }
 
-                _context.FuelRefills.Remove (fuelRefill);
+                _context.Fuelrefils.Remove (fuelRefill);
                 await _context.SaveChangesAsync (cancellationToken);
 
                 // When deleting a fuel refill, we need to update the tank volume history

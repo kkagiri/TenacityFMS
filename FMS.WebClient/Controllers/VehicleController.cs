@@ -195,9 +195,10 @@ namespace FMS.WebClient.Controllers {
 
             // Add the user ID to the vehicle DTO
             vehicleDTO.ModifiedBy = userIdClaim.Value;
+            vehicleDTO.VehicleId = id; // Make sure the ID is set correctly
 
             // Create and send the command
-            var command = new UpdateSingleVehicleCommand (id, vehicleDTO);
+            var command = new UpdateSingleVehicleCommand (vehicleDTO); //Cursor
             var result = await _mediator.Send (command);
 
             if (result.Success) {
@@ -223,7 +224,10 @@ namespace FMS.WebClient.Controllers {
 
             if (userIdClaim == null) return BadRequest ("Invalid User ID");
 
-            var command = new DeleteVehicleCommand (id, userIdClaim.Value);
+            // Add a log entry before deleting
+            // Note: userIdClaim.Value would be used for auditing purposes
+
+            var command = new DeleteVehicleCommand (id); //Cursor
             var result = await _mediator.Send (command);
 
             if (result.Success) {
