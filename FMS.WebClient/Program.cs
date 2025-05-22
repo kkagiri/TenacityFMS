@@ -425,10 +425,13 @@ public class Program
                     builder =>
                     {
                         builder
-                            .WithOrigins("http://localhost:3000") // Specify exact origin
+                            .WithOrigins(
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000"
+                            ) // Added both localhost and 127.0.0.1
                             .AllowAnyHeader()
                             .AllowAnyMethod()
-                            .AllowCredentials();
+                            .AllowCredentials(); // Now we can use credentials
                     }
                 );
 
@@ -444,7 +447,7 @@ public class Program
                                 "https://197.254.33.227",
                                 "http://localhost",
                                 "https://localhost",
-                                "http://localhost:3000/",
+                                "http://localhost:3000",
                                 "http://10.0.10.153:3000",
                                 "http://10.0.11.90:3000"
                             )
@@ -519,18 +522,13 @@ public class Program
 
     static void ConfigureApp(WebApplication app, IWebHostEnvironment env)
     {
-        app.UseRouting();
-
+        // Register development exception page first
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
-            app.UseCors("DevelopmentCorsPolicy");
-        }
-        else
-        {
-            app.UseCors("ProductionCorsPolicy");
         }
 
+        // First middleware in the pipeline
         app.Use(
             async (context, next) =>
             {
@@ -540,14 +538,53 @@ public class Program
                 Console.WriteLine($"Response Status Code: {context.Response.StatusCode}");
             }
         );
-        //app.UseHttpsRedirection();
-        app.UseMiddleware<UserActivityMiddleware>();
 
+        // Application middleware order is critical:
+        // 1. Use routing first
+        app.UseRouting();
+
+        // 2. Use CORS after routing but before auth
+        if (env.IsDevelopment())
+        {
+            app.UseCors("DevelopmentCorsPolicy");
+        }
+        else
+        {
+            app.UseCors("ProductionCorsPolicy");
+        }
+
+        // 3. Add CORS error handling middleware
+        app.Use(async (context, next) =>
+        {
+            // Process the request
+            await next();
+
+            // Add CORS headers for error responses
+            if (context.Response.StatusCode >= 400)
+            {
+                if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+                {
+                    context.Response.Headers.Append("Access-Control-Allow-Origin",
+                        context.Request.Headers["Origin"].ToString());
+                    context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+                    context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+                    context.Response.Headers.Append("Access-Control-Allow-Methods", "*");
+                }
+            }
+        });
+
+        //app.UseHttpsRedirection();
+
+        // 4. Authentication and Authorization come after CORS
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // 5. Add user activity logging *after* authentication so it has access to user info
+        app.UseUserActivity(); // Use the extension method instead of UseMiddleware
+
         //app.UseDevExpressControls();
 
+        // 6. Finally set up endpoints
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();

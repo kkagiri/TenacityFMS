@@ -81,9 +81,8 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(e => e.ModifiedBy)
                     .OnDelete(DeleteBehavior.Restrict);
 
-
-
-
+                // Many-to-many relationship is configured in EmployeeVehicleConfiguration
+                // No need to duplicate it here
             }
             catch (Exception ex)
             {

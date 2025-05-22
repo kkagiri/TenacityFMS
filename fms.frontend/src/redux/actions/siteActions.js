@@ -14,6 +14,8 @@ export const fetchSitesFailure = (error) => ({
   payload: error
 });
 
+
+
 // Thunk action for fetching sites
 export const fetchSiteList = () => async (dispatch) => {
   try {

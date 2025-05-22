@@ -91,6 +91,8 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
         public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeDto employeeDto)
         {
             var hasPermission = User.HasClaim("permissions", "_editEmployee");

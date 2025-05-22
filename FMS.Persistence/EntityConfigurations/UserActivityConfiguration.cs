@@ -32,11 +32,12 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.Controller).HasMaxLength(255);
                 builder.Property(e => e.Parameters).HasColumnType("text");
                 builder.Property(e => e.UserId).HasMaxLength(100);
+                builder.Property(e => e.IpAddress).HasMaxLength(45);
 
-                // Relationships
+              // Relationships
                 builder.HasOne(d => d.User).WithMany(p => p.UserActivities)
                     .HasForeignKey(d => d.UserId)
-                    .HasConstraintName("FK_UserActivity_User");
+                    .HasConstraintName("user_activity_user_fk");
             }
 
 

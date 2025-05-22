@@ -41,8 +41,15 @@ namespace FMS.Application.ModelsDTOs.FMS.Vehicle
 
         public int? DefaultExptdAvgid { get; set; }
 
-        [JsonIgnore]
+        // Added fields for tracking
+        public DateTime? DateCreated { get; set; }
+        public DateTime? DateModified { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? ModifiedBy { get; set; }
+        public bool? IsCompanyVehicle { get; set; }
+        public bool? IsActive { get; set; }
 
+        [JsonIgnore]
         public string ExpectedAverageclassificationName { get; set; } = null!;
 
         [JsonIgnore]

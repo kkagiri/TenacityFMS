@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasKey(e => new { e.VehicleId, e.EmployeeId })
                     .HasName("PRIMARY");
 
-                builder.HasIndex(e => e.EmployeeId, "EmployeeID_idx").IsUnique();
+                builder.HasIndex(e => e.EmployeeId, "EmployeeID_idx");
 
                 builder.Property(e => e.EmployeeId)
           .HasColumnType("int(11)")
