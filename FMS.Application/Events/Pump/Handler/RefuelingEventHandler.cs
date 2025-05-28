@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Queries.Database.FMSQuery.TagQueries;
+using FMS.Application.Services; //Cursor: Add for ITransactionMonitoringService
 using FMS.Domain.Entities.PTS.Enums;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -15,15 +16,18 @@ namespace FMS.Application.Events.Pump.Handler {
         private readonly ILogger<RefuelingEventHandler> _logger;
         private readonly IAuthorizationStateTracker _authTracker;
         private readonly IDatabase _redisDb; //Cursor
+        private readonly ITransactionMonitoringService _transactionMonitoringService; //Cursor: Add for enhanced monitoring
 
         public RefuelingEventHandler (
             IMediator mediator,
             IAuthorizationStateTracker authTracker,
             IConnectionMultiplexer redisConnection, //Cursor
+            ITransactionMonitoringService transactionMonitoringService, //Cursor: Add for enhanced monitoring
             ILogger<RefuelingEventHandler> logger) {
             _mediator = mediator;
             _authTracker = authTracker;
             _redisDb = redisConnection?.GetDatabase (); //Cursor
+            _transactionMonitoringService = transactionMonitoringService; //Cursor: Add for enhanced monitoring
             _logger = logger;
         }
 
@@ -56,6 +60,10 @@ namespace FMS.Application.Events.Pump.Handler {
 
                 _logger.LogInformation ("Pump state changed for device {DeviceId}, pump {PumpId}, Nozzle {NozzleId}, state {State}", notification.DeviceId, notification.PumpId, nozzleIdToUpdate, notification.State);
 
+                //Cursor: Get the current authorization state to check for active transactions
+                var currentAuthState = await _authTracker.GetAuthorizationState (notification.DeviceId, nozzleIdToUpdate);
+                var transactionId = currentAuthState?.TransactionId ?? 0;
+
                 if (nozzleIdToUpdate > 0) {
                     string newStatusForAuth = notification.State?.ToUpperInvariant () switch {
                         "IDLE" => "Idle",
@@ -66,9 +74,30 @@ namespace FMS.Application.Events.Pump.Handler {
                         _ => notification.State
                     };
 
-                    var currentAuthState = await _authTracker.GetAuthorizationState (notification.DeviceId, nozzleIdToUpdate);
                     if (currentAuthState != null) {
                         await _authTracker.UpdateAuthState (notification.DeviceId, nozzleIdToUpdate, newStatusForAuth);
+
+                        //Cursor: Update transaction monitoring progress
+                        if (transactionId > 0) {
+                            await _transactionMonitoringService.UpdateTransactionProgress (
+                                notification.DeviceId,
+                                notification.PumpId,
+                                transactionId,
+                                newStatusForAuth);
+
+                            //Cursor: Validate that the expected transaction is actually executing
+                            if (newStatusForAuth == "InProgress") {
+                                var isValidTransaction = await _transactionMonitoringService.ValidateTransactionExecution (
+                                    notification.DeviceId,
+                                    notification.PumpId,
+                                    transactionId);
+
+                                if (!isValidTransaction) {
+                                    _logger.LogWarning ("[Monitor] Transaction validation failed for Device {DeviceId}, Pump {PumpId}, Expected Transaction {TransactionId}",
+                                        notification.DeviceId, notification.PumpId, transactionId);
+                                }
+                            }
+                        }
                     } else {
                         _logger.LogInformation ("No active AuthState found for Device {DeviceId}, Nozzle {NozzleId} during PumpStateChangeEvent to {State}. No state updated.",
                             notification.DeviceId, nozzleIdToUpdate, notification.State);
@@ -79,6 +108,11 @@ namespace FMS.Application.Events.Pump.Handler {
                         case "OFFLINE":
                             await _authTracker.ClearAuthorization (notification.DeviceId, nozzleIdToUpdate);
                             _logger.LogInformation ("Auth cleared for Device {DeviceId}, Nozzle {NozzleId} due to state: {State}", notification.DeviceId, nozzleIdToUpdate, notification.State);
+
+                            //Cursor: Stop monitoring when transaction completes or pump goes offline
+                            if (transactionId > 0) {
+                                await _transactionMonitoringService.StopMonitoringTransaction (notification.DeviceId, transactionId);
+                            }
                             break;
                     }
                 }

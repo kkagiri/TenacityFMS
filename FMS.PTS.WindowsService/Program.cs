@@ -2,6 +2,7 @@ using System.Reflection;
 using AutoMapper;
 using FMS.Application;
 using FMS.Application.Command.DatabaseCommand.Common;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Command.PTSCommand.Common;
 using FMS.Application.Command.PTSCommand.UploadStatusCommands;
 using FMS.Application.Communication;
@@ -11,8 +12,9 @@ using FMS.Application.Handlers;
 using FMS.Application.Handlers.Common;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.PTSServices.Configuration;
+// using FMS.Application.PTSServices.Configuration; // Cursor - Commented out missing namespace
 using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Services;
 using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
@@ -319,6 +321,18 @@ namespace FMS.PTS.WindowsService {
             // Register RedisCommandService if it's not already registered.
             services.AddScoped<RedisCommandService> ();
 
+            //Cursor: Register RedisPTSCommandProcessor hosted service to start Redis subscriptions
+            services.AddHostedService<RedisPTSCommandProcessorHostedService> ();
+
+            // Register missing services causing dependency injection errors
+            services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService> (); //Cursor
+            services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
+            services.AddScoped<ITransactionCompletionService, TransactionCompletionService> (); //Cursor
+
+            //Cursor: Register AutoTransactionCompletionService and DirectHttpTransactionService
+            services.AddScoped<IAutoTransactionCompletionService, AutoTransactionCompletionService> (); //Cursor
+            services.AddScoped<IDirectHttpTransactionService, DirectHttpTransactionService> (); //Cursor
+
             // Existing registrations
             services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> ();
 
@@ -341,7 +355,6 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker> ();
             services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService> ();
             services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
-            services.AddScoped<IConfigurationService, ConfigurationService> ();
             services.AddScoped<IPumpService, PumpService> ();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator> ();
             services.AddScoped<IDeviceCommunicationService, DeviceCommunicationService> ();
@@ -349,6 +362,8 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<IDeviceValidator, DeviceValidator> ();
             services.AddScoped<UserManager<User>> ();
             services.AddScoped<ICommandExecutor, CommandExecutor> ();
+            //Cursor on changes to code
+            services.AddScoped<IStaleConnectionDetectionService, StaleConnectionDetectionService> ();
 
             services.AddTransient<RoleManager<Role>> ();
             services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));

@@ -88,14 +88,8 @@ namespace FMS.Application.Queries.Database.PTSQueries.TagQueries {
                 var startOfDay = request.Date.Date;
                 var endOfDay = startOfDay.AddDays (1);
 
-                // Get tags associated with the vehicle
-                var vehicleTags = await _context.Tags
-                    .Where (t => t.VehicleId == request.VehicleId)
-                    .Select (t => t.Name)
-                    .ToListAsync (cancellationToken);
-
                 var dailyFuelIssuedAutomatically = await _context.Pumptransactions
-                    .Where (pt => vehicleTags.Contains (pt.Tag) && pt.DateTime >= startOfDay && pt.DateTime <= endOfDay)
+                    .Where (pt => pt.VehicleId == request.VehicleId && pt.DateTime >= startOfDay && pt.DateTime <= endOfDay)
                     .SumAsync (pt => pt.Amount ?? 0m, cancellationToken);
 
                 var dailyFuelIssuedManually = await _context.Fuelrefils
@@ -123,14 +117,8 @@ namespace FMS.Application.Queries.Database.PTSQueries.TagQueries {
                 var startOfMonth = new DateTime (request.Date.Year, request.Date.Month, 1);
                 var endOfMonth = startOfMonth.AddMonths (1);
 
-                // Get tags associated with the vehicle
-                var vehicleTags = await _context.Tags
-                    .Where (t => t.VehicleId == request.VehicleId)
-                    .Select (t => t.Name)
-                    .ToListAsync (cancellationToken);
-
                 var monthlyFuelIssuedAutomatically = await _context.Pumptransactions
-                    .Where (pt => vehicleTags.Contains (pt.Tag) && pt.DateTime >= startOfMonth && pt.DateTime < endOfMonth)
+                    .Where (pt => pt.VehicleId == request.VehicleId && pt.DateTime >= startOfMonth && pt.DateTime < endOfMonth)
                     .SumAsync (pt => pt.Amount ?? 0m, cancellationToken);
 
                 var monthlyFuelIssuedManually = await _context.Fuelrefils

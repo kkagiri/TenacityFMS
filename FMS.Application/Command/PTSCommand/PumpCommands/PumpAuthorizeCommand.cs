@@ -1,6 +1,10 @@
 ﻿/// <summary>
 /// Handles pump authorization requests from the frontend/UI. Validates the request, checks and sets authorization state using AuthorizationStateTracker,
 /// and calls the pump service to authorize the pump. This is the main entry point for UI-driven fueling operations.
+///
+/// TRANSACTION ID STRATEGY: This handler lets PTS devices generate their own transaction IDs instead of generating them locally.
+/// This prevents transaction ID conflicts, out-of-range errors, and ensures unique IDs across application restarts.
+/// The PTS device maintains its own transaction counter and returns the assigned ID in the PumpAuthorizeConfirmation.
 /// </summary>
 using System;
 using System.Collections.Generic;
@@ -10,20 +14,24 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Communication; //Cursor: Add for DeviceConnectionTracker
 using FMS.Application.Helpers;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Queries.Database.FMSQuery.TagQueries;
+using FMS.Application.Services; //Cursor: Add for ITransactionMonitoringService
+using FMS.Domain.Entities; //Cursor: Add for Ptsdevice entity
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis; //Cursor
 
 namespace FMS.Application.Command.PTSCommand.PumpCommands {
-    public record PumpAuthorizeCommand : IRequest<FMSResponseMessage<PumpAuthorizeConfirmation>> {
+    public record PumpAuthorizeCommand : IRequest<FMSResponse<PumpAuthorizeConfirmation>> {
 
         public string? DeviceId { get; set; }
         public int PumpId { get; set; } = 0;
@@ -36,16 +44,17 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
         public bool PriceEnabled { get; set; }
         public PumpAuthorizeType Type { get; set; }
         public bool AutoCloseTransaction { get; set; }
-        public bool TransactionEnabled { get; set; }
-        public int Transaction { get; set; }
         public string? Tag { get; set; }
         public int? TankId { get; set; }
 
         public int? VehicleId { get; set; }
 
+        // Cursor: User ID from controller for auto-assign master tag feature
+        public string? UserId { get; set; }
+
     }
 
-    public class PumpAuthorizeCommandHandler : IRequestHandler<PumpAuthorizeCommand, FMSResponseMessage<PumpAuthorizeConfirmation>> {
+    public class PumpAuthorizeCommandHandler : IRequestHandler<PumpAuthorizeCommand, FMSResponse<PumpAuthorizeConfirmation>> {
 
         private readonly GpsdataContext _context;
         private readonly ILogger<PumpAuthorizeCommandHandler> _logger;
@@ -54,6 +63,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
         private readonly IPumpService _pumpService;
         private readonly IDatabase _redisDb; //Cursor
+        private readonly DeviceConnectionTracker _deviceConnectionTracker; //Cursor: Add device connection tracker
+        private readonly ITransactionMonitoringService _transactionMonitoringService; //Cursor: Add for ITransactionMonitoringService
 
         public PumpAuthorizeCommandHandler (
             IAuthorizationStateTracker authstatetracker,
@@ -61,16 +72,20 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
             GpsdataContext context,
             IPumpService pumpService,
             IConnectionMultiplexer redisConnection, //Cursor
+            DeviceConnectionTracker deviceConnectionTracker, //Cursor: Add device connection tracker
+            ITransactionMonitoringService transactionMonitoringService, //Cursor: Add for ITransactionMonitoringService
             ILogger<PumpAuthorizeCommandHandler> logger) {
             _authTracker = authstatetracker;
             _mediator = mediator;
             _context = context;
             _pumpService = pumpService;
             _redisDb = redisConnection.GetDatabase (); //Cursor
+            _deviceConnectionTracker = deviceConnectionTracker; //Cursor: Add device connection tracker
+            _transactionMonitoringService = transactionMonitoringService; //Cursor: Add for ITransactionMonitoringService
             _logger = logger;
         }
 
-        public async Task<FMSResponseMessage<PumpAuthorizeConfirmation>> Handle (PumpAuthorizeCommand request, CancellationToken cancellationToken) {
+        public async Task<FMSResponse<PumpAuthorizeConfirmation>> Handle (PumpAuthorizeCommand request, CancellationToken cancellationToken) {
             try {
 
                 // Determine NozzleOrFuelIdSelector based on provided inputs
@@ -88,9 +103,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                 }
 
                 //1. validate Request
-                if (!await ValidateRequest (request)) {
-                    _logger.LogError ("Invalid request for authorizing pump {PumpId} for device {DeviceId}", request.PumpId, request.DeviceId);
-                    return new FMSResponseMessage<PumpAuthorizeConfirmation> (false, "Invalid request", null!);
+                var validationResult = await ValidateRequest (request);
+                if (!validationResult.IsSuccess) {
+                    //Cursor: Return proper FMSResponse with ValidationErrors instead of concatenated message
+                    _logger.LogError ("Validation failed for authorizing pump {PumpId} for device {DeviceId}: {ValidationErrors}",
+                        request.PumpId, request.DeviceId, string.Join ("; ", validationResult.ValidationErrors));
+                    return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed (validationResult.ValidationErrors);
                 }
 
                 //2. check if alread authorized
@@ -108,7 +126,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
                 if (nozzleToCheck > 0 && await _authTracker.IsAuthorized (request.DeviceId!, nozzleToCheck)) {
                     _logger.LogInformation ("Pump {PumpId} already authorized for device {DeviceId}", request.PumpId, request.DeviceId);
-                    return new FMSResponseMessage<PumpAuthorizeConfirmation> (true, "Pump already authorized", null!);
+                    return FMSResponse<PumpAuthorizeConfirmation>.Success (null!, "Pump already authorized");
                 }
 
                 //3. Aunthicate the tag if Provide
@@ -122,7 +140,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
                     if (tagAuthentication == null || !tagAuthentication.IsAuthenticated) {
                         _logger.LogInformation ("Tag read ignored - tag not authenticated for device {DeviceId}, pump {PumpId}", request.DeviceId, request.PumpId);
-                        return new FMSResponseMessage<PumpAuthorizeConfirmation> (false, "Tag not authenticated", null!);
+                        return FMSResponse<PumpAuthorizeConfirmation>.Failed ("Tag not authenticated");
                     }
 
                     //use the tag dose limit if not provided, or use the lower value if both are provided
@@ -136,6 +154,117 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                     }
                 }
 
+                // Cursor: Auto-assign user master tag if vehicle-only and feature enabled on device
+                // Get device configuration for auto-assign setting
+                var device = await _context.Ptsdevices.FirstOrDefaultAsync (d => d.Ptsid == request.DeviceId);
+                bool deviceAutoAssignEnabled = device?.AutoAssignUserMasterTag == 1;
+
+                if (deviceAutoAssignEnabled &&
+                    request.VehicleId.HasValue &&
+                    string.IsNullOrEmpty (request.Tag) &&
+                    !string.IsNullOrEmpty (request.UserId)) {
+
+                    try {
+                        var user = await _context.Users
+                            .Include (u => u.MasterTags)
+                            .FirstOrDefaultAsync (u => u.Id == request.UserId, cancellationToken);
+
+                        if (user?.MasterRFIDTag.HasValue == true) {
+                            var masterTag = await _context.Tags
+                                .FirstOrDefaultAsync (t => t.Id == user.MasterRFIDTag.Value, cancellationToken);
+
+                            if (masterTag != null && masterTag.IsMaster == 1) {
+                                request = request with { Tag = masterTag.Name };
+                                _logger.LogInformation ("Auto-assigned user master tag {TagName} for vehicle-only authorization by user {UserId} on device {DeviceId} (device setting enabled)",
+                                    masterTag.Name, request.UserId, request.DeviceId);
+
+                                //Cursor: Re-authenticate the auto-assigned master tag to get dose limits
+                                tagAuthentication = await _mediator.Send (new AuthenticateTagQuery (masterTag.Name), cancellationToken);
+
+                                if (tagAuthentication == null || !tagAuthentication.IsAuthenticated) {
+                                    _logger.LogWarning ("Auto-assigned master tag {TagName} authentication failed for user {UserId} on device {DeviceId}",
+                                        masterTag.Name, request.UserId, request.DeviceId);
+                                    return FMSResponse<PumpAuthorizeConfirmation>.Failed ("Auto-assigned master tag not authenticated");
+                                }
+
+                                //Cursor: Set dose from auto-assigned tag if not already provided
+                                if (!request.Dose.HasValue) {
+                                    request = request with { Dose = (double) tagAuthentication.dose };
+                                    _logger.LogInformation ("Set dose from auto-assigned master tag: {Dose} liters for device {DeviceId}, pump {PumpId}",
+                                        tagAuthentication.dose, request.DeviceId, request.PumpId);
+                                }
+                            } else {
+                                _logger.LogWarning ("User {UserId} does not have a valid master tag assigned for device {DeviceId}", request.UserId, request.DeviceId);
+                            }
+                        } else {
+                            _logger.LogWarning ("User {UserId} does not have a master tag assigned for device {DeviceId}", request.UserId, request.DeviceId);
+                        }
+                    } catch (Exception ex) {
+                        _logger.LogError (ex, "Error auto-assigning master tag for user {UserId} on device {DeviceId}", request.UserId, request.DeviceId);
+                        // Continue without auto-assignment - let validation handle the missing tag
+                    }
+                } else if (request.VehicleId.HasValue && string.IsNullOrEmpty (request.Tag)) {
+                    // Log when auto-assign is not enabled but could be useful
+                    _logger.LogInformation ("Vehicle-only authorization attempted on device {DeviceId}, but auto-assign master tag feature is disabled for this device", request.DeviceId);
+                }
+
+                //Cursor: 4. Validate vehicle fuel limits if VehicleId is provided (after tag authentication and auto-assignment)
+                VehicleValidationResultDTO vehicleValidation = null;
+                if (request.VehicleId.HasValue) {
+                    try {
+                        vehicleValidation = await _mediator.Send (new ValidateVehicleQuery (request.VehicleId.Value, request.Dose), cancellationToken);
+
+                        if (vehicleValidation == null || !vehicleValidation.IsValid) {
+                            var errorMessage = vehicleValidation?.Message ?? "Vehicle validation failed";
+                            _logger.LogWarning ("Vehicle validation failed for VehicleId {VehicleId}: {Message}",
+                                request.VehicleId.Value, errorMessage);
+                            return FMSResponse<PumpAuthorizeConfirmation>.Failed ($"Vehicle validation failed: {errorMessage}");
+                        }
+
+                        _logger.LogInformation ("Vehicle {VehicleId} validation passed. Daily: {DailyUsed}/{DailyLimit}, Monthly: {MonthlyUsed}/{MonthlyLimit}",
+                            request.VehicleId.Value,
+                            vehicleValidation.VehicleInfo.DailyUsed, vehicleValidation.VehicleInfo.DailyLimit,
+                            vehicleValidation.VehicleInfo.MonthlyUsed, vehicleValidation.VehicleInfo.MonthlyLimit);
+
+                    } catch (Exception ex) {
+                        _logger.LogError (ex, "Error during vehicle validation for VehicleId {VehicleId}", request.VehicleId.Value);
+                        return FMSResponse<PumpAuthorizeConfirmation>.Failed ("Error during vehicle validation");
+                    }
+                }
+
+                //Cursor: 5. Calculate final dose considering both tag and vehicle limits
+                if (request.VehicleId.HasValue && vehicleValidation != null && vehicleValidation.IsValid) {
+                    // Calculate remaining daily and monthly vehicle limits
+                    var vehicleInfo = vehicleValidation.VehicleInfo;
+                    var vehicleDailyRemaining = vehicleInfo.DailyLimit - vehicleInfo.DailyUsed;
+                    var vehicleMonthlyRemaining = vehicleInfo.MonthlyLimit - vehicleInfo.MonthlyUsed;
+                    var vehicleLowestRemaining = Math.Min (vehicleDailyRemaining, vehicleMonthlyRemaining);
+
+                    // If we have both tag and vehicle limits, use the lower value for safety
+                    if (request.Dose.HasValue && vehicleLowestRemaining > 0) {
+                        var originalDose = request.Dose.Value;
+                        var safeDose = Math.Min (originalDose, (double) vehicleLowestRemaining);
+
+                        if (safeDose < originalDose) {
+                            request = request with { Dose = safeDose };
+                            _logger.LogInformation ("Limiting dose to vehicle limit: {VehicleLimit} (tag/original: {OriginalDose}) for vehicle {VehicleId} on device {DeviceId}, pump {PumpId}",
+                                safeDose, originalDose, request.VehicleId.Value, request.DeviceId, request.PumpId);
+                        }
+                    }
+                    // If no tag dose but vehicle limits exist, use vehicle remaining as dose
+                    else if (!request.Dose.HasValue && vehicleLowestRemaining > 0) {
+                        request = request with { Dose = (double) vehicleLowestRemaining };
+                        _logger.LogInformation ("Set dose from vehicle remaining limit: {VehicleRemaining} liters for vehicle {VehicleId} on device {DeviceId}, pump {PumpId}",
+                            vehicleLowestRemaining, request.VehicleId.Value, request.DeviceId, request.PumpId);
+                    }
+                }
+
+                // Cursor: **TRANSACTION ID STRATEGY**: We let the PTS device generate transaction IDs
+                // instead of generating them locally. This prevents issues with:
+                // 1. Transaction ID conflicts when the application restarts
+                // 2. Out-of-range errors when local counter gets out of sync with device
+                // 3. Duplicate transaction IDs across multiple application instances
+                // The PTS device maintains its own transaction counter and returns the assigned ID.
                 var pumpAuthorizeData = new PumpAuthorizeData {
                     Pump = request.PumpId,
                     NozzleOrFuelIdSelector = request.NozzleOrFuelIdSelector,
@@ -146,17 +275,22 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                     Type = request.Type,
                     Dose = request.Dose ?? 0,
                     AutoCloseTransaction = request.AutoCloseTransaction,
-                    TransactionEnabled = request.TransactionEnabled,
-                    Transaction = PacketIdGenerator.GetNextId (),
+                    TransactionEnabled = false, //Cursor: Let PTS device generate transaction ID
                     Tag = request.Tag,
-
                 };
+
+                _logger.LogInformation ("**PTS TRANSACTION GENERATION** - Authorizing pump {PumpId} on device {DeviceId}, letting PTS device assign transaction ID",
+                    request.PumpId, request.DeviceId);
 
                 var confirmation = await _pumpService.PumpAuthorizeAsync (request.DeviceId!, pumpAuthorizeData);
 
                 //log the confirmation
                 if (confirmation != null) {
-                    _logger.LogInformation ("Pump {PumpId} authorized successfully for device {DeviceId}. Transaction: {TransactionId}", request.PumpId, request.DeviceId, confirmation.Transaction);
+                    _logger.LogInformation ("**PTS TRANSACTION ASSIGNED** - Pump {PumpId} authorized successfully for device {DeviceId}. PTS device assigned transaction ID: {TransactionId}",
+                        request.PumpId, request.DeviceId, confirmation.Transaction);
+
+                    // Cursor: Get the device connection type to store with transaction context
+                    var connectionType = await GetDeviceConnectionType (request.DeviceId!);
 
                     var authState = new AuthState {
                         DeviceId = request.DeviceId!,
@@ -172,17 +306,28 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
                     await _authTracker.SetAuthorized (request.DeviceId!, request.Nozzle, authState);
 
-                    //Cursor: Store transaction context in Redis for later correlation
-                    await StoreTransactionContextInRedis (request.DeviceId!, confirmation.Transaction, request.TankId, request.VehicleId);
+                    //Cursor: Store transaction context in Redis for later correlation with connection type
+                    await StoreTransactionContextInRedis (request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, request.AutoCloseTransaction);
 
-                    return new FMSResponseMessage<PumpAuthorizeConfirmation> (true, "Pump authorized", confirmation);
+                    //Cursor: Start monitoring the transaction after successful authorization
+                    await _transactionMonitoringService.StartMonitoringTransaction (request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
+
+                    return FMSResponse<PumpAuthorizeConfirmation>.Success (confirmation, "Pump authorized");
                 }
 
-                return new FMSResponseMessage<PumpAuthorizeConfirmation> (false, "Pump not authorized", null!);
+                return FMSResponse<PumpAuthorizeConfirmation>.Failed ("Pump not authorized");
             } catch (PTSDeviceException ex) {
-                _logger.LogError (ex, "PTS device error while authorizing pump {PumpId} for device {DeviceId}",
-                    request.PumpId, request.DeviceId);
-                return new FMSResponseMessage<PumpAuthorizeConfirmation> (false, ex.Message, null!);
+                _logger.LogError (ex, "PTS device error while authorizing pump {PumpId} for device {DeviceId}. Error type: {ErrorType}",
+                    request.PumpId, request.DeviceId, ex.ErrorType);
+
+                // Return appropriate response based on error type
+                return ex.ErrorType
+                switch {
+                    ErrorType.SystemError => FMSResponse<PumpAuthorizeConfirmation>.SystemError (ex.Message),
+                        ErrorType.Network => FMSResponse<PumpAuthorizeConfirmation>.NetworkError (ex.Message),
+                        ErrorType.DeviceError => FMSResponse<PumpAuthorizeConfirmation>.DeviceError (ex.Message),
+                        _ => FMSResponse<PumpAuthorizeConfirmation>.Failed (ex.Message)
+                };
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error while authorizing pump {PumpId} for device {DeviceId}",
                     request.PumpId, request.DeviceId);
@@ -190,15 +335,19 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
             }
         }
 
-        //Cursor: New method to store transaction context in Redis
-        private async Task StoreTransactionContextInRedis (string deviceId, int transactionId, int? tankId, int? vehicleId) {
+        //Cursor: Enhanced method to store transaction context in Redis with complete data
+        private async Task StoreTransactionContextInRedis (string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction) {
             try {
                 var transactionContext = new {
                     DeviceId = deviceId,
                     TransactionId = transactionId,
+                    PumpId = pumpId, //Cursor: Add missing PumpId for proper correlation
                     TankId = tankId,
                     VehicleId = vehicleId,
-                    AuthorizedAt = DateTime.UtcNow
+                    AuthorizedAt = DateTime.UtcNow,
+                    ConnectionType = connectionType,
+                    AutoCloseTransaction = autoCloseTransaction,
+                    StartTime = DateTime.UtcNow //Cursor: Add start time for timeout detection
                 };
 
                 var redisKey = $"device:{deviceId}:transaction:{transactionId}";
@@ -207,29 +356,168 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                 // Store with 24 hour expiry to ensure it doesn't stay forever if transaction never completes
                 await _redisDb.StringSetAsync (redisKey, contextJson, expiry : TimeSpan.FromHours (24));
 
-                _logger.LogInformation ("Stored transaction context in Redis for device {DeviceId}, transaction {TransactionId}",
-                    deviceId, transactionId);
+                _logger.LogInformation ("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, connection: {ConnectionType}",
+                    deviceId, pumpId, transactionId, vehicleId, tankId, connectionType);
             } catch (Exception ex) {
-                _logger.LogError (ex, "Error storing transaction context in Redis for device {DeviceId}, transaction {TransactionId}",
+                _logger.LogError (ex, "**CONTEXT ERROR** - Error storing transaction context in Redis for device {DeviceId}, transaction {TransactionId}",
                     deviceId, transactionId);
                 // Don't rethrow - we still want to continue even if Redis storage fails
             }
         }
 
-        //TODO: change this to use FluentValidation
+        //Cursor: New method to determine device connection type
+        private async Task<string> GetDeviceConnectionType (string deviceId) {
+            try {
+                // Get WebSocket and HTTP connection info from the device tracker
+                var wsConnection = await _deviceConnectionTracker.GetWebSocketConnection (deviceId);
+                var httpConnection = await _deviceConnectionTracker.GetHttpConnection (deviceId);
 
-        private async Task<bool> ValidateRequest (PumpAuthorizeCommand request) {
-            if (string.IsNullOrEmpty (request.DeviceId)) return false;
-            //validate if tankID and VehicleId provide are available in _context
-            if (request.TankId.HasValue && !_context.Tanks.Any (t => t.Id == request.TankId.Value)) return false;
-            if (request.VehicleId.HasValue && !_context.Vehicles.Any (v => v.VehicleId == request.VehicleId.Value)) return false;
+                // Use the static method from DeviceConnectionTracker to determine the connection mode
+                var connectionMode = DeviceConnectionTracker.DetermineConnectionMode (wsConnection, httpConnection);
 
-            if (request.PumpId <= 0 || request.PumpId > 50) return false;
+                // Convert the enum to a string for storage
+                var connectionType = connectionMode.ToString ();
 
-            if (request.Dose <= 0) return false;
-            if (request.NozzleOrFuelIdSelector == NozzleOrFuelIdSelector.NOZZLE && request.Nozzle <= 0) return false;
-            if (request.NozzleOrFuelIdSelector == NozzleOrFuelIdSelector.FUELGRADEID && request.FuelGradeId <= 0) return false;
-            return true;
+                _logger.LogInformation ("Device {DeviceId} connection type determined as: {ConnectionType}",
+                    deviceId, connectionType);
+
+                return connectionType;
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error determining connection type for device {DeviceId}. Defaulting to 'Unknown'",
+                    deviceId);
+                return "Unknown";
+            }
+        }
+
+        //Cursor: Updated to use FMSResponse for validation with support for multiple validation errors and enhanced business rules
+        private async Task<FMSResponse> ValidateRequest (PumpAuthorizeCommand request) {
+            var validationErrors = new List<string> ();
+
+            //Cursor: Basic input validation first
+            if (string.IsNullOrEmpty (request.DeviceId)) {
+                validationErrors.Add ("Device ID is required");
+            }
+
+            if (request.PumpId <= 0) {
+                validationErrors.Add ("Pump ID is required and must be greater than 0");
+            }
+
+            //Cursor: Updated pump ID range validation to be more reasonable
+            if (request.PumpId > 20) {
+                validationErrors.Add ("Invalid pump ID (must be between 1 and 20)");
+            }
+
+            if (request.VehicleId.HasValue && request.VehicleId.Value <= 0) {
+                validationErrors.Add ("Vehicle ID must be greater than 0 when provided");
+            }
+
+            if (request.TankId.HasValue && request.TankId.Value <= 0) {
+                validationErrors.Add ("Tank ID must be greater than 0 when provided");
+            }
+
+            if (request.Dose.HasValue && request.Dose.Value <= 0) {
+                validationErrors.Add ("Dose must be greater than 0 when provided");
+            }
+
+            // Get device configuration including auto-assign setting
+            Ptsdevice? device = null;
+            bool deviceAutoAssignEnabled = false;
+
+            // Validate that device exists and is authorized
+            if (!string.IsNullOrEmpty (request.DeviceId)) {
+                device = await _context.Ptsdevices.FirstOrDefaultAsync (d => d.Ptsid == request.DeviceId);
+                if (device == null) {
+                    _logger.LogWarning ("Device with ID {DeviceId} not found", request.DeviceId);
+                    validationErrors.Add ("Device not found");
+                } else if (device.IsAuthenticated == 0) {
+                    _logger.LogWarning ("Device with ID {DeviceId} is not authorized", request.DeviceId);
+                    validationErrors.Add ("Device not authorized");
+                } else {
+                    // Cursor: Get device-specific auto-assign setting
+                    deviceAutoAssignEnabled = device.AutoAssignUserMasterTag == 1;
+                }
+            }
+
+            // Cursor: Validate Tag and Vehicle combination business rules using device settings
+            bool hasTag = !string.IsNullOrEmpty (request.Tag);
+            bool hasVehicleId = request.VehicleId.HasValue && request.VehicleId.Value > 0;
+
+            // Rule 1: Either tag OR vehicleId must be provided (unless auto-assign is enabled for vehicle-only)
+            if (!hasTag && !hasVehicleId) {
+                validationErrors.Add ("Either a tag or vehicle ID must be provided for authorization");
+            }
+
+            // Rule 1.5: If vehicle-only with auto-assign enabled on device, ensure we have a user ID
+            if (!hasTag && hasVehicleId && deviceAutoAssignEnabled && string.IsNullOrEmpty (request.UserId)) {
+                validationErrors.Add ("User authentication required for auto-assign master tag feature on this device");
+            }
+
+            // Consolidated tag validation logic
+            if (hasTag) {
+                try {
+                    var tag = await _context.Tags.FirstOrDefaultAsync (t => t.Name == request.Tag);
+                    if (tag == null) {
+                        validationErrors.Add ("Tag not found in database");
+                    } else {
+                        bool isMasterTag = tag.IsMaster == 1;
+
+                        // Rule 4: If tag is master, then vehicleId must be provided
+                        if (isMasterTag && !hasVehicleId) {
+                            validationErrors.Add ("Master tag requires a vehicle ID to be specified");
+                        }
+
+                        // Rule 2: If both tag and vehicleId are provided, tag must be a master tag
+                        if (hasVehicleId && !isMasterTag) {
+                            validationErrors.Add ("When both tag and vehicle are provided, the tag must be a master tag");
+                        }
+                    }
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Error validating tag {TagName}", request.Tag);
+                    validationErrors.Add ("Error validating tag");
+                }
+            }
+
+            // Rule 3: Vehicle existence check only (fuel limits are validated in main flow after tag authentication)
+            if (hasVehicleId) {
+                try {
+                    var vehicle = await _context.Vehicles.AnyAsync (v => v.VehicleId == request.VehicleId.Value);
+                    if (!vehicle) {
+                        validationErrors.Add ("Vehicle not found in database");
+                        _logger.LogWarning ("Vehicle with ID {VehicleId} not found", request.VehicleId.Value);
+                    }
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Error checking vehicle existence for VehicleId {VehicleId}", request.VehicleId.Value);
+                    validationErrors.Add ("Error checking vehicle existence");
+                }
+            }
+
+            // Validate TankId if provided
+            if (request.TankId.HasValue) {
+                var tankExists = await _context.Tanks.AnyAsync (t => t.Id == request.TankId.Value);
+                if (!tankExists) {
+                    _logger.LogWarning ("Tank with ID {TankId} not found", request.TankId.Value);
+                    validationErrors.Add ("Tank not found");
+                }
+            }
+
+            //Cursor: Vehicle validation is now handled in main flow after tag authentication and auto-assignment
+            //Cursor: This ensures vehicle limits are properly checked with correct context
+
+            // Validate nozzle/fuel grade selection
+            if (request.NozzleOrFuelIdSelector == NozzleOrFuelIdSelector.NOZZLE && request.Nozzle <= 0) {
+                validationErrors.Add ("Nozzle must be specified when using nozzle selector");
+            }
+
+            if (request.NozzleOrFuelIdSelector == NozzleOrFuelIdSelector.FUELGRADEID && request.FuelGradeId <= 0) {
+                validationErrors.Add ("Fuel Grade ID must be specified when using fuel grade selector");
+            }
+
+            // Return validation result
+            if (validationErrors.Any ()) {
+                return FMSResponse.ValidationFailed (validationErrors);
+            }
+
+            return FMSResponse.SuccessResponse ("Validation passed");
         }
     }
 }

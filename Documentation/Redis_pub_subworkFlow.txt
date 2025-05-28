@@ -1,0 +1,113 @@
+```mermaid
+sequenceDiagram
+    participant WebAPI as Web API (CommandExecutor)
+    participant RedisPS as Redis Pub/Sub
+    participant WSListener as PTSWebSocketListenerService
+    participant RedisCmdProc as RedisPTSCommandProcessor
+    participant ConnMgr as PTSConnectionManager
+    participant DevConn as PTSDeviceConnection
+    participant PTSDevice as PTS Device
+
+    Note over WebAPI, PTSDevice: Enhanced Redis Pub/Sub with Dual Correlation
+
+    %% Command Publication Phase
+    WebAPI->>WebAPI: Generate Correlation ID
+    WebAPI->>RedisPS: Publish RedisPTSCommand to "pts-commands"
+    Note right of WebAPI: Command includes DeviceId, CommandType,<br/>CommandData (JObject), CorrelationId
+
+    activate RedisPS
+    RedisPS-->>WSListener: Push RedisPTSCommand
+    deactivate RedisPS
+
+    %% Command Processing Phase
+    activate WSListener
+    WSListener->>RedisCmdProc: HandlePTSCommand(RedisPTSCommand)
+    activate RedisCmdProc
+
+    RedisCmdProc->>RedisCmdProc: Extract DeviceId from command
+    RedisCmdProc->>ConnMgr: HasActiveConnection(DeviceId)
+
+    activate ConnMgr
+    ConnMgr-->>RedisCmdProc: Connection Status (true/false)
+    deactivate ConnMgr
+
+    alt Device Connected
+        RedisCmdProc->>RedisCmdProc: BuildPTSMessage(command)
+        Note right of RedisCmdProc: Creates PTSMessage with:<br/>- PtsId = CorrelationId<br/>- Packet ID = Generated<br/>- Type = CommandType<br/>- Data = CommandData
+
+        RedisCmdProc->>ConnMgr: SendMessageAsync(DeviceId, PTSMessage)
+        activate ConnMgr
+
+        ConnMgr->>DevConn: Get PTSDeviceConnection(DeviceId)
+        activate DevConn
+
+        %% Enhanced Correlation Setup
+        DevConn->>DevConn: Store Dual Correlation
+        Note right of DevConn: Maps both:<br/>- CorrelationId → TaskCompletionSource<br/>- PacketId → CorrelationId
+
+        DevConn->>PTSDevice: Send PTSMessage via WebSocket
+        Note right of DevConn: Message serialized with Newtonsoft.Json
+
+        activate PTSDevice
+        PTSDevice->>PTSDevice: Process Command
+        PTSDevice-->>DevConn: Send Response (PTSMessage)
+        deactivate PTSDevice
+
+        %% Enhanced Response Correlation
+        DevConn->>DevConn: Receive Raw Response
+        Note right of DevConn: Logs raw message for debugging
+
+        DevConn->>DevConn: Parse PTSMessage Response
+
+        alt PtsId Correlation Match
+            DevConn->>DevConn: Match by PtsId (Primary)
+            Note right of DevConn: Device echoed correlation ID
+        else Packet ID Correlation Match
+            DevConn->>DevConn: Match by Packet ID (Fallback)
+            Note right of DevConn: Device used different PtsId
+        else No Correlation Match
+            DevConn->>DevConn: Process as Unsolicited Message
+            Note right of DevConn: Status updates, etc.
+        end
+
+        DevConn-->>ConnMgr: Return Correlated Response
+        deactivate DevConn
+        ConnMgr-->>RedisCmdProc: Return PTSMessage Response
+        deactivate ConnMgr
+
+        %% Enhanced Response Processing
+        RedisCmdProc->>RedisCmdProc: BuildRedisPTSCommandResponse(response)
+        Note right of RedisCmdProc: Uses Newtonsoft.Json for consistency<br/>Extracts actual packet data from nested structure
+
+        RedisCmdProc->>RedisPS: Publish RedisPTSCommandResponse to "pts-command-responses"
+        activate RedisPS
+
+        RedisPS-->>WebAPI: Push RedisPTSCommandResponse
+        deactivate RedisPS
+
+    else Device Not Connected
+        RedisCmdProc->>RedisCmdProc: PublishErrorResponse("Device not connected")
+        RedisCmdProc->>RedisPS: Publish Error Response
+        activate RedisPS
+        RedisPS-->>WebAPI: Push Error Response
+        deactivate RedisPS
+    end
+
+    RedisCmdProc-->>WSListener: Command Processing Complete
+    deactivate RedisCmdProc
+    deactivate WSListener
+
+    %% Response Processing Phase
+    WebAPI->>WebAPI: ConvertRedisResponseToPTSMessage
+    Note right of WebAPI: Extracts packet data from nested structure:<br/>ResponsePayload.Packets[0].Data
+
+    WebAPI->>WebAPI: ProcessPTSResponse
+    WebAPI->>WebAPI: Return CommandResult to PumpService
+
+    Note over WebAPI, RedisPS: Enhanced Features
+    Note over WebAPI, RedisPS: ✅ Dual Correlation (PtsId + Packet ID)
+    Note over WebAPI, RedisPS: ✅ Consistent JSON Serialization (Newtonsoft.Json)
+    Note over WebAPI, RedisPS: ✅ Proper Data Structure Extraction
+    Note over WebAPI, RedisPS: ✅ Timeout Handling with Correlation Cleanup
+    Note over WebAPI, RedisPS: ✅ Unsolicited Message Processing
+    Note over WebAPI, RedisPS: ✅ Comprehensive Error Handling

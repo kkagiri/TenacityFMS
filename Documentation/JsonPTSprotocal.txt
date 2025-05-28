@@ -1,21 +1,11 @@
-www.technotrade.ua
-mail@technotrade.ua
-+380 44 502 46 55
+
 Ukraine, 04082 Kyiv, Mrii str. 17
 This document is the property of Technotrade LLC. It is not to be used in any way inconsistent with the purpose for which it is
 made. Technotrade LLC shall not be liable for technical or editorial errors or omissions which may appear in this document. It
 also retains the right to make changes to this specification at any time without prior notice.
-jsonPTS
-communication protocol specification
-for the PTS-2 forecourt controller
-Review date: 04 May, 2025
-Revision number: R111
-Approved by: _______________ Date: ___________________
-Technotrade LLC
 
-CONTENT
-REVISION HISTORY
-INTRODUCTION AND SCOPE
+
+
 HTTP LAYER OF COMMUNICATION
 HTTPS LAYER OF COMMUNICATION
 AUTHENTICATION
@@ -4684,8 +4674,6 @@ Example {
 "Pump":1,
 "Nozzle":2,
 "Type":"Volume",
-
- 164 from 289
 "Dose":2.75,
 "Price":3.25
 }

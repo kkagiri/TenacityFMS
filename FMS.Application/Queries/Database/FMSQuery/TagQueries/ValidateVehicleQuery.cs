@@ -25,9 +25,12 @@ namespace FMS.Application.Queries.Database.FMSQuery.TagQueries {
         public decimal DailyLimit { get; set; }
         public decimal MonthlyUsed { get; set; }
         public decimal MonthlyLimit { get; set; }
+        public decimal DailyRemaining => DailyLimit - DailyUsed;
+        public decimal MonthlyRemaining => MonthlyLimit - MonthlyUsed;
+        public decimal MaxAllowedDose => Math.Min (DailyRemaining, MonthlyRemaining);
     }
 
-    public record ValidateVehicleQuery (int VehicleId) : IRequest<VehicleValidationResultDTO>;
+    public record ValidateVehicleQuery (int VehicleId, double? RequestedDose = null) : IRequest<VehicleValidationResultDTO>;
 
     public class ValidateVehicleQueryHandler : IRequestHandler<ValidateVehicleQuery, VehicleValidationResultDTO> {
         private readonly IMediator _mediator;
@@ -54,31 +57,69 @@ namespace FMS.Application.Queries.Database.FMSQuery.TagQueries {
 
                 // Fetch fuel rules for the vehicle
                 var fuelRules = await _mediator.Send (new GetFuelRulesForVehicleQuery (request.VehicleId), cancellationToken);
-                decimal dailyLimit = 50; // Default value
-                decimal monthlyLimit = 500; // Default value
+
+                //Cursor: Vehicle MUST have fuel rules to be allowed to fuel - administrator must set rules first
+                if (fuelRules == null || !fuelRules.Any ()) {
+                    return new VehicleValidationResultDTO {
+                    IsValid = false,
+                    Message = "Vehicle has no fuel rules configured. Administrator must set fuel rules before vehicle can be used for fueling.",
+                    VehicleInfo = new VehicleFuelInfoDTO {
+                    VehicleId = vehicle.VehicleId,
+                    HyoungNo = vehicle.HyoungNo,
+                    DailyUsed = dailyFuelIssued,
+                    DailyLimit = 0,
+                    MonthlyUsed = monthlyFuelIssued,
+                    MonthlyLimit = 0
+                    }
+                    };
+                }
+
+                //Cursor: Get actual limits from fuel rules (no default values)
+                decimal? dailyLimit = null;
+                decimal? monthlyLimit = null;
 
                 var dailyMonthlyRule = fuelRules?.OfType<DailyMonthlyLimitRule> ().FirstOrDefault ();
                 if (dailyMonthlyRule != null) {
-                    dailyLimit = dailyMonthlyRule.DailyLimitLiter ?? dailyLimit;
-                    monthlyLimit = dailyMonthlyRule.MonthlyLimitLiter ?? monthlyLimit;
+                    dailyLimit = dailyMonthlyRule.DailyLimitLiter;
+                    monthlyLimit = dailyMonthlyRule.MonthlyLimitLiter;
                 }
 
-                bool isDailyLimitExceeded = dailyFuelIssued >= dailyLimit;
-                bool isMonthlyLimitExceeded = monthlyFuelIssued >= monthlyLimit;
+                //Cursor: Vehicle must have at least one limit configured
+                if (!dailyLimit.HasValue && !monthlyLimit.HasValue) {
+                    return new VehicleValidationResultDTO {
+                        IsValid = false,
+                            Message = "Vehicle fuel rules are configured but no daily or monthly limits are set. Administrator must configure proper limits.",
+                            VehicleInfo = new VehicleFuelInfoDTO {
+                                VehicleId = vehicle.VehicleId,
+                                HyoungNo = vehicle.HyoungNo,
+                                DailyUsed = dailyFuelIssued,
+                                DailyLimit = 0,
+                                MonthlyUsed = monthlyFuelIssued,
+                                MonthlyLimit = 0
+                                }
+                    };
+                }
+
+                //Cursor: Use configured limits or max value if not set
+                var effectiveDailyLimit = dailyLimit ?? decimal.MaxValue;
+                var effectiveMonthlyLimit = monthlyLimit ?? decimal.MaxValue;
+
+                bool isDailyLimitExceeded = dailyFuelIssued >= effectiveDailyLimit;
+                bool isMonthlyLimitExceeded = monthlyFuelIssued >= effectiveMonthlyLimit;
 
                 var vehicleFuelInfo = new VehicleFuelInfoDTO {
                     VehicleId = vehicle.VehicleId,
                     HyoungNo = vehicle.HyoungNo,
                     DailyUsed = dailyFuelIssued,
-                    DailyLimit = dailyLimit,
+                    DailyLimit = effectiveDailyLimit,
                     MonthlyUsed = monthlyFuelIssued,
-                    MonthlyLimit = monthlyLimit
+                    MonthlyLimit = effectiveMonthlyLimit
                 };
 
                 if (isDailyLimitExceeded) {
                     return new VehicleValidationResultDTO {
                         IsValid = false,
-                            Message = "Daily fuel limit exceeded",
+                            Message = $"Daily fuel limit exceeded. Used: {dailyFuelIssued:F2}L, Limit: {effectiveDailyLimit:F2}L",
                             VehicleInfo = vehicleFuelInfo
                     };
                 }
@@ -86,9 +127,25 @@ namespace FMS.Application.Queries.Database.FMSQuery.TagQueries {
                 if (isMonthlyLimitExceeded) {
                     return new VehicleValidationResultDTO {
                         IsValid = false,
-                            Message = "Monthly fuel limit exceeded",
+                            Message = $"Monthly fuel limit exceeded. Used: {monthlyFuelIssued:F2}L, Limit: {effectiveMonthlyLimit:F2}L",
                             VehicleInfo = vehicleFuelInfo
                     };
+                }
+
+                //Cursor: Check if requested dose would exceed remaining limits
+                if (request.RequestedDose.HasValue && request.RequestedDose.Value > 0) {
+                    var requestedDose = (decimal) request.RequestedDose.Value;
+                    var dailyRemaining = effectiveDailyLimit - dailyFuelIssued;
+                    var monthlyRemaining = effectiveMonthlyLimit - monthlyFuelIssued;
+                    var maxAllowedDose = Math.Min (dailyRemaining, monthlyRemaining);
+
+                    if (requestedDose > maxAllowedDose) {
+                        return new VehicleValidationResultDTO {
+                            IsValid = false,
+                                Message = $"Requested dose ({requestedDose:F2}L) exceeds remaining limit. Maximum allowed: {maxAllowedDose:F2}L (Daily remaining: {dailyRemaining:F2}L, Monthly remaining: {monthlyRemaining:F2}L)",
+                                VehicleInfo = vehicleFuelInfo
+                        };
+                    }
                 }
 
                 // Vehicle is valid and within limits

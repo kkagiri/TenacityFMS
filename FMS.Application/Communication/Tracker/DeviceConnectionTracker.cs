@@ -172,11 +172,22 @@ namespace FMS.Application.Communication {
         };
 
         public async Task<DeviceConnectionSummary> GetConnectedDevices () {
+            return await GetConnectedDevices (autoRemoveStale: false);
+        }
+
+        /// <summary>
+        /// Gets connected devices with optional automatic removal of stale entries from Redis
+        /// </summary>
+        /// <param name="autoRemoveStale">If true, automatically removes stale entries from Redis</param>
+        /// <returns></returns>
+        public async Task<DeviceConnectionSummary> GetConnectedDevices (bool autoRemoveStale) {
             try {
                 var webSocketEntries = await _redisDb.HashGetAllAsync (WebSocketConnectionHashKey);
                 var httpEntries = await _redisDb.HashGetAllAsync (HttpConnectionHashKey);
 
                 var webSocketConnections = new List<WebSocketConnectionInfo> ();
+                var staleWebSocketDevices = new List<string> ();
+
                 foreach (var entry in webSocketEntries) {
                     try {
                         var wsInfo = JsonSerializer.Deserialize<WebSocketConnectionInfo> (entry.Value);
@@ -186,14 +197,23 @@ namespace FMS.Application.Communication {
                                 webSocketConnections.Add (wsInfo);
                             } else {
                                 _logger.LogTrace ("Excluding disconnected WS device {DeviceId} from summary.", wsInfo.DeviceId);
+                                if (autoRemoveStale) {
+                                    staleWebSocketDevices.Add (wsInfo.DeviceId);
+                                }
                             }
                         }
                     } catch (JsonException ex) {
                         _logger.LogError (ex, "Error deserializing WebSocket entry: {EntryName}", entry.Name);
+                        if (autoRemoveStale) {
+                            // If we can't deserialize the entry, it's corrupted and should be removed
+                            staleWebSocketDevices.Add (entry.Name);
+                        }
                     }
                 }
 
                 var httpConnections = new List<HttpConnectionInfo> ();
+                var staleHttpDevices = new List<string> ();
+
                 foreach (var entry in httpEntries) {
                     try {
                         var httpInfo = JsonSerializer.Deserialize<HttpConnectionInfo> (entry.Value);
@@ -202,13 +222,48 @@ namespace FMS.Application.Communication {
                                 httpConnections.Add (httpInfo);
                             } else {
                                 _logger.LogTrace ("Excluding stale HTTP device {DeviceId} from summary.", httpInfo.DeviceId);
+                                if (autoRemoveStale) {
+                                    staleHttpDevices.Add (httpInfo.DeviceId);
+                                }
                             }
                         }
                     } catch (JsonException ex) {
                         _logger.LogError (ex, "Error deserializing HTTP entry: {EntryName}", entry.Name);
+                        if (autoRemoveStale) {
+                            // If we can't deserialize the entry, it's corrupted and should be removed
+                            staleHttpDevices.Add (entry.Name);
+                        }
                     }
                 }
-                // After fetching entries from Redis
+
+                // Remove stale entries if requested
+                if (autoRemoveStale) {
+                    int cleanupCount = 0;
+
+                    foreach (var deviceId in staleWebSocketDevices) {
+                        try {
+                            await _redisDb.HashDeleteAsync (WebSocketConnectionHashKey, deviceId);
+                            cleanupCount++;
+                            _logger.LogDebug ("Auto-removed stale WebSocket connection for device {DeviceId}", deviceId);
+                        } catch (Exception ex) {
+                            _logger.LogWarning (ex, "Error auto-removing stale WebSocket connection for device {DeviceId}", deviceId);
+                        }
+                    }
+
+                    foreach (var deviceId in staleHttpDevices) {
+                        try {
+                            await _redisDb.HashDeleteAsync (HttpConnectionHashKey, deviceId);
+                            cleanupCount++;
+                            _logger.LogDebug ("Auto-removed stale HTTP connection for device {DeviceId}", deviceId);
+                        } catch (Exception ex) {
+                            _logger.LogWarning (ex, "Error auto-removing stale HTTP connection for device {DeviceId}", deviceId);
+                        }
+                    }
+
+                    if (cleanupCount > 0) {
+                        _logger.LogInformation ("Auto-cleaned {Count} stale connection entries from Redis", cleanupCount);
+                    }
+                }
 
                 var summary = new DeviceConnectionSummary {
                     WebSocketConnections = webSocketConnections,
