@@ -53,5 +53,5 @@ if (Test-Path "C:\Logs\FMS.PTS") {
 if ($allVariablesSet) {
     Write-Host "`nAll required environment variables for PTS Windows Service are properly set!" -ForegroundColor Green
 } else {
-    Write-Host "`nSome required environment variables for PTS Windows Service are missing. Please run the setup-pts-env.ps1 script as Administrator to set them." -ForegroundColor Red
+    Write-Host "`nSome required environment variables for PTS Windows Service are missing. Please run the setup-pts-env.bat script as Administrator to set them." -ForegroundColor Red
 }
