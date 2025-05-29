@@ -39,7 +39,19 @@ The React frontend application needs environment files to properly connect to th
    ```
 2. This creates the necessary .env files in the FMS.frontend directory
 
-## 4. DevExpress Dependencies (If Needed)
+## 4. Setup PTS Windows Service Environment (if needed)
+
+The PTS Windows Service is a component that handles communication with fuel dispensers and other equipment:
+
+1. Right-click on `setup-pts-env.bat` in the project root
+2. Select "Run as administrator"
+3. Press any key when the script completes
+4. Verify with:
+   ```
+   powershell -ExecutionPolicy Bypass -File .\verify-pts-env.ps1
+   ```
+
+## 5. DevExpress Dependencies (If Needed)
 
 This project uses DevExpress components. If you have DevExpress installed:
 
@@ -50,7 +62,7 @@ This project uses DevExpress components. If you have DevExpress installed:
    ```
 3. If you don't have DevExpress installed, the DevExpress-related functionality will be disabled
 
-## 5. Customize for Your Environment (if needed)
+## 6. Customize for Your Environment (if needed)
 
 If you need different database or Redis connections:
 
@@ -62,7 +74,12 @@ For frontend API URLs:
 1. Edit the .env files in the FMS.frontend directory
 2. Update REACT_APP_FMS_API_URL_DEV and other URLs as needed
 
-## 6. Start Development
+For PTS Service:
+1. Edit `setup-pts-env.bat` with your specific connection details
+2. Run the batch file again as administrator
+3. Verify with the verification script
+
+## 7. Start Development
 
 ### Backend:
 1. Restart any running IDE (Visual Studio, etc.)
@@ -74,6 +91,14 @@ For frontend API URLs:
 2. Install dependencies: `npm install`
 3. Start the development server: `npm start`
 4. The frontend should open in your browser at http://localhost:3000
+
+### PTS Windows Service:
+For development:
+1. Run the service directly: `dotnet run --project FMS.PTS.WindowsService`
+
+For production:
+1. Build the project: `dotnet build FMS.PTS.WindowsService -c Release`
+2. Install as a Windows service (see instructions in setup-pts-env.bat)
 
 ## Important Note on appsettings Files
 
@@ -90,5 +115,6 @@ Never commit changes to these files:
 - `FMS.WebClient/appsettings.Development.json` (if you added real credentials)
 - `NuGet.config` (if you modified paths specific to your machine)
 - `FMS.frontend/.env*` (environment files with your specific settings)
+- `setup-pts-env.bat` (if you modified connection strings)
 
 For more detailed instructions, refer to the [ENVIRONMENT-SETUP.md](./ENVIRONMENT-SETUP.md) file.
