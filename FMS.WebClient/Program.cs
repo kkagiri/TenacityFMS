@@ -4,6 +4,7 @@ using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.Xml;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using FMS.Application;
@@ -58,6 +59,7 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
+using FMS.Application.Extensions;
 
 namespace FMS.WebClient;
 
@@ -119,7 +121,7 @@ public class Program {
         }
 
         // Don't configure Kestrel endpoints - let the default configuration from appsettings handle binding
-        Log.Information ("Using default URL configuration - should bind to http://10.0.11.90:7009 and http://localhost:7009");
+        Log.Information ("Using default URL configuration - should bind to http://192.168.100.9:7009 and http://localhost:7009");
         var app = builder.Build ();
         ConfigureApp (app, builder.Environment);
 
@@ -139,7 +141,7 @@ public class Program {
         // Check if port is in use on the specific addresses we want to bind to
         var addressesToCheck = new [] {
             IPAddress.Loopback, // 127.0.0.1 (localhost)
-            IPAddress.Parse ("10.0.11.90") // your specific IP
+            IPAddress.Parse ("192.168.100.9") // your specific IP
         };
 
         foreach (var address in addressesToCheck) {
@@ -261,6 +263,7 @@ public class Program {
                 .AddJsonOptions (options => {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.JsonSerializerOptions.MaxDepth = 0;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 });
 
             RegisterSignalR (services);
@@ -274,6 +277,10 @@ public class Program {
             ConfigureAuthentication (services, configuration);
             ConfigureAuthorization (services);
             RegisterDistributedCache (services);
+
+            // Register seed data services
+            services.AddSeedDataServices();
+
             //InfrastructureServicesConfiguration.Configure (services, configuration);
         } catch (Exception ex) {
             Console.WriteLine (ex);
@@ -566,9 +573,9 @@ public class Program {
                                 "https://10.0.10.113",
                                 "http://10.0.10.113:3000",
                                 "https://10.0.10.113:3000",
-                                "http://10.0.11.90",
-                                "https://10.0.11.90",
-                                "http://10.0.11.90:3000"
+                                "http://192.168.100.9",
+                                "https://192.168.100.9",
+                                "http://192.168.100.9:3000"
                             )
                             .AllowAnyHeader ()
                             .AllowAnyMethod ()

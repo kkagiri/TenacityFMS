@@ -8,6 +8,65 @@
   height: 100%;
   width: 250px !important;
 
+  // Mobile navigation styles (for very small screens)
+  &.mobile-navigation {
+    width: 100% !important;
+    max-width: 320px;
+
+    .menu-container {
+      display: none; // Hide the TreeView container
+    }
+  }
+
+  // Mobile view styles (for small screens using TreeView)
+  &.mobile-view {
+    width: 100% !important;
+
+    .menu-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+
+      .dx-treeview {
+        min-width: 200px;
+
+        // Smaller font and padding for mobile
+        .dx-treeview-item {
+          font-size: 14px;
+          padding: 8px 0;
+
+          .dx-icon {
+            width: 30px !important;
+            font-size: 16px;
+          }
+        }
+
+        // Adjust nested items padding
+        .dx-treeview-node {
+          &[aria-level='2'] .dx-treeview-item-content {
+            padding: 0 30px;
+            font-size: 13px;
+          }
+
+          &[aria-level='3'] .dx-treeview-item-content {
+            padding: 0 45px;
+            font-size: 12px;
+          }
+        }
+
+        // Make toggle arrows bigger for touch
+        .dx-treeview-toggle-item-visibility {
+          width: 30px;
+          height: 30px;
+          line-height: 30px;
+
+          &:before {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+
   .menu-container {
     min-height: 100%;
     display: flex;
@@ -29,7 +88,7 @@
         }
       }
       // ##
-      
+
       // ## Arrow customization
       .dx-treeview-node {
         padding: 0 0 !important;
@@ -52,7 +111,7 @@
           font-weight: bold;
           border-bottom: 1px solid $base-border-color;
         }
-  
+
         &[aria-level='2'] .dx-treeview-item-content {
           font-weight: normal;
           padding: 0 $side-panel-min-width;
@@ -86,6 +145,56 @@
       }
     }
     // ##
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .side-navigation-menu {
+    &:not(.mobile-navigation) {
+      width: 280px !important;
+
+      .dx-treeview-item-content {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - 40px);
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .side-navigation-menu {
+    &:not(.mobile-navigation) {
+      width: 260px !important;
+    }
+
+    &.mobile-navigation {
+      width: 100% !important;
+      max-width: 100%;
+    }
+  }
+}
+
+// Extra small screen adjustments
+@media (max-width: 360px) {
+  .side-navigation-menu {
+    &.mobile-navigation {
+      .mobile-nav-container {
+        .mobile-nav-search {
+          padding: 12px;
+        }
+
+        .mobile-nav-item .mobile-nav-item-content {
+          padding: 12px;
+          min-height: 44px;
+
+          .mobile-nav-item-left .mobile-nav-text {
+            font-size: 14px;
+          }
+        }
+      }
+    }
   }
 }
 

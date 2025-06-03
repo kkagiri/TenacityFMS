@@ -8,13 +8,13 @@ if not exist "C:\Logs\FMS.PTS" (
 )
 
 REM Database Connection Strings
-setx PTSService__ConnectionStrings__FMSConnection "server=10.0.10.150;port=3306;database=gpsdata;user=root;password=Niwewenamimi1000;connection timeout=2000;command timeout=2000;AllowZeroDateTime=True;" /M
+setx PTSService__ConnectionStrings__FMSConnection "server=localhost;port=3306;database=gpsdata;user=root;password=root;connection timeout=2000;command timeout=2000;AllowZeroDateTime=True;" /M
 setx PTSService__ConnectionStrings__ATGConnection "server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Hyoung2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;" /M
-setx PTSService__ConnectionStrings__RedisConnection "10.0.10.154:6379" /M
+setx PTSService__ConnectionStrings__RedisConnection "localhost:6379" /M
 
 REM WebSocket Configuration
 setx PTSService__WebSocket__ListenPort "54098" /M
-setx PTSService__WebSocket__Host "10.0.11.90" /M
+setx PTSService__WebSocket__Host "localhost" /M
 setx PTSService__WebSocket__MaxConcurrentConnections "100" /M
 setx PTSService__WebSocket__BasePath "/ptsWebSocket" /M
 

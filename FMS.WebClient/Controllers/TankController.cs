@@ -1,6 +1,7 @@
 ﻿using FMS.Application.Command.DatabaseCommand.TankCommands;
 using FMS.Application.ModelsDTOs.FMS.Tank;
 using FMS.Application.Queries.Database.FMSQuery.TankQueries;
+using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,11 @@ namespace FMS.WebClient.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            if (string.IsNullOrWhiteSpace(tank?.Name))
+            {
+                return BadRequest(new { message = "Tank name is required and cannot be empty" });
+            }
+
             var command = new CreateTankCommand(tank);
             var tankId = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetTank), new { id = tankId }, tankId);
@@ -75,6 +81,23 @@ namespace FMS.WebClient.Controllers
                 return NotFound();
             }
             return NoContent();
+        }
+
+        [HttpGet("volume-history")]
+        public async Task<ActionResult> GetTankVolumeHistory([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] int tankId)
+        {
+            if (tankId <= 0) return BadRequest("Invalid tank ID");
+            if (startDate == default || endDate == default) return BadRequest("Invalid date range");
+
+            var query = new GetTankVolumeHistoryByTankIdQuery(startDate, endDate, tankId);
+            var result = await _mediator.Send(query);
+
+            if (result == null || !result.Success)
+            {
+                return BadRequest(result?.Message ?? "Error fetching tank volume history");
+            }
+
+            return Ok(result.Data);
         }
 
         [HttpDelete("{id}")]

@@ -1,7 +1,6 @@
 //Cursor: New component for displaying real-time transaction monitoring
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Badge } from 'devextreme-react/badge';
 import { Button } from 'devextreme-react/button';
 import { ProgressBar } from 'devextreme-react/progress-bar';
 import { Tooltip } from 'devextreme-react/tooltip';
@@ -196,11 +195,9 @@ const TransactionMonitoringStatus = ({
       <div className="tw-monitoring-header">
         <h4 className="tw-monitoring-title">
           Transaction Monitoring
-          <Badge
-            text={`#${transactionId}`}
-            type="default"
-            className="tw-transaction-badge"
-          />
+          <span className="tw-transaction-badge">
+            #{transactionId}
+          </span>
         </h4>
         <div className="tw-connection-info">
           <span className="tw-connection-type">{connectionType}</span>
@@ -263,10 +260,9 @@ const TransactionMonitoringStatus = ({
           <div className="tw-live-status">
             <div className="tw-live-status-header">
               <span className="tw-live-status-title">Live Status:</span>
-              <Badge
-                text={currentPumpStatus.type.toUpperCase()}
-                type={currentPumpStatus.type === 'filling' ? 'success' : 'default'}
-              />
+              <span className="tw-live-status-badge">
+                {currentPumpStatus.type.toUpperCase()}
+              </span>
             </div>
 
             {currentPumpStatus.type === 'filling' && currentPumpStatus.data.volumes && (

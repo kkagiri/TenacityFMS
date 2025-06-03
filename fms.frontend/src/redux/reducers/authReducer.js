@@ -11,8 +11,8 @@ import {
 
 const initialState = {
     token: localStorage.getItem('token'),
-    isAuthenticated: null,
-    loading: true,
+    isAuthenticated: localStorage.getItem('token') ? true : false,
+    loading: false,
     user: null,
     error: null,
 };
@@ -28,24 +28,25 @@ const authReducer = (state = initialState, action) => {
                 error: null,
             };
         case USER_LOADED:
-                return {
-                    ...state,
-                    isAuthenticated: true,
-                    loading: false,
-                    user: payload,
-                };
-       case LOGIN_SUCCESS:
-                localStorage.setItem('token', payload.token);
-                return {
-                    ...state,
-                    isAuthenticated: true,
-                    loading: false,
-                    user: payload.user,
-                    token: payload.token,
-                };
-      case LOGIN_FAILURE:
+            return {
+                ...state,
+                isAuthenticated: true,
+                loading: false,
+                user: payload,
+                error: null,
+            };
+        case LOGIN_SUCCESS:
+            localStorage.setItem('token', payload.token);
+            return {
+                ...state,
+                isAuthenticated: true,
+                loading: false,
+                user: payload.user || state.user,
+                token: payload.token,
+                error: null,
+            };
+        case LOGIN_FAILURE:
         case AUTH_ERROR:
-        case LOGOUT:
             localStorage.removeItem('token');
             return {
                 ...state,
@@ -54,6 +55,16 @@ const authReducer = (state = initialState, action) => {
                 loading: false,
                 user: null,
                 error: payload,
+            };
+        case LOGOUT:
+            localStorage.removeItem('token');
+            return {
+                ...state,
+                token: null,
+                isAuthenticated: false,
+                loading: false,
+                user: null,
+                error: null,
             };
         case AUTH_FAILURE:
             return {

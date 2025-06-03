@@ -35,8 +35,21 @@ export const createTank = (tank) => async (dispatch) => {
     try {
         const response = await axiosInstance.post('/tank', tank);
         dispatch({ type: CREATE_TANK_SUCCESS, payload: response.data });
+        return { success: true, data: response.data };
     } catch (error) {
-        dispatch({ type: CREATE_TANK_FAILURE, payload: error.message });
+        console.error('Create tank error details:', error.response || error);
+        const errorMessage = error.response?.data?.title ||
+                           error.response?.data?.message ||
+                           error.message ||
+                           'Error creating tank';
+        const validationErrors = error.response?.data?.errors;
+        dispatch({ type: CREATE_TANK_FAILURE, payload: errorMessage });
+
+        // Throw a more detailed error for the UI
+        const detailError = new Error(errorMessage);
+        detailError.validationErrors = validationErrors;
+        detailError.response = error.response;
+        throw detailError;
     }
 };
 
@@ -44,8 +57,21 @@ export const updateTank = (id, tank) => async (dispatch) => {
     try {
         await axiosInstance.put(`/tank/${id}`, tank);
         dispatch({ type: UPDATE_TANK_SUCCESS, payload: { id, tank } });
+        return { success: true };
     } catch (error) {
-        dispatch({ type: UPDATE_TANK_FAILURE, payload: error.message });
+        console.error('Update tank error details:', error.response || error);
+        const errorMessage = error.response?.data?.title ||
+                           error.response?.data?.message ||
+                           error.message ||
+                           'Error updating tank';
+        const validationErrors = error.response?.data?.errors;
+        dispatch({ type: UPDATE_TANK_FAILURE, payload: errorMessage });
+
+        // Throw a more detailed error for the UI
+        const detailError = new Error(errorMessage);
+        detailError.validationErrors = validationErrors;
+        detailError.response = error.response;
+        throw detailError;
     }
 };
 
@@ -55,5 +81,30 @@ export const deleteTank = (id) => async (dispatch) => {
         dispatch({ type: DELETE_TANK_SUCCESS, payload: id });
     } catch (error) {
         dispatch({ type: DELETE_TANK_FAILURE, payload: error.message });
+    }
+};
+
+export const fetchTankVolumeHistory = (tankId, startDate, endDate) => async (dispatch) => {
+    try {
+        const params = new URLSearchParams({
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            tankId: tankId
+        });
+
+        const response = await axiosInstance.get(`/tank/volume-history?${params}`);
+        const result = response.data;
+
+        return {
+            success: result.success || true,
+            data: result.data || result,
+            message: result.message
+        };
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message;
+        return {
+            success: false,
+            message: errorMessage
+        };
     }
 };

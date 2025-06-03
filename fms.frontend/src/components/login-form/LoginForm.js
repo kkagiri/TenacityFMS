@@ -8,7 +8,7 @@ import Form, {
   ButtonItem,
   ButtonOptions,
   RequiredRule,
-  
+
 } from 'devextreme-react/form';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
@@ -38,7 +38,7 @@ const LoginForm = () => {
     } catch (error) {
       notify(error.message, 'error', 2000);
     }
-  }, [dispatch.navigate]);
+  }, [dispatch, navigate]);
 
   return (
     <form className={'login-form'} onSubmit={onSubmit}>

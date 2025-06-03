@@ -17,7 +17,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Tank
 
         public decimal? TankHeight { get; set; }
 
-        public int? PtsId { get; set; }
+        public string? PtsId { get; set; }
 
         public int SiteId { get; set; }
         public decimal? DiscrepancyThreshold { get; set; }
@@ -30,6 +30,6 @@ namespace FMS.Application.ModelsDTOs.FMS.Tank
 
 
         [JsonIgnore]
-        public string SiteName { get; set; } = null!;
+        public string? SiteName { get; set; }
     }
 }

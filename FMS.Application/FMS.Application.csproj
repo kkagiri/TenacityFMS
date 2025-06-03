@@ -36,9 +36,9 @@
     <Folder Include="Command\SignalCommand\" />
     <Folder Include="Common\PTSMessage\" />
     <Folder Include="Helpers\" />
-    <Folder Include="Infrastructure\Exceptions\Communication\" />
+    <!-- <Folder Include="Infrastructure\Exceptions\Communication\" />
     <Folder Include="Infrastructure\Exceptions\Device\" />
-    <Folder Include="Infrastructure\Exceptions\Validation\" />
+    <Folder Include="Infrastructure\Exceptions\Validation\" /> -->
     <Folder Include="ModelsDTOs\Tags\" />
     <Folder Include="Queries\Database\FMSQuery\UserManagement\Authentication\" />
     <Folder Include="Queries\PTSQueries\ReaderQueries\" />

@@ -1,16 +1,35 @@
 import {
+  FETCH_SITES_REQUEST,
   FETCH_SITES_SUCCESS,
   FETCH_SITES_FAILURE,
+  CREATE_SITE_REQUEST,
+  CREATE_SITE_SUCCESS,
+  CREATE_SITE_FAILURE,
+  UPDATE_SITE_REQUEST,
+  UPDATE_SITE_SUCCESS,
+  UPDATE_SITE_FAILURE,
+  DELETE_SITE_REQUEST,
+  DELETE_SITE_SUCCESS,
+  DELETE_SITE_FAILURE,
 } from "../actions/siteActions";
 
 const initialState = {
   sites: [],
-  loading: true,
+  loading: false,
   error: null,
+  creating: false,
+  updating: false,
+  deleting: false,
 };
 
 const siteReducer = (state = initialState, action) => {
   switch (action.type) {
+    case FETCH_SITES_REQUEST:
+      return {
+        ...state,
+        loading: true,
+        error: null,
+      };
     case FETCH_SITES_SUCCESS:
       return {
         ...state,
@@ -24,6 +43,64 @@ const siteReducer = (state = initialState, action) => {
         loading: false,
         error: action.payload,
       };
+
+    case CREATE_SITE_REQUEST:
+      return {
+        ...state,
+        creating: true,
+        error: null,
+      };
+    case CREATE_SITE_SUCCESS:
+      return {
+        ...state,
+        creating: false,
+        error: null,
+      };
+    case CREATE_SITE_FAILURE:
+      return {
+        ...state,
+        creating: false,
+        error: action.payload,
+      };
+
+    case UPDATE_SITE_REQUEST:
+      return {
+        ...state,
+        updating: true,
+        error: null,
+      };
+    case UPDATE_SITE_SUCCESS:
+      return {
+        ...state,
+        updating: false,
+        error: null,
+      };
+    case UPDATE_SITE_FAILURE:
+      return {
+        ...state,
+        updating: false,
+        error: action.payload,
+      };
+
+    case DELETE_SITE_REQUEST:
+      return {
+        ...state,
+        deleting: true,
+        error: null,
+      };
+    case DELETE_SITE_SUCCESS:
+      return {
+        ...state,
+        deleting: false,
+        error: null,
+      };
+    case DELETE_SITE_FAILURE:
+      return {
+        ...state,
+        deleting: false,
+        error: action.payload,
+      };
+
     default:
       return state;
   }

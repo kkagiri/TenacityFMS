@@ -38,7 +38,17 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     return false;
                 }
 
-                _mapper.Map(request.Tank, tank);
+                // Direct property assignment instead of AutoMapper
+                tank.Name = request.Tank.Name;
+                tank.TankVolume = request.Tank.TankVolume;
+                tank.TankHeight = request.Tank.TankHeight;
+                tank.TankLength = request.Tank.TankLength;
+                tank.PtsId = request.Tank.PtsId;
+                tank.SiteId = request.Tank.SiteId;
+                tank.DiscrepancyThreshold = request.Tank.DiscrepancyThreshold;
+                tank.CurrentStock = request.Tank.CurrentStock;
+                tank.UseBookKeeping = request.Tank.UseBookKeeping ? (sbyte)1 : (sbyte)0;
+                tank.LastStockUpdate = request.Tank.LastStockUpdate;
 
                 if (tank.SiteId == null) throw new ArgumentException("SiteId is required");
 
@@ -47,7 +57,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                 {
                     throw new ArgumentException("Invalid SiteId");
                 }
-
 
                 if (tank.PtsId != null)
                 {

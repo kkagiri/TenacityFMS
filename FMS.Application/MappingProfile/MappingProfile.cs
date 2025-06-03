@@ -34,6 +34,12 @@ namespace FMS.Application.MappingProfile {
                 .ForMember (dest => dest.Name, opt => opt.MapFrom (scr => scr.Name.ToUpper ()))
                 .ReverseMap ();
 
+            // Site creation and update mappings
+            CreateMap<CreateSiteDTO, Site>()
+                .ReverseMap();
+            CreateMap<UpdateSiteDTO, Site>()
+                .ReverseMap();
+
             // User mappings
             CreateMap<User, UserDto> ().ReverseMap ();
 
@@ -122,6 +128,15 @@ namespace FMS.Application.MappingProfile {
                 .ForMember (dest => dest.SiteName, opt => opt.MapFrom (src => src.Site.Name))
                 .ForMember (dest => dest.UseBookKeeping, opt => opt.MapFrom (src => src.UseBookKeeping.HasValue && src.UseBookKeeping.Value != 0))
                 .ReverseMap ()
+                .ForMember (dest => dest.Name, opt => opt.MapFrom (src => src.Name))
+                .ForMember (dest => dest.TankVolume, opt => opt.MapFrom (src => src.TankVolume))
+                .ForMember (dest => dest.SiteId, opt => opt.MapFrom (src => src.SiteId))
+                .ForMember (dest => dest.TankHeight, opt => opt.MapFrom (src => src.TankHeight))
+                .ForMember (dest => dest.TankLength, opt => opt.MapFrom (src => src.TankLength))
+                .ForMember (dest => dest.PtsId, opt => opt.MapFrom (src => src.PtsId))
+                .ForMember (dest => dest.CurrentStock, opt => opt.MapFrom (src => src.CurrentStock))
+                .ForMember (dest => dest.DiscrepancyThreshold, opt => opt.MapFrom (src => src.DiscrepancyThreshold))
+                .ForMember (dest => dest.LastStockUpdate, opt => opt.MapFrom (src => src.LastStockUpdate))
                 .ForMember (dest => dest.UseBookKeeping, opt => opt.MapFrom (src => (sbyte?) (src.UseBookKeeping ? (sbyte) 1 : (sbyte) 0)));
 
             // VehicleModel mappings

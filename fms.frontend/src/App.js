@@ -25,7 +25,6 @@ import Content from "./Content";
 import ProtectedRoute from "./components/ProtectedRoute/protectedRoute";
 import UnauthenticatedContent from "./UnauthenticatedContent";
 import { fetchNavigationItems } from "./redux/actions/navigationActions";
-import SignalRService from "./signalR/SignalRService";
 import { loadUser } from "./redux/actions/AuthActions";
 import { initializeAxiosInstance } from "./api/axiosInstance"; // Import the initialization function
 import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
@@ -39,7 +38,7 @@ function App() {
     const initialize = async () => {
       await initializeAxiosInstance(); // Initialize Axios instance
       setIsApiInitialized(true);
-      SignalRService.startConnection();
+      // SignalR connection is now manual - components will start it when needed
       dispatch(loadUser());
     };
     initialize();

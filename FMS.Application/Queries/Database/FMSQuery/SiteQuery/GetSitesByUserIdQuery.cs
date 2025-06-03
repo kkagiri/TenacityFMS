@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FMS.Application.Common;
 using FMS.Application.Models;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
@@ -14,9 +15,9 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
 {
-    public record GetSitesByUserIdQuery(string UserId) : IRequest<List<SiteDTO>>;
+    public record GetSitesByUserIdQuery(string UserId) : IRequest<FMSResponse<List<SiteDTO>>>;
 
-    public class GetSitesByUserIdQueryHandler : IRequestHandler<GetSitesByUserIdQuery, List<SiteDTO>>
+    public class GetSitesByUserIdQueryHandler : IRequestHandler<GetSitesByUserIdQuery, FMSResponse<List<SiteDTO>>>
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<GetSitesByUserIdQueryHandler> _logger;
@@ -28,17 +29,29 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
             _logger = logger;
             _mapper = mapper;
         }
-        public async Task<List<SiteDTO>> Handle(GetSitesByUserIdQuery request, CancellationToken cancellationToken)
-        {
 
+        public async Task<FMSResponse<List<SiteDTO>>> Handle(GetSitesByUserIdQuery request, CancellationToken cancellationToken)
+        {
             try
             {
-                //To:do verify if t he userID is valid 
+                // Validation
+                var validationErrors = new List<string>();
 
-                var userId = await _context.Users.FirstOrDefaultAsync(x => x.Id == request.UserId);
+                if (string.IsNullOrWhiteSpace(request.UserId))
+                {
+                    validationErrors.Add("User ID is required");
+                }
+
+                if (validationErrors.Any())
+                {
+                    return FMSResponse<List<SiteDTO>>.ValidationFailed(validationErrors);
+                }
+
+                //To:do verify if the userID is valid
+                var userId = await _context.Users.FirstOrDefaultAsync(x => x.Id == request.UserId, cancellationToken);
                 if (userId == null)
                 {
-                    throw new Exception("Invalid User Id");
+                    return FMSResponse<List<SiteDTO>>.Failed("Invalid User ID");
                 }
 
                 var sites = await _context.Sites
@@ -46,17 +59,18 @@ namespace FMS.Application.Queries.Database.FMSQuery.SiteQuery
                            usersite => usersite.SiteId,
                            (site, usersite) => new { site, usersite })
                     .Where(x => x.usersite.UserId == userId.Id)
-                    .Select(x => x.site).ToListAsync(cancellationToken);
+                    .Select(x => x.site)
+                    .OrderBy(x => x.Name)
+                    .ToListAsync(cancellationToken);
 
-                return _mapper.Map<List<SiteDTO>>(sites);
+                var siteDTOs = _mapper.Map<List<SiteDTO>>(sites);
+                return FMSResponse<List<SiteDTO>>.Success(siteDTOs, "User sites retrieved successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetSitesByUserIdQueryHandler");
-                throw new Exception(ex.Message);
+                _logger.LogError(ex, "Error in GetSitesByUserIdQueryHandler for user {UserId}", request.UserId);
+                return FMSResponse<List<SiteDTO>>.Failed("An error occurred while retrieving user sites");
             }
-
         }
     }
-
 }

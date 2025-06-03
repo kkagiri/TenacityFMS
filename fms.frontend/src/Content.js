@@ -60,6 +60,11 @@ export default function Content() {
         <Route path="/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
 
+        {/* Tank routes */}
+        <Route path="/tanks" element={React.createElement(resolvedComponents("tanks"))} />
+        <Route path="/tanks/:id" element={React.createElement(resolvedComponents("tank-details"))} />
+        <Route path="/tanks/:id/edit" element={React.createElement(resolvedComponents("tank-edit"))} />
+
         {/* Keep the old route for backward compatibility */}
         <Route
           path="/atg/:ptsId"

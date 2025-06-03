@@ -2,9 +2,9 @@
 # Run this script as Administrator
 
 # Database Connection Strings
-[Environment]::SetEnvironmentVariable('ConnectionStrings__FMSConnection', 'server=10.0.10.150;port=3306;database=gpsdata;user=root;password=Niwewenamimi1000;connection timeout=2000;command timeout=2000', 'Machine')
+[Environment]::SetEnvironmentVariable('ConnectionStrings__FMSConnection', 'server=localhost;port=3306;database=gpsdata;user=root;password=root;connection timeout=2000;command timeout=2000', 'Machine')
 [Environment]::SetEnvironmentVariable('ConnectionStrings__ATGConnection', 'server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Hyoung2030;connection timeout=10000;command timeout=10000', 'Machine')
-[Environment]::SetEnvironmentVariable('ConnectionStrings__RedisConnection', '10.0.10.154:6379', 'Machine')
+[Environment]::SetEnvironmentVariable('ConnectionStrings__RedisConnection','localhost:6379', 'Machine')
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('JwtSettings__SecretKey', 'YourLongSecretKeyHereMustBeAtLeast32Characters', 'Machine')

@@ -33,16 +33,34 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
         {
             try
             {
-                var tank = _mapper.Map<Tank>(request.TankDto);
+                // Direct property assignment instead of AutoMapper
+                var tank = new Tank
+                {
+                    Name = request.TankDto.Name,
+                    TankVolume = request.TankDto.TankVolume,
+                    TankHeight = request.TankDto.TankHeight,
+                    TankLength = request.TankDto.TankLength,
+                    PtsId = request.TankDto.PtsId,
+                    SiteId = request.TankDto.SiteId,
+                    DiscrepancyThreshold = request.TankDto.DiscrepancyThreshold,
+                    CurrentStock = request.TankDto.CurrentStock,
+                    UseBookKeeping = request.TankDto.UseBookKeeping ? (sbyte)1 : (sbyte)0,
+                    LastStockUpdate = request.TankDto.LastStockUpdate
+                };
 
-                if (tank.SiteId == null) throw new ArgumentException("SiteId is required");
+                // Validate the tank name
+                if (string.IsNullOrEmpty(tank.Name))
+                {
+                    throw new ArgumentException("Tank name is required");
+                }
+
+                if (tank.SiteId == 0) throw new ArgumentException("SiteId is required");
 
                 var siteExists = await _context.Sites.AnyAsync(s => s.Id == tank.SiteId, cancellationToken);
                 if (!siteExists)
                 {
                     throw new ArgumentException("Invalid SiteId");
                 }
-
 
                 if (tank.PtsId != null)
                 {
@@ -52,8 +70,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                         throw new ArgumentException("Invalid PtsId");
                     }
                 }
-
-                tank.UseBookKeeping = request.TankDto.UseBookKeeping ? (sbyte)1 : (sbyte)0;
 
                 _context.Tanks.Add(tank);
                 await _context.SaveChangesAsync(cancellationToken);

@@ -2,8 +2,8 @@
 echo Setting up FMS environment variables (No Redis Version)...
 
 REM Database Connection Strings (Required)
-setx ConnectionStrings__FMSConnection "server=10.0.10.150;port=3306;database=gpsdata;user=root;password=Niwewenamimi1000;connection timeout=2000;command timeout=2000;AllowZeroDateTime=True;" /M
-setx ConnectionStrings__ATGConnection "server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Hyoung2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;" /M
+setx ConnectionStrings__FMSConnection "server=localhost;port=3306;database=gpsdata;user=root;password=root;connection timeout=2000;command timeout=2000;AllowZeroDateTime=True;" /M
+setx ConnectionStrings__ATGConnection "server=localhost;port=3306;database=azs;user=kkagiri;password=Hyoung2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;" /M
 
 REM DO NOT SET Redis connection - this will make the app use in-memory alternatives
 REM setx ConnectionStrings__RedisConnection "10.0.10.154:6379" /M

@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 const withRoleProtection = (Component, requiredRoles) => {
     return (props) => {
         const { user } = useSelector((state) => state.auth);
-        const userRoles = user ? user.roles : [];
+        const userRoles = user?.roles || [];
         const location = useLocation();
 
          // If the user is already on the unauthorized page, avoid redirection
@@ -13,7 +13,11 @@ const withRoleProtection = (Component, requiredRoles) => {
         return <Component {...props} />;
       }
 
-        const hasAccess = requiredRoles.some(role => userRoles.includes(role));
+        // Ensure requiredRoles is an array
+        const rolesArray = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+
+        // Ensure userRoles is an array before calling includes
+        const hasAccess = Array.isArray(userRoles) && rolesArray.some(role => userRoles.includes(role));
 
         if (!hasAccess) {
             return <Navigate to="/unauthorized" />;

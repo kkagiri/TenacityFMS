@@ -274,3 +274,8 @@ __pycache__/
 /fms.frontend/src/api
 fms.frontend/src/api/axiosInstance.js
 .github/workflows/ci-cd.yml
+FMS.Persistence/Scripts/SeedingHistoryOperations.sql
+FMS.Persistence/Scripts/README_SeedingHistory.md
+FMS.Persistence/Scripts/CreateSeedingHistoryTable.sql
+FMS.Persistence/Migrations/AddSeedingHistoryTable.cs
+FMS.Persistence/EntityConfigurations/SeedingHistoryConfiguration.cs
