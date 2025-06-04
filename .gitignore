@@ -279,3 +279,8 @@ FMS.Persistence/Scripts/README_SeedingHistory.md
 FMS.Persistence/Scripts/CreateSeedingHistoryTable.sql
 FMS.Persistence/Migrations/AddSeedingHistoryTable.cs
 FMS.Persistence/EntityConfigurations/SeedingHistoryConfiguration.cs
+scripts/environment/setup-pts-env.bat
+scripts/environment/setup-environment.bat
+scripts/environment/setup-pts-env.ps1
+scripts/environment/setup-pts-env.bat
+scripts/environment/setup-environment.ps1
