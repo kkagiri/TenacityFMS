@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import TreeList, { Column, Selection, SearchPanel, HeaderFilter } from 'devextreme-react/tree-list';
 import { Button } from 'devextreme-react/button';
@@ -35,38 +35,51 @@ const TankPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchTanks());
-    dispatch(fetchSiteList());
-  }, [dispatch]);
+    // Only fetch data on initial mount
+    const fetchData = async () => {
+      dispatch(fetchTanks());
+      dispatch(fetchSiteList());
+    };
+    fetchData();
+  }, []); // Remove dispatch dependency to prevent re-fetching
 
-  useEffect(() => {
-    // Transform data for tree structure
-    if (sites && tanks) {
-      const transformedData = sites.map(site => ({
-        id: `site_${site.id}`,
-        name: site.name,
-        type: 'site',
-        siteId: site.id,
-        siteData: site,
-        icon: 'fas fa-building'
-      }));
+  // Memoize tree data transformation
+  const transformedTreeData = useMemo(() => {
+    if (!sites || !tanks) return [];
 
-      tanks.forEach(tank => {
+    const sitesWithTanks = sites.filter(site =>
+      tanks.some(tank => tank.siteId === site.id)
+    );
+
+    const transformedData = sitesWithTanks.map(site => ({
+      id: `site_${site.id}`,
+      name: site.name,
+      type: 'site',
+      siteId: site.id,
+      siteData: site
+    }));
+
+    tanks.forEach(tank => {
+      // Add tank only if its parent site is in the filtered list
+      if (sitesWithTanks.some(site => site.id === tank.siteId)) {
         transformedData.push({
           id: `tank_${tank.id}`,
           parentId: `site_${tank.siteId}`,
           name: tank.name,
           type: 'tank',
           tankData: tank,
-          icon: 'fas fa-gas-pump',
           volume: tank.tankVolume,
           currentStock: tank.currentStock
         });
-      });
+      }
+    });
 
-      setTreeData(transformedData);
-    }
+    return transformedData;
   }, [sites, tanks]);
+
+  useEffect(() => {
+    setTreeData(transformedTreeData);
+  }, [transformedTreeData]);
 
   const handleTreeSelection = useCallback((e) => {
     const selectedItem = e.selectedRowsData[0];
@@ -130,8 +143,17 @@ const TankPage = () => {
     );
   };
 
-  // Calculate site tank summaries
-  const getSiteTanksSummary = (siteId) => {
+  // Calculate site tank summaries - memoized to prevent recalculation
+  const getSiteTanksSummary = useCallback((siteId) => {
+    if (!tanks) return {
+      tanks: [],
+      totalCapacity: 0,
+      totalCurrentStock: 0,
+      totalAvailable: 0,
+      avgFillPercentage: 0,
+      tankCount: 0
+    };
+
     const siteTanks = tanks.filter(tank => tank.siteId === siteId);
     const totalCapacity = siteTanks.reduce((sum, tank) => sum + (tank.tankVolume || 0), 0);
     const totalCurrentStock = siteTanks.reduce((sum, tank) => sum + (tank.currentStock || 0), 0);
@@ -146,7 +168,7 @@ const TankPage = () => {
       avgFillPercentage,
       tankCount: siteTanks.length
     };
-  };
+  }, [tanks]);
 
   const getStatusClass = (percentage) => {
     if (percentage >= 70) return 'full';
@@ -172,7 +194,7 @@ const TankPage = () => {
           return null;
         }}
       />
-      <Column
+      {/* <Column
         dataField="currentStock"
         caption="Current Stock (L)"
         visible={false}
@@ -183,7 +205,7 @@ const TankPage = () => {
           }
           return null;
         }}
-      />
+      /> */}
     </>
   );
 
@@ -192,8 +214,8 @@ const TankPage = () => {
 
       <Toolbar className="tw-mb-4 tw-bg-white tw-rounded-lg tw-shadow-md">
         <Item location="before">
-          <div className="tw-text-2xl tw-font-bold tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-800 tw-bg-clip-text tw-text-transparent">
-            <i className="fa-solid fa-gas-pump tw-mr-2"></i>
+          <div className= "tw-gap-2 tw-text-2xl tw-font-bold tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-800 tw-bg-clip-text tw-text-transparent">
+            <i className="fa-light fa-gas-pump tw-mr-2"></i>
             Tank Management
           </div>
         </Item>
@@ -252,7 +274,7 @@ const TankPage = () => {
             height="100%"
           >
             <SearchPanel visible={true} placeholder="Search sites and tanks..." />
-            <HeaderFilter visible={true} />
+            <HeaderFilter visible={false} />
             <Selection mode="single" />
             {treeColumns}
           </TreeList>
@@ -266,7 +288,7 @@ const TankPage = () => {
           ) : selectedSite ? (
             <div className="site-summary tw-animate-fadeIn">
               <h2 className="tw-text-2xl tw-font-bold tw-mb-6 tw-flex tw-items-center">
-                <i className="fas fa-building tw-mr-3 tw-text-blue-600"></i>
+                <i className="fa-light fa-building tw-mr-3 tw-text-blue-600"></i>
                 {selectedSite.name} - Tank Summary
               </h2>
 
@@ -283,7 +305,7 @@ const TankPage = () => {
                             <p className="tw-text-sm tw-text-gray-600 tw-font-medium">Total Capacity</p>
                             <p className="tw-text-2xl tw-font-bold tw-text-blue-800">{summary.totalCapacity.toLocaleString()} L</p>
                           </div>
-                          <i className="fas fa-database tw-text-3xl tw-text-blue-600"></i>
+                          <i className="fa-light fa-database tw-text-3xl tw-text-blue-600"></i>
                         </div>
                       </div>
 
@@ -293,7 +315,7 @@ const TankPage = () => {
                             <p className="tw-text-sm tw-text-gray-600 tw-font-medium">Current Stock</p>
                             <p className="tw-text-2xl tw-font-bold tw-text-green-800">{summary.totalCurrentStock.toLocaleString()} L</p>
                           </div>
-                          <i className="fas fa-oil-can tw-text-3xl tw-text-green-600"></i>
+                          <i className="fa-light fa-oil-can tw-text-3xl tw-text-green-600"></i>
                         </div>
                       </div>
 
@@ -303,7 +325,7 @@ const TankPage = () => {
                             <p className="tw-text-sm tw-text-gray-600 tw-font-medium">Available Space</p>
                             <p className="tw-text-2xl tw-font-bold tw-text-purple-800">{summary.totalAvailable.toLocaleString()} L</p>
                           </div>
-                          <i className="fas fa-chart-pie tw-text-3xl tw-text-purple-600"></i>
+                          <i className="fa-light fa-chart-pie tw-text-3xl tw-text-purple-600"></i>
                         </div>
                       </div>
                     </div>
@@ -329,7 +351,7 @@ const TankPage = () => {
                           <div key={tank.id} className="tank-card">
                             <div className="tw-flex tw-items-center tw-mb-3">
                               <div className={`tank-icon ${tankStatusClass}`}>
-                                <i className="fas fa-gas-pump"></i>
+                                <i className="fa-light fa-gas-pump"></i>
                               </div>
                               <div className="tw-ml-3 tw-flex-1">
                                 <h4 className="tw-font-semibold tw-text-gray-800">{tank.name}</h4>
@@ -365,7 +387,7 @@ const TankPage = () => {
           ) : (
             <div className="tw-flex tw-items-center tw-justify-center tw-h-full tw-text-gray-500">
               <div className="tw-text-center">
-                <i className="fas fa-gas-pump tw-text-6xl tw-mb-4 tw-text-gray-300"></i>
+                <i className="fa-light fa-gas-pump tw-text-6xl tw-mb-4 tw-text-gray-300"></i>
                 <p className="tw-text-xl tw-font-medium">Select a site or tank to view details</p>
                 <p className="tw-text-sm tw-mt-2 tw-text-gray-400">Choose a site to see all tanks summary or a specific tank for detailed information</p>
               </div>
@@ -396,12 +418,17 @@ const TankPage = () => {
         dragEnabled={true}
         showTitle={true}
         title={`Tank History - ${selectedTank?.name}`}
-        width={800}
-        height={600}
-        showCloseButton = {true}
-      >
-        {selectedTank && <TankHistory tankId={selectedTank.id} />}
-      </Popup>
+        width="90%"
+        height="90%"
+        maxHeight="90vh"
+        showCloseButton={true}
+        closeOnOutsideClick={false}
+        contentRender={() => (
+          <div style={{ height: '100%', overflow: 'auto', padding: '10px' }}>
+            {showTankHistory && selectedTank && <TankHistory tankId={selectedTank.id} />}
+          </div>
+        )}
+      />
 
       <PTSDeviceLinkPopup
         visible={showPTSLink}

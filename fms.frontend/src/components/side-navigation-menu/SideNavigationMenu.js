@@ -85,15 +85,28 @@ export default function SideNavigationMenu(props) {
   const wrapperRef = useRef();
   const getWrapperRef = useCallback((element) => {
     const prevElement = wrapperRef.current;
+    // Clean up events from previous element
     if (prevElement) {
       events.off(prevElement, 'dxclick');
     }
 
-    wrapperRef.current = element;
-    events.on(element, 'dxclick', (e) => {
-      openMenu(e);
-    });
+    // Only attach new event if element exists
+    if (element) {
+      wrapperRef.current = element;
+      events.on(element, 'dxclick', (e) => {
+        openMenu(e);
+      });
+    }
   }, [openMenu]);
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      if (wrapperRef.current) {
+        events.off(wrapperRef.current, 'dxclick');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const treeView = treeViewRef.current && treeViewRef.current.instance;
@@ -109,6 +122,13 @@ export default function SideNavigationMenu(props) {
     if (compactMode) {
       treeView.collapseAll();
     }
+
+    // Cleanup function
+    return () => {
+      if (treeView) {
+        treeView.dispose();
+      }
+    };
   }, [currentPath, compactMode]);
 
   const onItemExpanded = useCallback((e) => {

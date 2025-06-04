@@ -24,6 +24,37 @@ $transition: all 0.3s ease;
     overflow: hidden;
     box-shadow: $shadow-md;
 
+    .dx-treelist-search-panel {
+      position: static;
+      padding: 0.85rem;
+      background-color: $white;
+      border-bottom: 1px solid rgba($gray-medium, 0.2);
+      margin-bottom: 1.2rem;
+
+      .dx-texteditor {
+        width: 100%;
+        max-width: 350px;
+        margin-left: auto;
+        margin-right: 0;
+
+        input {
+          border-radius: 6px;
+          padding: 0.5rem 1.2rem;
+          border: 1px solid $gray-medium;
+          background-color: $gray-light;
+          transition: $transition;
+          width: 100%;
+          font-size: 1.08rem;
+
+          &:focus {
+            border-color: $primary-color;
+            background-color: $white;
+            box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+          }
+        }
+      }
+    }
+
     .dx-treelist-headers {
       background: linear-gradient(to right, $primary-color, darken($primary-color, 10%));
       color: $white;
@@ -68,24 +99,6 @@ $transition: all 0.3s ease;
               }
             }
           }
-        }
-      }
-    }
-
-    .dx-treelist-search-panel {
-      margin: 1rem;
-
-      input {
-        border-radius: 9999px;
-        padding: 0.5rem 1rem;
-        border: 2px solid transparent;
-        background-color: $gray-light;
-        transition: $transition;
-
-        &:focus {
-          border-color: $primary-color;
-          background-color: $white;
-          box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
         }
       }
     }

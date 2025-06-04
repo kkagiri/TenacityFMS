@@ -40,7 +40,6 @@ export const signIn = (username, password) => async (dispatch) => {
     try {
         console.log('Attempting login for username:', username);
         const response = await axiosInstance.post(`/user/login`, { username, password });
-        console.log('Login response:', response.data);
 
         const { token } = response.data; // Backend returns { token: "..." } (lowercase)
 
