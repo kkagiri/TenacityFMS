@@ -60,12 +60,18 @@ export const updateNavigationItem = (id, item) => async (dispatch) => {
             id: id,
             link: item.link,
             pageName: item.pageName,
-            roleIds: item.RoleIds || []
+            parentId: item.parentId || null,
+            icon: item.icon || null,
+            RoleIds: item.RoleIds || []
         };
+
+        console.log('Sending update payload:', payload);
         const response = await axiosInstance.put(`/navigation/${id}`, payload);
+        console.log('Update response:', response);
         dispatch({ type: UPDATE_NAVIGATION_ITEM_SUCCESS, payload: { id, item: {...item, id} } });
         return response;
     } catch (error) {
+        console.error('Update error:', error);
         dispatch({ type: UPDATE_NAVIGATION_ITEM_FAILURE, payload: error.message });
         throw error;
     }

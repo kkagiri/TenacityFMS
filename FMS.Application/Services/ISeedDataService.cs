@@ -1,10 +1,10 @@
-using System.Threading.Tasks;
+// using System.Threading.Tasks;
 
-namespace FMS.Application.Services
-{
-    public interface ISeedDataService
-    {
-        Task<bool> SeedInitialDataAsync();
-        Task<bool> HasInitialDataBeenSeededAsync();
-    }
-}
+// namespace FMS.Application.Services
+// {
+//     public interface ISeedDataService
+//     {
+//         Task<bool> SeedInitialDataAsync();
+//         Task<bool> HasInitialDataBeenSeededAsync();
+//     }
+// }

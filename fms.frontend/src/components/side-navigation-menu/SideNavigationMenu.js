@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import TreeView from 'devextreme-react/tree-view';
-//import { navigation } from '../../app-navigation';
 import { useNavigation } from '../../contexts/navigation';
 import { useScreenSize } from '../../utils/media-query';
 import './SideNavigationMenu.scss';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchNavigationItems } from '../../redux/actions/navigationActions';
 import * as events from 'devextreme/events';
-import MobileNavigationMenu from './MobileNavigationMenu';
 
 export default function SideNavigationMenu(props) {
   const {
@@ -15,17 +13,15 @@ export default function SideNavigationMenu(props) {
     selectedItemChanged,
     openMenu,
     compactMode,
-    onMenuReady
+    onMenuReady,
+    isMenuOpen // Cursor: New prop from layout
   } = props;
 
-  const { isXSmall, isSmall, isMedium, isLarge } = useScreenSize();
+  const { isLarge } = useScreenSize();
   const dispatch = useDispatch();
   const { navigationItems, loading, error } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
   const [expandedItems, setExpandedItems] = useState([]);
-
-  // Use mobile navigation for very small screens
-  const useMobileNav = isXSmall;
 
   useEffect(() => {
     if (user) {
@@ -35,6 +31,7 @@ export default function SideNavigationMenu(props) {
 
   useEffect(() => {
     if (loading) {
+      // Handle loading state if needed
     }
   }, [loading]);
 
@@ -99,8 +96,6 @@ export default function SideNavigationMenu(props) {
   }, [openMenu]);
 
   useEffect(() => {
-    if (useMobileNav) return; // Skip TreeView setup for mobile
-
     const treeView = treeViewRef.current && treeViewRef.current.instance;
     if (!treeView) {
       return;
@@ -111,66 +106,23 @@ export default function SideNavigationMenu(props) {
       treeView.expandItem(currentPath);
     }
 
-    // On small screens, collapse all items initially except the current path
-    if (isSmall && !compactMode) {
-      treeView.collapseAll();
-      if (currentPath) {
-        treeView.expandItem(currentPath);
-      }
-    }
-
     if (compactMode) {
       treeView.collapseAll();
     }
-  }, [currentPath, compactMode, isSmall, useMobileNav]);
+  }, [currentPath, compactMode]);
 
   const onItemExpanded = useCallback((e) => {
-    // On small screens, collapse other expanded items when expanding a new one
-    if (isSmall) {
-      const treeView = treeViewRef.current && treeViewRef.current.instance;
-      if (treeView) {
-        const expandedPaths = expandedItems.filter(path => path !== e.itemData.path);
-        expandedPaths.forEach(path => {
-          if (path && !e.itemData.path.startsWith(path)) {
-            treeView.collapseItem(path);
-          }
-        });
-        setExpandedItems([e.itemData.path]);
-      }
-    }
-  }, [isSmall, expandedItems]);
+    // Cursor: Simple item expansion handling
+    setExpandedItems([e.itemData.path]);
+  }, []);
 
   const onItemClick = useCallback((e) => {
     selectedItemChanged(e);
-
-    // On mobile, close the menu after selection if it has no children
-    if ((isXSmall || isSmall) && (!e.itemData.items || e.itemData.items.length === 0)) {
-      const drawerInstance = document.querySelector('.dx-drawer')?.dxDrawer?.instance;
-      if (drawerInstance) {
-        drawerInstance.hide();
-      }
-    }
-  }, [selectedItemChanged, isXSmall, isSmall]);
-
-  // Render mobile navigation for very small screens
-  if (useMobileNav) {
-    return (
-      <div
-        className={`dx-swatch-additional side-navigation-menu mobile-navigation`}
-        ref={getWrapperRef}
-      >
-        {children}
-        <MobileNavigationMenu
-          selectedItemChanged={selectedItemChanged}
-          onMenuReady={onMenuReady}
-        />
-      </div>
-    );
-  }
+  }, [selectedItemChanged]);
 
   return (
     <div
-      className={`dx-swatch-additional side-navigation-menu ${isSmall ? 'mobile-view' : ''}`}
+      className={`dx-swatch-additional side-navigation-menu`}
       ref={getWrapperRef}
     >
       {children}
@@ -186,9 +138,9 @@ export default function SideNavigationMenu(props) {
           onItemExpanded={onItemExpanded}
           onContentReady={onMenuReady}
           width={'100%'}
-          scrollDirection={isSmall ? 'both' : 'vertical'}
+          scrollDirection={'vertical'}
           showCheckBoxesMode={'none'}
-          animationEnabled={!isSmall}
+          animationEnabled={true}
         />
       </div>
     </div>

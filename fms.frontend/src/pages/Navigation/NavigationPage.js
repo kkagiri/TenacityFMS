@@ -31,7 +31,7 @@ const NavigationPage = () => {
             link: e.data.link,
             parentId: e.data.parentId || null,
             icon: e.data.icon || null,
-            RoleIds: e.data.roles || []
+            RoleIds: Array.isArray(e.data.roles) ? e.data.roles : []
         };
         console.log("Inserted Data:", data);
         try {
@@ -44,20 +44,43 @@ const NavigationPage = () => {
     };
 
     const onRowUpdated = async (e) => {
+        console.log("onRowUpdated triggered with event:", e);
+        console.log("e.data:", e.data);
+        console.log("e.key:", e.key);
+
+        const originalItem = allNavigationItems.find(item => item.id === e.key);
+        console.log("Original item:", originalItem);
+
+        const mergedData = {
+            ...originalItem,
+            ...e.data
+        };
+        console.log("Merged data:", mergedData);
+
         const data = {
             id: e.key,
-            link: e.data.link,
-            pageName: e.data.page,  // Note: backend expects 'pageName' not 'page'
-            parentId: e.data.parentId || null,
-            icon: e.data.icon || null,
-            RoleIds: e.data.roles || []
+            link: mergedData.link || '',
+            pageName: mergedData.page || '',  // Use 'page' from data, send as 'pageName'
+            parentId: mergedData.parentId !== undefined ? mergedData.parentId : null,
+            icon: mergedData.icon || null,
+            RoleIds: Array.isArray(mergedData.roles) ? mergedData.roles :
+                     (mergedData.rolenavigations ? mergedData.rolenavigations.map(rn => rn.roleId) : [])
         };
-        console.log("Updated Data:", data);
+        console.log("Updated Data to send:", data);
+
+        // Validate required fields
+        if (!data.link || !data.pageName) {
+            console.error("Missing required fields:", { link: data.link, pageName: data.pageName });
+            notify("Link and Page Name are required", "error");
+            return;
+        }
+
         try {
             await dispatch(updateNavigationItem(e.key, data));
             notify("Navigation item updated successfully", "success");
             dispatch(fetchAllNavigationItems());
         } catch (error) {
+            console.error("Error in onRowUpdated:", error);
             notify("Failed to update navigation item", "error");
         }
     };
@@ -78,18 +101,25 @@ const NavigationPage = () => {
     };
 
     const onInitNewRow = (e) => {
-        e.data.roles = [];
+        // Create a new object instead of mutating existing data
+        e.data = { ...e.data, roles: [] }; //Cursor
     };
 
     const onEditingStart = (e) => {
-        // Load existing roles for the navigation item
+        // Load existing roles for the navigation item and ensure it's always an array
         const navigationItem = allNavigationItems.find(item => item.id === e.data.id);
-        if (navigationItem && navigationItem.rolenavigations) {
-            e.data.roles = navigationItem.rolenavigations.map(rn => rn.roleId);
+        let existingRoles = [];
+
+        if (navigationItem && navigationItem.rolenavigations && Array.isArray(navigationItem.rolenavigations)) {
+            existingRoles = navigationItem.rolenavigations.map(rn => rn.roleId);
         }
+
+        // Create a new object instead of mutating the existing Redux state
+        e.data = { ...e.data, roles: [...existingRoles] }; //Cursor
     };
 
-    const rolesDataSource = roles.map(role => ({ id: role.id, text: role.name }));
+    // Ensure roles is always available as an array
+    const rolesDataSource = Array.isArray(roles) ? roles.map(role => ({ id: role.id, text: role.name })) : [];
 
     return (
         <div className='content-block'>
@@ -104,6 +134,35 @@ const NavigationPage = () => {
                     </div>
                 </div>
 
+                {/* Cursor - Added test button to manually trigger update */}
+                <button
+                    className="tw-mb-4 tw-px-4 tw-py-2 tw-bg-green-500 tw-text-white tw-rounded"
+                    onClick={async () => {
+                        console.log("Test button clicked");
+                        if (allNavigationItems && allNavigationItems.length > 0) {
+                            const testItem = allNavigationItems[0];
+                            const testData = {
+                                id: testItem.id,
+                                link: testItem.link,
+                                pageName: testItem.page,
+                                parentId: testItem.parentId,
+                                icon: testItem.icon,
+                                RoleIds: testItem.rolenavigations ? testItem.rolenavigations.map(rn => rn.roleId) : []
+                            };
+                            console.log("Testing update with data:", testData);
+                            try {
+                                await dispatch(updateNavigationItem(testItem.id, testData));
+                                notify("Test update completed", "success");
+                            } catch (error) {
+                                console.error("Test update failed:", error);
+                                notify("Test update failed", "error");
+                            }
+                        }
+                    }}
+                >
+                    Test Update (First Item)
+                </button>
+
                 {loading && <p>Loading...</p>}
                 {error && <p className="tw-text-red-600">Error: {error}</p>}
 
@@ -113,11 +172,16 @@ const NavigationPage = () => {
                     parentIdExpr="parentId"
                     showBorders={true}
                     columnAutoWidth={true}
+                    repaintChangesOnly={true}
                     onRowInserted={onRowInserted}
                     onRowUpdated={onRowUpdated}
                     onRowRemoved={onRowRemoved}
                     onInitNewRow={onInitNewRow}
                     onEditingStart={onEditingStart}
+                    onSaving={(e) => {
+                        console.log("onSaving triggered:", e);
+                        console.log("Changes:", e.changes);
+                    }}
                     wordWrapEnabled={true}
                     showRowLines={true}
                 >
@@ -175,7 +239,8 @@ const NavigationPage = () => {
                                     displayExpr: "text",
                                     valueExpr: "id",
                                     searchEnabled: true,
-                                    placeholder: 'Select roles that can access this page'
+                                    placeholder: 'Select roles that can access this page',
+                                    value: []
                                 }}
                             >
                                 <RequiredRule message="At least one role is required" />
@@ -212,7 +277,7 @@ const NavigationPage = () => {
                         caption="Allowed Roles"
                         minWidth={200}
                         calculateCellValue={(rowData) => {
-                            if (rowData.rolenavigations && rowData.rolenavigations.length > 0) {
+                            if (rowData.rolenavigations && Array.isArray(rowData.rolenavigations) && rowData.rolenavigations.length > 0) {
                                 const roleNames = rowData.rolenavigations.map(rn => {
                                     const role = roles.find(r => r.id === rn.roleId);
                                     return role ? role.name : rn.roleId;

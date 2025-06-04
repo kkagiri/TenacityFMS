@@ -101,9 +101,9 @@ const routes = [
                 selectedIndex={selectedIndex}
                 onSelectionChanged={(e) => setSelectedIndex(e.component.option('selectedIndex'))}
                 itemTitleRender={(item) => (
-                    <div className="tw-flex tw-items-center tw-py-2">
-                        <span className="tw-font-medium">{item.title}</span>
-                    </div>
+
+                        item.title
+
                 )}
                 itemRender={(item) => (
                     <div className="tw-p-4">

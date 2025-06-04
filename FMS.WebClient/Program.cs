@@ -59,7 +59,7 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
-using FMS.Application.Extensions;
+//using FMS.Application.Extensions;
 
 namespace FMS.WebClient;
 
@@ -121,7 +121,7 @@ public class Program {
         }
 
         // Don't configure Kestrel endpoints - let the default configuration from appsettings handle binding
-        Log.Information ("Using default URL configuration - should bind to http://192.168.100.9:7009 and http://localhost:7009");
+        Log.Information ("Using default URL configuration - should bind to http://10.0.11.90:7009 and http://localhost:7009");
         var app = builder.Build ();
         ConfigureApp (app, builder.Environment);
 
@@ -141,7 +141,7 @@ public class Program {
         // Check if port is in use on the specific addresses we want to bind to
         var addressesToCheck = new [] {
             IPAddress.Loopback, // 127.0.0.1 (localhost)
-            IPAddress.Parse ("192.168.100.9") // your specific IP
+            IPAddress.Parse ("10.0.11.90") // your specific IP - updated to match actual machine IP
         };
 
         foreach (var address in addressesToCheck) {
@@ -279,7 +279,7 @@ public class Program {
             RegisterDistributedCache (services);
 
             // Register seed data services
-            services.AddSeedDataServices();
+            // services.AddSeedDataServices();
 
             //InfrastructureServicesConfiguration.Configure (services, configuration);
         } catch (Exception ex) {
@@ -573,9 +573,10 @@ public class Program {
                                 "https://10.0.10.113",
                                 "http://10.0.10.113:3000",
                                 "https://10.0.10.113:3000",
-                                "http://192.168.100.9",
-                                "https://192.168.100.9",
-                                "http://192.168.100.9:3000"
+                                "http://10.0.11.90",
+                                "https://10.0.11.90",
+                                "http://10.0.11.90:3000",
+                                "https://10.0.11.90:3000"
                             )
                             .AllowAnyHeader ()
                             .AllowAnyMethod ()

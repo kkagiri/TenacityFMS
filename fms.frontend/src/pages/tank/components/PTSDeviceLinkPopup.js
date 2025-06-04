@@ -193,6 +193,8 @@ const PTSDeviceLinkPopup = ({ visible, tank, onClose }) => {
       title={`PTS Device Link - ${tank?.name || 'Tank'}`}
       width={500}
       height="auto"
+      showCloseButton = {true}
+
     >
       <div className="tw-p-4">
         <div className="tw-mb-4">

@@ -1,0 +1,248 @@
+// Cursor - Tank Page SCSS with beautiful styling
+$primary-color: #3b82f6;
+$secondary-color: #10b981;
+$danger-color: #ef4444;
+$warning-color: #f59e0b;
+$gray-light: #f3f4f6;
+$gray-medium: #9ca3af;
+$gray-dark: #374151;
+$white: #ffffff;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$border-radius: 0.75rem;
+$transition: all 0.3s ease;
+
+.tank-page {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+
+  // DevExtreme TreeList customization
+  .dx-treelist {
+    border: none;
+    border-radius: $border-radius;
+    overflow: hidden;
+    box-shadow: $shadow-md;
+
+    .dx-treelist-headers {
+      background: linear-gradient(to right, $primary-color, darken($primary-color, 10%));
+      color: $white;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+
+      .dx-header-row {
+        .dx-datagrid-text-content {
+          color: $white;
+        }
+      }
+    }
+
+    .dx-treelist-rowsview {
+      .dx-row {
+        transition: $transition;
+
+        &.dx-state-hover {
+          background-color: rgba($primary-color, 0.05);
+          transform: translateX(5px);
+        }
+
+        &.dx-selection {
+          background-color: rgba($primary-color, 0.1);
+          border-left: 4px solid $primary-color;
+        }
+
+        // Hide IDs but keep functionality
+        &[aria-rowindex] {
+          .dx-treelist-text-content {
+            &:contains("site_"),
+            &:contains("tank_") {
+              visibility: hidden;
+              position: relative;
+
+              &::after {
+                content: attr(data-display-name);
+                visibility: visible;
+                position: absolute;
+                left: 0;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .dx-treelist-search-panel {
+      margin: 1rem;
+
+      input {
+        border-radius: 9999px;
+        padding: 0.5rem 1rem;
+        border: 2px solid transparent;
+        background-color: $gray-light;
+        transition: $transition;
+
+        &:focus {
+          border-color: $primary-color;
+          background-color: $white;
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+        }
+      }
+    }
+  }
+
+  // Tank details styling
+  .tank-details-container {
+    animation: fadeIn 0.5s ease;
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  }
+
+  // Site summary styling
+  .site-summary {
+    .tank-card {
+      background: $white;
+      border-radius: $border-radius;
+      padding: 1.5rem;
+      box-shadow: $shadow-sm;
+      transition: $transition;
+      border: 2px solid transparent;
+
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: $shadow-lg;
+        border-color: $primary-color;
+      }
+
+      .tank-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+
+        &.full { background-color: rgba($secondary-color, 0.1); color: $secondary-color; }
+        &.medium { background-color: rgba($warning-color, 0.1); color: $warning-color; }
+        &.low { background-color: rgba($danger-color, 0.1); color: $danger-color; }
+      }
+
+      .progress-bar {
+        height: 8px;
+        background-color: $gray-light;
+        border-radius: 9999px;
+        overflow: hidden;
+        position: relative;
+
+        .progress-fill {
+          height: 100%;
+          transition: width 1s ease;
+          border-radius: 9999px;
+          position: relative;
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.4),
+              transparent
+            );
+            animation: shimmer 2s infinite;
+          }
+
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+
+          &.full { background: linear-gradient(to right, $secondary-color, darken($secondary-color, 10%)); }
+          &.medium { background: linear-gradient(to right, $warning-color, darken($warning-color, 10%)); }
+          &.low { background: linear-gradient(to right, $danger-color, darken($danger-color, 10%)); }
+        }
+      }
+    }
+  }
+
+  // Button styling
+  .dx-button {
+    &.dx-button-mode-contained {
+      &.dx-button-default {
+        background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 10%) 100%);
+        border: none;
+        box-shadow: $shadow-sm;
+        transition: $transition;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: $shadow-md;
+        }
+      }
+    }
+
+    &.dx-button-mode-text {
+      transition: $transition;
+
+      &:hover {
+        background-color: rgba($primary-color, 0.1);
+      }
+    }
+  }
+
+  // Popup styling
+  .dx-popup-wrapper {
+    .dx-popup-title {
+      background: linear-gradient(to right, $primary-color, darken($primary-color, 10%));
+      color: $white;
+      font-weight: 600;
+      padding: 1rem 1.5rem;
+    }
+
+    .dx-popup-content {
+      padding: 1.5rem;
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 768px) {
+    .tw-flex-col-mobile {
+      flex-direction: column;
+    }
+
+    .tw-w-full-mobile {
+      width: 100%;
+    }
+  }
+}
+
+// Font Awesome icon support
+.fas, .far, .fab {
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+}
+
+// Custom animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tw-animate-fadeIn {
+  animation: fadeIn 0.5s ease;
+}

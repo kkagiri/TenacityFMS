@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useMemo } from "react";
 import appInfo from "./app-info";
-import { SideNavInnerToolbar as SideNavBarLayout } from "./layouts";
+import { SideNavOuterToolbar as SideNavBarLayout } from "./layouts";
 import { Footer } from "./components";
 
 import { useDispatch, useSelector } from "react-redux";

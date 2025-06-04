@@ -28,10 +28,9 @@ const SitePage = () => {
   const userRoles = user ? user.roles : [];
 
   console.log('User roles:', userRoles);
-  const canCreateSite = userRoles.includes('Administrator') || userRoles.includes('SiteManager');
-  const canEditSite = userRoles.includes('Administrator') || userRoles.includes('SiteManager');
-  const canDeleteSite = userRoles.includes('Administrator');
-
+  const canCreateSite = userRoles.includes('Admin') || userRoles.includes('SiteManager');
+  const canEditSite = userRoles.includes('Admin') || userRoles.includes('SiteManager');
+  const canDeleteSite = userRoles.includes('Admin');
   const [selectedSites, setSelectedSites] = useState([]);
   const [showSiteForm, setShowSiteForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
