@@ -34,11 +34,21 @@ namespace FMS.Application.MappingProfile {
                 .ForMember (dest => dest.Name, opt => opt.MapFrom (scr => scr.Name.ToUpper ()))
                 .ReverseMap ();
 
+            CreateMap<AutomatedFuelingConfiguration, AutomatedFuelingConfigurationDto> ()
+                .ForMember (dest => dest.SiteName, opt => opt.MapFrom (src => src.Site != null ? src.Site.Name : null));
+
+            // Create DTO to Entity
+            CreateMap<CreateAutomatedFuelingConfigurationDto, AutomatedFuelingConfiguration> ();
+
+            // Update DTO to Entity
+            CreateMap<UpdateAutomatedFuelingConfigurationDto, AutomatedFuelingConfiguration> ()
+                .ForMember (dest => dest.SiteId, opt => opt.Ignore ()); // Don't allow changing site
+
             // Site creation and update mappings
-            CreateMap<CreateSiteDTO, Site>()
-                .ReverseMap();
-            CreateMap<UpdateSiteDTO, Site>()
-                .ReverseMap();
+            CreateMap<CreateSiteDTO, Site> ()
+                .ReverseMap ();
+            CreateMap<UpdateSiteDTO, Site> ()
+                .ReverseMap ();
 
             // User mappings
             CreateMap<User, UserDto> ().ReverseMap ();

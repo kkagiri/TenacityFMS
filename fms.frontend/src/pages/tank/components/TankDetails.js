@@ -31,6 +31,18 @@ const TankDetails = ({ tank }) => {
         <h2 className="tw-text-3xl tw-font-bold tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-800 tw-bg-clip-text tw-text-transparent">{tank.name}</h2>
       </div>
 
+      {/* Overall Fill Level Progress Bar */}
+      <div className="tw-mb-8">
+        <p className="tw-text-sm tw-text-gray-600 tw-mb-2">Overall Fill Level</p>
+        <div className="progress-bar">
+          <div
+            className={`progress-fill ${fillPercentage >= 70 ? 'full' : fillPercentage >= 30 ? 'medium' : 'low'}`}
+            style={{ width: `${fillPercentage}%` }}
+          />
+        </div>
+        <p className="tw-text-right tw-text-sm tw-font-semibold tw-mt-1">{fillPercentage}%</p>
+      </div>
+
       <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
         <div className="tw-space-y-4">
           <div className="tw-bg-gradient-to-br tw-from-blue-50 tw-to-blue-100 tw-border tw-border-blue-200 tw-rounded-xl tw-p-5 tw-shadow-sm hover:tw-shadow-md tw-transition-shadow">

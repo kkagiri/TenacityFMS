@@ -23,12 +23,19 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
     private readonly IMapper _mapper;
     private readonly ILogger<FuelRefilCreateCommandHandler> _logger;
     private readonly IMediator _mediator;
+    private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
 
-    public FuelRefilCreateCommandHandler (GpsdataContext context, ILogger<FuelRefilCreateCommandHandler> logger, IMapper mapper, IMediator mediator) {
+    public FuelRefilCreateCommandHandler (
+        GpsdataContext context,
+        ILogger<FuelRefilCreateCommandHandler> logger,
+        IMapper mapper,
+        IMediator mediator,
+        TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
         _context = context;
         _logger = logger;
         _mapper = mapper;
         _mediator = mediator;
+        _tankVolumeHistoryService = tankVolumeHistoryService;
     }
 
     public async Task<FMSResponseMessage> Handle (FuelRefilCreateCommand request, CancellationToken cancellationToken) {
@@ -147,20 +154,21 @@ public class FuelRefilCreateCommandHandler : IRequestHandler<FuelRefilCreateComm
 
             await _context.SaveChangesAsync (cancellationToken);
 
-            var tankVolumeHistory = new TankVolumeHistory {
-                ChangeReason = VolumeChangeReasonEnum.Dispensing,
-                Timestamp = request.FuelRefilDTO.Date.Value,
-                TankId = tank.Id,
-                VolumeChange = -(decimal) fuelRefil.ManualFuelrefilAmount,
-                NewVolume = tank.CurrentStock ?? 0,
-                RecordedBy = fuelRefil.FuelBy,
-                ReferenceId = fuelRefil.Id,
-                ReferenceType = "Dispense"
-            };
+            // After saving the fuel refill, update tank volume history
+            // Note: fuel refills decrease tank volume (negative volume change)
+            var volumeUpdateResult = await _tankVolumeHistoryService.ProcessFuelRefillChangeAsync (
+                tankId: tank.Id,
+                timestamp: fuelRefilDto.Date.Value,
+                volumeChange: -(decimal) fuelRefil.ManualFuelrefilAmount, // Negative because fuel is taken from the tank
+                refillId : fuelRefil.Id,
+                actionType : ActionType.Create, // This is a new refill
+                recordedBy : fuelRefil.FuelBy,
+                cancellationToken : cancellationToken);
 
-            _context.TankVolumeHistories.Add (tankVolumeHistory);
-
-            await _context.SaveChangesAsync (cancellationToken);
+            if (!volumeUpdateResult.Success) {
+                _logger.LogWarning ("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
+                // We continue even if volume history update fails, but log the error
+            }
 
             return new FMSResponseMessage<Fuelrefil> (true, "Fuel refill created successfully.", fuelRefil);
         } catch (Exception ex) {

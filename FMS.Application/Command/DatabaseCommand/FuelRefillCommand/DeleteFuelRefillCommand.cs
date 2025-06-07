@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using FMS.Application.Common;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -8,35 +10,54 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
 
-public record FuelRefilDeleteCommand(int Id) : IRequest<bool>;
+public record FuelRefilDeleteCommand (
+    int FuelRefillId,
+    int TankId,
+    decimal Amount,
+    DateTime RefillDate,
+    string UserId
+) : IRequest<FMSResponseMessage>;
 
-public class FuelRefilDeleteCommandHandler : IRequestHandler<FuelRefilDeleteCommand, bool>
-{
+public class FuelRefilDeleteCommandHandler : IRequestHandler<FuelRefilDeleteCommand, FMSResponseMessage> {
     private readonly GpsdataContext _context;
     private readonly ILogger<FuelRefilDeleteCommandHandler> _logger;
+    private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
 
-    public FuelRefilDeleteCommandHandler(GpsdataContext context, ILogger<FuelRefilDeleteCommandHandler> logger)
-    {
+    public FuelRefilDeleteCommandHandler (GpsdataContext context, ILogger<FuelRefilDeleteCommandHandler> logger, TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
+        _tankVolumeHistoryService = tankVolumeHistoryService;
         _context = context;
         _logger = logger;
     }
 
-    public async Task<bool> Handle(FuelRefilDeleteCommand request, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var fuelRefil = await _context.Fuelrefils.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
-            if (fuelRefil == null) return false;
+    public async Task<FMSResponseMessage> Handle (FuelRefilDeleteCommand request, CancellationToken cancellationToken) {
+        try {
+            var fuelRefill = await _context.Fuelrefils.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+            if (fuelRefill == null) {
+                return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
+            }
 
-            _context.Fuelrefils.Remove(fuelRefil);
-            await _context.SaveChangesAsync(cancellationToken);
+            _context.Fuelrefils.Remove (fuelRefill);
+            await _context.SaveChangesAsync (cancellationToken);
+            // When deleting a fuel refill, we need to update the tank volume history
+            // The volume change is positive (we're adding back the amount that was removed)
+            var results = await _tankVolumeHistoryService.ProcessFuelRefillChangeAsync (
+                tankId: request.TankId,
+                timestamp: request.RefillDate,
+                volumeChange: request.Amount, // Positive because we're removing the refill
+                refillId : request.FuelRefillId,
+                actionType : ActionType.Delete, // This is a deletion
+                recordedBy : request.UserId,
+                cancellationToken : cancellationToken);
 
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in FuelRefilDeleteCommandHandler");
-            throw new Exception(ex.ToString());
+            if (!results.Success) {
+                _logger.LogError ("Failed to update tank volume history for fuel refill deletion: {ErrorMessage}", results.Message);
+                // we continue even if volume history update fails, but log the error
+            }
+
+            return new FMSResponseMessage (true, "Fuel refill deleted successfully");
+        } catch (Exception ex) {
+            _logger.LogError (ex, "Error in FuelRefilDeleteCommandHandler");
+            return new FMSResponseMessage (false, $"Error deleting fuel refill: {ex.Message}");
 
         }
     }

@@ -34,6 +34,7 @@ import { DatePeriods } from "../../components/Shared/datePeriods";
 import notify from 'devextreme/ui/notify';
 import CheckBox from "devextreme-react/check-box";
 import Button from 'devextreme-react/button';
+import axiosInstance from '../../utils/axiosInstance';
 
 const DEFAULT_ANALYTICS_PERIOD_KEY = 'Today';
 
@@ -156,6 +157,8 @@ const TankStockPage = () => {
     const today = new Date();
     return [today, today];
   });
+
+  const [isReconciling, setIsReconciling] = useState(false);
 
   const handlePeriodChange = useCallback((e) => {
     setTempSelectedPeriod(e.value);
@@ -432,7 +435,32 @@ const TankStockPage = () => {
   const handleDeliverySubmit = useCallback((formData) => handleStockSubmit(formData, 'delivery'), [handleStockSubmit]);
   const handleTransferSubmit = useCallback((formData) => handleStockSubmit(formData, 'transfer'), [handleStockSubmit]);
 
-  if (isLoading || saving) {
+  // New function to handle tank stock reconciliation
+  const handleReconcileTankStocks = useCallback(async () => {
+    try {
+      setIsReconciling(true);
+      notify('Reconciling tank stocks with volume history...', 'info', 2000);
+
+      const response = await axiosInstance.post('/tankstock/reconcile', {
+        siteId: selectedSite !== 'all' ? selectedSite : null,
+        userId: user.id
+      });
+
+      if (response.data.success) {
+        notify(response.data.message || 'Tank stocks reconciled successfully', 'success', 3000);
+        fetchData(); // Refresh data after reconciliation
+      } else {
+        notify(response.data.message || 'Error reconciling tank stocks', 'error', 5000);
+      }
+    } catch (error) {
+      console.error('Error reconciling tank stocks:', error);
+      notify('An unexpected error occurred during reconciliation', 'error', 3000);
+    } finally {
+      setIsReconciling(false);
+    }
+  }, [selectedSite, user.id, fetchData]);
+
+  if (isLoading || saving || isReconciling) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <LoadIndicator width={'24px'} height={'24px'} visible={true} />
@@ -457,6 +485,13 @@ const TankStockPage = () => {
                 ? `${appliedPeriod}`
                 : `${formatDate(appliedCustomDateRange[0])} - ${formatDate(appliedCustomDateRange[1])}`}
             </span>
+            <Button
+              icon="fa-light fa-rotate"
+              text="Reconcile Tank Stocks"
+              stylingMode="outlined"
+              onClick={handleReconcileTankStocks}
+              style={{ marginLeft: '10px' }}
+            />
           </ToolbarItem>
 
 

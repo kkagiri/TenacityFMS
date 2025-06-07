@@ -59,6 +59,7 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
+using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 //using FMS.Application.Extensions;
 
 namespace FMS.WebClient;
@@ -392,6 +393,8 @@ public class Program {
         services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
         services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
 
+        // Register the pump transaction integration service
+        services.AddScoped<PumpTransactionIntegrationService> ();
         // Register missing services that are causing dependency injection errors
         services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService> (); //Cursor
         services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
