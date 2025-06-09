@@ -71,6 +71,13 @@ const UserActivitiesPage = () => {
         // Apply filters
         let result = [...activities];
 
+        // Filter out monitoring GET requests //Cursor
+        result = result.filter(activity => {
+            const isMonitoringGet = activity.action === 'GET' &&
+                (activity.controller === 'User' || activity.controller === 'UserActivities');
+            return !isMonitoringGet;
+        });
+
         // Search term filter
         if (searchText) {
             result = result.filter(
@@ -272,6 +279,7 @@ const UserActivitiesPage = () => {
                             format="yyyy-MM-dd HH:mm:ss"
                             sortOrder="desc"
                             calculateCellValue={(data) => {
+                                // Convert UTC to local time //Cursor
                                 return data.timestamp ? new Date(data.timestamp) : null;
                             }}
                         />
