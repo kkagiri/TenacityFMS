@@ -1,11 +1,11 @@
 using System.Reflection;
-using FMS.Application.Command.DatabaseCommand.PTSDeviceCommands;
+using FMS.Application.Features.PTSDevice.Commands;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.Tracker.Common;
-using FMS.Application.ModelsDTOs.FMS.PTSDevice;
-using FMS.Application.Queries.Database.PTSQueries.PTSDeviceQueries;
+using FMS.Application.Features.PTSDevice.DTOs;
+using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -292,7 +292,7 @@ namespace FMS.WebClient.Controllers {
         [HttpDelete ("delete/{deviceId}")]
         public async Task<IActionResult> DeletePTSDevice (int deviceId) {
             try {
-                var result = await _mediator.Send (new FMS.Application.Command.DatabaseCommand.PTSDeviceCommands.DeletePTSDeviceCommand (deviceId));
+                var result = await _mediator.Send (new DeletePTSDeviceCommand (deviceId));
                 if (result.Success)
                     return Ok (result);
                 return BadRequest (result);

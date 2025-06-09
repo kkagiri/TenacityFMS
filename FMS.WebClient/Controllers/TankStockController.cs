@@ -6,7 +6,6 @@ using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Queries.Database.FMSQuery.TankStock;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
@@ -14,8 +13,8 @@ using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
 using FMS.Application.ModelsDTOs.FMS.TankTransfer;
 using FMS.Application.Common;
 using FMS.Domain.ATGEntities.Nafta;
+
 namespace FMS.WebClient.Controllers;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 [Route("api/[controller]")]
 [ApiController]

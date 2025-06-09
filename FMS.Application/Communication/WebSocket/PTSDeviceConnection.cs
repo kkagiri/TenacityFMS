@@ -10,7 +10,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.Command.DatabaseCommand.PTSDeviceCommands;
 using FMS.Application.Communication;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.WebSocket;
@@ -24,6 +23,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using FMS.Application.Features.PTSDevice.Commands;
 
 namespace FMS.Application.Communication.webSocket {
     /// <summary>

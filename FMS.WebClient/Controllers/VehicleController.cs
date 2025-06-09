@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using FMS.Application.Command.DatabaseCommand.VehicleCmd;
-using FMS.Application.ModelsDTOs.FMS.Vehicle;
+using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

@@ -1,7 +1,9 @@
 ﻿using FMS.Application.Command.DatabaseCommand.SiteCommands;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Models;
-using FMS.Application.Queries.Database.FMSQuery.SiteQuery;
+using FMS.Application.Features.Site.Queries;
+using FMS.Application.Features.Site.DTOs;
+using FMS.Application.Features.Site.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -1,9 +1,6 @@
-
-
 using System;
 using System.Threading.Tasks;
-using FMS.Application.Queries.Database.PTSQueries;
-using FMS.Application.Queries.Database.PTSQueries.DeviceQueries;
+using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Application.Validation.PTSValidators.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;

@@ -14,7 +14,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Collections.Generic;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Import;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.Vehicle;
+using FMS.Application.Features.Vehicle.DTOs;
 //using FMS.Application.Queries.Database.Consumption;
 using System;
 using System.Linq;

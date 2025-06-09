@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Communication.SignalR;
-using FMS.Application.ModelsDTOs.Vehicle;
+using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
