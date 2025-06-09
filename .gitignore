@@ -298,4 +298,8 @@ scripts/environment/setup-environment.bat
 scripts/environment/setup-environment.ps1
 scripts/environment/setup-pts-env.bat
 scripts/environment/setup-pts-env.ps1
+<<<<<<< HEAD
 fms.frontend/.env.development
+=======
+/fms.frontend/.env
+>>>>>>> 458bd03b84718b849390bcd0455898c97181e90e

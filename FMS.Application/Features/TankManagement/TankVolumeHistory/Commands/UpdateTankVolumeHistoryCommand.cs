@@ -15,7 +15,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
     public record UpdateTankVolumeHistoryCommand (
         int TankId,
         DateTime EffectiveDate,
-        bool IsHistoricalUpdate = false) : IRequest<FMSResponseMessage>;
+        bool IsHistoricalUpdate = false,
+        bool UpdateTankCurrentStock = true) : IRequest<FMSResponseMessage>;
 
     public class UpdateTankVolumeHistoryCommandHandler : IRequestHandler<UpdateTankVolumeHistoryCommand, FMSResponseMessage> {
         private readonly GpsdataContext _context;
@@ -76,6 +77,26 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
 
                 // Save changes without transaction (TransactionMiddleware handles this)
                 await _context.SaveChangesAsync (cancellationToken);
+
+                // Update tank's CurrentStock with the latest volume history value if requested
+                // This ensures the ledger (history) matches the current stock
+                if (request.UpdateTankCurrentStock && tank.UseBookKeeping == 1) {
+                    // Get the most recent record for this tank (which could be the last updated one or a more recent one)
+                    var latestRecord = await _context.TankVolumeHistories
+                        .Where (h => h.TankId == request.TankId)
+                        .OrderByDescending (h => h.Timestamp)
+                        .FirstOrDefaultAsync (cancellationToken);
+
+                    if (latestRecord != null && latestRecord.NewVolume.HasValue) {
+                        _logger.LogInformation ("Reconciling tank {TankId} current stock. Old: {OldStock}, New: {NewStock}",
+                            tank.Id, tank.CurrentStock, latestRecord.NewVolume);
+
+                        tank.CurrentStock = latestRecord.NewVolume;
+                        tank.LastStockUpdate = DateTime.Now;
+
+                        await _context.SaveChangesAsync (cancellationToken);
+                    }
+                }
 
                 _logger.LogInformation ("Successfully updated {RecordCount} tank volume history records for tank {TankId}",
                     affectedRecords.Count, request.TankId);

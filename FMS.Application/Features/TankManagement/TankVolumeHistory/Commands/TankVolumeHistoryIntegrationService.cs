@@ -167,9 +167,95 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         }
 
         /// <summary>
+        /// Process a pump transaction that affects tank volume (automated dispensing)
+        /// </summary>
+        public async Task<FMSResponseMessage> ProcessPumpTransactionChangeAsync (
+            int tankId,
+            DateTime timestamp,
+            decimal volumeChange,
+            int transactionId,
+            ActionType actionType,
+            string recordedBy,
+            CancellationToken cancellationToken = default) {
+            // For pump transactions, volume change is negative (fuel is dispensed)
+            return await ProcessChangeAsync (
+                tankId,
+                timestamp, -Math.Abs (volumeChange), // Ensure negative
+                VolumeChangeReasonEnum.AutomatedDispensing,
+                recordedBy,
+                transactionId,
+                "PumpTransaction",
+                actionType,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Reconciles a tank's current stock with the latest volume history entry
+        /// This ensures the tank.CurrentStock matches the ledger history
+        /// </summary>
+        /// <param name="tankId">The ID of the tank to reconcile</param>
+        /// <param name="recordedBy">The ID of the user performing the reconciliation</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Response message indicating success or failure</returns>
+        public async Task<FMSResponseMessage> ReconcileTankCurrentStockAsync (
+            int tankId,
+            string recordedBy,
+            CancellationToken cancellationToken = default) {
+            try {
+                _logger.LogInformation ("Starting tank current stock reconciliation for tank {TankId}", tankId);
+
+                // Use UpdateTankVolumeHistoryCommand with the earliest possible date to recalculate all history
+                // and update the current stock
+                var command = new UpdateTankVolumeHistoryCommand (
+                    tankId,
+                    DateTime.MinValue, // Use earliest date to process all history
+                    false, // Not historical update
+                    true); // Update tank current stock
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.Success) {
+                    _logger.LogInformation ("Successfully reconciled tank {TankId} current stock", tankId);
+                    return new FMSResponseMessage (true, "Successfully reconciled tank current stock with volume history");
+                } else {
+                    _logger.LogWarning ("Failed to reconcile tank {TankId} current stock: {Message}", tankId, result.Message);
+                    return result;
+                }
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error reconciling tank {TankId} current stock", tankId);
+                return new FMSResponseMessage (false, $"Error reconciling tank current stock: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Reconciles all tanks' current stock with their latest volume history entries
+        /// </summary>
+        /// <param name="recordedBy">The ID of the user performing the reconciliation</param>
+        /// <param name="siteId">Optional site ID to limit reconciliation to tanks at a specific site</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Response message indicating success or failure</returns>
+        public async Task<FMSResponseMessage> ReconcileAllTankCurrentStocksAsync (
+            string recordedBy,
+            int? siteId = null,
+            CancellationToken cancellationToken = default) {
+            try {
+                _logger.LogInformation ("Starting reconciliation of all tanks' current stock");
+
+                // We'll use a custom command to update all tanks at once
+                var command = new ReconcileAllTanksCommand (siteId, recordedBy);
+                var result = await _mediator.Send (command, cancellationToken);
+
+                return result;
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error reconciling all tanks' current stock");
+                return new FMSResponseMessage (false, $"Error reconciling all tanks' current stock: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Generic method to process any change affecting tank volume
         /// </summary>
-        private async Task<FMSResponseMessage> ProcessChangeAsync (
+        public async Task<FMSResponseMessage> ProcessChangeAsync (
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
