@@ -33,7 +33,7 @@ public class FuelRefillSummaryQueryHandler : IRequestHandler<FuelRefillSummaryQu
     {
         try
         {
-            var query = from fr in _context.Fuelrefils
+            var query = from fr in _context.FuelRefills
                         join v in _context.Vehicles on fr.VehicleId equals v.VehicleId
                         join vt in _context.Vehicletypes on v.VehicleTypeId equals vt.Id
                         join s in _context.Sites on fr.SiteId equals s.Id

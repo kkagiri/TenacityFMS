@@ -52,7 +52,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory
 
                     if (history.ChangeReason == VolumeChangeReasonEnum.Dispensing && history.ReferenceId.HasValue)
                     {
-                        var fuelRefill = await _contenxt.Fuelrefils
+                        var fuelRefill = await _contenxt.FuelRefills
                             .Include(fr => fr.Vehicle)
                             .FirstOrDefaultAsync(fr => fr.Id == history.ReferenceId, cancellationToken);
 

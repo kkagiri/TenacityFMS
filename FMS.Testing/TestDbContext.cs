@@ -18,7 +18,7 @@ namespace FMS.Testing {
         public virtual DbSet<FuelingRule> FuelingRules { get; set; }
         public virtual DbSet<Employee> Employees { get; set; }
         public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<Fuelrefil> Fuelrefils { get; set; }
+        public virtual DbSet<FuelRefill> Fuelrefils { get; set; }
         //Cursor
         public virtual DbSet<Pumptransaction> Pumptransactions { get; set; }
         //Cursor
@@ -152,8 +152,8 @@ namespace FMS.Testing {
                 entity.Ignore (e => e.Vehicles);
             });
 
-            // Configure Fuelrefil entity
-            modelBuilder.Entity<Fuelrefil> (entity => {
+            // Configure FuelRefill entity
+            modelBuilder.Entity<FuelRefill> (entity => {
                 entity.HasKey (e => e.Id);
                 // Ignore navigation properties
                 entity.Ignore (e => e.Driver);

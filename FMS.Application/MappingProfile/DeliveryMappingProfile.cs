@@ -14,7 +14,7 @@ namespace FMS.Application.MappingProfile
             CreateMap<Delivery, DeliveryDTO>().ReverseMap();
             CreateMap<Supplier, SupplierDTO>().ReverseMap();
 
-            CreateMap<Fuelrefil, FuelRefilDTO>()
+            CreateMap<FuelRefill, FuelRefilDTO>()
                 .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
                 .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
                 .ForMember(dest => dest.DateCreated, opt => opt.MapFrom(src => src.DateCreated.ToString("yyyy-MM-ddTHH:mm:ssZ")))

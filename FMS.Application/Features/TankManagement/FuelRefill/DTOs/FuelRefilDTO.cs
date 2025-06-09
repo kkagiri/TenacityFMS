@@ -8,7 +8,7 @@ namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
         public int Id { get; set; }
         public int VehicleId { get; set; }
 
-        public decimal? ManualFuelrefilAmount { get; set; }
+        public decimal? ManualFuelrefillAmount { get; set; }
 
         public DateTime? Date { get; set; }
 

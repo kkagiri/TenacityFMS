@@ -44,7 +44,7 @@ namespace FMS.Testing.TagQueries {
                 .Options;
             _testDbContext = new TestDbContext (options);
 
-            _mockContext.Setup (c => c.Fuelrefils).Returns (_testDbContext.Fuelrefils);
+            _mockContext.Setup (c => c.FuelRefills).Returns (_testDbContext.Fuelrefils);
 
             _handler = new AuthenticateTagQueryHandler (
                 _mockContext.Object,
@@ -774,9 +774,9 @@ namespace FMS.Testing.TagQueries {
             // Add the number of refill records needed
             DateTime today = DateTime.Today;
             for (int i = 0; i < count; i++) {
-                _testDbContext.Fuelrefils.Add (new Fuelrefil {
+                _testDbContext.Fuelrefils.Add (new FuelRefill {
                     Id = i + 1,
-                        // Use the tag name as the tag ID to ensure the Fuelrefil is associated with the correct Tag
+                        // Use the tag name as the tag ID to ensure the FuelRefill is associated with the correct Tag
                         TagId = tagName,
                         Date = today.AddHours (i), // Space them out during the day
                         DateCreated = today.AddHours (i),

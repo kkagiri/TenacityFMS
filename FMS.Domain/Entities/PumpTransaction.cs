@@ -63,7 +63,7 @@ public partial class Pumptransaction {
     /// </summary>
     public bool HasBeenProcessed { get; set; } = false; //Cursor
 
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
 
     public virtual Ptsdevice Pts { get; set; } = null!;
 

@@ -14,7 +14,7 @@ namespace FMS.Testing.TagQueries {
         private readonly DateTime _lastMonth;
 
         private readonly List<Pumptransaction> _pumpTransactions;
-        private readonly List<Fuelrefil> _fuelRefills;
+        private readonly List<FuelRefill> _fuelRefills;
         private readonly List<Tag> _tags;
         private readonly List<Vehicle> _vehicles;
 
@@ -103,9 +103,9 @@ namespace FMS.Testing.TagQueries {
                 }
             };
 
-            _fuelRefills = new List<Fuelrefil> {
+            _fuelRefills = new List<FuelRefill> {
                 // Today's manual refill for TAG001
-                new Fuelrefil {
+                new FuelRefill {
                 Id = 1,
                 VehicleId = 1,
                 TagId = "TAG001",
@@ -117,7 +117,7 @@ namespace FMS.Testing.TagQueries {
                 },
 
                 // Yesterday's manual refill for TAG001
-                new Fuelrefil {
+                new FuelRefill {
                 Id = 2,
                 VehicleId = 1,
                 TagId = "TAG001",
@@ -129,7 +129,7 @@ namespace FMS.Testing.TagQueries {
                 },
 
                 // Today's manual refill for TAG002
-                new Fuelrefil {
+                new FuelRefill {
                 Id = 3,
                 VehicleId = 2,
                 TagId = "TAG002",
@@ -141,7 +141,7 @@ namespace FMS.Testing.TagQueries {
                 },
 
                 // Last month's manual refill for TAG001
-                new Fuelrefil {
+                new FuelRefill {
                 Id = 4,
                 VehicleId = 1,
                 TagId = "TAG001",

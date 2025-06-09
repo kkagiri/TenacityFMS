@@ -56,7 +56,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                 }
 
                 // Create new fuel refill
-                var fuelRefill = new Fuelrefil {
+                var fuelRefill = new FuelRefill {
                     VehicleId = request.VehicleId,
                     TankId = request.TankId,
                     Date = request.RefillDate,
@@ -65,7 +65,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                     CreatedBy = request.UserId
                 };
 
-                _context.Fuelrefils.Add (fuelRefill);
+                _context.FuelRefills.Add (fuelRefill);
                 await _context.SaveChangesAsync (cancellationToken);
 
                 // After saving the fuel refill, update tank volume history
@@ -122,7 +122,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                     return new FMSResponseMessage (false, "Refill amount must be greater than zero");
                 }
 
-                var fuelRefill = await _context.Fuelrefils.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+                var fuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
                 if (fuelRefill == null) {
                     return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
                 }
@@ -186,12 +186,12 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
 
         public async Task<FMSResponseMessage> Handle (DeleteSampleFuelRefillCommand request, CancellationToken cancellationToken) {
             try {
-                var fuelRefill = await _context.Fuelrefils.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+                var fuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
                 if (fuelRefill == null) {
                     return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
                 }
 
-                _context.Fuelrefils.Remove (fuelRefill);
+                _context.FuelRefills.Remove (fuelRefill);
                 await _context.SaveChangesAsync (cancellationToken);
 
                 // When deleting a fuel refill, we need to update the tank volume history

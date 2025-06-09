@@ -93,8 +93,8 @@ const UserPage = () => {
 
     // Tab data
     const tabData = [
-        { text: "All Users", icon: "fas fa-users" },
-        { text: "Active Users", icon: "fas fa-check-circle" }
+        { text: "All Users", icon: "fa-light fa-users" },
+        { text: "Active Users", icon: "fa-light fa-check-circle" }
     ]; //Cursor
 
     // Custom tab item renderer

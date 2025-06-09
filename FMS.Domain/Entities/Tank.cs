@@ -25,7 +25,7 @@ public partial class Tank {
 
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery> ();
 
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
 
     public virtual Ptsdevice? Pts { get; set; }
 

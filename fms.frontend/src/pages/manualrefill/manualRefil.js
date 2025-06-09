@@ -6,7 +6,7 @@ import Button from 'devextreme-react/button';
 import { Toast } from 'devextreme-react/toast';
 
 
-export default function Fuelrefil() {
+export default function FuelRefill() {
     const [vehicles, setVehicles] = useState([]);
     const [sites, setSites] = useState([]);
     const [manualFuelRefill, setManualFuelRefill] = useState([]);
@@ -180,12 +180,12 @@ export default function Fuelrefil() {
                         <RequiredRule />
                     </Column>
 
-                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" >       
+                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" >
                           <RequiredRule />
                     </Column>
-                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" >       
+                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" >
                     </Column>
-                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" >       
+                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" >
                     </Column>
                     <Column dataField="date" caption="Date" dataType="datetime" defaultValue={new Date().toISOString()}>                        <RequiredRule />
                     </Column>

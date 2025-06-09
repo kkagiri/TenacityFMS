@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-public partial class Fuelrefil {
+public partial class FuelRefill {
 
     public int Id { get; set; }
 

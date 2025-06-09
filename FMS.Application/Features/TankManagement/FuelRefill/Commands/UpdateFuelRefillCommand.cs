@@ -1,19 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using AutoMapper.Configuration.Annotations;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.FuelRefil;
-using FMS.Domain.Entities;
-using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
-namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
+namespace FMS.Application.Features.TankManagement.FuelRefill.Commands;
 
 public record UpdateFuelRefillCommand (
     int FuelRefillId,
@@ -24,13 +18,13 @@ public record UpdateFuelRefillCommand (
     string UserId
 ) : IRequest<FMSResponseMessage>;
 
-public class FuelRefilUpdateCommandHandler : IRequestHandler<UpdateFuelRefillCommand, FMSResponseMessage> {
+public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCommand, FMSResponseMessage> {
     private readonly GpsdataContext _context;
-    private readonly ILogger<FuelRefilUpdateCommandHandler> _logger;
+    private readonly ILogger<UpdateFuelRefillCommandHandler> _logger;
 
     private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
 
-    public FuelRefilUpdateCommandHandler (GpsdataContext context, TankVolumeHistoryIntegrationService tankVolumeHistoryIntegrationService, ILogger<FuelRefilUpdateCommandHandler> logger) {
+    public UpdateFuelRefillCommandHandler (GpsdataContext context, TankVolumeHistoryIntegrationService tankVolumeHistoryIntegrationService, ILogger<UpdateFuelRefillCommandHandler> logger) {
         _tankVolumeHistoryService = tankVolumeHistoryIntegrationService;
         _context = context;
         _logger = logger;
@@ -44,7 +38,7 @@ public class FuelRefilUpdateCommandHandler : IRequestHandler<UpdateFuelRefillCom
                 return new FMSResponseMessage (false, "Refill amount must be greater than zero");
             }
 
-            var fuelRefill = await _context.Fuelrefils.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+            var fuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
             if (fuelRefill == null) {
                 return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
             }

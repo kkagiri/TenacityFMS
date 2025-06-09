@@ -34,7 +34,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
         public async Task<FMSResponseMessage<bool>> Handle (CheckDuplicateFuelRefillQuery request, CancellationToken cancellationToken) {
             try {
                 // Check if there's a manual fuel refill entry for this vehicle on this date with approximately the same volume
-                var manualRefill = await _context.Fuelrefils
+                var manualRefill = await _context.FuelRefills
                     .Where (f => f.VehicleId == request.VehicleId &&
                         f.Date.HasValue &&
                         f.Date.Value.Date == request.Date.Date &&

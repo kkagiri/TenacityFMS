@@ -81,7 +81,7 @@ namespace FMS.Application.Queries.Handlers {
             try {
 
                 var today = DateTime.UtcNow.Date;
-                return await _context.Fuelrefils
+                return await _context.FuelRefills
                     .Where (ft => ft.TagId != null //TO:DO Make sure all vehicles have tags
                         &&
                         ft.TagId == request.TagId &&
@@ -108,7 +108,7 @@ namespace FMS.Application.Queries.Handlers {
                 var startOfMonth = new DateTime (DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
                 var endOfMonth = startOfMonth.AddMonths (1).AddDays (-1);
 
-                return await _context.Fuelrefils
+                return await _context.FuelRefills
                     .Where (ft => ft.TagId == request.TagId &&
                         ft.DateCreated >= startOfMonth &&
                         ft.DateCreated <= endOfMonth)
@@ -132,7 +132,7 @@ namespace FMS.Application.Queries.Handlers {
         public async Task<int> Handle (GetNoOfRefillsTodayQuery request, CancellationToken cancellationToken) {
             try {
                 var today = DateTime.UtcNow.Date;
-                return await _context.Fuelrefils
+                return await _context.FuelRefills
                     .CountAsync (ft => ft.TagId == request.TagId &&
                         ft.DateCreated.Date == today,
                         cancellationToken);
@@ -158,7 +158,7 @@ namespace FMS.Application.Queries.Handlers {
                 var startOfWeek = today.AddDays (-(int) today.DayOfWeek);
                 var endOfWeek = startOfWeek.AddDays (7).AddSeconds (-1);
 
-                return await _context.Fuelrefils
+                return await _context.FuelRefills
                     .CountAsync (ft => ft.TagId == request.TagId &&
                         ft.DateCreated >= startOfWeek &&
                         ft.DateCreated <= endOfWeek,
@@ -184,7 +184,7 @@ namespace FMS.Application.Queries.Handlers {
                 var startOfMonth = new DateTime (DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
                 var endOfMonth = startOfMonth.AddMonths (1).AddDays (-1);
 
-                return await _context.Fuelrefils
+                return await _context.FuelRefills
                     .CountAsync (ft => ft.TagId == request.TagId &&
                         ft.DateCreated >= startOfMonth &&
                         ft.DateCreated <= endOfMonth,

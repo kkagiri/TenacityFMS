@@ -30,7 +30,7 @@ namespace FMS.Application.Features.Vehicle.Queries
                     .Where(pt => pt.VehicleId == request.VehicleId && pt.DateTime >= startOfDay && pt.DateTime <= endOfDay)
                     .SumAsync(pt => pt.Amount ?? 0m, cancellationToken);
 
-                var dailyFuelIssuedManually = await _context.Fuelrefils
+                var dailyFuelIssuedManually = await _context.FuelRefills
                     .Where(fr => fr.VehicleId == request.VehicleId && fr.Date >= startOfDay && fr.Date <= endOfDay)
                     .SumAsync(fr => fr.ManualFuelrefilAmount ?? 0m, cancellationToken);
 
@@ -65,7 +65,7 @@ namespace FMS.Application.Features.Vehicle.Queries
                     .Where(pt => pt.VehicleId == request.VehicleId && pt.DateTime >= startOfMonth && pt.DateTime < endOfMonth)
                     .SumAsync(pt => pt.Amount ?? 0m, cancellationToken);
 
-                var monthlyFuelIssuedManually = await _context.Fuelrefils
+                var monthlyFuelIssuedManually = await _context.FuelRefills
                     .Where(fr => fr.VehicleId == request.VehicleId && fr.Date >= startOfMonth && fr.Date < endOfMonth)
                     .SumAsync(fr => fr.ManualFuelrefilAmount ?? 0m, cancellationToken);
 

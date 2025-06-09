@@ -20,7 +20,7 @@ public partial class Site {
 
     public virtual ICollection<Expectedaverage> Expectedaverages { get; set; } = new List<Expectedaverage> ();
 
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
 
     public virtual ICollection<Issuetracker> Issuetrackers { get; set; } = new List<Issuetracker> ();
 

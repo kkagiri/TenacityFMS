@@ -132,15 +132,43 @@ const TankPage = () => {
     notify('Tank saved successfully', 'success', 3000);
   };
 
-  // Custom cell render to hide IDs
+  // Custom cell render to show only name with proper icons
+  //Cursor - Fixed tree display to hide internal data fields and show user-friendly information with icons
   const nameRender = (cellData) => {
     const { data } = cellData;
+    const icon = data.type === 'site' ? 'fa-light fa-building' : 'fa-light fa-gas-pump';
+    const iconColor = data.type === 'site' ? 'tw-text-blue-600' : 'tw-text-green-600';
+
     return (
       <div className="tw-flex tw-items-center tw-gap-2">
-        <i className={`${data.icon} ${data.type === 'site' ? 'tw-text-blue-600' : 'tw-text-green-600'}`}></i>
-        <span>{data.name}</span>
+        <i className={`${icon} ${iconColor}`}></i>
+        <span className="tw-font-medium">{data.name}</span>
       </div>
     );
+  };
+
+  // Custom cell render for tank volume
+  const volumeRender = (cellData) => {
+    const { data } = cellData;
+    if (data.type === 'tank' && data.volume) {
+      return <span className="tw-text-sm tw-text-gray-600">{data.volume.toLocaleString()} L</span>;
+    }
+    return null;
+  };
+
+  // Custom cell render for current stock
+  const stockRender = (cellData) => {
+    const { data } = cellData;
+    if (data.type === 'tank' && data.currentStock !== undefined) {
+      const percentage = data.volume > 0 ? (data.currentStock / data.volume * 100).toFixed(1) : 0;
+      return (
+        <div className="tw-text-sm">
+          <span className="tw-text-gray-600">{data.currentStock.toLocaleString()} L</span>
+          <span className="tw-text-xs tw-text-gray-500 tw-ml-1">({percentage}%)</span>
+        </div>
+      );
+    }
+    return null;
   };
 
   // Calculate site tank summaries - memoized to prevent recalculation
@@ -182,30 +210,22 @@ const TankPage = () => {
         dataField="name"
         caption="Name"
         cellRender={nameRender}
+        width="60%"
       />
       <Column
         dataField="volume"
-        caption="Capacity (L)"
-        visible={false}
-        cellRender={(data) => {
-          if (data.data.type === 'tank') {
-            return <span>{data.value?.toFixed(2) || '0.00'}</span>;
-          }
-          return null;
-        }}
+        caption="Capacity"
+        cellRender={volumeRender}
+        width="20%"
+        alignment="right"
       />
-      {/* <Column
+      <Column
         dataField="currentStock"
-        caption="Current Stock (L)"
-        visible={false}
-        cellRender={(data) => {
-          if (data.data.type === 'tank') {
-            const percentage = data.data.volume > 0 ? (data.value / data.data.volume * 100).toFixed(1) : 0;
-            return <span>{data.value?.toFixed(2) || '0.00'} ({percentage}%)</span>;
-          }
-          return null;
-        }}
-      /> */}
+        caption="Current Stock"
+        cellRender={stockRender}
+        width="20%"
+        alignment="right"
+      />
     </>
   );
 
@@ -268,12 +288,17 @@ const TankPage = () => {
             parentIdExpr="parentId"
             showBorders={true}
             showRowLines={true}
-            columnAutoWidth={true}
+            columnAutoWidth={false}
             wordWrapEnabled={true}
             onSelectionChanged={handleTreeSelection}
             height="100%"
+            columns={[
+              'name',
+              'volume',
+              'currentStock'
+            ]}
           >
-            <SearchPanel visible={true} placeholder="Search sites and tanks..." />
+            <SearchPanel visible={true} placeholder="Search" />
             <HeaderFilter visible={false} />
             <Selection mode="single" />
             {treeColumns}

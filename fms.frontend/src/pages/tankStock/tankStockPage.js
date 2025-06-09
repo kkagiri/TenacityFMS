@@ -34,7 +34,7 @@ import { DatePeriods } from "../../components/Shared/datePeriods";
 import notify from 'devextreme/ui/notify';
 import CheckBox from "devextreme-react/check-box";
 import Button from 'devextreme-react/button';
-import axiosInstance from '../../utils/axiosInstance';
+import axiosInstance from '../../api/axiosInstance';
 
 const DEFAULT_ANALYTICS_PERIOD_KEY = 'Today';
 

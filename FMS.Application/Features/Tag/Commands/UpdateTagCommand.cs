@@ -45,7 +45,7 @@ public class UpdateTagCommandHandler : IRequestHandler<UpdateTagCommand, FMSResp
 
             // Check if tag is referenced in User or Fuelrefil
             bool isReferenced = await _context.Users.AnyAsync (u => u.MasterRFIDTag == tag.Id, cancellationToken) ||
-                await _context.Fuelrefils.AnyAsync (f => f.TagId == tag.Id.ToString (), cancellationToken);
+                await _context.FuelRefills.AnyAsync (f => f.TagId == tag.Id.ToString (), cancellationToken);
 
             // Only allow name change if not referenced
             if (isReferenced && !string.Equals (tag.Name, request.TagDTO.Name, StringComparison.OrdinalIgnoreCase)) {

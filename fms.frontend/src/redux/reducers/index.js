@@ -29,6 +29,7 @@ import realtimeStatusReducer from "./ptsReducers/realtimeStatusReducer";
 import deviceConnectionReducer from "./deviceConnectionReducer";
 import fuelingEventsReducer from "./fuelingEventsReducer";
 import configReducer from "./configReducer";
+import ptsAutomationConfigReducer from "./ptsAutomationConfigReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
 
@@ -62,6 +63,7 @@ const rootReducer = combineReducers({
   deviceConnections: deviceConnectionReducer,
   fuelingEvents: fuelingEventsReducer,
   config: configReducer,
+  ptsAutomationConfig: ptsAutomationConfigReducer,
   fuelReport: fuelReportReducer,
   notification: notificationReducer,
 });

@@ -108,7 +108,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.TagQueries {
 
         }
         private async Task<int> GetRefillCount (int tagId, DateTime since) {
-            return await _context.Fuelrefils
+            return await _context.FuelRefills
                 .Where (f => f.TagId == tagId.ToString () &&
                     f.DateCreated >= since &&
                     f.DateCreated <= DateTime.Now)

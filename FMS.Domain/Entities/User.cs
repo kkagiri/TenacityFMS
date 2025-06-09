@@ -23,7 +23,7 @@ public partial class User : IdentityUser {
 
     public virtual ICollection<Employee> EmployeeModifiedByNavigations { get; set; } = new List<Employee> ();
 
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
     [NotMapped]
 
     public virtual ICollection<Issueassignmenttracker> IssueassignmenttrackerAssignedFromNavigations { get; set; } = new List<Issueassignmenttracker> ();

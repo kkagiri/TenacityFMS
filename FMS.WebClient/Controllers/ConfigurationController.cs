@@ -7,7 +7,6 @@ using FMS.Application.Command.DatabaseCommand.ConfigurationCommand;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.Configuration;
 using FMS.Application.Queries.Database.ConfigurationQuery;
-using FMS.WebClient.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -82,7 +81,7 @@ namespace FMS.WebClient.Controllers {
                     return BadRequest (ModelState);
                 }
 
-                var currentUser = HttpContext.GetCurrentUserId () ?? "System";
+                var currentUser = User?.Identity?.Name ?? "System"; // ToDO: Use a more robust user retrieval method
                 var command = new CreateAutomatedFuelingConfigurationCommand (createDto, currentUser);
                 var result = await _mediator.Send (command);
 
@@ -117,7 +116,7 @@ namespace FMS.WebClient.Controllers {
                         false, "ID mismatch", null));
                 }
 
-                var currentUser = HttpContext.GetCurrentUserId () ?? "System";
+                var currentUser = User?.Identity?.Name ?? "System"; // ToDO: Use a more robust user retrieval method
                 var command = new UpdateAutomatedFuelingConfigurationCommand (updateDto, currentUser);
                 var result = await _mediator.Send (command);
 

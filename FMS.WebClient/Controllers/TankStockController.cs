@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
@@ -7,25 +6,12 @@ using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
 using FMS.Application.ModelsDTOs.FMS.TankTransfer;
-using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
 using FMS.Application.Queries.Database.FMSQuery.TankStock;
-using FMS.Domain.ATGEntities.Nafta;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-<<<<<<< HEAD
-using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
-using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
-using FMS.Application.Queries.Database.FMSQuery.DeliveryQueries;
-using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
-using FMS.Application.ModelsDTOs.FMS.TankTransfer;
-using FMS.Application.Common;
-using FMS.Domain.ATGEntities.Nafta;
-
-=======
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
->>>>>>> 458bd03b84718b849390bcd0455898c97181e90e
+
 namespace FMS.WebClient.Controllers;
 
 [Route ("api/[controller]")]

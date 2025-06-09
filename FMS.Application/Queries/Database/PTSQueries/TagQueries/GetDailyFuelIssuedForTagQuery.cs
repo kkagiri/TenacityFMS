@@ -40,7 +40,7 @@ namespace FMS.Application.Queries.Database.PTSQueries.TagQueries {
                 Where (pt => pt.Tag == request.Tag.Name && pt.DateTime >= startOfDay && pt.DateTime <= endOfDay).
                 SumAsync (pt => pt.Amount ?? 0m, cancellationToken);
 
-                var dailyFuelIssuedManually = await _context.Fuelrefils.
+                var dailyFuelIssuedManually = await _context.FuelRefills.
                 Where (fr => fr.TagId == request.Tag.Name && fr.Date >= startOfDay && fr.Date <= endOfDay).
                 SumAsync (fr => fr.ManualFuelrefilAmount ?? 0m, cancellationToken);
 
@@ -76,7 +76,7 @@ namespace FMS.Application.Queries.Database.PTSQueries.TagQueries {
                     .Where (pt => pt.Tag == request.TagName && pt.DateTime >= startOfMonth && pt.DateTime < endOfMonth)
                     .SumAsync (pt => pt.Amount ?? 0m, cancellationToken);
 
-                var monthlyFuelIssuedManually = await _context.Fuelrefils
+                var monthlyFuelIssuedManually = await _context.FuelRefills
                     .Where (fr => fr.TagId == request.TagName && fr.Date >= startOfMonth && fr.Date < endOfMonth)
                     .SumAsync (fr => fr.ManualFuelrefilAmount ?? 0m, cancellationToken);
 

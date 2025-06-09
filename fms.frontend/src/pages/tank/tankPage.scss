@@ -14,7 +14,7 @@ $border-radius: 0.75rem;
 $transition: all 0.3s ease;
 
 .tank-page {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  // background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   min-height: 100vh;
 
   // DevExtreme TreeList customization
@@ -28,7 +28,7 @@ $transition: all 0.3s ease;
       position: static;
       padding: 0.85rem;
       background-color: $white;
-      border-bottom: 1px solid rgba($gray-medium, 0.2);
+      // border-bottom: 1px solid rgba($gray-medium, 0.2);
       margin-bottom: 1.2rem;
 
       .dx-texteditor {
@@ -116,6 +116,50 @@ $transition: all 0.3s ease;
 
   // Site summary styling
   .site-summary {
+    //Cursor - Fixed progress bar styling to work for both site-level and tank-level progress bars
+    // Progress bar styling for both site-level and tank-level progress bars
+    .progress-bar {
+      height: 12px;
+      background-color: $gray-light;
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+
+      .progress-fill {
+        height: 100%;
+        transition: width 1s ease;
+        border-radius: 9999px;
+        position: relative;
+        overflow: hidden;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          right: 0;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.4),
+            transparent
+          );
+          animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        &.full { background: linear-gradient(to right, $secondary-color, darken($secondary-color, 10%)); }
+        &.medium { background: linear-gradient(to right, $warning-color, darken($warning-color, 10%)); }
+        &.low { background: linear-gradient(to right, $danger-color, darken($danger-color, 10%)); }
+      }
+    }
+
     .tank-card {
       background: $white;
       border-radius: $border-radius;
@@ -144,45 +188,9 @@ $transition: all 0.3s ease;
         &.low { background-color: rgba($danger-color, 0.1); color: $danger-color; }
       }
 
+      // Tank-specific progress bar styling (smaller)
       .progress-bar {
         height: 8px;
-        background-color: $gray-light;
-        border-radius: 9999px;
-        overflow: hidden;
-        position: relative;
-
-        .progress-fill {
-          height: 100%;
-          transition: width 1s ease;
-          border-radius: 9999px;
-          position: relative;
-          overflow: hidden;
-
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(
-              90deg,
-              transparent,
-              rgba(255, 255, 255, 0.4),
-              transparent
-            );
-            animation: shimmer 2s infinite;
-          }
-
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-
-          &.full { background: linear-gradient(to right, $secondary-color, darken($secondary-color, 10%)); }
-          &.medium { background: linear-gradient(to right, $warning-color, darken($warning-color, 10%)); }
-          &.low { background: linear-gradient(to right, $danger-color, darken($danger-color, 10%)); }
-        }
       }
     }
   }
