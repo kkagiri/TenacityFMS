@@ -13,6 +13,7 @@ namespace FMS.Domain.Entities.enums {
         TransferOut,
         Adjustment,
         Dispensing,
-        AutomatedDispensing // For automated PTS pump transactions
+        AutomatedDispensing, // For automated PTS pump transactions
+        Reconciliation
     }
 }

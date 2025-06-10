@@ -59,3 +59,38 @@
     }
   }
 }
+
+//Cursor - Stock Management Enhancement Styles
+.stock-adjustment-popup {
+  .tw-fixed {
+    z-index: 1050;
+  }
+}
+
+.stock-reconciliation-dashboard {
+  .discrepancy-severity {
+    &.critical {
+      @apply tw-bg-red-100 tw-text-red-800;
+    }
+    &.warning {
+      @apply tw-bg-yellow-100 tw-text-yellow-800;
+    }
+    &.normal {
+      @apply tw-bg-green-100 tw-text-green-800;
+    }
+  }
+}
+
+.stock-report-dashboard {
+  .report-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-container {
+    min-height: 300px;
+    margin-bottom: 2rem;
+  }
+}

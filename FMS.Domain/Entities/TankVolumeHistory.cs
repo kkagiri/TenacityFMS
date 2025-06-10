@@ -1,17 +1,15 @@
-﻿using FMS.Domain.Entities.enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FMS.Domain.Entities.enums;
 
-namespace FMS.Domain.Entities
-{
+namespace FMS.Domain.Entities {
     /// <summary>
     /// Provides a detailed, chronological record of all volume changes in a tank.
     /// </summary>
-    public partial class TankVolumeHistory
-    {
+    public partial class TankVolumeHistory {
         public int Id { get; set; }
         public int? TankId { get; set; }
         public DateTime Timestamp { get; set; }
@@ -25,9 +23,8 @@ namespace FMS.Domain.Entities
 
         public virtual Tank Tank { get; set; } = null!;
         public virtual User RecordedByNavigation { get; set; } = null!;
-
-
-
+        // Add this to the TankVolumeHistory entity:
+        public virtual StockAdjustment? StockAdjustment { get; set; }
 
     }
 }

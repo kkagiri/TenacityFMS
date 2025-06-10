@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { TickerCard } from '../../components/TickerCard/tickerCard';
 import { StockCapacityTicker } from '../../components/TickerCard/tankStockTickers/StockCapacityTicker';
+import StockReconciliationDashboard  from '../../components/tankStock/StockReconciliationDashboard';
+import StockReportDashboard  from '../../components/tankStock/StockReportDashboard';
+
+
 const VolumeChangeReasonEnum = {
     OpeningStock: 0,
     ClosingStock: 1,
@@ -11,7 +15,7 @@ const VolumeChangeReasonEnum = {
     Adjustment: 5,
     Dispensing: 6
   };
-  
+
 
   const TankStockDashBoardCards = ({ selectedSite, selectedPeriod, currentStock, totalCapacity }) =>  {
     const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
@@ -52,15 +56,15 @@ const VolumeChangeReasonEnum = {
       });
     }, [tankVolumeHistory, selectedSite]);
 
-     
-    
+
+
 
       return (
         <>
           <div className="cards compact">
-         
+
           <StockCapacityTicker currentStock={currentStock} tankCapacity={totalCapacity} />
-                     
+
             <TickerCard title="Total Delivery" icon ={"fa-light fa-arrow-down-to-square"}  tone ={"delivery"} value={aggregatedData.totalDelivery} />
             <TickerCard title="Opening Stock" icon ={"fa-light fa-tank-water"} tone={"info"} value={aggregatedData.openingStock} />
             <TickerCard title="Closing Stock"  icon ={"fa-light fa-tank-water"} tone={"info"} value={aggregatedData.closingStock} />
@@ -68,10 +72,14 @@ const VolumeChangeReasonEnum = {
             <TickerCard title="Total Transfer In" icon ={"fa-light fa-arrow-turn-down"} tone={"success"} value={aggregatedData.totalTransferIn} />
             <TickerCard title="Total Transfer Out" icon ={"fa-light fa-arrow-turn-up"} tone={"success"} value={aggregatedData.totalTransferOut} />
 
-          
+
           </div>
           <div className="cards wide">
-          {/* <TankVolumeHistoryCard 
+          {/* //TODO placeholder - Stock Reconciliation Dashboard and Stock Reporting System to be added here */}
+              <StockReconciliationDashboard selectedSite={selectedSite} />
+              <StockReportDashboard selectedSite={selectedSite} />
+
+          {/* <TankVolumeHistoryCard
                     selectedPeriod={selectedPeriod}
                     onRangeChanged={onRangeChanged}<FontAwesomeIcon icon="fa-sharp fa-light fa-arrow-up-right-from-square" />
                     selectedSite={selectedSite}

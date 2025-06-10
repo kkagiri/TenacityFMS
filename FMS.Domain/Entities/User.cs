@@ -53,4 +53,10 @@ public partial class User : IdentityUser {
     public virtual ICollection<TankVolumeHistory> TankVolumeHistories { get; set; } = new List<TankVolumeHistory> ();
 
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle> ();
+
+    public virtual ICollection<StockReport> StockReports { get; set; } = new List<StockReport> ();
+
+    // Add these to the User entity navigation properties:
+    public virtual ICollection<StockAdjustment> StockAdjustmentsCreated { get; set; } = new List<StockAdjustment> ();
+    public virtual ICollection<StockAdjustment> StockAdjustmentsApproved { get; set; } = new List<StockAdjustment> ();
 }

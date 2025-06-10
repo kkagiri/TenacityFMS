@@ -41,5 +41,6 @@ public partial class Tank {
     public virtual ICollection<TankTransfer> TankTransfersAsDestination { get; set; } = new List<TankTransfer> ();
 
     public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction> ();
+    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment>();
 
 }

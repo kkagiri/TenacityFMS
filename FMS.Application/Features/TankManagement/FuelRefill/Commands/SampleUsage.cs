@@ -62,7 +62,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                     Date = request.RefillDate,
                     ManualFuelrefilAmount = request.Amount,
                     DateCreated = DateTime.UtcNow,
-                    CreatedBy = request.UserId
+                    // CreatedBy = request.UserId
                 };
 
                 _context.FuelRefills.Add (fuelRefill);

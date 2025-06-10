@@ -208,6 +208,70 @@ public class TankStockController : ControllerBase {
 
         return Ok (result);
     }
+
+    /// <summary>
+    /// Creates a new stock adjustment
+    /// </summary>
+    [HttpPost ("adjustments")]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> CreateStockAdjustment ([FromBody] StockAdjustmentDTO adjustmentDTO) {
+        var hasPermission = User.HasClaim ("permissions", "_Create_tankStock");
+        if (!hasPermission) return Forbid ();
+
+        if (!ModelState.IsValid) return BadRequest (ModelState);
+
+        var userIdClaim = User.Claims.FirstOrDefault (c =>
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+            Guid.TryParse (c.Value, out _));
+
+        if (userIdClaim == null)
+            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+
+        adjustmentDTO.CreatedBy = userIdClaim.Value;
+
+        var result = await _mediator.Send (new CreateStockAdjustmentCommand (adjustmentDTO));
+
+        if (!result.Success)
+            return BadRequest (result);
+
+        return Ok (result);
+    }
+
+    /// <summary>
+    /// Gets stock adjustments with optional filtering
+    /// </summary>
+    [HttpGet ("adjustments")]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetStockAdjustments (
+        [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null) {
+        var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid ();
+
+        var result = await _mediator.Send (new GetStockAdjustmentsQuery (siteId, tankId, startDate, endDate));
+
+        if (!result.Success)
+            return BadRequest (result);
+
+        return Ok (result);
+    }
+
+    /// <summary>
+    /// Gets stock discrepancies for reconciliation dashboard
+    /// </summary>
+    [HttpGet ("discrepancies")]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetStockDiscrepancies (
+        [FromQuery] int? siteId = null, [FromQuery] decimal threshold = 10) {
+        var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid ();
+
+        var result = await _mediator.Send (new GetStockDiscrepanciesQuery (siteId, threshold));
+
+        if (!result.Success)
+            return BadRequest (result);
+
+        return Ok (result);
+    }
 }
 
 /// <summary>

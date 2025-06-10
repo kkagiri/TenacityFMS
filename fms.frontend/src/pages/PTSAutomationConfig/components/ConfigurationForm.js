@@ -36,6 +36,14 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
     autoCreateLedgerEntries: true,
     checkForDuplicateManualEntries: true,
     duplicateCheckHours: 24,
+    updateTankVolumeFromBookKeeping: true,
+    usePtsProbeReadings: false,
+    volumeSourcePriority: 1,
+    duplicateVolumeTolerance: 0.01,
+    autoReconcileTankVolumes: false,
+    reconciliationFrequencyMinutes: 60,
+    maxVolumeDiscrepancyThreshold: 10.0,
+    discrepancyAction: 1,
     isActive: true,
     createdBy: "System",
     description: "",
@@ -50,6 +58,14 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
         autoCreateLedgerEntries: configuration.autoCreateLedgerEntries !== false,
         checkForDuplicateManualEntries: configuration.checkForDuplicateManualEntries !== false,
         duplicateCheckHours: configuration.duplicateCheckHours || 24,
+        updateTankVolumeFromBookKeeping: configuration.updateTankVolumeFromBookKeeping !== false,
+        usePtsProbeReadings: configuration.usePtsProbeReadings || false,
+        volumeSourcePriority: configuration.volumeSourcePriority || 1,
+        duplicateVolumeTolerance: configuration.duplicateVolumeTolerance || 0.01,
+        autoReconcileTankVolumes: configuration.autoReconcileTankVolumes || false,
+        reconciliationFrequencyMinutes: configuration.reconciliationFrequencyMinutes || 60,
+        maxVolumeDiscrepancyThreshold: configuration.maxVolumeDiscrepancyThreshold || 10.0,
+        discrepancyAction: configuration.discrepancyAction || 1,
         isActive: configuration.isActive !== false,
         createdBy: configuration.createdBy || "System",
         description: configuration.description || "",
@@ -220,6 +236,133 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
             <Label text="Duplicate Check Hours" />
             <NumericRule message="Must be a valid number" />
             <RangeRule min={1} max={168} message="Must be between 1 and 168 hours" />
+          </SimpleItem>
+
+          <SimpleItem
+            dataField="duplicateVolumeTolerance"
+            editorType="dxNumberBox"
+            editorOptions={{
+              placeholder: "Enter percentage (e.g., 0.01 for 1%)",
+              stylingMode: "filled",
+              min: 0,
+              max: 1,
+              step: 0.001,
+              format: "percent",
+              showSpinButtons: true,
+              disabled: !formData.checkForDuplicateManualEntries,
+              onValueChanged: (e) => handleFieldChange("duplicateVolumeTolerance", e.value),
+            }}
+          >
+            <Label text="Duplicate Volume Tolerance (%)" />
+            <NumericRule message="Must be a valid number" />
+            <RangeRule min={0} max={1} message="Must be between 0% and 100%" />
+          </SimpleItem>
+        </GroupItem>
+
+        <GroupItem caption="Volume Management" className="tw-mb-4">
+          <SimpleItem
+            dataField="updateTankVolumeFromBookKeeping"
+            editorType="dxCheckBox"
+            editorOptions={{
+              text: "Update Tank Volume from Book Keeping",
+              hint: "Update tank current volume from ledger/book keeping records",
+              onValueChanged: (e) => handleFieldChange("updateTankVolumeFromBookKeeping", e.value),
+            }}
+          />
+
+          <SimpleItem
+            dataField="usePtsProbeReadings"
+            editorType="dxCheckBox"
+            editorOptions={{
+              text: "Use PTS Probe Readings",
+              hint: "Use PTS probe readings for tank volume measurements",
+              onValueChanged: (e) => handleFieldChange("usePtsProbeReadings", e.value),
+            }}
+          />
+
+          <SimpleItem
+            dataField="volumeSourcePriority"
+            editorType="dxSelectBox"
+            editorOptions={{
+              dataSource: [
+                { id: 1, name: "Book Keeping Priority" },
+                { id: 2, name: "PTS Probe Priority" }
+              ],
+              displayExpr: "name",
+              valueExpr: "id",
+              stylingMode: "filled",
+              disabled: !formData.updateTankVolumeFromBookKeeping && !formData.usePtsProbeReadings,
+              onValueChanged: (e) => handleFieldChange("volumeSourcePriority", e.value),
+            }}
+          >
+            <Label text="Volume Source Priority" />
+          </SimpleItem>
+        </GroupItem>
+
+        <GroupItem caption="Reconciliation Settings" className="tw-mb-4">
+          <SimpleItem
+            dataField="autoReconcileTankVolumes"
+            editorType="dxCheckBox"
+            editorOptions={{
+              text: "Auto Reconcile Tank Volumes",
+              hint: "Automatically reconcile tank volumes between different sources",
+              onValueChanged: (e) => handleFieldChange("autoReconcileTankVolumes", e.value),
+            }}
+          />
+
+          <SimpleItem
+            dataField="reconciliationFrequencyMinutes"
+            editorType="dxNumberBox"
+            editorOptions={{
+              placeholder: "Enter minutes",
+              stylingMode: "filled",
+              min: 1,
+              max: 1440, // 24 hours
+              step: 1,
+              showSpinButtons: true,
+              disabled: !formData.autoReconcileTankVolumes,
+              onValueChanged: (e) => handleFieldChange("reconciliationFrequencyMinutes", e.value),
+            }}
+          >
+            <Label text="Reconciliation Frequency (minutes)" />
+            <NumericRule message="Must be a valid number" />
+            <RangeRule min={1} max={1440} message="Must be between 1 and 1440 minutes" />
+          </SimpleItem>
+
+          <SimpleItem
+            dataField="maxVolumeDiscrepancyThreshold"
+            editorType="dxNumberBox"
+            editorOptions={{
+              placeholder: "Enter threshold value",
+              stylingMode: "filled",
+              min: 0,
+              step: 0.1,
+              showSpinButtons: true,
+              disabled: !formData.autoReconcileTankVolumes,
+              onValueChanged: (e) => handleFieldChange("maxVolumeDiscrepancyThreshold", e.value),
+            }}
+          >
+            <Label text="Max Volume Discrepancy Threshold" />
+            <NumericRule message="Must be a valid number" />
+          </SimpleItem>
+
+          <SimpleItem
+            dataField="discrepancyAction"
+            editorType="dxSelectBox"
+            editorOptions={{
+              dataSource: [
+                { id: 1, name: "Alert Only" },
+                { id: 2, name: "Block Operations" },
+                { id: 3, name: "Auto-Adjust" }
+              ],
+              displayExpr: "name",
+              valueExpr: "id",
+              stylingMode: "filled",
+              disabled: !formData.autoReconcileTankVolumes,
+              onValueChanged: (e) => handleFieldChange("discrepancyAction", e.value),
+            }}
+          >
+            <Label text="Discrepancy Action" />
           </SimpleItem>
         </GroupItem>
 

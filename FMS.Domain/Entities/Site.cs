@@ -11,6 +11,7 @@ public partial class Site {
     public int Id { get; set; }
 
     public string Name { get; set; } = null!;
+    public virtual ICollection<StockReport> StockReports { get; set; } = new List<StockReport> ();
 
     public virtual ICollection<FuelingRule> FuelingRules { get; set; } = new List<FuelingRule> ();
 
@@ -35,4 +36,6 @@ public partial class Site {
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle> ();
 
     public virtual ICollection<User> Users { get; set; } = new List<User> ();
+    // Add this to the Site entity navigation properties:
+    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment> ();
 }

@@ -20,11 +20,34 @@ public class FuelRefillController : ControllerBase {
     }
 
     //api: Post fuelrefill
+    // [HttpPost]
+    // public async Task<IActionResult> CreateFuelRefil (CreateFuelRrefillCommand command) {
+    //     if (!ModelState.IsValid) return BadRequest (ModelState);
+    //     var id = await _mediator.Send (command);
+    //     return CreatedAtAction (nameof (GetFuelRefil), new { id = id }, command);
+    // }
+
+    //api: Post fuelrefill
     [HttpPost]
-    public async Task<IActionResult> CreateFuelRefil (CreateFuelRrefillCommand command) {
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> CreateFuelRefil ([FromBody] FuelRefilDTO fuelRefilDTO) {
+        var hasPermission = User.HasClaim ("permissions", "_createFuelRefill");
+        if (!hasPermission) return Forbid ();
         if (!ModelState.IsValid) return BadRequest (ModelState);
-        var id = await _mediator.Send (command);
-        return CreatedAtAction (nameof (GetFuelRefil), new { id = id }, command);
+
+        var userIdClaim = User.Claims.FirstOrDefault (c =>
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+            Guid.TryParse (c.Value, out _));
+
+        if (userIdClaim == null) return BadRequest ("Invalid User ID");
+
+        fuelRefilDTO.FuelBy = userIdClaim.Value;
+
+        var command = new CreateFuelRrefillCommand (fuelRefilDTO);
+
+        var results = await _mediator.Send (command);
+        if (!results.Success) return BadRequest (results);
+        return Ok (results);
     }
 
     [HttpGet ("{id}")]
@@ -34,6 +57,36 @@ public class FuelRefillController : ControllerBase {
             return NotFound ();
         }
         return Ok (FuelRefill);
+    }
+
+    [HttpGet ("summary")]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetFuelRefillSummary ([FromQuery] DateTime startDate, [FromQuery] DateTime endDate) {
+        var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid ();
+
+        var summary = await _mediator.Send (new FuelRefillSummaryQuery (startDate, endDate, null));
+
+        if (summary == null || !summary.Any ()) {
+            return NoContent ();
+        }
+
+        return Ok (summary);
+    }
+
+    [HttpGet ("summary/{siteId}")]
+    [Authorize]
+    public async Task<IActionResult> GetFuelRefillSummaryBySite ([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId) {
+        var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid ();
+
+        var summary = await _mediator.Send (new FuelRefillSummaryQuery (startDate, endDate, siteId));
+
+        if (summary == null || !summary.Any ()) {
+            return NoContent ();
+        }
+
+        return Ok (summary);
     }
 
     [HttpGet ("getlist")]

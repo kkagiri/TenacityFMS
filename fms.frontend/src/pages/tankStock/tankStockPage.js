@@ -18,6 +18,10 @@ import { prepareOpeningClosingStockParams, prepareDeliveryDTO, prepareTankTransf
 import TankHistoryVolumeDatagrid from "./../../components/tankStock/tankHistoryVolumeDatagrid";
 import { fetchConsumptionByDateRange, fetchConsumptionByDateRangebySitId } from "../../redux/actions/consumptionActions";
 import TankDeliveryDatagrid from '../../components/TankDeliveryDataGrid/tankDeliverydataGrid';
+//Cursor - Import new stock management components and hooks
+import { useStockManagement } from '../../hooks/useStockManagement';
+import StockAdjustmentForm from '../../components/tankStock/StockAdjustmentForm';
+import StockAdjustmentList from '../../components/tankStock/StockAdjustmentList';
 
 import './tankStockPage.scss';
 import Tabs from 'devextreme-react/tabs';
@@ -129,6 +133,13 @@ const TankStockPage = () => {
   const tankDeliveryData = useSelector((state) => state.delivery.deliveries);
   const [saving, setSaving] = useState(false);
   const [isInsertingHistorical, setIsInsertingHistorical] = useState(false);
+
+  //Cursor - Add stock management hook and state variables
+  const { createStockAdjustment, fetchReconciliationDiscrepancies, reconcileStocks } = useStockManagement();
+  const [showAdjustmentForm, setShowAdjustmentForm] = useState(false);
+  const [adjustmentRefreshTrigger, setAdjustmentRefreshTrigger] = useState(0);
+  const [showReconciliationDashboard, setShowReconciliationDashboard] = useState(false);
+  const [showReportDashboard, setShowReportDashboard] = useState(false);
 
 
   const [selectedSite, setSelectedSite] = useState(() => {
@@ -460,6 +471,34 @@ const TankStockPage = () => {
     }
   }, [selectedSite, user.id, fetchData]);
 
+  //Cursor - Add stock adjustment handlers
+  const handleStockAdjustmentSubmit = useCallback(async (adjustmentData) => {
+    try {
+      setSaving(true);
+      const result = await createStockAdjustment(adjustmentData);
+      if (result.success) {
+        setShowAdjustmentForm(false);
+        setAdjustmentRefreshTrigger(prev => prev + 1);
+        await fetchData(); // Refresh main data
+        return result;
+      }
+      return result;
+    } catch (error) {
+      console.error('Error creating stock adjustment:', error);
+      return { success: false, message: 'An unexpected error occurred' };
+    } finally {
+      setSaving(false);
+    }
+  }, [createStockAdjustment, fetchData]);
+
+  const handleShowAdjustmentForm = useCallback(() => {
+    setShowAdjustmentForm(true);
+  }, []);
+
+  const handleHideAdjustmentForm = useCallback(() => {
+    setShowAdjustmentForm(false);
+  }, []);
+
   if (isLoading || saving || isReconciling) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -490,6 +529,13 @@ const TankStockPage = () => {
               text="Reconcile Tank Stocks"
               stylingMode="outlined"
               onClick={handleReconcileTankStocks}
+              style={{ marginLeft: '10px' }}
+            />
+            <Button
+              icon="fa-light fa-clipboard-list"
+              text="Stock Adjustment"
+              stylingMode="outlined"
+              onClick={handleShowAdjustmentForm}
               style={{ marginLeft: '10px' }}
             />
           </ToolbarItem>
@@ -550,10 +596,31 @@ const TankStockPage = () => {
   <Item title="Fuel Refill Summary">
     <FuelRefillSummaryDatagrid selectedEndDate={selectedEndDate} selectedSite={selectedSite} />
   </Item>
+
+  <Item title="Stock Adjustments">
+    <StockAdjustmentList
+      selectedSite={selectedSite}
+      refreshTrigger={adjustmentRefreshTrigger}
+    />
+  </Item>
 </TabPanel>
 
 
       </div>
+
+      {/* Stock Adjustment Form Popup */}
+      {showAdjustmentForm && (
+        <div className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-50 tw-flex tw-items-center tw-justify-center tw-z-50">
+          <div className="tw-max-w-4xl tw-w-full tw-mx-4 tw-max-h-[90vh] tw-overflow-y-auto">
+            <StockAdjustmentForm
+              onSubmit={handleStockAdjustmentSubmit}
+              onCancel={handleHideAdjustmentForm}
+              isVisible={showAdjustmentForm}
+              saving={saving}
+            />
+          </div>
+        </div>
+      )}
     </ScrollView>
   );
 };

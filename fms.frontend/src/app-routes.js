@@ -24,6 +24,7 @@ import UserActivityDashboard from "./pages/user/userActivityDashboard";
 import UserEditPage from "./pages/user/userEditPage";
 import TankPage from "./pages/tank/tankPage";
 import SitePage from "./pages/site/sitePage";
+import PTSAutomationConfigPage from "./pages/PTSAutomationConfig/PTSAutomationConfigPage";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -79,6 +80,9 @@ const resolvedComponents = (pageName) => {
       return UserEditPage;
     case "site":
       return SitePage;
+      case "PTSAutomationConfig":
+      return PTSAutomationConfigPage;
+
     case "unauthorized":
       return unauthorized;
     default:
