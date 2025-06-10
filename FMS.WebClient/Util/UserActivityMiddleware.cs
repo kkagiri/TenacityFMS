@@ -51,16 +51,17 @@ namespace FMS.WebClient.Util {
                     var actionName = context.Request.RouteValues["action"]?.ToString ();
                     var parameters = "";
 
-                    // Skip certain paths to avoid excessive logging
+                    // Skip certain paths to avoid excessive logging //Cursor
                     var path = context.Request.Path.ToString ().ToLowerInvariant ();
-                    if (path.StartsWith ("/api/useractivies") ||
+                    if (path.StartsWith ("/api/useractivities") ||
                         path.Contains ("favicon") ||
                         path.Contains ("signalr") ||
                         path.Contains ("GetNavigationItemList") ||
                         path.Contains ("GetUser") ||
                         path.Contains ("GetUserActivities") ||
                         path.Contains ("GetUserByEmail") ||
-                        path.Contains ("GetUserByPhoneNumber")) {
+                        path.Contains ("GetUserByPhoneNumber") ||
+                        (context.Request.Method == "GET" && path.Contains("/api/user"))) {
                         return;
                     }
 

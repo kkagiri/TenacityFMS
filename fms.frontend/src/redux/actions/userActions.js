@@ -145,7 +145,7 @@ export const fetchAllSites = () => async (dispatch) => {
 
 export const fetchUserSites = (userId) => async (dispatch) => {
     try {
-        const response = await axiosInstance.get(`/site/getsitebyuserid?userId=${userId}`);
+        const response = await axiosInstance.get(`/site/getsitebyuserid/${userId}`);
         dispatch({ type: FETCH_USER_SITES_SUCCESS, payload: response.data });
         return response.data;
     } catch (error) {
@@ -164,6 +164,32 @@ export const updateUserSites = (userId, siteIds) => async (dispatch) => {
         return response.data;
     } catch (error) {
         throw new Error('Error updating user sites');
+    }
+};
+
+// Fetch site counts for all users //Cursor
+export const fetchUserSiteCounts = () => async (dispatch) => {
+    try {
+        const usersResponse = await axiosInstance.get('/user/getlist');
+        const users = usersResponse.data;
+
+        const siteCounts = {};
+
+        // Fetch site count for each user
+        for (const user of users) {
+            try {
+                const sitesResponse = await axiosInstance.get(`/site/getsitebyuserid/${user.id}`);
+                siteCounts[user.id] = sitesResponse.data ? sitesResponse.data.length : 0;
+            } catch (error) {
+                console.error(`Error fetching sites for user ${user.id}:`, error);
+                siteCounts[user.id] = 0;
+            }
+        }
+
+        return siteCounts;
+    } catch (error) {
+        console.error('Error fetching user site counts:', error);
+        throw new Error('Error loading user site counts');
     }
 };
 

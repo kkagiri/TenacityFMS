@@ -61,7 +61,7 @@ namespace FMS.WebClient.Controllers
             return BadRequest(result.Message);
         }
 
-        //return list of sites by user id
+        //return list of sites by user id (current user)
         [HttpGet("getsitebyuserid")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetSitesByUserId()
@@ -73,6 +73,27 @@ namespace FMS.WebClient.Controllers
             if (userIdClaim == null) return BadRequest("Invalid User ID");
 
             var query = new GetSitesByUserIdQuery(userIdClaim.Value);
+            var result = await _mediator.Send(query);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+
+            return BadRequest(result.Message);
+        }
+
+        //return list of sites by specific user id //Cursor
+        [HttpGet("getsitebyuserid/{userId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetSitesBySpecificUserId(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return BadRequest("User ID is required");
+            }
+
+            var query = new GetSitesByUserIdQuery(userId);
             var result = await _mediator.Send(query);
 
             if (result.IsSuccess)

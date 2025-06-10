@@ -61,6 +61,12 @@
 
     .search-container {
         margin-bottom: 10px;
+
+        .search-box-wrapper {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
     }
 
     .tabs-container {
