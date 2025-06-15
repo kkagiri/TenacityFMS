@@ -1,4 +1,10 @@
-﻿using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -6,70 +12,57 @@ using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
-{
-    public record ClosingStockCommand(int TankId, decimal ClosingStock, string RecordedBy, DateTime? EntryDate = null) : IRequest<FMSResponseMessage>;
+namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
+    public record ClosingStockCommand (int TankId, decimal ClosingStock, string RecordedBy, DateTime? EntryDate = null) : IRequest<FMSResponseMessage>;
 
-    public class ClosingStockCommandHandler : IRequestHandler<ClosingStockCommand, FMSResponseMessage>
-    {
+    public class ClosingStockCommandHandler : IRequestHandler<ClosingStockCommand, FMSResponseMessage> {
         private readonly GpsdataContext _context;
         private readonly ILogger<ClosingStockCommandHandler> _logger;
         private readonly IMediator _mediator;
+        //Cursor - Added TankVolumeHistoryIntegrationService dependency
+        private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
 
-        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator)
-        {
+        public ClosingStockCommandHandler (GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
             _context = context;
             _logger = logger;
             _mediator = mediator;
+            _tankVolumeHistoryService = tankVolumeHistoryService;
         }
 
+        public async Task<FMSResponseMessage> Handle (ClosingStockCommand request, CancellationToken cancellationToken) {
 
-        public async Task<FMSResponseMessage> Handle(ClosingStockCommand request, CancellationToken cancellationToken)
-        {
-
-            try
-            {
+            try {
                 var entryDate = request.EntryDate ?? DateTime.Now.Date;
 
-                var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
-                if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
+                var tank = await _context.Tanks.FindAsync (request.TankId, cancellationToken);
+                if (tank == null) return new FMSResponseMessage (false, $"TankID {request.TankId} not found ");
 
                 var existingClosingStock = await _context.TankVolumeHistories
-           .Where(x => x.TankId == request.TankId &&
-                       x.Timestamp.Date == entryDate &&
-                       x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
-           .SingleOrDefaultAsync(cancellationToken);
+                    .Where (x => x.TankId == request.TankId &&
+                        x.Timestamp.Date == entryDate &&
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                    .SingleOrDefaultAsync (cancellationToken);
 
-                if (existingClosingStock != null) return new FMSResponseMessage(false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
+                if (existingClosingStock != null) return new FMSResponseMessage (false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
 
+                var openingStock = await _context.TankVolumeHistories.Where (x => x.TankId == request.TankId &&
+                        x.Timestamp.Date == entryDate.Date && x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                    .SingleOrDefaultAsync (cancellationToken);
 
-                var openingStock = await _context.TankVolumeHistories.Where(x => x.TankId == request.TankId &&
-                                    x.Timestamp.Date == entryDate.Date && x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
-                                 .SingleOrDefaultAsync(cancellationToken);
-
-                if (openingStock == null) return new FMSResponseMessage(false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
+                if (openingStock == null) return new FMSResponseMessage (false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
 
                 // Get all transactions for the day
                 var transactions = await _context.TankVolumeHistories
-                    .Where(tvh => tvh.TankId == request.TankId && tvh.Timestamp.Date == DateTime.Now.Date)
-                    .ToListAsync();
+                    .Where (tvh => tvh.TankId == request.TankId && tvh.Timestamp.Date == DateTime.Now.Date)
+                    .ToListAsync ();
 
-                var totalRefills = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum(t => t.VolumeChange);
-                var totalDeliveries = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Delivery).Sum(t => t.VolumeChange);
-                var totalTransfersIn = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn).Sum(t => t.VolumeChange);
-                var totalTransfersOut = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut).Sum(t => t.VolumeChange);
+                var totalRefills = transactions.Where (t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum (t => t.VolumeChange);
+                var totalDeliveries = transactions.Where (t => t.ChangeReason == VolumeChangeReasonEnum.Delivery).Sum (t => t.VolumeChange);
+                var totalTransfersIn = transactions.Where (t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn).Sum (t => t.VolumeChange);
+                var totalTransfersOut = transactions.Where (t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut).Sum (t => t.VolumeChange);
 
-
-
-                var newClosingStock = new Tankstock
-                {
+                var newClosingStock = new Tankstock {
                     TankId = request.TankId,
                     EntryDate = entryDate,
                     EntryType = VolumeChangeReasonEnum.ClosingStock,
@@ -78,52 +71,47 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     SiteId = tank.SiteId
                 };
 
-                _context.Tankstocks.Add(newClosingStock);
+                _context.Tankstocks.Add (newClosingStock);
 
+                if (entryDate.Date == DateTime.Now.Date) {
 
-
-                if (entryDate.Date == DateTime.Now.Date)
-                {
-
-                    if (tank.UseBookKeeping == 1)
-                    {
+                    if (tank.UseBookKeeping == 1) {
                         tank.CurrentStock = request.ClosingStock;
                         tank.LastStockUpdate = DateTime.Now;
                     }
                 }
 
-                await _context.SaveChangesAsync(cancellationToken);
+                await _context.SaveChangesAsync (cancellationToken);
 
+                //Cursor - Calculate volume change for closing stock
+                decimal volumeChange = 0;
+                if (tank.UseBookKeeping == 1) {
+                    var previousStock = tank.CurrentStock ?? 0;
+                    volumeChange = request.ClosingStock - previousStock;
+                }
 
+                //Cursor - Replaced manual TankVolumeHistory creation with TankVolumeHistoryIntegrationService
+                var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync (
+                    tankId: request.TankId,
+                    timestamp: entryDate,
+                    volumeChange: volumeChange,
+                    stockId: newClosingStock.EntryId,
+                    isOpening: false, // This is a closing stock
+                    actionType : ActionType.Create, // This is a new closing stock
+                    recordedBy : request.RecordedBy,
+                    cancellationToken : cancellationToken);
 
+                if (!volumeUpdateResult.Success) {
+                    _logger.LogWarning ("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
+                    // We continue even if volume history update fails, but log the error
+                }
 
-
-                var tankhistory = new TankVolumeHistory
-                {
-                    TankId = request.TankId,
-                    Timestamp = entryDate,
-                    VolumeChange = request.ClosingStock - (tank.CurrentStock ?? 0),
-                    NewVolume = request.ClosingStock,
-                    ChangeReason = VolumeChangeReasonEnum.ClosingStock,
-                    RecordedBy = request.RecordedBy,
-                    ReferenceId = newClosingStock.EntryId,
-                    ReferenceType = "ClosingStock"
-                };
-
-                _context.TankVolumeHistories.Add(tankhistory);
-                await _context.SaveChangesAsync(cancellationToken);
-
-
-
-                return new FMSResponseMessage(true, "Closing stock created successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while creating closing stock");
-                return new FMSResponseMessage(false, "Error while creating closing stock");
+                return new FMSResponseMessage (true, "Closing stock created successfully");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error while creating closing stock");
+                return new FMSResponseMessage (false, "Error while creating closing stock");
             }
 
         }
     }
 }
-

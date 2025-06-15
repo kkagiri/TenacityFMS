@@ -39,12 +39,20 @@ function App() {
       await initializeAxiosInstance(); // Initialize Axios instance
       setIsApiInitialized(true);
       // SignalR connection is now manual - components will start it when needed
-      dispatch(loadUser());
+
+      //Cursor: Only load user if there's a token in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        dispatch(loadUser());
+      }
     };
     initialize();
   }, [dispatch]);
 
-  if (loading || !isApiInitialized) {
+  //Cursor: Only show loading if API is not initialized or if we're actually loading user data (and there's a token)
+  const shouldShowLoading = !isApiInitialized || (loading && localStorage.getItem('token'));
+
+  if (shouldShowLoading) {
     return <LoadPanel visible={true} />;
   }
 

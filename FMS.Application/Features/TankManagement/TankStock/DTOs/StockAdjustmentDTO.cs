@@ -7,39 +7,41 @@ namespace FMS.Application.ModelsDTOs.FMS.TankStock;
 public class StockAdjustmentDTO {
     public int Id { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "Tank ID is required")]
     public int TankId { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "Site ID is required")]
     public int SiteId { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "Adjustment date is required")]
     public DateTime AdjustmentDate { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "Current volume is required")]
     [Range (0, double.MaxValue, ErrorMessage = "Current volume must be non-negative")]
     public decimal CurrentVolume { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "New volume is required")]
     [Range (0, double.MaxValue, ErrorMessage = "New volume must be non-negative")]
     public decimal NewVolume { get; set; }
 
-    public decimal VolumeChange => NewVolume - CurrentVolume;
+    //Cursor - VolumeChange will be calculated automatically if not provided
+    public decimal VolumeChange { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "Adjustment type is required")]
     public int AdjustmentType { get; set; } // 0: Increase, 1: Decrease, 2: Correction
 
-    [Required]
+    [Required (ErrorMessage = "Reason code is required")]
+    [Range (1, int.MaxValue, ErrorMessage = "Reason code must be a valid value")]
     public int ReasonCode { get; set; } // StockAdjustmentReasonEnum value
 
-    [Required]
-    [StringLength (200)]
+    [Required (ErrorMessage = "Reason is required")]
+    [StringLength (200, ErrorMessage = "Reason cannot exceed 200 characters")]
     public string Reason { get; set; } = null!;
 
-    [StringLength (500)]
+    [StringLength (500, ErrorMessage = "Notes cannot exceed 500 characters")]
     public string? Notes { get; set; }
 
-    [Required]
+    [Required (ErrorMessage = "Created by is required")]
     public string CreatedBy { get; set; } = null!;
 
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;

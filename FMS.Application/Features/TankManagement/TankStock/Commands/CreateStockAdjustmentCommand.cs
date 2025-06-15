@@ -23,17 +23,17 @@ public class CreateStockAdjustmentCommandHandler : IRequestHandler<CreateStockAd
     private readonly GpsdataContext _context;
     private readonly ILogger<CreateStockAdjustmentCommandHandler> _logger;
     private readonly IMapper _mapper;
-    private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService; //Cursor - Added integration service
+    private readonly IMediator _mediator; //Cursor - Added mediator for UpdateTankVolumeHistoryCommand
 
     public CreateStockAdjustmentCommandHandler (
         GpsdataContext context,
         ILogger<CreateStockAdjustmentCommandHandler> logger,
         IMapper mapper,
-        TankVolumeHistoryIntegrationService tankVolumeHistoryService) { //Cursor - Added integration service
+        IMediator mediator) { //Cursor - Added mediator injection
         _context = context;
         _logger = logger;
         _mapper = mapper;
-        _tankVolumeHistoryService = tankVolumeHistoryService; //Cursor - Added integration service
+        _mediator = mediator; //Cursor - Added mediator assignment
     }
 
     public async Task<FMSResponse<int>> Handle (CreateStockAdjustmentCommand request, CancellationToken cancellationToken) {
@@ -69,7 +69,13 @@ public class CreateStockAdjustmentCommandHandler : IRequestHandler<CreateStockAd
                 });
             }
 
-            // Cursor - Create StockAdjustment entity instead of direct TankVolumeHistory
+            //Cursor - Ensure VolumeChange is calculated if not provided
+            var calculatedVolumeChange = request.StockAdjustmentDTO.NewVolume - request.StockAdjustmentDTO.CurrentVolume;
+            if (request.StockAdjustmentDTO.VolumeChange == 0 && calculatedVolumeChange != 0) {
+                request.StockAdjustmentDTO.VolumeChange = calculatedVolumeChange;
+            }
+
+            // Cursor - Create StockAdjustment entity
             var stockAdjustment = new StockAdjustment {
                 TankId = request.StockAdjustmentDTO.TankId,
                 SiteId = request.StockAdjustmentDTO.SiteId,
@@ -89,34 +95,38 @@ public class CreateStockAdjustmentCommandHandler : IRequestHandler<CreateStockAd
             _context.StockAdjustments.Add (stockAdjustment);
             await _context.SaveChangesAsync (cancellationToken);
 
-            // Cursor - Use TankVolumeHistoryIntegrationService for proper volume tracking
-            var volumeUpdateResult = await _tankVolumeHistoryService.ProcessAdjustmentChangeAsync (
-                tankId: request.StockAdjustmentDTO.TankId,
-                timestamp: request.StockAdjustmentDTO.AdjustmentDate,
-                volumeChange: request.StockAdjustmentDTO.VolumeChange,
-                adjustmentId: stockAdjustment.Id,
-                actionType: ActionType.Create,
-                recordedBy: request.StockAdjustmentDTO.CreatedBy,
-                cancellationToken: cancellationToken);
+            // Cursor - Create TankVolumeHistory record directly with correct NewVolume
+            var tankVolumeHistory = new TankVolumeHistory {
+                TankId = request.StockAdjustmentDTO.TankId,
+                Timestamp = request.StockAdjustmentDTO.AdjustmentDate,
+                VolumeChange = request.StockAdjustmentDTO.VolumeChange,
+                NewVolume = request.StockAdjustmentDTO.NewVolume, //Cursor - Set the correct NewVolume directly
+                ChangeReason = VolumeChangeReasonEnum.Adjustment,
+                RecordedBy = request.StockAdjustmentDTO.CreatedBy,
+                ReferenceId = stockAdjustment.Id,
+                ReferenceType = "Adjustment",
+                CreatedOn = DateTime.UtcNow
+            };
 
-            if (!volumeUpdateResult.Success) {
-                _logger.LogWarning ("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
-                // Remove the stock adjustment if volume history update fails
-                _context.StockAdjustments.Remove (stockAdjustment);
-                await _context.SaveChangesAsync (cancellationToken);
-                return FMSResponse<int>.Failed ($"Failed to update tank volume history: {volumeUpdateResult.Message}");
-            }
+            _context.TankVolumeHistories.Add (tankVolumeHistory);
+            await _context.SaveChangesAsync (cancellationToken);
 
             // Cursor - Update the stock adjustment with the TankVolumeHistory reference
-            var volumeHistoryRecord = await _context.TankVolumeHistories
-                .Where (tvh => tvh.TankId == request.StockAdjustmentDTO.TankId &&
-                    tvh.ReferenceId == stockAdjustment.Id &&
-                    tvh.ReferenceType == "Adjustment")
-                .FirstOrDefaultAsync (cancellationToken);
+            stockAdjustment.TankVolumeHistoryId = tankVolumeHistory.Id;
+            await _context.SaveChangesAsync (cancellationToken);
 
-            if (volumeHistoryRecord != null) {
-                stockAdjustment.TankVolumeHistoryId = volumeHistoryRecord.Id;
-                await _context.SaveChangesAsync (cancellationToken);
+            // Cursor - Update subsequent TankVolumeHistory records to recalculate their NewVolume based on this adjustment
+            var updateResult = await _mediator.Send (
+                new UpdateTankVolumeHistoryCommand (
+                    request.StockAdjustmentDTO.TankId,
+                    request.StockAdjustmentDTO.AdjustmentDate.AddMilliseconds (1), // Start just after this adjustment
+                    false, // Not historical update
+                    true), // Update tank current stock
+                cancellationToken);
+
+            if (!updateResult.Success) {
+                _logger.LogWarning ("Failed to update subsequent tank volume history: {Message}", updateResult.Message);
+                // We continue since the adjustment was created successfully, but log the issue
             }
 
             _logger.LogInformation ("Stock adjustment created successfully for Tank {TankId}, Volume changed from {CurrentVolume} to {NewVolume}",

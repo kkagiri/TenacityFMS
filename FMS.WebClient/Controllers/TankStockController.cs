@@ -11,6 +11,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+//Cursor - Add SignalR for real-time updates
+using FMS.Application.Communication.SignalR;
+using Microsoft.AspNetCore.SignalR;
 
 namespace FMS.WebClient.Controllers;
 
@@ -20,12 +23,16 @@ namespace FMS.WebClient.Controllers;
 public class TankStockController : ControllerBase {
     private readonly IMediator _mediator;
     private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+    //Cursor - Add SignalR hub context for real-time updates
+    private readonly IHubContext<FrontEndHub> _hubContext;
 
     public TankStockController (
         IMediator mediator,
-        TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
+        TankVolumeHistoryIntegrationService tankVolumeHistoryService,
+        IHubContext<FrontEndHub> hubContext) {
         _mediator = mediator;
         _tankVolumeHistoryService = tankVolumeHistoryService;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -79,6 +86,7 @@ public class TankStockController : ControllerBase {
             return BadRequest (ModelState);
         }
         var id = await _mediator.Send (new CreateTankStockCommand (tankStockDTO));
+
         return CreatedAtAction (nameof (GetTankStockById), new { id = id }, tankStockDTO);
     }
 
@@ -130,6 +138,10 @@ public class TankStockController : ControllerBase {
         if (userIdClaim == null) return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
 
         var result = await _mediator.Send (new OpeningStockCommand (tankId, amount, userIdClaim.Value, dateTime));
+
+        if (result.Success) {
+            await _hubContext.Clients.All.SendAsync ("TankStockUpdate", result);
+        }
 
         if (!result.Success) return BadRequest (result);
 
@@ -184,30 +196,30 @@ public class TankStockController : ControllerBase {
     /// <summary>
     /// Reconciles tank current stock with the latest volume history
     /// </summary>
-    [HttpPost ("reconcile")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> ReconcileTankStocks ([FromBody] ReconcileRequest request) {
-        // var hasPermission = User.HasClaim("permissions", "_tankManagement");
-        // if (!hasPermission) return Forbid();
+    // [HttpPost ("reconcile")]
+    // [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    // public async Task<IActionResult> ReconcileTankStocks ([FromBody] ReconcileRequest request) {
+    //     // var hasPermission = User.HasClaim("permissions", "_tankManagement");
+    //     // if (!hasPermission) return Forbid();
 
-        var userIdClaim = User.Claims.FirstOrDefault (c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse (c.Value, out _));
+    //     var userIdClaim = User.Claims.FirstOrDefault (c =>
+    //         c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+    //         Guid.TryParse (c.Value, out _));
 
-        if (userIdClaim == null)
-            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+    //     if (userIdClaim == null)
+    //         return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
 
-        // Call the reconciliation service
-        var result = await _tankVolumeHistoryService.ReconcileAllTankCurrentStocksAsync (
-            userIdClaim.Value,
-            request.SiteId,
-            HttpContext.RequestAborted);
+    //     // Call the reconciliation service
+    //     var result = await _tankVolumeHistoryService.ReconcileAllTankCurrentStocksAsync (
+    //         userIdClaim.Value,
+    //         request.SiteId,
+    //         HttpContext.RequestAborted);
 
-        if (!result.Success)
-            return BadRequest (result);
+    //     if (!result.Success)
+    //         return BadRequest (result);
 
-        return Ok (result);
-    }
+    //     return Ok (result);
+    // }
 
     /// <summary>
     /// Creates a new stock adjustment
@@ -231,7 +243,7 @@ public class TankStockController : ControllerBase {
 
         var result = await _mediator.Send (new CreateStockAdjustmentCommand (adjustmentDTO));
 
-        if (!result.Success)
+        if (!result.IsSuccess)
             return BadRequest (result);
 
         return Ok (result);
@@ -249,7 +261,7 @@ public class TankStockController : ControllerBase {
 
         var result = await _mediator.Send (new GetStockAdjustmentsQuery (siteId, tankId, startDate, endDate));
 
-        if (!result.Success)
+        if (!result.IsSuccess)
             return BadRequest (result);
 
         return Ok (result);
@@ -267,7 +279,7 @@ public class TankStockController : ControllerBase {
 
         var result = await _mediator.Send (new GetStockDiscrepanciesQuery (siteId, threshold));
 
-        if (!result.Success)
+        if (!result.IsSuccess)
             return BadRequest (result);
 
         return Ok (result);

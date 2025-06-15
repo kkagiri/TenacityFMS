@@ -94,34 +94,8 @@ export const useStockManagement = () => {
     }
   }, []);
 
-  const fetchReconciliationDiscrepancies = useCallback(async (filters = {}) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams();
-      if (filters.siteId) params.append('siteId', filters.siteId);
-      if (filters.thresholdValue) params.append('thresholdValue', filters.thresholdValue);
-
-      //Cursor - Updated to use correct endpoint from TankStockController
-      const response = await axiosInstance.get(`/tankstock/discrepancies?${params.toString()}`);
-
-      if (response.data.success) {
-        return { success: true, data: response.data.data };
-      } else {
-        notify(response.data.message || 'Failed to fetch discrepancies', 'error', 5000);
-        return { success: false, message: response.data.message };
-      }
-    } catch (error) {
-      console.error('Error fetching discrepancies:', error);
-      const errorMessage = error.response?.data?.message || 'An unexpected error occurred';
-      notify(errorMessage, 'error', 5000);
-      setError(errorMessage);
-      return { success: false, message: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  //Cursor: Removed fetchReconciliationDiscrepancies to avoid duplicate API calls
+  //Use Redux action fetchStockDiscrepancies instead
 
   // Stock Reporting Operations
   const generateStockReport = useCallback(async (reportParams) => {
@@ -204,7 +178,6 @@ export const useStockManagement = () => {
     fetchStockAdjustments,
     // Stock Reconciliation
     reconcileStocks,
-    fetchReconciliationDiscrepancies,
     // Stock Reporting
     generateStockReport,
     exportStockReport,

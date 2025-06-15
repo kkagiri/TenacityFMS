@@ -22,6 +22,10 @@ export const CREATE_DELIVERY_FAILURE = 'CREATE_DELIVERY_FAILURE';
 export const FETCH_DELIVERIES_SUCCESS = 'FETCH_DELIVERIES_SUCCESS';
 export const FETCH_DELIVERIES_FAILURE = 'FETCH_DELIVERIES_FAILURE';
 
+export const FETCH_STOCK_DISCREPANCIES_REQUEST = 'FETCH_STOCK_DISCREPANCIES_REQUEST';
+export const FETCH_STOCK_DISCREPANCIES_SUCCESS = 'FETCH_STOCK_DISCREPANCIES_SUCCESS';
+export const FETCH_STOCK_DISCREPANCIES_FAILURE = 'FETCH_STOCK_DISCREPANCIES_FAILURE';
+
 const formatDateTime = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -72,7 +76,7 @@ export const createOpeningStock = (tankId, amount,date) => async (dispatch) => {
   //  const formattedDate = formatDateTime(date);
 
     const response = await axiosInstance.post(`/tankstock/openingstock?tankId=${tankId}&amount=${amount}&dateTime=${date}`);
-   
+
     if (response.data.success) {
       dispatch({ type: CREATE_OPENING_STOCK_SUCCESS, payload: response.data });
       return response.data;
@@ -90,7 +94,7 @@ export const createOpeningStock = (tankId, amount,date) => async (dispatch) => {
 export const createClosingStock = (tankId, amount,date) => async (dispatch) => {
   try {
     const formattedDate = formatDateTime(date);
-  
+
     const response = await axiosInstance.post(`/tankstock/closingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
     if (response.data.success) {
     dispatch({ type: CREATE_CLOSING_STOCK_SUCCESS, payload: response.data });
@@ -99,7 +103,7 @@ export const createClosingStock = (tankId, amount,date) => async (dispatch) => {
     dispatch({ type: CREATE_CLOSING_STOCK_FAILURE, payload: response.data.message });
     return response.data;
   }
-     
+
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || "Error Creating closing Stock";
     dispatch({ type: CREATE_CLOSING_STOCK_FAILURE, payload: error.message });
@@ -109,7 +113,7 @@ export const createClosingStock = (tankId, amount,date) => async (dispatch) => {
 
 export const createTankTransfer = (tankTransferDTO) => async (dispatch) => {
   try {
- 
+
     const response = await axiosInstance.post('/tankstock/transfer', tankTransferDTO);
 
     if (response.data.success) {
@@ -125,3 +129,53 @@ export const createTankTransfer = (tankTransferDTO) => async (dispatch) => {
     return { success: false, message: errorMessage };
   }
 }
+
+export const fetchStockDiscrepancies = (filters = {}) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_STOCK_DISCREPANCIES_REQUEST });
+
+    const params = new URLSearchParams();
+    if (filters.siteId) params.append('siteId', filters.siteId);
+    if (filters.threshold !== undefined) params.append('threshold', filters.threshold);
+
+    const response = await axiosInstance.get(`/tankstock/discrepancies?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      dispatch({
+        type: FETCH_STOCK_DISCREPANCIES_SUCCESS,
+        payload: response.data.data || response.data
+      });
+      return { success: true, data: response.data.data || response.data };
+    } else {
+      dispatch({
+        type: FETCH_STOCK_DISCREPANCIES_FAILURE,
+        payload: response.data.message || 'Failed to fetch stock discrepancies'
+      });
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching stock discrepancies';
+    dispatch({ type: FETCH_STOCK_DISCREPANCIES_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+export const reconcileStocks = (reconciliationData) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.post('/tankstock/reconcile', {
+      siteId: reconciliationData.siteId,
+      userId: reconciliationData.userId
+    });
+
+    if (response.data.success) {
+      // Refresh discrepancies after successful reconciliation
+      dispatch(fetchStockDiscrepancies({ siteId: reconciliationData.siteId }));
+      return { success: true, data: response.data.data, message: response.data.message };
+    } else {
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error reconciling stocks';
+    return { success: false, message: errorMessage };
+  }
+};

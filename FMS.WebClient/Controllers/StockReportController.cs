@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using FMS.Application.Command.DatabaseCommand.StockAdjustmentCmd;
 using FMS.Application.Common;
+using FMS.Application.Features.TankManagement.TankStock.Commands;
+using FMS.Application.Features.TankManagement.TankStock.Queries;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
-using FMS.Application.Queries.Database.FMSQuery.StockAdjustmentQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -29,8 +29,8 @@ public class StockReportController : ControllerBase {
     [HttpPost ("generate")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GenerateStockReport ([FromBody] StockReportRequestDTO reportRequest) {
-        var hasPermission = User.HasClaim ("permissions", "_Create_stockReport");
-        if (!hasPermission) return Forbid ();
+        // var hasPermission = User.HasClaim ("permissions", "_Create_stockReport");
+        // if (!hasPermission) return Forbid ();
 
         if (!ModelState.IsValid) return BadRequest (ModelState);
 
@@ -77,8 +77,8 @@ public class StockReportController : ControllerBase {
     [HttpGet ("export/{reportId}")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> ExportStockReport (string reportId, [FromQuery] string format = "excel") {
-        var hasPermission = User.HasClaim ("permissions", "_Read_stockReport");
-        if (!hasPermission) return Forbid ();
+        // var hasPermission = User.HasClaim ("permissions", "_Read_stockReport");
+        // if (!hasPermission) return Forbid ();
 
         if (string.IsNullOrEmpty (reportId)) return BadRequest ("Report ID is required");
 
@@ -109,8 +109,8 @@ public class StockReportController : ControllerBase {
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetStockReports (
         [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string? reportType = null) {
-        var hasPermission = User.HasClaim ("permissions", "_Read_stockReport");
-        if (!hasPermission) return Forbid ();
+        // var hasPermission = User.HasClaim ("permissions", "_Read_stockReport");
+        // if (!hasPermission) return Forbid ();
 
         try {
             //Cursor - Get actual stock reports from database

@@ -27,6 +27,7 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasColumnType ("int(11)")
                     .HasColumnName ("TankID");
                 builder.Property (e => e.Comment).HasMaxLength (500);
+                builder.Property (e => e.ModifiedBy).HasMaxLength (100);
                 builder.Property (e => e.TagId).
                 HasMaxLength (50)
                     .HasColumnType ("varchar(50)")

@@ -25,6 +25,7 @@ import UserEditPage from "./pages/user/userEditPage";
 import TankPage from "./pages/tank/tankPage";
 import SitePage from "./pages/site/sitePage";
 import PTSAutomationConfigPage from "./pages/PTSAutomationConfig/PTSAutomationConfigPage";
+import AutomatedReconciliationSystem from "./pages/automatedReconciliation/AutomatedReconciliationSystem";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -80,8 +81,10 @@ const resolvedComponents = (pageName) => {
       return UserEditPage;
     case "site":
       return SitePage;
-      case "PTSAutomationConfig":
+      case "ptsautomationconfig": //Cursor - PTS Automation Configuration page component
       return PTSAutomationConfigPage;
+    case "automated-reconciliation":
+      return AutomatedReconciliationSystem;
 
     case "unauthorized":
       return unauthorized;

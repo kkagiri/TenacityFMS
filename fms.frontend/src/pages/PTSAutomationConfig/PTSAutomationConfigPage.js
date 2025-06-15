@@ -1,4 +1,3 @@
-
 //Cursor - Create PTS Automation Configuration main page
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -43,18 +42,41 @@ const PTSAutomationConfigPage = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
+  const [isLoading, setIsLoading] = useState(true);
 
   const { configurations, loading, error, pagination } = useSelector(
     (state) => state.ptsAutomationConfig
   );
 
   useEffect(() => {
-    dispatch(fetchConfigurations());
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await dispatch(fetchConfigurations());
+      } catch (error) {
+        // Error will be handled by the error effect below
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [dispatch]);
 
   useEffect(() => {
     if (error) {
-      setToastMessage(error);
+      let errorMessage = error;
+
+      // Handle specific error cases
+      if (error.includes("404") || error.includes("Not Found")) {
+        errorMessage = "No configurations found or the API endpoint is not available. Please try again later.";
+      } else if (error.includes("401") || error.includes("Unauthorized")) {
+        errorMessage = "You are not authorized to access this resource. Please login again.";
+      } else if (error.includes("Network Error")) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      }
+
+      setToastMessage(errorMessage);
       setToastType("error");
       setToastVisible(true);
       dispatch(clearError());
@@ -80,7 +102,9 @@ const PTSAutomationConfigPage = () => {
         setToastVisible(true);
         dispatch(fetchConfigurations());
       } catch (error) {
-        console.error("Error deleting configuration:", error);
+        setToastMessage("Failed to delete configuration. Please try again.");
+        setToastType("error");
+        setToastVisible(true);
       }
     }
   };
@@ -176,9 +200,10 @@ const PTSAutomationConfigPage = () => {
           allowColumnResizing={true}
           columnAutoWidth={true}
           className="tw-w-full"
+          noDataText="No configurations found. Create a new configuration to get started."
         >
           <StateStoring enabled={true} type="localStorage" storageKey="ptsAutomationConfigGrid" />
-          <LoadPanel enabled={true} />
+          <LoadPanel enabled={isLoading} />
           <Selection mode="single" />
           <Export enabled={true} />
           <ColumnChooser enabled={true} />
@@ -247,11 +272,11 @@ const PTSAutomationConfigPage = () => {
         onHiding={handleModalClose}
         dragEnabled={false}
         closeOnOutsideClick={false}
-        showTitle={true}
-        title={showEditModal ? "Edit Configuration" : "Create Configuration"}
-        width="800px"
-        height="auto"
-        showCloseButton={true}
+        showTitle={false}
+        width="900px"
+        height="90vh"
+        showCloseButton={false}
+        className="pts-config-popup"
       >
         <ConfigurationForm
           configuration={selectedConfiguration}

@@ -30,6 +30,7 @@ import deviceConnectionReducer from "./deviceConnectionReducer";
 import fuelingEventsReducer from "./fuelingEventsReducer";
 import configReducer from "./configReducer";
 import ptsAutomationConfigReducer from "./ptsAutomationConfigReducer";
+import automatedReconciliationReducer from "./automatedReconciliationReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
 import stockManagementReducer from "./stockManagementReducer";
@@ -65,6 +66,7 @@ const rootReducer = combineReducers({
   fuelingEvents: fuelingEventsReducer,
   config: configReducer,
   ptsAutomationConfig: ptsAutomationConfigReducer,
+  automatedReconciliation: automatedReconciliationReducer,
   fuelReport: fuelReportReducer,
   notification: notificationReducer,
   stockManagement: stockManagementReducer,

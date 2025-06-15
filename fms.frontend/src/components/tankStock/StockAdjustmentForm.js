@@ -29,11 +29,14 @@ const AdjustmentReasons = [
 ];
 
 //Cursor - Stock Adjustment Form Component - Updated for new entity structure
-const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, saving }) => {
+const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible }) => {
   const { validateTankCapacity, calculateVolumeChange } = useStockManagement();
   const sites = useSelector((state) => state.site.sites);
   const tanks = useSelector((state) => state.tank.tanks);
   const user = useSelector((state) => state.auth.user);
+
+  //Cursor - Local saving state for the form only
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     tankId: '',
@@ -139,40 +142,52 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, saving }) => {
       return;
     }
 
-    //Cursor - Updated to match our new DTO structure
-    const selectedReason = AdjustmentReasons.find(r => r.id === formData.reasonCode);
-    const adjustmentData = {
-      tankId: formData.tankId,
-      siteId: formData.siteId,
-      adjustmentDate: formData.adjustmentDate,
-      currentVolume: formData.currentVolume,
-      newVolume: formData.newVolume,
-      adjustmentType: formData.adjustmentType,
-      reasonCode: formData.reasonCode,
-      reason: formData.reasonCode === 99 ? formData.reason : selectedReason?.name || '',
-      notes: formData.notes,
-      createdBy: formData.createdBy,
-      status: formData.status
-    };
+    //Cursor - Set local saving state
+    setSaving(true);
 
-    const result = await onSubmit(adjustmentData);
-    if (result?.success) {
-      // Reset form
-      setFormData({
-        tankId: '',
-        siteId: '',
-        adjustmentDate: new Date(),
-        currentVolume: 0,
-        newVolume: 0,
-        volumeChange: 0, //Cursor - Added volumeChange to reset
-        adjustmentType: 0,
-        reasonCode: 1, //Cursor - Fixed to use reasonCode instead of reasonId
-        reason: '', //Cursor - Fixed to use reason instead of customReason
-        notes: '',
-        createdBy: user?.id || '',
-        status: 1 //Cursor - Added status field to reset
-      });
-      setFormErrors({});
+    try {
+      //Cursor - Updated to match our new DTO structure
+      const selectedReason = AdjustmentReasons.find(r => r.id === formData.reasonCode);
+      const adjustmentData = {
+        tankId: formData.tankId,
+        siteId: formData.siteId,
+        adjustmentDate: formData.adjustmentDate,
+        currentVolume: formData.currentVolume,
+        newVolume: formData.newVolume,
+        volumeChange: formData.volumeChange, //Cursor - Added missing volumeChange field
+        adjustmentType: formData.adjustmentType,
+        reasonCode: formData.reasonCode,
+        reason: formData.reasonCode === 99 ? formData.reason : selectedReason?.name || '',
+        notes: formData.notes,
+        createdBy: formData.createdBy,
+        status: formData.status
+      };
+
+      const result = await onSubmit(adjustmentData);
+      if (result?.success) {
+        // Reset form
+        setFormData({
+          tankId: '',
+          siteId: '',
+          adjustmentDate: new Date(),
+          currentVolume: 0,
+          newVolume: 0,
+          volumeChange: 0, //Cursor - Added volumeChange to reset
+          adjustmentType: 0,
+          reasonCode: 1, //Cursor - Fixed to use reasonCode instead of reasonId
+          reason: '', //Cursor - Fixed to use reason instead of customReason
+          notes: '',
+          createdBy: user?.id || '',
+          status: 1 //Cursor - Added status field to reset
+        });
+        setFormErrors({});
+      }
+    } catch (error) {
+      console.error('Error submitting stock adjustment:', error);
+      notify('An unexpected error occurred', 'error', 3000);
+    } finally {
+      //Cursor - Reset local saving state
+      setSaving(false);
     }
   }, [formData, validateForm, onSubmit, user]);
 

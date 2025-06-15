@@ -127,6 +127,8 @@ const StockReportDashboard = ({ selectedSite }) => {
     } catch (error) {
       console.error('Error generating report:', error);
       notify('Error generating stock report', 'error', 3000);
+    } finally {
+      //Cursor - Always reset loading state regardless of success or failure
       setIsGenerating(false);
     }
   }, [reportType, selectedSite, dateRange, includeCharts, includeDetails, tanks, generateStockReport]);

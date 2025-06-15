@@ -30,6 +30,15 @@ export const loadUser = () => async (dispatch) => {
         dispatch({ type: USER_LOADED, payload: normalizedUser });
     } catch (error) {
         console.error('Load user error:', error);
+
+        //Cursor: Handle network errors and invalid tokens
+        if (error.message === "Network Error" || error.code === 'ERR_NETWORK') {
+            console.error('Network error - login service cannot be found');
+        } else if (error.response && error.response.status === 401) {
+            // Token is invalid, remove it
+            localStorage.removeItem('token');
+        }
+
         dispatch({ type: AUTH_ERROR, payload: error.message });
     }
 };
@@ -59,11 +68,16 @@ export const signIn = (username, password) => async (dispatch) => {
     } catch (error) {
         console.error('Login error:', error);
         let errorMessage = 'An error occurred during login';
-        if (error.response && error.response.status === 401) {
+
+        //Cursor: Handle network errors specifically
+        if (error.message === "Network Error" || error.code === 'ERR_NETWORK') {
+            errorMessage = 'Login service cannot be found. Please check your network connection.';
+        } else if (error.response && error.response.status === 401) {
             errorMessage = 'Wrong username or password';
         } else if (error.response && error.response.data && error.response.data.message) {
             errorMessage = error.response.data.message;
         }
+
         dispatch({ type: LOGIN_FAILURE, payload: errorMessage });
         return { isOk: false, message: errorMessage };
     }

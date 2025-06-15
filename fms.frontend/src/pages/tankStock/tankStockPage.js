@@ -20,8 +20,11 @@ import { fetchConsumptionByDateRange, fetchConsumptionByDateRangebySitId } from 
 import TankDeliveryDatagrid from '../../components/TankDeliveryDataGrid/tankDeliverydataGrid';
 //Cursor - Import new stock management components and hooks
 import { useStockManagement } from '../../hooks/useStockManagement';
+import { useTankStockSignalR } from '../../hooks/useTankStockSignalR';
 import StockAdjustmentForm from '../../components/tankStock/StockAdjustmentForm';
 import StockAdjustmentList from '../../components/tankStock/StockAdjustmentList';
+import StockReconciliationDashboard from '../../components/tankStock/StockReconciliationDashboard';
+import StockReportDashboard from '../../components/tankStock/StockReportDashboard';
 
 import './tankStockPage.scss';
 import Tabs from 'devextreme-react/tabs';
@@ -76,21 +79,20 @@ const useInterval = (callback, delay) => {
 
 
 
+//Cursor - Updated data fetching with SignalR integration
 const useFetchData = (selectedSite, initialDateRange) => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
-
 
   const fetchData = useCallback(async (dateRange = initialDateRange) => {
     try {
       setIsLoading(true);
       const [startDate, endDate] = dateRange;
-      console.log("startDate:", startDate, "endDate:", endDate);
+
       if (selectedSite === 'all') {
         await dispatch(fetchTankVolumeHistoryByDateRange(startDate, endDate));
         await dispatch(fetchConsumptionByDateRange(startDate, endDate));
         await dispatch(fetchDeliveriesbyDateRange(startDate, endDate));
-
       } else {
         await dispatch(fetchTankVolumeHistoryBySiteId(startDate, endDate, selectedSite));
         await dispatch(fetchConsumptionByDateRangebySitId(startDate, endDate, selectedSite));
@@ -100,8 +102,6 @@ const useFetchData = (selectedSite, initialDateRange) => {
       await Promise.all([
         dispatch(fetchTanks()),
         dispatch(fetchSiteList()),
-      //  dispatch(fetchUsers()),
-      //  dispatch(fetchpermissionbyUserId(user.id))
       ]);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -111,11 +111,12 @@ const useFetchData = (selectedSite, initialDateRange) => {
     }
   }, [dispatch, selectedSite]);
 
+  //Cursor - Initial data fetch only, SignalR will handle real-time updates
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  useInterval(() => fetchData(initialDateRange), 30 * 60 * 1000); // 5 minutes in milliseconds
+  //Cursor - Removed interval-based polling, now using SignalR
   return { isLoading, fetchData };
 };
 
@@ -141,7 +142,7 @@ const TankStockPage = () => {
   const [showReconciliationDashboard, setShowReconciliationDashboard] = useState(false);
   const [showReportDashboard, setShowReportDashboard] = useState(false);
 
-
+  // Move state variable declarations before SignalR hook
   const [selectedSite, setSelectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
@@ -154,6 +155,17 @@ const TankStockPage = () => {
     const today = formatDateForAPI(new Date());
     return [today, today];
   });
+
+  //Cursor - Add SignalR hook for real-time updates
+  const { isConnected: signalRConnected, requestTankDataRefresh } = useTankStockSignalR(
+    selectedSite,
+    dateRange,
+    true // Enable SignalR updates
+  );
+
+  //Cursor - Add lazy loading states for tabs
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [loadedTabs, setLoadedTabs] = useState(new Set([0])); // Load first tab by default
 
   const [isFilterPopupVisible, setIsFilterPopupVisible] = useState(false);
   const [activeFilterType, setActiveFilterType] = useState('period');
@@ -215,6 +227,15 @@ const TankStockPage = () => {
 }, [dateRange]);
   const { isLoading, fetchData } = useFetchData(selectedSite, dateRange);
 
+  //Cursor - Enhanced fetchData to also request SignalR refresh when needed
+  const enhancedFetchData = useCallback(async (newDateRange) => {
+    await fetchData(newDateRange);
+    // Also request SignalR refresh for real-time updates
+    if (signalRConnected && requestTankDataRefresh) {
+      setTimeout(() => requestTankDataRefresh(), 1000);
+    }
+  }, [fetchData, signalRConnected, requestTankDataRefresh]);
+
   const handleApplyFilter = useCallback(() => {
     let newDateRange;
     if (activeFilterType === 'period') {
@@ -237,8 +258,8 @@ const TankStockPage = () => {
 
     // Close popup and trigger data fetch
     setIsFilterPopupVisible(false);
-    fetchData(newDateRange);
-  }, [activeFilterType, tempSelectedPeriod, tempCustomDateRange, Analytics_period, fetchData]);
+    enhancedFetchData(newDateRange);
+  }, [activeFilterType, tempSelectedPeriod, tempCustomDateRange, Analytics_period, enhancedFetchData]);
 
 
 
@@ -271,66 +292,78 @@ const TankStockPage = () => {
     return { currentStock: null, totalCapacity: null };
   }, [tanks, selectedSite, selectedPeriod]);
 
+  //Cursor - Handle tab selection change for lazy loading
+  const handleTabSelectionChange = useCallback((e) => {
+    const newIndex = e.selectedIndex;
+    setActiveTabIndex(newIndex);
+    setLoadedTabs(prev => new Set([...prev, newIndex]));
+  }, []);
 
 
   useEffect(() => {
-    fetchData();
-  }, [selectedSite, fetchData, dateRange]);
+    enhancedFetchData();
+  }, [selectedSite, enhancedFetchData, dateRange]);
 
-
+  //Cursor - Enhanced filter popup with Tailwind styling
   const renderFilterPopup = () => (
     <Popup
       visible={isFilterPopupVisible}
       onHiding={() => setIsFilterPopupVisible(false)}
       title="Date Filter"
-      maxWidth={400}
+      maxWidth={500}
       height='auto'
       showCloseButton={true}
       dragEnabled={false}
       position={{ my: 'center', at: 'center', of: window }}
-
     >
-      <div style={{ padding: '10px' }}>
-        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div className="tw-p-6 tw-space-y-6">
+        <div className="tw-flex tw-items-center tw-space-x-4">
           <CheckBox
             text="Period Filter"
             value={activeFilterType === 'period'}
             onValueChanged={(e) => setActiveFilterType(e.value ? 'period' : 'custom')}
           />
-          <SelectBox
-            dataSource={periodItems}
-            value={tempSelectedPeriod}
-            onValueChanged={handlePeriodChange}
-            width={300}
-            displayExpr="text"
-            valueExpr="value"
-            disabled={activeFilterType !== 'period'}
-          />
+          <div className="tw-flex-1">
+            <SelectBox
+              dataSource={periodItems}
+              value={tempSelectedPeriod}
+              onValueChanged={handlePeriodChange}
+              width="100%"
+              displayExpr="text"
+              valueExpr="value"
+              disabled={activeFilterType !== 'period'}
+            />
+          </div>
         </div>
 
-        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="tw-flex tw-items-center tw-space-x-4">
           <CheckBox
             text="Custom Filter"
             value={activeFilterType === 'custom'}
             onValueChanged={(e) => setActiveFilterType(e.value ? 'custom' : 'period')}
           />
-          <DateRangeBox
-            startDate={tempCustomDateRange[0]}
-            endDate={tempCustomDateRange[1]}
-            onValueChanged={handleCustomDateRangeChange}
-            width={300}
-            disabled={activeFilterType !== 'custom'}
+          <div className="tw-flex-1">
+            <DateRangeBox
+              startDate={tempCustomDateRange[0]}
+              endDate={tempCustomDateRange[1]}
+              onValueChanged={handleCustomDateRangeChange}
+              width="100%"
+              disabled={activeFilterType !== 'custom'}
+            />
+          </div>
+        </div>
+
+        <div className="tw-flex tw-justify-end tw-pt-4 tw-border-t tw-border-gray-200">
+          <Button
+            text="Apply Filter"
+            onClick={handleApplyFilter}
+            disabled={!activeFilterType}
+            stylingMode="contained"
+            type="default"
           />
         </div>
-        <Button
-          text="Apply Filter"
-          onClick={handleApplyFilter}
-          disabled={!activeFilterType}
-        />
       </div>
-
     </Popup>
-
   );
 
 
@@ -420,7 +453,7 @@ const TankStockPage = () => {
         if (isInsertingHistorical) {
           await dispatch(fetchTankVolumeHistoryBySiteId(submittedDate, submittedDate, preparedData.siteId));
         } else {
-          await fetchData(); // Refresh all data for the current view
+          await enhancedFetchData(); // Refresh all data for the current view
         }
 
         setIsInsertingHistorical(false);
@@ -439,7 +472,7 @@ const TankStockPage = () => {
       notify('An unexpected error occurred', 'error', 3000);
       return { success: false, message: 'An unexpected error occurred' };
     }
-  }, [dispatch, fetchData]);
+  }, [dispatch, enhancedFetchData]);
 
   const handleOpeningStockSubmit = useCallback((formData) => handleStockSubmit(formData, 'opening'), [handleStockSubmit]);
   const handleClosingStockSubmit = useCallback((formData) => handleStockSubmit(formData, 'closing'), [handleStockSubmit]);
@@ -459,7 +492,7 @@ const TankStockPage = () => {
 
       if (response.data.success) {
         notify(response.data.message || 'Tank stocks reconciled successfully', 'success', 3000);
-        fetchData(); // Refresh data after reconciliation
+        enhancedFetchData(); // Refresh data after reconciliation
       } else {
         notify(response.data.message || 'Error reconciling tank stocks', 'error', 5000);
       }
@@ -469,27 +502,24 @@ const TankStockPage = () => {
     } finally {
       setIsReconciling(false);
     }
-  }, [selectedSite, user.id, fetchData]);
+  }, [selectedSite, user.id, enhancedFetchData]);
 
   //Cursor - Add stock adjustment handlers
   const handleStockAdjustmentSubmit = useCallback(async (adjustmentData) => {
     try {
-      setSaving(true);
       const result = await createStockAdjustment(adjustmentData);
       if (result.success) {
         setShowAdjustmentForm(false);
         setAdjustmentRefreshTrigger(prev => prev + 1);
-        await fetchData(); // Refresh main data
+        await enhancedFetchData(); // Refresh main data
         return result;
       }
       return result;
     } catch (error) {
       console.error('Error creating stock adjustment:', error);
       return { success: false, message: 'An unexpected error occurred' };
-    } finally {
-      setSaving(false);
     }
-  }, [createStockAdjustment, fetchData]);
+  }, [createStockAdjustment, enhancedFetchData]);
 
   const handleShowAdjustmentForm = useCallback(() => {
     setShowAdjustmentForm(true);
@@ -499,49 +529,83 @@ const TankStockPage = () => {
     setShowAdjustmentForm(false);
   }, []);
 
-  if (isLoading || saving || isReconciling) {
+  //Cursor - Add handlers for dashboard popups
+  const handleShowReconciliationDashboard = useCallback(() => {
+    setShowReconciliationDashboard(true);
+  }, []);
+
+  const handleHideReconciliationDashboard = useCallback(() => {
+    setShowReconciliationDashboard(false);
+  }, []);
+
+  const handleShowReportDashboard = useCallback(() => {
+    setShowReportDashboard(true);
+  }, []);
+
+  const handleHideReportDashboard = useCallback(() => {
+    setShowReportDashboard(false);
+  }, []);
+
+  if (isLoading || isReconciling) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+      <div className="tw-flex tw-justify-center tw-items-center tw-h-screen tw-bg-gray-50">
+        <div className="tw-text-center">
+          <LoadIndicator width={'48px'} height={'48px'} visible={true} />
+          <div className="tw-mt-4 tw-text-gray-600 tw-font-medium">
+            {isReconciling && 'Reconciling stocks...'}
+            {isLoading && 'Loading dashboard...'}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <ScrollView className='content-block'>
+    <ScrollView className='content-block tw-bg-gray-50 tw-min-h-screen'>
       <ToolbarAnalytics
-        title='Dashboard'
+        title='Tank Stock Dashboard'
         additionalToolbarContent={
-          <ToolbarItem location='before' locateInMenu='auto'>
-            <Button
-              icon="fa-solid fa-filter"
-              text="Date Filter"
-              stylingMode="outlined"
-              onClick={handleOpenFilter}
-            />
-            <span style={{ marginLeft: '10px' }}>
-              Filter: {appliedFilterType === 'period'
-                ? `${appliedPeriod}`
-                : `${formatDate(appliedCustomDateRange[0])} - ${formatDate(appliedCustomDateRange[1])}`}
-            </span>
-            <Button
-              icon="fa-light fa-rotate"
-              text="Reconcile Tank Stocks"
-              stylingMode="outlined"
-              onClick={handleReconcileTankStocks}
-              style={{ marginLeft: '10px' }}
-            />
-            <Button
-              icon="fa-light fa-clipboard-list"
-              text="Stock Adjustment"
-              stylingMode="outlined"
-              onClick={handleShowAdjustmentForm}
-              style={{ marginLeft: '10px' }}
-            />
+          <ToolbarItem location='before' >
+            <div className="tw-flex tw-items-center tw-space-x-3">
+              <Button
+                icon="fa-light fa-filter"
+                text="Date Filter"
+                stylingMode="outlined"
+                onClick={handleOpenFilter}
+              />
+              <span className="tw-text-sm tw-text-gray-600 tw-bg-white tw-px-3 tw-py-1 tw-rounded-full tw-border">
+                Filter: {appliedFilterType === 'period'
+                  ? `${appliedPeriod}`
+                  : `${formatDate(appliedCustomDateRange[0])} - ${formatDate(appliedCustomDateRange[1])}`}
+              </span>
+              <Button
+                icon="fa-light fa-balance-scale"
+                text="Stock Reconciliation"
+                stylingMode="outlined"
+                onClick={handleShowReconciliationDashboard}
+              />
+              <Button
+                icon="fa-light fa-chart-bar"
+                text="Reports"
+                stylingMode="outlined"
+                onClick={handleShowReportDashboard}
+              />
+              <Button
+                icon="fa-light fa-clipboard-list"
+                text="Stock Adjustment"
+                stylingMode="outlined"
+                onClick={handleShowAdjustmentForm}
+              />
+              <div className={`tw-flex tw-items-center tw-px-2 tw-py-1 tw-rounded-full tw-text-sm ${
+                signalRConnected
+                  ? 'tw-bg-green-100 tw-text-green-800'
+                  : 'tw-bg-red-100 tw-text-red-800'
+              }`}>
+                <i className={`fa-light ${signalRConnected ? 'fa-satellite-dish' : 'fa-exclamation-triangle'} tw-mr-1`}></i>
+                {signalRConnected ? 'Live Updates' : 'Offline'}
+              </div>
+            </div>
           </ToolbarItem>
-
-
-
         }
         onOpeningStockSubmit={handleOpeningStockSubmit}
         onClosingStockSubmit={handleClosingStockSubmit}
@@ -551,61 +615,64 @@ const TankStockPage = () => {
         onSiteChange={handleSiteChange}
         selectedSite={selectedSite}
         isLoading={isLoading}
-        onRefresh={fetchData}
+        onRefresh={enhancedFetchData}
       >
-
       </ToolbarAnalytics>
+
       {renderFilterPopup()}
-      <div style={{ marginBottom: '30px' }}>
+
+      <div className="tw-mb-8">
         <TankStockDashBoardCards
           selectedSite={selectedSite}
           selectedPeriod={selectedPeriod}
           currentStock={currentStock}
           totalCapacity={totalCapacity}
         />
-
       </div>
-         <div style={{ marginTop: '30px' }}>
 
+      <div className="tw-mb-8">
+        <TankVolumeHistoryCard
+          tankHistory={tankVolumeHistory}
+        />
+      </div>
 
-           <TankVolumeHistoryCard
-           tankHistory ={tankVolumeHistory}
-           />
-         </div>
-
-
-
-      <div style={{ marginTop: '30px' }}>
-      <TabPanel
-  height={'auto'}
-  focusStateEnabled={false}
-  deferRendering={false}
-  itemTitleRender={itemTitleRender}
->
-  <Item title="All Tank Volume History">
-    <TankHistoryVolumeDatagrid
-      tankVolumeHistory={tankVolumeHistory}
-      selectedSite={selectedSite}
-      selectedPeriod={selectedPeriod}
-    />
-  </Item>
-  <Item title="Deliveries">
-    <TankDeliveryDatagrid tankDeliveryData={tankDeliveryData} />
-  </Item>
-
-  <Item title="Fuel Refill Summary">
-    <FuelRefillSummaryDatagrid selectedEndDate={selectedEndDate} selectedSite={selectedSite} />
-  </Item>
-
-  <Item title="Stock Adjustments">
-    <StockAdjustmentList
-      selectedSite={selectedSite}
-      refreshTrigger={adjustmentRefreshTrigger}
-    />
-  </Item>
-</TabPanel>
-
-
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
+        <TabPanel
+          height={'auto'}
+          focusStateEnabled={false}
+          deferRendering={true}
+          itemTitleRender={itemTitleRender}
+          selectedIndex={activeTabIndex}
+          onSelectionChanged={handleTabSelectionChange}
+        >
+          <Item title="All Tank Volume History">
+            {loadedTabs.has(0) && (
+              <TankHistoryVolumeDatagrid
+                tankVolumeHistory={tankVolumeHistory}
+                selectedSite={selectedSite}
+                selectedPeriod={selectedPeriod}
+              />
+            )}
+          </Item>
+          <Item title="Deliveries">
+            {loadedTabs.has(1) && (
+              <TankDeliveryDatagrid tankDeliveryData={tankDeliveryData} />
+            )}
+          </Item>
+          <Item title="Fuel Refill Summary">
+            {loadedTabs.has(2) && (
+              <FuelRefillSummaryDatagrid selectedEndDate={selectedEndDate} selectedSite={selectedSite} />
+            )}
+          </Item>
+          <Item title="Stock Adjustments">
+            {loadedTabs.has(3) && (
+              <StockAdjustmentList
+                selectedSite={selectedSite}
+                refreshTrigger={adjustmentRefreshTrigger}
+              />
+            )}
+          </Item>
+        </TabPanel>
       </div>
 
       {/* Stock Adjustment Form Popup */}
@@ -616,8 +683,50 @@ const TankStockPage = () => {
               onSubmit={handleStockAdjustmentSubmit}
               onCancel={handleHideAdjustmentForm}
               isVisible={showAdjustmentForm}
-              saving={saving}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Stock Reconciliation Dashboard Popup */}
+      {showReconciliationDashboard && (
+        <div className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-50 tw-flex tw-items-center tw-justify-center tw-z-50">
+          <div className="tw-max-w-7xl tw-w-full tw-mx-4 tw-max-h-[90vh] tw-overflow-y-auto tw-bg-white tw-rounded-lg tw-shadow-2xl">
+            <StockReconciliationDashboard
+              selectedSite={selectedSite}
+              onClose={handleHideReconciliationDashboard}
+              isVisible={showReconciliationDashboard}
+              onReconciliationComplete={enhancedFetchData}
+              dateRange={dateRange}
+              selectedPeriod={selectedPeriod}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Stock Report Dashboard Popup */}
+      {showReportDashboard && (
+        <div className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-50 tw-flex tw-items-center tw-justify-center tw-z-50">
+          <div className="tw-max-w-7xl tw-w-full tw-mx-4 tw-max-h-[90vh] tw-overflow-y-auto tw-bg-white tw-rounded-lg tw-shadow-2xl">
+            <div className="tw-flex tw-justify-between tw-items-center tw-bg-white tw-rounded-t-lg tw-shadow-lg tw-p-4 tw-border-b">
+              <div className="tw-flex tw-items-center">
+                <i className="fa-light fa-chart-bar tw-text-blue-600 tw-text-xl tw-mr-3"></i>
+                <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">Stock Reports Dashboard</h2>
+              </div>
+              <Button
+                icon="fa-light fa-times"
+                hint="Close Reports"
+                onClick={handleHideReportDashboard}
+                stylingMode="text"
+                width={36}
+                height={36}
+              />
+            </div>
+            <div className="tw-p-6">
+              <StockReportDashboard
+                selectedSite={selectedSite}
+              />
+            </div>
           </div>
         </div>
       )}

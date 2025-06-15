@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
+using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -51,10 +52,16 @@ public class GetStockDiscrepanciesQueryHandler : IRequestHandler<GetStockDiscrep
                     .FirstOrDefaultAsync (cancellationToken);
 
                 // Calculate expected stock based on recent transactions since last reconciliation
-                var cutoffDate = lastReconciliation ?? DateTime.UtcNow.AddDays (-30); // Default to 30 days if no reconciliation
+                var cutoffDate = lastReconciliation != DateTime.MinValue ?
+                    lastReconciliation :
+                    DateTime.UtcNow.AddDays (-30); // Default to 30 days if no reconciliation
 
+                //Cursor - Improved expected stock calculation - exclude adjustments and reconciliations
                 var volumeChanges = await _context.TankVolumeHistories
-                    .Where (tvh => tvh.TankId == tank.Id && tvh.Timestamp > cutoffDate) //Cursor - Fixed to use Timestamp instead of RecordedDate
+                    .Where (tvh => tvh.TankId == tank.Id &&
+                        tvh.Timestamp > cutoffDate &&
+                        tvh.ChangeReason != VolumeChangeReasonEnum.Adjustment &&
+                        tvh.ChangeReason != VolumeChangeReasonEnum.Reconciliation) //Cursor - Exclude adjustments and reconciliations from expected calculation
                     .SumAsync (tvh => tvh.VolumeChange ?? 0, cancellationToken);
 
                 // Get the stock at the last reconciliation or opening stock
@@ -66,21 +73,24 @@ public class GetStockDiscrepanciesQueryHandler : IRequestHandler<GetStockDiscrep
 
                 var expectedStock = baseStock + volumeChanges;
                 var currentStock = tank.CurrentStock ?? 0;
-                var discrepancyVolume = Math.Abs (currentStock - expectedStock);
+                //Cursor - Fixed discrepancy calculation - use raw difference, not absolute
+                var discrepancyVolume = currentStock - expectedStock;
 
                 // Only include discrepancies above threshold or all if threshold is 0
-                if (request.ThresholdValue <= 0 || discrepancyVolume >= request.ThresholdValue) {
+                //Cursor - Use absolute value only for threshold comparison
+                if (request.ThresholdValue <= 0 || Math.Abs (discrepancyVolume) >= request.ThresholdValue) {
                     var discrepancy = new StockDiscrepancyDTO {
                     Id = tank.Id,
                     TankId = tank.Id,
                     SiteId = tank.SiteId,
                     TankName = tank.Name ?? $"Tank {tank.Id}",
                     SiteName = tank.Site?.Name ?? $"Site {tank.SiteId}",
-                    TankCapacity = tank.TankVolume ?? 0,
+                    TankCapacity = tank.TankVolume,
                     CurrentStock = currentStock,
                     ExpectedStock = expectedStock,
-                    LastReconciliation = lastReconciliation ?? DateTime.MinValue,
-                    Severity = DetermineSeverity (discrepancyVolume, request.ThresholdValue)
+                    LastReconciliation = lastReconciliation,
+                    //Cursor - Use absolute value for severity determination
+                    Severity = DetermineSeverity (Math.Abs (discrepancyVolume), request.ThresholdValue)
                     };
 
                     discrepancies.Add (discrepancy);

@@ -48,7 +48,8 @@ const NavigationPage = () => {
         console.log("e.data:", e.data);
         console.log("e.key:", e.key);
 
-        const originalItem = allNavigationItems.find(item => item.id === e.key);
+        // Get the original item from the transformed data source
+        const originalItem = navigationDataSource.find(item => item.id === e.key);
         console.log("Original item:", originalItem);
 
         const mergedData = {
@@ -63,8 +64,7 @@ const NavigationPage = () => {
             pageName: mergedData.page || '',  // Use 'page' from data, send as 'pageName'
             parentId: mergedData.parentId !== undefined ? mergedData.parentId : null,
             icon: mergedData.icon || null,
-            RoleIds: Array.isArray(mergedData.roles) ? mergedData.roles :
-                     (mergedData.rolenavigations ? mergedData.rolenavigations.map(rn => rn.roleId) : [])
+            RoleIds: Array.isArray(mergedData.roles) ? mergedData.roles : []
         };
         console.log("Updated Data to send:", data);
 
@@ -105,21 +105,22 @@ const NavigationPage = () => {
         e.data = { ...e.data, roles: [] }; //Cursor
     };
 
-    const onEditingStart = (e) => {
-        // Load existing roles for the navigation item and ensure it's always an array
-        const navigationItem = allNavigationItems.find(item => item.id === e.data.id);
-        let existingRoles = [];
-
-        if (navigationItem && navigationItem.rolenavigations && Array.isArray(navigationItem.rolenavigations)) {
-            existingRoles = navigationItem.rolenavigations.map(rn => rn.roleId);
-        }
-
-        // Create a new object instead of mutating the existing Redux state
-        e.data = { ...e.data, roles: [...existingRoles] }; //Cursor
+        const onEditingStart = (e) => {
+        // Roles are already included in the transformed data source
+        // No need to mutate e.data as it already contains the roles field
+        console.log("Editing started for item:", e.data); //Cursor
     };
 
     // Ensure roles is always available as an array
     const rolesDataSource = Array.isArray(roles) ? roles.map(role => ({ id: role.id, text: role.name })) : [];
+
+    // Transform navigation items to include roles field for editing
+    const navigationDataSource = allNavigationItems.map(item => ({
+        ...item,
+        roles: item.rolenavigations && Array.isArray(item.rolenavigations)
+            ? item.rolenavigations.map(rn => rn.roleId)
+            : []
+    })); //Cursor
 
     return (
         <div className='content-block'>
@@ -139,15 +140,15 @@ const NavigationPage = () => {
                     className="tw-mb-4 tw-px-4 tw-py-2 tw-bg-green-500 tw-text-white tw-rounded"
                     onClick={async () => {
                         console.log("Test button clicked");
-                        if (allNavigationItems && allNavigationItems.length > 0) {
-                            const testItem = allNavigationItems[0];
+                        if (navigationDataSource && navigationDataSource.length > 0) {
+                            const testItem = navigationDataSource[0];
                             const testData = {
                                 id: testItem.id,
                                 link: testItem.link,
                                 pageName: testItem.page,
                                 parentId: testItem.parentId,
                                 icon: testItem.icon,
-                                RoleIds: testItem.rolenavigations ? testItem.rolenavigations.map(rn => rn.roleId) : []
+                                RoleIds: testItem.roles || []
                             };
                             console.log("Testing update with data:", testData);
                             try {
@@ -167,7 +168,7 @@ const NavigationPage = () => {
                 {error && <p className="tw-text-red-600">Error: {error}</p>}
 
                 <TreeList
-                    dataSource={allNavigationItems}
+                    dataSource={navigationDataSource}
                     keyExpr="id"
                     parentIdExpr="parentId"
                     showBorders={true}
@@ -216,7 +217,7 @@ const NavigationPage = () => {
                                 dataField="parentId"
                                 editorType="dxSelectBox"
                                 editorOptions={{
-                                    dataSource: allNavigationItems,
+                                    dataSource: navigationDataSource,
                                     displayExpr: 'page',
                                     valueExpr: 'id',
                                     placeholder: 'Select parent (optional)',
@@ -239,8 +240,7 @@ const NavigationPage = () => {
                                     displayExpr: "text",
                                     valueExpr: "id",
                                     searchEnabled: true,
-                                    placeholder: 'Select roles that can access this page',
-                                    value: []
+                                    placeholder: 'Select roles that can access this page'
                                 }}
                             >
                                 <RequiredRule message="At least one role is required" />
@@ -255,7 +255,7 @@ const NavigationPage = () => {
                         width={150}
                         calculateCellValue={(rowData) => {
                             if (!rowData.parentId) return '-';
-                            const parent = allNavigationItems.find(item => item.id === rowData.parentId);
+                            const parent = navigationDataSource.find(item => item.id === rowData.parentId);
                             return parent ? parent.page : '-';
                         }}
                     />

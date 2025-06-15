@@ -30,6 +30,7 @@ using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
 using FMS.Application.Services;
+// using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
@@ -60,6 +61,8 @@ using Serilog.Formatting.Compact;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
+// using FMS.Application.Features.AutomatedReconciliation.Services;
+using FMS.BackgroundServices.FMS;
 //using FMS.Application.Extensions;
 
 namespace FMS.WebClient;
@@ -376,6 +379,21 @@ public class Program {
     }
 
     static void RegisterCustomServices (IServiceCollection services) {
+
+        //automatic Reconsiclation
+
+        // services.AddScoped<PolicyEvaluationEngine> ();
+        // services.AddScoped<DiscrepancyDetectionService> ();
+        // services.AddScoped<ReconciliationOrchestrationService> ();
+        // services.AddScoped<AutomatedReconciliationService> ();
+        // services.AddHostedService<AutomatedReconciliationBackgroundService> ();
+
+        // // Register Redis-based policy trigger service //Cursor
+        // services.AddScoped<IPolicyTriggerService, PolicyTriggerService> ();
+
+        // // Register background service for Redis policy trigger subscription //Cursor
+        // services.AddHostedService<PolicyTriggerBackgroundService> ();
+
         services.AddTransient<RoleManager<Role>> ();
 
         services.AddMemoryCache ();

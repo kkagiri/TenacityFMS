@@ -75,7 +75,7 @@ public class FuelRefillController : ControllerBase {
     }
 
     [HttpGet ("summary/{siteId}")]
-    [Authorize]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetFuelRefillSummaryBySite ([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId) {
         var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
         if (!hasPermission) return Forbid ();
@@ -89,16 +89,18 @@ public class FuelRefillController : ControllerBase {
         return Ok (summary);
     }
 
-    [HttpGet ("getlist")]
-    public async Task<IActionResult> GetFuelRefilList () {
-        var FuelRefill = await _mediator.Send (new FuelRefillGetListQuery ());
-        if (FuelRefill == null) {
-            return NoContent ();
-        }
-        return Ok (FuelRefill);
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetFuelRefilList (int take = 100, int skip = 0) {
+        var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
+        if (!hasPermission) return Forbid ();
+        var fuelRefil = await _mediator.Send (new FuelRefillGetListQuery (take, skip));
+        if (fuelRefil == null) return NoContent ();
+        return Ok (fuelRefil);
     }
 
     [HttpPut ("{id}")]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
     public async Task<IActionResult> UpdateFuelRefil (int id, [FromBody] FuelRefilDTO dto) {
         if (id <= 0 || id != dto.Id) {
             return BadRequest ("ID mismatch");

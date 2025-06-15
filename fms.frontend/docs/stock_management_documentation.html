@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FMS Stock Management System – Documentation</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; color: #333; }
+    header { background: #0d47a1; color: #fff; padding: 20px 40px; }
+    h1, h2, h3 { color: #0d47a1; }
+    section { padding: 40px; border-bottom: 1px solid #eee; }
+    .code-block { background: #f5f5f5; border: 1px solid #ddd; padding: 15px; overflow-x: auto; }
+    img.screenshot { border: 1px solid #ccc; max-width: 100%; margin: 20px 0; }
+    nav { background: #eeeeee; padding: 20px 40px; }
+    nav ul { list-style: none; margin: 0; padding: 0; }
+    nav li { margin: 5px 0; }
+    nav a { color: #0d47a1; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    footer { background: #eeeeee; padding: 20px 40px; text-align: center; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FMS Stock Management System</h1>
+    <p>User &amp; Developer Documentation</p>
+  </header>
+
+  <!-- Table of Contents -->
+  <nav>
+    <h2>Table of Contents</h2>
+    <ul>
+      <li><a href="#overview">1. System Overview</a></li>
+      <li><a href="#end-user">2. End-User Procedures</a>
+        <ul>
+          <li><a href="#opening-stock">2.1 Opening Stock</a></li>
+          <li><a href="#closing-stock">2.2 Closing Stock</a></li>
+          <li><a href="#delivery">2.3 Delivery</a></li>
+          <li><a href="#manual-refill">2.4 Manual Refill</a></li>
+          <li><a href="#stock-reconciliation">2.5 Stock Reconciliation</a></li>
+          <li><a href="#reports">2.6 Reporting</a></li>
+        </ul>
+      </li>
+      <li><a href="#developer-guide">3. Developer Guide</a></li>
+      <li><a href="#configuration">4. Configuration &amp; Deployment</a></li>
+      <li><a href="#appendix">5. Appendix: Screens &amp; Artifacts</a></li>
+    </ul>
+  </nav>
+
+  <!-- 1. System Overview -->
+  <section id="overview">
+    <h2>1. System Overview</h2>
+    <p>The FMS Stock Management module offers comprehensive management of fuel tank inventories, volume history, deliveries, adjustments and automated reconciliation. It integrates real-time data from PTS devices and provides actionable dashboards for site operators and head-office users.</p>
+    <ul>
+      <li><strong>Frontend:</strong> React &amp; Redux (see <code>src/pages/tankStock/tankStockPage.js</code>).</li>
+      <li><strong>Backend:</strong> ASP.NET Core with CQRS pattern (see <code>FMS.Application/Features/TankManagement</code>).</li>
+      <li><strong>Real-time:</strong> SignalR hub <em>useTankStockSignalR</em>.</li>
+    </ul>
+  </section>
+
+  <!-- 2. End-User Procedures -->
+  <section id="end-user">
+    <h2>2. End-User Procedures</h2>
+
+    <!-- 2.1 Opening Stock -->
+    <h3 id="opening-stock">2.1 Opening Stock</h3>
+    <p>Opening stock represents the measured volume at the start of a business period (usually the first transaction of the day).</p>
+    <ol>
+      <li>Navigate to <em>Tank Stock Dashboard &gt; Stock Adjustment</em>.</li>
+      <li>Select <strong>Opening Stock</strong> action.</li>
+      <li>Fill in tank, amount and date.</li>
+      <li>Click <em>Submit</em>. A confirmation message appears.</li>
+    </ol>
+    <img class="screenshot" src="screenshots/opening_stock.png" alt="Opening Stock Form Screenshot" />
+
+    <!-- 2.2 Closing Stock -->
+    <h3 id="closing-stock">2.2 Closing Stock</h3>
+    <p>Closing stock captures the tank volume at the end of the day.</p>
+    <ol>
+      <li>Open the <em>Stock Adjustment</em> form.</li>
+      <li>Choose <strong>Closing Stock</strong>.</li>
+      <li>Enter the measured volume and timestamp.</li>
+      <li>Save the record to finalize the day-end position.</li>
+    </ol>
+    <img class="screenshot" src="screenshots/closing_stock.png" alt="Closing Stock Form Screenshot" />
+
+    <!-- 2.3 Delivery -->
+    <h3 id="delivery">2.3 Delivery</h3>
+    <p>Record incoming fuel deliveries to maintain accurate stock counts.</p>
+    <ol>
+      <li>From the dashboard, click <em>Delivery</em>.</li>
+      <li>Choose the destination tank and specify volume, supplier reference &amp; date.</li>
+      <li>The system updates <code>TankVolumeHistory</code> with a positive <code>VolumeChange</code>.</li>
+    </ol>
+    <img class="screenshot" src="screenshots/delivery_entry.png" alt="Delivery Entry Screenshot" />
+
+    <!-- 2.4 Manual Refill -->
+    <h3 id="manual-refill">2.4 Manual Refill</h3>
+    <p>Manual refills apply when dispensing occurs outside automated PTS integrations.</p>
+    <ol>
+      <li>Go to <em>Manual Refill</em> page (<code>src/pages/manualrefill/manualRefilPage.js</code>).</li>
+      <li>Select vehicle, tank and fill in volume &amp; meter readings.</li>
+      <li>Save to generate a <code>FuelRefill</code> entry and update <code>TankVolumeHistory</code>.</li>
+    </ol>
+    <img class="screenshot" src="screenshots/manual_refill.png" alt="Manual Refill Screenshot" />
+
+    <!-- 2.5 Stock Reconciliation -->
+    <h3 id="stock-reconciliation">2.5 Stock Reconciliation</h3>
+    <p>The reconciliation tool compares expected stock (opening + deliveries – withdrawals) with measured closing stock.</p>
+    <ol>
+      <li>Click <em>Stock Reconciliation</em> on the toolbar.</li>
+      <li>Review variances. Discrepancies can be auto-corrected by generating <em>Stock Adjustments</em>.</li>
+      <li>Use the <em>Reconcile</em> button; results store in <code>StockAdjustment</code> and <code>TankVolumeHistory</code>.</li>
+    </ol>
+    <img class="screenshot" src="screenshots/stock_reconciliation.png" alt="Stock Reconciliation Screenshot" />
+
+    <!-- 2.6 Reporting -->
+    <h3 id="reports">2.6 Reporting</h3>
+    <p>Generate PDF/Excel reports of stock movements, consumption trends and variances.</p>
+    <ol>
+      <li>Open <em>Reports</em> dialog.</li>
+      <li>Select report type (summary, variance, utilization).</li>
+      <li>Choose date range and site (optional), then <em>Generate</em>.</li>
+      <li>Status is tracked in <code>StockReport</code>. Completed files can be downloaded from the dashboard.</li>
+    </ol>
+    <img class="screenshot" src="screenshots/reports_dashboard.png" alt="Reports Dashboard Screenshot" />
+  </section>
+
+  <!-- 3. Developer Guide -->
+  <section id="developer-guide">
+    <h2>3. Developer Guide</h2>
+
+    <!-- Architecture -->
+    <h3>3.1 Architecture</h3>
+    <p>The Stock module follows a clean-architecture style with CQRS and Mediator pattern.</p>
+    <ul>
+      <li>Domain Entities: <code>StockAdjustment.cs</code>, <code>TankVolumeHistory.cs</code>, <code>StockReport.cs</code>, <code>FuelRefill.cs</code>, <code>PumpTransaction.cs</code>.</li>
+      <li>Application Layer: Commands &amp; Queries under <code>FMS.Application/Features/TankManagement</code>.</li>
+      <li>Infrastructure: EF Core repositories &amp; background services.</li>
+    </ul>
+
+    <h3>3.2 Key Entity Relationships</h3>
+    <div class="code-block"><pre>
+Tank --< TankVolumeHistory >-- StockAdjustment
+Tank --< FuelRefill >-- PumpTransaction
+User --< StockReport
+    </pre></div>
+
+    <h3>3.3 Frontend Components</h3>
+    <ul>
+      <li><code>tankStockPage.js</code> – main dashboard, SignalR live updates.</li>
+      <li>Adjustment / Reconciliation / Report components under <code>src/components/tankStock</code>.</li>
+      <li>Manual Refill page <code>src/pages/manualrefill</code>.</li>
+      <li>PTS Automation Configuration page <code>src/pages/PTSAutomationConfig</code>.</li>
+    </ul>
+
+    <h3>3.4 SignalR Integration</h3>
+    <p>The hook <code>useTankStockSignalR</code> establishes a connection to <em>/tankStockHub</em> for real-time volume updates. On reconnection the dashboard triggers <code>requestTankDataRefresh()</code>.</p>
+
+    <h3>3.5 Automated Services</h3>
+    <ul>
+      <li><strong>TankVolumeHistoryService</strong> – polls PTS devices and logs every volume change.</li>
+      <li><strong>StockReconciliationJob</strong> – nightly job comparing theoretical vs measured stock.</li>
+      <li><strong>ReportGeneratorService</strong> – background task creating PDF/Excel stock reports.</li>
+    </ul>
+
+    <h3>3.6 API Endpoints</h3>
+    <div class="code-block"><pre>
+POST /api/tankstock/opening        (FromQuery) tankId, amount, date
+POST /api/tankstock/closing        (FromQuery) tankId, amount, date
+POST /api/tankstock/delivery       (Body)     DeliveryDto
+POST /api/tankstock/transfer       (Body)     TankTransferDto
+POST /api/tankstock/reconcile      (Body)     { siteId?, userId }
+GET  /api/tankvolumehistory?from=yyyy-MM-dd&to=yyyy-MM-dd&siteId?
+GET  /api/stockreports/:id/download
+    </pre></div>
+
+    <h3>3.7 Validation &amp; Responses</h3>
+    <p>All endpoints return <code>FMSResponse</code> with <em>success</em>, <em>message</em>, and <em>errors</em> fields.</p>
+
+  </section>
+
+  <!-- 4. Configuration & Deployment -->
+  <section id="configuration">
+    <h2>4. Configuration &amp; Deployment</h2>
+    <h3>4.1 appsettings.json</h3>
+    <div class="code-block"><pre>
+{
+  "ConnectionStrings": {
+    "FmsDb": "Server=.;Database=FMS;Trusted_Connection=True;"
+  },
+  "SignalR": {
+    "TankStockHubUrl": "/tankStockHub"
+  },
+  "Reporting": {
+    "OutputPath": "wwwroot/reports"
+  },
+  "TankVolumeHistory": {
+    "PollingIntervalSeconds": 60
+  }
+}
+    </pre></div>
+
+    <h3>4.2 Environment Variables</h3>
+    <ul>
+      <li><code>FMS__DB</code> – connection string override.</li>
+      <li><code>FMS__REPORT_OUTPUT</code> – path for generated files.</li>
+    </ul>
+
+    <h3>4.3 DevExtreme &amp; Tailwind Setup</h3>
+    <p>All Tailwind classes are prefixed with <code>tw-</code> to avoid conflicts. Font Awesome icons follow the <code>fa-light</code> family.</p>
+  </section>
+
+  <!-- 5. Appendix -->
+  <section id="appendix">
+    <h2>5. Appendix: Screens &amp; Artifacts</h2>
+    <p>Place any additional screenshots or artefacts here.</p>
+    <p><em>Example placeholder:</em></p>
+    <img class="screenshot" src="screenshots/tank_stock_dashboard.png" alt="Tank Stock Dashboard Screenshot" />
+  </section>
+
+  <footer>
+    &copy; <span id="year"></span> Hyoung.Fms – Stock Management System Documentation
+  </footer>
+
+  <script>
+    // Dynamic year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
