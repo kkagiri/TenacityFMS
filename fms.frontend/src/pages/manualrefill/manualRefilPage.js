@@ -33,7 +33,7 @@ import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
 
 import { formatDate } from '../../utils/dateUtils';
 
-export default function Fuelrefil() {
+export default function FuelRefill() {
     const [take, setTake] = useState(100);
 
     const vehicles = useSelector((state) => state.vehicle.vehicles);

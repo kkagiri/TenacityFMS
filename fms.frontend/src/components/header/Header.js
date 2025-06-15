@@ -11,12 +11,12 @@ import { Template } from "devextreme-react/core/template";
 export default function Header({ menuToggleEnabled, title, toggleMenu }) {
   return (
     <header className={"header-component"}>
-      <Toolbar className={"header-toolbar"}>
+      <Toolbar  height className={"header-toolbar"}>
         <Item
-          visible={menuToggleEnabled}
+          visible={true}
           location={"before"}
           widget={"dxButton"}
-          cssClass={"menu-button"}
+          // cssClass={"menu-button"}
         >
           <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
         </Item>
@@ -32,6 +32,7 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
           locateInMenu={"auto"}
           menuItemTemplate={"deviceStatusTemplate"}
         />
+       {/* Todo: insert Theme selector . */}
 
         <Item
           location={"after"}

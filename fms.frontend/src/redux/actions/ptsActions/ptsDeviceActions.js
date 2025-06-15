@@ -54,6 +54,9 @@ export const fetchPTSDeviceList = () => async (dispatch) => {
   }
 };
 
+// Alias for fetchPTSDeviceList
+export const fetchPTSDevices = fetchPTSDeviceList;
+
 export const fetchOnlineDeviceSummary = () => async (dispatch) => {
   try {
     const response = await axiosInstance.get("/PTSDevice/summary");

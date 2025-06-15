@@ -21,6 +21,15 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
 namespace FMS.PTS.WindowsService.Services.Pump {
+    /// <summary>
+    /// Service for managing pump operations via PTS devices.
+    ///
+    /// Error Handling Notes:
+    /// - CommandExecutor can return both PTS device errors (0-58, 1000-1008) and system errors (HTTP codes like 404, 408, 500)
+    /// - Only PTS error codes should be cast to PtsErrorCode enum
+    /// - Use PtsErrorCodeHelper.IsPtsErrorCode() to validate before casting
+    /// - System errors should be handled with their original error messages
+    /// </summary>
     public class PumpService : IPumpService {
         private readonly ICommandExecutor _commandExecution;
         private readonly ILogger<PumpService> _logger;
@@ -70,12 +79,17 @@ namespace FMS.PTS.WindowsService.Services.Pump {
                 var result = await _commandExecution.ExecuteCommandAsync (pTSDeviceId, "PumpGetTransactionInformation", commandData);
 
                 if (!result.Success) {
-                    if (result.Code.HasValue) {
+                    // Only treat as PTS error code if it's within the known PTS error range
+                    if (result.Code.HasValue && PtsErrorCodeHelper.IsPtsErrorCode (result.Code.Value)) {
                         var errorCode = (PtsErrorCode) result.Code.Value;
                         var errorMessage = EnumExtensions.GetDescription (errorCode);
                         throw new PTSDeviceException (errorMessage);
+                    } else {
+                        // This is a system/infrastructure error
+                        _logger.LogError ("System error during transaction retrieval for device {DeviceId}, pump {PumpId}. Error code: {ErrorCode}, Message: {Message}",
+                            pTSDeviceId, pumpId, result.Code, result.Message);
+                        throw new PTSDeviceException (result.Message ?? "Failed to get transaction information.");
                     }
-                    throw new PTSDeviceException (result.Message ?? "Failed to get transaction information.");
                 }
 
                 // Parse the response
@@ -140,16 +154,46 @@ namespace FMS.PTS.WindowsService.Services.Pump {
 
                 var commandData = CreateAuthorizationData (pumpAuthorizeData);
 
+                //Cursor: Add logging to debug command data structure
+                _logger.LogDebug ("Created authorization data for pump {Pump}: {CommandData}",
+                    pumpAuthorizeData.Pump, Newtonsoft.Json.JsonConvert.SerializeObject (commandData));
+
+                _logger.LogInformation ("Attempting to authorize pump {Pump} on device {DeviceId} with transaction {Transaction}",
+                    pumpAuthorizeData.Pump, pTSDeviceId, pumpAuthorizeData.Transaction);
+
                 //var transactionId = PacketIdGenerator.GetNextId();
                 var result = await _commandExecution.ExecuteCommandAsync (pTSDeviceId, "PumpAuthorize", commandData);
 
                 if (!result.Success) {
-                    if (result.Code.HasValue) {
+                    // Only treat as PTS error code if it's within the known PTS error range
+                    // PTS error codes: 0-58 (protocol errors) and 1000-1008 (communication errors)
+                    if (result.Code.HasValue && PtsErrorCodeHelper.IsPtsErrorCode (result.Code.Value)) {
                         var errorCode = (PtsErrorCode) result.Code.Value;
                         var errorMessage = EnumExtensions.GetDescription (errorCode);
+
+                        //Cursor: Enhanced logging for better diagnostics
+                        _logger.LogError ("PTS device {DeviceId} returned error code {ErrorCode} ({ErrorCodeValue}): {ErrorMessage} for pump {Pump}",
+                            pTSDeviceId, errorCode, result.Code.Value, errorMessage, pumpAuthorizeData.Pump);
+
+                        // Check for specific error conditions
+                        if (errorCode == PtsErrorCode.JSONPTS_ERROR_NOT_FOUND) {
+                            _logger.LogWarning ("Device {DeviceId} not authorized. This could mean: 1) Device not found in system, 2) Pump {Pump} not configured, 3) Device offline, or 4) Authentication failed",
+                                pTSDeviceId, pumpAuthorizeData.Pump);
+                        }
+
                         throw new PTSDeviceException (errorMessage);
+                    } else {
+                        // This is a system/infrastructure error (HTTP codes like 404, 408, 500, etc.)
+                        _logger.LogError ("System error during pump authorization for device {DeviceId}, pump {Pump}. Error code: {ErrorCode}, Message: {Message}",
+                            pTSDeviceId, pumpAuthorizeData.Pump, result.Code, result.Message);
+
+                        // Categorize system errors by code
+                        if (result.Code == 408 || result.Code == 504) {
+                            throw PTSDeviceException.NetworkError (result.Message ?? "Network timeout occurred");
+                        } else {
+                            throw PTSDeviceException.SystemError (result.Message ?? "System error occurred");
+                        }
                     }
-                    throw new PTSDeviceException (result.Message ?? "Failed to authorize pump.");
                 }
                 try {
                     if (result.CommandData == null) {
@@ -176,18 +220,28 @@ namespace FMS.PTS.WindowsService.Services.Pump {
                         throw new InvalidOperationException ($"Response pump number {pump} does not match request pump number {pumpAuthorizeData.Pump}");
                     }
 
+                    _logger.LogInformation ("Successfully authorized pump {Pump} on device {DeviceId}. PTS assigned transaction ID: {Transaction}",
+                        pump, pTSDeviceId, transaction);
+
                     return new PumpAuthorizeConfirmation {
                         Pump = pump,
                             Transaction = transaction
                     };
 
                 } catch (Exception ex) when (ex is not PTSDeviceException) {
-                    _logger.LogError (ex, "Error authorizing pump {Pump} for transaction {Transaction}", pumpAuthorizeData.Pump, pumpAuthorizeData.Transaction);
-                    throw new PTSDeviceException ("Error processing Pump authorize Response");
+                    _logger.LogError (ex, "Error processing pump authorization response for pump {Pump} on device {DeviceId}: {Message}",
+                        pumpAuthorizeData.Pump, pTSDeviceId, ex.Message);
+                    throw PTSDeviceException.SystemError ($"Error processing pump authorization response: {ex.Message}");
                 }
+            } catch (PTSDeviceException) {
+                // Re-throw PTSDeviceException as-is to preserve error type and message
+                throw;
             } catch (Exception ex) {
-                _logger.LogError (ex, "Error authorizing pump {Pump} for transaction {Transaction}", pumpAuthorizeData.Pump, pumpAuthorizeData.Transaction);
-                throw new PTSDeviceException ("Error authorizing pump");
+                _logger.LogError (ex, "Unexpected error authorizing pump {Pump} for transaction {Transaction}: {Message}",
+                    pumpAuthorizeData.Pump, pumpAuthorizeData.Transaction, ex.Message);
+                throw PTSDeviceException.SystemError ($"Unexpected error during pump authorization: {ex.Message}");
+            } finally {
+                _authorizationLock.Release (); //Cursor: Ensure semaphore is always released
             }
 
         }
@@ -447,13 +501,17 @@ namespace FMS.PTS.WindowsService.Services.Pump {
                 var result = await _commandExecution.ExecuteCommandAsync (pTSDeviceId, "PumpEmergencyStop", commandData);
 
                 if (!result.Success) {
-                    if (result.Code.HasValue) {
+                    // Only treat as PTS error code if it's within the known PTS error range
+                    if (result.Code.HasValue && PtsErrorCodeHelper.IsPtsErrorCode (result.Code.Value)) {
                         var errorCode = (PtsErrorCode) result.Code.Value;
                         var errorMessage = EnumExtensions.GetDescription (errorCode);
                         throw new PTSDeviceException (errorMessage);
+                    } else {
+                        // This is a system/infrastructure error
+                        _logger.LogError ("System error during emergency stop for device {DeviceId}, pump {PumpId}. Error code: {ErrorCode}, Message: {Message}",
+                            pTSDeviceId, pumpId, result.Code, result.Message);
+                        throw new PTSDeviceException (result.Message ?? "Failed to emergency stop pump.");
                     }
-                    throw new PTSDeviceException (result.Message ?? "Failed to authorize pump.");
-
                 }
 
                 return new FMSResponseMessage (true, "Pump stopped successfully.");
@@ -472,8 +530,52 @@ namespace FMS.PTS.WindowsService.Services.Pump {
             throw new NotImplementedException ();
         }
 
-        public Task<FMSResponseMessage> ClosePumpTransactionAsync (string pTSDeviceId, int pumpId, int transactionId) {
-            throw new NotImplementedException ();
+        public async Task<FMSResponseMessage> ClosePumpTransactionAsync (string pTSDeviceId, int pumpId, int transactionId) {
+            //Cursor: Implement transaction close functionality
+            try {
+                if (string.IsNullOrEmpty (pTSDeviceId))
+                    throw new ArgumentNullException (nameof (pTSDeviceId), "Device ID cannot be empty");
+
+                if (pumpId <= 0 || pumpId > 50)
+                    throw new ArgumentException ("Invalid pump number. Must be between 1 and 50.");
+
+                if (transactionId <= 0)
+                    throw new ArgumentException ("Invalid transaction ID. Must be greater than 0.");
+
+                var commandData = new {
+                    Pump = pumpId,
+                    Transaction = transactionId
+                };
+
+                _logger.LogInformation ("Closing transaction {TransactionId} for pump {PumpId} on device {DeviceId}",
+                    transactionId, pumpId, pTSDeviceId);
+
+                var result = await _commandExecution.ExecuteCommandAsync (pTSDeviceId, "PumpCloseTransaction", commandData);
+
+                if (!result.Success) {
+                    if (result.Code.HasValue) {
+                        var errorCode = (PtsErrorCode) result.Code.Value;
+                        var errorMessage = EnumExtensions.GetDescription (errorCode);
+                        _logger.LogWarning ("Failed to close transaction {TransactionId} for pump {PumpId}: {Error}",
+                            transactionId, pumpId, errorMessage);
+                        return new FMSResponseMessage (false, errorMessage);
+                    }
+
+                    _logger.LogWarning ("Failed to close transaction {TransactionId} for pump {PumpId}: {Message}",
+                        transactionId, pumpId, result.Message);
+                    return new FMSResponseMessage (false, result.Message ?? "Failed to close pump transaction");
+                }
+
+                _logger.LogInformation ("Successfully closed transaction {TransactionId} for pump {PumpId} on device {DeviceId}",
+                    transactionId, pumpId, pTSDeviceId);
+
+                return new FMSResponseMessage (true, "Transaction closed successfully");
+
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error closing transaction {TransactionId} for pump {PumpId} on device {DeviceId}",
+                    transactionId, pumpId, pTSDeviceId);
+                return new FMSResponseMessage (false, ex.Message);
+            }
         }
 
         public Task<FMSResponseMessage> GetPumpTotalsAsync (string pTSDeviceId, int pumpId, int? nozzle, int? fuelGradeId) {
@@ -501,12 +603,17 @@ namespace FMS.PTS.WindowsService.Services.Pump {
                 var result = await _commandExecution.ExecuteCommandAsync (pTSDeviceId, "PumpTag", commandData);
 
                 if (!result.Success) {
-                    if (result.Code.HasValue) {
+                    // Only treat as PTS error code if it's within the known PTS error range
+                    if (result.Code.HasValue && PtsErrorCodeHelper.IsPtsErrorCode (result.Code.Value)) {
                         var errorCode = (PtsErrorCode) result.Code.Value;
                         var errorMessage = EnumExtensions.GetDescription (errorCode);
                         return new FMSResponseMessage<PumpTagResponseDTO> (false, errorMessage, null!);
+                    } else {
+                        // This is a system/infrastructure error
+                        _logger.LogError ("System error during pump tag retrieval for device {DeviceId}, pump {PumpId}. Error code: {ErrorCode}, Message: {Message}",
+                            pTSDeviceId, pumpId, result.Code, result.Message);
+                        return new FMSResponseMessage<PumpTagResponseDTO> (false, result.Message ?? "Failed to get pump tag.", null!);
                     }
-                    return new FMSResponseMessage<PumpTagResponseDTO> (false, result.Message ?? "Failed to get pump tag.", null!);
                 }
 
                 try {

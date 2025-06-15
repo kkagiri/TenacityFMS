@@ -29,8 +29,11 @@ import realtimeStatusReducer from "./ptsReducers/realtimeStatusReducer";
 import deviceConnectionReducer from "./deviceConnectionReducer";
 import fuelingEventsReducer from "./fuelingEventsReducer";
 import configReducer from "./configReducer";
+import ptsAutomationConfigReducer from "./ptsAutomationConfigReducer";
+import automatedReconciliationReducer from "./automatedReconciliationReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
+import stockManagementReducer from "./stockManagementReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -62,8 +65,11 @@ const rootReducer = combineReducers({
   deviceConnections: deviceConnectionReducer,
   fuelingEvents: fuelingEventsReducer,
   config: configReducer,
+  ptsAutomationConfig: ptsAutomationConfigReducer,
+  automatedReconciliation: automatedReconciliationReducer,
   fuelReport: fuelReportReducer,
   notification: notificationReducer,
+  stockManagement: stockManagementReducer,
 });
 
 export default rootReducer;

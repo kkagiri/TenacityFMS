@@ -1,16 +1,15 @@
-﻿using FMS.Application.Communication.webSocket;
-using FMS.Domain.PTSCommon;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
+using FMS.Application.Communication.webSocket;
+using FMS.Domain.PTSCommon;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
-namespace FMS.Application.Communication.Connection
-{
+namespace FMS.Application.Communication.Connection {
     /// <summary>
     /// Manages connections to multiple PTS devices.
     /// Implements IPTSConnectionManager interface.
@@ -23,40 +22,31 @@ namespace FMS.Application.Communication.Connection
         private readonly ConcurrentDictionary<string, PTSDeviceConnection> _deviceConnections;
         private readonly ILogger<PTSConnectionManager> _logger;
 
-        public PTSConnectionManager(ILogger<PTSConnectionManager> logger)
-        {
-            _deviceConnections = new ConcurrentDictionary<string, PTSDeviceConnection>();
+        public PTSConnectionManager (ILogger<PTSConnectionManager> logger) {
+            _deviceConnections = new ConcurrentDictionary<string, PTSDeviceConnection> ();
             _logger = logger;
         }
 
-        public IEnumerable<string> GetConnectedDevices()
-        {
-            return _deviceConnections.Keys.ToList();
+        public IEnumerable<string> GetConnectedDevices () {
+            return _deviceConnections.Keys.ToList ();
         }
 
-        public bool HasActiveConnection(string deviceId)
-        {
-            return _deviceConnections.TryGetValue(deviceId, out var connection) && connection != null;
+        public bool HasActiveConnection (string deviceId) {
+            return _deviceConnections.TryGetValue (deviceId, out var connection) && connection != null;
         }
 
-        public async Task<bool> IsConnectionValid(string deviceId)
-        {
-            if (!HasActiveConnection(deviceId))
-            {
+        public async Task<bool> IsConnectionValid (string deviceId) {
+            if (!HasActiveConnection (deviceId)) {
                 return false;
             }
 
-            try
-            {
-                if (_deviceConnections.TryGetValue(deviceId, out var connection))
-                {
-                    return await connection.HealthCheckAsync();
+            try {
+                if (_deviceConnections.TryGetValue (deviceId, out var connection)) {
+                    return await connection.HealthCheckAsync ();
                 }
                 return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking connection health for device {DeviceId}", deviceId);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error checking connection health for device {DeviceId}", deviceId);
                 return false;
             }
         }
@@ -68,60 +58,55 @@ namespace FMS.Application.Communication.Connection
         /// <param name="message"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task<PTSMessage> SendMessageAsync(string deviceId, string message)
-        {
-            try
-            {
+        public async Task<PTSMessage> SendMessageAsync (string deviceId, string message) {
+            try {
                 //Get the connection of the device
-                if (_deviceConnections.TryGetValue(deviceId, out var connection))
-                {
-                    var ptsMessage = JsonSerializer.Deserialize<PTSMessage>(message);
-                    return await connection.SendPTSMessageAsync(ptsMessage!);
+                if (_deviceConnections.TryGetValue (deviceId, out var connection)) {
+                    //Cursor: Add logging to debug JSON serialization
+                    _logger.LogDebug ("Deserializing message for device {DeviceId}: {Message}", deviceId, message);
+
+                    var ptsMessage = JsonConvert.DeserializeObject<PTSMessage> (message);
+                    if (ptsMessage == null) {
+                        throw new InvalidOperationException ("Failed to deserialize PTSMessage - result was null");
+                    }
+
+                    _logger.LogDebug ("Successfully deserialized PTSMessage for device {DeviceId} with {PacketCount} packets",
+                        deviceId, ptsMessage.Packets?.Count ?? 0);
+
+                    return await connection.SendPTSMessageAsync (ptsMessage);
                 }
 
-                throw new KeyNotFoundException($"Device {deviceId} not found");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending message to device {DeviceId}", deviceId);
-                throw new Exception($"Error sending message to device {deviceId}", ex);
+                throw new KeyNotFoundException ($"Device {deviceId} not found");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error sending message to device {DeviceId}", deviceId);
+                throw new Exception ($"Error sending message to device {deviceId}", ex);
             }
         }
 
-        public void AddConnection(string deviceId, PTSDeviceConnection connection)
-        {
+        public void AddConnection (string deviceId, PTSDeviceConnection connection) {
 
-            if (_deviceConnections.TryGetValue(deviceId, out var existingConnection))
-            {
-                _logger.LogWarning("Replacing existing connection for device {DeviceId}", deviceId);
-                try
-                {
+            if (_deviceConnections.TryGetValue (deviceId, out var existingConnection)) {
+                _logger.LogWarning ("Replacing existing connection for device {DeviceId}", deviceId);
+                try {
                     // Ensure cleanup of existing connection
-                    _ = existingConnection.DisposeAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error disposing existing connection for device {DeviceId}", deviceId);
+                    _ = existingConnection.DisposeAsync ();
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Error disposing existing connection for device {DeviceId}", deviceId);
                 }
             }
 
-            _deviceConnections.AddOrUpdate(deviceId, connection, (_, _) => connection);
-            _logger.LogInformation("Added/Updated connection for device {DeviceId}", deviceId);
+            _deviceConnections.AddOrUpdate (deviceId, connection, (_, _) => connection);
+            _logger.LogInformation ("Added/Updated connection for device {DeviceId}", deviceId);
         }
 
-        public void RemoveConnection(string deviceId)
-        {
-            if (_deviceConnections.TryRemove(deviceId, out var connection))
-            {
-                _logger.LogInformation("Removed connection for device {DeviceId}", deviceId);
-                try
-                {
+        public void RemoveConnection (string deviceId) {
+            if (_deviceConnections.TryRemove (deviceId, out var connection)) {
+                _logger.LogInformation ("Removed connection for device {DeviceId}", deviceId);
+                try {
                     // Ensure cleanup
-                    _ = connection.DisposeAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error disposing connection for device {DeviceId}", deviceId);
+                    _ = connection.DisposeAsync ();
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Error disposing connection for device {DeviceId}", deviceId);
                 }
             }
         }

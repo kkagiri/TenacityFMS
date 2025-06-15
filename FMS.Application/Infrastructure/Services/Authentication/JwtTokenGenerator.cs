@@ -63,6 +63,7 @@ namespace FMS.Application.Infrastructure.Services.Authentication {
 
             var claims = new List<Claim> {
                 new Claim (JwtRegisteredClaimNames.Sub, userId),
+                new Claim (ClaimTypes.NameIdentifier, userId),
                 new Claim (JwtRegisteredClaimNames.Name, username),
                 new Claim (JwtRegisteredClaimNames.Email, email ?? string.Empty),
                 new Claim (JwtRegisteredClaimNames.Jti, Guid.NewGuid ().ToString ()),

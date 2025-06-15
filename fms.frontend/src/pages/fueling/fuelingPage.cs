@@ -1,43 +1,37 @@
+// import React, { useEffect, useState } from 'react';
+// import { useSelector, useDispatch } from 'react-redux';
+// import { fetchPumps, fetchPumpStatus } from '../../redux/actions/pumpActions';
+// import { fetchTags } from '../../redux/actions/tagActions';
+// import { fetchFuelTypes } from '../../redux/actions/fuelTypeActions';
+// import SelectBox from
+// const FuelingPage = () => {
+//     const dispatch = useDispatch();
+// const pumps = useSelector(state => state.pumps);
+// const tags = useSelector(state => state.tags);
+// const fuelTypes = useSelector(state => state.fuelTypes);
 
-import React, { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { fetchPumps, fetchPumpStatus } from '../../redux/actions/pumpActions';
-import { fetchTags } from '../../redux/actions/tagActions';
-import { fetchFuelTypes } from '../../redux/actions/fuelTypeActions';
-import SelectBox from
-const FuelingPage = () => {
-    const dispatch = useDispatch();
-const pumps = useSelector(state => state.pumps);
-const tags = useSelector(state => state.tags);
-const fuelTypes = useSelector(state => state.fuelTypes);
+// useEffect(() =>
+// {
+//     dispatch(fetchPumps());
+//     dispatch(fetchTags());
+//     dispatch(fetchFuelTypes());
+// }, [dispatch]);
 
-useEffect(() =>
-{
-    dispatch(fetchPumps());
-    dispatch(fetchTags());
-    dispatch(fetchFuelTypes());
-}, [dispatch]);
+// return (
 
-return (
+//     < div >
 
-    < div >
+//         < h1 > Fueling Page </ h1 >
+//         {/*Put Dashboard here  */}
+// {/* Fueling Form */}
+// // <FuelingForm />
 
-        < h1 > Fueling Page </ h1 >
-        {/*Put Dashboard here  */}
-{/* Fueling Form */}
-// <FuelingForm />
+// {/*Put tab here for fueling,transaction */}
 
-{/*Put tab here for fueling,transaction */}
+// {/* Fueling Table */}
 
-{/* Fueling Table */}
+//         </ div >
+//     );
+// };
 
-
-        </ div >
-    );
-};
-
-
-
-
-
-export default FuelingPage;
+// export default FuelingPage;

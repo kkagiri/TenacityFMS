@@ -5,6 +5,7 @@ using FMS.Application.Command.DatabaseCommand.FuelRules.Rules.TimeWindowRules;
 using FMS.Application.Common;
 using FMS.Application.Queries.Database.FMSQuery;
 using FMS.Application.Queries.Database.FuelRulesQueries;
+using FMS.Application.Commands.FuelRuleSetCommands;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,10 +57,10 @@ public class FuelingRuleController : ControllerBase {
     [HttpDelete ("rulesets/{id}")]
     public async Task<IActionResult> DeleteRuleSet (int id) {
         try {
-            var result = await _mediator.Send (new DeleteFuelRuleSetCommand (id));
-            if (!result.Success)
-                return BadRequest (result);
-            return Ok (result);
+            var result = await _mediator.Send (new DeleteFuelRuleSetCommand { Id = id });
+            if (!result)
+                return BadRequest ("Failed to delete rule set");
+            return Ok ("Rule set deleted successfully");
         } catch (Exception ex) {
             _logger.LogError (ex, "Error deleting rule set");
             return StatusCode (500, "Internal server error");

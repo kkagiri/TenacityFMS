@@ -11,6 +11,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Domain.Entities;
 
 namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 {

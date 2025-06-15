@@ -49,6 +49,7 @@ const navigationReducer = (state = initialState, action) => {
             return {
                 ...state,
                 navigationItems: [...state.navigationItems, action.payload],
+                allNavigationItems: [...state.allNavigationItems, action.payload],
                 loading: false,
                 error: null,
             };
@@ -64,6 +65,9 @@ const navigationReducer = (state = initialState, action) => {
                 navigationItems: state.navigationItems.map(item =>
                     item.id === action.payload.id ? action.payload.item : item
                 ),
+                allNavigationItems: state.allNavigationItems.map(item =>
+                    item.id === action.payload.id ? action.payload.item : item
+                ),
                 loading: false,
                 error: null,
             };
@@ -77,6 +81,7 @@ const navigationReducer = (state = initialState, action) => {
             return {
                 ...state,
                 navigationItems: state.navigationItems.filter(item => item.id !== action.payload),
+                allNavigationItems: state.allNavigationItems.filter(item => item.id !== action.payload),
                 loading: false,
                 error: null,
             };
@@ -102,6 +107,7 @@ const navigationReducer = (state = initialState, action) => {
                 return {
                     ...state,
                     navigationItems: [],
+                    allNavigationItems: [],
                     loading: false,
                     error: null
                 };

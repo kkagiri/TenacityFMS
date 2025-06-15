@@ -4,8 +4,7 @@ using FMS.Domain.Entities;
 
 namespace FMS.Domain.Entities;
 
-public partial class Ptsdevice
-{
+public partial class Ptsdevice {
     public string Ptsid { get; set; } = null!;
 
     public string? Ipaddress { get; set; }
@@ -36,17 +35,19 @@ public partial class Ptsdevice
 
     public string? ConnectionStatus { get; set; }
 
+    //Cursor: Device-specific feature flag for auto-assigning user master tag when only vehicle is provided
+    //This allows different PTS devices to have different behaviors based on firmware capabilities
+    public sbyte? AutoAssignUserMasterTag { get; set; } = 0; // 0 = disabled, 1 = enabled
 
+    public virtual ICollection<Configuration> Configuration { get; set; } = new List<Configuration> ();
 
-    public virtual ICollection<Configuration> Configuration { get; set; } = new List<Configuration>();
+    public virtual ICollection<Intankdelivery> Intankdeliveries { get; set; } = new List<Intankdelivery> ();
 
-    public virtual ICollection<Intankdelivery> Intankdeliveries { get; set; } = new List<Intankdelivery>();
+    public virtual ICollection<PtsDevicePendingCommand> PtsDevicePendingCommands { get; set; } = new List<PtsDevicePendingCommand> ();
 
-    public virtual ICollection<PtsDevicePendingCommand> PtsDevicePendingCommands { get; set; } = new List<PtsDevicePendingCommand>();
-
-    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction>();
-    public virtual ICollection<Tank>? Tanks { get; set; }
-    public virtual ICollection<DeviceConnection> DeviceConnections { get; set; } = new List<DeviceConnection>();
+    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction> ();
+    public virtual ICollection<Tank> ? Tanks { get; set; }
+    public virtual ICollection<DeviceConnection> DeviceConnections { get; set; } = new List<DeviceConnection> ();
 
     public virtual Site? SiteNavigation { get; set; }
 

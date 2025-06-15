@@ -1,6 +1,6 @@
 import Drawer from "devextreme-react/drawer";
 import ScrollView from "devextreme-react/scroll-view";
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Header, SideNavigationMenu, Footer } from "../../components";
 import "./side-nav-outer-toolbar.scss";
@@ -11,15 +11,15 @@ import { useMenuPatch } from "../../utils/patches";
 export default function SideNavOuterToolbar({ title, children }) {
   const scrollViewRef = useRef(null);
   const navigate = useNavigate();
-  const { isXSmall, isLarge } = useScreenSize();
+  const { isXSmall,  isLarge } = useScreenSize();
   const [patchCssClass, onMenuReady] = useMenuPatch();
   const [menuStatus, setMenuStatus] = useState(
-    isLarge ? MenuStatus.Closed : MenuStatus.Closed
+    isLarge ? MenuStatus.Opened : MenuStatus.Closed
   );
 
   const toggleMenu = useCallback(({ event }) => {
-    setMenuStatus((prevMenuStatus) =>
-      prevMenuStatus === MenuStatus.Closed
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus === MenuStatus.Closed
         ? MenuStatus.Opened
         : MenuStatus.Closed
     );
@@ -34,13 +34,14 @@ export default function SideNavOuterToolbar({ title, children }) {
     );
   }, []);
 
-  const onOutsideClick = useCallback(() => {
-    setMenuStatus((prevMenuStatus) =>
-      prevMenuStatus !== MenuStatus.Closed && !isLarge
+    const onOutsideClick = useCallback(() => {
+    setMenuStatus(
+      prevMenuStatus => prevMenuStatus !== MenuStatus.Closed && !isLarge
         ? MenuStatus.Closed
         : prevMenuStatus
     );
     return menuStatus === MenuStatus.Closed ? true : false;
+
   }, [isLarge]);
 
   const onNavigationChanged = useCallback(
@@ -50,21 +51,24 @@ export default function SideNavOuterToolbar({ title, children }) {
         return;
       }
 
-      navigate(itemData.path);
-      scrollViewRef.current.instance.scrollTo(0);
+      navigate(itemData.path); //only thing has changed
+
+        scrollViewRef.current.instance.scrollTo(0);
 
       if (!isLarge || menuStatus === MenuStatus.TemporaryOpened) {
         setMenuStatus(MenuStatus.Closed);
         event.stopPropagation();
       }
     },
-    [navigate, menuStatus, isLarge]
+    [navigate, menuStatus, ,isLarge]
   );
+
+
 
   return (
     <div className={"side-nav-outer-toolbar"}>
       <Header
-        menuToggleEnabled={isXSmall}
+        menuToggleEnabled={true}
         toggleMenu={toggleMenu}
         title={title}
       />
@@ -72,15 +76,15 @@ export default function SideNavOuterToolbar({ title, children }) {
         className={["drawer", patchCssClass].join(" ")}
         position={"before"}
         closeOnOutsideClick={onOutsideClick}
-        openedStateMode={isLarge ? "shrink" : "overlap"}
-        revealMode={isXSmall ? "slide" : "expand"}
-        minSize={isXSmall ? 0 : 60}
+        openedStateMode={isLarge ? 'shrink' : 'overlap'}
+        revealMode={isXSmall ? 'slide' : 'expand'}
+        minSize={isXSmall ? 0 :0}
         maxSize={250}
         shading={isLarge ? false : true}
         opened={menuStatus === MenuStatus.Closed ? false : true}
         template={"menu"}
       >
-        <div className={"container"}>
+        <div className={"container dx-theme-background-color"}>
           <ScrollView ref={scrollViewRef} className={"layout-body with-footer"}>
             <div className={"content"}>
               {React.Children.map(children, (item) => {

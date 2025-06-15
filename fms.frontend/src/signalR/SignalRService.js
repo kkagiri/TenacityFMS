@@ -122,7 +122,7 @@ class SignalRService {
     this.state = ConnectionState.CONNECTING;
 
     try {
-      const baseURL = "http://10.0.11.90:7009"; // TODO: Change to the correct URl From .env for production
+      const baseURL = process.env.REACT_APP_SIGNALR_URL || "http://localhost:7009";
       const signalRUrl = `${baseURL}/signalHub`;
 
       this.connection = new signalR.HubConnectionBuilder()

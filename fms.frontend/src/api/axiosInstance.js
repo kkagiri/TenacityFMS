@@ -31,31 +31,6 @@ const axiosInstance = axios.create({
   },
 });
 
-axiosInstance.interceptors.response.use(
-  (response) => {
-    console.log(`Response from ${response.config.url}:`, {
-      status: response.status,
-      statusText: response.statusText
-    });
-    return response;
-  },
-  (error) => {
-    if (error.message === "Network Error") {
-      console.error("Network error - possibly CORS related:", error);
-    }
-
-    if (error.response) {
-      console.error(`Error response from ${error.config?.url}:`, {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data
-      });
-    }
-
-    return Promise.reject(error);
-  }
-);
-
 axiosInstance.interceptors.request.use(
   async (config) => {
     if (
@@ -76,26 +51,46 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Cursor: Add response interceptor to handle authentication errors
+// Cursor: Combined response interceptor to handle both logging and authentication errors
 axiosInstance.interceptors.response.use(
   (response) => {
+    if(process.env.NODE_ENV === "development")
+      {
+    console.log(`Response from ${response.config.url}:`, {
+      status: response.status,
+      statusText: response.statusText
+    });
+  }
     return response;
   },
   (error) => {
-    if (
-      error.response &&
-      (error.response.status === 401 || error.response.status === 404)
-    ) {
-      // Check if it's a login redirect
-      if (
-        error.response.config &&
-        error.response.config.url.includes("Login")
-      ) {
-        console.error("Authentication error - redirecting to login page");
-        // Redirect to login or handle auth error
-        // window.location.href = '/login'; // Uncomment if you want automatic redirect
+    // Handle network errors
+    if (error.message === "Network Error") {
+      console.error("Network error - possibly CORS related:", error);
+    }
+
+    // Log error responses
+    if (error.response) {
+      console.error(`Error response from ${error.config?.url}:`, {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+
+      // Handle authentication errors
+      if (error.response.status === 401 || error.response.status === 404) {
+        // Check if it's a login redirect
+        if (
+          error.response.config &&
+          error.response.config.url.includes("Login")
+        ) {
+          console.error("Authentication error - redirecting to login page");
+          // Redirect to login or handle auth error
+          // window.location.href = '/login'; // Uncomment if you want automatic redirect
+        }
       }
     }
+
     return Promise.reject(error);
   }
 );

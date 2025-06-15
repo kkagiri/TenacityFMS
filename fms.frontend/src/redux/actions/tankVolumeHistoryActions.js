@@ -42,14 +42,14 @@ export const fetchTankVolumeHistoryBySiteId =
         params: { startDate, endDate, siteId },
       });
       dispatch({
-        type: FETCH_TANK_VOLUME_HISTORY_BY_ID_SUCCESS,
-        payload: cloneDeep(response.data),
+        type: FETCH_TANK_VOLUME_HISTORY_SUCCESS,
+        payload: response.data,
       });
     } catch (error) {
       console.error("Error fetching tank volume history:", error);
       dispatch({
-        type: FETCH_TANK_VOLUME_HISTORY_BY_ID_FAILURE,
-        payload: cloneDeep(error.message),
+        type: FETCH_TANK_VOLUME_HISTORY_FAILURE,
+        payload: error.message,
       });
     }
   };

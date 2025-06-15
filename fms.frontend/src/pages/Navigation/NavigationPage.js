@@ -9,11 +9,14 @@ import {
     assignRolesToNavigationItem
 } from './../../redux/actions/navigationActions';
 import { fetchRoles } from './../../redux/actions/roleActions';
+import notify from 'devextreme/ui/notify';
+import { SelectBox } from 'devextreme-react/select-box';
+import NavigationGuide from './../../components/Navigation/NavigationGuide';
 
 const NavigationPage = () => {
     const dispatch = useDispatch();
     const { allNavigationItems, loading, error } = useSelector((state) => state.navigation);
-    const { roles } = useSelector((state) => state.role); // Assuming roles are available in the auth state
+    const { roles } = useSelector((state) => state.role);
     const [formData, setFormData] = useState({});
     const formDataRef = useRef({});
 
@@ -22,20 +25,74 @@ const NavigationPage = () => {
         dispatch(fetchRoles());
     }, [dispatch]);
 
-    const onRowInserted = (e) => {
-        const data = { ...e.data, RoleIds: e.data.roles || [] };
+    const onRowInserted = async (e) => {
+        const data = {
+            page: e.data.page,
+            link: e.data.link,
+            parentId: e.data.parentId || null,
+            icon: e.data.icon || null,
+            RoleIds: Array.isArray(e.data.roles) ? e.data.roles : []
+        };
         console.log("Inserted Data:", data);
-        dispatch(createNavigationItem(data));
+        try {
+            await dispatch(createNavigationItem(data));
+            notify("Navigation item created successfully", "success");
+            dispatch(fetchAllNavigationItems());
+        } catch (error) {
+            notify("Failed to create navigation item", "error");
+        }
     };
 
-    const onRowUpdated = (e) => {
-        const data = { ...e.data, RoleIds: e.data.roles || [] };
-        console.log("Updated Data:", data);
-        dispatch(updateNavigationItem(e.key, data));
+    const onRowUpdated = async (e) => {
+        console.log("onRowUpdated triggered with event:", e);
+        console.log("e.data:", e.data);
+        console.log("e.key:", e.key);
+
+        // Get the original item from the transformed data source
+        const originalItem = navigationDataSource.find(item => item.id === e.key);
+        console.log("Original item:", originalItem);
+
+        const mergedData = {
+            ...originalItem,
+            ...e.data
+        };
+        console.log("Merged data:", mergedData);
+
+        const data = {
+            id: e.key,
+            link: mergedData.link || '',
+            pageName: mergedData.page || '',  // Use 'page' from data, send as 'pageName'
+            parentId: mergedData.parentId !== undefined ? mergedData.parentId : null,
+            icon: mergedData.icon || null,
+            RoleIds: Array.isArray(mergedData.roles) ? mergedData.roles : []
+        };
+        console.log("Updated Data to send:", data);
+
+        // Validate required fields
+        if (!data.link || !data.pageName) {
+            console.error("Missing required fields:", { link: data.link, pageName: data.pageName });
+            notify("Link and Page Name are required", "error");
+            return;
+        }
+
+        try {
+            await dispatch(updateNavigationItem(e.key, data));
+            notify("Navigation item updated successfully", "success");
+            dispatch(fetchAllNavigationItems());
+        } catch (error) {
+            console.error("Error in onRowUpdated:", error);
+            notify("Failed to update navigation item", "error");
+        }
     };
 
-    const onRowRemoved = (e) => {
-        dispatch(deleteNavigationItem(e.key));
+    const onRowRemoved = async (e) => {
+        try {
+            await dispatch(deleteNavigationItem(e.key));
+            notify("Navigation item deleted successfully", "success");
+            dispatch(fetchAllNavigationItems());
+        } catch (error) {
+            notify("Failed to delete navigation item", "error");
+        }
     };
 
     const onAssignRoles = (id, roles) => {
@@ -43,24 +100,91 @@ const NavigationPage = () => {
         dispatch(assignRolesToNavigationItem(id, roles));
     };
 
+    const onInitNewRow = (e) => {
+        // Create a new object instead of mutating existing data
+        e.data = { ...e.data, roles: [] }; //Cursor
+    };
 
+        const onEditingStart = (e) => {
+        // Roles are already included in the transformed data source
+        // No need to mutate e.data as it already contains the roles field
+        console.log("Editing started for item:", e.data); //Cursor
+    };
 
-    const rolesDataSource = roles.map(role => ({ id: role.id, text: role.name })); // Adjusted mapping
+    // Ensure roles is always available as an array
+    const rolesDataSource = Array.isArray(roles) ? roles.map(role => ({ id: role.id, text: role.name })) : [];
+
+    // Transform navigation items to include roles field for editing
+    const navigationDataSource = allNavigationItems.map(item => ({
+        ...item,
+        roles: item.rolenavigations && Array.isArray(item.rolenavigations)
+            ? item.rolenavigations.map(rn => rn.roleId)
+            : []
+    })); //Cursor
 
     return (
         <div className='content-block'>
             <div className='content'>
+                <div className="tw-mb-4 tw-p-4 tw-bg-blue-100 tw-border tw-border-blue-400 tw-rounded">
+                    <div className="tw-flex tw-items-center">
+                        <i className="fa fa-info-circle tw-text-blue-600 tw-mr-2"></i>
+                        <span className="tw-text-blue-800">
+                            <strong>Note:</strong> Navigation items require corresponding page components to be created in the application.
+                            The <strong>Link</strong> field should match the route path defined in your application.
+                        </span>
+                    </div>
+                </div>
+
+                {/* Cursor - Added test button to manually trigger update */}
+                <button
+                    className="tw-mb-4 tw-px-4 tw-py-2 tw-bg-green-500 tw-text-white tw-rounded"
+                    onClick={async () => {
+                        console.log("Test button clicked");
+                        if (navigationDataSource && navigationDataSource.length > 0) {
+                            const testItem = navigationDataSource[0];
+                            const testData = {
+                                id: testItem.id,
+                                link: testItem.link,
+                                pageName: testItem.page,
+                                parentId: testItem.parentId,
+                                icon: testItem.icon,
+                                RoleIds: testItem.roles || []
+                            };
+                            console.log("Testing update with data:", testData);
+                            try {
+                                await dispatch(updateNavigationItem(testItem.id, testData));
+                                notify("Test update completed", "success");
+                            } catch (error) {
+                                console.error("Test update failed:", error);
+                                notify("Test update failed", "error");
+                            }
+                        }
+                    }}
+                >
+                    Test Update (First Item)
+                </button>
+
                 {loading && <p>Loading...</p>}
-                {error && <p>Error: {error}</p>}
+                {error && <p className="tw-text-red-600">Error: {error}</p>}
+
                 <TreeList
-                    dataSource={allNavigationItems}
+                    dataSource={navigationDataSource}
                     keyExpr="id"
                     parentIdExpr="parentId"
                     showBorders={true}
                     columnAutoWidth={true}
+                    repaintChangesOnly={true}
                     onRowInserted={onRowInserted}
                     onRowUpdated={onRowUpdated}
                     onRowRemoved={onRowRemoved}
+                    onInitNewRow={onInitNewRow}
+                    onEditingStart={onEditingStart}
+                    onSaving={(e) => {
+                        console.log("onSaving triggered:", e);
+                        console.log("Changes:", e.changes);
+                    }}
+                    wordWrapEnabled={true}
+                    showRowLines={true}
                 >
                     <Editing
                         mode="popup"
@@ -69,14 +193,13 @@ const NavigationPage = () => {
                         allowAdding={true}
                         useIcons={true}
                     >
-                        <Popup title="Navigation Item" showTitle={true} width={700} height={525} />
-                        <Form formData={formData}>
+                        <Popup title="Navigation Item" showTitle={true} width={700} height={600} />
+                        <Form>
                             <FormItem
                                 dataField="page"
                                 editorType="dxTextBox"
                                 editorOptions={{
-                                    valueChangeEvent: 'keyup',
-                                    placeholder: 'Enter page name'
+                                    placeholder: 'Enter page name (e.g., Dashboard, Reports)'
                                 }}
                             >
                                 <RequiredRule message="Page name is required" />
@@ -85,7 +208,7 @@ const NavigationPage = () => {
                                 dataField="link"
                                 editorType="dxTextBox"
                                 editorOptions={{
-                                    value: formData.link,
+                                    placeholder: 'Enter link URL (e.g., /dashboard, /reports)'
                                 }}
                             >
                                 <RequiredRule message="Link is required" />
@@ -94,12 +217,21 @@ const NavigationPage = () => {
                                 dataField="parentId"
                                 editorType="dxSelectBox"
                                 editorOptions={{
-                                    dataSource: allNavigationItems,
+                                    dataSource: navigationDataSource,
                                     displayExpr: 'page',
-                                    valueExpr: 'id'
+                                    valueExpr: 'id',
+                                    placeholder: 'Select parent (optional)',
+                                    searchEnabled: true,
+                                    showClearButton: true
                                 }}
                             />
-                            <FormItem dataField="icon" />
+                            <FormItem
+                                dataField="icon"
+                                editorType="dxTextBox"
+                                editorOptions={{
+                                    placeholder: 'Enter Font Awesome icon class (e.g., fa-home, fa-dashboard)'
+                                }}
+                            />
                             <FormItem
                                 dataField="roles"
                                 editorType="dxTagBox"
@@ -107,28 +239,62 @@ const NavigationPage = () => {
                                     dataSource: rolesDataSource,
                                     displayExpr: "text",
                                     valueExpr: "id",
-                                    value: formData.roles
+                                    searchEnabled: true,
+                                    placeholder: 'Select roles that can access this page'
                                 }}
                             >
                                 <RequiredRule message="At least one role is required" />
-                                
                             </FormItem>
                         </Form>
                     </Editing>
-                    <Column dataField="page" caption="Page" />
-                    <Column dataField="link" caption="Link" />
-                    <Column dataField="parentId" caption="Parent ID">
-                        <Lookup id="" />
-                    </Column>
-                    <Column dataField="icon" caption="Icon" />
+                    <Column dataField="page" caption="Page Name" width={200} />
+                    <Column dataField="link" caption="Link/Route" width={200} />
+                    <Column
+                        dataField="parentId"
+                        caption="Parent Page"
+                        width={150}
+                        calculateCellValue={(rowData) => {
+                            if (!rowData.parentId) return '-';
+                            const parent = navigationDataSource.find(item => item.id === rowData.parentId);
+                            return parent ? parent.page : '-';
+                        }}
+                    />
+                    <Column
+                        dataField="icon"
+                        caption="Icon"
+                        width={120}
+                        cellRender={(cellData) => {
+                            return cellData.value ? (
+                                <div className="tw-flex tw-items-center">
+                                    <i className={`fa ${cellData.value} tw-mr-2`}></i>
+                                    <span className="tw-text-xs tw-text-gray-600">{cellData.value}</span>
+                                </div>
+                            ) : '-';
+                        }}
+                    />
                     <Column
                         dataField="roles"
-                        caption="Roles"
-                        allowSorting={false}
+                        caption="Allowed Roles"
+                        minWidth={200}
+                        calculateCellValue={(rowData) => {
+                            if (rowData.rolenavigations && Array.isArray(rowData.rolenavigations) && rowData.rolenavigations.length > 0) {
+                                const roleNames = rowData.rolenavigations.map(rn => {
+                                    const role = roles.find(r => r.id === rn.roleId);
+                                    return role ? role.name : rn.roleId;
+                                });
+                                return roleNames.join(", ");
+                            }
+                            return 'No roles assigned';
+                        }}
                         cellRender={(cellData) => {
+                            const rolesText = cellData.value || 'No roles assigned';
                             return (
-                                <div>
-                                    {cellData.data.roles && cellData.data.roles.join(", ")}
+                                <div className="tw-text-sm">
+                                    {rolesText === 'No roles assigned' ? (
+                                        <span className="tw-text-red-500">{rolesText}</span>
+                                    ) : (
+                                        <span>{rolesText}</span>
+                                    )}
                                 </div>
                             );
                         }}
@@ -136,6 +302,8 @@ const NavigationPage = () => {
                     <Pager showPageSizeSelector={true} allowedPageSizes={[5, 10, 20]} showInfo={true} />
                     <Paging defaultPageSize={10} />
                 </TreeList>
+
+                <NavigationGuide />
             </div>
         </div>
     );

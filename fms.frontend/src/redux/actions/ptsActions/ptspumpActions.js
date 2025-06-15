@@ -24,6 +24,7 @@ export const authorizePump = (command) => async (dispatch) => {
   dispatch({ type: AUTHORIZE_PUMP_REQUEST });
 
   try {
+    // Cursor: Auto-assign is now handled on backend based on device configuration
     const response = await axiosInstance.post("/pump/authorize", command);
 
     dispatch({

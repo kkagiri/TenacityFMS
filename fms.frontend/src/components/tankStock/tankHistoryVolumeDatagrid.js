@@ -308,12 +308,7 @@ const TankHistoryVolumeDatagrid = ({ tankVolumeHistory, selectedSite, selectedPe
 
                 </Summary>
             </DataGrid>
-          <style jsx>{`
-                :global(.dark-group-item) {
-                    font-weight: bold;
-                    color: #333;
-                }
-            `}</style>
+
         </div>
     );
 }

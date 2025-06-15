@@ -1,0 +1,264 @@
+/* Daily Tank Reconciliation Dashboard Styles */
+
+.daily-reconciliation-dashboard {
+    background-color: #f5f5f5;
+    min-height: 100vh;
+  }
+
+  .dashboard-header {
+    margin-bottom: 24px;
+  }
+
+  .dashboard-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 8px;
+  }
+
+  .dashboard-subtitle {
+    color: #8c8c8c;
+    font-size: 14px;
+  }
+
+  /* Filter Section */
+  .filter-section {
+    margin-bottom: 24px;
+  }
+
+  .filter-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #595959;
+  }
+
+  /* Summary Cards */
+  .summary-card {
+    text-align: center;
+  }
+
+  .summary-card .ant-statistic-title {
+    font-size: 12px;
+    color: #8c8c8c;
+  }
+
+  .summary-card .ant-statistic-content {
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  /* Alert Cards */
+  .alert-card {
+    margin-bottom: 8px;
+  }
+
+  .alert-card .ant-alert-message {
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .alert-card .ant-alert-description {
+    font-size: 12px;
+  }
+
+  /* Chart Containers */
+  .chart-container {
+    height: 300px;
+  }
+
+  /* Table Styles */
+  .reconciliation-table .ant-table-thead > tr > th {
+    background-color: #fafafa;
+    font-weight: 600;
+    font-size: 12px;
+    color: #262626;
+  }
+
+  .reconciliation-table .ant-table-tbody > tr > td {
+    font-size: 12px;
+  }
+
+  .reconciliation-table .ant-table-tbody > tr.tw-bg-red-50 {
+    background-color: #fff2f0;
+  }
+
+  .reconciliation-table .ant-table-tbody > tr.tw-bg-red-50:hover > td {
+    background-color: #ffebe8 !important;
+  }
+
+  /* Status Indicators */
+  .status-success {
+    color: #52c41a;
+  }
+
+  .status-warning {
+    color: #faad14;
+  }
+
+  .status-error {
+    color: #ff4d4f;
+  }
+
+  /* Variance Indicators */
+  .variance-positive {
+    color: #52c41a;
+    font-weight: 600;
+  }
+
+  .variance-negative {
+    color: #ff4d4f;
+    font-weight: 600;
+  }
+
+  /* Loading States */
+  .loading-overlay {
+    position: relative;
+  }
+
+  .loading-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1200px) {
+    .dashboard-charts .ant-col {
+      margin-bottom: 16px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-filters .ant-col {
+      margin-bottom: 16px;
+    }
+
+    .dashboard-summary .ant-col {
+      margin-bottom: 16px;
+    }
+
+    .dashboard-title {
+      font-size: 20px;
+    }
+  }
+
+  /* Custom Progress Bar */
+  .reconciliation-progress .ant-progress-bg {
+    transition: all 0.3s ease;
+  }
+
+  /* Custom Button Styles */
+  .action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-button .anticon {
+    font-size: 14px;
+  }
+
+  /* Card Hover Effects */
+  .summary-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+  }
+
+  /* Alert Severity Colors */
+  .alert-critical {
+    border-left: 4px solid #ff4d4f;
+  }
+
+  .alert-high {
+    border-left: 4px solid #faad14;
+  }
+
+  .alert-medium {
+    border-left: 4px solid #1890ff;
+  }
+
+  .alert-low {
+    border-left: 4px solid #52c41a;
+  }
+
+  /* Chart Tooltips */
+  .chart-tooltip {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* Export Button */
+  .export-button {
+    color: #1890ff;
+    border-color: #1890ff;
+  }
+
+  .export-button:hover {
+    color: #40a9ff;
+    border-color: #40a9ff;
+  }
+
+  /* Pagination Styles */
+  .reconciliation-table .ant-pagination {
+    margin-top: 16px;
+    text-align: right;
+  }
+
+  .reconciliation-table .ant-pagination-total-text {
+    font-size: 12px;
+    color: #8c8c8c;
+  }
+
+  /* Filter Reset Button */
+  .filter-reset {
+    color: #8c8c8c;
+  }
+
+  .filter-reset:hover {
+    color: #1890ff;
+  }
+
+  /* Dashboard Grid */
+  .dashboard-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  /* Icon Styles */
+  .dashboard-icon {
+    font-size: 16px;
+    margin-right: 8px;
+  }
+
+  .status-icon {
+    font-size: 14px;
+    margin-right: 4px;
+  }
+
+  /* Animation for loading states */
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .loading-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+  }

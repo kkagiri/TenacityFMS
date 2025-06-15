@@ -180,4 +180,4 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Ready to start?** → [`docs/setup/NEXT-STEPS.md`](docs/setup/NEXT-STEPS.md)
+

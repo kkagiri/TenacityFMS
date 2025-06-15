@@ -118,8 +118,10 @@ const PTSDashboard = () => {
       // Ensure each device has a proper ID for tracking expanded rows
       const deviceId = device.ptsid || device.id;
 
-      // Get realtime updates for this device if available
-      const realtimeUpdate = realtimeStatus.uploadStatusUpdates[deviceId];
+      // Get realtime updates for this device if available //Cursor
+      // Try both sources: ptsDevice.uploadStatusUpdates (legacy) and realtimeStatus.uploadStatusByDevice (new)
+      const realtimeUpdate = deviceData.uploadStatusUpdates?.[deviceId] ||
+                            realtimeStatus.uploadStatusByDevice?.[deviceId];
 
       // Attempt to match our device data with the structure needed for details component
       const defaultTanks = []; // We'll populate this if we have tank info
@@ -157,25 +159,31 @@ const PTSDashboard = () => {
         tanks: defaultTanks,
       };
 
-      // If we have realtime data, overlay it onto the device
+      // If we have realtime data, overlay it onto the device //Cursor
       if (realtimeUpdate && realtimeStatus.isLiveDataEnabled) {
         // Update the device with realtime data
+        // Handle different data structures:
+        // - ptsDevice.uploadStatusUpdates: direct status object with lastUpdated
+        // - realtimeStatus.uploadStatusByDevice: { status: rawStatus, receivedAt: timestamp }
+        const rawStatus = realtimeUpdate.status || realtimeUpdate; // Handle both structures
+        const lastUpdated = realtimeUpdate.receivedAt || realtimeUpdate.lastUpdated;
+
         return {
           ...formattedDevice,
-          lastUpdated: new Date(realtimeUpdate.receivedAt).toLocaleString(),
+          lastUpdated: lastUpdated ? new Date(lastUpdated).toLocaleString() : formattedDevice.lastUpdated,
           batteryVoltage:
-            realtimeUpdate.batteryVoltage || formattedDevice.batteryVoltage,
+            rawStatus?.batteryVoltage || formattedDevice.batteryVoltage,
           cpuTemperature:
-            realtimeUpdate.cpuTemperature || formattedDevice.cpuTemperature,
-          sdMounted: realtimeUpdate.sdMounted ?? formattedDevice.sdMounted,
+            rawStatus?.cpuTemperature || formattedDevice.cpuTemperature,
+          sdMounted: rawStatus?.sdMounted ?? formattedDevice.sdMounted,
           ptsPowerDownDetected:
-            realtimeUpdate.ptsPowerDownDetected ??
+            rawStatus?.ptsPowerDownDetected ??
             formattedDevice.ptsPowerDownDetected,
           configurationId:
-            realtimeUpdate.configurationId || formattedDevice.configurationId,
-          pumps: realtimeUpdate.pumps || formattedDevice.pumps,
-          probes: realtimeUpdate.probes || formattedDevice.probes,
-          readers: realtimeUpdate.readers || formattedDevice.readers,
+            rawStatus?.configurationId || formattedDevice.configurationId,
+          pumps: rawStatus?.pumps || formattedDevice.pumps,
+          probes: rawStatus?.probes || formattedDevice.probes,
+          readers: rawStatus?.readers || formattedDevice.readers,
           // Add more fields as needed
         };
       }
@@ -184,7 +192,8 @@ const PTSDashboard = () => {
     });
   }, [
     ptsDeviceList,
-    realtimeStatus.uploadStatusUpdates,
+    deviceData.uploadStatusUpdates, //Cursor - legacy source
+    realtimeStatus.uploadStatusByDevice, //Cursor - new source
     realtimeStatus.isLiveDataEnabled,
   ]);
 

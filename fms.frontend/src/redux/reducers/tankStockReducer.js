@@ -18,7 +18,10 @@ import {
   FETCH_DELIVERIES_SUCCESS,
   FETCH_DELIVERIES_FAILURE,
   CREATE_TANK_TRANSFER_SUCCESS,
-  CREATE_TANK_TRANSFER_FAILURE
+  CREATE_TANK_TRANSFER_FAILURE,
+  FETCH_STOCK_DISCREPANCIES_REQUEST,
+  FETCH_STOCK_DISCREPANCIES_SUCCESS,
+  FETCH_STOCK_DISCREPANCIES_FAILURE
 
 } from '../actions/tankStockAction';
 
@@ -26,6 +29,8 @@ const initialState = {
   tankStocks: [],
   currentTankStock: null,
   deliveries: [],
+  stockDiscrepancies: [],
+  discrepanciesLoading: false,
   loading: false,
   error: null,
 };
@@ -63,6 +68,22 @@ const tankStockReducer = (state = initialState, action) => {
           return { ...state, deliveries: [...state.deliveries, action.payload], loading: false, error: null };
       case FETCH_DELIVERIES_SUCCESS:
           return { ...state, deliveries: action.payload, loading: false, error: null };
+      case FETCH_STOCK_DISCREPANCIES_REQUEST:
+          return { ...state, discrepanciesLoading: true, error: null };
+      case FETCH_STOCK_DISCREPANCIES_SUCCESS:
+          return {
+              ...state,
+              stockDiscrepancies: action.payload,
+              discrepanciesLoading: false,
+              error: null
+          };
+      case FETCH_STOCK_DISCREPANCIES_FAILURE:
+          return {
+              ...state,
+              stockDiscrepancies: [],
+              discrepanciesLoading: false,
+              error: action.payload
+          };
       case FETCH_TANK_STOCKS_FAILURE:
       case FETCH_TANK_STOCK_BY_ID_FAILURE:
       case CREATE_TANK_STOCK_FAILURE:
@@ -71,7 +92,7 @@ const tankStockReducer = (state = initialState, action) => {
       case CREATE_OPENING_STOCK_FAILURE:
       case CREATE_CLOSING_STOCK_FAILURE:
       case CREATE_DELIVERY_FAILURE:
-     
+
       case FETCH_DELIVERIES_FAILURE:
         case FETCH_TANK_STOCKS_FAILURE:
 

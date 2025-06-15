@@ -30,7 +30,9 @@ import {
     createUser,
     softDeleteUser,
     restoreUser,
-    fetchAllUserActivities
+    fetchAllUserActivities,
+    fetchAllSites,
+    fetchUserSiteCounts //Cursor
 } from '../../redux/actions/userActions';
 import './userPage.scss';
 
@@ -51,12 +53,14 @@ const UserPage = () => {
     const navigate = useNavigate();
     const users = useSelector((state) => state.user.users);
     const allActivities = useSelector((state) => state.user.allActivities);
+    const allSites = useSelector((state) => state.user.allSites); //Cursor
 
     const [selectedTab, setSelectedTab] = useState(0);
     const [searchText, setSearchText] = useState('');
     const [isCreatePopupVisible, setCreatePopupVisible] = useState(false);
     const [loadingVisible, setLoadingVisible] = useState(false);
     const [activeUsers, setActiveUsers] = useState([]);
+    const [userSiteCounts, setUserSiteCounts] = useState({}); //Cursor
 
     const formData = useRef({
         userName: '',
@@ -65,6 +69,7 @@ const UserPage = () => {
     });
 
     const gridRef = useRef(null);
+    const activeGridRef = useRef(null); //Cursor
 
     useEffect(() => {
         loadData();
@@ -79,11 +84,34 @@ const UserPage = () => {
         }
     }, [users]);
 
+    // Calculate user site counts //Cursor
+    useEffect(() => {
+        const calculateSiteCounts = async () => {
+            if (users && users.length > 0) {
+                try {
+                    const counts = await dispatch(fetchUserSiteCounts());
+                    setUserSiteCounts(counts);
+                } catch (error) {
+                    console.error('Error fetching user site counts:', error);
+                    // Fallback to empty counts
+                    const emptyCounts = {};
+                    users.forEach(user => {
+                        emptyCounts[user.id] = 0;
+                    });
+                    setUserSiteCounts(emptyCounts);
+                }
+            }
+        };
+
+        calculateSiteCounts();
+    }, [users, dispatch]);
+
     const loadData = async () => {
         setLoadingVisible(true);
         try {
             await dispatch(fetchUsers());
             await dispatch(fetchAllUserActivities());
+            await dispatch(fetchAllSites()); //Cursor
         } catch (error) {
             notify(error.message, 'error', 3000);
         } finally {
@@ -93,8 +121,8 @@ const UserPage = () => {
 
     // Tab data
     const tabData = [
-        { text: "All Users", icon: "fas fa-users" },
-        { text: "Active Users", icon: "fas fa-check-circle" }
+        { text: "All Users", icon: "fa-light fa-users" },
+        { text: "Active Users", icon: "fa-light fa-check-circle" }
     ]; //Cursor
 
     // Custom tab item renderer
@@ -109,16 +137,20 @@ const UserPage = () => {
 
     const handleSearchChange = (e) => {
         setSearchText(e.value);
-        if (gridRef.current) {
-            gridRef.current.instance.searchByText(e.value);
+        // Apply search to the currently active grid
+        const currentGrid = selectedTab === 0 ? gridRef.current : activeGridRef.current;
+        if (currentGrid) {
+            currentGrid.instance.searchByText(e.value);
         }
     };
 
     const handleClearSearch = () => {
         setSearchText('');
-        if (gridRef.current) {
-            gridRef.current.instance.searchByText('');
-            gridRef.current.instance.clearFilter();
+        // Clear search from the currently active grid
+        const currentGrid = selectedTab === 0 ? gridRef.current : activeGridRef.current;
+        if (currentGrid) {
+            currentGrid.instance.searchByText('');
+            currentGrid.instance.clearFilter();
         }
     };
 
@@ -172,6 +204,25 @@ const UserPage = () => {
         navigate(`/users/${e.data.id}`);
     };
 
+    // Handle tab change and ensure proper highlighting //Cursor
+    const handleTabChange = (e) => {
+        const newIndex = e.itemIndex;
+        console.log(`Tab clicked: ${newIndex}, switching from ${selectedTab}`);
+        setSelectedTab(newIndex);
+
+        // Clear search when switching tabs
+        setSearchText('');
+
+        // Apply search to newly selected grid after a brief delay
+        setTimeout(() => {
+            const currentGrid = newIndex === 0 ? gridRef.current : activeGridRef.current;
+            if (currentGrid) {
+                currentGrid.instance.searchByText('');
+                currentGrid.instance.clearFilter();
+            }
+        }, 100);
+    };
+
     const renderStatusCell = (data) => {
         const statusClass = data.value ? 'status-badge inactive' : 'status-badge active';
         return <div className={statusClass}>{data.value ? 'Inactive' : 'Active'}</div>;
@@ -214,7 +265,7 @@ const UserPage = () => {
     };
 
     const renderSiteCountCell = (data) => {
-        const count = data.value || 0;
+        const count = userSiteCounts[data.data.id] || 0; //Cursor
         return <div className="site-badge">{count} sites</div>;
     };
 
@@ -240,33 +291,31 @@ const UserPage = () => {
             </div>
 
             <div className="search-container">
-                <TextBox
-                    placeholder="Search users..."
-                    mode="search"
-                    value={searchText}
-                    onValueChanged={handleSearchChange}
-                    stylingMode="filled"
-                    width="100%"
-                    buttons={[
-                        {
-                            name: 'clear',
-                            location: 'after',
-                            onClick: handleClearSearch,
-                            icon: 'clear'
-                        }
-                    ]}
-                />
+                <div className="search-box-wrapper">
+                    <TextBox
+                        placeholder="Search users..."
+                        mode="search"
+                        value={searchText}
+                        onValueChanged={handleSearchChange}
+                        stylingMode="filled"
+                        width={400}
+                        buttons={[
+                            {
+                                name: 'clear',
+                                location: 'after',
+                                onClick: handleClearSearch,
+                                icon: 'close'
+                            }
+                        ]}
+                    />
+                </div>
             </div>
 
             <div className="tabs-container">
                 <Tabs
                     dataSource={tabData}
                     selectedIndex={selectedTab}
-                    onItemClick={(e) => {
-                        const newIndex = e.itemIndex;
-                        console.log(`Tab clicked: ${newIndex}`);
-                        setSelectedTab(newIndex);
-                    }}
+                    onItemClick={handleTabChange}
                     width="100%"
                     style={styles.tabs}
                     itemRender={renderTabItem}
@@ -311,12 +360,20 @@ const UserPage = () => {
                             caption="Recent Activity"
                             calculateCellValue={(data) => {
                                 if (data.id && allActivities.length > 0) {
-                                    const userActivities = allActivities.filter(a => a.userId === data.id);
+                                    // Filter out monitoring GET requests //Cursor
+                                    const userActivities = allActivities.filter(a => {
+                                        const isMonitoringGet = a.action === 'GET' &&
+                                            (a.controller === 'User' || a.controller === 'UserActivities');
+                                        return a.userId === data.id && !isMonitoringGet;
+                                    });
+
                                     if (userActivities.length) {
                                         const recent = userActivities.sort((a, b) =>
                                             new Date(b.timestamp) - new Date(a.timestamp)
                                         )[0];
-                                        return recent.action + ' - ' + new Date(recent.timestamp).toLocaleString();
+                                        // Convert UTC to local time //Cursor
+                                        const localTime = new Date(recent.timestamp).toLocaleString();
+                                        return recent.action + ' - ' + localTime;
                                     }
                                 }
                                 return 'No recent activity';
@@ -339,9 +396,8 @@ const UserPage = () => {
 
             {selectedTab === 1 && (
                 <div className="grid-container">
-                    {console.log("Rendering the Active Users tab content")}
-                    <h4>Active Users: {activeUsers.length}</h4>
                     <DataGrid
+                        ref={activeGridRef}
                         dataSource={activeUsers}
                         showBorders={true}
                         columnAutoWidth={true}
@@ -369,12 +425,20 @@ const UserPage = () => {
                             caption="Recent Activity"
                             calculateCellValue={(data) => {
                                 if (data.id && allActivities.length > 0) {
-                                    const userActivities = allActivities.filter(a => a.userId === data.id);
+                                    // Filter out monitoring GET requests //Cursor
+                                    const userActivities = allActivities.filter(a => {
+                                        const isMonitoringGet = a.action === 'GET' &&
+                                            (a.controller === 'User' || a.controller === 'UserActivities');
+                                        return a.userId === data.id && !isMonitoringGet;
+                                    });
+
                                     if (userActivities.length) {
                                         const recent = userActivities.sort((a, b) =>
                                             new Date(b.timestamp) - new Date(a.timestamp)
                                         )[0];
-                                        return recent.action + ' - ' + new Date(recent.timestamp).toLocaleString();
+                                        // Convert UTC to local time //Cursor
+                                        const localTime = new Date(recent.timestamp).toLocaleString();
+                                        return recent.action + ' - ' + localTime;
                                     }
                                 }
                                 return 'No recent activity';

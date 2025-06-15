@@ -28,7 +28,7 @@ public partial class Employee {
 
     public virtual User? ModifiedByNavigation { get; set; }
 
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
 
     // Many-to-many relationship with Vehicle through EmployeeVehicle
     public virtual ICollection<EmployeeVehicle> EmployeeVehicles { get; set; } = new List<EmployeeVehicle> ();

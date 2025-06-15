@@ -218,11 +218,17 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket {
                     _connectionTracker
                 );
 
-                // Remove direct _connectionManager interaction if it's redundant with Tracker/Monitor
-                //  _connectionManager.AddConnection(deviceId, deviceConnection);
+                //Cursor: Re-enable connection registration with PTSConnectionManager for Redis command processing
+                _logger.LogInformation ("Registering device {DeviceId} with PTSConnectionManager", deviceId);
+                _connectionManager.AddConnection (deviceId, deviceConnection);
 
-                //       await _connnectionTracker.UpdateWebSocketConnection(deviceId, );
-                await deviceConnection.StartAsync (stoppingToken);
+                try {
+                    await deviceConnection.StartAsync (stoppingToken);
+                } finally {
+                    //Cursor: Ensure cleanup from both tracking systems when connection ends
+                    _logger.LogInformation ("Cleaning up connection for device {DeviceId} from PTSConnectionManager", deviceId);
+                    _connectionManager.RemoveConnection (deviceId);
+                }
 
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error handling WebSocket connection");

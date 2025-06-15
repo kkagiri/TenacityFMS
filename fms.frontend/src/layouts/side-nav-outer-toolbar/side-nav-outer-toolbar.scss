@@ -1,8 +1,48 @@
 .side-nav-outer-toolbar {
-  flex-direction: column;
-  display: flex;
+
   height: 100%;
   width: 100%;
+
+  .drawer {
+    height: calc(100vh - 60px);
+
+    .dx-drawer-panel-content {
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+
+
+    }
+
+  }
+
+
+
+  .container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .layout-body {
+    flex: 1;
+    height: 100%;
+  }
+
+    &.with-footer {
+      display: flex;
+      flex-direction: column;
+
+      .content {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+      }
+
+      .content-block {
+        margin-top: auto;
+      }
+    }
+
 }
 
 .layout-header {

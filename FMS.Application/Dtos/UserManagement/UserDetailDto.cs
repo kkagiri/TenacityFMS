@@ -10,7 +10,14 @@ namespace FMS.Application.Dtos.UserManagement
         public string Email { get; set; }
         public bool IsDeleted { get; set; }
         public string PhoneNumber { get; set; }
-        // public List<string> Roles { get; set; } = new List<string>();
+        public int MasterRFIDTag { get; set; }
+
+        // Master Tag Information
+        public string? MasterTagName { get; set; }
+        public bool? MasterTagIsEnabled { get; set; }
+        public bool? HasMasterTag { get; set; }
+
+        public List<string> Roles { get; set; } = new List<string>();
         // public List<string> Permissions { get; set; } = new List<string>();
         //Cursor
     }

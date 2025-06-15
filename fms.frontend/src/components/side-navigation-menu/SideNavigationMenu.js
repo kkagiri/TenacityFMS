@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import TreeView from 'devextreme-react/tree-view';
-//import { navigation } from '../../app-navigation';
 import { useNavigation } from '../../contexts/navigation';
 import { useScreenSize } from '../../utils/media-query';
 import './SideNavigationMenu.scss';
@@ -14,13 +13,15 @@ export default function SideNavigationMenu(props) {
     selectedItemChanged,
     openMenu,
     compactMode,
-    onMenuReady
+    onMenuReady,
+    isMenuOpen // Cursor: New prop from layout
   } = props;
 
   const { isLarge } = useScreenSize();
   const dispatch = useDispatch();
   const { navigationItems, loading, error } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
+  const [expandedItems, setExpandedItems] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -30,6 +31,7 @@ export default function SideNavigationMenu(props) {
 
   useEffect(() => {
     if (loading) {
+      // Handle loading state if needed
     }
   }, [loading]);
 
@@ -83,15 +85,28 @@ export default function SideNavigationMenu(props) {
   const wrapperRef = useRef();
   const getWrapperRef = useCallback((element) => {
     const prevElement = wrapperRef.current;
+    // Clean up events from previous element
     if (prevElement) {
       events.off(prevElement, 'dxclick');
     }
 
-    wrapperRef.current = element;
-    events.on(element, 'dxclick', (e) => {
-      openMenu(e);
-    });
+    // Only attach new event if element exists
+    if (element) {
+      wrapperRef.current = element;
+      events.on(element, 'dxclick', (e) => {
+        openMenu(e);
+      });
+    }
   }, [openMenu]);
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      if (wrapperRef.current) {
+        events.off(wrapperRef.current, 'dxclick');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const treeView = treeViewRef.current && treeViewRef.current.instance;
@@ -107,11 +122,27 @@ export default function SideNavigationMenu(props) {
     if (compactMode) {
       treeView.collapseAll();
     }
+
+    // Cleanup function
+    return () => {
+      if (treeView) {
+        treeView.dispose();
+      }
+    };
   }, [currentPath, compactMode]);
+
+  const onItemExpanded = useCallback((e) => {
+    // Cursor: Simple item expansion handling
+    setExpandedItems([e.itemData.path]);
+  }, []);
+
+  const onItemClick = useCallback((e) => {
+    selectedItemChanged(e);
+  }, [selectedItemChanged]);
 
   return (
     <div
-      className={'dx-swatch-additional side-navigation-menu'}
+      className={`dx-swatch-additional side-navigation-menu`}
       ref={getWrapperRef}
     >
       {children}
@@ -123,9 +154,13 @@ export default function SideNavigationMenu(props) {
           selectionMode={'single'}
           focusStateEnabled={false}
           expandEvent={'click'}
-          onItemClick={selectedItemChanged}
+          onItemClick={onItemClick}
+          onItemExpanded={onItemExpanded}
           onContentReady={onMenuReady}
           width={'100%'}
+          scrollDirection={'vertical'}
+          showCheckBoxesMode={'none'}
+          animationEnabled={true}
         />
       </div>
     </div>

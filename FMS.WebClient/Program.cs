@@ -4,11 +4,13 @@ using System.Net;
 using System.Reflection;
 using System.Security.Cryptography.Xml;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
 using FMS.Application;
 using FMS.Application.Command.DatabaseCommand.Common;
 using FMS.Application.Command.DatabaseCommand.TagCmd;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Command.PTSCommand.Common;
 using FMS.Application.Communication;
@@ -23,11 +25,12 @@ using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.MappingProfile;
 using FMS.Application.ModelsDTOs.FMS.UserManagement;
-using FMS.Application.PTSServices.Configuration;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
+using FMS.Application.Services;
+// using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
@@ -57,6 +60,10 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
+using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
+// using FMS.Application.Features.AutomatedReconciliation.Services;
+using FMS.BackgroundServices.FMS;
+//using FMS.Application.Extensions;
 
 namespace FMS.WebClient;
 
@@ -84,36 +91,41 @@ public class Program {
         ConfigureServices (builder.Services, builder.Configuration);
         ConfigureDatabase (builder.Services, builder.Configuration, builder.Environment);
 
-        int httpPort = 7009; // Default port
-        int httpsPort = 7010; // Default HTTPS port
-        bool httpPortInUse = IsPortInUse (7009);
-        bool httpsPortInUse = IsPortInUse (7010);
+        //Cursor on changes to code
+        // Simple port 7009 availability check - force use of port 7009 only
+        Log.Information ("Checking if port 7009 is available for required binding addresses");
+        bool portAvailable = !IsPortInUse (7009);
 
-        if (httpPortInUse || httpsPortInUse) {
-            Log.Warning ($"Default ports are already in use. HTTP port in use: {httpPortInUse}, HTTPS port in use: {httpsPortInUse}");
+        if (!portAvailable) {
+            Log.Warning ("Port 7009 is in use on one or more required addresses");
+            LogPortUsage (7009);
 
-            // Start looking from higher ports
-            int basePort = 7020;
-            while (IsPortInUse (basePort) || IsPortInUse (basePort + 1)) {
-                basePort += 10;
-                if (basePort > 8000) {
-                    throw new InvalidOperationException ("Unable to find available ports in the range 7020-8000");
+            // Option to forcefully free up the port
+            var forceKillPorts = Environment.GetEnvironmentVariable ("FORCE_KILL_PORTS")?.ToLower () == "true";
+            if (forceKillPorts) {
+                Log.Warning ("FORCE_KILL_PORTS is enabled, attempting to free up port 7009");
+                bool portFreed = TryKillProcessOnPort (7009);
+                if (portFreed) {
+                    Thread.Sleep (2000); // Give time for port to be released
+                    portAvailable = !IsPortInUse (7009);
+                    if (portAvailable) {
+                        Log.Information ("Successfully freed up port 7009");
+                    } else {
+                        Log.Error ("Failed to free up port 7009 even after killing processes");
+                    }
                 }
             }
 
-            httpPort = basePort;
-            httpsPort = basePort + 1;
-            Log.Information ($"Found available ports: HTTP on {httpPort}, HTTPS on {httpsPort}");
+            if (!portAvailable) {
+                Log.Error ("Port 7009 is not available. Set environment variable FORCE_KILL_PORTS=true to attempt automatic cleanup, or manually stop the process using the port.");
+                throw new InvalidOperationException ("Required port 7009 is not available. Application requires this specific port.");
+            }
+        } else {
+            Log.Information ("Port 7009 is available for binding");
         }
 
-        // Configure Kestrel with the selected ports
-        builder.WebHost.ConfigureKestrel (serverOptions => {
-            // Use explicit IPAddress.Loopback instead of ListenLocalhost
-            serverOptions.Listen (IPAddress.Any, httpPort);
-            serverOptions.Listen (IPAddress.Any, httpsPort, listenOptions => {
-                //  listenOptions.UseHttps();
-            });
-        });
+        // Don't configure Kestrel endpoints - let the default configuration from appsettings handle binding
+        Log.Information ("Using default URL configuration - should bind to http://10.0.11.90:7009 and http://localhost:7009"); //Cursor
         var app = builder.Build ();
         ConfigureApp (app, builder.Environment);
 
@@ -128,18 +140,35 @@ public class Program {
         }
     }
 
+    //Cursor on changes to code
     private static bool IsPortInUse (int port) {
-        try {
-            using var socket = new System.Net.Sockets.Socket (
-                System.Net.Sockets.AddressFamily.InterNetwork,
-                System.Net.Sockets.SocketType.Stream,
-                System.Net.Sockets.ProtocolType.Tcp);
+        // Check if port is in use on the specific addresses we want to bind to
+        var addressesToCheck = new [] {
+            IPAddress.Loopback, // 127.0.0.1 (localhost)
+            IPAddress.Parse ("0.0.0.0") // your specific IP - updated to match actual machine IP //Cursor
+        };
 
-            socket.Bind (new System.Net.IPEndPoint (System.Net.IPAddress.Loopback, port));
-            return false; // Port is available
-        } catch {
-            return true; // Port is in use
+        foreach (var address in addressesToCheck) {
+            try {
+                using var socket = new System.Net.Sockets.Socket (
+                    System.Net.Sockets.AddressFamily.InterNetwork,
+                    System.Net.Sockets.SocketType.Stream,
+                    System.Net.Sockets.ProtocolType.Tcp);
+
+                socket.SetSocketOption (System.Net.Sockets.SocketOptionLevel.Socket,
+                    System.Net.Sockets.SocketOptionName.ReuseAddress, false);
+                socket.Bind (new System.Net.IPEndPoint (address, port));
+                // If we get here, this address/port combo is free
+            } catch (System.Net.Sockets.SocketException ex) {
+                Log.Debug ("Port {Port} is in use on {Address}: {Error}", port, address, ex.Message);
+                return true; // Port is in use on at least one address we need
+            } catch (Exception ex) {
+                Log.Warning (ex, "Unexpected error checking port {Port} on {Address}", port, address);
+                return true; // Assume in use on unexpected error
+            }
         }
+
+        return false; // Port is available on all addresses we need
     }
 
     // Helper method to find an available port in a range
@@ -152,12 +181,93 @@ public class Program {
         throw new InvalidOperationException ($"No available ports found in range {startPort}-{endPort}");
     }
 
+    //Cursor on changes to code
+    /// <summary>
+    /// Logs what processes are using a specific port (Windows-specific)
+    /// </summary>
+    private static void LogPortUsage (int port) {
+        try {
+            var processStartInfo = new System.Diagnostics.ProcessStartInfo {
+                FileName = "netstat",
+                Arguments = $"-ano",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+
+            using var process = System.Diagnostics.Process.Start (processStartInfo);
+            if (process != null) {
+                var output = process.StandardOutput.ReadToEnd ();
+                process.WaitForExit ();
+
+                var lines = output.Split ('\n', StringSplitOptions.RemoveEmptyEntries);
+                var portLines = lines.Where (line => line.Contains ($":{port}")).ToList ();
+
+                if (portLines.Any ()) {
+                    Log.Warning ("Processes using port {Port}:", port);
+                    foreach (var line in portLines) {
+                        Log.Warning ("  {Line}", line.Trim ());
+                    }
+                } else {
+                    Log.Information ("No processes found using port {Port} in netstat output", port);
+                }
+            }
+        } catch (Exception ex) {
+            Log.Warning (ex, "Failed to check port usage for port {Port}", port);
+        }
+    }
+
+    //Cursor on changes to code
+    /// <summary>
+    /// Attempts to kill processes listening on a specific port (use with caution)
+    /// </summary>
+    private static bool TryKillProcessOnPort (int port) {
+        try {
+            var processStartInfo = new System.Diagnostics.ProcessStartInfo {
+                FileName = "netstat",
+                Arguments = $"-ano",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+
+            using var process = System.Diagnostics.Process.Start (processStartInfo);
+            if (process != null) {
+                var output = process.StandardOutput.ReadToEnd ();
+                process.WaitForExit ();
+
+                var lines = output.Split ('\n', StringSplitOptions.RemoveEmptyEntries);
+                var listeningLines = lines.Where (line =>
+                    line.Contains ($":{port}") && line.Contains ("LISTENING")).ToList ();
+
+                foreach (var line in listeningLines) {
+                    var parts = line.Split (new char[0], StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 5 && int.TryParse (parts[ ^ 1], out int pid)) {
+                        Log.Warning ("Attempting to kill process {PID} listening on port {Port}", pid, port);
+
+                        var killProcess = System.Diagnostics.Process.GetProcessById (pid);
+                        killProcess.Kill ();
+                        killProcess.WaitForExit (5000);
+
+                        Log.Information ("Successfully killed process {PID}", pid);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception ex) {
+            Log.Error (ex, "Failed to kill process on port {Port}", port);
+            return false;
+        }
+    }
+
     static void ConfigureServices (IServiceCollection services, IConfiguration configuration) {
         try {
             services.AddControllers ()
                 .AddJsonOptions (options => {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.JsonSerializerOptions.MaxDepth = 0;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 });
 
             RegisterSignalR (services);
@@ -171,6 +281,10 @@ public class Program {
             ConfigureAuthentication (services, configuration);
             ConfigureAuthorization (services);
             RegisterDistributedCache (services);
+
+            // Register seed data services
+            // services.AddSeedDataServices();
+
             //InfrastructureServicesConfiguration.Configure (services, configuration);
         } catch (Exception ex) {
             Console.WriteLine (ex);
@@ -265,6 +379,21 @@ public class Program {
     }
 
     static void RegisterCustomServices (IServiceCollection services) {
+
+        //automatic Reconsiclation
+
+        // services.AddScoped<PolicyEvaluationEngine> ();
+        // services.AddScoped<DiscrepancyDetectionService> ();
+        // services.AddScoped<ReconciliationOrchestrationService> ();
+        // services.AddScoped<AutomatedReconciliationService> ();
+        // services.AddHostedService<AutomatedReconciliationBackgroundService> ();
+
+        // // Register Redis-based policy trigger service //Cursor
+        // services.AddScoped<IPolicyTriggerService, PolicyTriggerService> ();
+
+        // // Register background service for Redis policy trigger subscription //Cursor
+        // services.AddHostedService<PolicyTriggerBackgroundService> ();
+
         services.AddTransient<RoleManager<Role>> ();
 
         services.AddMemoryCache ();
@@ -282,13 +411,32 @@ public class Program {
         services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
         services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
 
+        // Register the pump transaction integration service
+        services.AddScoped<PumpTransactionIntegrationService> ();
+        // Register missing services that are causing dependency injection errors
+        services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService> (); //Cursor
+        services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
+        services.AddScoped<ITransactionCompletionService, TransactionCompletionService> (); //Cursor
+
+        //Cursor: Register AutoTransactionCompletionService and DirectHttpTransactionService
+        services.AddScoped<IAutoTransactionCompletionService, AutoTransactionCompletionService> (); //Cursor
+        services.AddScoped<IDirectHttpTransactionService, DirectHttpTransactionService> (); //Cursor
+
+        // Register PTSConnectionManager that was missing //Cursor
+        services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> (); //Cursor
+        services.AddSingleton<DeviceConnectionTracker> (); //Cursor
+
         // services.AddScoped<IWebDocumentViewerMvcControllerService, WebDocumentViewerMvcControllerService>();
         // services.AddScoped<IReportDesignerMvcControllerService, ReportDesignerMvcControllerService>();
 
         services.AddScoped<ICommandExecutor, CommandExecutor> ();
         // services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
         services.AddHttpClient<DeviceHttpCommandPusher> ().SetHandlerLifetime (TimeSpan.FromMinutes (5));
-        services.AddScoped<IConfigurationService, ConfigurationService> ();
+        // Register the interface for DeviceHttpCommandPusher //Cursor
+        services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher> (); //Cursor
+
+        // Register the missing AutomatedFuelingConfigurationService
+        services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService> ();
 
         services.Scan (scan =>
             scan.FromAssemblyOf<UploadStatusHandler> ()
@@ -449,9 +597,10 @@ public class Program {
                                 "https://10.0.10.113",
                                 "http://10.0.10.113:3000",
                                 "https://10.0.10.113:3000",
-                                "http://10.0.11.90",
-                                "https://10.0.11.90",
-                                "http://10.0.11.90:3000"
+                                "http://10.0.11.90", //Cursor - updated IP
+                                "https://10.0.11.90", //Cursor - updated IP
+                                "http://10.0.11.90:3000", //Cursor - updated IP
+                                "https://10.0.11.90:3000" //Cursor - updated IP
                             )
                             .AllowAnyHeader ()
                             .AllowAnyMethod ()

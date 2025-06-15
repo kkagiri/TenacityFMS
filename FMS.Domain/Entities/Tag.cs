@@ -39,6 +39,6 @@ public partial class Tag {
     public virtual Vehicle Vehicle { get; set; } = null!;
 
     //public virtual User Users { get; set; } = null!; //Navigation
-    public virtual ICollection<Fuelrefil> Fuelrefils { get; set; } = new List<Fuelrefil> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
 
 }

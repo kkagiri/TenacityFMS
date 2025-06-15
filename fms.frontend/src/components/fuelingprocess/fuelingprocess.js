@@ -48,6 +48,7 @@ import {
   validateVehicle,
 } from "../../redux/actions/tagActions"; //Cursor
 import { fetchSiteList } from "../../redux/actions/siteActions"; //Cursor
+import { authorizePump } from "../../redux/actions/ptsActions/ptspumpActions"; //Cursor: Add for enhanced authorization
 
 //Cursor: Import ScanStep
 import ScanStep from "./ScanStep";
@@ -56,6 +57,7 @@ import ScanStep from "./ScanStep";
 import PumpSelectionStep from "./PumpSelectionStep";
 import NozzleSelectionStep from "./NozzleSelectionStep";
 import FuelingDetailsStep from "./FuelingDetailsStep";
+import TransactionMonitoringStatus from "./TransactionMonitoringStatus"; //Cursor: Add transaction monitoring component
 
 const FuelingProcess = () => {
   const dispatch = useDispatch();
@@ -162,11 +164,47 @@ const FuelingProcess = () => {
   // Add state for selection method
   const [selectionMethod, setSelectionMethod] = useState("lookup"); // Already defined
 
+  // Cursor: Add state for device configuration
+  const [deviceConfig, setDeviceConfig] = useState(null);
+  const [isLoadingDeviceConfig, setIsLoadingDeviceConfig] = useState(true);
+
+  // Cursor: Add transaction monitoring states
+  const [showTransactionMonitoring, setShowTransactionMonitoring] = useState(false);
+  const [deviceConnectionType, setDeviceConnectionType] = useState("Unknown");
+  const [transactionMonitoringData, setTransactionMonitoringData] = useState(null);
+
   // Fetch vehicles and sites when component mounts //Cursor
   useEffect(() => {
     dispatch(fetchVehicleList());
     dispatch(fetchSiteList());
   }, [dispatch]);
+
+  // Cursor: Load device configuration when component mounts or ptsId changes
+  useEffect(() => {
+    const loadDeviceConfig = async () => {
+      if (!ptsId) return;
+
+      try {
+        setIsLoadingDeviceConfig(true);
+        const config = await pumpControlService.api.getDeviceConfig(ptsId);
+        setDeviceConfig(config);
+        console.log("[Device Config] Loaded configuration:", config);
+      } catch (error) {
+        console.error("[Device Config] Failed to load device configuration:", error);
+        notify("Failed to load device configuration", "warning", 3000);
+        // Set default config to prevent blocking
+        setDeviceConfig({
+          autoAssignUserMasterTag: false,
+          isActive: true,
+          isAuthenticated: true
+        });
+      } finally {
+        setIsLoadingDeviceConfig(false);
+      }
+    };
+
+    loadDeviceConfig();
+  }, [ptsId]);
 
   // Update UI when validated tag changes
   useEffect(() => {
@@ -461,8 +499,32 @@ const FuelingProcess = () => {
 
       console.log("[Authorize] Using tag:", tagToUse);
 
+      // Cursor: Determine if we should auto-assign user master tag
+      // This happens when: vehicle is selected, no tag is provided, and not using manual master tag
+      const hasVehicleInfo = vehicleInfo?.vehicleId || selectedVehicleId;
+      const hasTag = useMasterTag ? userMasterTag : tagToUse;
+      const shouldAutoAssign = hasVehicleInfo && !hasTag && !useMasterTag;
+
+      console.log("[Authorize] Auto-assign decision:", {
+        hasVehicleInfo: !!hasVehicleInfo,
+        hasTag: !!hasTag,
+        useMasterTag,
+        shouldAutoAssign
+      });
+
+      // Cursor: Use device configuration for auto-assign feature instead of hardcoded logic
+      const deviceSupportsAutoAssign = deviceConfig?.autoAssignUserMasterTag === true;
+      const shouldAutoAssignWithDeviceCheck = shouldAutoAssign && deviceSupportsAutoAssign;
+
+      console.log("[Authorize] Device auto-assign decision:", {
+        deviceSupportsAutoAssign,
+        shouldAutoAssignWithDeviceCheck,
+        deviceConfig: deviceConfig
+      });
+
       const authParams = {
-        pump: selectedPump.id,
+        deviceId: ptsId, // Add deviceId
+        pumpId: selectedPump.id,
         nozzle: selectedNozzle.id,
         type: selectedType, // Amount, Volume, Full
         dose:
@@ -474,13 +536,13 @@ const FuelingProcess = () => {
         price: fuelPrice, // Use correct price from fuel grade
         fuelGradeId: fuelGradeId, // Include fuel grade ID if available
         tag: useMasterTag ? userMasterTag : tagToUse, // Use the determined tag or master tag
+        vehicleId: hasVehicleInfo ? (vehicleInfo?.vehicleId || selectedVehicleId) : null, // Include vehicle ID
       };
 
       console.log("[Authorize] Sending auth request:", authParams);
-      const response = await pumpControlService.authorizePump(
-        ptsId,
-        authParams
-      );
+
+      // Cursor: Use the simplified authorizePump action - auto-assign is handled by backend
+      const response = await dispatch(authorizePump(authParams));
       console.log("[Authorize] Received response:", response);
 
       if (response && response.success) {
@@ -488,6 +550,19 @@ const FuelingProcess = () => {
         // Set the context for which pump/nozzle we expect fueling to start on
         setActivePumpForPopup(selectedPump);
         setActiveNozzleForPopup(selectedNozzle);
+
+        // Cursor: Show transaction monitoring after successful authorization
+        if (response.transactionId) {
+          setTransactionMonitoringData({
+            deviceId: ptsId,
+            pumpId: selectedPump.id,
+            nozzleId: selectedNozzle.id,
+            transactionId: response.transactionId,
+            connectionType: response.connectionType || 'Unknown'
+          });
+          setShowTransactionMonitoring(true);
+        }
+
         // Don't setShowFuelingPopup(true) here - let the useEffect based on Redux state handle it
         notify(
           `Pump ${selectedPump.id} authorized successfully. Transaction ID: ${
@@ -933,9 +1008,57 @@ const FuelingProcess = () => {
 
   // Add a function to open the fueling rule popup
   const openFuelingRulePopup = (vehicleData) => {
-    //Cursor
     setVehicleForRules(vehicleData);
     setShowFuelingRulePopup(true);
+  };
+
+  // Cursor: Add transaction completion handlers
+  const handleCancelTransaction = async (transactionId, reason) => {
+    try {
+      // Call the backend to cancel the transaction
+      const response = await pumpControlService.cancelTransaction(
+        ptsId,
+        transactionMonitoringData?.pumpId,
+        transactionId,
+        reason
+      );
+
+      if (response && response.success) {
+        notify(`Transaction ${transactionId} cancelled successfully`, "success", 3000);
+        setShowTransactionMonitoring(false);
+        setTransactionMonitoringData(null);
+        startNewFueling(); // Reset the UI
+      } else {
+        notify(response?.message || "Failed to cancel transaction", "error", 3000);
+      }
+    } catch (error) {
+      console.error("Error cancelling transaction:", error);
+      notify(`Error cancelling transaction: ${error.message}`, "error", 3000);
+    }
+  };
+
+  const handleCompleteTransaction = async (transactionId) => {
+    try {
+      // Use the existing completeFueling logic or call closeTransaction directly
+      const response = await pumpControlService.closeTransaction(
+        ptsId,
+        transactionMonitoringData?.pumpId,
+        transactionId
+      );
+
+      if (response && response.success) {
+        notify(`Transaction ${transactionId} completed successfully`, "success", 3000);
+        setShowTransactionMonitoring(false);
+        setTransactionMonitoringData(null);
+        setFuelingComplete(false);
+        startNewFueling(); // Reset the UI
+      } else {
+        notify(response?.message || "Failed to complete transaction", "error", 3000);
+      }
+    } catch (error) {
+      console.error("Error completing transaction:", error);
+      notify(`Error completing transaction: ${error.message}`, "error", 3000);
+    }
   };
 
   // Determine display details for steps
@@ -1067,8 +1190,8 @@ const FuelingProcess = () => {
     vehicleReg;
 
   // --- Return JSX ---
-  if (isLoading) {
-    // Check 1: Still loading?
+  if (isLoading || isLoadingDeviceConfig) {
+    // Check 1: Still loading device data or configuration?
     return (
       <div
         className="loading-container"
@@ -1080,6 +1203,9 @@ const FuelingProcess = () => {
         }}
       >
         <LoadIndicator width={60} height={60} />
+        <div style={{ marginLeft: "20px", fontSize: "16px" }}>
+          {isLoading ? "Loading device..." : "Loading device configuration..."}
+        </div>
       </div>
     );
   }
@@ -1228,6 +1354,17 @@ const FuelingProcess = () => {
         isVisible={showFuelingRulePopup}
         onClose={() => setShowFuelingRulePopup(false)}
         vehicleData={vehicleForRules}
+      />
+
+      {/* Cursor: Add Transaction Monitoring Status */}
+      <TransactionMonitoringStatus
+        deviceId={transactionMonitoringData?.deviceId}
+        pumpId={transactionMonitoringData?.pumpId}
+        transactionId={transactionMonitoringData?.transactionId}
+        isVisible={showTransactionMonitoring}
+        onCancel={handleCancelTransaction}
+        onComplete={handleCompleteTransaction}
+        connectionType={transactionMonitoringData?.connectionType}
       />
     </div>
   );

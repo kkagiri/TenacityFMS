@@ -127,7 +127,7 @@ public class UserController : ControllerBase
             return Unauthorized();
         }
 
-        var command = new GetUserByUserNameQuery(userID);
+        var command = new GetUserByIdQuery(userID);
         var result = await _mediator.Send(command);
         return Ok(result);
     }

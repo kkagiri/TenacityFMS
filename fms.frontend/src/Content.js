@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useMemo } from "react";
 import appInfo from "./app-info";
-import { SideNavInnerToolbar as SideNavBarLayout } from "./layouts";
+import { SideNavOuterToolbar as SideNavBarLayout } from "./layouts";
 import { Footer } from "./components";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -59,6 +59,11 @@ export default function Content() {
         <Route path="/users/:id/activities" element={React.createElement(resolvedComponents("user-activities"))} />
         <Route path="/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
+
+        {/* Tank routes */}
+        <Route path="/tanks" element={React.createElement(resolvedComponents("tanks"))} />
+        <Route path="/tanks/:id" element={React.createElement(resolvedComponents("tank-details"))} />
+        <Route path="/tanks/:id/edit" element={React.createElement(resolvedComponents("tank-edit"))} />
 
         {/* Keep the old route for backward compatibility */}
         <Route

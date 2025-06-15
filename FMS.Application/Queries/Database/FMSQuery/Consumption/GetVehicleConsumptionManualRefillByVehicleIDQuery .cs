@@ -33,7 +33,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
             {
                 var adjustedEndDate = request.EndDate.Date.AddDays(1).AddTicks(-1);
 
-                var query = from f in _context.Fuelrefils
+                var query = from f in _context.FuelRefills
                             join v in _context.Vehicles on f.VehicleId equals v.VehicleId
                             join s in _context.Sites on f.SiteId equals s.Id
                             join d in _context.Employees on f.DriverId equals d.Id into dj

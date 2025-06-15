@@ -38,19 +38,42 @@ export const fetchNavigationItems = () => async (dispatch) => {
 
 export const createNavigationItem = (item) => async (dispatch) => {
     try {
-        const response = await axiosInstance.post('/navigation', item);
+        const payload = {
+            link: item.link,
+            parentId: item.parentId || 0,
+            icon: item.icon || '',
+            page: item.page,
+            roles: item.RoleIds || []
+        };
+        const response = await axiosInstance.post('/navigation', payload);
         dispatch({ type: CREATE_NAVIGATION_ITEM_SUCCESS, payload: response.data });
+        return response;
     } catch (error) {
         dispatch({ type: CREATE_NAVIGATION_ITEM_FAILURE, payload: error.message });
+        throw error;
     }
 };
 
 export const updateNavigationItem = (id, item) => async (dispatch) => {
     try {
-        await axiosInstance.put(`/navigation/${id}`, item);
-        dispatch({ type: UPDATE_NAVIGATION_ITEM_SUCCESS, payload: { id, item } });
+        const payload = {
+            id: id,
+            link: item.link,
+            pageName: item.pageName,
+            parentId: item.parentId || null,
+            icon: item.icon || null,
+            RoleIds: item.RoleIds || []
+        };
+
+        console.log('Sending update payload:', payload);
+        const response = await axiosInstance.put(`/navigation/${id}`, payload);
+        console.log('Update response:', response);
+        dispatch({ type: UPDATE_NAVIGATION_ITEM_SUCCESS, payload: { id, item: {...item, id} } });
+        return response;
     } catch (error) {
+        console.error('Update error:', error);
         dispatch({ type: UPDATE_NAVIGATION_ITEM_FAILURE, payload: error.message });
+        throw error;
     }
 };
 
@@ -60,13 +83,12 @@ export const deleteNavigationItem = (id) => async (dispatch) => {
         dispatch({ type: DELETE_NAVIGATION_ITEM_SUCCESS, payload: id });
     } catch (error) {
         dispatch({ type: DELETE_NAVIGATION_ITEM_FAILURE, payload: error.message });
+        throw error;
     }
 };
 
 export const assignRolesToNavigationItem = (id, roles) => async (dispatch) => {
     try {
-
-        
         const response = await axiosInstance.post('navigation/AssignRoles', { NavigationItemId: id, RoleIds: roles });
         dispatch({ type: ASSIGN_ROLES_TO_NAVIGATION_ITEM_SUCCESS, payload: response.data });
     } catch (error) {

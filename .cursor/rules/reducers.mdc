@@ -1,36 +1,7 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
 
-This are the reducer currently located and src/redux/reducer folder
-  auth: authReducer,
-  role: roleReducer,
-  permission: permissionReducer,
-  user: userReducer,
-  navigation: navigationReducer,
-  tank: tankReducer,
-  tankStock: tankStockReducer,
-  fuelRefill: fuelRefillReducer,
-  site: siteReducer,
-  employee: employeeReducer,
-  vehicle: vehicleReducer,
-  vehicleType: vehicleTypeReducer,
-  vehicleManufacturer: vehicleManufacturerReducer,
-  vehicleModel: vehicleModelReducer,
-  tankReconciliation: tankReconciliationReducer,
-  consumption: consumptionReducer,
-  tankVolumeHistory: tankVolumeHistoryReducer,
-  delivery: deliveryReducer,
-  supplier: supplierReducer,
-  refillSummary: refillSummaryReducer,
-  tag: tagReducer,
-  tagMonitoring: tagMonitoringReducer,
-  ptsDevice: ptsDeviceReducer,
-  fuelingRule: fuelingRuleReducer,
-  pump: pumpReducer,
-  realtimeStatus: realtimeStatusReducer,
-  deviceConnections: deviceConnectionReducer,
-  fuelingEvents: fuelingEventsReducer,
-  config: configReducer,
+reducer currently located and src/redux/reducer folder

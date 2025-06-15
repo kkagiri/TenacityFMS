@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS;
+using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

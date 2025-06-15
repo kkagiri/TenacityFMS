@@ -5,7 +5,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Import;
 using FMS.Application.Communication.Tracker;
-using FMS.Application.Queries.Database.PTSQueries.PTSDeviceQueries;
+using FMS.Application.Features.PTSDevice.Queries;
+using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -255,5 +256,84 @@ namespace FMS.Application.Communication.SignalR {
             }
         }
         */
+
+        // Method to broadcast tank volume history updates
+        public async Task BroadcastTankVolumeHistoryUpdate (object tankVolumeData) {
+            try {
+                await Clients.All.SendAsync ("TankVolumeHistoryUpdate", tankVolumeData);
+                _logger.LogDebug ("Tank volume history update broadcasted: {Data}", tankVolumeData);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting tank volume history update");
+            }
+        }
+
+        // Method to broadcast tank delivery updates
+        public async Task BroadcastTankDeliveryUpdate (object deliveryData) {
+            try {
+                await Clients.All.SendAsync ("TankDeliveryUpdate", deliveryData);
+                _logger.LogDebug ("Tank delivery update broadcasted: {Data}", deliveryData);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting tank delivery update");
+            }
+        }
+
+        // Method to broadcast consumption data updates
+        public async Task BroadcastConsumptionUpdate (object consumptionData) {
+            try {
+                await Clients.All.SendAsync ("ConsumptionUpdate", consumptionData);
+                _logger.LogDebug ("Consumption update broadcasted: {Data}", consumptionData);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting consumption update");
+            }
+        }
+
+        // Method to broadcast tank stock changes (current stock levels)
+        public async Task BroadcastTankStockUpdate (object tankStockData) {
+            try {
+                await Clients.All.SendAsync ("TankStockUpdate", tankStockData);
+                _logger.LogDebug ("Tank stock update broadcasted: {Data}", tankStockData);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting tank stock update");
+            }
+        }
+
+        // Method to broadcast stock adjustment updates
+        public async Task BroadcastStockAdjustmentUpdate (object adjustmentData) {
+            try {
+                await Clients.All.SendAsync ("StockAdjustmentUpdate", adjustmentData);
+                _logger.LogDebug ("Stock adjustment update broadcasted: {Data}", adjustmentData);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting stock adjustment update");
+            }
+        }
+
+        // Method to broadcast comprehensive tank dashboard data
+        public async Task BroadcastTankDashboardUpdate (object dashboardData) {
+            try {
+                await Clients.All.SendAsync ("TankDashboardUpdate", dashboardData);
+                _logger.LogDebug ("Tank dashboard update broadcasted");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting tank dashboard update");
+            }
+        }
+
+        // Method for clients to request fresh tank data for a specific site
+        public async Task RequestTankDataUpdate (string siteId, string startDate, string endDate) {
+            try {
+                _logger.LogInformation ("Client requested tank data update for site: {SiteId}, date range: {StartDate} - {EndDate}",
+                    siteId, startDate, endDate);
+
+                // This will trigger the backend to send fresh data
+                // The actual data fetching should be handled by the caller service
+                await Clients.Caller.SendAsync ("TankDataRefreshRequested", new {
+                    siteId,
+                    startDate,
+                    endDate,
+                    timestamp = DateTime.UtcNow
+                });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error processing tank data refresh request");
+            }
+        }
     }
 }

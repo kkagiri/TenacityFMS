@@ -25,7 +25,6 @@ import Content from "./Content";
 import ProtectedRoute from "./components/ProtectedRoute/protectedRoute";
 import UnauthenticatedContent from "./UnauthenticatedContent";
 import { fetchNavigationItems } from "./redux/actions/navigationActions";
-import SignalRService from "./signalR/SignalRService";
 import { loadUser } from "./redux/actions/AuthActions";
 import { initializeAxiosInstance } from "./api/axiosInstance"; // Import the initialization function
 import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
@@ -39,13 +38,21 @@ function App() {
     const initialize = async () => {
       await initializeAxiosInstance(); // Initialize Axios instance
       setIsApiInitialized(true);
-      SignalRService.startConnection();
-      dispatch(loadUser());
+      // SignalR connection is now manual - components will start it when needed
+
+      //Cursor: Only load user if there's a token in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        dispatch(loadUser());
+      }
     };
     initialize();
   }, [dispatch]);
 
-  if (loading || !isApiInitialized) {
+  //Cursor: Only show loading if API is not initialized or if we're actually loading user data (and there's a token)
+  const shouldShowLoading = !isApiInitialized || (loading && localStorage.getItem('token'));
+
+  if (shouldShowLoading) {
     return <LoadPanel visible={true} />;
   }
 

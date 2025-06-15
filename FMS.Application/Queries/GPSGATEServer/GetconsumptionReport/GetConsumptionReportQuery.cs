@@ -5,6 +5,11 @@ using MediatR;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
+using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Queries.GPSGATEServer.GetconsumptionReport
 {

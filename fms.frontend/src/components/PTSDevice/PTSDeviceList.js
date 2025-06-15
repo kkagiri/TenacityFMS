@@ -93,15 +93,15 @@ const PTSDeviceList = ({
 
     return (
       <DropDownButton
-        text="Actions"
+        text=""
         icon="overflow"
         displayExpr="text"
         keyExpr="id"
-        width={110}
+        width={150}
         items={[
-          { id: 1, text: "Edit", icon: "edit" },
-          { id: 2, text: "Pump Service", icon: "product" },
-          { id: 3, text: "Diagnose", icon: "preferences" },
+          { id: 1, text: "Edit" },
+          { id: 2, text: "Pump Service"},
+          { id: 3, text: "Diagnose" },
         ]}
         onItemClick={(e) => handleItemClick(e, deviceId)}
         stylingMode="contained"
@@ -177,6 +177,8 @@ const PTSDeviceList = ({
         showBorders={true}
         columnAutoWidth={true}
         rowAlternationEnabled={true}
+        allowColumnResizing={true}
+
         height="auto"
         width="100%"
         loadPanel={{ enabled: isLoading }}

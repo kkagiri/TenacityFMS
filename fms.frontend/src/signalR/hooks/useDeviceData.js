@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useSignalR } from "./useSignalR";
-import { FuelingUtils } from "../../utils/fuelingUtils";
+import FuelingUtils from "../../components/fuelingprocess/FuelingUtils";
 
 /**
  * Custom hook to select device-specific data from Redux and SignalR
@@ -15,7 +15,11 @@ export const useDeviceData = (deviceId) => {
     pumpStatus,
     tankStatus,
     fuelingEvents,
+    startConnection,
+    stopConnection,
     refreshConnection,
+    startPeriodicUpdates,
+    stopPeriodicUpdates,
     isConnected,
     isConnecting,
     isReconnecting,
@@ -26,16 +30,20 @@ export const useDeviceData = (deviceId) => {
   // Select relevant data from Redux store
   const { uploadStatus, devicePumps, lastUpdated, isLiveDataEnabled } =
     useSelector((state) => ({
-      uploadStatus: state.realtimeStatus.uploadStatus[deviceId],
-      devicePumps: state.realtimeStatus.pumps[deviceId],
-      lastUpdated: state.realtimeStatus.lastUpdated[deviceId],
+      uploadStatus: state.realtimeStatus.uploadStatusByDevice[deviceId],
+      devicePumps: state.realtimeStatus.devicePumpStatus[deviceId],
+      lastUpdated: state.realtimeStatus.lastUpdated,
       isLiveDataEnabled: state.realtimeStatus.isLiveDataEnabled,
     }));
 
   // Process pump data using FuelingUtils
   const { pumps, activeFuelingProcesses } = useMemo(() => {
     if (!devicePumps) return { pumps: [], activeFuelingProcesses: [] };
-    return FuelingUtils.processPumpData(devicePumps);
+
+    const pumps = FuelingUtils.handlePumpStatus(devicePumps);
+    const activeFuelingProcesses = FuelingUtils.getActiveFuelingProcesses(devicePumps);
+
+    return { pumps, activeFuelingProcesses };
   }, [devicePumps]);
 
   // Helper function to get pump details
@@ -76,8 +84,14 @@ export const useDeviceData = (deviceId) => {
     isPaused,
     isError,
 
-    // Methods
+    // Manual connection controls
+    startConnection,
+    stopConnection,
     refreshConnection,
+    startPeriodicUpdates,
+    stopPeriodicUpdates,
+
+    // Methods
     getPumpDetails,
     getNozzlesForPump,
   };

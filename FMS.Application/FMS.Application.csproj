@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
-    <PackageReference Include="MediatR" Version="12.2.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
     <PackageReference Include="NLog" Version="5.1.5" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.35.0" />
@@ -36,14 +36,15 @@
     <Folder Include="Command\SignalCommand\" />
     <Folder Include="Common\PTSMessage\" />
     <Folder Include="Helpers\" />
-    <Folder Include="Infrastructure\Exceptions\Communication\" />
+    <!-- <Folder Include="Infrastructure\Exceptions\Communication\" />
     <Folder Include="Infrastructure\Exceptions\Device\" />
-    <Folder Include="Infrastructure\Exceptions\Validation\" />
+    <Folder Include="Infrastructure\Exceptions\Validation\" /> -->
     <Folder Include="ModelsDTOs\Tags\" />
     <Folder Include="Queries\Database\FMSQuery\UserManagement\Authentication\" />
     <Folder Include="Queries\PTSQueries\ReaderQueries\" />
     <Folder Include="Queries\PTSQueries\PriceBoardQueries\" />
     <Folder Include="Queries\PTSQueries\ProbeQueries\" />
+    <Folder Include="Services\AutomatedReconciliation\" />
   </ItemGroup>
 
 </Project>

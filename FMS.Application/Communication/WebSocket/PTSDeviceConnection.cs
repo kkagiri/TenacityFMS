@@ -10,7 +10,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.Command.DatabaseCommand.PTSDeviceCommands;
 using FMS.Application.Communication;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.WebSocket;
@@ -24,6 +23,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using FMS.Application.Features.PTSDevice.Commands;
 
 namespace FMS.Application.Communication.webSocket {
     /// <summary>
@@ -57,6 +57,9 @@ namespace FMS.Application.Communication.webSocket {
 
         // new dictionary to handle request/response correlation
         private readonly ConcurrentDictionary<string, TaskCompletionSource<PTSMessage>> _pendingRequests = new ConcurrentDictionary<string, TaskCompletionSource<PTSMessage>> ();
+
+        //Cursor: Add packet ID to correlation ID mapping for devices that don't echo PtsId
+        private readonly ConcurrentDictionary<int, string> _packetIdToCorrelationId = new ConcurrentDictionary<int, string> ();
 
         private readonly IServiceScopeFactory _scopeFactory;
 
@@ -162,6 +165,9 @@ namespace FMS.Application.Communication.webSocket {
                 return;
 
             try {
+                //Cursor: Log the raw message received from device for debugging
+                _logger.LogInformation ("Raw message received from device {DeviceId}: {RawMessage}", _deviceId, message);
+
                 // Update last activity using DeviceConnectionTracker
                 await _deviceConnectionTracker.UpdateWebSocketConnection (_deviceId, _ipAdress);
 
@@ -174,20 +180,63 @@ namespace FMS.Application.Communication.webSocket {
                     return;
                 }
 
-                // Update last activity timestamp in Redis via the tracker
-                await _deviceConnectionTracker.UpdateWebSocketLastMessageTime (_deviceId);
+                //Cursor: Add detailed logging for debugging correlation ID issues
+                _logger.LogInformation ("Received message from device {DeviceId}: PtsId={PtsId}, Packets={PacketCount}",
+                    _deviceId, ptsMessage.PtsId ?? "null", ptsMessage.Packets?.Count ?? 0);
 
-                if (!string.IsNullOrWhiteSpace (ptsMessage.PtsId)) {
-                    if (_pendingRequests.TryRemove (ptsMessage.PtsId, out var tcs)) {
-                        _logger.LogInformation ("Received response for PtsId {PtsId} from device {DeviceId}.", ptsMessage.PtsId, _deviceId);
-                        tcs.TrySetResult (ptsMessage);
-                        return;
-                    } else {
-                        _logger.LogWarning ("No pending request for PtsId {PtsId} from device {DeviceId}.", ptsMessage.PtsId, _deviceId);
+                if (ptsMessage.Packets?.Count > 0) {
+                    foreach (var packet in ptsMessage.Packets) {
+                        _logger.LogInformation ("  Packet: Id={PacketId}, Type={PacketType}, Error={Error}, Code={Code}, Message={Message}",
+                            packet.Id, packet.Type, packet.Error, packet.Code, packet.Message);
                     }
                 }
 
-                // If there are packets to process, delegate to the unified message processor.
+                // Update last activity timestamp in Redis via the tracker
+                await _deviceConnectionTracker.UpdateWebSocketLastMessageTime (_deviceId);
+
+                //Cursor: Try to find correlation by PtsId first, then by packet ID
+                string matchedCorrelationId = null;
+                TaskCompletionSource<PTSMessage> matchedTcs = null;
+
+                // First, try exact PtsId match (preferred method)
+                if (!string.IsNullOrWhiteSpace (ptsMessage.PtsId)) {
+                    _logger.LogDebug ("Checking for pending request with PtsId {PtsId}. Current pending requests: [{PendingRequests}]",
+                        ptsMessage.PtsId, string.Join (", ", _pendingRequests.Keys));
+
+                    if (_pendingRequests.TryRemove (ptsMessage.PtsId, out matchedTcs)) {
+                        matchedCorrelationId = ptsMessage.PtsId;
+                        _logger.LogInformation ("Received response for PtsId {PtsId} from device {DeviceId}.", ptsMessage.PtsId, _deviceId);
+                    }
+                }
+
+                // If no PtsId match found, try packet ID correlation (fallback for devices that don't echo PtsId)
+                if (matchedTcs == null && ptsMessage.Packets?.Count > 0) {
+                    foreach (var packet in ptsMessage.Packets) {
+                        if (packet.Id > 0 && _packetIdToCorrelationId.TryRemove (packet.Id, out string correlationId)) {
+                            if (_pendingRequests.TryRemove (correlationId, out matchedTcs)) {
+                                matchedCorrelationId = correlationId;
+                                _logger.LogInformation ("Received response for packet ID {PacketId} (correlation {CorrelationId}) from device {DeviceId}.",
+                                    packet.Id, correlationId, _deviceId);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If we found a matching request, complete it
+                if (matchedTcs != null) {
+                    matchedTcs.TrySetResult (ptsMessage);
+                    return;
+                }
+
+                // No correlation found - this is an unsolicited message
+                if (!string.IsNullOrWhiteSpace (ptsMessage.PtsId)) {
+                    _logger.LogWarning ("No pending request for PtsId {PtsId} from device {DeviceId}. This may be an unsolicited status message.", ptsMessage.PtsId, _deviceId);
+                } else {
+                    _logger.LogWarning ("Received message with no PtsId and no matching packet ID from device {DeviceId}. This may be an unsolicited status message.", _deviceId);
+                }
+
+                // Process unsolicited messages through the message processor
                 if (ptsMessage.Packets?.Count > 0) {
                     //Create a new DI scope for processing Message
                     using var scope = _scopeFactory.CreateScope ();
@@ -386,9 +435,27 @@ namespace FMS.Application.Communication.webSocket {
 
             //create correlation ID
             var correlationId = message.PtsId;
+
+            //Cursor: Add logging for correlation ID tracking
+            _logger.LogInformation ("Sending message to device {DeviceId} with correlation ID {CorrelationId}, Message: {Message}",
+                _deviceId, correlationId, JsonConvert.SerializeObject (message, Formatting.None));
+
             //) Create a TCS and store it
             var tcs = new TaskCompletionSource<PTSMessage> (TaskCreationOptions.RunContinuationsAsynchronously);
             _pendingRequests[correlationId] = tcs;
+
+            //Cursor: Also store packet ID correlation for devices that don't echo PtsId
+            if (message.Packets?.Count > 0) {
+                foreach (var packet in message.Packets) {
+                    if (packet.Id > 0) {
+                        _packetIdToCorrelationId[packet.Id] = correlationId;
+                        _logger.LogDebug ("Stored packet ID {PacketId} correlation to {CorrelationId}", packet.Id, correlationId);
+                    }
+                }
+            }
+
+            _logger.LogDebug ("Stored pending request for correlation ID {CorrelationId}. Total pending: {PendingCount}",
+                correlationId, _pendingRequests.Count);
 
             // Acquire lock to safely send
             await _sendLock.WaitAsync (cancellationToken);
@@ -415,9 +482,23 @@ namespace FMS.Application.Communication.webSocket {
             if (completed != tcs.Task) {
                 // Timed out
                 _pendingRequests.TryRemove (correlationId, out _);
+
+                //Cursor: Clean up packet ID mappings on timeout
+                if (message.Packets?.Count > 0) {
+                    foreach (var packet in message.Packets) {
+                        if (packet.Id > 0) {
+                            _packetIdToCorrelationId.TryRemove (packet.Id, out _);
+                        }
+                    }
+                }
+
+                _logger.LogWarning ("Timeout waiting for response with correlation ID {CorrelationId} from device {DeviceId}",
+                    correlationId, _deviceId);
                 throw new TimeoutException ($"No response for correlationId {correlationId}");
             }
 
+            _logger.LogInformation ("Received successful response for correlation ID {CorrelationId} from device {DeviceId}",
+                correlationId, _deviceId);
             return tcs.Task.Result;
 
         }
