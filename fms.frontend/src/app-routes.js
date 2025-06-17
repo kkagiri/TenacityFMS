@@ -8,6 +8,10 @@ import unauthorized from "./pages/unauthorized";
 import NavigationPage from "./pages/Navigation/NavigationPage";
 import EmployeePage from "./pages/employees/employeePage";
 import TankStockPage from "./pages/tankStock/tankStockPage";
+//Cursor - New tank stock page imports for Phase 1 redesign
+import TankStockDashboard from "./pages/tankStock/dashboard/TankStockDashboard";
+import StockAnalytics from "./pages/tankStock/analytics/StockAnalytics";
+import StockManagement from "./pages/tankStock/management/StockManagement";
 import DocumentViewer from "./components/reports/DocumentViewer";
 import ReportDesignerComponent from "./components/reports/ReportDesigner";
 import Tagpage from "./pages/tag/tagPage";
@@ -29,7 +33,8 @@ import AutomatedReconciliationSystem from "./pages/automatedReconciliation/Autom
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
-    case "dashboard":
+
+   case "dashboard":
       return HomePage;
 
     case "vehicles":
@@ -38,8 +43,15 @@ const resolvedComponents = (pageName) => {
       return TankPage;
     case "sites":
       return SitePage;
-    case "tank stock":
-      return TankStockPage;
+    // case "tank stock":
+    //   return TankStockPage;
+    //Cursor - New tank stock page routes for Phase 1 redesign
+    case "tank stock dashboard":
+      return TankStockDashboard;
+    case "stock analytics":
+      return StockAnalytics;
+    case "stock management":
+      return StockManagement;
     case "consumption":
       return ConsumptionBasedonRefills;
 

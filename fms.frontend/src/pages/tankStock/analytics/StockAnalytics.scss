@@ -1,0 +1,20 @@
+//Cursor - Stock Analytics styling
+
+.stock-analytics {
+  .dx-scrollable-content {
+    padding: 1rem;
+  }
+
+  .analytics-tab-panel {
+    min-height: 400px;
+  }
+
+  .placeholder-content {
+    text-align: center;
+    padding: 3rem;
+
+    i {
+      margin-bottom: 1rem;
+    }
+  }
+}

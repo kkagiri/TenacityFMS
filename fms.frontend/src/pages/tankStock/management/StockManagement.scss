@@ -1,0 +1,20 @@
+//Cursor - Stock Management styling
+
+.stock-management {
+  .dx-scrollable-content {
+    padding: 1rem;
+  }
+
+  .management-tab-panel {
+    min-height: 500px;
+  }
+
+  .placeholder-content {
+    text-align: center;
+    padding: 3rem;
+
+    i {
+      margin-bottom: 1rem;
+    }
+  }
+}
