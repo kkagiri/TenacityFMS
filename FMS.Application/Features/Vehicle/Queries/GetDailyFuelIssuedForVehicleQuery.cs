@@ -32,7 +32,7 @@ namespace FMS.Application.Features.Vehicle.Queries
 
                 var dailyFuelIssuedManually = await _context.FuelRefills
                     .Where(fr => fr.VehicleId == request.VehicleId && fr.Date >= startOfDay && fr.Date <= endOfDay)
-                    .SumAsync(fr => fr.ManualFuelrefilAmount ?? 0m, cancellationToken);
+                    .SumAsync(fr => fr.ManualFuelrefillAmount ?? 0m, cancellationToken);
 
                 return dailyFuelIssuedAutomatically + dailyFuelIssuedManually;
             }
@@ -67,7 +67,7 @@ namespace FMS.Application.Features.Vehicle.Queries
 
                 var monthlyFuelIssuedManually = await _context.FuelRefills
                     .Where(fr => fr.VehicleId == request.VehicleId && fr.Date >= startOfMonth && fr.Date < endOfMonth)
-                    .SumAsync(fr => fr.ManualFuelrefilAmount ?? 0m, cancellationToken);
+                    .SumAsync(fr => fr.ManualFuelrefillAmount ?? 0m, cancellationToken);
 
                 return monthlyFuelIssuedAutomatically + monthlyFuelIssuedManually;
             }

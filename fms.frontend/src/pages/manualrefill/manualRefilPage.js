@@ -17,6 +17,7 @@ import saveAs from 'file-saver';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { jsPDF } from 'jspdf';
 import { exportDataGrid as exportDataGridToPdf } from 'devextreme/pdf_exporter';
+import { confirm } from 'devextreme/ui/dialog';
 
 import {fetchVehicleList} from '../../redux/actions/vehicleActions';
 import {fetchEmployees} from '../../redux/actions/employeeActions';
@@ -33,8 +34,21 @@ import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
 
 import { formatDate } from '../../utils/dateUtils';
 
+//Cursor - Import new components for filtering and quick actions
+import FilterPopup from './components/FilterPopup';
+import QuickActionsMenu from './components/QuickActionsMenu';
+
 export default function FuelRefill() {
-    const [take, setTake] = useState(100);
+    //Cursor - Updated state management for filtering
+    const [currentFilters, setCurrentFilters] = useState({
+        dateRange: [
+            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+            new Date() // today
+        ],
+        siteId: 'all',
+        recordCount: 100
+    });
+    const [showFilterPopup, setShowFilterPopup] = useState(false);
 
     const vehicles = useSelector((state) => state.vehicle.vehicles);
     const employees = useSelector((state) => state.employee.employees);
@@ -57,7 +71,7 @@ export default function FuelRefill() {
 
     const [formData, setFormData] = useState({
         vehicleId: null,
-        manualFuelrefilAmount: null,
+        manualFuelrefillAmount: null,
         previousMeterReading: null,
         currentMeterReading: null,
         date: new Date().toISOString(),
@@ -99,22 +113,27 @@ export default function FuelRefill() {
         }
         return { isValid: true };
     };
-    const fetchData = useCallback(async () => {
+    //Cursor - Updated fetchData to use filters
+    const fetchData = useCallback(async (filters = currentFilters) => {
         try {
+            setLoading(true);
 
             await Promise.all([
-                dispatch(fetchFuelRefills(take)),
+                dispatch(fetchFuelRefills(filters.recordCount, filters.dateRange, filters.siteId)),
                 dispatch(fetchVehicleList()),
-                dispatch(fetchEmployees()),
+               dispatch(fetchEmployees()),
                 dispatch(fetchSiteList()),
-                dispatch(fetchpermissionbyUserId(user.id)),
+              dispatch(fetchpermissionbyUserId(user.id)),
                 dispatch(fetchTanks()),
-                dispatch(fetchUsers())
+                 dispatch(fetchUsers())
             ]);
         } catch (error) {
             console.error('Error fetching data:', error);
+            notify('Error fetching data', 'error', 3000);
+        } finally {
+            setLoading(false);
         }
-    },  [dispatch, user.id,take]);
+    }, [dispatch, user.id, currentFilters]);
 
     useEffect(() => {
         fetchData();
@@ -207,14 +226,28 @@ export default function FuelRefill() {
         }
     }, [dispatch]);
 
+    const onRowRemoving = useCallback((e) => {
+        const dialog = confirm(
+            '<i class="fa-light fa-trash tw-text-red-600 tw-mr-2"></i>' +
+            '<span class="tw-text-lg">Are you sure you want to delete this record?</span>',
+            'Delete Fuel Refill'
+        );
+        e.cancel = dialog.then((result) => !result);
+    }, []);
 
-    const handleTakeChange = (e) => {
-        setTake(e.value);
-    };
+    //Cursor - Filter application handler
+    const handleApplyFilter = useCallback(async (newFilters) => {
+        setCurrentFilters(newFilters);
+        await fetchData(newFilters);
+        notify('Filters applied successfully', 'success', 2000);
+    }, [fetchData]);
 
-    const applyTake = () => {
-        fetchData();
-    };
+    //Cursor - Quick action handler
+    const handleQuickAction = useCallback(async (actionData) => {
+        console.log('Quick action executed:', actionData);
+        // Refresh data after action
+        await fetchData();
+    }, [fetchData]);
 
 
 
@@ -226,7 +259,7 @@ export default function FuelRefill() {
     const refresh = useCallback(() => {
         gridRef.current?.instance.refresh();
         fetchData()
-    }, []);
+    }, [fetchData]);
 
     const handleFieldChange = (e) => {
         const { dataField, value } = e;
@@ -364,6 +397,15 @@ const handleTankChange = (e) => {
         }
     }, []);
 
+    //Cursor - Display current filter information
+    const getFilterSummary = () => {
+        const siteInfo = currentFilters.siteId === 'all'
+            ? 'All Sites'
+            : sites.find(s => s.id === currentFilters.siteId)?.name || 'Unknown';
+        const dateInfo = `${currentFilters.dateRange[0].toLocaleDateString()} - ${currentFilters.dateRange[1].toLocaleDateString()}`;
+        return `Showing ${currentFilters.recordCount} records | ${siteInfo} | ${dateInfo}`;
+    };
+
     if (loading || saving) {
         return (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -379,6 +421,26 @@ const handleTankChange = (e) => {
 
 
             <h2 className={'content-block'}>Manual Fuel Refill</h2>
+
+            {/* Cursor - Filter summary display */}
+            <div className="tw-mb-4 tw-px-4 tw-py-2 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
+                <div className="tw-flex tw-items-center tw-justify-between">
+                    <div className="tw-text-sm tw-text-blue-800">
+                        <i className="fa-light fa-filter tw-mr-2"></i>
+                        {getFilterSummary()}
+                    </div>
+                    <Button
+                        text="Modify Filters"
+                        icon="fa-light fa-edit"
+                        stylingMode="text"
+                        onClick={() => setShowFilterPopup(true)}
+                        elementAttr={{
+                            class: 'tw-text-blue-600 hover:tw-text-blue-800'
+                        }}
+                    />
+                </div>
+            </div>
+
             <div className={'content-block'}>
                 <DataGrid
                     ref={gridRef}
@@ -393,6 +455,7 @@ const handleTankChange = (e) => {
                     // onRowInserted={onRowInserted}
                     // onRowUpdated={onRowUpdated}
                      onRowRemoved={onRowRemoved}
+                    onRowRemoving={onRowRemoving}
                     onSaving={onSaving}
                     onEditorPreparing={onEditorPreparing}
                     onExporting={onExporting}
@@ -424,7 +487,7 @@ const handleTankChange = (e) => {
                         selectTextOnEditStart={true}
                         startEditAction="dblClick"
                         newRowPosition={'first'}
-
+                        confirmDelete={false}
                     >
                      <Popup title="Add Fuel Refill"  showTitle={true} width={800} />
 
@@ -472,7 +535,7 @@ const handleTankChange = (e) => {
                                 <FItem dataField="currentMeterReading" editorType="dxNumberBox" />
                                 <FItem dataField="previousMeterReading" editorType="dxNumberBox" />
 
-                                <FItem dataField="manualFuelrefilAmount" editorType="dxNumberBox">
+                                <FItem dataField="manualFuelrefillAmount" editorType="dxNumberBox">
                                     <RequiredRule />
                                 </FItem>
                             </FItem>
@@ -495,21 +558,25 @@ const handleTankChange = (e) => {
                                 visible ={canCreate}
                             />
                         </TItems>
+                        {/* Cursor - Replace take/apply with filter button */}
                         <TItems location="after" locateInMenu="auto">
-                            <NumberBox
-                                value={take}
-                                onValueChanged={handleTakeChange}
-                                min={1}
-                                max={1000000}
-                                showSpinButtons={true}
-                                width={100}
-                            />
-                            </TItems>
-                             <TItems location="after" locateInMenu="auto">
                             <Button
-                                text="Apply"
-                                onClick={applyTake}
-                                stylingMode="contained"
+                                text="Filter Records"
+                                icon="fa-light fa-filter"
+                                stylingMode="outlined"
+                                onClick={() => setShowFilterPopup(true)}
+                                hint="Filter records by date, site, and count"
+                            />
+                        </TItems>
+
+                        {/* Cursor - Add Quick Actions Menu */}
+                        <TItems location="after" locateInMenu="auto">
+                            <QuickActionsMenu
+                                onActionComplete={handleQuickAction}
+                                selectedSite={currentFilters.siteId}
+                                sites={sites}
+                                tanks={tanks}
+                                permissions={permissions}
                             />
                         </TItems>
                         <TItems
@@ -554,7 +621,7 @@ const handleTankChange = (e) => {
                     </Column>
 
 
-                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" minWidth={100}>
+                    <Column dataField="manualFuelrefillAmount" caption="Fuel Amount" dataType="number" minWidth={100}>
                     </Column>
                     <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>
                     </Column>
@@ -581,22 +648,16 @@ const handleTankChange = (e) => {
 
                   <Column dataField="dateCreated" caption="Date Created"  dataType="Date"  defaultSortOrder="asc" cellRender={formatDateTime} />
                 </DataGrid>
-                {/* {formVisible && (
-                <FormPopup
-                    title="Add Fuel Refill"
-                    visible={formVisible}
-                    setVisible={setFormVisible}
-                    onSave={handleFormSave}
-                    width={800}
-
-                >
-                    <ManualFuelRefillForm
-                        initData={formData}
-                        onDataChanged={handleFormDataChange}
-                    />
-                </FormPopup>
-            )} */}
             </div>
+
+            {/* Cursor - Filter Popup Component */}
+            <FilterPopup
+                visible={showFilterPopup}
+                onHiding={() => setShowFilterPopup(false)}
+                onApplyFilter={handleApplyFilter}
+                sites={sites}
+                initialFilters={currentFilters}
+            />
 
         </div>
     );

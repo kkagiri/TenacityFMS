@@ -53,7 +53,7 @@ public class FuelRefillSummaryQueryHandler : IRequestHandler<FuelRefillSummaryQu
                     VehicleName = g.Key.HyoungNo,
                     SiteName = g.Key.SiteName,
                     RefillCount = g.Count(),
-                    TotalRefillAmount = g.Sum(x => x.fr.ManualFuelrefilAmount ?? 0),
+                    TotalRefillAmount = g.Sum(x => x.fr.ManualFuelrefillAmount ?? 0),
                     DistanceOrEngineHours = g.Sum(x => x.fr.CurrentMeterReading ?? 0) - g.Sum(x => x.fr.PreviousMeterReading ?? 0)
                 })
                 .ToListAsync(cancellationToken);

@@ -13,7 +13,14 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
 
-public record FuelRefillGetListQuery (int Take = 100, int Skip = 0) : IRequest<List<FuelRefilDTO>>;
+//Cursor - Enhanced FuelRefillGetListQuery with filtering support
+public record FuelRefillGetListQuery (
+    int Take = 100,
+    int Skip = 0,
+    DateTime? StartDate = null,
+    DateTime? EndDate = null,
+    int? SiteId = null
+) : IRequest<List<FuelRefilDTO>>;
 
 public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQuery, List<FuelRefilDTO>> {
 
@@ -27,16 +34,38 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
         _mapper = mapper;
     }
 
+    //Cursor - Enhanced Handle method with filtering support
     public async Task<List<FuelRefilDTO>> Handle (FuelRefillGetListQuery request, CancellationToken cancellationToken) {
         try {
-            var fuelRefils = await _context.FuelRefills.OrderByDescending (x => x.Date)
-                .Skip (request.Skip).Take (request.Take)
+            var query = _context.FuelRefills.AsQueryable ();
+
+            // Apply date range filter
+            if (request.StartDate.HasValue) {
+                query = query.Where (f => f.Date >= request.StartDate.Value);
+            }
+
+            if (request.EndDate.HasValue) {
+                // Add one day to include records from the end date
+                var endDate = request.EndDate.Value.AddDays (1);
+                query = query.Where (f => f.Date < endDate);
+            }
+
+            // Apply site filter
+            if (request.SiteId.HasValue) {
+                query = query.Where (f => f.SiteId == request.SiteId.Value);
+            }
+
+            var fuelRefils = await query
+                .OrderByDescending (x => x.Date)
+                .Skip (request.Skip)
+                .Take (request.Take)
                 .ToListAsync (cancellationToken);
 
             var fuelRefilDTOs = _mapper.Map<List<FuelRefilDTO>> (fuelRefils);
             return fuelRefilDTOs;
         } catch (Exception ex) {
-            _logger.LogError (ex, "Error fetching fuel refil data");
+            _logger.LogError (ex, "Error fetching fuel refil data with filters. StartDate: {StartDate}, EndDate: {EndDate}, SiteId: {SiteId}",
+                request.StartDate, request.EndDate, request.SiteId);
             throw new Exception (ex.Message);
         }
     }

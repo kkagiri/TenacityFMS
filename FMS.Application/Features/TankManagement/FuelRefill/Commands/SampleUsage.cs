@@ -60,7 +60,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
                     VehicleId = request.VehicleId,
                     TankId = request.TankId,
                     Date = request.RefillDate,
-                    ManualFuelrefilAmount = request.Amount,
+                    ManualFuelrefillAmount = request.Amount,
                     DateCreated = DateTime.UtcNow,
                     // CreatedBy = request.UserId
                 };
@@ -129,7 +129,7 @@ namespace FMS.Application.Command.DatabaseCommand.FuelRefillCommand {
 
                 // Update fuel refill
                 fuelRefill.Date = request.RefillDate;
-                fuelRefill.ManualFuelrefilAmount = request.NewAmount;
+                fuelRefill.ManualFuelrefillAmount = request.NewAmount;
                 fuelRefill.DateModified = DateTime.UtcNow;
                 fuelRefill.ModifiedBy = request.UserId;
 

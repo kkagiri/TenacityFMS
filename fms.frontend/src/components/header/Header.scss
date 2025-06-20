@@ -24,44 +24,65 @@
 }
 
 
+// Cursor - Added styling for Hyoung FMS title
+.hyoung-fms-title .dx-item-content {
+  padding: 0 15px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
 .header-title .dx-item-content {
   padding: 0;
   margin: 0;
 }
 
 .notification-item {
-  z-index: 1050;
-  margin-right: 12px;
-  position: relative;
+  // z-index: 1050;
+  // margin-right: 10px;
+  // position: relative;
 
-  .header-notification-wrapper {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    position: relative;
-    padding: 0 2px;
+  // .header-notification-wrapper {
+  //   height: 100%;
+  //   display: flex;
+  //   align-items: center;
+  //   position: relative;
+  //   padding: 0 2px;
 
-    .notification-center {
-      display: flex;
-      align-items: center;
-      height: 100%;
-    }
+  //   .notification-center {
+  //     display: flex;
+  //     align-items: center;
+  //     height: 100%;
+  //   }
 
-    .notification-popover {
-      right: -8px;
-    }
-  }
+  //   .notification-popover {
+  //     right: -8px;
+  //   }
+  // }
 
-  .dx-item-content {
-    height: 100%;
-  }
+  // .dx-item-content {
+  //   height: 100%;
+  // }
 }
 
+// Cursor - Updated user panel styling for icon-only button
 .user-panel-item {
   z-index: 5;
+  margin-right: 12px;
 
   .dx-item-content {
     height: 100%;
+  }
+
+  .user-button {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
   }
 }
 

@@ -1,0 +1,51 @@
+
+.quick-actions-dropdown {
+    .dx-dropdownbutton {
+      .dx-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+
+        &:hover {
+          background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+          border-color: #5a67d8;
+        }
+
+        .dx-button-content {
+          .dx-icon {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+
+    .dx-overlay-content {
+      .dx-popup-content {
+        padding: 0;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .dx-list {
+        .dx-list-item {
+          padding: 12px 16px;
+          border-bottom: 1px solid #f1f5f9;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background-color: #f8fafc;
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .dx-list-item-content {
+            .dx-icon {
+              margin-right: 8px;
+              font-size: 16px;
+            }
+          }
+        }
+      }
+    }
+  }

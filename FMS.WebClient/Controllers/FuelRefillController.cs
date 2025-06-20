@@ -89,11 +89,17 @@ public class FuelRefillController : ControllerBase {
         return Ok (summary);
     }
 
+    //Cursor - Enhanced GetFuelRefilList with filtering support
+    [HttpGet]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> GetFuelRefilList (int take = 100, int skip = 0) {
+    public async Task<IActionResult> GetFuelRefilList (
+        int take = 100,
+        int skip = 0, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? siteId = null) {
+
         var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
         if (!hasPermission) return Forbid ();
-        var fuelRefil = await _mediator.Send (new FuelRefillGetListQuery (take, skip));
+
+        var fuelRefil = await _mediator.Send (new FuelRefillGetListQuery (take, skip, startDate, endDate, siteId));
         if (fuelRefil == null) return NoContent ();
         return Ok (fuelRefil);
     }

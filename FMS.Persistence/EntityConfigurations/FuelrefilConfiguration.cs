@@ -43,7 +43,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.IsModified)
                     .HasDefaultValueSql ("'0'")
                     .HasColumnType ("tinyint(4)");
-                builder.Property (e => e.ManualFuelrefilAmount).HasPrecision (10);
+                builder.Property (e => e.ManualFuelrefillAmount).HasPrecision (10).HasColumnName ("ManualFuelrefilAmount");
                 builder.Property (e => e.PreviousMeterReading).HasPrecision (10);
                 builder.Property (e => e.PumpTranscationId)
                     .HasColumnType ("int(11)")

@@ -3,7 +3,10 @@ import Button from "devextreme-react/button";
 import Toolbar, { Item } from "devextreme-react/toolbar";
 import { Popup, ToolbarItem } from "devextreme-react/popup";
 import { SelectBox } from "devextreme-react/select-box";
+import { DateRangeBox } from "devextreme-react/date-range-box";
+import { CheckBox } from "devextreme-react/check-box";
 import "./toolbarAnalytics.scss";
+import "./filterPopup.scss";
 import notify from "devextreme/ui/notify";
 import OpeningStockForm from "./../tankStock/OpeningStockForm";
 import ClosingStockForm from "./../tankStock/ClosingStockForm";
@@ -11,6 +14,7 @@ import TankDeliveryForm from "../deliveryForms/TankDeliveryForm";
 import TankTransferForm from "../tanktransfer/tankTransferForm";
 import ScrollView from "devextreme-react/scroll-view";
 import DropDownButton from "devextreme-react/drop-down-button";
+import { DatePeriods } from "../Shared/datePeriods";
 
 const POPUP_CONFIG = {
   openingStock: {
@@ -56,12 +60,15 @@ export const ToolbarAnalytics = ({
   onSiteChange,
   selectedSite,
   isLoading,
+  onDateRangeChange,  //Cursor: Added new prop for date range change
+  onFilterChange,     //Cursor: Added new prop for filter change
 }) => {
   const [popupVisibility, setPopupVisibility] = useState({
     openingStock: false,
     closingStock: false,
     delivery: false,
     transfer: false,
+    filter: false,  //Cursor: Added filter popup visibility
   });
   const [currentForm, setCurrentForm] = useState(null);
   const [formData, setFormData] = useState({
@@ -70,6 +77,24 @@ export const ToolbarAnalytics = ({
     delivery: {},
     transfer: {},
   });
+
+  //Cursor: Added filter state management
+  const [filterState, setFilterState] = useState(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    return {
+      selectedDatePreset: 'Yesterday',
+      customDateRange: [yesterday, yesterday],
+      selectedSite: selectedSite || 'all',
+      activeFilter: 'Yesterday'
+    };
+  });
+
+
+
+  //Cursor: Get date periods from utility
+  const datePeriods = DatePeriods();
 
   const stockManagementItems = [
     {
@@ -106,6 +131,85 @@ export const ToolbarAnalytics = ({
     setPopupVisibility((prev) => ({ ...prev, [popupName]: isVisible }));
     setCurrentForm(isVisible ? popupName : null);
   };
+
+  //Cursor: Added filter popup visibility handler
+  const handleFilterPopup = useCallback(() => {
+    setPopupVisibility((prev) => ({ ...prev, filter: !prev.filter }));
+  }, []);
+
+  //Cursor: Added date preset change handler
+  const handleDatePresetChange = useCallback((presetName, isChecked) => {
+    if (isChecked) {
+      const period = datePeriods[presetName];
+      const [startDate, endDate] = period.period.split('/').map(dateStr => new Date(dateStr));
+
+      setFilterState(prev => ({
+        ...prev,
+        selectedDatePreset: presetName,
+        customDateRange: [startDate, endDate],
+        activeFilter: presetName
+      }));
+    }
+  }, [datePeriods]);
+
+  //Cursor: Added custom date range change handler
+  const handleCustomDateRangeChange = useCallback((e) => {
+    if (e.value && e.value.length === 2) {
+      setFilterState(prev => ({
+        ...prev,
+        customDateRange: e.value,
+        selectedDatePreset: '',
+        activeFilter: 'Custom Range'
+      }));
+    }
+  }, []);
+
+  //Cursor: Added site filter change handler
+  const handleSiteFilterChange = useCallback((e) => {
+    setFilterState(prev => ({
+      ...prev,
+      selectedSite: e.value
+    }));
+  }, []);
+
+  //Cursor: Added apply filter handler
+  const handleApplyFilter = useCallback(() => {
+    const { customDateRange, selectedSite } = filterState;
+
+    // Notify parent components of filter changes
+    if (onDateRangeChange) {
+      onDateRangeChange(customDateRange);
+    }
+
+    if (onSiteChange) {
+      onSiteChange({ value: selectedSite });
+    }
+
+    if (onFilterChange) {
+      onFilterChange({
+        dateRange: customDateRange,
+        site: selectedSite,
+        activeFilter: filterState.activeFilter
+      });
+    }
+
+    setPopupVisibility(prev => ({ ...prev, filter: false }));
+    notify("Filters applied successfully", "success", 2000);
+  }, [filterState, onDateRangeChange, onSiteChange, onFilterChange]);
+
+  //Cursor: Added filter summary generator
+  const getFilterSummary = useCallback(() => {
+    const { activeFilter, selectedSite, customDateRange } = filterState;
+    const siteName = sites.find(site => site.id === selectedSite)?.name || 'All Sites';
+
+    if (activeFilter === 'Custom Range' && customDateRange.length === 2) {
+      const startDate = customDateRange[0].toLocaleDateString();
+      const endDate = customDateRange[1].toLocaleDateString();
+      return `${siteName} | ${startDate} - ${endDate}`;
+    }
+
+    return `${siteName} | ${activeFilter}`;
+  }, [filterState, sites]);
 
   const validateOpeningClosingStock = (data) => {
     // Add closing stock specific validations
@@ -273,6 +377,105 @@ export const ToolbarAnalytics = ({
     [handleSubmit, isLoading]
   );
 
+  //Cursor: Added filter popup renderer
+  const renderFilterPopup = () => (
+    <Popup
+      visible={popupVisibility.filter}
+      onHiding={() => setPopupVisibility(prev => ({ ...prev, filter: false }))}
+      dragEnabled={false}
+      showTitle={true}
+      title="Filter Options"
+      showCloseButton={true}
+      width="400px"
+      height="auto"
+      position={{ my: "center", at: "center", of: window }}
+    >
+      <ScrollView height="auto">
+        <div className="tw-p-4">
+          {/* Site Selection */}
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-mb-2">Site</label>
+            <SelectBox
+              dataSource={siteOptions}
+              displayExpr="name"
+              valueExpr="id"
+              value={filterState.selectedSite}
+              onValueChanged={handleSiteFilterChange}
+              width="100%"
+              placeholder="Select a site"
+            />
+          </div>
+
+          {/* Date Presets */}
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-mb-2">Quick Date Selection</label>
+            {Object.keys(datePeriods).map((presetName) => (
+              <div key={presetName} className="tw-mb-2">
+                <CheckBox
+                  text={presetName}
+                  value={filterState.selectedDatePreset === presetName}
+                  onValueChanged={(e) => handleDatePresetChange(presetName, e.value)}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Custom Date Range */}
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-mb-2">Custom Date Range</label>
+            <CheckBox
+              text="Custom Range"
+              value={filterState.activeFilter === 'Custom Range'}
+              onValueChanged={(e) => {
+                if (e.value) {
+                  setFilterState(prev => ({
+                    ...prev,
+                    selectedDatePreset: '',
+                    activeFilter: 'Custom Range'
+                  }));
+                }
+              }}
+              className="tw-mb-2"
+            />
+            <DateRangeBox
+              value={filterState.customDateRange}
+              onValueChanged={handleCustomDateRangeChange}
+              disabled={filterState.activeFilter !== 'Custom Range'}
+              width="100%"
+              startDatePlaceholder="Start Date"
+              endDatePlaceholder="End Date"
+            />
+          </div>
+        </div>
+      </ScrollView>
+
+      <ToolbarItem
+        widget="dxButton"
+        toolbar="bottom"
+        location="after"
+        options={{
+          text: "Cancel",
+          icon: "close",
+          type: "normal",
+          stylingMode: "contained",
+          onClick: () => setPopupVisibility(prev => ({ ...prev, filter: false })),
+        }}
+      />
+      <ToolbarItem
+        widget="dxButton"
+        toolbar="bottom"
+        location="after"
+        options={{
+          text: "Apply Filter",
+          icon: "check",
+          type: "success",
+          stylingMode: "contained",
+          onClick: handleApplyFilter,
+        }}
+      />
+    </Popup>
+  );
+
   const renderPopups = () => {
     return Object.entries(POPUP_CONFIG).map(
       ([key, { title, Form, width, maxWidth, height }]) => (
@@ -324,21 +527,7 @@ export const ToolbarAnalytics = ({
             {title}
           </span>
         </Item>
-        <Item location="before" locateInMenu="auto">
-          <SelectBox
-            dataSource={siteOptions}
-            displayExpr="name"
-            valueExpr="id"
-            value={selectedSite || "all"} // Set default to 'all' if selectedSite is empty
-            stylingMode="underlined"
-            searchEnabled={true}
-            searchMode="contains"
-            onValueChanged={onSiteChange}
-            width={200}
-            height="auto"
-            placeholder="Select a site"
-          />
-        </Item>
+
         {additionalToolbarContent}
 
         <Item location="after">
@@ -352,6 +541,22 @@ export const ToolbarAnalytics = ({
             keyExpr="key"
             stylingMode="contained"
           />
+        </Item>
+
+        {/* Cursor: Added filter summary and button */}
+        <Item location="after">
+          <div className="tw-flex tw-items-center tw-gap-2">
+            <span className="tw-text-xs tw-text-gray-600 tw-max-w-xs tw-truncate" title={getFilterSummary()}>
+              {getFilterSummary()}
+            </span>
+            <Button
+              text="Filter"
+              icon="fa-light fa-filter"
+              stylingMode="outlined"
+              onClick={handleFilterPopup}
+              type="normal"
+            />
+          </div>
         </Item>
 
         <Item
@@ -371,6 +576,8 @@ export const ToolbarAnalytics = ({
       </Toolbar>
       {children}
       {renderPopups()}
+      {/* Cursor: Added filter popup */}
+      {renderFilterPopup()}
     </div>
   );
 };

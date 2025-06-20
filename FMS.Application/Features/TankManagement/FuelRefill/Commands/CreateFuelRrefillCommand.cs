@@ -59,12 +59,12 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                         f.Date.Value.Date == fuelRefilDto.Date.Value.Date &&
                         f.PreviousMeterReading == fuelRefilDto.PreviousMeterReading &&
                         f.CurrentMeterReading == fuelRefilDto.CurrentMeterReading &&
-                        f.ManualFuelrefilAmount == fuelRefilDto.ManualFuelrefillAmount,
+                        f.ManualFuelrefillAmount == fuelRefilDto.ManualFuelrefillAmount,
                         cancellationToken);
 
                 if (existingRefuel != null) return new FMSResponseMessage (false, "Duplicate entry: A fuel refill with the same details already exists for this vehicle on the specified date.");
 
-                if (request.FuelRefilDTO.ManualFuelrefillAmount <= 0) return new FMSResponseMessage (false, "Fuel refill amount should be greater than 0.");
+                if (request.FuelRefilDTO.ManualFuelrefillAmount == null || request.FuelRefilDTO.ManualFuelrefillAmount <= 0) return new FMSResponseMessage (false, "Fuel refill amount should be greater than 0.");
 
                 var vehicle = await _context.Vehicles
                     .AsNoTracking ()
@@ -141,11 +141,11 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
 
                     if (entryDate.Date == today) {
                         // Final check to prevent negative stock (defensive programming)
-                        if (tank.CurrentStock == null || tank.CurrentStock - (decimal) fuelRefil.ManualFuelrefilAmount < 0) {
+                        if (tank.CurrentStock == null || tank.CurrentStock - (decimal) fuelRefil.ManualFuelrefillAmount < 0) {
                             return new FMSResponseMessage (false, "Operation would result in negative tank level. Cannot proceed.");
                         }
 
-                        tank.CurrentStock -= (decimal) fuelRefil.ManualFuelrefilAmount;
+                        tank.CurrentStock -= (decimal) fuelRefil.ManualFuelrefillAmount;
                         tank.LastStockUpdate = DateTime.Now;
                     }
                 }
@@ -157,7 +157,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessFuelRefillChangeAsync (
                     tankId: tank.Id,
                     timestamp: fuelRefilDto.Date.Value,
-                    volumeChange: -(decimal) fuelRefil.ManualFuelrefilAmount, // Negative because fuel is taken from the tank
+                    volumeChange: -(decimal) fuelRefil.ManualFuelrefillAmount, // Negative because fuel is taken from the tank
                     refillId : fuelRefil.Id,
                     actionType : ActionType.Create, // This is a new refill
                     recordedBy : fuelRefil.FuelBy,
@@ -168,7 +168,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                     // We continue even if volume history update fails, but log the error
                 }
 
-                return new FMSResponseMessage<Domain.Entities.FuelRefill>(true, "Fuel refill created successfully.", fuelRefil);
+                return new FMSResponseMessage<Domain.Entities.FuelRefill> (true, "Fuel refill created successfully.", fuelRefil);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error creating fuel refill");
                 return new FMSResponseMessage (false, ex.Message);

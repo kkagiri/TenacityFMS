@@ -44,7 +44,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                                 Id = f.Id,
                                 VehicleId = f.VehicleId,
                                 HyoungNO = v.HyoungNo,
-                                ManualFuelrefilAmount = f.ManualFuelrefilAmount,
+                                ManualFuelrefillAmount = f.ManualFuelrefillAmount,
                                 Date = f.Date,
                                 PreviousMeterReading = f.PreviousMeterReading,
                                 CurrentMeterReading = f.CurrentMeterReading,
@@ -70,15 +70,15 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 {
                     item.DistanceOrEngineHours = (item.CurrentMeterReading ?? 0) - (item.PreviousMeterReading ?? 0);
 
-                    if (item.ManualFuelrefilAmount.HasValue && item.ManualFuelrefilAmount > 0 && item.DistanceOrEngineHours > 0)
+                    if (item.ManualFuelrefillAmount.HasValue && item.ManualFuelrefillAmount > 0 && item.DistanceOrEngineHours > 0)
                     {
                         if (item.IsKmL)
                         {
-                            item.Consumption = Math.Round((decimal)item.DistanceOrEngineHours / item.ManualFuelrefilAmount.Value, 2);
+                            item.Consumption = Math.Round((decimal)item.DistanceOrEngineHours / item.ManualFuelrefillAmount.Value, 2);
                         }
                         else
                         {
-                            item.Consumption = Math.Round(item.ManualFuelrefilAmount.Value / (decimal)item.DistanceOrEngineHours, 2);
+                            item.Consumption = Math.Round(item.ManualFuelrefillAmount.Value / (decimal)item.DistanceOrEngineHours, 2);
                         }
                     }
                     else

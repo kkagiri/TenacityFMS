@@ -1,0 +1,38 @@
+//Cursor - Filter popup styles for manual fuel refill
+.filter-popup-content {
+  .dx-popup-content {
+    padding: 0;
+  }
+
+  .dx-daterangebox {
+    .dx-texteditor-input {
+      padding: 8px 12px;
+    }
+  }
+
+  .dx-selectbox,
+  .dx-numberbox {
+    .dx-texteditor-input {
+      padding: 8px 12px;
+    }
+  }
+
+  // Custom scrollbar for popup
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+}

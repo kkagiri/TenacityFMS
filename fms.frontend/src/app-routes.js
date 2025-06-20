@@ -30,6 +30,9 @@ import TankPage from "./pages/tank/tankPage";
 import SitePage from "./pages/site/sitePage";
 import PTSAutomationConfigPage from "./pages/PTSAutomationConfig/PTSAutomationConfigPage";
 import AutomatedReconciliationSystem from "./pages/automatedReconciliation/AutomatedReconciliationSystem";
+//Cursor - Mission Control enhanced versions
+import EnhancedTankStockDashboard from "./pages/tankStock/dashboard/EnhancedTankStockDashboard";
+import EnhancedAutomatedReconciliationSystem from "./pages/automatedReconciliation/EnhancedAutomatedReconciliationSystem";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -43,11 +46,13 @@ const resolvedComponents = (pageName) => {
       return TankPage;
     case "sites":
       return SitePage;
-    // case "tank stock":
-    //   return TankStockPage;
+    case "tank stock":
+     return TankStockPage;
     //Cursor - New tank stock page routes for Phase 1 redesign
     case "tank stock dashboard":
-      return TankStockDashboard;
+      return EnhancedTankStockDashboard;
+    // case "tank operations control":
+    //   return EnhancedTankStockDashboard;
     case "stock analytics":
       return StockAnalytics;
     case "stock management":
@@ -97,6 +102,8 @@ const resolvedComponents = (pageName) => {
       return PTSAutomationConfigPage;
     case "automated-reconciliation":
       return AutomatedReconciliationSystem;
+    case "reconciliation-mission-control":
+      return EnhancedAutomatedReconciliationSystem;
 
     case "unauthorized":
       return unauthorized;

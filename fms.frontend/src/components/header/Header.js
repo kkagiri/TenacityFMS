@@ -20,6 +20,10 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
         >
           <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
         </Item>
+
+
+
+
         <Item
           location={"before"}
           cssClass={"header-title"}
@@ -27,40 +31,39 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
           visible={!!title}
         />
 
-        <Item
-          location={"after"}
-          locateInMenu={"auto"}
-          menuItemTemplate={"deviceStatusTemplate"}
-        />
+
        {/* Todo: insert Theme selector . */}
 
+        {/* //Cursor - Notification bell positioned first on the right */}
         <Item
           location={"after"}
-          locateInMenu={"auto"}
-          cssClass={"notification-item"}
+          locateInMenu={"never"}
+ //          cssClass={"notification-item"} //this is causing the Icon to go on the left side//TODo: fix
         >
           <div className="header-notification-wrapper">
             <NotificationCenter />
           </div>
         </Item>
 
+        {/* //Cursor - Simplified user button to show only icon */}
         <Item
           location={"after"}
-          locateInMenu={"auto"}
+          // locateInMenu={"auto"}
           cssClass={"user-panel-item"}
         >
           <Button
             className={"user-button authorization"}
-            width={210}
-            height={"100%"}
+            icon="fa-light fa-user"
+            width={40}
+            height={40}
             stylingMode={"text"}
           >
             <UserPanel menuMode={"context"} />
           </Button>
         </Item>
-        <Template name={"userPanelTemplate"}>
+        {/* <Template name={"userPanelTemplate"}>
           <UserPanel menuMode={"list"} />
-        </Template>
+        </Template> */}
       </Toolbar>
     </header>
   );

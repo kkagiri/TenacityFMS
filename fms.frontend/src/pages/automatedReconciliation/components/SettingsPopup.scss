@@ -1,0 +1,146 @@
+.tw-settings-popup {
+  .dx-popup-content {
+    padding: 0;
+  }
+
+  .dx-toolbar {
+    border-top: 1px solid #e1e5e9;
+    background-color: #f8f9fa;
+  }
+}
+
+.tw-settings-tabs {
+  .dx-tabpanel-tabs {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e1e5e9;
+  }
+
+  .dx-tab {
+    color: #6c757d;
+    font-weight: 500;
+
+    &.dx-tab-selected {
+      color: #0d6efd;
+      border-bottom-color: #0d6efd;
+    }
+
+    &:hover {
+      color: #0d6efd;
+    }
+  }
+
+  .dx-tabpanel-container {
+    padding: 20px;
+  }
+}
+
+.tw-policy-form-popup {
+  .dx-popup-content {
+    padding: 0;
+  }
+
+  .dx-scrollview-content {
+    padding: 0;
+  }
+
+  .dx-toolbar {
+    border-top: 1px solid #e1e5e9;
+    background-color: #f8f9fa;
+  }
+}
+
+// DevExtreme component customizations for this page
+.dx-datagrid {
+  .dx-datagrid-headers {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e1e5e9;
+
+    .dx-header-row {
+      .dx-datagrid-table .dx-row > td {
+        font-weight: 600;
+        color: #495057;
+      }
+    }
+  }
+
+  .dx-row-alt {
+    background-color: #f8f9fa;
+  }
+
+  .dx-row:hover {
+    background-color: #e3f2fd;
+  }
+
+  .dx-command-edit {
+    .dx-link {
+      margin-right: 8px;
+    }
+  }
+}
+
+.dx-textbox,
+.dx-selectbox,
+.dx-numberbox,
+.dx-textarea {
+  &.dx-state-focused {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+}
+
+.dx-button {
+  &.dx-button-success {
+    background-color: #198754;
+    border-color: #198754;
+
+    &:hover {
+      background-color: #157347;
+      border-color: #146c43;
+    }
+  }
+
+  &.dx-button-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+
+    &:hover {
+      background-color: #c82333;
+      border-color: #bd2130;
+    }
+  }
+}
+
+.dx-switch {
+  &.dx-switch-on {
+    .dx-switch-container {
+      background-color: #0d6efd;
+    }
+  }
+}
+
+// Custom utility classes for consistent spacing
+.tw-settings-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.tw-settings-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+
+  i {
+    margin-right: 8px;
+    color: #6c757d;
+  }
+
+  h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+  }
+}

@@ -55,7 +55,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
                         if (vehicleRefills.Any())
                         {
-                            var totalFuelAmount = vehicleRefills.Sum(f => f.ManualFuelrefilAmount ?? 0);
+                            var totalFuelAmount = vehicleRefills.Sum(f => f.ManualFuelrefillAmount ?? 0);
                             var distanceOrEngineHours = v.AverageKmL
                                 ? vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0))
                                 : vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0));

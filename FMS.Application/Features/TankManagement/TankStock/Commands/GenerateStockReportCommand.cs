@@ -130,7 +130,7 @@ public class GenerateStockReportCommandHandler : IRequestHandler<GenerateStockRe
 
             var dispensed = await _context.FuelRefills
                 .Where (fr => fr.TankId == tank.Id && fr.Date >= request.StartDate && fr.Date <= request.EndDate)
-                .SumAsync (fr => fr.ManualFuelrefilAmount, cancellationToken);
+                .SumAsync (fr => fr.ManualFuelrefillAmount, cancellationToken);
 
             //Cursor - Fixed nullable property issues in summary report
             reportData.Add (new {
@@ -161,7 +161,7 @@ public class GenerateStockReportCommandHandler : IRequestHandler<GenerateStockRe
 
             var dispensed = await _context.FuelRefills
                 .Where (fr => fr.TankId == tank.Id && fr.Date >= request.StartDate && fr.Date <= request.EndDate)
-                .SumAsync (fr => fr.ManualFuelrefilAmount, cancellationToken);
+                .SumAsync (fr => fr.ManualFuelrefillAmount, cancellationToken);
 
             //Cursor - Fixed nullable property issues in variance report
             var openingStock = await _context.TankVolumeHistories
@@ -250,7 +250,7 @@ public class GenerateStockReportCommandHandler : IRequestHandler<GenerateStockRe
 
             //Cursor - Fixed nullable property issues in movement report
             var deliverySum = deliveries.Sum (d => d.ManualDeliveryAmount);
-            var refillSum = refills.Sum (fr => fr.ManualFuelrefilAmount ?? 0);
+            var refillSum = refills.Sum (fr => fr.ManualFuelrefillAmount ?? 0);
             var adjustmentSum = adjustments.Sum (a => a.VolumeChange);
 
             reportData.Add (new {

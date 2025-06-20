@@ -86,7 +86,7 @@ namespace FMS.Application.Queries.Handlers {
                         &&
                         ft.TagId == request.TagId &&
                         ft.DateCreated.Date == today)
-                    .SumAsync (ft => ft.ManualFuelrefilAmount ?? 0m, cancellationToken);
+                    .SumAsync (ft => ft.ManualFuelrefillAmount ?? 0m, cancellationToken);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error retrieving today's fuel taken for Tag {TagId}", request.TagId);
                 throw;
@@ -112,7 +112,7 @@ namespace FMS.Application.Queries.Handlers {
                     .Where (ft => ft.TagId == request.TagId &&
                         ft.DateCreated >= startOfMonth &&
                         ft.DateCreated <= endOfMonth)
-                    .SumAsync (ft => ft.ManualFuelrefilAmount ?? 0m, cancellationToken);
+                    .SumAsync (ft => ft.ManualFuelrefillAmount ?? 0m, cancellationToken);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error retrieving this month's fuel taken for Tag {TagId}", request.TagId);
                 throw;
