@@ -35,36 +35,33 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.TankFillingPercentage).HasColumnType("int(11)");
                 builder.Property(e => e.WaterHeight).HasColumnName("waterHeight");
 
-                // Many-to-many relationship with Alarm
-                builder.HasMany(d => d.Alarms).WithMany(p => p.TankMeasurements)
-                    .UsingEntity<Dictionary<string, object>>(
-                        "AlarmTankmeasurement",
-                        r => r.HasOne<Alarm>().WithMany()
-                            .HasForeignKey("AlarmId")
-                            .HasConstraintName("alarmmeasurement_alarm"),
-                        l => l.HasOne<Tankmeasurement>().WithMany()
-                            .HasForeignKey("TankMeasurementId")
-                            .HasConstraintName("alarmMeasurement_tankmeasurement"),
-                        j =>
-                        {
-                            j.HasKey("TankMeasurementId", "AlarmId")
-                                .HasName("PRIMARY")
-                                .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
-                            j.ToTable("alarm_tankmeasurement");
-                            j.HasIndex(new[] { "TankMeasurementId" }, "alarmMeasurement_tankmeasurement_idx");
-                            j.HasIndex(new[] { "AlarmId" }, "alarmmeasurement_alarm_idx");
-                            j.IndexerProperty<int>("TankMeasurementId")
-                                .HasColumnType("int(11)")
-                                .HasColumnName("tankMeasurementID");
-                            j.IndexerProperty<int>("AlarmId")
-                                .HasColumnType("int(11)")
-                                .HasColumnName("alarmID");
-                        });
+                //Cursor: Add new properties configuration
+                builder.Property(e => e.FuelGradeName)
+                    .HasMaxLength(45)
+                    .IsRequired(false);
+
+                builder.Property(e => e.TankId)
+                    .HasColumnType("int(11)")
+                    .IsRequired(false);
+
+                //Cursor: Add relationship to Tank entity
+                builder.HasOne(e => e.TankNavigation)
+                    .WithMany(e => e.Tankmeasurements)
+                    .HasForeignKey(e => e.TankId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Many-to-many relationship with Alarms
+                builder.HasMany(e => e.Alarms)
+                    .WithMany()
+                    .UsingEntity(
+                        "TankmeasurementAlarm",
+                        l => l.HasOne(typeof(Alarm)).WithMany().HasForeignKey("AlarmId"),
+                        r => r.HasOne(typeof(Tankmeasurement)).WithMany().HasForeignKey("TankmeasurementId"),
+                        j => j.HasKey("TankmeasurementId", "AlarmId"));
             }
-
-
             catch (Exception ex)
             {
+                Console.WriteLine($"Error configuring Tankmeasurement: {ex.Message}");
                 throw new Exception($"Error configuring TankmeasurementConfiguration: {ex.Message}", ex);
             }
         }

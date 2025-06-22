@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using FMS.Persistence.DataAccess;
 using FMS.Domain.Entities.enums;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
+using FMS.Application.Common.Constants;
+using FMS.Application.Services;
 
 namespace FMS.BackgroundServices.FMS
 {
@@ -49,30 +51,63 @@ namespace FMS.BackgroundServices.FMS
                 {
                     var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
                     var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                    var notificationService = scope.ServiceProvider.GetService<INotificationService>();
 
-                    var tanks = await context.Tanks
-                        .Where(t => t.UseBookKeeping == 1)
-                        .Where(x => !x.TankVolumeHistories.Any(tvh =>
-                            tvh.Timestamp.Date == DateTime.Now.Date &&
-                            tvh.ChangeReason == VolumeChangeReasonEnum.ClosingStock))
-                        .ToListAsync(stoppingToken);
-
-                    foreach (var tank in tanks)
+                    try
                     {
-                        var closingStock = await GetClosingStock(context, tank.Id, stoppingToken);
-                        if (closingStock.HasValue)
+                        await SendClosingStockExecutionStartNotificationAsync(notificationService, stoppingToken);
+
+                        var tanks = await context.Tanks
+                            .Where(t => t.UseBookKeeping == 1)
+                            .Where(x => !x.TankVolumeHistories.Any(tvh =>
+                                tvh.Timestamp.Date == DateTime.Now.Date &&
+                                tvh.ChangeReason == VolumeChangeReasonEnum.ClosingStock))
+                            .ToListAsync(stoppingToken);
+
+                        var successCount = 0;
+                        var failureCount = 0;
+
+                        foreach (var tank in tanks)
                         {
-                            await mediator.Send(new ClosingStockCommand(tank.Id, closingStock.Value, "6d1af84f-b86f-48c4-a70f-eed5dd5dbcea"), stoppingToken);
-                            _logger.LogInformation("Closing stock created for tank {TankId}", tank.Id);
+                            try
+                            {
+                                var closingStock = await GetClosingStock(context, tank.Id, stoppingToken);
+                                if (closingStock.HasValue)
+                                {
+                                    await mediator.Send(new ClosingStockCommand(tank.Id, closingStock.Value, SystemConstants.SystemUser.UserId), stoppingToken);
+                                    _logger.LogInformation("Closing stock created for tank {TankId}", tank.Id);
+                                    successCount++;
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Unable to determine closing stock for tank {TankId}", tank.Id);
+                                    failureCount++;
+
+                                    await SendClosingStockErrorNotificationAsync(notificationService, tank, "Unable to determine closing stock", stoppingToken);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error processing closing stock for tank {TankId}", tank.Id);
+                                failureCount++;
+
+                                await SendClosingStockErrorNotificationAsync(notificationService, tank, ex.Message, stoppingToken);
+                            }
                         }
-                        else
+
+                        if (failureCount > 0 || successCount > 0)
                         {
-                            _logger.LogWarning("Unable to determine closing stock for tank {TankId}", tank.Id);
+                            await SendClosingStockSummaryNotificationAsync(notificationService, successCount, failureCount, stoppingToken);
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Critical error in AutomatedClosingStockService");
+
+                        await SendClosingStockCriticalErrorNotificationAsync(notificationService, ex.Message, stoppingToken);
                     }
                 }
 
-                // Wait for a short period before the next iteration
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
         }
@@ -115,7 +150,140 @@ namespace FMS.BackgroundServices.FMS
 
             return null;
         }
+
+        private async Task SendClosingStockExecutionStartNotificationAsync(INotificationService notificationService, CancellationToken cancellationToken)
+        {
+            if (notificationService == null) return;
+
+            try
+            {
+                var request = new CreateNotificationRequest
+                {
+                    Type = "Info",
+                    Category = "System",
+                    Priority = "Low",
+                    Title = "Closing Stock Process Started",
+                    Message = "Daily closing stock process has started",
+                    TriggerSource = "AutomatedClosingStock",
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    Recipients = new List<CreateNotificationRecipientRequest>
+                    {
+                        new CreateNotificationRecipientRequest
+                        {
+                            UserId = "fuel-operations",
+                            DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
+                        }
+                    }
+                };
+
+                await notificationService.CreateNotificationAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send closing stock execution start notification");
+            }
+        }
+
+        private async Task SendClosingStockErrorNotificationAsync(INotificationService notificationService, Tank tank, string errorMessage, CancellationToken cancellationToken)
+        {
+            if (notificationService == null) return;
+
+            try
+            {
+                var request = new CreateNotificationRequest
+                {
+                    Type = "Alert",
+                    Category = "ClosingStock",
+                    Priority = "Medium",
+                    Title = "Closing Stock Error",
+                    Message = $"Error processing closing stock for tank {tank.Name}: {errorMessage}",
+                    TriggerSource = "AutomatedClosingStock",
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    TankId = tank.Id,
+                    SiteId = tank.SiteId,
+                    Recipients = new List<CreateNotificationRecipientRequest>
+                    {
+                        new CreateNotificationRecipientRequest
+                        {
+                            UserId = "fuel-operations",
+                            DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
+                        }
+                    }
+                };
+
+                await notificationService.CreateNotificationAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send closing stock error notification for tank {TankId}", tank.Id);
+            }
+        }
+
+        private async Task SendClosingStockSummaryNotificationAsync(INotificationService notificationService, int successCount, int failureCount, CancellationToken cancellationToken)
+        {
+            if (notificationService == null) return;
+
+            try
+            {
+                var priority = failureCount > 0 ? "Medium" : "Low";
+                var request = new CreateNotificationRequest
+                {
+                    Type = "Info",
+                    Category = "ClosingStock",
+                    Priority = priority,
+                    Title = "Closing Stock Process Summary",
+                    Message = $"Closing stock process completed. Success: {successCount}, Failed: {failureCount}",
+                    TriggerSource = "AutomatedClosingStock",
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    Recipients = new List<CreateNotificationRecipientRequest>
+                    {
+                        new CreateNotificationRecipientRequest
+                        {
+                            UserId = "fuel-operations",
+                            DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
+                        }
+                    }
+                };
+
+                await notificationService.CreateNotificationAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send closing stock summary notification");
+            }
+        }
+
+        private async Task SendClosingStockCriticalErrorNotificationAsync(INotificationService notificationService, string errorMessage, CancellationToken cancellationToken)
+        {
+            if (notificationService == null) return;
+
+            try
+            {
+                var request = new CreateNotificationRequest
+                {
+                    Type = "Alert",
+                    Category = "System",
+                    Priority = "Critical",
+                    Title = "Critical Closing Stock Service Error",
+                    Message = $"Automated Closing Stock Service encountered a critical error: {errorMessage}",
+                    TriggerSource = "AutomatedClosingStock",
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    Recipients = new List<CreateNotificationRecipientRequest>
+                    {
+                        new CreateNotificationRecipientRequest
+                        {
+                            UserId = SystemConstants.SystemAdministrator.UserId,
+                            DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email", "SMS" }
+                        }
+                    }
+                };
+
+                await notificationService.CreateNotificationAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send closing stock critical error notification");
+            }
+        }
     }
-
-
 }

@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Common.Constants;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -127,7 +128,7 @@ namespace FMS.Application.Services {
                     DiscrepancyAction = (int) DiscrepancyActionType.Alert,
                     IsActive = true,
                     CreatedOn = DateTime.UtcNow,
-                    CreatedBy = "System"
+                    CreatedBy = SystemConstants.Defaults.SystemCreatedBy
             };
         }
     }

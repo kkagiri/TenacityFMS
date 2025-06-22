@@ -66,7 +66,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                             {
                                 Id = v.VehicleId,
                                 VehicleId = v.VehicleId,
-                                HyoungNo = v.HyoungNo,
+                                HyoungNo = v.HyoungNo ?? string.Empty,
                                 Passenger = v.Passenger,
                                 VehicleType = v.VehicleType?.Name ?? "Unknown",
                                 WorkingSiteId = v.WorkingSiteId ?? 0,
@@ -81,7 +81,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         }
                         return null;
                     })
-                    .Where(dto => dto != null) // Filter out null results
+                    .OfType<ManualDispenseConsumptionDTO>()
                     .ToList();
 
                 return result;

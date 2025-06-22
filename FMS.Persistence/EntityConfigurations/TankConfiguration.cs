@@ -42,11 +42,26 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValueSql("'0'")
                     .HasColumnType("tinyint(4)");
 
+                //Cursor: Add FuelGradeId and FuelGradeName configuration
+                builder.Property(e => e.FuelGradeId)
+                    .HasColumnType("int(11)")
+                    .IsRequired(false);
+
+                builder.Property(e => e.FuelGradeName)
+                    .HasMaxLength(45)
+                    .IsRequired(false);
+
                 // Relationships
                 builder.HasOne(d => d.Site).WithMany(p => p.Tanks)
                     .HasForeignKey(d => d.SiteId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("Tank_site");
+
+                //Cursor: Add relationship to tank measurements
+                builder.HasMany(e => e.Tankmeasurements)
+                    .WithOne(e => e.TankNavigation)
+                    .HasForeignKey(e => e.TankId)
+                    .OnDelete(DeleteBehavior.SetNull);
             }
 
 

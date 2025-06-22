@@ -1,18 +1,26 @@
-name: Selective Deploy
+name: FMS CI/CD Pipeline
+
 on:
   push:
-    branches:
-      - productionv1
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # These can be set at repository level in GitHub secrets
+  DOTNET_VERSION: '8.0.x'
+  NODE_VERSION: '18.x'
+
 jobs:
   detect-changes:
     runs-on: [self-hosted, Windows, X64, HYFMS]
     outputs:
       frontend-changed: ${{ steps.check-changes.outputs.frontend-changed }}
       backend-changed: ${{ steps.check-changes.outputs.backend-changed }}
-      package-changed: ${{ steps.check-changes.outputs.package-changed }}
+      deployment-changed: ${{ steps.check-changes.outputs.deployment-changed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -20,10 +28,10 @@ jobs:
         id: check-changes
         run: |
           $changedFiles = git diff --name-only HEAD^ HEAD
+          Write-Host "Changed files:"
+          $changedFiles | ForEach-Object { Write-Host "  $_" }
 
           $frontendChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/*" }) -ne $null
-
-          # Improved backend change detection to include all backend projects
           $backendChanged = ($changedFiles | Where-Object {
             $_ -like "FMS.WebClient/*" -or
             $_ -like "FMS.Application/*" -or
@@ -31,232 +39,150 @@ jobs:
             $_ -like "FMS.Domain/*" -or
             $_ -like "FMS.Infrastructure/*" -or
             $_ -like "FMS.BackgroundServices/*" -or
-            $_ -like "FMS.Testing/*"
+            $_ -like "*.sln" -or
+            $_ -like "*.csproj"
           }) -ne $null
+          $deploymentChanged = ($changedFiles | Where-Object { $_ -like "FMS.Deployment/*" }) -ne $null
 
-          $packageChanged = ($changedFiles | Where-Object { $_ -like "fms.frontend/package*.json" }) -ne $null
-
-          Write-Host "::set-output name=frontend-changed::$frontendChanged"
-          Write-Host "::set-output name=backend-changed::$backendChanged"
-          Write-Host "::set-output name=package-changed::$packageChanged"
+          echo "frontend-changed=$frontendChanged" >> $env:GITHUB_OUTPUT
+          echo "backend-changed=$backendChanged" >> $env:GITHUB_OUTPUT
+          echo "deployment-changed=$deploymentChanged" >> $env:GITHUB_OUTPUT
 
           Write-Host "Frontend changed: $frontendChanged"
           Write-Host "Backend changed: $backendChanged"
-          Write-Host "Package files changed: $packageChanged"
+          Write-Host "Deployment changed: $deploymentChanged"
         shell: powershell
 
-  deploy-frontend-only:
+  build-and-test:
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed != 'True' }}
+    if: ${{ needs.detect-changes.outputs.frontend-changed == 'true' || needs.detect-changes.outputs.backend-changed == 'true' }}
     runs-on: [self-hosted, Windows, X64, HYFMS]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Check React frontend project
-        run: |
-          echo "Using pre-built React frontend"
-          if exist "fms.frontend" (
-            echo "fms.frontend directory found"
-          ) else (
-            echo "Warning: fms.frontend directory not found"
-          )
-        shell: cmd
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Deploy frontend
-        run: |
-          # Check if deploy script exists
-          IF EXIST "deploy.ps1" (
-            echo "Deploy script found at ./deploy.ps1"
+      - name: Setup Node.js
+        if: ${{ needs.detect-changes.outputs.frontend-changed == 'true' }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: fms.frontend/package-lock.json
 
-            # Run with error checking
-            powershell -File ./deploy.ps1 -frontendOnly
-            IF %ERRORLEVEL% NEQ 0 (
-              echo "Error: Frontend deployment failed with exit code %ERRORLEVEL%"
-              echo "Checking for deployment log..."
-              powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName }"
-              exit %ERRORLEVEL%
-            ) ELSE (
-              echo "Frontend deployment completed successfully"
-              echo "Recent deployment log:"
-              powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName -Tail 10 }"
-            )
-          ) ELSE (
-            echo "Error: deploy.ps1 not found in the repository root"
-            dir
-            exit 1
-          )
-        shell: cmd
+      - name: Restore .NET dependencies
+        if: ${{ needs.detect-changes.outputs.backend-changed == 'true' }}
+        run: dotnet restore Hyoung.Fms.sln
 
-  deploy-backend-only:
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.backend-changed == 'True' && needs.detect-changes.outputs.frontend-changed != 'True' }}
+      - name: Build .NET solution
+        if: ${{ needs.detect-changes.outputs.backend-changed == 'true' }}
+        run: dotnet build Hyoung.Fms.sln --configuration Release --no-restore
+
+      - name: Run .NET tests
+        if: ${{ needs.detect-changes.outputs.backend-changed == 'true' }}
+        run: dotnet test FMS.Testing --configuration Release --no-build --verbosity normal
+
+      - name: Install frontend dependencies
+        if: ${{ needs.detect-changes.outputs.frontend-changed == 'true' }}
+        working-directory: fms.frontend
+        run: npm ci
+
+      - name: Build frontend
+        if: ${{ needs.detect-changes.outputs.frontend-changed == 'true' }}
+        working-directory: fms.frontend
+        run: npm run build
+        env:
+          # Frontend environment variables from GitHub secrets
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+      - name: Run frontend tests
+        if: ${{ needs.detect-changes.outputs.frontend-changed == 'true' }}
+        working-directory: fms.frontend
+        run: npm test -- --coverage --watchAll=false
+
+  deploy-to-development:
+    needs: [detect-changes, build-and-test]
+    if: ${{ github.ref == 'refs/heads/develop' && (needs.detect-changes.outputs.frontend-changed == 'true' || needs.detect-changes.outputs.backend-changed == 'true') }}
     runs-on: [self-hosted, Windows, X64, HYFMS]
+    environment: development
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Check .NET Web API project
+      - name: Deploy to Development
         run: |
-          echo "Using pre-built .NET Web API project"
+          # Set environment variables for development
+          $env:ASPNETCORE_ENVIRONMENT = "Development"
+          $env:FMS_CONNECTION_STRING = "${{ secrets.DEV_CONNECTION_STRING }}"
+          $env:FMS_SMTP_SERVER = "${{ secrets.DEV_SMTP_SERVER }}"
+          $env:FMS_SMTP_USERNAME = "${{ secrets.DEV_SMTP_USERNAME }}"
+          $env:FMS_SMTP_PASSWORD = "${{ secrets.DEV_SMTP_PASSWORD }}"
 
-          # Check for all backend projects
-          set MISSING_PROJECTS=0
+          # Determine deployment type
+          $frontendOnly = "${{ needs.detect-changes.outputs.frontend-changed == 'true' && needs.detect-changes.outputs.backend-changed != 'true' }}"
+          $backendOnly = "${{ needs.detect-changes.outputs.backend-changed == 'true' && needs.detect-changes.outputs.frontend-changed != 'true' }}"
 
-          if not exist "FMS.WebClient" (
-            echo "Warning: FMS.WebClient directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.WebClient directory found"
-          )
+          # Run deployment
+          cd FMS.Deployment
+          if ($frontendOnly -eq "True") {
+            .\deployment.cmd -f -e development -v
+          } elseif ($backendOnly -eq "True") {
+            .\deployment.cmd -b -e development -v
+          } else {
+            .\deployment.cmd -e development -v
+          }
+        shell: powershell
 
-          if not exist "FMS.Application" (
-            echo "Warning: FMS.Application directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Application directory found"
-          )
-
-          if not exist "FMS.Persistence" (
-            echo "Warning: FMS.Persistence directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Persistence directory found"
-          )
-
-          if not exist "FMS.Domain" (
-            echo "Warning: FMS.Domain directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Domain directory found"
-          )
-
-          if not exist "FMS.Infrastructure" (
-            echo "Warning: FMS.Infrastructure directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Infrastructure directory found"
-          )
-
-          if %MISSING_PROJECTS% NEQ 0 (
-            echo "Warning: Some backend projects are missing, but continuing with deployment"
-          ) else (
-            echo "All required backend projects found"
-          )
-        shell: cmd
-
-      - name: Deploy backend
-        run: |
-          # Check if deploy script exists
-          IF EXIST "deploy.ps1" (
-            echo "Deploy script found at ./deploy.ps1"
-
-            # Run with error checking and additional parameters
-            powershell -File ./deploy.ps1 -backendOnly -verbose -skipHealthCheck
-            IF %ERRORLEVEL% NEQ 0 (
-              echo "Error: Backend deployment failed with exit code %ERRORLEVEL%"
-              echo "Checking for deployment log..."
-              powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName }"
-              exit %ERRORLEVEL%
-            ) ELSE (
-              echo "Backend deployment completed successfully"
-              echo "Recent deployment log:"
-              powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName -Tail 10 }"
-            )
-          ) ELSE (
-            echo "Error: deploy.ps1 not found in the repository root"
-            dir
-            exit 1
-          )
-        shell: cmd
-
-  deploy-both:
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed == 'True' }}
+  deploy-to-production:
+    needs: [detect-changes, build-and-test]
+    if: ${{ github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.frontend-changed == 'true' || needs.detect-changes.outputs.backend-changed == 'true') }}
     runs-on: [self-hosted, Windows, X64, HYFMS]
+    environment: production
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Check project directories
+      - name: Deploy to Production
         run: |
-          echo "Using pre-built projects"
+          # Set environment variables for production
+          $env:ASPNETCORE_ENVIRONMENT = "Production"
+          $env:FMS_CONNECTION_STRING = "${{ secrets.PROD_CONNECTION_STRING }}"
+          $env:FMS_SMTP_SERVER = "${{ secrets.PROD_SMTP_SERVER }}"
+          $env:FMS_SMTP_USERNAME = "${{ secrets.PROD_SMTP_USERNAME }}"
+          $env:FMS_SMTP_PASSWORD = "${{ secrets.PROD_SMTP_PASSWORD }}"
 
-          echo "Checking frontend project:"
-          if exist "fms.frontend" (
-            echo "fms.frontend directory found"
-          ) else (
-            echo "Warning: fms.frontend directory not found"
-          )
+          # Determine deployment type
+          $frontendOnly = "${{ needs.detect-changes.outputs.frontend-changed == 'true' && needs.detect-changes.outputs.backend-changed != 'true' }}"
+          $backendOnly = "${{ needs.detect-changes.outputs.backend-changed == 'true' && needs.detect-changes.outputs.frontend-changed != 'true' }}"
 
-          echo "Checking backend projects:"
-          set MISSING_PROJECTS=0
+          # Run deployment with rollback capability
+          cd FMS.Deployment
+          if ($frontendOnly -eq "True") {
+            .\deployment.cmd -f -e production -v -r
+          } elseif ($backendOnly -eq "True") {
+            .\deployment.cmd -b -e production -v -r
+          } else {
+            .\deployment.cmd -e production -v -r
+          }
+        shell: powershell
 
-          if not exist "FMS.WebClient" (
-            echo "Warning: FMS.WebClient directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.WebClient directory found"
-          )
-
-          if not exist "FMS.Application" (
-            echo "Warning: FMS.Application directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Application directory found"
-          )
-
-          if not exist "FMS.Persistence" (
-            echo "Warning: FMS.Persistence directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Persistence directory found"
-          )
-
-          if not exist "FMS.Domain" (
-            echo "Warning: FMS.Domain directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Domain directory found"
-          )
-
-          if not exist "FMS.Infrastructure" (
-            echo "Warning: FMS.Infrastructure directory not found"
-            set MISSING_PROJECTS=1
-          ) else (
-            echo "FMS.Infrastructure directory found"
-          )
-
-          if %MISSING_PROJECTS% NEQ 0 (
-            echo "Warning: Some backend projects are missing, but continuing with deployment"
-          ) else (
-            echo "All required backend projects found"
-          )
-        shell: cmd
-
-      - name: Run full deploy script
+      - name: Run post-deployment tests
         run: |
-          # Check if deploy script exists and show its path
-          IF EXIST "deploy.ps1" (
-            echo "Deploy script found at ./deploy.ps1"
-            powershell -Command "Get-ChildItem ./deploy.ps1 | Select-Object FullName, LastWriteTime, Length | Format-List"
+          # Wait for services to start
+          Start-Sleep -Seconds 30
 
-            # Execute the script with error checking
-            powershell -File ./deploy.ps1
-            IF %ERRORLEVEL% NEQ 0 (
-              echo "Error: Full deployment failed with exit code %ERRORLEVEL%"
-              echo "Checking for deployment log..."
-              powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName }"
-              exit %ERRORLEVEL%
-            ) ELSE (
-              echo "Full deployment completed successfully"
-              echo "Recent deployment log:"
-              powershell -Command "Get-ChildItem -Path './logs' -Filter 'deployment_log_*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { echo \"Log file: $_\"; Get-Content -Path $_.FullName -Tail 10 }"
-            )
-          ) ELSE (
-            echo "Error: deploy.ps1 not found in the repository root"
-            echo "Current directory contents:"
-            dir
+          # Test API health endpoint
+          $healthUrl = "${{ secrets.PROD_HEALTH_CHECK_URL }}"
+          try {
+            $response = Invoke-RestMethod -Uri $healthUrl -Method Get -TimeoutSec 30
+            Write-Host "Health check passed: $response"
+          } catch {
+            Write-Error "Health check failed: $_"
             exit 1
-          )
-        shell: cmd
+          }
+        shell: powershell

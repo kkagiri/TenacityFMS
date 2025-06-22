@@ -223,20 +223,20 @@ public class PolicyTriggerBackgroundService : BackgroundService
 }
 ```
 
-### Real-time Event Processing
+### Real-time Event Processing with Orchestration Integration
 ```csharp
 public async Task SubscribeToPolicyTriggersAsync(CancellationToken cancellationToken = default)
 {
     try {
         var channel = $"{POLICY_TRIGGER_CHANNEL_PREFIX}*";
-        await _redisSubscriber.SubscribeAsync(channel, (redisChannel, redisValue) => {
+        await _redisSubscriber.SubscribeAsync(channel, async (redisChannel, redisValue) => {
             try {
                 var triggerEvent = JsonSerializer.Deserialize<PolicyTriggerEvent>(redisValue);
                 _logger.LogInformation("Received policy trigger event for policy {PolicyId}: {Reason}",
                     triggerEvent.PolicyId, triggerEvent.TriggerReason);
 
-                // Integration point for immediate policy evaluation
-                // This could trigger the ReconciliationOrchestrationService directly
+                //Cursor - Integrated with ReconciliationOrchestrationService for real-time execution
+                await ProcessPolicyTriggerEventAsync(triggerEvent, cancellationToken);
 
             } catch (Exception ex) {
                 _logger.LogError(ex, "Error processing policy trigger event: {Message}", redisValue);
@@ -247,6 +247,73 @@ public async Task SubscribeToPolicyTriggersAsync(CancellationToken cancellationT
     } catch (Exception ex) {
         _logger.LogError(ex, "Error subscribing to policy trigger events");
         throw;
+    }
+}
+
+//Cursor - Process policy trigger event by executing the policy through AutomatedReconciliationService
+private async Task ProcessPolicyTriggerEventAsync(PolicyTriggerEvent triggerEvent, CancellationToken cancellationToken)
+{
+    try
+    {
+        _logger.LogInformation("Processing policy trigger for policy {PolicyId}: {Reason}",
+            triggerEvent.PolicyId, triggerEvent.TriggerReason);
+
+        // Create a new scope for scoped services
+        using var scope = _serviceProvider.CreateScope();
+        var automatedReconciliationService = scope.ServiceProvider.GetRequiredService<AutomatedReconciliationService>();
+
+        // Validate policy exists and is active
+        var policy = await _context.ReconciliationPolicies
+            .FirstOrDefaultAsync(p => p.Id == triggerEvent.PolicyId && p.IsActive, cancellationToken);
+
+        if (policy == null)
+        {
+            _logger.LogWarning("Policy {PolicyId} not found or inactive, ignoring trigger", triggerEvent.PolicyId);
+            return;
+        }
+
+        // Check if policy is event-driven
+        if (!string.Equals(policy.ExecutionType, "EventDriven", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Policy {PolicyId} is not event-driven (type: {ExecutionType}), ignoring trigger",
+                triggerEvent.PolicyId, policy.ExecutionType);
+            return;
+        }
+
+        // Check if there's already an execution in progress
+        var hasInProgressExecution = await _context.ReconciliationPolicyExecutions
+            .AnyAsync(e => e.PolicyId == triggerEvent.PolicyId &&
+                e.Status == ReconciliationExecutionStatus.InProgress, cancellationToken);
+
+        if (hasInProgressExecution)
+        {
+            _logger.LogInformation("Policy {PolicyId} already has an execution in progress, skipping trigger",
+                triggerEvent.PolicyId);
+            return;
+        }
+
+        // Execute the policy
+        _logger.LogInformation("Executing triggered policy {PolicyId}", triggerEvent.PolicyId);
+        var executionResult = await automatedReconciliationService.ExecuteSinglePolicyAsync(
+            triggerEvent.PolicyId, cancellationToken);
+
+        if (executionResult.Success)
+        {
+            _logger.LogInformation("Successfully executed triggered policy {PolicyId}. Discrepancies found: {DiscrepanciesFound}, resolved: {DiscrepanciesResolved}",
+                triggerEvent.PolicyId, executionResult.DiscrepanciesFound, executionResult.DiscrepanciesResolved);
+
+            // Mark triggers as processed
+            await MarkTriggersProcessedAsync(triggerEvent.PolicyId, cancellationToken);
+        }
+        else
+        {
+            _logger.LogError("Failed to execute triggered policy {PolicyId}: {ErrorMessage}",
+                triggerEvent.PolicyId, executionResult.ErrorMessage);
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error processing policy trigger event for policy {PolicyId}", triggerEvent.PolicyId);
     }
 }
 ```
@@ -322,6 +389,26 @@ services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
 - Pending trigger queue lengths
 - Subscription status monitoring
 
+## Orchestration Integration Benefits
+
+### Real-time Policy Execution
+- **Immediate Response**: Event-driven policies execute immediately when triggered
+- **Automatic Validation**: Policy validation and duplicate prevention built-in
+- **Complete Integration**: Full integration with AutomatedReconciliationService workflow
+- **Comprehensive Logging**: Detailed execution tracking and metrics
+
+### Event Flow
+```
+Redis Trigger Event → PolicyTriggerService → AutomatedReconciliationService → ReconciliationOrchestrationService → Tank Reconciliation
+```
+
+### Key Features
+1. **Policy Validation**: Verifies policy exists and is event-driven
+2. **Execution Prevention**: Prevents duplicate executions
+3. **Scope Isolation**: Uses dependency injection scopes for clean service lifecycle
+4. **Error Handling**: Comprehensive error handling and logging
+5. **Trigger Management**: Automatic trigger cleanup after successful execution
+
 ## Performance Considerations
 
 ### Optimization Strategies
@@ -329,9 +416,11 @@ services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
 2. **Batch Processing**: Group multiple triggers when possible
 3. **TTL Management**: Automatic cleanup of expired triggers
 4. **Channel Partitioning**: Use specific channels per policy type
+5. **Service Scoping**: Proper DI scope management for scalability
 
 ### Scaling Considerations
 - Horizontal scaling through Redis clustering
 - Load balancing across multiple service instances
 - Message deduplication for exactly-once delivery
 - Monitoring queue depths and processing rates
+- Background service health monitoring and notification

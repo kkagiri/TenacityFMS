@@ -16,8 +16,8 @@ FMS.PTS.WindowsService/         // Windows service for PTS integration and backg
 FMS.Persistence/                // Data access, repositories, and persistence logic (files not yet listed)
 FMS.Deployment/                 // Deployment scripts, configs, and automation for FMS (files not yet listed)
 FMS.BackgroundServices/         // Background jobs, schedulers, and hosted services (files no
-
-if you have created the file - on applying the code if there is no content do not repeat the file eatino or deletetion , just continue with the excution of other files .
+check first in documentation if there is details (file name ) contains the query you are being ask . Other system like notifications that you have to implement is a must read . ASk use if to implement notification if need be .
+if you have created the file - on applying the code if there is no content do not repeat the file creation or deletetion , just continue with the execution of other files .
 
 if you are in ask mode always indicate location of the file you intend to create ..
 After finishing task expect for bugs write or update document in the documentation folder with feature if you have created a new file , update on process .if you create a new persistence that has to be saved in database entity fms.domain always make sure that its has a entity configuration file in fms .persistence and add it to gpsdatacontext , also create the myslq syntax but do not create the file holding the syntax

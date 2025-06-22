@@ -1,217 +1,286 @@
-// using System;
-// using System.Linq;
-// using System.Threading;
-// using System.Threading.Tasks;
-// using FMS.Domain.Entities;
-// using FMS.Domain.Events;
-// using FMS.Persistence.DataAccess;
-// using MediatR;
-// using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FMS.Application.Features.TankManagement.Services;
+using FMS.Domain.Entities;
+using FMS.Domain.Events;
+using FMS.Persistence.DataAccess;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-// namespace FMS.Application.Services.AutomatedReconciliation;
+namespace FMS.Application.Services.AutomatedReconciliation;
 
-// //Cursor - DiscrepancyDetectionService with configurable thresholds and event publishing
-// public class DiscrepancyDetectionService {
-//     //Cursor - Configurable constants moved to private readonly fields
-//     private readonly decimal _defaultVarianceThresholdLiters = 1.0m;
-//     private readonly decimal _defaultVarianceThresholdPercentage = 1.0m;
+//Cursor - DiscrepancyDetectionService with configurable thresholds and event publishing
+public class DiscrepancyDetectionService {
+    //Cursor - Configurable constants moved to private readonly fields
+    private readonly decimal _defaultVarianceThresholdLiters = 1.0m;
+    private readonly decimal _defaultVarianceThresholdPercentage = 1.0m;
 
-//     private readonly ILogger<DiscrepancyDetectionService> _logger;
-//     private readonly IMediator _mediator;
-//     private readonly GpsdataContext _context;
+    private readonly ILogger<DiscrepancyDetectionService> _logger;
+    private readonly IMediator _mediator;
+    private readonly GpsdataContext _context;
+    private readonly InventoryCostingService _costingService;
 
-//     public DiscrepancyDetectionService (
-//         ILogger<DiscrepancyDetectionService> logger,
-//         IMediator mediator,
-//         GpsdataContext context) {
-//         _logger = logger;
-//         _mediator = mediator;
-//         _context = context;
-//     }
+    public DiscrepancyDetectionService (
+        ILogger<DiscrepancyDetectionService> logger,
+        IMediator mediator,
+        GpsdataContext context,
+        InventoryCostingService costingService) {
+        _logger = logger;
+        _mediator = mediator;
+        _context = context;
+        _costingService = costingService;
+    }
 
-//     //Cursor - Enhanced discrepancy detection with configurable thresholds
-//     public async Task<DiscrepancyDetectionResult> DetectDiscrepancies (
-//         Tank tank,
-//         ReconciliationPolicy policy,
-//         CancellationToken cancellationToken = default) {
-//         try {
-//             // Use policy thresholds or default values
-//             var varianceThresholdLiters = policy.VarianceThresholdLiters ?? policy.DiscrepancyThreshold ?? _defaultVarianceThresholdLiters;
-//             var varianceThresholdPercentage = policy.VarianceThresholdPercentage ?? policy.DiscrepancyPercentageThreshold ?? _defaultVarianceThresholdPercentage;
+    //Cursor - Enhanced discrepancy detection with configurable thresholds
+    public async Task<DiscrepancyDetectionResult> DetectDiscrepancies (
+        Tank tank,
+        ReconciliationPolicy policy,
+        CancellationToken cancellationToken = default) {
+        try {
+            // Use policy thresholds or default values
+            var varianceThresholdLiters = policy.VarianceThresholdLiters ?? policy.DiscrepancyThreshold ?? _defaultVarianceThresholdLiters;
+            var varianceThresholdPercentage = policy.VarianceThresholdPercentage ?? policy.DiscrepancyPercentageThreshold ?? _defaultVarianceThresholdPercentage;
 
-//             // Perform discrepancy calculation
-//             var discrepancyResult = await CalculateDiscrepancy (tank, varianceThresholdLiters, varianceThresholdPercentage, cancellationToken);
+            // Perform discrepancy calculation
+            var discrepancyResult = await CalculateDiscrepancy (tank, varianceThresholdLiters, varianceThresholdPercentage, cancellationToken);
 
-//             //Cursor - Generate and push domain event when variance is significant
-//             if (discrepancyResult.IsSignificant) {
-//                 var discrepancyEvent = new DiscrepancyDetectedEvent {
-//                     TankId = tank.Id,
-//                     PolicyId = policy.Id,
-//                     VarianceLiters = discrepancyResult.VarianceLiters,
-//                     VariancePercentage = discrepancyResult.VariancePercentage,
-//                     DetectedAt = DateTime.UtcNow,
-//                     Severity = DetermineDiscrepancySeverity (discrepancyResult),
-//                     ExpectedVolume = discrepancyResult.ExpectedVolume,
-//                     ActualVolume = discrepancyResult.ActualVolume
-//                 };
+            //Cursor - Generate and push domain event when variance is significant
+            if (discrepancyResult.IsSignificant) {
+                var discrepancyEvent = new DiscrepancyDetectedEvent {
+                    TankId = tank.Id,
+                    PolicyId = policy.Id,
+                    VarianceLiters = discrepancyResult.VarianceLiters,
+                    VariancePercentage = discrepancyResult.VariancePercentage,
+                    DetectedAt = DateTime.UtcNow,
+                    Severity = (FMS.Domain.Events.DiscrepancySeverity)DetermineDiscrepancySeverity (discrepancyResult), //Cursor: Cast to correct enum type
+                    ExpectedVolume = discrepancyResult.ExpectedVolume,
+                    ActualVolume = discrepancyResult.ActualVolume
+                };
 
-//                 // Publish domain event for downstream alerting
-//                 await _mediator.Publish (discrepancyEvent, cancellationToken);
+                // Publish domain event for downstream alerting
+                await _mediator.Publish (discrepancyEvent, cancellationToken);
 
-//                 _logger.LogWarning ("Significant discrepancy detected for Tank {TankId}. Variance: {VarianceLiters}L ({VariancePercentage}%)",
-//                     tank.Id, discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);
-//             }
+                _logger.LogWarning ("Significant discrepancy detected for Tank {TankId}. Variance: {VarianceLiters}L ({VariancePercentage}%)",
+                    tank.Id, discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);
+            }
 
-//             return discrepancyResult;
-//         } catch (Exception ex) {
-//             _logger.LogError (ex, "Error detecting discrepancies for tank {TankId}", tank.Id);
-//             throw;
-//         }
-//     }
+            return discrepancyResult;
+        } catch (Exception ex) {
+            _logger.LogError (ex, "Error detecting discrepancies for tank {TankId}", tank.Id);
+            throw;
+        }
+    }
 
-//     //Cursor - Create ReconciliationDiscrepancy entity from detection result
-//     public ReconciliationDiscrepancy CreateDiscrepancyRecord (
-//         DiscrepancyDetectionResult detectionResult,
-//         int policyExecutionId,
-//         ReconciliationPolicy policy) {
-//         return new ReconciliationDiscrepancy {
-//             PolicyExecutionId = policyExecutionId,
-//                 TankId = detectionResult.TankId,
-//                 DetectedAt = DateTime.UtcNow,
-//                 CurrentStock = detectionResult.ActualVolume,
-//                 ExpectedStock = detectionResult.ExpectedVolume,
-//                 AbsoluteVariance = detectionResult.VarianceLiters,
-//                 PercentageVariance = detectionResult.VariancePercentage,
-//                 Severity = DetermineDiscrepancySeverity (detectionResult),
-//                 IsResolved = false,
-//                 AnalysisNotes = $"Detected by policy {policy.Name}",
-//                 BusinessImpactScore = CalculateBusinessImpact (detectionResult)
-//         };
-//     }
+    //Cursor - Create ReconciliationDiscrepancy entity from detection result
+    public async Task<ReconciliationDiscrepancy> CreateDiscrepancyRecordAsync (
+        DiscrepancyDetectionResult detectionResult,
+        int policyExecutionId,
+        ReconciliationPolicy policy,
+        CancellationToken cancellationToken = default) {
 
-//     //Cursor - Complete implementation of discrepancy calculation logic
-//     private async Task<DiscrepancyDetectionResult> CalculateDiscrepancy (
-//         Tank tank,
-//         decimal varianceThresholdLiters,
-//         decimal varianceThresholdPercentage,
-//         CancellationToken cancellationToken) {
+        //Cursor - Use inventory costing service for accurate business impact calculation
+        var businessImpact = await CalculateBusinessImpactAsync(detectionResult, cancellationToken);
 
-//         //Cursor - Get latest tank volume reading
-//         var latestVolumeHistory = await _context.TankVolumeHistories
-//             .Where (tvh => tvh.TankId == tank.Id)
-//             .OrderByDescending (tvh => tvh.Timestamp)
-//             .FirstOrDefaultAsync (cancellationToken);
+        return new ReconciliationDiscrepancy {
+            PolicyExecutionId = policyExecutionId,
+                TankId = detectionResult.TankId,
+                DetectedAt = DateTime.UtcNow,
+                CurrentStock = detectionResult.ActualVolume,
+                ExpectedStock = detectionResult.ExpectedVolume,
+                AbsoluteVariance = detectionResult.VarianceLiters,
+                PercentageVariance = detectionResult.VariancePercentage,
+                Severity = DetermineDiscrepancySeverity (detectionResult),
+                IsResolved = false,
+                AnalysisNotes = $"Detected by policy {policy.Name}. Expected: {detectionResult.ExpectedVolume}L, Actual: {detectionResult.ActualVolume}L, Variance: {detectionResult.VarianceLiters}L ({detectionResult.VariancePercentage:F2}%)",
+                BusinessImpactScore = businessImpact
+        };
+    }
 
-//         if (latestVolumeHistory == null) {
-//             return new DiscrepancyDetectionResult {
-//             TankId = tank.Id,
-//             ExpectedVolume = 0,
-//             ActualVolume = 0,
-//             VarianceLiters = 0,
-//             VariancePercentage = 0,
-//             IsSignificant = false,
-//             ThresholdLiters = varianceThresholdLiters,
-//             ThresholdPercentage = varianceThresholdPercentage
-//             };
-//         }
+    //Cursor - Overload for backward compatibility
+    public ReconciliationDiscrepancy CreateDiscrepancyRecord (
+        DiscrepancyDetectionResult detectionResult,
+        int policyExecutionId,
+        ReconciliationPolicy policy) {
+        return CreateDiscrepancyRecordAsync(detectionResult, policyExecutionId, policy).GetAwaiter().GetResult();
+    }
 
-//         var actualVolume = latestVolumeHistory.NewVolume;
+    //Cursor - Complete implementation of discrepancy calculation logic
+    private async Task<DiscrepancyDetectionResult> CalculateDiscrepancy (
+        Tank tank,
+        decimal varianceThresholdLiters,
+        decimal varianceThresholdPercentage,
+        CancellationToken cancellationToken) {
 
-//         //Cursor - Calculate expected volume based on recent transactions
-//         var expectedVolume = await CalculateExpectedVolume (tank, cancellationToken);
+        //Cursor - Get latest tank volume reading
+        var latestVolumeHistory = await _context.TankVolumeHistories
+            .Where (tvh => tvh.TankId == tank.Id)
+            .OrderByDescending (tvh => tvh.Timestamp)
+            .FirstOrDefaultAsync (cancellationToken);
 
-//         //Cursor - Calculate variance
-//         var varianceLiters = Math.Abs (expectedVolume - actualVolume);
-//         var variancePercentage = expectedVolume > 0 ? (varianceLiters / expectedVolume) * 100 : 0;
+        if (latestVolumeHistory == null) {
+            return new DiscrepancyDetectionResult {
+            TankId = tank.Id,
+            ExpectedVolume = 0,
+            ActualVolume = 0,
+            VarianceLiters = 0,
+            VariancePercentage = 0,
+            IsSignificant = false,
+            ThresholdLiters = varianceThresholdLiters,
+            ThresholdPercentage = varianceThresholdPercentage
+            };
+        }
 
-//         //Cursor - Determine if variance is significant
-//         var isSignificant = varianceLiters > varianceThresholdLiters ||
-//             variancePercentage > varianceThresholdPercentage;
+        var actualVolume = latestVolumeHistory.NewVolume ?? 0; //Cursor: Handle nullable NewVolume property
 
-//         return new DiscrepancyDetectionResult {
-//             TankId = tank.Id,
-//                 ExpectedVolume = expectedVolume,
-//                 ActualVolume = actualVolume,
-//                 VarianceLiters = varianceLiters,
-//                 VariancePercentage = variancePercentage,
-//                 IsSignificant = isSignificant,
-//                 ThresholdLiters = varianceThresholdLiters,
-//                 ThresholdPercentage = varianceThresholdPercentage
-//         };
-//     }
+        //Cursor - Calculate expected volume based on recent transactions
+        var expectedVolume = await CalculateExpectedVolume (tank, cancellationToken);
 
-//     //Cursor - Calculate expected volume based on deliveries, consumption, and transfers
-//     private async Task<decimal> CalculateExpectedVolume (Tank tank, CancellationToken cancellationToken) {
-//         var cutoffTime = DateTime.UtcNow.AddHours (-24); // Look at last 24 hours
+        //Cursor - Calculate variance
+        var varianceLiters = Math.Abs (expectedVolume - actualVolume);
+        var variancePercentage = expectedVolume > 0 ? (varianceLiters / expectedVolume) * 100 : 0;
 
-//         //Cursor - Get starting volume from 24 hours ago
-//         var startingVolumeHistory = await _context.TankVolumeHistories
-//             .Where (tvh => tvh.TankId == tank.Id && tvh.Timestamp >= cutoffTime)
-//             .OrderBy (tvh => tvh.Timestamp)
-//             .FirstOrDefaultAsync (cancellationToken);
+        //Cursor - Determine if variance is significant
+        var isSignificant = varianceLiters > varianceThresholdLiters ||
+            variancePercentage > varianceThresholdPercentage;
 
-//         var startingVolume = startingVolumeHistory?.CurrentVolume ?? tank.CurrentStock ?? 0;
+        return new DiscrepancyDetectionResult {
+            TankId = tank.Id,
+                ExpectedVolume = expectedVolume,
+                ActualVolume = actualVolume,
+                VarianceLiters = varianceLiters,
+                VariancePercentage = variancePercentage,
+                IsSignificant = isSignificant,
+                ThresholdLiters = varianceThresholdLiters,
+                ThresholdPercentage = varianceThresholdPercentage
+        };
+    }
 
-//         //Cursor - Get deliveries in the period
-//         var deliveries = await _context.Deliveries
-//             .Where (d => d.TankId == tank.Id && d.DeliveryDate >= cutoffTime)
-//             .SumAsync (d => d.DeliveredQuantity ?? 0, cancellationToken);
+    //Cursor - Calculate expected volume based on deliveries, consumption, and transfers
+    private async Task<decimal> CalculateExpectedVolume (Tank tank, CancellationToken cancellationToken) {
+        var cutoffTime = DateTime.UtcNow.AddHours (-24); // Look at last 24 hours
 
-//         //Cursor - Get fuel consumption (pump transactions)
-//         var consumption = await _context.Pumptransactions
-//             .Where (pt => pt.TankId == tank.Id && pt.TransactionDate >= cutoffTime)
-//             .SumAsync (pt => pt.FuelQuantity ?? 0, cancellationToken);
+        //Cursor - Get starting volume from 24 hours ago
+        var startingVolumeHistory = await _context.TankVolumeHistories
+            .Where (tvh => tvh.TankId == tank.Id && tvh.Timestamp >= cutoffTime)
+            .OrderBy (tvh => tvh.Timestamp)
+            .FirstOrDefaultAsync (cancellationToken);
 
-//         //Cursor - Get tank transfers (in and out)
-//         var transfersIn = await _context.TankTransfers
-//             .Where (tt => tt.ToTankId == tank.Id && tt.TransferDate >= cutoffTime)
-//             .SumAsync (tt => tt.TransferQuantity, cancellationToken);
+        var startingVolume = startingVolumeHistory?.NewVolume ?? tank.CurrentStock ?? 0; //Cursor: Use NewVolume instead of CurrentVolume
 
-//         var transfersOut = await _context.TankTransfers
-//             .Where (tt => tt.FromTankId == tank.Id && tt.TransferDate >= cutoffTime)
-//             .SumAsync (tt => tt.TransferQuantity, cancellationToken);
+        //Cursor - Get deliveries in the time window
+        var deliveries = await _context.Deliveries
+            .Where(d => d.TankId == tank.Id && d.DeliveryDate >= cutoffTime)
+            .ToListAsync(cancellationToken);
 
-//         //Cursor - Calculate expected volume
-//         var expectedVolume = startingVolume + deliveries - consumption + transfersIn - transfersOut;
+        var deliveryVolume = deliveries.Sum(d => d.ManualDeliveryAmount); //Cursor: Use ManualDeliveryAmount property
 
-//         return Math.Max (0, expectedVolume); // Ensure non-negative
-//     }
+        //Cursor - Get consumption from pump transactions
+        var consumption = await _context.Pumptransactions
+            .Where(pt => pt.TankId == tank.Id && pt.DateTime >= cutoffTime) //Cursor: Use DateTime property
+            .ToListAsync(cancellationToken);
 
-//     //Cursor - Determine discrepancy severity based on variance levels
-//     private FMS.Domain.Entities.enums.DiscrepancySeverity DetermineDiscrepancySeverity (DiscrepancyDetectionResult result) {
-//         var varianceRatio = Math.Max (
-//             result.VarianceLiters / result.ThresholdLiters,
-//             result.VariancePercentage / result.ThresholdPercentage
-//         );
+        var consumptionVolume = consumption.Sum(c => c.TotalVolume ?? 0); //Cursor: Use TotalVolume property
 
-//         return varianceRatio
-//         switch { >=
-//             5.0m => FMS.Domain.Entities.enums.DiscrepancySeverity.Critical, >=
-//                 3.0m => FMS.Domain.Entities.enums.DiscrepancySeverity.High, >=
-//                 2.0m => FMS.Domain.Entities.enums.DiscrepancySeverity.Medium,
-//                 _ => FMS.Domain.Entities.enums.DiscrepancySeverity.Low
-//         };
-//     }
+        //Cursor - Get tank transfers (in and out)
+        var transfersIn = await _context.TankTransfers
+            .Where(tt => tt.DestinationTankId == tank.Id && tt.TransferDate >= cutoffTime) //Cursor: Use DestinationTankId
+            .ToListAsync(cancellationToken);
 
-//     //Cursor - Calculate business impact score
-//     private decimal CalculateBusinessImpact (DiscrepancyDetectionResult result) {
-//         // Simple business impact calculation based on variance amount and percentage
-//         var volumeImpact = result.VarianceLiters * 0.1m; // Assume $0.10 per liter impact
-//         var percentageMultiplier = result.VariancePercentage / 100m;
+        var transfersOut = await _context.TankTransfers
+            .Where(tt => tt.SourceTankId == tank.Id && tt.TransferDate >= cutoffTime) //Cursor: Use SourceTankId
+            .ToListAsync(cancellationToken);
 
-//         return volumeImpact * (1 + percentageMultiplier);
-//     }
-// }
+        var transferInVolume = transfersIn.Sum(t => t.Amount ?? 0); //Cursor: Use Amount property
+        var transferOutVolume = transfersOut.Sum(t => t.Amount ?? 0); //Cursor: Use Amount property
 
-// //Cursor - Result class for discrepancy detection
-// public class DiscrepancyDetectionResult {
-//     public int TankId { get; set; }
-//     public decimal ExpectedVolume { get; set; }
-//     public decimal ActualVolume { get; set; }
-//     public decimal VarianceLiters { get; set; }
-//     public decimal VariancePercentage { get; set; }
-//     public bool IsSignificant { get; set; }
-//     public decimal ThresholdLiters { get; set; }
-//     public decimal ThresholdPercentage { get; set; }
-// }
+        //Cursor - Calculate expected volume
+        var expectedVolume = startingVolume + deliveryVolume - consumptionVolume + transferInVolume - transferOutVolume;
+
+        return Math.Max (0, expectedVolume); // Ensure non-negative
+    }
+
+    //Cursor - Determine discrepancy severity based on variance levels
+    private FMS.Domain.Entities.enums.DiscrepancySeverity DetermineDiscrepancySeverity (DiscrepancyDetectionResult result) {
+        var varianceRatio = Math.Max (
+            result.VarianceLiters / result.ThresholdLiters,
+            result.VariancePercentage / result.ThresholdPercentage
+        );
+
+        return varianceRatio
+        switch { >=
+            5.0m => FMS.Domain.Entities.enums.DiscrepancySeverity.Critical, >=
+                3.0m => FMS.Domain.Entities.enums.DiscrepancySeverity.High, >=
+                2.0m => FMS.Domain.Entities.enums.DiscrepancySeverity.Medium,
+                _ => FMS.Domain.Entities.enums.DiscrepancySeverity.Low
+        };
+    }
+
+    //Cursor - Calculate business impact using inventory costing service for accurate KES-based calculations
+    private async Task<decimal> CalculateBusinessImpactAsync(DiscrepancyDetectionResult result, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Use the inventory costing service for accurate weighted average cost calculation
+            var costResponse = await _costingService.GetWeightedAverageCostAsync(result.TankId, cancellationToken);
+
+            if (costResponse.IsSuccess)
+            {
+                var costPerLiter = costResponse.Data;
+                var volumeImpact = result.VarianceLiters * costPerLiter;
+
+                // Apply percentage multiplier for additional risk assessment
+                var percentageMultiplier = Math.Min(result.VariancePercentage / 100m, 1.0m); // Cap at 100%
+                var businessImpact = volumeImpact * (1 + percentageMultiplier);
+
+                _logger.LogDebug("Business impact calculated for Tank {TankId}: {VarianceLiters}L × {CostPerLiter} KES/L × (1 + {PercentageMultiplier}) = {BusinessImpact} KES",
+                    result.TankId, result.VarianceLiters, costPerLiter, percentageMultiplier, businessImpact);
+
+                return businessImpact;
+            }
+            else
+            {
+                _logger.LogWarning("Failed to get weighted average cost for tank {TankId}: {Error}. Using fallback calculation.",
+                    result.TankId, costResponse.Message);
+                return CalculateBusinessImpactFallback(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating business impact for tank {TankId}, using fallback", result.TankId);
+            return CalculateBusinessImpactFallback(result);
+        }
+    }
+
+    //Cursor - Fallback business impact calculation using default pricing
+    private decimal CalculateBusinessImpactFallback(DiscrepancyDetectionResult result)
+    {
+        // Fallback calculation using default price of 150 KES/L
+        var volumeImpact = result.VarianceLiters * 150.0m; // Default KES per liter
+        var percentageMultiplier = Math.Min(result.VariancePercentage / 100m, 1.0m); // Cap at 100%
+
+        return volumeImpact * (1 + percentageMultiplier);
+    }
+
+    //Cursor - Legacy method for backward compatibility (deprecated)
+    [Obsolete("Use CalculateBusinessImpactAsync for accurate weighted average cost calculations")]
+    private decimal CalculateBusinessImpact (DiscrepancyDetectionResult result) {
+        // Legacy simple business impact calculation - deprecated
+        // Kept for backward compatibility but should use CalculateBusinessImpactAsync
+        return CalculateBusinessImpactFallback(result);
+    }
+}
+
+//Cursor - Result class for discrepancy detection
+public class DiscrepancyDetectionResult {
+    public int TankId { get; set; }
+    public decimal ExpectedVolume { get; set; }
+    public decimal ActualVolume { get; set; }
+    public decimal VarianceLiters { get; set; }
+    public decimal VariancePercentage { get; set; }
+    public bool IsSignificant { get; set; }
+    public decimal ThresholdLiters { get; set; }
+    public decimal ThresholdPercentage { get; set; }
+}

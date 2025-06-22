@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Automated Reconciliation API provides comprehensive endpoints for managing reconciliation policies, monitoring executions, analyzing discrepancies, and accessing performance analytics within the FMS system.
+The Automated Reconciliation API provides comprehensive endpoints for managing reconciliation policies, monitoring executions, analyzing discrepancies, and accessing performance analytics within the FMS system. The system features complete Redis-based event-driven policy execution with real-time orchestration integration.
 
 ## Base URL
 ```

@@ -382,17 +382,17 @@ public class Program {
 
         //automatic Reconsiclation
 
-        // services.AddScoped<PolicyEvaluationEngine> ();
-        // services.AddScoped<DiscrepancyDetectionService> ();
-        // services.AddScoped<ReconciliationOrchestrationService> ();
-        // services.AddScoped<AutomatedReconciliationService> ();
-        // services.AddHostedService<AutomatedReconciliationBackgroundService> ();
+        services.AddScoped<PolicyEvaluationEngine> ();
+        services.AddScoped<DiscrepancyDetectionService> ();
+        services.AddScoped<ReconciliationOrchestrationService> ();
+        services.AddScoped<AutomatedReconciliationService> ();
+        services.AddHostedService<AutomatedReconciliationBackgroundService> ();
 
         // // Register Redis-based policy trigger service //Cursor
-        // services.AddScoped<IPolicyTriggerService, PolicyTriggerService> ();
+        services.AddScoped<IPolicyTriggerService, PolicyTriggerService> (); //Cursor
 
         // // Register background service for Redis policy trigger subscription //Cursor
-        // services.AddHostedService<PolicyTriggerBackgroundService> ();
+        services.AddHostedService<PolicyTriggerBackgroundService> ();
 
         services.AddTransient<RoleManager<Role>> ();
 
@@ -418,6 +418,20 @@ public class Program {
         services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
         services.AddScoped<ITransactionCompletionService, TransactionCompletionService> (); //Cursor
 
+// Register notification services
+services.AddScoped<INotificationService, NotificationService>();
+services.AddScoped<IAlarmHandlerService, AlarmHandlerService>();
+services.AddScoped<IEmailService, EmailService>();
+services.AddScoped<ISmsService, SmsService>();
+
+//Cursor: Register system user service
+services.AddScoped<ISystemUserService, SystemUserService>();
+
+// Register background service
+services.AddHostedService<NotificationBackgroundService>();
+
+//Cursor: Register system user initialization service
+services.AddHostedService<SystemUserInitializationService>();
         //Cursor: Register AutoTransactionCompletionService and DirectHttpTransactionService
         services.AddScoped<IAutoTransactionCompletionService, AutoTransactionCompletionService> (); //Cursor
         services.AddScoped<IDirectHttpTransactionService, DirectHttpTransactionService> (); //Cursor

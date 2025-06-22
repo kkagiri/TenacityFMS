@@ -21,13 +21,11 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("configurations");
 
-                builder.HasIndex(e => e.Ptsid, "FK_ptsdevice_configu_idx");
 
                 builder.Property(e => e.Id).HasColumnType("int(11)");
                 builder.Property(e => e.Configuration1).HasColumnName("Configuration");
                 builder.Property(e => e.ConfigurationId).HasMaxLength(8);
-                builder.Property(e => e.PacketId)
-                    .HasColumnType("int(11)");
+
             }
 
 

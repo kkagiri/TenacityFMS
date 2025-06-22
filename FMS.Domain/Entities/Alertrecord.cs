@@ -1,27 +1,72 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FMS.Domain.Entities;
-
-public partial class Alertrecord
+namespace FMS.Domain.Entities
 {
-    [Key]
-    public int AlertId { get; set; }
+    /// <summary>
+    /// Entity to store PTS alert records from UploadAlertRecord packets
+    /// </summary>
+    public class AlertRecord
+    {
+        [Key]
+        public int Id { get; set; }
 
-    public DateTime DateTime { get; set; }
+        /// <summary>
+        /// PTS device ID that sent the alert
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        public string PtsId { get; set; } = null!;
 
-    public string DeviceType { get; set; } = null!;
+        /// <summary>
+        /// Type of device that triggered the alert (PTS, Pump, Probe, PriceBoard, Reader)
+        /// </summary>
+        [Required]
+        [MaxLength(20)]
+        public string DeviceType { get; set; } = null!;
 
-    public int DeviceNumber { get; set; }
+        /// <summary>
+        /// Device number within the PTS system
+        /// </summary>
+        public int DeviceNumber { get; set; }
 
-    public string State { get; set; } = null!;
+        /// <summary>
+        /// Alert code from PTS protocol
+        /// </summary>
+        public int AlertCode { get; set; }
 
-    public int Code { get; set; }
+        /// <summary>
+        /// Alert state (Started, Finished, Detected)
+        /// </summary>
+        [Required]
+        [MaxLength(20)]
+        public string State { get; set; } = null!;
 
-    public string? ConfigurationId { get; set; }
+        /// <summary>
+        /// Date and time when the alert occurred
+        /// </summary>
+        public DateTime DateTime { get; set; }
 
-    public string Ptsid { get; set; } = null!;
+        /// <summary>
+        /// Configuration ID from PTS
+        /// </summary>
+        [MaxLength(50)]
+        public string? ConfigurationId { get; set; }
 
-    public int PacketId { get; set; }
+        /// <summary>
+        /// Associated alarm ID
+        /// </summary>
+        public int? AlarmId { get; set; }
+
+        /// <summary>
+        /// When this alert record was processed by FMS
+        /// </summary>
+        public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Navigation property to the associated alarm
+        /// </summary>
+        public virtual Alarm? Alarm { get; set; }
+    }
 }
