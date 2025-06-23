@@ -25,6 +25,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs
         public decimal? DeliveryMass { get; set; }
         public decimal StockBeforeDelivery { get; set; }
         public decimal StockAfterDelivery { get; set; }
+        public decimal PricePerLiter { get; set; }
         public string? RecordedBy { get; set; }
         public int SupplierId { get; set; }
         public string? Lponumber { get; set; }

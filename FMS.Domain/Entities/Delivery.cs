@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace FMS.Domain.Entities;
 
 /// <summary>
-/// 		
+///
 /// </summary>
 public partial class Delivery
 {
@@ -30,6 +30,7 @@ public partial class Delivery
 
     public decimal StockAfterDelivery { get; set; }
 
+    public decimal PricePerLiter { get; set; }
 
     public string RecordedBy { get; set; } = null!;
 

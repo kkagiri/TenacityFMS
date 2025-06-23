@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Tracker.Common;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -18,25 +19,28 @@ namespace FMS.Application.Services {
         private readonly ILogger<DeviceActivityMonitorService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly DeviceConnectionTracker _deviceConnectionTracker;
-        private readonly IMemoryCache _cache;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds (10);
-        private readonly TimeSpan _configCacheDuration = TimeSpan.FromMinutes (5);
-        private readonly TimeSpan _redisCleanupInterval = TimeSpan.FromMinutes (5);
+        private readonly ISystemConfigurationService _systemConfigurationService;
+        private TimeSpan _checkInterval;
+        private TimeSpan _redisCleanupInterval;
         private DateTime _lastRedisCleanup = DateTime.MinValue;
 
         public DeviceActivityMonitorService (
             ILogger<DeviceActivityMonitorService> logger,
             IServiceScopeFactory scopeFactory,
             DeviceConnectionTracker deviceConnectionTracker,
-            IMemoryCache cache) {
+            ISystemConfigurationService systemConfigurationService) {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _deviceConnectionTracker = deviceConnectionTracker;
-            _cache = cache;
+            _systemConfigurationService = systemConfigurationService;
         }
 
         protected override async Task ExecuteAsync (CancellationToken stoppingToken) {
             _logger.LogInformation ("Device Activity Monitor Service is starting.");
+
+            //Cursor on changes to code
+            // Load configuration values at startup
+            await LoadConfigurationValues(stoppingToken);
 
             await PerformStartupRedisCleanup (stoppingToken);
 
@@ -233,8 +237,8 @@ namespace FMS.Application.Services {
                         wsConnection != null ? $"LastMsg: {wsConnection.LastMessageAt:o}" : "null",
                         httpConnection != null ? $"LastUpdate: {httpConnection.LastStatusUpdate:o}, LastPoll: {httpConnection.LastPollTime:o}" : "null");
 
-                    var wsTimeout = await GetWebSocketTimeout (context, deviceIdStr, stoppingToken);
-                    var httpTimeout = await GetHttpTimeout (context, deviceIdStr, stoppingToken);
+                    var wsTimeout = await GetWebSocketTimeoutAsync();
+                    var httpTimeout = await GetHttpTimeoutAsync();
 
                     bool isWsActive = wsConnection != null && (now - wsConnection.LastMessageAt).TotalSeconds <= wsTimeout;
                     bool isHttpActive = httpConnection != null && (now - (httpConnection.LastStatusUpdate > httpConnection.LastPollTime ? httpConnection.LastStatusUpdate : httpConnection.LastPollTime)).TotalSeconds <= httpTimeout;
@@ -409,46 +413,39 @@ namespace FMS.Application.Services {
             _logger.LogDebug ("Finished device activity check cycle.");
         }
 
-        private async Task<int> GetWebSocketTimeout (GpsdataContext context, string deviceId, CancellationToken cancellationToken) {
-            string cacheKey = $"Config_WSTimeout_{deviceId}";
-            if (!_cache.TryGetValue (cacheKey, out int timeout)) {
-                var config = await context.Configurations
-                    .AsNoTracking ()
-                    .FirstOrDefaultAsync (c => c.Ptsid == deviceId && c.ConfigurationId == Configuration.WEBSOCKET_TIMEOUT_KEY, cancellationToken);
+        //Cursor on changes to code
+        /// <summary>
+        /// Loads configuration values at startup using the system configuration service
+        /// </summary>
+        private async Task LoadConfigurationValues(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var checkIntervalSeconds = await _systemConfigurationService.GetDeviceActivityCheckIntervalSecondsAsync(cancellationToken);
+                var redisCleanupMinutes = await _systemConfigurationService.GetRedisCleanupIntervalMinutesAsync(cancellationToken);
 
-                cancellationToken.ThrowIfCancellationRequested ();
+                _checkInterval = TimeSpan.FromSeconds(checkIntervalSeconds);
+                _redisCleanupInterval = TimeSpan.FromMinutes(redisCleanupMinutes);
 
-                timeout = config != null && int.TryParse (config.Configuration1, out int parsedTimeout) ?
-                    parsedTimeout :
-                    Configuration.DEFAULT_WEBSOCKET_TIMEOUT;
-
-                _cache.Set (cacheKey, timeout, _configCacheDuration);
-                _logger.LogDebug ("Fetched and cached WebSocket timeout for {DeviceId}: {Timeout}s", deviceId, timeout);
-            } else {
-                _logger.LogTrace ("Using cached WebSocket timeout for {DeviceId}: {Timeout}s", deviceId, timeout);
+                _logger.LogInformation("Configuration loaded - Check interval: {CheckInterval}s, Redis cleanup: {RedisCleanup}m",
+                    checkIntervalSeconds, redisCleanupMinutes);
             }
-            return timeout;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading configuration values, using defaults");
+                _checkInterval = TimeSpan.FromSeconds(10);
+                _redisCleanupInterval = TimeSpan.FromMinutes(5);
+            }
         }
 
-        private async Task<int> GetHttpTimeout (GpsdataContext context, string deviceId, CancellationToken cancellationToken) {
-            string cacheKey = $"Config_HTTPTimeout_{deviceId}";
-            if (!_cache.TryGetValue (cacheKey, out int timeout)) {
-                var config = await context.Configurations
-                    .AsNoTracking ()
-                    .FirstOrDefaultAsync (c => c.Ptsid == deviceId && c.ConfigurationId == Configuration.HTTP_TIMEOUT_KEY, cancellationToken);
+        private async Task<int> GetWebSocketTimeoutAsync(CancellationToken cancellationToken = default)
+        {
+            return await _systemConfigurationService.GetWebSocketTimeoutSecondsAsync(cancellationToken);
+        }
 
-                cancellationToken.ThrowIfCancellationRequested ();
-
-                timeout = config != null && int.TryParse (config.Configuration1, out int parsedTimeout) ?
-                    parsedTimeout :
-                    Configuration.DEFAULT_HTTP_TIMEOUT;
-
-                _cache.Set (cacheKey, timeout, _configCacheDuration);
-                _logger.LogDebug ("Fetched and cached HTTP timeout for {DeviceId}: {Timeout}s", deviceId, timeout);
-            } else {
-                _logger.LogTrace ("Using cached HTTP timeout for {DeviceId}: {Timeout}s", deviceId, timeout);
-            }
-            return timeout;
+        private async Task<int> GetHttpTimeoutAsync(CancellationToken cancellationToken = default)
+        {
+            return await _systemConfigurationService.GetHttpTimeoutSecondsAsync(cancellationToken);
         }
 
         // Add this method to check for explicit mappings
@@ -540,7 +537,7 @@ namespace FMS.Application.Services {
                     if (stoppingToken.IsCancellationRequested) break;
 
                     try {
-                        var wsTimeout = await GetWebSocketTimeout (context, wsConnection.DeviceId, stoppingToken);
+                        var wsTimeout = await GetWebSocketTimeoutAsync();
                         var timeSinceLastMessage = (now - wsConnection.LastMessageAt).TotalSeconds;
 
                         // If connection has exceeded timeout by a significant margin (2x), clean it up
@@ -561,7 +558,7 @@ namespace FMS.Application.Services {
                     if (stoppingToken.IsCancellationRequested) break;
 
                     try {
-                        var httpTimeout = await GetHttpTimeout (context, httpConnection.DeviceId, stoppingToken);
+                        var httpTimeout = await GetHttpTimeoutAsync();
                         var lastActivity = httpConnection.LastStatusUpdate > httpConnection.LastPollTime ?
                             httpConnection.LastStatusUpdate :
                             httpConnection.LastPollTime;

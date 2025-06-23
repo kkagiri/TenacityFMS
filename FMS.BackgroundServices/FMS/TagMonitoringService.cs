@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
+using FMS.Application.Services;
+using FMS.Application.Common.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,6 +75,9 @@ namespace FMS.BackgroundServices.FMS {
                         httpClient.DefaultRequestHeaders.Accept.Add (new MediaTypeWithQualityHeaderValue ("application/json"));
                         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue ("Bearer", gpsGateToken);
 
+                        //Cursor - Get notification service for error reporting
+                        var notificationService = scope.ServiceProvider.GetService<INotificationService>();
+
                         foreach (var config in configs) {
                             var vehicle = config.Vehicle;
                             if (vehicle == null) continue;
@@ -86,11 +91,17 @@ namespace FMS.BackgroundServices.FMS {
                                 if (!statusResp.IsSuccessStatusCode) {
                                     _logger.LogError ($"Failed to fetch status for vehicle {vehicle.VehicleId}");
                                     await LogTagChange (context, vehicle, "", config.TagName, "", "Error", "Failed to fetch status", stoppingToken);
+
+                                    //Cursor - Send notification for API failure
+                                    await SendTagMonitoringErrorNotificationAsync(notificationService, vehicle, "Failed to fetch status from GPS Gate API", stoppingToken);
                                     continue;
                                 }
                             } catch (Exception ex) {
                                 _logger.LogError (ex, $"Exception fetching status for vehicle {vehicle.VehicleId}");
                                 await LogTagChange (context, vehicle, "", config.TagName, "", "Error", ex.Message, stoppingToken);
+
+                                //Cursor - Send notification for exception
+                                await SendTagMonitoringErrorNotificationAsync(notificationService, vehicle, ex.Message, stoppingToken);
                                 continue;
                             }
                             dynamic status = JsonConvert.DeserializeObject (await statusResp.Content.ReadAsStringAsync ());
@@ -123,8 +134,14 @@ namespace FMS.BackgroundServices.FMS {
                                     var addResp = await httpClient.PostAsync (addUrl, addContent, stoppingToken);
                                     if (addResp.IsSuccessStatusCode) {
                                         await LogTagChange (context, vehicle, "", expectedTag, locationName, "TagChanged", "Tag updated due to location match", stoppingToken);
+
+                                        //Cursor - Send success notification for tag change
+                                        await SendTagChangeSuccessNotificationAsync(notificationService, vehicle, expectedTag, locationName, stoppingToken);
                                     } else {
                                         await LogTagChange (context, vehicle, "", expectedTag, locationName, "Error", "Failed to update tag", stoppingToken);
+
+                                        //Cursor - Send error notification for tag update failure
+                                        await SendTagMonitoringErrorNotificationAsync(notificationService, vehicle, "Failed to update tag in GPS Gate", stoppingToken);
                                     }
                                 }
                             } else {
@@ -151,6 +168,75 @@ namespace FMS.BackgroundServices.FMS {
                     Note = note
             });
             await context.SaveChangesAsync (token);
+        }
+
+        //Cursor - Add notification methods for tag monitoring events
+        private async Task SendTagMonitoringErrorNotificationAsync(INotificationService notificationService, Vehicle vehicle, string errorMessage, CancellationToken cancellationToken)
+        {
+            if (notificationService == null) return;
+
+            try
+            {
+                var request = new CreateNotificationRequest
+                {
+                    Type = "Alert",
+                    Category = "TagMonitoring",
+                    Priority = "Medium",
+                    Title = "Tag Monitoring Error",
+                    Message = $"Tag monitoring error for vehicle {vehicle.HyoungNo}: {errorMessage}",
+                    TriggerSource = "TagMonitoring",
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    VehicleId = vehicle.VehicleId,
+                    Recipients = new List<CreateNotificationRecipientRequest>
+                    {
+                        new CreateNotificationRecipientRequest
+                        {
+                            UserId = SystemConstants.SystemAdministrator.UserId,
+                            DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
+                        }
+                    }
+                };
+
+                await notificationService.CreateNotificationAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send tag monitoring error notification for vehicle {VehicleId}", vehicle.VehicleId);
+            }
+        }
+
+        private async Task SendTagChangeSuccessNotificationAsync(INotificationService notificationService, Vehicle vehicle, string newTag, string location, CancellationToken cancellationToken)
+        {
+            if (notificationService == null) return;
+
+            try
+            {
+                var request = new CreateNotificationRequest
+                {
+                    Type = "Info",
+                    Category = "TagMonitoring",
+                    Priority = "Low",
+                    Title = "Tag Updated Successfully",
+                    Message = $"Vehicle {vehicle.HyoungNo} tag updated to '{newTag}' based on location: {location}",
+                    TriggerSource = "TagMonitoring",
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    VehicleId = vehicle.VehicleId,
+                    Recipients = new List<CreateNotificationRecipientRequest>
+                    {
+                        new CreateNotificationRecipientRequest
+                        {
+                            UserId = "fleet-operations",
+                            DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
+                        }
+                    }
+                };
+
+                await notificationService.CreateNotificationAsync(request, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send tag change success notification for vehicle {VehicleId}", vehicle.VehicleId);
+            }
         }
     }
 }

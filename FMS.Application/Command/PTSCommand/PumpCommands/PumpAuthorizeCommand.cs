@@ -65,6 +65,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
         private readonly IDatabase _redisDb; //Cursor
         private readonly DeviceConnectionTracker _deviceConnectionTracker; //Cursor: Add device connection tracker
         private readonly ITransactionMonitoringService _transactionMonitoringService; //Cursor: Add for ITransactionMonitoringService
+        //Cursor: Add configuration service for automated fueling settings
+        private readonly IAutomatedFuelingConfigurationService _configurationService;
 
         public PumpAuthorizeCommandHandler (
             IAuthorizationStateTracker authstatetracker,
@@ -74,6 +76,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
             IConnectionMultiplexer redisConnection, //Cursor
             DeviceConnectionTracker deviceConnectionTracker, //Cursor: Add device connection tracker
             ITransactionMonitoringService transactionMonitoringService, //Cursor: Add for ITransactionMonitoringService
+            IAutomatedFuelingConfigurationService configurationService, //Cursor: Add configuration service
             ILogger<PumpAuthorizeCommandHandler> logger) {
             _authTracker = authstatetracker;
             _mediator = mediator;
@@ -82,6 +85,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
             _redisDb = redisConnection.GetDatabase (); //Cursor
             _deviceConnectionTracker = deviceConnectionTracker; //Cursor: Add device connection tracker
             _transactionMonitoringService = transactionMonitoringService; //Cursor: Add for ITransactionMonitoringService
+            _configurationService = configurationService; //Cursor: Add configuration service
             _logger = logger;
         }
 
@@ -306,8 +310,27 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
                     await _authTracker.SetAuthorized (request.DeviceId!, request.Nozzle, authState);
 
-                    //Cursor: Store transaction context in Redis for later correlation with connection type
-                    await StoreTransactionContextInRedis (request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, request.AutoCloseTransaction);
+                    //Cursor: Get site ID from tank for configuration lookup
+                    int? siteId = null;
+                    if (request.TankId.HasValue) {
+                        var tank = await _context.Tanks.FindAsync(request.TankId.Value);
+                        siteId = tank?.SiteId;
+                    }
+
+                    //Cursor: Get configuration for automated fueling settings
+                    var config = await _configurationService.GetConfigurationAsync(siteId, cancellationToken);
+
+                    //Cursor: Apply configuration-based auto-close behavior
+                    var configuredAutoClose = request.AutoCloseTransaction;
+                    if (config.AutoCreateLedgerEntries && connectionType != "HTTPPolling") {
+                        // Enable auto-close for connections that support it when ledger creation is enabled
+                        configuredAutoClose = true;
+                        _logger.LogInformation("[PumpAuth] Auto-close enabled based on configuration for device {DeviceId}, transaction {TransactionId}",
+                            request.DeviceId, confirmation.Transaction);
+                    }
+
+                    //Cursor: Store transaction context in Redis for later correlation with connection type and configuration
+                    await StoreTransactionContextInRedis (request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, configuredAutoClose, siteId);
 
                     //Cursor: Start monitoring the transaction after successful authorization
                     await _transactionMonitoringService.StartMonitoringTransaction (request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
@@ -336,7 +359,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
         }
 
         //Cursor: Enhanced method to store transaction context in Redis with complete data
-        private async Task StoreTransactionContextInRedis (string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction) {
+        private async Task StoreTransactionContextInRedis (string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction, int? siteId = null) {
             try {
                 var transactionContext = new {
                     DeviceId = deviceId,
@@ -344,6 +367,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                     PumpId = pumpId, //Cursor: Add missing PumpId for proper correlation
                     TankId = tankId,
                     VehicleId = vehicleId,
+                    SiteId = siteId, //Cursor: Add site ID for configuration lookup
                     AuthorizedAt = DateTime.UtcNow,
                     ConnectionType = connectionType,
                     AutoCloseTransaction = autoCloseTransaction,

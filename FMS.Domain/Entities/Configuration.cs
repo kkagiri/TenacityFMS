@@ -11,10 +11,6 @@ public partial class Configuration
 
     public string Configuration1 { get; set; } = null!;
 
-    public int PacketId { get; set; }
-
-    public string Ptsid { get; set; } = null!;
-
     // Default timeouts in seconds
     public const int DEFAULT_WEBSOCKET_TIMEOUT = 30;
     public const int DEFAULT_HTTP_TIMEOUT = 60;

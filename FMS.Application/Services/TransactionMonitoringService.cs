@@ -8,6 +8,7 @@ using FMS.Application.PTSServices.PumpService;
 using FMS.Domain.Entities.PTS.Enums;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
+using FMS.Application.Services;
 
 namespace FMS.Application.Services {
     public interface ITransactionMonitoringService {
@@ -23,18 +24,21 @@ namespace FMS.Application.Services {
         private readonly IPumpService _pumpService;
         private readonly IDatabase _redisDb;
         private readonly ILogger<TransactionMonitoringService> _logger;
+        private readonly IAutomatedFuelingConfigurationService _configurationService;
 
         public TransactionMonitoringService (
             DeviceConnectionTracker deviceConnectionTracker,
             IAuthorizationStateTracker authTracker,
             IPumpService pumpService,
             IConnectionMultiplexer redisConnection,
-            ILogger<TransactionMonitoringService> logger) {
+            ILogger<TransactionMonitoringService> logger,
+            IAutomatedFuelingConfigurationService configurationService) {
             _deviceConnectionTracker = deviceConnectionTracker;
             _authTracker = authTracker;
             _pumpService = pumpService;
             _redisDb = redisConnection.GetDatabase ();
             _logger = logger;
+            _configurationService = configurationService;
         }
 
         public async Task StartMonitoringTransaction (string deviceId, int pumpId, int nozzleId, int transactionId) {
@@ -141,6 +145,11 @@ namespace FMS.Application.Services {
 
                 _logger.LogInformation ("[Monitor] Updated transaction progress for Device {DeviceId}, Transaction {TransactionId}, Status: {Status}",
                     deviceId, transactionId, status);
+
+                //Cursor: Check for volume discrepancy triggers when transaction completes
+                if (status == "EndOfTransaction" && volume.HasValue) {
+                    await CheckVolumeDiscrepancyForReconciliation(deviceId, pumpId, transactionId, volume.Value);
+                }
             } catch (Exception ex) {
                 _logger.LogError (ex, "[Monitor] Error updating transaction progress for Device {DeviceId}, Transaction {TransactionId}",
                     deviceId, transactionId);
@@ -239,6 +248,86 @@ namespace FMS.Application.Services {
                     deviceId, transactionId);
                 return 0;
             }
+        }
+
+        //Cursor: New method to check for volume discrepancies and trigger reconciliation
+        private async Task CheckVolumeDiscrepancyForReconciliation(string deviceId, int pumpId, int transactionId, decimal volume) {
+            int? tankId = null;
+            try {
+                // Get tank information from transaction context
+                var contextKey = $"device:{deviceId}:transaction:{transactionId}";
+                var contextJson = await _redisDb.StringGetAsync(contextKey);
+
+                if (contextJson.IsNullOrEmpty) return;
+
+                var context = JsonSerializer.Deserialize<JsonElement>(contextJson);
+                if (!context.TryGetProperty("TankId", out var tankIdElement) || !tankIdElement.TryGetInt32(out var tankIdValue)) {
+                    return;
+                }
+                tankId = tankIdValue;
+
+                // Get site ID for configuration
+                int? siteId = null;
+                if (context.TryGetProperty("SiteId", out var siteIdElement) && siteIdElement.ValueKind == JsonValueKind.Number) {
+                    siteId = siteIdElement.GetInt32();
+                }
+
+                // Check configuration for reconciliation settings
+                var config = await _configurationService.GetConfigurationAsync(siteId);
+
+                if (!config.AutoReconcileTankVolumes) {
+                    _logger.LogDebug("Auto-reconciliation disabled for site {SiteId}, skipping discrepancy check", siteId);
+                    return;
+                }
+
+                // Check if volume discrepancy exceeds threshold
+                if (config.MaxVolumeDiscrepancyThreshold.HasValue && volume > config.MaxVolumeDiscrepancyThreshold.Value) {
+                    _logger.LogWarning("Volume discrepancy detected: {Volume}L exceeds threshold {Threshold}L for tank {TankId}",
+                        volume, config.MaxVolumeDiscrepancyThreshold.Value, tankId);
+
+                    // Trigger reconciliation policy based on discrepancy action
+                    switch (config.DiscrepancyAction) {
+                        case 1: // Alert
+                            await TriggerDiscrepancyAlert(tankId.Value, volume, config.MaxVolumeDiscrepancyThreshold.Value);
+                            break;
+                        case 2: // Block
+                            await TriggerDiscrepancyBlock(tankId.Value, volume);
+                            break;
+                        case 3: // AutoAdjust
+                            await TriggerAutoReconciliation(tankId.Value, volume, siteId);
+                            break;
+                    }
+                }
+
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error checking volume discrepancy for reconciliation on tank {TankId}", tankId);
+            }
+        }
+
+        //Cursor: Trigger discrepancy alert
+        private async Task TriggerDiscrepancyAlert(int tankId, decimal volume, decimal threshold) {
+            _logger.LogWarning("DISCREPANCY ALERT: Tank {TankId} variance {Volume}L exceeds threshold {Threshold}L",
+                tankId, volume, threshold);
+
+            // Publish domain event for alerting system
+            // await _mediator.Publish(new TankDiscrepancyDetectedEvent { TankId = tankId, Volume = volume, Threshold = threshold });
+        }
+
+        //Cursor: Trigger discrepancy block (prevent further transactions)
+        private async Task TriggerDiscrepancyBlock(int tankId, decimal volume) {
+            _logger.LogError("DISCREPANCY BLOCK: Tank {TankId} blocked due to variance {Volume}L", tankId, volume);
+
+            // Block tank transactions
+            // await _tankBlockingService.BlockTankAsync(tankId, $"Volume discrepancy: {volume}L");
+        }
+
+        //Cursor: Trigger automatic reconciliation
+        private async Task TriggerAutoReconciliation(int tankId, decimal volume, int? siteId) {
+            _logger.LogInformation("AUTO-RECONCILIATION: Triggering reconciliation for tank {TankId} variance {Volume}L",
+                tankId, volume);
+
+            // Trigger reconciliation policy if reconciliation system is available
+            // await _policyTriggerService.TriggerTankVariancePolicyAsync(policyId, tankId, volume, cancellationToken);
         }
     }
 }

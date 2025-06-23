@@ -41,5 +41,11 @@ public partial class Tankmeasurement
 
     public int Tank { get; set; }
 
+    public string? FuelGradeName { get; set; }
+
+    public int? TankId { get; set; }
+
     public virtual ICollection<Alarm> Alarms { get; set; } = new List<Alarm>();
+
+    public virtual Tank? TankNavigation { get; set; }
 }

@@ -89,7 +89,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
 
                 // Get the earliest timestamp from the records to be deleted
                 var earliestTimestamp = records.Min (r => r.Timestamp);
-                var affectedTankIds = records.Select (r => r.TankId.Value).Distinct ().ToList ();
+                var affectedTankIds = records.Select (r => r.TankId).Where(id => id.HasValue).Select(id => id!.Value).Distinct ().ToList ();
 
                 // Remove the records
                 _context.TankVolumeHistories.RemoveRange (records);
