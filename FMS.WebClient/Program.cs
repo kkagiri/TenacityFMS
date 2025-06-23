@@ -576,7 +576,8 @@ public class Program {
                         builder
                             .WithOrigins (
                                 "http://localhost:3000",
-                                "http://127.0.0.1:3000"
+                                "http://127.0.0.1:3000",
+                                "http://10.0.2.2:7009" //Cursor - added for Android emulator
                             ) // Added both localhost and 127.0.0.1
                             .AllowAnyHeader ()
                             .AllowAnyMethod ()
@@ -595,6 +596,7 @@ public class Program {
                                 "https://10.0.10.153:3000",
                                 "http://10.0.10.113",
                                 "https://10.0.10.113",
+                                "http://10.0.2.2:7009", //Cursor - added for Android emulator
                                 "http://10.0.10.113:3000",
                                 "https://10.0.10.113:3000",
                                 "http://10.0.11.90", //Cursor - updated IP
