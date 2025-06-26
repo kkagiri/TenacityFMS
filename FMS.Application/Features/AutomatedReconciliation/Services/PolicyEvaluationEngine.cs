@@ -50,15 +50,16 @@ public class PolicyEvaluationEngine {
             return false;
 
         // Handle different execution types
-        switch (policy.ExecutionType?.ToLower ()) {
-            case "scheduled":
+        //ToDo: Add Hybrid and DiscrepancyThreshold types
+        switch (policy.ExecutionType) {
+            case ReconciliationPolicyType.Scheduled:
                 return await IsScheduledPolicyDue (policy, cancellationToken);
 
-            case "eventdriven":
+            case ReconciliationPolicyType.EventDriven:
                 //Cursor - Event-driven hook placeholder for external signals
                 return await IsEventDrivenPolicyTriggered (policy, cancellationToken);
 
-            case "manual":
+            case ReconciliationPolicyType.Manual:
                 return false; // Manual policies are not automatically due
 
             default:
@@ -153,8 +154,8 @@ public class PolicyEvaluationEngine {
             return false;
 
         // Check variance thresholds
-        var varianceThreshold = policy.VarianceThresholdLiters ?? 1.0m;
-        var percentageThreshold = policy.VarianceThresholdPercentage ?? 1.0m;
+        var varianceThreshold = policy.DiscrepancyThreshold ?? 1.0m;
+        var percentageThreshold = policy.DiscrepancyPercentageThreshold ?? 1.0m;
 
         // Calculate expected vs actual variance
         // This would need to be implemented based on business logic
@@ -168,18 +169,16 @@ public class PolicyEvaluationEngine {
     }
 
     //Cursor - Calculate expected volume based on all fuel movements within specified time window
-    private async Task<decimal> CalculateExpectedVolume(Tank tank, CancellationToken cancellationToken = default)
-    {
-        try
-        {
+    private async Task<decimal> CalculateExpectedVolume (Tank tank, CancellationToken cancellationToken = default) {
+        try {
             // Define time window for calculation (24 hours)
-            var cutoffTime = DateTime.UtcNow.AddHours(-24);
+            var cutoffTime = DateTime.UtcNow.AddHours (-24);
 
             // Step 1: Get starting volume (24 hours ago)
             var startingVolumeReading = await _context.TankVolumeHistories
-                .Where(tvh => tvh.TankId == tank.Id && tvh.Timestamp >= cutoffTime)
-                .OrderBy(tvh => tvh.Timestamp)
-                .FirstOrDefaultAsync(cancellationToken);
+                .Where (tvh => tvh.TankId == tank.Id && tvh.Timestamp >= cutoffTime)
+                .OrderBy (tvh => tvh.Timestamp)
+                .FirstOrDefaultAsync (cancellationToken);
 
             decimal startingVolume = startingVolumeReading?.NewVolume ?? tank.CurrentStock ?? 0;
 
@@ -187,38 +186,36 @@ public class PolicyEvaluationEngine {
 
             // Deliveries to this tank
             var deliveries = await _context.Deliveries
-                .Where(d => d.TankId == tank.Id && d.DeliveryDate >= cutoffTime)
-                .ToListAsync(cancellationToken);
-            var deliveryVolume = deliveries.Sum(d => d.ManualDeliveryAmount);
+                .Where (d => d.TankId == tank.Id && d.DeliveryDate >= cutoffTime)
+                .ToListAsync (cancellationToken);
+            var deliveryVolume = deliveries.Sum (d => d.ManualDeliveryAmount);
 
             // Transfers IN to this tank from other tanks
             var transfersIn = await _context.TankTransfers
-                .Where(tt => tt.DestinationTankId == tank.Id && tt.TransferDate >= cutoffTime)
-                .ToListAsync(cancellationToken);
-            var transferInVolume = transfersIn.Sum(t => t.Amount ?? 0);
+                .Where (tt => tt.DestinationTankId == tank.Id && tt.TransferDate >= cutoffTime)
+                .ToListAsync (cancellationToken);
+            var transferInVolume = transfersIn.Sum (t => t.Amount ?? 0);
 
             // Step 3: Get all SUBTRACTIONS (fuel going OUT)
 
             // Fuel sold through pumps
             var pumpTransactions = await _context.Pumptransactions
-                .Where(pt => pt.TankId == tank.Id && pt.DateTime >= cutoffTime)
-                .ToListAsync(cancellationToken);
-            var consumptionVolume = pumpTransactions.Sum(pt => pt.TotalVolume ?? 0);
+                .Where (pt => pt.TankId == tank.Id && pt.DateTime >= cutoffTime)
+                .ToListAsync (cancellationToken);
+            var consumptionVolume = pumpTransactions.Sum (pt => pt.TotalVolume ?? 0);
 
             // Transfers OUT from this tank to other tanks
             var transfersOut = await _context.TankTransfers
-                .Where(tt => tt.SourceTankId == tank.Id && tt.TransferDate >= cutoffTime)
-                .ToListAsync(cancellationToken);
-            var transferOutVolume = transfersOut.Sum(t => t.Amount ?? 0);
+                .Where (tt => tt.SourceTankId == tank.Id && tt.TransferDate >= cutoffTime)
+                .ToListAsync (cancellationToken);
+            var transferOutVolume = transfersOut.Sum (t => t.Amount ?? 0);
 
             // Step 4: Calculate expected volume
             var expectedVolume = startingVolume + deliveryVolume + transferInVolume - consumptionVolume - transferOutVolume;
 
             // Make sure result is not negative
-            return Math.Max(0, expectedVolume);
-        }
-        catch (Exception ex)
-        {
+            return Math.Max (0, expectedVolume);
+        } catch (Exception ex) {
             // If calculation fails, return current stock as fallback
             return tank.CurrentStock ?? 0;
         }

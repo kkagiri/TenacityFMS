@@ -17,10 +17,10 @@ import {
   LoadIndicator,
   ValidationGroup,
   Validator,
-  RequiredRule,
   Toolbar,
-  Item as ToolbarItem,
 } from "devextreme-react";
+import { Item as ToolbarItem } from "devextreme-react/toolbar";
+import { RequiredRule } from "devextreme-react/form";
 import { Column, Paging, FilterRow, HeaderFilter, Scrolling, Selection, Export } from "devextreme-react/data-grid";
 import { Series, ArgumentAxis, ValueAxis, Legend, Tooltip } from "devextreme-react/chart";
 import notify from "devextreme/ui/notify";

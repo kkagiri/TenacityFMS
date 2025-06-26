@@ -21,14 +21,7 @@ namespace FMS.Domain.Entities {
 
         public bool IsActive { get; set; } = true;
 
-        /// <summary>
-        /// Policy type determining when reconciliation is triggered
-        /// </summary>
-        public ReconciliationPolicyType PolicyType { get; set; }
-
-        //Cursor - Enhanced execution type support (from new version)
-        [StringLength (20)]
-        public string ExecutionType { get; set; } // "Scheduled", "EventDriven", "Manual"
+        public ReconciliationPolicyType ExecutionType { get; set; } // "Scheduled", "EventDriven", "Manual"
 
         //Cursor - Schedule frequency in hours (from new version)
         public int? ScheduleFrequencyHours { get; set; }
@@ -48,10 +41,6 @@ namespace FMS.Domain.Entities {
         /// </summary>
         public decimal? DiscrepancyPercentageThreshold { get; set; }
 
-        //Cursor - Enhanced variance thresholds (from new version)
-        public decimal? VarianceThresholdLiters { get; set; }
-        public decimal? VarianceThresholdPercentage { get; set; }
-
         /// <summary>
         /// Site scope filter (null for all sites)
         /// </summary>
@@ -61,10 +50,6 @@ namespace FMS.Domain.Entities {
         /// JSON configuration for tank scope filters
         /// </summary>
         public string? TankScopeConfiguration { get; set; }
-
-        //Cursor - Enhanced tank scope configuration (from new version)
-        [Column (TypeName = "text")]
-        public string TankScopeConfigurationJson { get; set; }
 
         /// <summary>
         /// Policy execution priority (higher numbers execute first)
@@ -109,7 +94,7 @@ namespace FMS.Domain.Entities {
         public DateTime? NextExecution { get; set; }
 
         //Cursor - Enhanced next execution time (from new version)
-        public DateTime? NextExecutionTime { get; set; }
+        //public DateTime? NextExecutionTime { get; set; }
 
         // Navigation properties
         public virtual Site? Site { get; set; }
@@ -125,10 +110,9 @@ namespace FMS.Domain.Entities {
         [NotMapped]
         public ReconciliationTankScope TankScope {
             get {
-                // Try new format first, then fall back to old format
-                var jsonToUse = !string.IsNullOrEmpty (TankScopeConfigurationJson) ?
-                    TankScopeConfigurationJson :
-                    TankScopeConfiguration;
+                var jsonToUse = !string.IsNullOrEmpty (TankScopeConfiguration) ?
+                    TankScopeConfiguration :
+                    null;
 
                 if (string.IsNullOrEmpty (jsonToUse))
                     return null;
@@ -144,7 +128,6 @@ namespace FMS.Domain.Entities {
                     System.Text.Json.JsonSerializer.Serialize (value) :
                     null;
 
-                TankScopeConfigurationJson = serialized;
                 TankScopeConfiguration = serialized; // Keep both for backward compatibility
             }
         }

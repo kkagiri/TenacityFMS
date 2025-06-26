@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FMS.Domain.Entities
-{
+namespace FMS.Domain.Entities {
     /// <summary>
     /// Defines notification policies and rules for different types of notifications
     /// </summary>
-    public class NotificationPolicy
-    {
+    public class NotificationPolicy {
         [Key]
         public int Id { get; set; }
 
@@ -17,13 +15,13 @@ namespace FMS.Domain.Entities
         /// Policy name for identification
         /// </summary>
         [Required]
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string Name { get; set; } = null!;
 
         /// <summary>
         /// Description of the policy
         /// </summary>
-        [MaxLength(500)]
+        [MaxLength (500)]
         public string? Description { get; set; }
 
         /// <summary>
@@ -35,21 +33,21 @@ namespace FMS.Domain.Entities
         /// Category this policy applies to (Tank, Pump, Vehicle, System, etc.)
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [MaxLength (50)]
         public string Category { get; set; } = null!;
 
         /// <summary>
         /// Type of notification this policy applies to (Alert, Warning, Info, etc.)
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [MaxLength (50)]
         public string NotificationType { get; set; } = null!;
 
         /// <summary>
         /// Priority level for notifications under this policy
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [MaxLength (20)]
         public string Priority { get; set; } = "Medium";
 
         /// <summary>
@@ -90,31 +88,31 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Sound file or identifier for audio alerts
         /// </summary>
-        [MaxLength(255)]
+        [MaxLength (255)]
         public string? SoundFile { get; set; }
 
         /// <summary>
         /// Auto-escalation rules in JSON format
         /// </summary>
-        [Column(TypeName = "json")]
+        [Column (TypeName = "json")]
         public string? EscalationRules { get; set; }
 
         /// <summary>
         /// Trigger conditions in JSON format
         /// </summary>
-        [Column(TypeName = "json")]
+        [Column (TypeName = "json")]
         public string? TriggerConditions { get; set; }
 
         /// <summary>
         /// Recipient selection rules in JSON format
         /// </summary>
-        [Column(TypeName = "json")]
+        [Column (TypeName = "json")]
         public string? RecipientRules { get; set; }
 
         /// <summary>
         /// Schedule configuration for when notifications can be sent
         /// </summary>
-        [Column(TypeName = "json")]
+        [Column (TypeName = "json")]
         public string? ScheduleConfiguration { get; set; }
 
         /// <summary>
@@ -123,27 +121,32 @@ namespace FMS.Domain.Entities
         public int? SiteId { get; set; }
 
         /// <summary>
+        /// PTS Device ID if policy is PTS device-specific (null for global)
+        /// </summary>
+        public string? PtsDeviceId { get; set; }
+
+        /// <summary>
         /// Template for notification title
         /// </summary>
-        [MaxLength(255)]
+        [MaxLength (255)]
         public string? TitleTemplate { get; set; }
 
         /// <summary>
         /// Template for notification message
         /// </summary>
-        [Column(TypeName = "text")]
+        [Column (TypeName = "text")]
         public string? MessageTemplate { get; set; }
 
         /// <summary>
         /// Email template for email notifications
         /// </summary>
-        [Column(TypeName = "text")]
+        [Column (TypeName = "text")]
         public string? EmailTemplate { get; set; }
 
         /// <summary>
         /// SMS template for SMS notifications
         /// </summary>
-        [MaxLength(500)]
+        [MaxLength (500)]
         public string? SmsTemplate { get; set; }
 
         /// <summary>
@@ -175,7 +178,7 @@ namespace FMS.Domain.Entities
         /// User who created this policy
         /// </summary>
         [Required]
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string CreatedBy { get; set; } = null!;
 
         /// <summary>
@@ -186,7 +189,7 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// User who last modified this policy
         /// </summary>
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string? ModifiedBy { get; set; }
 
         /// <summary>
@@ -206,13 +209,14 @@ namespace FMS.Domain.Entities
 
         // Navigation Properties
         public virtual Site? Site { get; set; }
+        public virtual Ptsdevice? PtsDevice { get; set; }
         public virtual User CreatedByNavigation { get; set; } = null!;
         public virtual User? ModifiedByNavigation { get; set; }
         public virtual Issuecategory? IssueCategoryNavigation { get; set; }
         public virtual Issuepriority? IssuePriorityNavigation { get; set; }
 
         // Collections
-        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-        public virtual ICollection<NotificationPolicyRecipient> PolicyRecipients { get; set; } = new List<NotificationPolicyRecipient>();
+        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification> ();
+        public virtual ICollection<NotificationPolicyRecipient> PolicyRecipients { get; set; } = new List<NotificationPolicyRecipient> ();
     }
 }

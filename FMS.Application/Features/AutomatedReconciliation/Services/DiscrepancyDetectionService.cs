@@ -41,8 +41,8 @@ public class DiscrepancyDetectionService {
         CancellationToken cancellationToken = default) {
         try {
             // Use policy thresholds or default values
-            var varianceThresholdLiters = policy.VarianceThresholdLiters ?? policy.DiscrepancyThreshold ?? _defaultVarianceThresholdLiters;
-            var varianceThresholdPercentage = policy.VarianceThresholdPercentage ?? policy.DiscrepancyPercentageThreshold ?? _defaultVarianceThresholdPercentage;
+            var varianceThresholdLiters = policy.DiscrepancyThreshold ?? _defaultVarianceThresholdLiters;
+            var varianceThresholdPercentage = policy.DiscrepancyPercentageThreshold ?? _defaultVarianceThresholdPercentage;
 
             // Perform discrepancy calculation
             var discrepancyResult = await CalculateDiscrepancy (tank, varianceThresholdLiters, varianceThresholdPercentage, cancellationToken);
@@ -55,7 +55,7 @@ public class DiscrepancyDetectionService {
                     VarianceLiters = discrepancyResult.VarianceLiters,
                     VariancePercentage = discrepancyResult.VariancePercentage,
                     DetectedAt = DateTime.UtcNow,
-                    Severity = (FMS.Domain.Events.DiscrepancySeverity)DetermineDiscrepancySeverity (discrepancyResult), //Cursor: Cast to correct enum type
+                    Severity = (FMS.Domain.Events.DiscrepancySeverity) DetermineDiscrepancySeverity (discrepancyResult), //Cursor: Cast to correct enum type
                     ExpectedVolume = discrepancyResult.ExpectedVolume,
                     ActualVolume = discrepancyResult.ActualVolume
                 };
@@ -82,7 +82,7 @@ public class DiscrepancyDetectionService {
         CancellationToken cancellationToken = default) {
 
         //Cursor - Use inventory costing service for accurate business impact calculation
-        var businessImpact = await CalculateBusinessImpactAsync(detectionResult, cancellationToken);
+        var businessImpact = await CalculateBusinessImpactAsync (detectionResult, cancellationToken);
 
         return new ReconciliationDiscrepancy {
             PolicyExecutionId = policyExecutionId,
@@ -104,7 +104,7 @@ public class DiscrepancyDetectionService {
         DiscrepancyDetectionResult detectionResult,
         int policyExecutionId,
         ReconciliationPolicy policy) {
-        return CreateDiscrepancyRecordAsync(detectionResult, policyExecutionId, policy).GetAwaiter().GetResult();
+        return CreateDiscrepancyRecordAsync (detectionResult, policyExecutionId, policy).GetAwaiter ().GetResult ();
     }
 
     //Cursor - Complete implementation of discrepancy calculation logic
@@ -172,29 +172,29 @@ public class DiscrepancyDetectionService {
 
         //Cursor - Get deliveries in the time window
         var deliveries = await _context.Deliveries
-            .Where(d => d.TankId == tank.Id && d.DeliveryDate >= cutoffTime)
-            .ToListAsync(cancellationToken);
+            .Where (d => d.TankId == tank.Id && d.DeliveryDate >= cutoffTime)
+            .ToListAsync (cancellationToken);
 
-        var deliveryVolume = deliveries.Sum(d => d.ManualDeliveryAmount); //Cursor: Use ManualDeliveryAmount property
+        var deliveryVolume = deliveries.Sum (d => d.ManualDeliveryAmount); //Cursor: Use ManualDeliveryAmount property
 
         //Cursor - Get consumption from pump transactions
         var consumption = await _context.Pumptransactions
-            .Where(pt => pt.TankId == tank.Id && pt.DateTime >= cutoffTime) //Cursor: Use DateTime property
-            .ToListAsync(cancellationToken);
+            .Where (pt => pt.TankId == tank.Id && pt.DateTime >= cutoffTime) //Cursor: Use DateTime property
+            .ToListAsync (cancellationToken);
 
-        var consumptionVolume = consumption.Sum(c => c.TotalVolume ?? 0); //Cursor: Use TotalVolume property
+        var consumptionVolume = consumption.Sum (c => c.TotalVolume ?? 0); //Cursor: Use TotalVolume property
 
         //Cursor - Get tank transfers (in and out)
         var transfersIn = await _context.TankTransfers
-            .Where(tt => tt.DestinationTankId == tank.Id && tt.TransferDate >= cutoffTime) //Cursor: Use DestinationTankId
-            .ToListAsync(cancellationToken);
+            .Where (tt => tt.DestinationTankId == tank.Id && tt.TransferDate >= cutoffTime) //Cursor: Use DestinationTankId
+            .ToListAsync (cancellationToken);
 
         var transfersOut = await _context.TankTransfers
-            .Where(tt => tt.SourceTankId == tank.Id && tt.TransferDate >= cutoffTime) //Cursor: Use SourceTankId
-            .ToListAsync(cancellationToken);
+            .Where (tt => tt.SourceTankId == tank.Id && tt.TransferDate >= cutoffTime) //Cursor: Use SourceTankId
+            .ToListAsync (cancellationToken);
 
-        var transferInVolume = transfersIn.Sum(t => t.Amount ?? 0); //Cursor: Use Amount property
-        var transferOutVolume = transfersOut.Sum(t => t.Amount ?? 0); //Cursor: Use Amount property
+        var transferInVolume = transfersIn.Sum (t => t.Amount ?? 0); //Cursor: Use Amount property
+        var transferOutVolume = transfersOut.Sum (t => t.Amount ?? 0); //Cursor: Use Amount property
 
         //Cursor - Calculate expected volume
         var expectedVolume = startingVolume + deliveryVolume - consumptionVolume + transferInVolume - transferOutVolume;
@@ -219,57 +219,49 @@ public class DiscrepancyDetectionService {
     }
 
     //Cursor - Calculate business impact using inventory costing service for accurate KES-based calculations
-    private async Task<decimal> CalculateBusinessImpactAsync(DiscrepancyDetectionResult result, CancellationToken cancellationToken = default)
-    {
-        try
-        {
+    private async Task<decimal> CalculateBusinessImpactAsync (DiscrepancyDetectionResult result, CancellationToken cancellationToken = default) {
+        try {
             // Use the inventory costing service for accurate weighted average cost calculation
-            var costResponse = await _costingService.GetWeightedAverageCostAsync(result.TankId, cancellationToken);
+            var costResponse = await _costingService.GetWeightedAverageCostAsync (result.TankId, cancellationToken);
 
-            if (costResponse.IsSuccess)
-            {
+            if (costResponse.IsSuccess) {
                 var costPerLiter = costResponse.Data;
                 var volumeImpact = result.VarianceLiters * costPerLiter;
 
                 // Apply percentage multiplier for additional risk assessment
-                var percentageMultiplier = Math.Min(result.VariancePercentage / 100m, 1.0m); // Cap at 100%
+                var percentageMultiplier = Math.Min (result.VariancePercentage / 100m, 1.0m); // Cap at 100%
                 var businessImpact = volumeImpact * (1 + percentageMultiplier);
 
-                _logger.LogDebug("Business impact calculated for Tank {TankId}: {VarianceLiters}L × {CostPerLiter} KES/L × (1 + {PercentageMultiplier}) = {BusinessImpact} KES",
+                _logger.LogDebug ("Business impact calculated for Tank {TankId}: {VarianceLiters}L × {CostPerLiter} KES/L × (1 + {PercentageMultiplier}) = {BusinessImpact} KES",
                     result.TankId, result.VarianceLiters, costPerLiter, percentageMultiplier, businessImpact);
 
                 return businessImpact;
-            }
-            else
-            {
-                _logger.LogWarning("Failed to get weighted average cost for tank {TankId}: {Error}. Using fallback calculation.",
+            } else {
+                _logger.LogWarning ("Failed to get weighted average cost for tank {TankId}: {Error}. Using fallback calculation.",
                     result.TankId, costResponse.Message);
-                return CalculateBusinessImpactFallback(result);
+                return CalculateBusinessImpactFallback (result);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error calculating business impact for tank {TankId}, using fallback", result.TankId);
-            return CalculateBusinessImpactFallback(result);
+        } catch (Exception ex) {
+            _logger.LogError (ex, "Error calculating business impact for tank {TankId}, using fallback", result.TankId);
+            return CalculateBusinessImpactFallback (result);
         }
     }
 
     //Cursor - Fallback business impact calculation using default pricing
-    private decimal CalculateBusinessImpactFallback(DiscrepancyDetectionResult result)
-    {
+    private decimal CalculateBusinessImpactFallback (DiscrepancyDetectionResult result) {
         // Fallback calculation using default price of 150 KES/L
         var volumeImpact = result.VarianceLiters * 150.0m; // Default KES per liter
-        var percentageMultiplier = Math.Min(result.VariancePercentage / 100m, 1.0m); // Cap at 100%
+        var percentageMultiplier = Math.Min (result.VariancePercentage / 100m, 1.0m); // Cap at 100%
 
         return volumeImpact * (1 + percentageMultiplier);
     }
 
     //Cursor - Legacy method for backward compatibility (deprecated)
-    [Obsolete("Use CalculateBusinessImpactAsync for accurate weighted average cost calculations")]
+    [Obsolete ("Use CalculateBusinessImpactAsync for accurate weighted average cost calculations")]
     private decimal CalculateBusinessImpact (DiscrepancyDetectionResult result) {
         // Legacy simple business impact calculation - deprecated
         // Kept for backward compatibility but should use CalculateBusinessImpactAsync
-        return CalculateBusinessImpactFallback(result);
+        return CalculateBusinessImpactFallback (result);
     }
 }
 

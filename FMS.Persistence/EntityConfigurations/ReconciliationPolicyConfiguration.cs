@@ -30,7 +30,6 @@
                  builder.Property (e => e.Name).HasMaxLength (100).IsRequired ();
                  builder.Property (e => e.Description).HasMaxLength (500);
                  builder.Property (e => e.IsActive).HasDefaultValue (true);
-                 builder.Property (e => e.PolicyType).HasColumnType ("int(11)").IsRequired ();
                  builder.Property (e => e.ScheduleConfiguration).HasColumnType ("text");
                  builder.Property (e => e.DiscrepancyThreshold).HasPrecision (10, 2);
                  builder.Property (e => e.DiscrepancyPercentageThreshold).HasPrecision (5, 2);

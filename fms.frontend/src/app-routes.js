@@ -33,7 +33,7 @@ import AutomatedReconciliationSystem from "./pages/automatedReconciliation/Autom
 //Cursor - Mission Control enhanced versions
 import EnhancedTankStockDashboard from "./pages/tankStock/dashboard/EnhancedTankStockDashboard";
 import EnhancedAutomatedReconciliationSystem from "./pages/automatedReconciliation/EnhancedAutomatedReconciliationSystem";
-
+import NotificationDashboard from "./components/notifications/NotificationDashboard"
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
 
@@ -59,6 +59,9 @@ const resolvedComponents = (pageName) => {
       return StockManagement;
     case "consumption":
       return ConsumptionBasedonRefills;
+      case "notifications":
+          return NotificationDashboard;
+
 
     case "Fuel Report Importer":
       return FuelReportImporter;

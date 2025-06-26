@@ -19,7 +19,6 @@ namespace FMS.Application.Services {
         private readonly ILogger<DeviceActivityMonitorService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly DeviceConnectionTracker _deviceConnectionTracker;
-        private readonly ISystemConfigurationService _systemConfigurationService;
         private TimeSpan _checkInterval;
         private TimeSpan _redisCleanupInterval;
         private DateTime _lastRedisCleanup = DateTime.MinValue;
@@ -27,12 +26,10 @@ namespace FMS.Application.Services {
         public DeviceActivityMonitorService (
             ILogger<DeviceActivityMonitorService> logger,
             IServiceScopeFactory scopeFactory,
-            DeviceConnectionTracker deviceConnectionTracker,
-            ISystemConfigurationService systemConfigurationService) {
+            DeviceConnectionTracker deviceConnectionTracker) {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _deviceConnectionTracker = deviceConnectionTracker;
-            _systemConfigurationService = systemConfigurationService;
         }
 
         protected override async Task ExecuteAsync (CancellationToken stoppingToken) {
@@ -40,7 +37,7 @@ namespace FMS.Application.Services {
 
             //Cursor on changes to code
             // Load configuration values at startup
-            await LoadConfigurationValues(stoppingToken);
+            await LoadConfigurationValues (stoppingToken);
 
             await PerformStartupRedisCleanup (stoppingToken);
 
@@ -237,8 +234,8 @@ namespace FMS.Application.Services {
                         wsConnection != null ? $"LastMsg: {wsConnection.LastMessageAt:o}" : "null",
                         httpConnection != null ? $"LastUpdate: {httpConnection.LastStatusUpdate:o}, LastPoll: {httpConnection.LastPollTime:o}" : "null");
 
-                    var wsTimeout = await GetWebSocketTimeoutAsync();
-                    var httpTimeout = await GetHttpTimeoutAsync();
+                    var wsTimeout = await GetWebSocketTimeoutAsync ();
+                    var httpTimeout = await GetHttpTimeoutAsync ();
 
                     bool isWsActive = wsConnection != null && (now - wsConnection.LastMessageAt).TotalSeconds <= wsTimeout;
                     bool isHttpActive = httpConnection != null && (now - (httpConnection.LastStatusUpdate > httpConnection.LastPollTime ? httpConnection.LastStatusUpdate : httpConnection.LastPollTime)).TotalSeconds <= httpTimeout;
@@ -417,41 +414,43 @@ namespace FMS.Application.Services {
         /// <summary>
         /// Loads configuration values at startup using the system configuration service
         /// </summary>
-        private async Task LoadConfigurationValues(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var checkIntervalSeconds = await _systemConfigurationService.GetDeviceActivityCheckIntervalSecondsAsync(cancellationToken);
-                var redisCleanupMinutes = await _systemConfigurationService.GetRedisCleanupIntervalMinutesAsync(cancellationToken);
+        private async Task LoadConfigurationValues (CancellationToken cancellationToken) {
+            try {
+                using var scope = _scopeFactory.CreateScope ();
+                var systemConfigurationService = scope.ServiceProvider.GetRequiredService<ISystemConfigurationService> ();
 
-                _checkInterval = TimeSpan.FromSeconds(checkIntervalSeconds);
-                _redisCleanupInterval = TimeSpan.FromMinutes(redisCleanupMinutes);
+                var checkIntervalSeconds = await systemConfigurationService.GetDeviceActivityCheckIntervalSecondsAsync (cancellationToken);
+                var redisCleanupMinutes = await systemConfigurationService.GetRedisCleanupIntervalMinutesAsync (cancellationToken);
 
-                _logger.LogInformation("Configuration loaded - Check interval: {CheckInterval}s, Redis cleanup: {RedisCleanup}m",
+                _checkInterval = TimeSpan.FromSeconds (checkIntervalSeconds);
+                _redisCleanupInterval = TimeSpan.FromMinutes (redisCleanupMinutes);
+
+                _logger.LogInformation ("Configuration loaded - Check interval: {CheckInterval}s, Redis cleanup: {RedisCleanup}m",
                     checkIntervalSeconds, redisCleanupMinutes);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading configuration values, using defaults");
-                _checkInterval = TimeSpan.FromSeconds(10);
-                _redisCleanupInterval = TimeSpan.FromMinutes(5);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error loading configuration values, using defaults");
+                _checkInterval = TimeSpan.FromSeconds (10);
+                _redisCleanupInterval = TimeSpan.FromMinutes (5);
             }
         }
 
-        private async Task<int> GetWebSocketTimeoutAsync(CancellationToken cancellationToken = default)
-        {
-            return await _systemConfigurationService.GetWebSocketTimeoutSecondsAsync(cancellationToken);
+        private async Task<int> GetWebSocketTimeoutAsync (CancellationToken cancellationToken = default) {
+            using var scope = _scopeFactory.CreateScope ();
+            var systemConfigurationService = scope.ServiceProvider.GetRequiredService<ISystemConfigurationService> ();
+            return await systemConfigurationService.GetWebSocketTimeoutSecondsAsync (cancellationToken);
         }
 
-        private async Task<int> GetHttpTimeoutAsync(CancellationToken cancellationToken = default)
-        {
-            return await _systemConfigurationService.GetHttpTimeoutSecondsAsync(cancellationToken);
+        private async Task<int> GetHttpTimeoutAsync (CancellationToken cancellationToken = default) {
+            using var scope = _scopeFactory.CreateScope ();
+            var systemConfigurationService = scope.ServiceProvider.GetRequiredService<ISystemConfigurationService> ();
+            return await systemConfigurationService.GetHttpTimeoutSecondsAsync (cancellationToken);
         }
 
         // Add this method to check for explicit mappings
         private async Task<string> TryGetMappedDeviceId (string deviceId, GpsdataContext context, CancellationToken cancellationToken) {
             // In the future, this could query a device_mappings table to get proper mappings
             // For now we use hardcoded values for the specific case we know about
+            //ToDo: Create mapping table in DB to map Redis IDs to DB IDs
             if (deviceId == "002400375631500620323837") {
                 // If the real DB id for this device is something else, return it
                 // For example, if Redis device 002400375631500620323837 actually is device 24 in DB:
@@ -537,7 +536,7 @@ namespace FMS.Application.Services {
                     if (stoppingToken.IsCancellationRequested) break;
 
                     try {
-                        var wsTimeout = await GetWebSocketTimeoutAsync();
+                        var wsTimeout = await GetWebSocketTimeoutAsync ();
                         var timeSinceLastMessage = (now - wsConnection.LastMessageAt).TotalSeconds;
 
                         // If connection has exceeded timeout by a significant margin (2x), clean it up
@@ -558,7 +557,7 @@ namespace FMS.Application.Services {
                     if (stoppingToken.IsCancellationRequested) break;
 
                     try {
-                        var httpTimeout = await GetHttpTimeoutAsync();
+                        var httpTimeout = await GetHttpTimeoutAsync ();
                         var lastActivity = httpConnection.LastStatusUpdate > httpConnection.LastPollTime ?
                             httpConnection.LastStatusUpdate :
                             httpConnection.LastPollTime;

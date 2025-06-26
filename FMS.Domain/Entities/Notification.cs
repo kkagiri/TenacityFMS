@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FMS.Domain.Entities
-{
+namespace FMS.Domain.Entities {
     /// <summary>
     /// Core notification entity that tracks all notifications sent through the system
     /// </summary>
-    public class Notification
-    {
+    public class Notification {
         [Key]
         public int Id { get; set; }
 
@@ -17,61 +15,61 @@ namespace FMS.Domain.Entities
         /// Unique identifier for tracking notifications
         /// </summary>
         [Required]
-        [MaxLength(100)]
-        public string NotificationId { get; set; } = Guid.NewGuid().ToString();
+        [MaxLength (100)]
+        public string NotificationId { get; set; } = Guid.NewGuid ().ToString ();
 
         /// <summary>
         /// Type of notification (Alert, Info, Warning, Error, System)
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [MaxLength (50)]
         public string Type { get; set; } = null!;
 
         /// <summary>
         /// Category for grouping notifications (Tank, Pump, Vehicle, System, User, etc.)
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [MaxLength (50)]
         public string Category { get; set; } = null!;
 
         /// <summary>
         /// Priority level (Low, Medium, High, Critical)
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [MaxLength (20)]
         public string Priority { get; set; } = "Medium";
 
         /// <summary>
         /// Title/Subject of the notification
         /// </summary>
         [Required]
-        [MaxLength(255)]
+        [MaxLength (255)]
         public string Title { get; set; } = null!;
 
         /// <summary>
         /// Main message content
         /// </summary>
         [Required]
-        [Column(TypeName = "text")]
+        [Column (TypeName = "text")]
         public string Message { get; set; } = null!;
 
         /// <summary>
         /// Additional data in JSON format
         /// </summary>
-        [Column(TypeName = "json")]
+        [Column (TypeName = "json")]
         public string? Data { get; set; }
 
         /// <summary>
         /// How the notification was triggered (Manual, Scheduled, Alarm, System, API)
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [MaxLength (50)]
         public string TriggerSource { get; set; } = null!;
 
         /// <summary>
         /// ID of the user who triggered the notification (if applicable)
         /// </summary>
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string? TriggeredBy { get; set; }
 
         /// <summary>
@@ -93,7 +91,7 @@ namespace FMS.Domain.Entities
         /// Current status (Pending, Sent, Failed, Cancelled)
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [MaxLength (20)]
         public string Status { get; set; } = "Pending";
 
         /// <summary>
@@ -104,18 +102,13 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Error message if sending failed
         /// </summary>
-        [MaxLength(500)]
+        [MaxLength (500)]
         public string? ErrorMessage { get; set; }
 
         /// <summary>
         /// Site ID if notification is site-specific
         /// </summary>
         public int? SiteId { get; set; }
-
-        /// <summary>
-        /// Device ID if notification is device-specific
-        /// </summary>
-        public int? DeviceId { get; set; }
 
         /// <summary>
         /// Tank ID if notification is tank-specific
@@ -126,6 +119,11 @@ namespace FMS.Domain.Entities
         /// Vehicle ID if notification is vehicle-specific
         /// </summary>
         public int? VehicleId { get; set; }
+
+        /// <summary>
+        /// PTS Device ID if notification is PTS device-specific
+        /// </summary>
+        public string? PtsDeviceId { get; set; }
 
         /// <summary>
         /// Issue tracker ID if related to an issue
@@ -164,15 +162,15 @@ namespace FMS.Domain.Entities
 
         // Navigation Properties
         public virtual Site? Site { get; set; }
-        public virtual Device? Device { get; set; }
         public virtual Tank? Tank { get; set; }
         public virtual Vehicle? Vehicle { get; set; }
+        public virtual Ptsdevice? PtsDevice { get; set; }
         public virtual Issuetracker? IssueTracker { get; set; }
         public virtual Alarm? Alarm { get; set; }
         public virtual NotificationPolicy? NotificationPolicy { get; set; }
         public virtual User? TriggeredByNavigation { get; set; }
 
         // Recipients collection
-        public virtual ICollection<NotificationRecipient> Recipients { get; set; } = new List<NotificationRecipient>();
+        public virtual ICollection<NotificationRecipient> Recipients { get; set; } = new List<NotificationRecipient> ();
     }
 }

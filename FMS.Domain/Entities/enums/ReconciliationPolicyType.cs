@@ -21,6 +21,15 @@ namespace FMS.Domain.Entities.enums {
         /// <summary>
         /// Event-driven policy triggered by specific system events
         /// </summary>
-        EventDriven = 4
+        EventDriven = 4,
+
+        /// <summary>
+        /// Manual policy executed on demand by user
+        /// </summary>
+        //Cursor - Added Manual type for manual execution
+        // This is useful for ad-hoc reconciliations initiated by users
+        // It allows flexibility in executing policies without a predefined schedule
+        // or event trigger.
+        Manual = 5
     }
 }

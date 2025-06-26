@@ -3,6 +3,23 @@ import axiosInstance from "../api/axiosInstance";
 import CustomStore from "devextreme/data/custom_store";
 
 
+// Get vehicle dashboard metrics
+export const getVehicleDashboardMetrics = async () => {
+  try {
+    const response = await axiosInstance.get(`/vehicle/getdashboardmetrics`);
+    return response.data;
+  } catch (error) {
+    console.error('Error loading vehicle dashboard metrics:', error);
+    // Return mock data if API fails
+    return {
+      totalVehicles: 0,
+      activeVehicles: 0,
+      maintenanceCount: 0,
+      fuelAlerts: 0
+    };
+  }
+};
+
 export const getVehicleList = async () => {
   try {
     const response = await axiosInstance.get(`/vehicle/getlist`);
@@ -96,7 +113,7 @@ export const getExpectedAvg = async () => {
 };
 
 
-//get expectded Average by SiteiD and Vehicle ID 
+//get expectded Average by SiteiD and Vehicle ID
 export const getExpectedAvgBySiteIdAndVehicleId = async (vehicleId,siteId) => {
   try {
 
@@ -113,7 +130,7 @@ export const getExpectedAvgBySiteIdAndVehicleId = async (vehicleId,siteId) => {
 
 
 
-export const getSiteList = async () => { 
+export const getSiteList = async () => {
   try {
     const response = await axiosInstance.get(`/site/getlist`);
     return response.data;
@@ -125,7 +142,7 @@ export const getSiteList = async () => {
 
 export const getSitebyUserID = async () => {
   try{
-      const response = await axiosInstance.get(`/site/getsitebyuserid`);  
+      const response = await axiosInstance.get(`/site/getsitebyuserid`);
       return response.data;
     }
     catch (error) {
@@ -169,7 +186,7 @@ export const getEmployeeBySite = async (siteID) => {
 
 
 // Fetch vehicle type data
-  export const getVehicleTypeList = async () => { 
+  export const getVehicleTypeList = async () => {
     try {
       const response = await axiosInstance.get(`/vehicleType/getlist`);
       return response.data;
@@ -195,8 +212,8 @@ export const getEmployeeBySite = async (siteID) => {
   export const getConsumptionHistoryByVehicle = async (vehicleId, datestring,entry) => {
     try {
       console.log("Types:", typeof vehicleId.vehicleId, typeof vehicleId.startDate, typeof entry); // Check types
-      console.log("fetching history data",vehicleId,datestring,entry); 
-      
+      console.log("fetching history data",vehicleId,datestring,entry);
+
 
 
       const formattedDate = new Date(vehicleId.startDate).toISOString().split('T')[0]; // Format the date
@@ -217,5 +234,4 @@ export const getEmployeeBySite = async (siteID) => {
         console.error('Error loading consumption data:', error);
         throw new Error('Data loading error');
       }
-    };    
-  
+    };

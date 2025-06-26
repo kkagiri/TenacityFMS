@@ -20,7 +20,9 @@ check first in documentation if there is details (file name ) contains the query
 if you have created the file - on applying the code if there is no content do not repeat the file creation or deletetion , just continue with the execution of other files .
 
 if you are in ask mode always indicate location of the file you intend to create ..
-After finishing task expect for bugs write or update document in the documentation folder with feature if you have created a new file , update on process .if you create a new persistence that has to be saved in database entity fms.domain always make sure that its has a entity configuration file in fms .persistence and add it to gpsdatacontext , also create the myslq syntax but do not create the file holding the syntax
+After finishing task expect for bugs write or update document in the documentation folder with feature .. create a file folder based on the feature being ask. if you have created a new file , update on process . if you create a new persistence that has to be saved in database entity fms.domain always make sure that its has a entity configuration file in fms .persistence and add it to gpsdatacontext , also create the myslq syntax but do not create the file holding the syntax
+
+for the frontend project do put the page or module in this format - page , inside put the components and hooks for the module .
 
 
 Do not build Application either backend or frontend

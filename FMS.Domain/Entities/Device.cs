@@ -4,8 +4,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FMS.Domain.Entities;
 
-public partial class Device
-{
+///
+///<summary>
+////// This class represent GPS Device .. Should not be confused with PTSdevice
+/// </summary>
+public partial class Device {
     [Key]
     public int DeviceImei { get; set; }
 
@@ -17,5 +20,7 @@ public partial class Device
 
     public virtual Devicetype DeviceTypeNavigation { get; set; } = null!;
 
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification> ();
+
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle> ();
 }
