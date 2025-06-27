@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTankStockSignalR } from '../../../hooks/useTankStockSignalR';
 import { useStockData } from '../shared/hooks/useStockData';
@@ -23,10 +23,11 @@ const EnhancedTankStockDashboard = () => {
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
   });
 
-  const [dateRange] = useState(() => {
+  //Cursor - Memoize dateRange to prevent unnecessary re-renders
+  const dateRange = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return [today, today];
-  });
+  }, []); // Empty dependency array since it's always today
 
   //Cursor - Use SignalR for real-time updates
   const { isConnected: signalRConnected, requestTankDataRefresh } = useTankStockSignalR(

@@ -235,3 +235,69 @@ export const getEmployeeBySite = async (siteID) => {
         throw new Error('Data loading error');
       }
     };
+
+//Cursor - Added createVehicle function for vehicle creation
+export const createVehicle = async (vehicleData) => {
+  try {
+    const response = await axiosInstance.post(`/vehicle/create`, vehicleData);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Vehicle created successfully'
+    };
+  } catch (error) {
+    console.error('Error creating vehicle:', error);
+    return {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || 'Error creating vehicle'
+    };
+  }
+};
+
+//Cursor - Added getVehicleById function for fetching vehicle by ID
+export const getVehicleById = async (id) => {
+  try {
+    const response = await axiosInstance.get(`/vehicle/getvehiclebyid`, {
+      params: { id: id }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle by ID:', error);
+    throw new Error('Error fetching vehicle data');
+  }
+};
+
+//Cursor - Added deleteVehicle function for vehicle deletion
+export const deleteVehicle = async (id) => {
+  try {
+    const response = await axiosInstance.delete(`/vehicle/delete/${id}`);
+    return {
+      success: true,
+      data: response.data,
+      message: 'Vehicle deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting vehicle:', error);
+    throw new Error(error.response?.data?.message || 'Error deleting vehicle');
+  }
+};
+
+//Cursor - Added getVehicleMetrics function for vehicle metrics
+export const getVehicleMetrics = async (vehicleId, dayFilter = 1) => {
+  try {
+    const response = await axiosInstance.get(`/vehicle/getmetrics/${vehicleId}`, {
+      params: { days: dayFilter }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vehicle metrics:', error);
+    // Return default metrics if API fails
+    return {
+      totalDistance: 0,
+      totalFuel: 0,
+      fuelIssues: 0,
+      activeIssues: 0
+    };
+  }
+};

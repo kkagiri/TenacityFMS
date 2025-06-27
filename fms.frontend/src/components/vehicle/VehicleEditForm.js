@@ -13,12 +13,12 @@ import { SelectBox, TextBox, NumberBox, CheckBox } from 'devextreme-react';
 
 // Services
 import {
-  getVehicleTypes,
+  getVehicleTypeList,
   getVehicleModels,
-  getVehicleManufacturers,
+  getManufacturers,
   getSiteList,
   getEmployeeList,
-  getExpectedAverageList
+  getExpectedAvg
 } from '../../dataservice';
 
 const VehicleEditForm = ({ vehicle, isEditing, onSave, isSaving }) => {
@@ -73,12 +73,12 @@ const VehicleEditForm = ({ vehicle, isEditing, onSave, isSaving }) => {
           employeesData,
           expectedAvgData
         ] = await Promise.all([
-          getVehicleTypes(),
+          getVehicleTypeList(),
           getVehicleModels(),
-          getVehicleManufacturers(),
+          getManufacturers(),
           getSiteList(),
           getEmployeeList(),
-          getExpectedAverageList()
+          getExpectedAvg()
         ]);
 
         setVehicleTypes(typesData);

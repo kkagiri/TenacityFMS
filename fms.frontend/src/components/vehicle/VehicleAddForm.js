@@ -14,12 +14,12 @@ import notify from 'devextreme/ui/notify';
 
 // Services
 import {
-  getVehicleTypes,
+  getVehicleTypeList,
   getVehicleModels,
-  getVehicleManufacturers,
+  getManufacturers,
   getSiteList,
   getEmployeeList,
-  getExpectedAverageList,
+  getExpectedAvg,
   createVehicle
 } from '../../dataservice';
 
@@ -69,12 +69,12 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
           employeesData,
           expectedAvgData
         ] = await Promise.all([
-          getVehicleTypes(),
+          getVehicleTypeList(),
           getVehicleModels(),
-          getVehicleManufacturers(),
+          getManufacturers(),
           getSiteList(),
           getEmployeeList(),
-          getExpectedAverageList()
+          getExpectedAvg()
         ]);
 
         setVehicleTypes(typesData);

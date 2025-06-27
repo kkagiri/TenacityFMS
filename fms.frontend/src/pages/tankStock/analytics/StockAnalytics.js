@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useStockData } from '../shared/hooks/useStockData';
 import InteractiveDashboard from './components/InteractiveDashboard';
@@ -20,11 +20,18 @@ const StockAnalytics = () => {
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
   });
 
-  const [dateRange, setDateRange] = useState(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    return [sevenDaysAgo, today];
+  //Cursor - Memoize dateRange to prevent infinite re-renders
+  const [dateRangeState, setDateRangeState] = useState(() => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return [
+      sevenDaysAgo.toISOString().split('T')[0],
+      today.toISOString().split('T')[0]
+    ];
   });
+
+  //Cursor - Memoize dateRange to ensure stable reference
+  const dateRange = useMemo(() => dateRangeState, [dateRangeState]);
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
@@ -46,7 +53,7 @@ const StockAnalytics = () => {
   }, []);
 
   const handleDateRangeChange = useCallback((newDateRange) => {
-    setDateRange(newDateRange);
+    setDateRangeState(newDateRange);
   }, []);
 
   const handleTabSelectionChange = useCallback((e) => {

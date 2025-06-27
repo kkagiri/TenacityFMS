@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchTankVolumeHistoryBySiteId, fetchTankVolumeHistoryByDateRange } from '../../../../redux/actions/tankVolumeHistoryActions';
 import { fetchTanks } from '../../../../redux/actions/tankActions';
@@ -11,6 +11,8 @@ import notify from 'devextreme/ui/notify';
 export const useStockData = (selectedSite, dateRange) => {
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const lastFetchRef = useRef(null);
 
   // Redux selectors
   const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
@@ -19,10 +21,36 @@ export const useStockData = (selectedSite, dateRange) => {
   const deliveries = useSelector((state) => state.delivery.deliveries);
   const consumption = useSelector((state) => state.consumption.consumption);
 
+  //Cursor - Convert dateRange to string for stable comparison
+  const dateRangeString = useMemo(() => {
+    return Array.isArray(dateRange) ? dateRange.join('|') : '';
+  }, [dateRange]);
+
   const refreshData = useCallback(async (customDateRange = dateRange) => {
+    const fetchKey = `${selectedSite}-${dateRangeString}`;
+
+    //Cursor - Prevent duplicate calls
+    if (lastFetchRef.current === fetchKey) {
+      console.log('Skipping duplicate fetch for:', fetchKey);
+      return;
+    }
+
     try {
+      if (!mountedRef.current) return;
+
       setIsLoading(true);
-      const [startDate, endDate] = customDateRange;
+      lastFetchRef.current = fetchKey;
+
+      const [startDate, endDate] = Array.isArray(customDateRange) ? customDateRange : dateRange;
+
+      //Cursor - Validate dates before making API calls
+      if (!startDate || !endDate) {
+        console.error('Invalid date range:', { startDate, endDate });
+        notify('Invalid date range', 'error', 3000);
+        return;
+      }
+
+      console.log('Fetching stock data for:', { selectedSite, startDate, endDate });
 
       // Fetch data based on site selection
       if (selectedSite === 'all') {
@@ -39,23 +67,32 @@ export const useStockData = (selectedSite, dateRange) => {
         ]);
       }
 
-      // Fetch static data
+      // Fetch static data less frequently
       await Promise.all([
         dispatch(fetchTanks()),
         dispatch(fetchSiteList())
       ]);
     } catch (error) {
       console.error('Error fetching stock data:', error);
-      notify('Error fetching data', 'error', 3000);
+      notify('Error fetching data. Please try again.', 'error', 3000);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [dispatch, selectedSite, dateRange]);
+  }, [dispatch, selectedSite, dateRangeString]); // Use string instead of array
 
   // Initial data fetch
   useEffect(() => {
     refreshData();
   }, [refreshData]);
+
+  //Cursor - Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Computed data for dashboard
   const tankLevels = tanks.filter(tank =>
