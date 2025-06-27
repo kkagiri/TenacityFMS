@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -16,6 +18,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
 namespace FMS.BackgroundServices.FMS {
     public class AutomatedClosingStockService : BackgroundService {
         private readonly ILogger<AutomatedClosingStockService> _logger;

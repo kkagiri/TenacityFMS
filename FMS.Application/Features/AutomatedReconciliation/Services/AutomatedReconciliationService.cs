@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.Services.AutomatedReconciliation;
-using FMS.Application.Services;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Services;
+using FMS.Application.Services;
+using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.Features.AutomaticReconciliation;
@@ -48,8 +50,8 @@ public class AutomatedReconciliationService {
     //Cursor - Enhanced ExecuteReconciliationCycleAsync with metrics emission and notifications
     public async Task<ReconciliationCycleResult> ExecuteReconciliationCycleAsync (CancellationToken cancellationToken = default) {
         var cycleResult = new ReconciliationCycleResult {
-            StartedAt = DateTime.UtcNow,
-            CycleId = Guid.NewGuid ()
+        StartedAt = DateTime.UtcNow,
+        CycleId = Guid.NewGuid ()
         };
 
         //Cursor - Emit metrics using ILogger.BeginScope for structured logging
@@ -84,7 +86,7 @@ public class AutomatedReconciliationService {
                     cycleResult.FailedPolicies++;
 
                     //Cursor - Send notification for policy execution failure
-                    await SendPolicyExecutionFailureNotificationAsync(policy.Id, policyEx.Message, cancellationToken);
+                    await SendPolicyExecutionFailureNotificationAsync (policy.Id, policyEx.Message, cancellationToken);
                 }
             }
 
@@ -94,7 +96,7 @@ public class AutomatedReconciliationService {
 
             //Cursor - Send cycle summary notification if there were failures
             if (cycleResult.FailedPolicies > 0) {
-                await SendCycleSummaryNotificationAsync(cycleResult, cancellationToken);
+                await SendCycleSummaryNotificationAsync (cycleResult, cancellationToken);
             }
 
             //Cursor - Emit final metrics before returning result
@@ -123,7 +125,7 @@ public class AutomatedReconciliationService {
             cycleResult.ErrorMessage = ex.Message;
 
             //Cursor - Send critical failure notification
-            await SendCycleCriticalFailureNotificationAsync(cycleResult.CycleId, ex.Message, cancellationToken);
+            await SendCycleCriticalFailureNotificationAsync (cycleResult.CycleId, ex.Message, cancellationToken);
 
             throw;
         }
@@ -132,9 +134,9 @@ public class AutomatedReconciliationService {
     //Cursor - Enhanced ExecuteSinglePolicyAsync with configuration checks and notifications
     public async Task<PolicyExecutionResult> ExecuteSinglePolicyAsync (int policyId, CancellationToken cancellationToken = default) {
         var executionResult = new PolicyExecutionResult {
-            PolicyId = policyId,
-            StartedAt = DateTime.UtcNow,
-            ExecutionId = Guid.NewGuid ()
+        PolicyId = policyId,
+        StartedAt = DateTime.UtcNow,
+        ExecutionId = Guid.NewGuid ()
         };
 
         using var scope = _logger.BeginScope (new Dictionary<string, object> {
@@ -158,9 +160,9 @@ public class AutomatedReconciliationService {
             _logger.LogInformation ("Executing policy {PolicyId} - {PolicyName}", policy.Id, policy.Name);
 
             //Cursor - Check configuration before execution
-            var configuration = await _configurationService.GetConfigurationAsync(policy.SiteId, cancellationToken);
+            var configuration = await _configurationService.GetConfigurationAsync (policy.SiteId, cancellationToken);
             if (!configuration.AutoReconcileTankVolumes) {
-                _logger.LogInformation("Auto-reconciliation disabled for site {SiteId}, skipping policy {PolicyId}",
+                _logger.LogInformation ("Auto-reconciliation disabled for site {SiteId}, skipping policy {PolicyId}",
                     policy.SiteId, policy.Id);
 
                 executionResult.Success = true;
@@ -180,7 +182,7 @@ public class AutomatedReconciliationService {
                 PolicyId = policyId,
                 ExecutionStartTime = DateTime.UtcNow,
                 Status = ReconciliationExecutionStatus.InProgress,
-                                        ExecutedBy = SystemConstants.Defaults.SystemTriggeredBy
+                ExecutedBy = SystemConstants.Defaults.SystemTriggeredBy
             };
 
             _context.ReconciliationPolicyExecutions.Add (execution);
@@ -211,27 +213,26 @@ public class AutomatedReconciliationService {
                         discrepancyRecords.Add (discrepancyRecord);
 
                         //Cursor - Send discrepancy detection notification
-                        await SendDiscrepancyDetectedNotificationAsync(tank, discrepancyResult, policy, cancellationToken);
+                        await SendDiscrepancyDetectedNotificationAsync (tank, discrepancyResult, policy, cancellationToken);
                     }
                 }
 
                 // Process all discrepancies
                 if (discrepancyRecords.Any ()) {
                     // Convert DiscrepancyRecord to ReconciliationDiscrepancy
-                    var reconciliationDiscrepancies = discrepancyRecords.Select(dr => new ReconciliationDiscrepancy
-                    {
+                    var reconciliationDiscrepancies = discrepancyRecords.Select (dr => new ReconciliationDiscrepancy {
                         PolicyExecutionId = dr.ExecutionId,
-                        TankId = dr.TankId,
-                        DetectedAt = dr.DetectedAt,
-                        CurrentStock = 0, // Will be populated by the service
-                        ExpectedStock = 0, // Will be populated by the service
-                        AbsoluteVariance = dr.VarianceLiters,
-                        PercentageVariance = dr.VariancePercentage,
-                        Severity = FMS.Domain.Entities.enums.DiscrepancySeverity.Medium,
-                        IsResolved = dr.IsResolved,
-                        AnalysisNotes = $"Discrepancy detected by policy {policyId}",
-                        BusinessImpactScore = 0 // Will be calculated by the service
-                    }).ToList();
+                            TankId = dr.TankId,
+                            DetectedAt = dr.DetectedAt,
+                            CurrentStock = 0, // Will be populated by the service
+                            ExpectedStock = 0, // Will be populated by the service
+                            AbsoluteVariance = dr.VarianceLiters,
+                            PercentageVariance = dr.VariancePercentage,
+                            Severity = FMS.Domain.Entities.enums.DiscrepancySeverity.Medium,
+                            IsResolved = dr.IsResolved,
+                            AnalysisNotes = $"Discrepancy detected by policy {policyId}",
+                            BusinessImpactScore = 0 // Will be calculated by the service
+                    }).ToList ();
 
                     var reconciliationResults = await _orchestrationService.ProcessAllDiscrepanciesAsync (
                         reconciliationDiscrepancies, policy, execution.Id, cancellationToken);
@@ -240,7 +241,7 @@ public class AutomatedReconciliationService {
                     executionResult.DiscrepanciesResolved = reconciliationResults.Count (r => r.Success);
 
                     //Cursor - Send reconciliation completion notification
-                    await SendReconciliationCompletionNotificationAsync(policy, executionResult.DiscrepanciesFound,
+                    await SendReconciliationCompletionNotificationAsync (policy, executionResult.DiscrepanciesFound,
                         executionResult.DiscrepanciesResolved, cancellationToken);
                 }
 
@@ -279,7 +280,7 @@ public class AutomatedReconciliationService {
     }
 
     //Cursor - Notification methods for reconciliation events
-    private async Task SendPolicyExecutionFailureNotificationAsync(int policyId, string errorMessage, CancellationToken cancellationToken) {
+    private async Task SendPolicyExecutionFailureNotificationAsync (int policyId, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
                 Type = "Alert",
@@ -290,20 +291,20 @@ public class AutomatedReconciliationService {
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = "System",
                 Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                        UserId = "fuel-operations",
-                        DeliveryMethods = new List<string> { "System", "Email" }
-                    }
+                new CreateNotificationRecipientRequest {
+                UserId = "fuel-operations",
+                DeliveryMethods = new List<string> { "System", "Email" }
+                }
                 }
             };
 
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _notificationService.CreateNotificationAsync (request, cancellationToken);
         } catch (Exception ex) {
-            _logger.LogError(ex, "Failed to send policy execution failure notification for policy {PolicyId}", policyId);
+            _logger.LogError (ex, "Failed to send policy execution failure notification for policy {PolicyId}", policyId);
         }
     }
 
-    private async Task SendCycleSummaryNotificationAsync(ReconciliationCycleResult cycleResult, CancellationToken cancellationToken) {
+    private async Task SendCycleSummaryNotificationAsync (ReconciliationCycleResult cycleResult, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
                 Type = "Alert",
@@ -314,20 +315,20 @@ public class AutomatedReconciliationService {
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = "System",
                 Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                        UserId = "fuel-operations",
-                        DeliveryMethods = new List<string> { "System" }
-                    }
+                new CreateNotificationRecipientRequest {
+                UserId = "fuel-operations",
+                DeliveryMethods = new List<string> { "System" }
+                }
                 }
             };
 
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _notificationService.CreateNotificationAsync (request, cancellationToken);
         } catch (Exception ex) {
-            _logger.LogError(ex, "Failed to send cycle summary notification for cycle {CycleId}", cycleResult.CycleId);
+            _logger.LogError (ex, "Failed to send cycle summary notification for cycle {CycleId}", cycleResult.CycleId);
         }
     }
 
-    private async Task SendCycleCriticalFailureNotificationAsync(Guid cycleId, string errorMessage, CancellationToken cancellationToken) {
+    private async Task SendCycleCriticalFailureNotificationAsync (Guid cycleId, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
                 Type = "Alert",
@@ -338,27 +339,27 @@ public class AutomatedReconciliationService {
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                        UserId = "fuel-operations",
-                        DeliveryMethods = new List<string> { "System", "Email", "SMS" }
-                    },
-                    new CreateNotificationRecipientRequest {
-                        UserId = "system-administrator",
-                        DeliveryMethods = new List<string> { "System", "Email" }
-                    }
+                new CreateNotificationRecipientRequest {
+                UserId = "fuel-operations",
+                DeliveryMethods = new List<string> { "System", "Email", "SMS" }
+                },
+                new CreateNotificationRecipientRequest {
+                UserId = "system-administrator",
+                DeliveryMethods = new List<string> { "System", "Email" }
+                }
                 }
             };
 
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _notificationService.CreateNotificationAsync (request, cancellationToken);
         } catch (Exception ex) {
-            _logger.LogError(ex, "Failed to send critical failure notification for cycle {CycleId}", cycleId);
+            _logger.LogError (ex, "Failed to send critical failure notification for cycle {CycleId}", cycleId);
         }
     }
 
-    private async Task SendDiscrepancyDetectedNotificationAsync(Tank tank, DiscrepancyDetectionResult discrepancyResult,
+    private async Task SendDiscrepancyDetectedNotificationAsync (Tank tank, DiscrepancyDetectionResult discrepancyResult,
         ReconciliationPolicy policy, CancellationToken cancellationToken) {
         try {
-            var priority = Math.Abs(discrepancyResult.VarianceLiters) > 50 ? "High" : "Medium";
+            var priority = Math.Abs (discrepancyResult.VarianceLiters) > 50 ? "High" : "Medium";
 
             var request = new CreateNotificationRequest {
                 Type = "Alert",
@@ -371,20 +372,20 @@ public class AutomatedReconciliationService {
                 SiteId = tank.SiteId,
                 TankId = tank.Id,
                 Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                        UserId = "fuel-operations",
-                        DeliveryMethods = new List<string> { "System", "Email" }
-                    }
+                new CreateNotificationRecipientRequest {
+                UserId = "fuel-operations",
+                DeliveryMethods = new List<string> { "System", "Email" }
+                }
                 }
             };
 
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _notificationService.CreateNotificationAsync (request, cancellationToken);
         } catch (Exception ex) {
-            _logger.LogError(ex, "Failed to send discrepancy detection notification for tank {TankId}", tank.Id);
+            _logger.LogError (ex, "Failed to send discrepancy detection notification for tank {TankId}", tank.Id);
         }
     }
 
-    private async Task SendReconciliationCompletionNotificationAsync(ReconciliationPolicy policy,
+    private async Task SendReconciliationCompletionNotificationAsync (ReconciliationPolicy policy,
         int discrepanciesFound, int discrepanciesResolved, CancellationToken cancellationToken) {
         try {
             var unresolvedCount = discrepanciesFound - discrepanciesResolved;
@@ -400,16 +401,16 @@ public class AutomatedReconciliationService {
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 SiteId = policy.SiteId,
                 Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                        UserId = "fuel-operations",
-                        DeliveryMethods = new List<string> { "System" }
-                    }
+                new CreateNotificationRecipientRequest {
+                UserId = "fuel-operations",
+                DeliveryMethods = new List<string> { "System" }
+                }
                 }
             };
 
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _notificationService.CreateNotificationAsync (request, cancellationToken);
         } catch (Exception ex) {
-            _logger.LogError(ex, "Failed to send reconciliation completion notification for policy {PolicyId}", policy.Id);
+            _logger.LogError (ex, "Failed to send reconciliation completion notification for policy {PolicyId}", policy.Id);
         }
     }
 
@@ -422,7 +423,7 @@ public class AutomatedReconciliationService {
 
         foreach (var policy in activePolicies) {
             //Cursor - Check configuration before evaluating policy
-            var configuration = await _configurationService.GetConfigurationAsync(policy.SiteId, cancellationToken);
+            var configuration = await _configurationService.GetConfigurationAsync (policy.SiteId, cancellationToken);
             if (!configuration.AutoReconcileTankVolumes) {
                 continue; // Skip policies for sites with auto-reconciliation disabled
             }

@@ -9,6 +9,7 @@ using FMS.Application.Common;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.ModelsDTOs.ATG;
 using FMS.Application.Services; //Cursor - Add FMSResponse import
+using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.PTSCommon;

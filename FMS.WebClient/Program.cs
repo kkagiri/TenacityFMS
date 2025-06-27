@@ -19,6 +19,7 @@ using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
+using FMS.Application.Features.Notification.Services;
 using FMS.Application.Handlers;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.Communication.SignalR;
@@ -415,7 +416,7 @@ public class Program {
         services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService> ();
         services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
         services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
-
+        services.AddScoped<IEmailService, EmailService> ();
         // Register the pump transaction integration service
         services.AddScoped<PumpTransactionIntegrationService> ();
         // Register missing services that are causing dependency injection errors
