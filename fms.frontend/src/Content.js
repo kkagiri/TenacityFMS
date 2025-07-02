@@ -84,6 +84,17 @@ export default function Content() {
           path="/atg"
           element={React.createElement(resolvedComponents("atg"))}
         />
+
+        {/* Notification System Routes - Handle all notification sub-routes */}
+        <Route
+          path="/admin/notifications"
+          element={React.createElement(resolvedComponents("notifications"))}
+        />
+        <Route
+          path="/admin/notifications/*"
+          element={React.createElement(resolvedComponents("notifications"))}
+        />
+
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>

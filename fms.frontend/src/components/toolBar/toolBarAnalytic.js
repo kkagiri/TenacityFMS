@@ -55,7 +55,7 @@ export const ToolbarAnalytics = ({
   onDeliverySubmit,
   onTransferSubmit,
   onClosingStockSubmit,
-  sites,
+  sites = [],
   onRefresh,
   onSiteChange,
   selectedSite,
@@ -200,7 +200,7 @@ export const ToolbarAnalytics = ({
   //Cursor: Added filter summary generator
   const getFilterSummary = useCallback(() => {
     const { activeFilter, selectedSite, customDateRange } = filterState;
-    const siteName = sites.find(site => site.id === selectedSite)?.name || 'All Sites';
+    const siteName = sites?.find(site => site.id === selectedSite)?.name || 'All Sites';
 
     if (activeFilter === 'Custom Range' && customDateRange.length === 2) {
       const startDate = customDateRange[0].toLocaleDateString();
@@ -362,7 +362,7 @@ export const ToolbarAnalytics = ({
     }
   }, [onRefresh]);
 
-  const siteOptions = [{ id: "all", name: "All Sites" }, ...sites];
+  const siteOptions = [{ id: "all", name: "All Sites" }, ...(sites || [])];
 
   const submitButtonOptions = useCallback(
     () => ({

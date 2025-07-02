@@ -30,16 +30,21 @@ import TankPage from "./pages/tank/tankPage";
 import SitePage from "./pages/site/sitePage";
 import PTSAutomationConfigPage from "./pages/PTSAutomationConfig/PTSAutomationConfigPage";
 import AutomatedReconciliationSystem from "./pages/automatedReconciliation/AutomatedReconciliationSystem";
+import TaskManagement from "./pages/taskManagement";
 //Cursor - Mission Control enhanced versions
 import EnhancedTankStockDashboard from "./pages/tankStock/dashboard/EnhancedTankStockDashboard";
 import EnhancedAutomatedReconciliationSystem from "./pages/automatedReconciliation/EnhancedAutomatedReconciliationSystem";
-import NotificationDashboard from "./components/notifications/NotificationDashboard"
+// Import the new notification system pages
+import NotificationSystem from "./pages/notifications";
+
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
 
    case "dashboard":
       return HomePage;
 
+     case "task management":
+      return TaskManagement;
     case "vehicles":
       return Vehicles;
     case "tanks":
@@ -60,7 +65,7 @@ const resolvedComponents = (pageName) => {
     case "consumption":
       return ConsumptionBasedonRefills;
       case "notifications":
-          return NotificationDashboard;
+          return NotificationSystem;
 
 
     case "Fuel Report Importer":

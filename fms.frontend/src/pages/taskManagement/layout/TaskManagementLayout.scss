@@ -1,0 +1,174 @@
+// Task Management Layout - Clean and Simple Design (Based on Notification Layout)
+.task-management-layout {
+  @apply tw-flex tw-h-screen tw-bg-gray-50;
+}
+
+// Sidebar Styles
+.task-sidebar {
+  @apply tw-w-64 tw-bg-white tw-border-r tw-border-gray-200 tw-flex tw-flex-col tw-transition-all tw-duration-300;
+
+  &.collapsed {
+    @apply tw-w-16;
+  }
+
+  .sidebar-header {
+    @apply tw-h-16 tw-flex tw-items-center tw-justify-between tw-px-4 tw-border-b tw-border-gray-100;
+
+    .sidebar-brand {
+      @apply tw-flex tw-items-center;
+
+      i {
+        @apply tw-text-xl;
+      }
+    }
+
+    .collapse-btn {
+      @apply tw-flex tw-items-center tw-justify-center tw-text-gray-400 hover:tw-text-gray-600 tw-transition-colors;
+    }
+  }
+
+  .sidebar-content {
+    @apply tw-flex-1 tw-overflow-y-auto tw-py-2;
+
+    .nav-group {
+      @apply tw-px-2 tw-mb-2;
+
+      .group-label {
+        @apply tw-px-3 tw-py-2 tw-text-xs tw-font-medium tw-text-gray-500 tw-uppercase;
+      }
+
+      .nav-menu {
+        @apply tw-space-y-1;
+      }
+    }
+
+    .nav-item {
+      @apply tw-flex tw-items-center tw-justify-between tw-px-3 tw-py-2 tw-text-sm tw-text-gray-700 tw-rounded-md tw-cursor-pointer tw-transition-all tw-duration-200;
+
+      .nav-item-content {
+        @apply tw-flex tw-items-center tw-gap-3;
+
+        i {
+          @apply tw-text-base tw-w-4 tw-text-center;
+        }
+      }
+
+      .nav-badge {
+        @apply tw-px-1.5 tw-h-5 tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-medium tw-bg-blue-100 tw-text-blue-700 tw-rounded-full;
+
+        &.demo-badge {
+          @apply tw-bg-orange-100 tw-text-orange-700;
+        }
+      }
+
+      &:hover {
+        @apply tw-bg-gray-50 tw-text-gray-900;
+      }
+
+      &.active {
+        @apply tw-bg-blue-50 tw-text-blue-700;
+
+        i {
+          @apply tw-text-blue-600;
+        }
+      }
+    }
+
+    .create-new-btn {
+      @apply tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-mx-2 tw-rounded-md tw-bg-blue-600 tw-text-white tw-text-sm tw-cursor-pointer hover:tw-bg-blue-700 tw-transition-colors;
+    }
+
+    .nav-separator {
+      @apply tw-h-px tw-bg-gray-200 tw-my-3 tw-mx-2;
+    }
+  }
+}
+
+// Main Content Styles
+.task-main {
+  @apply tw-flex-1 tw-flex tw-flex-col tw-overflow-hidden;
+
+  .main-header {
+    @apply tw-h-16 tw-bg-white tw-border-b tw-border-gray-200 tw-px-6 tw-flex tw-items-center;
+
+    .header-content {
+      @apply tw-w-full;
+    }
+
+    .main-title {
+      @apply tw-text-xl tw-font-semibold tw-text-gray-900;
+    }
+  }
+
+  .main-content {
+    @apply tw-flex-1 tw-overflow-auto tw-p-6;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .task-sidebar {
+    @apply tw-absolute tw-z-50 tw-h-full;
+
+    &.collapsed {
+      @apply tw-w-0 tw-overflow-hidden;
+    }
+  }
+
+  .task-main {
+    .main-header {
+      @apply tw-px-4;
+    }
+
+    .main-content {
+      @apply tw-p-4;
+    }
+  }
+}
+
+// Component-specific styles for consistency
+.task-dashboard {
+  .stats-grid {
+    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-6 tw-mb-8;
+  }
+}
+
+.task-card {
+  @apply tw-bg-white tw-p-6 tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm tw-transition-shadow tw-duration-200;
+
+  &:hover {
+    @apply tw-shadow-md;
+  }
+
+  .task-title {
+    @apply tw-text-lg tw-font-semibold tw-text-gray-900;
+  }
+}
+
+.task-table {
+  .status-badge {
+    @apply tw-px-2 tw-py-1 tw-text-xs tw-font-medium tw-rounded-full;
+
+    &.pending { @apply tw-bg-gray-100 tw-text-gray-800; }
+    &.in-progress { @apply tw-bg-blue-100 tw-text-blue-800; }
+    &.completed { @apply tw-bg-green-100 tw-text-green-800; }
+    &.cancelled { @apply tw-bg-red-100 tw-text-red-800; }
+  }
+
+  .priority-badge {
+    @apply tw-px-2 tw-py-1 tw-text-xs tw-font-medium tw-rounded-full;
+
+    &.critical { @apply tw-bg-red-100 tw-text-red-800; }
+    &.high { @apply tw-bg-orange-100 tw-text-orange-800; }
+    &.medium { @apply tw-bg-yellow-100 tw-text-yellow-800; }
+    &.low { @apply tw-bg-gray-100 tw-text-gray-800; }
+  }
+
+  .type-badge {
+    @apply tw-flex tw-items-center tw-gap-2;
+
+    i {
+      @apply tw-text-gray-600;
+    }
+  }
+}

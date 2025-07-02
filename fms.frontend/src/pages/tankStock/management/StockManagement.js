@@ -52,7 +52,9 @@ const StockManagement = () => {
     { text: "Transaction Management", icon: "fa-light fa-exchange-alt" },
     { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
     { text: "Stock Adjustments", icon: "fa-light fa-adjust" },
+    { text: "Task Management", icon: "fa-light fa-tasks" }, //Cursor - New tab for unified management
     { text: "Configuration", icon: "fa-light fa-cog" }
+
   ];
 
   //Cursor - Custom tab item renderer
