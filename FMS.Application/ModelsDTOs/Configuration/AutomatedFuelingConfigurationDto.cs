@@ -88,6 +88,33 @@ namespace FMS.Application.ModelsDTOs.Configuration {
         /// Modified by user ID
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        // Computed properties for frontend compatibility
+        /// <summary>
+        /// Configuration name for display (computed)
+        /// </summary>
+        public string Name => SiteId.HasValue ? $"Site {SiteId} Configuration" : "Global Configuration";
+
+        /// <summary>
+        /// Whether this is a global configuration (computed)
+        /// </summary>
+        public bool IsGlobal => !SiteId.HasValue;
+
+        /// <summary>
+        /// Volume source priority as string for display (computed)
+        /// </summary>
+        public string VolumeSourcePriorityText => VolumeSourcePriority == 1 ? "BookKeeping" : "PTS Probe";
+
+        /// <summary>
+        /// Discrepancy action as string for display (computed)
+        /// </summary>
+        public string DiscrepancyActionText => DiscrepancyAction
+        switch {
+            1 => "Alert",
+            2 => "Block",
+            3 => "Auto-Adjust",
+            _ => "Unknown"
+        };
     }
 
     public class CreateAutomatedFuelingConfigurationDto {

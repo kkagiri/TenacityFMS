@@ -6,6 +6,7 @@ using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -22,16 +23,19 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
         private readonly IMapper _mapper;
         private readonly ILogger<CreateFuelRrefillCommandCommandHandler> _logger;
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+        private readonly TankStockFutureRecordsService _futureRecordsService;
 
         public CreateFuelRrefillCommandCommandHandler (
             GpsdataContext context,
             ILogger<CreateFuelRrefillCommandCommandHandler> logger,
             IMapper mapper,
-            TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
+            TankVolumeHistoryIntegrationService tankVolumeHistoryService,
+            TankStockFutureRecordsService futureRecordsService) {
             _context = context;
             _logger = logger;
             _mapper = mapper;
             _tankVolumeHistoryService = tankVolumeHistoryService;
+            _futureRecordsService = futureRecordsService;
         }
 
         public async Task<FMSResponseMessage> Handle (CreateFuelRrefillCommand request, CancellationToken cancellationToken) {
@@ -42,6 +46,22 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                 var fuelRefilDto = request.FuelRefilDTO;
 
                 var entryDate = request.FuelRefilDTO?.Date ?? DateTime.Now;
+
+                // Validate historical entry against future records policy
+                if (entryDate.Date < DateTime.Now.Date) {
+                    var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync (
+                        fuelRefilDto.TankId ?? 0, entryDate, VolumeChangeReasonEnum.Dispensing, cancellationToken);
+
+                    if (!futureRecordsValidation.IsAllowed) {
+                        return new FMSResponseMessage (false, futureRecordsValidation.Message);
+                    }
+
+                    // Log warning for future reference
+                    if (futureRecordsValidation.RequiresUserConfirmation) {
+                        _logger.LogWarning ("Historical fuel refill entry with future records: Tank {TankId}, Date {EntryDate}, Policy {Policy}, Future Records {Count}",
+                            fuelRefilDto.TankId, entryDate, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
+                    }
+                }
                 //TODO: Insert check for configuration enforcement to use start of day for opening check
                 // Check if there is opening stock for the tank on the entry day
                 var existingOpeningStock = await _context.TankVolumeHistories

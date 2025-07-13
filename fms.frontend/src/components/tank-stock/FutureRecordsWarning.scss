@@ -1,0 +1,35 @@
+/* Future Records Warning Component Styles */
+.future-records-warning {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.future-records-warning .dx-button {
+  min-height: 28px;
+  font-size: 11px;
+}
+
+.future-records-warning .dx-button-content {
+  padding: 4px 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .future-records-warning {
+    @apply tw-mx-2;
+  }
+
+  .future-records-warning .tw-flex.tw-space-x-2 {
+    @apply tw-flex-col tw-space-x-0 tw-space-y-2;
+  }
+}

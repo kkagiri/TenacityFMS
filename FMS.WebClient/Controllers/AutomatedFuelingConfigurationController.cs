@@ -7,13 +7,14 @@ using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.Configuration;
 using FMS.Application.Queries.Database.ConfigurationQuery;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/automated-fueling-configuration")]
     [Authorize]
     public class AutomatedFuelingConfigurationController : ControllerBase {
         private readonly IMediator _mediator;

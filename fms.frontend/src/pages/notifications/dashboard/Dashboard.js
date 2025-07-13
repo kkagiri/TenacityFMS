@@ -177,7 +177,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="notification-dashboard">
+    <div className="form-container">
+      <div className="form-content">
+        <div className="notification-dashboard notification-form">
       {/* Statistics Cards */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -429,6 +431,8 @@ const Dashboard = () => {
             </div>
           </div>
         </Link>
+      </div>
+        </div>
       </div>
     </div>
   );

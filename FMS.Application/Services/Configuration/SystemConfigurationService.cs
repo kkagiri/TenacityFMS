@@ -79,23 +79,23 @@ namespace FMS.Application.Services.Configuration {
 
         #region Work Schedule Configuration
         public async Task<TimeSpan> GetWorkStartTimeAsync (CancellationToken cancellationToken = default) {
-            var workStartTimeStr = await GetConfigurationValueAsync (
+            string workStartTimeStr = await GetConfigurationValueAsync (
                 SystemConfigurationConstants.DB_CONFIG_WORK_START_TIME_KEY,
                 _settings.WorkSchedule.WorkStartTime,
                 "06:00",
                 cancellationToken);
 
-            return TimeSpan.TryParse (workStartTimeStr, out var time) ? time : SystemConfigurationConstants.DEFAULT_WORK_START_TIME;
+            return TimeSpan.TryParse (workStartTimeStr, out TimeSpan time) ? time : SystemConfigurationConstants.DEFAULT_WORK_START_TIME;
         }
 
         public async Task<TimeSpan> GetWorkEndTimeAsync (CancellationToken cancellationToken = default) {
-            var workEndTimeStr = await GetConfigurationValueAsync (
+            string workEndTimeStr = await GetConfigurationValueAsync (
                 SystemConfigurationConstants.DB_CONFIG_WORK_END_TIME_KEY,
                 _settings.WorkSchedule.WorkEndTime,
                 "22:00",
                 cancellationToken);
 
-            return TimeSpan.TryParse (workEndTimeStr, out var time) ? time : SystemConfigurationConstants.DEFAULT_WORK_END_TIME;
+            return TimeSpan.TryParse (workEndTimeStr, out TimeSpan time) ? time : SystemConfigurationConstants.DEFAULT_WORK_END_TIME;
         }
 
         public async Task<string> GetTimezoneAsync (CancellationToken cancellationToken = default) {
@@ -107,20 +107,20 @@ namespace FMS.Application.Services.Configuration {
         }
 
         public async Task<bool> IsWithinWorkHoursAsync (DateTime? time = null, CancellationToken cancellationToken = default) {
-            var currentTime = time ?? DateTime.UtcNow;
-            var workStart = await GetWorkStartTimeAsync (cancellationToken);
-            var workEnd = await GetWorkEndTimeAsync (cancellationToken);
-            var timezone = await GetTimezoneAsync (cancellationToken);
+            DateTime currentTime = time ?? DateTime.UtcNow;
+            TimeSpan workStart = await GetWorkStartTimeAsync (cancellationToken);
+            TimeSpan workEnd = await GetWorkEndTimeAsync (cancellationToken);
+            string timezone = await GetTimezoneAsync (cancellationToken);
 
             try {
-                var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById (timezone);
-                var localTime = TimeZoneInfo.ConvertTimeFromUtc (currentTime, timeZoneInfo);
-                var currentTimeOfDay = localTime.TimeOfDay;
+                TimeZoneInfo timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById (timezone);
+                DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc (currentTime, timeZoneInfo);
+                TimeSpan currentTimeOfDay = localTime.TimeOfDay;
 
                 return currentTimeOfDay >= workStart && currentTimeOfDay <= workEnd;
             } catch (Exception ex) {
                 _logger.LogWarning (ex, "Error converting timezone {Timezone}, using UTC", timezone);
-                var currentTimeOfDay = currentTime.TimeOfDay;
+                TimeSpan currentTimeOfDay = currentTime.TimeOfDay;
                 return currentTimeOfDay >= workStart && currentTimeOfDay <= workEnd;
             }
         }
@@ -150,10 +150,38 @@ namespace FMS.Application.Services.Configuration {
         }
         #endregion
 
+        #region Tank Stock Configuration
+        public async Task<string> GetTankStockFutureRecordsPolicyAsync (CancellationToken cancellationToken = default) {
+            return await GetConfigurationValueAsync (
+                SystemConfigurationConstants.DB_CONFIG_TANK_STOCK_FUTURE_RECORDS_POLICY_KEY,
+                _settings.TankStock?.FutureRecordsPolicy ?? string.Empty,
+                SystemConfigurationConstants.DEFAULT_TANK_STOCK_FUTURE_RECORDS_POLICY,
+                cancellationToken);
+        }
+
+        public async Task<bool> GetTankStockShowDetailedWarningsAsync (CancellationToken cancellationToken = default) {
+            string showWarningsStr = await GetConfigurationValueAsync (
+                SystemConfigurationConstants.DB_CONFIG_TANK_STOCK_SHOW_DETAILED_WARNINGS_KEY,
+                _settings.TankStock?.ShowDetailedWarnings.ToString () ?? string.Empty,
+                SystemConfigurationConstants.DEFAULT_TANK_STOCK_SHOW_DETAILED_WARNINGS.ToString (),
+                cancellationToken);
+
+            return bool.TryParse (showWarningsStr, out bool showWarnings) && showWarnings;
+        }
+
+        public async Task<int> GetTankStockMaxHistoricalDaysAsync (CancellationToken cancellationToken = default) {
+            return await GetConfigurationValueAsync (
+                SystemConfigurationConstants.DB_CONFIG_TANK_STOCK_MAX_HISTORICAL_DAYS_KEY,
+                _settings.TankStock?.MaxHistoricalDays ?? 0,
+                SystemConfigurationConstants.DEFAULT_TANK_STOCK_MAX_HISTORICAL_DAYS,
+                cancellationToken);
+        }
+        #endregion
+
         #region Configuration Management
         public async Task<bool> UpdateConfigurationAsync (string key, string value, CancellationToken cancellationToken = default) {
             try {
-                var existingConfig = await _context.SystemConfigurations
+                SystemConfigurationEntity? existingConfig = await _context.SystemConfigurations
                     .FirstOrDefaultAsync (c => c.ConfigurationKey == key, cancellationToken);
 
                 if (existingConfig != null) {
@@ -169,7 +197,7 @@ namespace FMS.Application.Services.Configuration {
                     });
                 }
 
-                var result = await _context.SaveChangesAsync (cancellationToken);
+                int result = await _context.SaveChangesAsync (cancellationToken);
 
                 // Clear cache for this configuration key
                 _cache.Remove ($"SystemConfig_{key}");
@@ -190,11 +218,11 @@ namespace FMS.Application.Services.Configuration {
             }
 
             try {
-                var config = await _context.SystemConfigurations
+                SystemConfigurationEntity? config = await _context.SystemConfigurations
                     .AsNoTracking ()
                     .FirstOrDefaultAsync (c => c.ConfigurationKey == key && c.IsActive, cancellationToken);
 
-                var value = config?.ConfigurationValue;
+                string? value = config?.ConfigurationValue;
                 _cache.Set (cacheKey, value, _cacheDuration);
 
                 return value;
@@ -223,26 +251,20 @@ namespace FMS.Application.Services.Configuration {
         /// Gets configuration value with priority: Database > Settings > Default
         /// </summary>
         private async Task<int> GetConfigurationValueAsync (string dbKey, int settingsValue, int defaultValue, CancellationToken cancellationToken) {
-            var dbValue = await GetConfigurationValueAsync (dbKey, cancellationToken);
+            string? dbValue = await GetConfigurationValueAsync (dbKey, cancellationToken);
 
-            if (!string.IsNullOrEmpty (dbValue) && int.TryParse (dbValue, out int parsedDbValue)) {
-                return parsedDbValue;
-            }
-
-            return settingsValue != 0 ? settingsValue : defaultValue;
+            return !string.IsNullOrEmpty (dbValue) && int.TryParse (dbValue, out int parsedDbValue) ?
+                parsedDbValue :
+                settingsValue != 0 ? settingsValue : defaultValue;
         }
 
         /// <summary>
         /// Gets configuration value with priority: Database > Settings > Default
         /// </summary>
         private async Task<string> GetConfigurationValueAsync (string dbKey, string settingsValue, string defaultValue, CancellationToken cancellationToken) {
-            var dbValue = await GetConfigurationValueAsync (dbKey, cancellationToken);
+            string? dbValue = await GetConfigurationValueAsync (dbKey, cancellationToken);
 
-            if (!string.IsNullOrEmpty (dbValue)) {
-                return dbValue;
-            }
-
-            return !string.IsNullOrEmpty (settingsValue) ? settingsValue : defaultValue;
+            return !string.IsNullOrEmpty (dbValue) ? dbValue : !string.IsNullOrEmpty (settingsValue) ? settingsValue : defaultValue;
         }
         #endregion
     }

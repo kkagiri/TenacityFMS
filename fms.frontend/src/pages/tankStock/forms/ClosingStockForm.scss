@@ -1,0 +1,168 @@
+// Tank Stock - Closing Stock Form Styles
+
+.closing-stock-form {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .dx-form {
+    .dx-field-label {
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .dx-texteditor {
+      .dx-texteditor-input {
+        border-color: #d1d5db;
+        border-radius: 0.375rem;
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      }
+    }
+
+    .dx-selectbox {
+      .dx-texteditor-input {
+        border-color: #d1d5db;
+        border-radius: 0.375rem;
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      }
+    }
+
+    .dx-numberbox {
+      .dx-texteditor-input {
+        border-color: #d1d5db;
+        border-radius: 0.375rem;
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      }
+    }
+
+    .dx-datebox {
+      .dx-texteditor-input {
+        border-color: #d1d5db;
+        border-radius: 0.375rem;
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      }
+    }
+  }
+
+  .dx-datagrid {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+
+    .dx-datagrid-headers {
+      background-color: #f9fafb;
+
+      .dx-header-row {
+        .dx-datagrid-text-content {
+          font-weight: 600;
+          color: #374151;
+        }
+      }
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row {
+        &:hover {
+          background-color: #eff6ff;
+        }
+
+        &.dx-row-alt {
+          background-color: #f9fafb;
+        }
+      }
+    }
+
+    .dx-group-panel {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+
+      .dx-group-panel-item {
+        background-color: #dbeafe;
+        color: #1e40af;
+        border-color: #93c5fd;
+      }
+    }
+
+    .dx-datagrid-summary-footer {
+      background-color: #f3f4f6;
+      font-weight: 500;
+    }
+  }
+
+  .dx-loadindicator {
+    .dx-loadindicator-icon {
+      color: #2563eb;
+    }
+  }
+
+  // Custom validation styles
+  .dx-invalid {
+    .dx-texteditor-input {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+  }
+
+  .dx-validator-message {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  // Form container styles
+  .form-container {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+  }
+
+  .form-header {
+    margin-bottom: 1.5rem;
+
+    h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .dx-form {
+      .dx-col-0 {
+        width: 100% !important;
+      }
+    }
+
+    .form-container {
+      padding: 1rem;
+    }
+
+    .dx-datagrid {
+      font-size: 0.875rem;
+    }
+  }
+}

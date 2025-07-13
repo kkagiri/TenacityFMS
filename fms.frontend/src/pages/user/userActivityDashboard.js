@@ -503,7 +503,7 @@ const UserActivityDashboard = () => {
                                         <Button
                                             text="View Activities"
                                             stylingMode="outlined"
-                                            onClick={() => navigate(`/users/${data.value}/activities`)}
+                                            onClick={() => navigate(`/admin/users/${data.value}/activities`)}
                                         />
                                     )}
                                 />

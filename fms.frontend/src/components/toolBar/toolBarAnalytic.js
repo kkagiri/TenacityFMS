@@ -9,7 +9,7 @@ import "./toolbarAnalytics.scss";
 import "./filterPopup.scss";
 import notify from "devextreme/ui/notify";
 import OpeningStockForm from "./../tankStock/OpeningStockForm";
-import ClosingStockForm from "./../tankStock/ClosingStockForm";
+import ClosingStockForm from "../../pages/tankStock/forms/ClosingStockForm";
 import TankDeliveryForm from "../deliveryForms/TankDeliveryForm";
 import TankTransferForm from "../tanktransfer/tankTransferForm";
 import ScrollView from "devextreme-react/scroll-view";

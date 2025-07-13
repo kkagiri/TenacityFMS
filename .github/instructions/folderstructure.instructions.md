@@ -252,12 +252,50 @@ The FMS Frontend is a modern React-based web application built with DevExtreme U
 - Tank stock monitoring
 - Device status updates
 
-## Best Practices for Developers
+## Mobile Compatibility and Responsive Design
 
+### Mobile Layout Requirements
+All FMS layout components must follow proper mobile responsiveness patterns to ensure functionality across all device sizes.
+
+### Critical Mobile Implementation Pattern
+When implementing sidebar layouts, use the following proven pattern:
+
+```scss
+// Desktop-first approach with proper mobile overrides
+@media (max-width: 768px) {
+  .layout-container {
+    @apply tw-flex-col;  // Stack vertically on mobile
+  }
+
+  .sidebar {
+    @apply tw-w-full tw-h-auto tw-static;  // Full width, normal flow
+
+    &.collapsed {
+      @apply tw-w-full tw-h-16 tw-overflow-hidden;  // Height-based collapsing
+    }
+  }
+}
+```
+
+### Common Mobile Issues to Avoid
+1. **Width-based collapsing**: Never use `width: 0` for mobile sidebar collapse
+2. **Absolute positioning**: Avoid `position: absolute` for mobile sidebars
+3. **Hidden collapse buttons**: Always ensure collapse functionality remains accessible
+
+### Reference Implementation
+- **Working Example**: TankStock Layout (`pages/tankStock/layout/`)
+- **Fixed Examples**: TaskManagement and Notification layouts
+- **Documentation**: See `Documentation/Frontend/MobileCompatibilityGuide.md` for detailed implementation guide
+
+### Best Practices for Developers
+
+1. **Always use the `tw-` prefix** for Tailwind classes to avoid DevExtreme conflicts
 2. **Follow the established folder structure** for new features
 3. **Use the provided axios instances** for API calls
 4. **Implement role-based protection** for new routes using `withRoleProtection`
 5. **Utilize existing services** before creating new API calls
 6. **Follow SCSS conventions** and use the variables file for consistency
+7. **Test mobile responsiveness** on all new layout components
+8. **Use height-based collapsing** for mobile sidebar implementations
 
 This architecture provides a scalable, maintainable foundation for the FMS frontend application with clear separation of concerns and modern React patterns.

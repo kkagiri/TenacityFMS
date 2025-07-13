@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations {
             // Properties
             builder.Property (e => e.ConfigurationKey)
                 .IsRequired ()
-                .HasMaxLength (255);
+                .HasMaxLength (191);
 
             builder.Property (e => e.ConfigurationValue)
                 .IsRequired ()
@@ -39,16 +39,18 @@ namespace FMS.Persistence.EntityConfigurations {
                 .HasMaxLength (100);
 
             builder.Property (e => e.ValidationPattern)
-                .HasMaxLength (255);
+                .HasMaxLength (191);
 
             builder.Property (e => e.DefaultValue)
                 .HasMaxLength (1000);
 
             builder.Property (e => e.CreatedAt)
-                .HasDefaultValueSql ("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql ("CURRENT_TIMESTAMP")
+                .HasColumnType ("timestamp");
 
             builder.Property (e => e.UpdatedAt)
-                .HasDefaultValueSql ("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasDefaultValueSql ("'0000-00-00 00:00:00'")
+                .HasColumnType ("timestamp");
 
             // Indexes
             builder.HasIndex (e => e.ConfigurationKey)

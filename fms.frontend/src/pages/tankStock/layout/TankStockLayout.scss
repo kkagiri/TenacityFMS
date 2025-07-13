@@ -1,0 +1,285 @@
+.tank-stock-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.tank-stock-sidebar {
+  width: 280px;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1000;
+
+  &.collapsed {
+    width: 70px;
+  }
+
+  .sidebar-header {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+
+      i {
+        font-size: 1.5rem;
+        color: #60a5fa;
+      }
+    }
+
+    .collapse-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+
+      i {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .sidebar-content {
+    flex: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
+
+    .nav-group {
+      margin-bottom: 1rem;
+
+      .group-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .nav-menu {
+        .nav-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 1rem;
+          margin: 0.25rem 0.5rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+          }
+
+          &.active {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+            &::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 4px;
+              background: #60a5fa;
+              border-radius: 0 2px 2px 0;
+            }
+          }
+
+          .nav-item-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+
+            i {
+              font-size: 1.1rem;
+              width: 20px;
+              text-align: center;
+              color: #93c5fd;
+            }
+
+            span {
+              font-weight: 500;
+            }
+          }
+
+          .nav-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            min-width: 20px;
+            text-align: center;
+          }
+        }
+      }
+    }
+
+    .nav-separator {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 1rem 0.5rem;
+    }
+
+    .create-new-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #a7f3d0;
+
+      &:hover {
+        background: rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+      }
+
+      i {
+        font-size: 1rem;
+      }
+
+      span {
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.tank-stock-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+
+  .main-header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .main-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+      }
+    }
+  }
+
+  .main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .tank-stock-layout {
+    flex-direction: column;
+  }
+
+  .tank-stock-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+
+    &.collapsed {
+      width: 100%;
+      height: 60px;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      min-height: 60px;
+    }
+
+    .sidebar-content {
+      padding: 0.5rem 0;
+    }
+  }
+
+  .tank-stock-main {
+    .main-header {
+      padding: 1rem;
+    }
+
+    .main-content {
+      padding: 1rem;
+    }
+  }
+}
+
+// Tank stock specific styling
+.tank-stock-sidebar {
+  .nav-item {
+    &:hover {
+      .nav-item-content i {
+        color: #dbeafe;
+      }
+    }
+
+    &.active {
+      .nav-item-content i {
+        color: #60a5fa;
+      }
+    }
+  }
+}
+
+// Animation for sidebar collapse
+.tank-stock-sidebar {
+  .sidebar-content {
+    transition: opacity 0.3s ease;
+  }
+
+  &.collapsed {
+    .sidebar-content {
+      .nav-item span,
+      .group-label,
+      .create-new-btn span {
+        opacity: 0;
+        transition: opacity 0.1s ease;
+      }
+    }
+  }
+}

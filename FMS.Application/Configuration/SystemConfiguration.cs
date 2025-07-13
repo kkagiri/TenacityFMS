@@ -1,14 +1,12 @@
 using System;
 
-namespace FMS.Application.Configuration
-{
+namespace FMS.Application.Configuration {
     //Cursor on changes to code
     /// <summary>
     /// System-wide configuration defaults for FMS
     /// These values are used as fallbacks when configuration is not found in database or settings files
     /// </summary>
-    public static class SystemConfiguration
-    {
+    public static class SystemConfiguration {
         #region Device Activity Monitoring
         /// <summary>
         /// Default WebSocket timeout in seconds for device activity monitoring
@@ -69,17 +67,35 @@ namespace FMS.Application.Configuration
         /// <summary>
         /// Default start of work time (24-hour format)
         /// </summary>
-        public static readonly TimeSpan DEFAULT_WORK_START_TIME = new TimeSpan(6, 0, 0); // 6:00 AM
+        public static readonly TimeSpan DEFAULT_WORK_START_TIME = new TimeSpan (6, 0, 0); // 6:00 AM
 
         /// <summary>
         /// Default end of work time (24-hour format)
         /// </summary>
-        public static readonly TimeSpan DEFAULT_WORK_END_TIME = new TimeSpan(22, 0, 0); // 10:00 PM
+        public static readonly TimeSpan DEFAULT_WORK_END_TIME = new TimeSpan (22, 0, 0); // 10:00 PM
 
         /// <summary>
         /// Default timezone for work schedule
         /// </summary>
         public const string DEFAULT_TIMEZONE = "UTC";
+        #endregion
+
+        #region Tank Stock Configuration
+        /// <summary>
+        /// Default policy for handling historical tank stock entries when future records exist
+        /// Values: "BLOCK", "WARN_RECONCILE", "WARN_RECALCULATE", "ALLOW_RECALCULATE"
+        /// </summary>
+        public const string DEFAULT_TANK_STOCK_FUTURE_RECORDS_POLICY = "WARN_RECONCILE";
+
+        /// <summary>
+        /// Default setting for showing detailed warnings when future records exist
+        /// </summary>
+        public const bool DEFAULT_TANK_STOCK_SHOW_DETAILED_WARNINGS = true;
+
+        /// <summary>
+        /// Default maximum number of days in the past allowed for historical entries
+        /// </summary>
+        public const int DEFAULT_TANK_STOCK_MAX_HISTORICAL_DAYS = 30;
         #endregion
 
         #region Redis Configuration Keys
@@ -146,6 +162,21 @@ namespace FMS.Application.Configuration
         /// Configuration key for timezone in database
         /// </summary>
         public const string DB_CONFIG_TIMEZONE_KEY = "System.Timezone";
+
+        /// <summary>
+        /// Configuration key for tank stock future records policy in database
+        /// </summary>
+        public const string DB_CONFIG_TANK_STOCK_FUTURE_RECORDS_POLICY_KEY = "TankStock.FutureRecordsPolicy";
+
+        /// <summary>
+        /// Configuration key for tank stock detailed warnings setting in database
+        /// </summary>
+        public const string DB_CONFIG_TANK_STOCK_SHOW_DETAILED_WARNINGS_KEY = "TankStock.ShowDetailedWarnings";
+
+        /// <summary>
+        /// Configuration key for tank stock maximum historical days in database
+        /// </summary>
+        public const string DB_CONFIG_TANK_STOCK_MAX_HISTORICAL_DAYS_KEY = "TankStock.MaxHistoricalDays";
         #endregion
     }
 }

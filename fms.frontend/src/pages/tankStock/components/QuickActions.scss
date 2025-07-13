@@ -1,0 +1,60 @@
+// Quick Actions - Stock Management Popup Styles
+
+.stock-management-popup {
+  .dx-popup-content {
+    padding: 0 !important;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .dx-popup-title {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .dx-popup-close-button {
+    color: #6b7280;
+
+    &:hover {
+      color: #374151;
+      background-color: #f3f4f6;
+    }
+  }
+
+  // Ensure forms fill the popup properly and are visible
+  .opening-stock-form,
+  .closing-stock-form,
+  .tank-delivery-form,
+  .tank-transfer-form {
+    height: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+
+    .dx-scrollview {
+      flex: 1;
+    }
+
+    .dx-scrollview-content {
+      min-height: 100%;
+      padding: 1rem;
+    }
+  }
+}
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+  .stock-management-popup {
+    .dx-popup-content {
+      padding: 0 !important;
+    }
+
+    .dx-popup-title {
+      padding: 12px 16px;
+      font-size: 16px;
+    }
+  }
+}

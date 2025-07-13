@@ -1,60 +1,56 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { useStockData } from '../shared/hooks/useStockData';
-import TransactionHub from './components/TransactionHub';
+import { useStockData } from '../shared/hooks/useStockDataOptimized';
+import { useDateRange } from '../../../hooks/useDateRange';
+import FilterInfoBar from '../components/FilterInfoBar';
 import ReconciliationWorkflow from './components/ReconciliationWorkflow';
 import AdjustmentCenter from './components/AdjustmentCenter';
 import ConfigurationPanel from './components/ConfigurationPanel';
-import { ToolbarAnalytics } from '../../../components/toolBar/toolBarAnalytic';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import ScrollView from 'devextreme-react/scroll-view';
 import Tabs from 'devextreme-react/tabs';
 import './StockManagement.scss';
 
-//Cursor - Stock Management - Detailed transaction management and reconciliation
+//Cursor - Stock Management - Focused on Stock Adjustment Dashboard
 const StockManagement = () => {
   const sites = useSelector((state) => state.site.sites);
   const user = useSelector((state) => state.auth.user);
 
-  const [selectedSite, setSelectedSite] = useState(() => {
+  const [selectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
   });
 
-  //Cursor - Memoize dateRange to prevent infinite re-renders
-  const [dateRangeState, setDateRangeState] = useState(() => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return [
-      thirtyDaysAgo.toISOString().split('T')[0],
-      today.toISOString().split('T')[0]
-    ];
-  });
+  // Use stable date range hook
+  const { dateRange } = useDateRange(30); // 30 days by default
 
-  //Cursor - Memoize dateRange to ensure stable reference
-  const dateRange = useMemo(() => dateRangeState, [dateRangeState]);
-
+  // Set default tab to Stock Adjustment Dashboard (index 0)
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
 
   //Cursor - Use shared hook for data management
   const {
     isLoading,
-    transactions,
     reconciliationData,
     adjustments,
     systemConfig,
     refreshData
   } = useStockData(selectedSite, dateRange);
 
-  //Cursor - Tab data with icons
-  const tabData = [
-    { text: "Transaction Management", icon: "fa-light fa-exchange-alt" },
-    { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
-    { text: "Stock Adjustments", icon: "fa-light fa-adjust" },
-    { text: "Task Management", icon: "fa-light fa-tasks" }, //Cursor - New tab for unified management
-    { text: "Configuration", icon: "fa-light fa-cog" }
+  const handleFilterClick = useCallback(() => {
+    // TODO: Open filter popup
+    console.log('Filter clicked');
+  }, []);
 
+  // Ensure arrays are available for FilterInfoBar
+  const safeSites = Array.isArray(sites) ? sites : [];
+  const safeDateRange = Array.isArray(dateRange) && dateRange.length >= 2 ? dateRange : [new Date(), new Date()];
+
+  //Cursor - Tab data with Stock Adjustment Dashboard as first tab
+  const tabData = [
+    { text: "Stock Adjustment Dashboard", icon: "fa-light fa-adjust" },
+    { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
+    { text: "Configuration", icon: "fa-light fa-cog" }
   ];
 
   //Cursor - Custom tab item renderer
@@ -67,38 +63,27 @@ const StockManagement = () => {
     );
   };
 
-  const handleSiteChange = useCallback((e) => {
-    const newSite = e.value || 'all';
-    setSelectedSite(newSite);
-    localStorage.setItem('selectedSite', newSite);
-  }, []);
-
-  const handleDateRangeChange = useCallback((newDateRange) => {
-    setDateRangeState(newDateRange);
-  }, []);
-
-  //Cursor - Handle tab change and lazy loading
-  const handleTabSelectionChange = useCallback((e) => {
-    const newIndex = e.itemIndex;
-    setActiveTabIndex(newIndex);
-    setLoadedTabs(prev => new Set([...prev, newIndex]));
-  }, []);
-
   const handleTransactionUpdate = useCallback(async () => {
     await refreshData();
   }, [refreshData]);
+
+  //Cursor - Handle tab change and lazy loading
+  const handleTabSelectionChange = (e) => {
+    const newIndex = e.itemIndex;
+    setActiveTabIndex(newIndex);
+    setLoadedTabs(prev => new Set([...prev, newIndex]));
+  };
 
   //Cursor - Render content based on active tab
   const renderContent = () => {
     switch (activeTabIndex) {
       case 0:
         return loadedTabs.has(0) && (
-          <TransactionHub
-            transactions={transactions}
+          <AdjustmentCenter
+            adjustments={adjustments}
             selectedSite={selectedSite}
             dateRange={dateRange}
-            onDateRangeChange={handleDateRangeChange}
-            onTransactionUpdate={handleTransactionUpdate}
+            onAdjustmentComplete={handleTransactionUpdate}
           />
         );
       case 1:
@@ -112,15 +97,6 @@ const StockManagement = () => {
         );
       case 2:
         return loadedTabs.has(2) && (
-          <AdjustmentCenter
-            adjustments={adjustments}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
-            onAdjustmentComplete={handleTransactionUpdate}
-          />
-        );
-      case 3:
-        return loadedTabs.has(3) && (
           <ConfigurationPanel
             systemConfig={systemConfig}
             selectedSite={selectedSite}
@@ -134,6 +110,15 @@ const StockManagement = () => {
 
   return (
     <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
+      {/* Render filter info in header */}
+      <FilterInfoBar
+        dateRange={safeDateRange}
+        selectedSite={selectedSite}
+        sites={safeSites}
+        user={user}
+        onFilterClick={handleFilterClick}
+      />
+
       {/* Cursor - Loading overlay instead of blocking entire screen */}
       {isLoading && (
         <div className="tw-absolute tw-top-0 tw-left-0 tw-right-0 tw-bottom-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-justify-center tw-items-center tw-z-40">
@@ -147,28 +132,6 @@ const StockManagement = () => {
       )}
 
       <ScrollView className="stock-management">
-        <ToolbarAnalytics
-          title="Stock Management"
-          additionalToolbarContent={
-            <div className="tw-flex tw-items-center tw-space-x-3">
-              <span className="tw-text-sm tw-text-gray-600">
-                Period: {new Date(dateRange[0]).toLocaleDateString()} - {new Date(dateRange[1]).toLocaleDateString()}
-              </span>
-              <span className="tw-text-sm tw-text-gray-600">
-                Site: {selectedSite === 'all' ? 'All Sites' : sites.find(s => s.id === selectedSite)?.name || 'Unknown'}
-              </span>
-              <span className="tw-text-sm tw-text-gray-600">
-                User: {user?.name || 'Unknown'}
-              </span>
-            </div>
-          }
-          sites={sites}
-          onSiteChange={handleSiteChange}
-          selectedSite={selectedSite}
-          isLoading={isLoading}
-          onRefresh={refreshData}
-        />
-
         <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
           {/* Cursor - Tabs Navigation */}
           <Tabs

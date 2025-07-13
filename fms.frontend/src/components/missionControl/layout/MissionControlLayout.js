@@ -49,7 +49,10 @@ const MissionControlLayout = ({
 
       {/* Quick Action Panel */}
       {showQuickActions && quickActions.length > 0 && (
-        <QuickActionPanel actions={quickActions} />
+        <QuickActionPanel
+          title="Quick Actions"
+          actions={quickActions}
+        />
       )}
 
       {/* Main Content Area */}

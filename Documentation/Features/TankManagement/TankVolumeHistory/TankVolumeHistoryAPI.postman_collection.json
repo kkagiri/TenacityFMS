@@ -1,0 +1,537 @@
+{
+  "info": {
+    "_postman_id": "bafcd5c4-2a0e-48c1-b5f9-6c8e9a5e4512",
+    "name": "FMS Tank Volume History API",
+    "description": "Collection for testing the Tank Volume History API endpoints in the FMS system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Tank Volume History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/TankVolumeHistory",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "TankVolumeHistory"
+          ]
+        },
+        "description": "Retrieves all tank volume history entries. Requires '_Read_tankVolumeHistory' permission."
+      },
+      "response": [
+        {
+          "name": "Example Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": 1,\n    \"tankId\": 1,\n    \"timestamp\": \"2025-07-01T08:30:00\",\n    \"volumeChange\": 500.00,\n    \"newVolume\": 1500.00,\n    \"changeReason\": 2,\n    \"recordedBy\": \"admin\",\n    \"vehicleName\": \"N/A\",\n    \"referenceType\": \"Delivery\",\n    \"referenceId\": 101,\n    \"site\": \"Main Site\",\n    \"siteId\": 1\n  },\n  {\n    \"id\": 2,\n    \"tankId\": 2,\n    \"timestamp\": \"2025-07-01T09:15:00\",\n    \"volumeChange\": -50.00,\n    \"newVolume\": 950.00,\n    \"changeReason\": 6,\n    \"recordedBy\": \"system\",\n    \"vehicleName\": \"HYO-001\",\n    \"referenceType\": \"Dispensing\",\n    \"referenceId\": 202,\n    \"site\": \"Main Site\",\n    \"siteId\": 1\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "Get Tank Volume History By Tank ID and Date Range",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/TankVolumeHistory/byTankAndDateRange?TankId=1&startDate=2025-07-01&endDate=2025-07-10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "TankVolumeHistory",
+            "byTankAndDateRange"
+          ],
+          "query": [
+            {
+              "key": "TankId",
+              "value": "1"
+            },
+            {
+              "key": "startDate",
+              "value": "2025-07-01"
+            },
+            {
+              "key": "endDate",
+              "value": "2025-07-10"
+            }
+          ]
+        },
+        "description": "Retrieves volume history for a specific tank within a date range. Requires '_Read_tankVolumeHistory' permission."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/byTankAndDateRange?TankId=1&startDate=2025-07-01&endDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "byTankAndDateRange"
+              ],
+              "query": [
+                {
+                  "key": "TankId",
+                  "value": "1"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2025-07-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Tank Volume History List\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"tankId\": 1,\n      \"timestamp\": \"2025-07-01T08:30:00\",\n      \"volumeChange\": 500.00,\n      \"newVolume\": 1500.00,\n      \"changeReason\": 2,\n      \"recordedBy\": \"admin\",\n      \"vehicleName\": null,\n      \"referenceType\": \"Delivery\",\n      \"referenceId\": 101,\n      \"site\": null,\n      \"siteId\": null\n    },\n    {\n      \"id\": 3,\n      \"tankId\": 1,\n      \"timestamp\": \"2025-07-02T10:45:00\",\n      \"volumeChange\": -100.00,\n      \"newVolume\": 1400.00,\n      \"changeReason\": 6,\n      \"recordedBy\": \"operator1\",\n      \"vehicleName\": \"HYO-002\",\n      \"referenceType\": \"Dispensing\",\n      \"referenceId\": 303,\n      \"site\": null,\n      \"siteId\": null\n    }\n  ]\n}"
+        },
+        {
+          "name": "Invalid Tank ID Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/byTankAndDateRange?TankId=0&startDate=2025-07-01&endDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "byTankAndDateRange"
+              ],
+              "query": [
+                {
+                  "key": "TankId",
+                  "value": "0"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2025-07-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "\"Invalid ID\""
+        },
+        {
+          "name": "Invalid Date Range Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/byTankAndDateRange?TankId=1&startDate=0001-01-01&endDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "byTankAndDateRange"
+              ],
+              "query": [
+                {
+                  "key": "TankId",
+                  "value": "1"
+                },
+                {
+                  "key": "startDate",
+                  "value": "0001-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "\"Invalid Date Range\""
+        }
+      ]
+    },
+    {
+      "name": "Get Tank Volume History By Date Range",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/TankVolumeHistory/byDateRange?StartDate=2025-07-01&EndDate=2025-07-10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "TankVolumeHistory",
+            "byDateRange"
+          ],
+          "query": [
+            {
+              "key": "StartDate",
+              "value": "2025-07-01"
+            },
+            {
+              "key": "EndDate",
+              "value": "2025-07-10"
+            }
+          ]
+        },
+        "description": "Retrieves volume history across all tanks within a date range. Requires '_Read_tankVolumeHistory' permission."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/byDateRange?StartDate=2025-07-01&EndDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "byDateRange"
+              ],
+              "query": [
+                {
+                  "key": "StartDate",
+                  "value": "2025-07-01"
+                },
+                {
+                  "key": "EndDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": 1,\n    \"tankId\": 1,\n    \"timestamp\": \"2025-07-01T08:30:00\",\n    \"volumeChange\": 500.00,\n    \"newVolume\": 1500.00,\n    \"changeReason\": 2,\n    \"recordedBy\": \"admin\",\n    \"vehicleName\": \"N/A\",\n    \"referenceType\": \"Delivery\",\n    \"referenceId\": 101,\n    \"site\": \"Main Site\",\n    \"siteId\": 1\n  },\n  {\n    \"id\": 2,\n    \"tankId\": 2,\n    \"timestamp\": \"2025-07-01T09:15:00\",\n    \"volumeChange\": -50.00,\n    \"newVolume\": 950.00,\n    \"changeReason\": 6,\n    \"recordedBy\": \"system\",\n    \"vehicleName\": \"HYO-001\",\n    \"referenceType\": \"Dispensing\",\n    \"referenceId\": 202,\n    \"site\": \"Secondary Site\",\n    \"siteId\": 2\n  }\n]"
+        },
+        {
+          "name": "Invalid Date Range Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/byDateRange?StartDate=0001-01-01&EndDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "byDateRange"
+              ],
+              "query": [
+                {
+                  "key": "StartDate",
+                  "value": "0001-01-01"
+                },
+                {
+                  "key": "EndDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "\"Invalid Date Range\""
+        }
+      ]
+    },
+    {
+      "name": "Get Tank Volume History By Site",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/TankVolumeHistory/bySite?siteId=1&startDate=2025-07-01&endDate=2025-07-10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "TankVolumeHistory",
+            "bySite"
+          ],
+          "query": [
+            {
+              "key": "siteId",
+              "value": "1"
+            },
+            {
+              "key": "startDate",
+              "value": "2025-07-01"
+            },
+            {
+              "key": "endDate",
+              "value": "2025-07-10"
+            }
+          ]
+        },
+        "description": "Retrieves volume history for all tanks at a specific site within a date range. Requires '_Read_tankVolumeHistory' permission."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/bySite?siteId=1&startDate=2025-07-01&endDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "bySite"
+              ],
+              "query": [
+                {
+                  "key": "siteId",
+                  "value": "1"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2025-07-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": 1,\n    \"tankId\": 1,\n    \"timestamp\": \"2025-07-01T08:30:00\",\n    \"volumeChange\": 500.00,\n    \"newVolume\": 1500.00,\n    \"changeReason\": 2,\n    \"recordedBy\": \"admin\",\n    \"vehicleName\": \"N/A\",\n    \"referenceType\": \"Delivery\",\n    \"referenceId\": 101,\n    \"site\": \"Main Site\",\n    \"siteId\": 1\n  },\n  {\n    \"id\": 3,\n    \"tankId\": 3,\n    \"timestamp\": \"2025-07-01T14:20:00\",\n    \"volumeChange\": 300.00,\n    \"newVolume\": 800.00,\n    \"changeReason\": 2,\n    \"recordedBy\": \"admin\",\n    \"vehicleName\": \"N/A\",\n    \"referenceType\": \"Delivery\",\n    \"referenceId\": 104,\n    \"site\": \"Main Site\",\n    \"siteId\": 1\n  }\n]"
+        },
+        {
+          "name": "Invalid Site ID Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/TankVolumeHistory/bySite?siteId=0&startDate=2025-07-01&endDate=2025-07-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "TankVolumeHistory",
+                "bySite"
+              ],
+              "query": [
+                {
+                  "key": "siteId",
+                  "value": "0"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2025-07-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-07-10"
+                }
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "\"Invalid Site ID\""
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    }
+  ]
+}

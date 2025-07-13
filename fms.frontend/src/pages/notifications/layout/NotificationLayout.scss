@@ -1,161 +1,411 @@
-// Notification Layout - Clean and Simple Design
+// Notification Layout - Clean and Simple Design with Gradient Green Theme
 .notification-layout {
-  @apply tw-flex tw-h-screen tw-bg-gray-50;
+  display: flex;
+  height: 100vh;
+  background-color: #f9fafb;
 }
 
 // Sidebar Styles
 .notification-sidebar {
-  @apply tw-w-64 tw-bg-white tw-border-r tw-border-gray-200 tw-flex tw-flex-col tw-transition-all tw-duration-300;
+  width: 280px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1000;
 
   &.collapsed {
-    @apply tw-w-16;
+    width: 70px;
   }
 
   .sidebar-header {
-    @apply tw-h-16 tw-flex tw-items-center tw-justify-between tw-px-4 tw-border-b tw-border-gray-100;
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
 
     .sidebar-brand {
-      @apply tw-flex tw-items-center;
+      display: flex;
+      align-items: center;
 
       i {
-        @apply tw-text-xl;
+        font-size: 1.5rem;
+        color: #6ee7b7;
       }
     }
 
     .collapse-btn {
-      @apply tw-flex tw-items-center tw-justify-center tw-text-gray-400 hover:tw-text-gray-600 tw-transition-colors;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+
+      i {
+        font-size: 1rem;
+      }
     }
   }
 
   .sidebar-content {
-    @apply tw-flex-1 tw-overflow-y-auto tw-py-2;
+    flex: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
 
     .nav-group {
-      @apply tw-px-2 tw-mb-2;
+      margin-bottom: 1rem;
 
       .group-label {
-        @apply tw-px-3 tw-py-2 tw-text-xs tw-font-medium tw-text-gray-500 tw-uppercase;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
       }
 
       .nav-menu {
-        @apply tw-space-y-1;
-      }
-    }
+        .nav-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 1rem;
+          margin: 0.25rem 0.5rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
 
-    .nav-item {
-      @apply tw-flex tw-items-center tw-justify-between tw-px-3 tw-py-2 tw-text-sm tw-text-gray-700 tw-rounded-md tw-cursor-pointer tw-transition-all tw-duration-200;
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+          }
 
-      .nav-item-content {
-        @apply tw-flex tw-items-center tw-gap-3;
+          &.active {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
-        i {
-          @apply tw-text-base tw-w-4 tw-text-center;
-        }
-      }
+            &::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 4px;
+              background: #6ee7b7;
+              border-radius: 0 2px 2px 0;
+            }
+          }
 
-      .nav-badge {
-        @apply tw-px-1.5 tw-h-5 tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-medium tw-bg-blue-100 tw-text-blue-700 tw-rounded-full;
-      }
+          .nav-item-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
 
-      &:hover {
-        @apply tw-bg-gray-50 tw-text-gray-900;
-      }
+            i {
+              font-size: 1.1rem;
+              width: 20px;
+              text-align: center;
+              color: #a7f3d0;
+            }
 
-      &.active {
-        @apply tw-bg-blue-50 tw-text-blue-700;
+            span {
+              font-weight: 500;
+            }
+          }
 
-        i {
-          @apply tw-text-blue-600;
+          .nav-badge {
+            background: #dc2626;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            min-width: 20px;
+            text-align: center;
+          }
         }
       }
     }
 
     .create-new-btn {
-      @apply tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-mx-2 tw-rounded-md tw-bg-blue-600 tw-text-white tw-text-sm tw-cursor-pointer hover:tw-bg-blue-700 tw-transition-colors;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #a7f3d0;
+
+      &:hover {
+        background: rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+      }
+
+      i {
+        font-size: 1rem;
+      }
+
+      span {
+        font-weight: 500;
+      }
     }
 
     .nav-separator {
-      @apply tw-h-px tw-bg-gray-200 tw-my-3 tw-mx-2;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 1rem 0.5rem;
     }
   }
 }
 
 // Main Content Styles
 .notification-main {
-  @apply tw-flex-1 tw-flex tw-flex-col tw-overflow-hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   .main-header {
-    @apply tw-h-16 tw-bg-white tw-border-b tw-border-gray-200 tw-px-6 tw-flex tw-items-center;
+    height: 4rem;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    display: flex;
+    align-items: center;
 
     .header-content {
-      @apply tw-w-full;
+      width: 100%;
     }
 
     .main-title {
-      @apply tw-text-xl tw-font-semibold tw-text-gray-900;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #111827;
     }
   }
 
   .main-content {
-    @apply tw-flex-1 tw-overflow-auto tw-p-6;
+    flex: 1;
+    overflow: auto;
+    padding: 1.5rem;
+
+    // Mobile-specific form container constraints
+    .form-container {
+      max-height: 100%;
+      overflow-y: auto;
+
+      // Form content scrollable area
+      .form-content {
+        height: 100%;
+        overflow-y: auto;
+        max-height: calc(100vh - 120px); // Account for header and margins
+      }
+    }
   }
 }
 
 // Responsive Design
 @media (max-width: 768px) {
+  .notification-layout {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
   .notification-sidebar {
-    @apply tw-absolute tw-z-50 tw-h-full;
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-shrink: 0;
 
     &.collapsed {
-      @apply tw-w-0 tw-overflow-hidden;
+      width: 100%;
+      height: 80px;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      min-height: 80px;
+    }
+
+    .sidebar-content {
+      padding: 0.5rem 0;
     }
   }
 
   .notification-main {
+    flex: 1;
+    overflow: hidden;
+
     .main-header {
-      @apply tw-px-4;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      flex-shrink: 0;
     }
 
     .main-content {
-      @apply tw-p-4;
+      padding: 1rem;
+      flex: 1;
+      overflow: hidden;
+
+      // Mobile form containers
+      .form-container {
+        height: 100%;
+        overflow-y: auto;
+
+        .form-content {
+          max-height: calc(100vh - 180px); // Account for header, navigation, and margins
+          overflow-y: auto;
+          padding-bottom: 2rem;
+        }
+      }
+
+      // Mobile-specific form adjustments
+      .policy-create-form {
+        padding: 1rem;
+
+        .tw-grid {
+          grid-template-columns: repeat(1, minmax(0, 1fr)); // Force single column on mobile
+          gap: 1rem;
+        }
+      }
+
+      // Mobile tab navigation
+      .policy-create-tabs {
+        .tab-nav-container {
+          overflow-x: auto;
+
+          .tab-nav-wrapper {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            white-space: nowrap;
+
+            .tab-nav-button {
+              .tab-title {
+                display: none;
+              }
+
+              .tab-icon {
+                margin-right: 0.25rem;
+              }
+            }
+          }
+        }
+      }
     }
+  }
+}
+
+// Show tab titles on small screens and up
+@media (min-width: 640px) {
+  .policy-create-tabs .tab-nav-wrapper .tab-nav-button .tab-title {
+    display: inline;
   }
 }
 
 // Component-specific styles for consistency
 .notification-dashboard {
   .stats-grid {
-    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-6 tw-mb-8;
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 }
 
 .policy-card {
-  @apply tw-bg-white tw-p-6 tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm tw-transition-shadow tw-duration-200;
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
 
   &:hover {
-    @apply tw-shadow-md;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
   .policy-title {
-    @apply tw-text-lg tw-font-semibold tw-text-gray-900;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
   }
 }
 
 .history-table {
   .status-badge {
-    @apply tw-px-2 tw-py-1 tw-text-xs tw-font-medium tw-rounded-full;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
 
-    &.delivered { @apply tw-bg-green-100 tw-text-green-800; }
-    &.failed { @apply tw-bg-red-100 tw-text-red-800; }
-    &.pending { @apply tw-bg-yellow-100 tw-text-yellow-800; }
+    &.delivered {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    &.failed {
+      background-color: #fef2f2;
+      color: #991b1b;
+    }
+    &.pending {
+      background-color: #fefce8;
+      color: #a16207;
+    }
   }
 
   .priority-badge {
-    @apply tw-px-2 tw-py-1 tw-text-xs tw-font-medium tw-rounded-full;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
 
-    &.critical { @apply tw-bg-red-100 tw-text-red-800; }
-    &.high { @apply tw-bg-orange-100 tw-text-orange-800; }
-    &.medium { @apply tw-bg-yellow-100 tw-text-yellow-800; }
-    &.low { @apply tw-bg-gray-100 tw-text-gray-800; }
+    &.critical {
+      background-color: #fef2f2;
+      color: #991b1b;
+    }
+    &.high {
+      background-color: #fff7ed;
+      color: #ea580c;
+    }
+    &.medium {
+      background-color: #fefce8;
+      color: #a16207;
+    }
+    &.low {
+      background-color: #f3f4f6;
+      color: #374151;
+    }
   }
 }

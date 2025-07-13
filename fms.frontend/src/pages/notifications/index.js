@@ -15,17 +15,17 @@ const NotificationSystem = () => {
   const location = useLocation();
 
   // Extract the sub-route from the current path
-  // If we're at /admin/notifications, show dashboard
-  // If we're at /admin/notifications/policies, show policies, etc.
+  // If we're at /notifications, show dashboard
+  // If we're at /notifications/policies, show policies, etc.
   const getSubRoute = () => {
     const path = location.pathname;
-    const basePath = '/admin/notifications';
+    const basePath = '/notifications';
 
     if (path === basePath || path === basePath + '/') {
       return 'dashboard';
     }
 
-    // Extract sub-route (everything after /admin/notifications/)
+    // Extract sub-route (everything after /notifications/)
     const subPath = path.replace(basePath + '/', '').split('/')[0];
     return subPath || 'dashboard';
   };

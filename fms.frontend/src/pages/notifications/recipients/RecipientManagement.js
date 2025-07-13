@@ -435,8 +435,10 @@ const RecipientManagement = () => {
   };
 
   return (
-    <div className="tw-p-6">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-md">
+    <div className="form-container">
+      <div className="form-content">
+        <div className="tw-p-6 notification-form">
+          <div className="tw-bg-white tw-rounded-lg tw-shadow-md">
         {/* Header */}
         <div className="tw-p-6 tw-border-b tw-border-gray-200">
           <div className="tw-flex tw-justify-between tw-items-center">
@@ -661,6 +663,8 @@ const RecipientManagement = () => {
           </div>
         </div>
       </Popup>
+        </div>
+      </div>
     </div>
   );
 };

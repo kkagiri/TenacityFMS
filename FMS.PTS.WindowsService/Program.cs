@@ -42,9 +42,11 @@ using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
+using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Services.TankStock;
 using FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandling;
 using Microsoft.AspNetCore.SignalR;
 
@@ -406,6 +408,7 @@ namespace FMS.PTS.WindowsService {
             services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
 
             services.AddSingleton<PTSWebSocketListenerService> ();
+            services.AddScoped<TankStockFutureRecordsService> (); //Cursor
 
             // Register notification services
             services.AddScoped<INotificationService, NotificationService> ();

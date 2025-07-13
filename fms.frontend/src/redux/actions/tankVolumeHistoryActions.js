@@ -76,11 +76,16 @@ export const fetchTankVolumeHistoryByTankId = (tankId) => async (dispatch) => {
         },
       }
     );
+
+    // The controller returns result.Data, so response.data should be the array directly
+    console.log('Tank Volume History Response:', response.data);
+
     dispatch({
       type: FETCH_TANK_VOLUME_HISTORY_BY_TANK_ID_SUCCESS,
       payload: response.data,
     });
   } catch (error) {
+    console.error('Error fetching tank volume history by tank ID:', error);
     dispatch({
       type: FETCH_TANK_VOLUME_HISTORY_BY_TANK_ID_FAILURE,
       payload: error.message,

@@ -34,6 +34,7 @@ using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
 using FMS.Application.Services;
 // using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Features.TankManagement.Services;
+using FMS.Application.Services.TankStock;
 using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
@@ -68,6 +69,7 @@ using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand
 using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
+using FMS.Application.Services.TankStock;
 using FMS.BackgroundServices.FMS;
 //using FMS.Application.Extensions;
 
@@ -400,6 +402,7 @@ public class Program {
         // // Register background service for Redis policy trigger subscription //Cursor
         services.AddHostedService<PolicyTriggerBackgroundService> ();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService> ();
+        services.AddScoped<TankStockFutureRecordsService> ();
         services.AddTransient<RoleManager<Role>> ();
 
         services.AddMemoryCache ();
@@ -422,6 +425,7 @@ public class Program {
         // Register missing services that are causing dependency injection errors
         services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService> (); //Cursor
         services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
+        services.AddScoped<TankStockFutureRecordsService> (); //Cursor
         services.AddScoped<ITransactionCompletionService, TransactionCompletionService> (); //Cursor        // Register notification services
         services.AddScoped<INotificationService, NotificationService> ();
         services.AddScoped<IAlarmHandlerService, AlarmHandlerService> ();
@@ -574,14 +578,19 @@ public class Program {
 
     static void ConfigureAuthorization (IServiceCollection services) {
         try {
-            // services.AddAuthorization(options =>
-            // {
-            //     // Configure policy-based authorization with requirements
-            //     options.AddPolicy(
-            //         "RequireAdminRole",
-            //         policy => policy.RequireRole("Admin")
-            //     );
-            // });
+            services.AddAuthorization (options => {
+                // Set default policy to require authentication with JWT Bearer
+                options.DefaultPolicy = new AuthorizationPolicyBuilder (JwtBearerDefaults.AuthenticationScheme)
+                    .RequireAuthenticatedUser ()
+                    .Build ();
+
+                // Configure policy-based authorization with requirements
+                options.AddPolicy (
+                    "RequireAdminRole",
+                    policy => policy.RequireRole ("Admin")
+                    .AddAuthenticationSchemes (JwtBearerDefaults.AuthenticationScheme)
+                );
+            });
         } catch (Exception ex) {
             using (var serviceProvider = services.BuildServiceProvider ()) {
                 var logger = serviceProvider.GetRequiredService<ILogger<Program>> ();
@@ -597,12 +606,20 @@ public class Program {
                 options.AddPolicy (
                     "DevelopmentCorsPolicy",
                     builder => {
+
                         builder
                             .WithOrigins (
+
                                 "http://localhost:3000",
                                 "http://127.0.0.1:3000",
-                                "http://10.0.2.2:7009" //Cursor - added for Android emulator
-                            ) // Added both localhost and 127.0.0.1
+                                "http://10.0.2.2:7009", //Cursor - added for Android emulator
+                                "http://10.0.11.133:7009",
+                                "https://10.0.11.133:7009",
+                                "https://10.0.11.135",
+                                "http://10.0.11.133:3000",
+                                "http://10.0.11.90:3000"
+
+                            )
                             .AllowAnyHeader ()
                             .AllowAnyMethod ()
                             .AllowCredentials (); // Now we can use credentials
@@ -614,6 +631,10 @@ public class Program {
                     builder => {
                         builder
                             .WithOrigins (
+                                "http://197.254.33.227",
+                                "http://10.0.11.135:3000",
+                                "https://10.0.11.135:3000",
+                                "https://10.0.11.135",
                                 "http://10.0.10.153",
                                 "https://10.0.10.153",
                                 "http://10.0.10.153:3000",
@@ -653,6 +674,12 @@ public class Program {
                 throw new InvalidOperationException (
                     "FMS Connection string is missing from environment variables."
                 );
+
+            // Add MySQL specific parameters to handle DateTime issues
+            if (!fmsConnectionString.Contains ("AllowZeroDateTime") && !fmsConnectionString.Contains ("ConvertZeroDateTime")) {
+                fmsConnectionString += fmsConnectionString.Contains ("?") ? "&" : ";";
+                fmsConnectionString += "AllowZeroDateTime=True;ConvertZeroDateTime=True";
+            }
             var naftaConnectionString = Environment.GetEnvironmentVariable (
                 "ConnectionStrings__ATGConnection",
                 EnvironmentVariableTarget.Machine

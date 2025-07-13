@@ -40,8 +40,7 @@ export default function SideNavOuterToolbar({ title, children }) {
         ? MenuStatus.Closed
         : prevMenuStatus
     );
-    return menuStatus === MenuStatus.Closed ? true : false;
-
+    return true; // Always allow outside clicks to be processed
   }, [isLarge]);
 
   const onNavigationChanged = useCallback(
@@ -60,7 +59,7 @@ export default function SideNavOuterToolbar({ title, children }) {
         event.stopPropagation();
       }
     },
-    [navigate, menuStatus, ,isLarge]
+    [navigate, menuStatus, isLarge]
   );
 
 
@@ -104,6 +103,8 @@ export default function SideNavOuterToolbar({ title, children }) {
             selectedItemChanged={onNavigationChanged}
             openMenu={temporaryOpenMenu}
             onMenuReady={onMenuReady}
+            layoutType="outer"
+            menuStatus={menuStatus}
           ></SideNavigationMenu>
         </Template>
       </Drawer>

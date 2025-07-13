@@ -31,12 +31,16 @@ import  createApiClient from '../../api/gpsgateAPIClient';
 
 import { Item as FItem } from 'devextreme-react/form';
 import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
-
 import { formatDate } from '../../utils/dateUtils';
 
 //Cursor - Import new components for filtering and quick actions
 import FilterPopup from './components/FilterPopup';
 import QuickActionsMenu from './components/QuickActionsMenu';
+
+// Future records validation imports
+import { useFutureRecordsValidation } from '../../hooks/useFutureRecordsValidation';
+import FutureRecordsWarning from '../../components/tank-stock/FutureRecordsWarning';
+import './manualRefilPage.scss';
 
 export default function FuelRefill() {
     //Cursor - Updated state management for filtering
@@ -82,6 +86,18 @@ export default function FuelRefill() {
         fuelBy: user.userName,
         tankId: null
     });
+
+    // Future records validation hook
+    const {
+        validationResult,
+        error: validationError,
+        showWarning,
+        canSubmit,
+        validateHistoricalEntry,
+        confirmProceed,
+        cancelProceed,
+        resetValidation
+    } = useFutureRecordsValidation();
 
     const validateRow = (data) => {
         console.log("data",data)
@@ -161,6 +177,19 @@ export default function FuelRefill() {
                         e.cancel = true;
                         notify(validation.message, 'error', 3000);
                         return;
+                    }
+
+                    // Validate future records if tankId and date are present
+                    if (updatedData.tankId && updatedData.date) {
+                        // Trigger validation and wait for it to complete
+                        await validateHistoricalEntry(updatedData.tankId, new Date(updatedData.date), 'Dispensing');
+
+                        // Check validation result after completion
+                        if (!canSubmit) {
+                            e.cancel = true;
+                            notify('Unable to save due to future records policy. Please check the warnings and resolve future records first.', 'error', 5000);
+                            return;
+                        }
                     }
 
                     const formattedData = {
@@ -263,10 +292,22 @@ export default function FuelRefill() {
 
     const handleFieldChange = (e) => {
         const { dataField, value } = e;
-        setFormData(prevData => ({
-            ...prevData,
-            [dataField]: value
-        }));
+        setFormData(prevData => {
+            const updatedData = {
+                ...prevData,
+                [dataField]: value
+            };
+
+            // Trigger future records validation when tankId or date changes
+            if ((dataField === 'tankId' || dataField === 'date') && updatedData.tankId && updatedData.date) {
+                validateHistoricalEntry(updatedData.tankId, new Date(updatedData.date), 'Dispensing');
+            } else if (dataField === 'tankId' && !value) {
+                // Reset validation when tank is cleared
+                resetValidation();
+            }
+
+            return updatedData;
+        });
     };
 
     const handleSiteChange = (e) => {
@@ -285,10 +326,22 @@ export default function FuelRefill() {
 
 const handleTankChange = (e) => {
     const selectedTankId = e.value;
-    setFormData(prevData => ({
-        ...prevData,
-        tankId: selectedTankId
-    }));
+    setFormData(prevData => {
+        const updatedData = {
+            ...prevData,
+            tankId: selectedTankId
+        };
+
+        // Trigger future records validation when tank and date are available
+        if (selectedTankId && updatedData.date) {
+            validateHistoricalEntry(selectedTankId, new Date(updatedData.date), 'Dispensing');
+        } else if (!selectedTankId) {
+            // Reset validation when tank is cleared
+            resetValidation();
+        }
+
+        return updatedData;
+    });
 };
 
     const onEditorPreparing = (e) => {
@@ -540,6 +593,25 @@ const handleTankChange = (e) => {
                                 </FItem>
                             </FItem>
                             <FItem dataField="comment" editorType="dxTextArea" editorOptions={{ height: 100 }} colSpan={2} />
+
+                            {/* Future Records Warning */}
+                            {(showWarning || validationError) && (
+                                <FItem itemType={'group'} colSpan={2} cssClass="future-records-warning-container">
+                                    <FutureRecordsWarning
+                                        validationResult={validationResult}
+                                        onConfirm={confirmProceed}
+                                        onCancel={cancelProceed}
+                                        isVisible={showWarning}
+                                    />
+                                    {validationError && (
+                                        <div className="tw-mt-2 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded tw-text-red-700">
+                                            <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
+                                            {validationError}
+                                        </div>
+                                    )}
+                                </FItem>
+                            )}
+
                             <FItem itemType={'group'} caption={'Integration'} colCount={2} colSpan={2}>
 
                                 <FItem dataField="fuelBy" editorType="dxTextBox" disabled ={true} value={user.userName}>

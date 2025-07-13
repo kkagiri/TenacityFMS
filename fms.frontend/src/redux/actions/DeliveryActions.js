@@ -34,28 +34,45 @@ export const fetchDeliveriesbyDateRangebySiteId = (startDate,endDate,siteId) => 
     }
 };
 
-export const createDelivery = (delivery) => async (dispatch) => {
+export const createDelivery = (deliveryDTO) => async (dispatch) => {
+    try {
+        // Validate required fields before API call
+        if (!deliveryDTO.tankId || deliveryDTO.tankId <= 0) {
+            const error = 'Invalid Tank ID';
+            dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
+            return { success: false, message: error };
+        }
 
-try
-{
-    const response = await axiosInstance.post('/delivery/create', delivery);
+        if (!deliveryDTO.manualDeliveryAmount || deliveryDTO.manualDeliveryAmount <= 0) {
+            const error = 'Delivery amount must be greater than 0';
+            dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
+            return { success: false, message: error };
+        }
 
-    if(response.data.success)
-    {
-        dispatch({ type: CREATE_DELIVERY_SUCCESS, payload: response.data.message });
-        return response.data;
+        if (!deliveryDTO.supplierId || deliveryDTO.supplierId <= 0) {
+            const error = 'Valid supplier is required';
+            dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
+            return { success: false, message: error };
+        }
+
+        if (deliveryDTO.stockBeforeDelivery < 0) {
+            const error = 'Stock before delivery cannot be negative';
+            dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
+            return { success: false, message: error };
+        }
+
+        const response = await axiosInstance.post('/delivery/create', deliveryDTO);
+
+        if (response.data.success) {
+            dispatch({ type: CREATE_DELIVERY_SUCCESS, payload: response.data });
+            return response.data;
+        } else {
+            dispatch({ type: CREATE_DELIVERY_FAILURE, payload: response.data.message });
+            return response.data;
+        }
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Error creating delivery';
+        dispatch({ type: CREATE_DELIVERY_FAILURE, payload: errorMessage });
+        return { success: false, message: errorMessage };
     }
-    else
-    {
-        dispatch({type: CREATE_DELIVERY_FAILURE, payload: response.data.message});
-     return response.message;
-    }
-}
-catch (error) {
-    const errorMessage = error.response?.data?.message || error.message || "Error Delivery";
-
-    dispatch({ type: CREATE_DELIVERY_FAILURE, payload: errorMessage });
-
-    return {sucess:false, message:errorMessage};
-}
 };

@@ -1,37 +1,29 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { useStockData } from '../shared/hooks/useStockData';
+import { useStockData } from '../shared/hooks/useStockDataOptimized';
+import { useDateRange } from '../../../hooks/useDateRange';
+import FilterInfoBar from '../components/FilterInfoBar';
 import InteractiveDashboard from './components/InteractiveDashboard';
 import ReportingEngine from './components/ReportingEngine';
 import PredictiveAnalytics from './components/PredictiveAnalytics';
 import KPIDashboard from './components/KPIDashboard';
-import { ToolbarAnalytics } from '../../../components/toolBar/toolBarAnalytic';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import ScrollView from 'devextreme-react/scroll-view';
-import TabPanel, { Item } from 'devextreme-react/tab-panel';
+import Tabs from 'devextreme-react/tabs';
 import './StockAnalytics.scss';
 
-//Cursor - Stock Analytics - Reporting and analysis
+//Cursor - Stock Analytics - Reporting and analysis with optimized loading
 const StockAnalytics = () => {
   const sites = useSelector((state) => state.site.sites);
+  const user = useSelector((state) => state.auth.user);
 
-  const [selectedSite, setSelectedSite] = useState(() => {
+  const [selectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
   });
 
-  //Cursor - Memoize dateRange to prevent infinite re-renders
-  const [dateRangeState, setDateRangeState] = useState(() => {
-    const today = new Date();
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return [
-      sevenDaysAgo.toISOString().split('T')[0],
-      today.toISOString().split('T')[0]
-    ];
-  });
-
-  //Cursor - Memoize dateRange to ensure stable reference
-  const dateRange = useMemo(() => dateRangeState, [dateRangeState]);
+  // Use stable date range hook
+  const { dateRange, updateDateRange } = useDateRange(7); // 7 days by default
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
@@ -42,28 +34,100 @@ const StockAnalytics = () => {
     analyticsData,
     reports,
     forecasts,
-    kpiMetrics,
-    refreshData
+    kpiMetrics
   } = useStockData(selectedSite, dateRange);
 
-  const handleSiteChange = useCallback((e) => {
-    const newSite = e.value || 'all';
-    setSelectedSite(newSite);
-    localStorage.setItem('selectedSite', newSite);
-  }, []);
+  //Cursor - Tab data with icons
+  const tabData = [
+    { text: "Interactive Dashboard", icon: "fa-light fa-chart-line" },
+    { text: "Reports", icon: "fa-light fa-file-chart-line" },
+    { text: "Predictive Analytics", icon: "fa-light fa-chart-mixed" },
+    { text: "KPI Dashboard", icon: "fa-light fa-gauge-high" }
+  ];
+
+  //Cursor - Custom tab item renderer
+  const renderTabItem = (item) => {
+    return (
+      <div className="tw-flex tw-items-center tw-gap-2">
+        <i className={item.icon}></i>
+        <span>{item.text}</span>
+      </div>
+    );
+  };
 
   const handleDateRangeChange = useCallback((newDateRange) => {
-    setDateRangeState(newDateRange);
+    if (Array.isArray(newDateRange) && newDateRange.length === 2) {
+      updateDateRange(newDateRange[0], newDateRange[1]);
+    }
+  }, [updateDateRange]);
+
+  const handleFilterClick = useCallback(() => {
+    // TODO: Open filter popup
+    console.log('Filter clicked');
   }, []);
 
+  // Ensure arrays are available for FilterInfoBar
+  const safeSites = Array.isArray(sites) ? sites : [];
+  const safeDateRange = Array.isArray(dateRange) && dateRange.length >= 2 ? dateRange : [new Date(), new Date()];
+
   const handleTabSelectionChange = useCallback((e) => {
-    const newIndex = e.selectedIndex;
+    const newIndex = e.itemIndex;
     setActiveTabIndex(newIndex);
     setLoadedTabs(prev => new Set([...prev, newIndex]));
   }, []);
 
+  //Cursor - Render content based on active tab
+  const renderContent = () => {
+    switch (activeTabIndex) {
+      case 0:
+        return loadedTabs.has(0) && (
+          <InteractiveDashboard
+            analyticsData={analyticsData}
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+            onDateRangeChange={handleDateRangeChange}
+          />
+        );
+      case 1:
+        return loadedTabs.has(1) && (
+          <ReportingEngine
+            reports={reports}
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+          />
+        );
+      case 2:
+        return loadedTabs.has(2) && (
+          <PredictiveAnalytics
+            forecasts={forecasts}
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+          />
+        );
+      case 3:
+        return loadedTabs.has(3) && (
+          <KPIDashboard
+            kpiMetrics={kpiMetrics}
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
+      {/* Render filter info in header */}
+      <FilterInfoBar
+        dateRange={safeDateRange}
+        selectedSite={selectedSite}
+        sites={safeSites}
+        user={user}
+        onFilterClick={handleFilterClick}
+      />
+
       {/* Cursor - Loading overlay instead of blocking entire screen */}
       {isLoading && (
         <div className="tw-absolute tw-top-0 tw-left-0 tw-right-0 tw-bottom-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-justify-center tw-items-center tw-z-40">
@@ -77,71 +141,21 @@ const StockAnalytics = () => {
       )}
 
       <ScrollView className="stock-analytics">
-        <ToolbarAnalytics
-          title="Stock Analytics"
-          additionalToolbarContent={
-            <div className="tw-flex tw-items-center tw-space-x-3">
-              <span className="tw-text-sm tw-text-gray-600">
-                Period: {new Date(dateRange[0]).toLocaleDateString()} - {new Date(dateRange[1]).toLocaleDateString()}
-              </span>
-              <span className="tw-text-sm tw-text-gray-600">
-                Site: {selectedSite === 'all' ? 'All Sites' : sites.find(s => s.id === selectedSite)?.name || 'Unknown'}
-              </span>
-            </div>
-          }
-          sites={sites}
-          onSiteChange={handleSiteChange}
-          selectedSite={selectedSite}
-          isLoading={isLoading}
-          onRefresh={refreshData}
-        />
-
         <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
-          <TabPanel
-            height={'auto'}
-            focusStateEnabled={false}
-            deferRendering={true}
+          {/* Cursor - Tabs Navigation */}
+          <Tabs
+            dataSource={tabData}
             selectedIndex={activeTabIndex}
-            onSelectionChanged={handleTabSelectionChange}
-          >
-            <Item title="Interactive Dashboard">
-              {loadedTabs.has(0) && (
-                <InteractiveDashboard
-                  analyticsData={analyticsData}
-                  selectedSite={selectedSite}
-                  dateRange={dateRange}
-                  onDateRangeChange={handleDateRangeChange}
-                />
-              )}
-            </Item>
-            <Item title="Reports">
-              {loadedTabs.has(1) && (
-                <ReportingEngine
-                  reports={reports}
-                  selectedSite={selectedSite}
-                  dateRange={dateRange}
-                />
-              )}
-            </Item>
-            <Item title="Predictive Analytics">
-              {loadedTabs.has(2) && (
-                <PredictiveAnalytics
-                  forecasts={forecasts}
-                  selectedSite={selectedSite}
-                  dateRange={dateRange}
-                />
-              )}
-            </Item>
-            <Item title="KPI Dashboard">
-              {loadedTabs.has(3) && (
-                <KPIDashboard
-                  kpiMetrics={kpiMetrics}
-                  selectedSite={selectedSite}
-                  dateRange={dateRange}
-                />
-              )}
-            </Item>
-          </TabPanel>
+            onItemClick={handleTabSelectionChange}
+            width="100%"
+            className="tw-mb-4"
+            itemRender={renderTabItem}
+          />
+
+          {/* Cursor - Tab Content */}
+          <div className="tw-p-4">
+            {renderContent()}
+          </div>
         </div>
       </ScrollView>
     </div>

@@ -34,6 +34,8 @@ import automatedReconciliationReducer from "./automatedReconciliationReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
 import stockManagementReducer from "./stockManagementReducer";
+import configurationReducer from "./configurationReducer";
+import systemConfigReducer from "./systemConfigReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -70,6 +72,8 @@ const rootReducer = combineReducers({
   fuelReport: fuelReportReducer,
   notification: notificationReducer,
   stockManagement: stockManagementReducer,
+  configuration: configurationReducer,
+  systemConfig: systemConfigReducer,
 });
 
 export default rootReducer;

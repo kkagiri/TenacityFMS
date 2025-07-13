@@ -55,33 +55,6 @@ const TaskCreationForm = ({ onTaskCreated, onNavigate }) => {
   });
 
   const [loading, setLoading] = useState(false);
-  const user = useSelector(state => state.auth?.user);
-
-  // Debug: Log data sources to console
-  useEffect(() => {
-    console.log('TaskCreationForm - Data sources:');
-    console.log('Task Types:', taskTypes);
-    console.log('Task Priorities:', taskPriorities);
-    console.log('Sample Sites:', sampleSites);
-    console.log('Sample Users:', sampleUsers);
-  }, []);
-
-const TaskCreationForm = ({ onTaskCreated, onNavigate }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    type: 'Manual',
-    priority: 'Medium',
-    assignedTo: '',
-    dueDate: null,
-    sourceType: 'Manual',
-    sourceId: null,
-    siteId: null,
-    tankId: null,
-    notes: ''
-  });
-
-  const [loading, setLoading] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [sites, setSites] = useState([]);
   const [tanks, setTanks] = useState([]);
@@ -111,6 +84,15 @@ const TaskCreationForm = ({ onTaskCreated, onNavigate }) => {
     };
 
     loadFormData();
+  }, []);
+
+  // Debug: Log data sources to console
+  useEffect(() => {
+    console.log('TaskCreationForm - Data sources:');
+    console.log('Task Types:', taskTypes);
+    console.log('Task Priorities:', taskPriorities);
+    console.log('Sample Sites:', sampleSites);
+    console.log('Sample Users:', sampleUsers);
   }, []);
 
   const handleSubmit = async (e) => {

@@ -4,6 +4,7 @@
  using FMS.Application.Features.TankManagement.DailyTankReconciliation.Commands;
  using FMS.Application.Features.TankManagement.DailyTankReconciliation.Queries;
  using MediatR;
+ using Microsoft.AspNetCore.Authentication.JwtBearer;
  using Microsoft.AspNetCore.Authorization;
  using Microsoft.AspNetCore.Mvc;
  using Microsoft.Extensions.Logging;
@@ -13,7 +14,7 @@
  //Cursor - Controller for daily tank reconciliation operations
  [ApiController]
  [Route ("api/[controller]")]
- [Authorize]
+ [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
  public class DailyTankReconciliationController : ControllerBase {
      private readonly IMediator _mediator;
      private readonly ILogger<DailyTankReconciliationController> _logger;

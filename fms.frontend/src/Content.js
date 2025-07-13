@@ -53,11 +53,11 @@ export default function Content() {
           }
         />
 
-        {/* User routes */}
-        <Route path="/users/:id" element={React.createElement(resolvedComponents("user-details"))} />
-        <Route path="/users/:id/edit" element={React.createElement(resolvedComponents("user-edit"))} />
-        <Route path="/users/:id/activities" element={React.createElement(resolvedComponents("user-activities"))} />
-        <Route path="/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
+        {/* User routes - now under admin */}
+        <Route path="/admin/users/:id" element={React.createElement(resolvedComponents("user-details"))} />
+        <Route path="/admin/users/:id/edit" element={React.createElement(resolvedComponents("user-edit"))} />
+        <Route path="/admin/users/:id/activities" element={React.createElement(resolvedComponents("user-activities"))} />
+        <Route path="/admin/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
 
         {/* Vehicle routes */}
@@ -85,14 +85,32 @@ export default function Content() {
           element={React.createElement(resolvedComponents("atg"))}
         />
 
-        {/* Notification System Routes - Handle all notification sub-routes */}
+        {/* Tank Stock System Routes - Handle all tankstock sub-routes internally */}
         <Route
-          path="/admin/notifications"
+          path="/tankstock"
+          element={React.createElement(resolvedComponents("tank stock"))}
+        />
+        <Route
+          path="/tankstock/*"
+          element={React.createElement(resolvedComponents("tank stock"))}
+        />
+     {/* notification Stock System Routes - Handle all notification sub-routes internally */}
+        <Route
+          path="/notifications"
           element={React.createElement(resolvedComponents("notifications"))}
         />
         <Route
-          path="/admin/notifications/*"
+          path="/notifications/*"
           element={React.createElement(resolvedComponents("notifications"))}
+        />
+        {/* Admin System Routes - Handle all admin sub-routes internally */}
+        <Route
+          path="/admin"
+          element={React.createElement(resolvedComponents("admin"))}
+        />
+        <Route
+          path="/admin/*"
+          element={React.createElement(resolvedComponents("admin"))}
         />
 
         <Route path="*" element={<Navigate to="/home" />} />

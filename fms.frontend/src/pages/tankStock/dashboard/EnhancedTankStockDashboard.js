@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { useTankStockSignalR } from '../../../hooks/useTankStockSignalR';
 import { useStockData } from '../shared/hooks/useStockData';
+import { useDateRange } from '../../../hooks/useDateRange';
 import MissionControlLayout from '../../../components/missionControl/layout/MissionControlLayout';
 import TankLevelGauge from './components/TankLevelGauge';
-import AlertsPanel from './components/AlertsPanel';
 import SiteOverviewCards from './components/SiteOverviewCards';
 import EmergencyResponsePanel from './components/EmergencyResponsePanel';
 import LoadIndicator from 'devextreme-react/load-indicator';
@@ -13,24 +13,18 @@ import './EnhancedTankStockDashboard.scss';
 
 //Cursor - Enhanced Tank Stock Dashboard with Mission Control integration
 const EnhancedTankStockDashboard = () => {
-  const dispatch = useDispatch();
-  const user = useSelector((state) => state.auth.user);
   const sites = useSelector((state) => state.site.sites);
-  const tanks = useSelector((state) => state.tank.tanks);
 
   const [selectedSite, setSelectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
   });
 
-  //Cursor - Memoize dateRange to prevent unnecessary re-renders
-  const dateRange = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return [today, today];
-  }, []); // Empty dependency array since it's always today
+  //Cursor - Use stable dateRange hook to prevent infinite re-renders (dashboard specific: today only)
+  const { dateRange } = useDateRange(0); // 0 days = today only
 
   //Cursor - Use SignalR for real-time updates
-  const { isConnected: signalRConnected, requestTankDataRefresh } = useTankStockSignalR(
+  const { isConnected: signalRConnected } = useTankStockSignalR(
     selectedSite,
     dateRange,
     true
@@ -51,6 +45,42 @@ const EnhancedTankStockDashboard = () => {
     liveMetrics: {},
     quickActions: []
   });
+
+  const handleEmergencyAction = useCallback((alert) => {
+    //Cursor - Handle emergency actions from alerts
+    console.log('Emergency action for alert:', alert);
+    // Implementation would depend on alert type
+  }, []);
+
+  const handleEmergencyDelivery = useCallback(async () => {
+    //Cursor - Emergency delivery workflow
+    console.log('Initiating emergency delivery...');
+    // Implementation for emergency delivery
+  }, []);
+
+  const handleForceReconciliation = useCallback(async () => {
+    //Cursor - Force reconciliation workflow
+    console.log('Forcing reconciliation...');
+    // Implementation for force reconciliation
+  }, []);
+
+  const handleCrossSiteTransfer = useCallback(async () => {
+    //Cursor - Cross-site transfer workflow
+    console.log('Initiating cross-site transfer...');
+    // Implementation for cross-site transfer
+  }, []);
+
+  const handleManualGaugeReading = useCallback(async () => {
+    //Cursor - Manual gauge reading workflow
+    console.log('Starting manual gauge reading...');
+    // Implementation for manual gauge reading
+  }, []);
+
+  const handleScheduleMaintenance = useCallback(async () => {
+    //Cursor - Schedule maintenance workflow
+    console.log('Scheduling maintenance...');
+    // Implementation for maintenance scheduling
+  }, []);
 
   useEffect(() => {
     //Cursor - Transform data for Mission Control format
@@ -125,49 +155,7 @@ const EnhancedTankStockDashboard = () => {
       liveMetrics: metrics,
       quickActions: actions
     });
-  }, [criticalAlerts, tankLevels, siteMetrics]);
-
-  const handleSiteChange = useCallback((e) => {
-    const newSite = e.value || 'all';
-    setSelectedSite(newSite);
-    localStorage.setItem('selectedSite', newSite);
-  }, []);
-
-  const handleEmergencyAction = useCallback((alert) => {
-    //Cursor - Handle emergency actions from alerts
-    console.log('Emergency action for alert:', alert);
-    // Implementation would depend on alert type
-  }, []);
-
-  const handleEmergencyDelivery = useCallback(async () => {
-    //Cursor - Emergency delivery workflow
-    console.log('Initiating emergency delivery...');
-    // Implementation for emergency delivery
-  }, []);
-
-  const handleForceReconciliation = useCallback(async () => {
-    //Cursor - Force reconciliation workflow
-    console.log('Forcing reconciliation...');
-    // Implementation for force reconciliation
-  }, []);
-
-  const handleCrossSiteTransfer = useCallback(async () => {
-    //Cursor - Cross-site transfer workflow
-    console.log('Initiating cross-site transfer...');
-    // Implementation for cross-site transfer
-  }, []);
-
-  const handleManualGaugeReading = useCallback(async () => {
-    //Cursor - Manual gauge reading workflow
-    console.log('Starting manual gauge reading...');
-    // Implementation for manual gauge reading
-  }, []);
-
-  const handleScheduleMaintenance = useCallback(async () => {
-    //Cursor - Schedule maintenance workflow
-    console.log('Scheduling maintenance...');
-    // Implementation for maintenance scheduling
-  }, []);
+  }, [criticalAlerts, tankLevels, siteMetrics, handleEmergencyAction, handleEmergencyDelivery, handleForceReconciliation, handleCrossSiteTransfer, handleManualGaugeReading, handleScheduleMaintenance]);
 
   const additionalHeaderContent = (
     <div className="tw-flex tw-items-center tw-space-x-4">

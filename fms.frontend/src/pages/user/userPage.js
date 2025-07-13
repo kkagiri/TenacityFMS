@@ -175,15 +175,15 @@ const UserPage = () => {
     };
 
     const handleViewDetails = (userId) => {
-        navigate(`/users/${userId}`);
+        navigate(`/admin/users/${userId}`);
     };
 
     const handleViewActivities = (userId) => {
-        navigate(`/users/${userId}/activities`);
+        navigate(`/admin/users/${userId}/activities`);
     };
 
     const handleManageSites = (userId) => {
-        navigate(`/users/${userId}/sites`);
+        navigate(`/admin/users/${userId}/sites`);
     };
 
     const handleStatusChange = async (user) => {
@@ -201,7 +201,7 @@ const UserPage = () => {
     };
 
     const handleRowClick = (e) => {
-        navigate(`/users/${e.data.id}`);
+        navigate(`/admin/users/${e.data.id}`);
     };
 
     // Handle tab change and ensure proper highlighting //Cursor

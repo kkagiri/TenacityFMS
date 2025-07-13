@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { notificationRoutes, isActiveRoute } from '../utils/navigationHelper';
 import './NotificationLayout.scss';
+import '../shared/mobileStyles.scss';
 
 const NotificationLayout = ({ children, currentPath }) => {
   const navigate = useNavigate();

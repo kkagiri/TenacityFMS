@@ -1,85 +1,184 @@
-// Task Management Layout - Clean and Simple Design (Based on Notification Layout)
+// Task Management Layout - Clean and Simple Design with Gradient Yellow Theme
 .task-management-layout {
   @apply tw-flex tw-h-screen tw-bg-gray-50;
 }
 
 // Sidebar Styles
 .task-sidebar {
-  @apply tw-w-64 tw-bg-white tw-border-r tw-border-gray-200 tw-flex tw-flex-col tw-transition-all tw-duration-300;
+  width: 280px;
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1000;
 
   &.collapsed {
-    @apply tw-w-16;
+    width: 70px;
   }
 
   .sidebar-header {
-    @apply tw-h-16 tw-flex tw-items-center tw-justify-between tw-px-4 tw-border-b tw-border-gray-100;
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 80px;
 
     .sidebar-brand {
-      @apply tw-flex tw-items-center;
+      display: flex;
+      align-items: center;
 
       i {
-        @apply tw-text-xl;
+        font-size: 1.5rem;
+        color: #fde047;
       }
     }
 
     .collapse-btn {
-      @apply tw-flex tw-items-center tw-justify-center tw-text-gray-400 hover:tw-text-gray-600 tw-transition-colors;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+
+      i {
+        font-size: 1rem;
+      }
     }
   }
 
   .sidebar-content {
-    @apply tw-flex-1 tw-overflow-y-auto tw-py-2;
+    flex: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
 
     .nav-group {
-      @apply tw-px-2 tw-mb-2;
+      margin-bottom: 1rem;
 
       .group-label {
-        @apply tw-px-3 tw-py-2 tw-text-xs tw-font-medium tw-text-gray-500 tw-uppercase;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
       }
 
       .nav-menu {
-        @apply tw-space-y-1;
-      }
-    }
+        .nav-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 1rem;
+          margin: 0.25rem 0.5rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
 
-    .nav-item {
-      @apply tw-flex tw-items-center tw-justify-between tw-px-3 tw-py-2 tw-text-sm tw-text-gray-700 tw-rounded-md tw-cursor-pointer tw-transition-all tw-duration-200;
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+          }
 
-      .nav-item-content {
-        @apply tw-flex tw-items-center tw-gap-3;
+          &.active {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
-        i {
-          @apply tw-text-base tw-w-4 tw-text-center;
-        }
-      }
+            &::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 4px;
+              background: #fde047;
+              border-radius: 0 2px 2px 0;
+            }
+          }
 
-      .nav-badge {
-        @apply tw-px-1.5 tw-h-5 tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-medium tw-bg-blue-100 tw-text-blue-700 tw-rounded-full;
+          .nav-item-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
 
-        &.demo-badge {
-          @apply tw-bg-orange-100 tw-text-orange-700;
-        }
-      }
+            i {
+              font-size: 1.1rem;
+              width: 20px;
+              text-align: center;
+              color: #fef08a;
+            }
 
-      &:hover {
-        @apply tw-bg-gray-50 tw-text-gray-900;
-      }
+            span {
+              font-weight: 500;
+            }
+          }
 
-      &.active {
-        @apply tw-bg-blue-50 tw-text-blue-700;
+          .nav-badge {
+            background: #dc2626;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            min-width: 20px;
+            text-align: center;
 
-        i {
-          @apply tw-text-blue-600;
+            &.demo-badge {
+              background: #ea580c;
+              color: white;
+            }
+          }
         }
       }
     }
 
     .create-new-btn {
-      @apply tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-mx-2 tw-rounded-md tw-bg-blue-600 tw-text-white tw-text-sm tw-cursor-pointer hover:tw-bg-blue-700 tw-transition-colors;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #a7f3d0;
+
+      &:hover {
+        background: rgba(16, 185, 129, 0.3);
+        transform: translateY(-1px);
+      }
+
+      i {
+        font-size: 1rem;
+      }
+
+      span {
+        font-weight: 500;
+      }
     }
 
     .nav-separator {
-      @apply tw-h-px tw-bg-gray-200 tw-my-3 tw-mx-2;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 1rem 0.5rem;
     }
   }
 }
@@ -107,11 +206,28 @@
 
 // Responsive Design
 @media (max-width: 768px) {
+  .task-management-layout {
+    flex-direction: column;
+  }
+
   .task-sidebar {
-    @apply tw-absolute tw-z-50 tw-h-full;
+    width: 100%;
+    height: auto;
+    position: static;
 
     &.collapsed {
-      @apply tw-w-0 tw-overflow-hidden;
+      width: 100%;
+      height: 80px;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      min-height: 80px;
+    }
+
+    .sidebar-content {
+      padding: 0.5rem 0;
     }
   }
 

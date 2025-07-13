@@ -2,16 +2,14 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FMS.Domain.Entities
-{
+namespace FMS.Domain.Entities {
     //Cursor on changes to code
     /// <summary>
     /// System-wide configuration entity for storing editable settings in database
     /// These settings override defaults and appsettings.json values
     /// </summary>
-    [Table("SystemConfigurations")]
-    public class SystemConfiguration
-    {
+    [Table ("SystemConfigurations")]
+    public class SystemConfiguration {
         [Key]
         public int Id { get; set; }
 
@@ -19,26 +17,26 @@ namespace FMS.Domain.Entities
         /// Configuration key (e.g., "System.WebSocketTimeout")
         /// </summary>
         [Required]
-        [MaxLength(255)]
+        [MaxLength (191)]
         public string ConfigurationKey { get; set; } = null!;
 
         /// <summary>
         /// Configuration value as string (will be parsed to appropriate type)
         /// </summary>
         [Required]
-        [MaxLength(1000)]
+        [MaxLength (1000)]
         public string ConfigurationValue { get; set; } = null!;
 
         /// <summary>
         /// Description of what this configuration does
         /// </summary>
-        [MaxLength(500)]
+        [MaxLength (500)]
         public string? Description { get; set; }
 
         /// <summary>
         /// Data type of the configuration value (Int, String, Bool, TimeSpan, etc.)
         /// </summary>
-        [MaxLength(50)]
+        [MaxLength (50)]
         public string? DataType { get; set; }
 
         /// <summary>
@@ -54,7 +52,7 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Category for grouping related configurations
         /// </summary>
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string? Category { get; set; }
 
         /// <summary>
@@ -70,19 +68,19 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Who created this configuration
         /// </summary>
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string? CreatedBy { get; set; }
 
         /// <summary>
         /// Who last updated this configuration
         /// </summary>
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string? UpdatedBy { get; set; }
 
         /// <summary>
         /// Validation regex pattern for the value (optional)
         /// </summary>
-        [MaxLength(255)]
+        [MaxLength (191)]
         public string? ValidationPattern { get; set; }
 
         /// <summary>
@@ -98,7 +96,7 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Default value for this configuration
         /// </summary>
-        [MaxLength(1000)]
+        [MaxLength (1000)]
         public string? DefaultValue { get; set; }
     }
 }

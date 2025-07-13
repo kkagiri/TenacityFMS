@@ -182,7 +182,7 @@ const EmailConfiguration = () => {
   }
 
   return (
-    <div className="email-config">
+    <div className="email-config form-container">
       {/* Header */}
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-8">
         <div>
@@ -217,7 +217,8 @@ const EmailConfiguration = () => {
         </div>
       </div>
 
-      <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-8">
+      <div className="form-content">
+        <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-8 notification-form">
         {/* SMTP Configuration */}
         <div className="lg:tw-col-span-2">
           <div className="config-section">
@@ -493,6 +494,7 @@ const EmailConfiguration = () => {
             </ul>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

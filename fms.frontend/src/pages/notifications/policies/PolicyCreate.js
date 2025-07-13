@@ -234,7 +234,7 @@ const PolicyCreate = () => {
   };
 
   const renderBasicInfoTab = () => (
-    <div className="tw-p-6 policy-create-form">
+    <div className="tw-p-6 policy-create-form notification-form">
       <ValidationGroup>
         <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
           <div className="tw-space-y-1">
@@ -336,7 +336,7 @@ const PolicyCreate = () => {
   );
 
   const renderNotificationSettingsTab = () => (
-    <div className="tw-p-6 tw-space-y-6 policy-create-form">
+    <div className="tw-p-6 tw-space-y-6 policy-create-form notification-form">
       <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg">
         <h3 className="tw-text-lg tw-font-semibold tw-mb-4">Delivery Methods</h3>
         <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4">
@@ -419,7 +419,7 @@ const PolicyCreate = () => {
   );
 
   const renderConditionsTab = () => (
-    <div className="tw-p-6 policy-create-form">
+    <div className="tw-p-6 policy-create-form notification-form">
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
         <h3 className="tw-text-lg tw-font-semibold">Trigger Conditions</h3>
         <Button
@@ -508,7 +508,7 @@ const PolicyCreate = () => {
   );
 
   const renderRecipientsTab = () => (
-    <div className="tw-p-6 policy-create-form">
+    <div className="tw-p-6 policy-create-form notification-form">
       <div className="tw-space-y-6">
         <div className="tw-space-y-1">
           <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
@@ -577,7 +577,7 @@ const PolicyCreate = () => {
   );
 
   const renderTemplatesTab = () => (
-    <div className="tw-p-6 tw-space-y-6 policy-create-form">
+    <div className="tw-p-6 tw-space-y-6 policy-create-form notification-form">
       <div className="tw-space-y-1">
         <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
           Title Template *
@@ -708,7 +708,7 @@ const PolicyCreate = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="tw-min-h-[600px]">
+        <div className="policy-form-container">
           {renderTabContent()}
         </div>
       </div>
