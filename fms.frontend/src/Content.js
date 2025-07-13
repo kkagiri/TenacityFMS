@@ -103,6 +103,7 @@ export default function Content() {
           path="/notifications/*"
           element={React.createElement(resolvedComponents("notifications"))}
         />
+
         {/* Admin System Routes - Handle all admin sub-routes internally */}
         <Route
           path="/admin"
@@ -111,6 +112,16 @@ export default function Content() {
         <Route
           path="/admin/*"
           element={React.createElement(resolvedComponents("admin"))}
+        />
+
+        {/* Vehicle Management System Routes - Handle all vehicle sub-routes internally */}
+        <Route
+          path="/vehicles"
+          element={React.createElement(resolvedComponents("vehicles"))}
+        />
+        <Route
+          path="/vehicles/*"
+          element={React.createElement(resolvedComponents("vehicles"))}
         />
 
         <Route path="*" element={<Navigate to="/home" />} />

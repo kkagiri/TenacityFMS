@@ -21,7 +21,12 @@ import EnhancedAutomatedReconciliationSystem from "./pages/automatedReconciliati
 import NotificationSystem from "./pages/notifications";
 // Import the new admin main entry point
 import AdminMain from "./pages/admin/AdminMain";
-// Import the System Configuration page
+// Import the new vehicle main entry point
+import VehicleMain from "./pages/vehicles/VehicleMain";
+// Import individual vehicle components
+import VehicleDashboard from "./pages/vehicles/vehicleDashboard";
+import VehicleEdit from "./pages/vehicles/vehicleEdit";
+import VehicleConsumptionDetails from "./pages/vehicles/vehicleConsumptionDetails";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -32,7 +37,7 @@ const resolvedComponents = (pageName) => {
      case "task management":
       return TaskManagement;
     case "vehicles":
-      return Vehicles;
+      return VehicleMain;
     case "tank stock":
       return TankStockMain;
     case "admin":
@@ -66,6 +71,12 @@ const resolvedComponents = (pageName) => {
       return UserActivityDashboard;
     case "user-edit":
       return UserEditPage;
+    case "vehicle-dashboard":
+      return VehicleDashboard;
+    case "vehicle-edit":
+      return VehicleEdit;
+    case "vehicle-consumption-details":
+      return VehicleConsumptionDetails;
     case "automated-reconciliation":
       return AutomatedReconciliationSystem;
     case "reconciliation-mission-control":

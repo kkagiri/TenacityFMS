@@ -1,0 +1,267 @@
+// Vehicle Details Styling
+.vehicle-details {
+
+  .dx-tabpanel {
+    .dx-tabpanel-tabs {
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+
+      .dx-tab {
+        background: transparent;
+        border: none;
+        color: #6b7280;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        margin-right: 0.5rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        &.dx-tab-selected {
+          background: white;
+          color: #1f2937;
+          border-bottom: 2px solid #3b82f6;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .dx-tabpanel-container {
+      background: white;
+      min-height: 500px;
+    }
+  }
+
+  // Quick action buttons styling
+  .quick-actions {
+    .dx-button {
+      margin-right: 0.5rem;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+
+  // Metrics dashboard styling
+  .metrics-grid {
+    .metric-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+    }
+  }
+
+  // Form styling within tabs
+  .tab-content {
+    .form-section {
+      margin-bottom: 2rem;
+
+      .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+
+      label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+      }
+
+      .dx-textbox,
+      .dx-selectbox,
+      .dx-numberbox {
+        .dx-texteditor-input {
+          padding: 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+
+          &:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+        }
+      }
+    }
+  }
+
+  // Data grid styling within tabs
+  .dx-datagrid {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+
+    .dx-datagrid-headers {
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+
+      .dx-header-row {
+        .dx-datagrid-text-content {
+          font-weight: 600;
+          color: #374151;
+        }
+      }
+    }
+
+    .dx-row {
+      &:hover {
+        background: #f9fafb;
+      }
+
+      &.dx-row-alt {
+        background: #f8fafc;
+
+        &:hover {
+          background: #f3f4f6;
+        }
+      }
+    }
+  }
+
+  // Status indicators
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+
+    &.active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    &.inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    &.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    &.maintenance {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+  }
+
+  // Loading states
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+
+    .dx-loadindicator {
+      .dx-loadindicator-icon {
+        border-color: #3b82f6;
+      }
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .vehicle-details {
+      padding: 1rem;
+
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+
+      .quick-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .dx-button {
+          width: 100%;
+          margin-right: 0;
+          margin-bottom: 0.5rem;
+        }
+      }
+
+      .dx-tabpanel {
+        .dx-tabpanel-tabs {
+          overflow-x: auto;
+
+          .dx-tab {
+            white-space: nowrap;
+            min-width: max-content;
+          }
+        }
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .vehicle-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+}
+
+// Popup overrides
+.dx-overlay-wrapper {
+  .dx-popup-content {
+    .form-container {
+      padding: 1.5rem;
+
+      .form-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+      }
+    }
+  }
+}
