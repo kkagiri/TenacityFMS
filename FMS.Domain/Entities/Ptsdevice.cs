@@ -51,4 +51,8 @@ public partial class Ptsdevice {
 
     public virtual Site? SiteNavigation { get; set; }
 
+    //Cursor: Navigation properties for notifications
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification> ();
+    public virtual ICollection<NotificationPolicy> NotificationPolicies { get; set; } = new List<NotificationPolicy> ();
+
 }

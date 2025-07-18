@@ -11,7 +11,7 @@ import { useMenuPatch } from "../../utils/patches";
 export default function SideNavOuterToolbar({ title, children }) {
   const scrollViewRef = useRef(null);
   const navigate = useNavigate();
-  const { isXSmall,  isLarge } = useScreenSize();
+  const { isLarge } = useScreenSize();
   const [patchCssClass, onMenuReady] = useMenuPatch();
   const [menuStatus, setMenuStatus] = useState(
     isLarge ? MenuStatus.Opened : MenuStatus.Closed
@@ -40,8 +40,7 @@ export default function SideNavOuterToolbar({ title, children }) {
         ? MenuStatus.Closed
         : prevMenuStatus
     );
-    return menuStatus === MenuStatus.Closed ? true : false;
-
+    return true; // Always allow outside clicks to be processed
   }, [isLarge]);
 
   const onNavigationChanged = useCallback(
@@ -60,7 +59,7 @@ export default function SideNavOuterToolbar({ title, children }) {
         event.stopPropagation();
       }
     },
-    [navigate, menuStatus, ,isLarge]
+    [navigate, menuStatus, isLarge]
   );
 
 
@@ -75,10 +74,10 @@ export default function SideNavOuterToolbar({ title, children }) {
       <Drawer
         className={["drawer", patchCssClass].join(" ")}
         position={"before"}
-        closeOnOutsideClick={onOutsideClick}
+        showCloseButton={onOutsideClick}
         openedStateMode={isLarge ? 'shrink' : 'overlap'}
-        revealMode={isXSmall ? 'slide' : 'expand'}
-        minSize={isXSmall ? 0 :0}
+        revealMode={'slide'}
+        minSize={0}
         maxSize={250}
         shading={isLarge ? false : true}
         opened={menuStatus === MenuStatus.Closed ? false : true}
@@ -104,6 +103,8 @@ export default function SideNavOuterToolbar({ title, children }) {
             selectedItemChanged={onNavigationChanged}
             openMenu={temporaryOpenMenu}
             onMenuReady={onMenuReady}
+            layoutType="outer"
+            menuStatus={menuStatus}
           ></SideNavigationMenu>
         </Template>
       </Drawer>

@@ -1,0 +1,991 @@
+// Policy Create Form Styles
+
+// Global DevExtreme overrides with maximum specificity
+.policy-create-form {
+  // Force white background and grey borders on ALL DevExtreme widgets
+  .dx-widget.dx-texteditor.dx-textbox,
+  .dx-widget.dx-texteditor.dx-textarea,
+  .dx-widget.dx-texteditor.dx-selectbox,
+  .dx-widget.dx-texteditor.dx-numberbox,
+  .dx-widget.dx-texteditor.dx-tagbox {
+    background-color: white !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+
+    .dx-texteditor-container {
+      background-color: white !important;
+    }
+
+    .dx-texteditor-input-container {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+    }
+
+    .dx-texteditor-input {
+      background-color: white !important;
+      border: none !important;
+      color: #374151 !important;
+    }
+
+    &.dx-state-focused,
+    &.dx-state-active {
+      background-color: white !important;
+      border-color: #6b7280 !important;
+      box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+
+      .dx-texteditor-container {
+        background-color: white !important;
+      }
+
+      .dx-texteditor-input-container {
+        background-color: white !important;
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+      }
+
+      .dx-texteditor-input {
+        background-color: white !important;
+      }
+    }
+
+    &.dx-state-hover {
+      background-color: white !important;
+      border-color: #9ca3af !important;
+
+      .dx-texteditor-container {
+        background-color: white !important;
+      }
+
+      .dx-texteditor-input-container {
+        background-color: white !important;
+        border-color: #9ca3af !important;
+      }
+
+      .dx-texteditor-input {
+        background-color: white !important;
+      }
+    }
+  }
+
+  // Additional global override for any missed DevExtreme elements
+  [class*="dx-texteditor"] {
+    background-color: white !important;
+
+    [class*="dx-texteditor-input"] {
+      background-color: white !important;
+    }
+
+    [class*="dx-texteditor-container"] {
+      background-color: white !important;
+    }
+  }
+
+  // Fix DevExtreme form field spacing and label/placeholder overlap
+  .dx-field {
+    margin-bottom: 1.5rem;
+
+    .dx-field-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+      width: 100%;
+      text-align: left;
+    }
+
+    .dx-field-value {
+      width: 100%;
+    }
+  }
+
+  // Fix TextBox styling
+  .dx-textbox {
+    &.dx-editor-outlined {
+      background-color: white;
+    }
+
+    .dx-texteditor-container {
+      background-color: white;
+    }
+
+    .dx-texteditor-input {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      color: #374151 !important;
+
+      &:focus {
+        outline: none !important;
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+        background-color: white !important;
+      }
+
+      &::placeholder {
+        color: #9ca3af !important;
+        opacity: 1 !important;
+      }
+    }
+
+    .dx-placeholder {
+      color: #9ca3af !important;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 12px;
+      pointer-events: none;
+      transition: all 0.2s ease;
+
+      &.dx-placeholder-empty {
+        display: none;
+      }
+    }
+
+    // Override DevExtreme's default styling
+    &.dx-state-focused {
+      .dx-texteditor-input {
+        background-color: white !important;
+        border-color: #6b7280 !important;
+      }
+    }
+  }
+
+  // Fix TextArea styling
+  .dx-textarea {
+    &.dx-editor-outlined {
+      background-color: white;
+    }
+
+    .dx-texteditor-container {
+      background-color: white;
+    }
+
+    .dx-texteditor-input {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      resize: vertical !important;
+      min-height: 100px !important;
+      color: #374151 !important;
+
+      &:focus {
+        outline: none !important;
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+        background-color: white !important;
+      }
+
+      &::placeholder {
+        color: #9ca3af !important;
+        opacity: 1 !important;
+      }
+    }
+
+    // Override DevExtreme's default styling
+    &.dx-state-focused {
+      .dx-texteditor-input {
+        background-color: white !important;
+        border-color: #6b7280 !important;
+      }
+    }
+  }
+
+  // Fix SelectBox styling
+  .dx-selectbox {
+    &.dx-editor-outlined {
+      background-color: white;
+    }
+
+    .dx-texteditor-container {
+      background-color: white;
+    }
+
+    .dx-texteditor-input {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+      padding: 8px 12px !important;
+      padding-right: 32px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      cursor: pointer !important;
+      color: #374151 !important;
+
+      &:focus {
+        outline: none !important;
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+        background-color: white !important;
+      }
+    }
+
+    .dx-dropdowneditor-button {
+      border: none !important;
+      right: 8px;
+      background-color: transparent !important;
+
+      .dx-icon {
+        color: #6b7280 !important;
+        font-weight: bold;
+      }
+    }
+
+    // Override DevExtreme's default styling
+    &.dx-state-focused {
+      .dx-texteditor-input {
+        background-color: white !important;
+        border-color: #6b7280 !important;
+      }
+    }
+
+    &.dx-state-hover {
+      .dx-texteditor-input {
+        background-color: white !important;
+        border-color: #9ca3af !important;
+      }
+    }
+  }
+
+  // Fix NumberBox styling
+  .dx-numberbox {
+    &.dx-editor-outlined {
+      background-color: white;
+    }
+
+    .dx-texteditor-container {
+      background-color: white;
+    }
+
+    .dx-texteditor-input {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      color: #374151 !important;
+
+      &:focus {
+        outline: none !important;
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+        background-color: white !important;
+      }
+    }
+
+    .dx-numberbox-spin-container {
+      border-left: 1px solid #d1d5db !important;
+
+      .dx-numberbox-spin-button {
+        border: none !important;
+        background-color: #f8fafc !important;
+
+        &:hover {
+          background-color: #e2e8f0 !important;
+        }
+
+        .dx-icon {
+          color: #6b7280 !important;
+        }
+      }
+    }
+
+    // Override DevExtreme's default styling
+    &.dx-state-focused {
+      .dx-texteditor-input {
+        background-color: white !important;
+        border-color: #6b7280 !important;
+      }
+    }
+  }
+
+  // Fix TagBox styling
+  .dx-tagbox {
+    &.dx-editor-outlined {
+      background-color: white;
+    }
+
+    .dx-texteditor-container {
+      background-color: white;
+    }
+
+    .dx-texteditor-input-container {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+      min-height: 2.5rem !important;
+
+      &:focus-within {
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+        background-color: white !important;
+      }
+    }
+
+    .dx-texteditor-input {
+      background-color: white !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      border: none !important;
+      outline: none !important;
+      color: #374151 !important;
+
+      &::placeholder {
+        color: #9ca3af !important;
+        opacity: 1 !important;
+      }
+    }
+
+    .dx-tag {
+      background-color: #f3f4f6 !important;
+      color: #374151 !important;
+      border-radius: 6px !important;
+      padding: 4px 8px !important;
+      margin: 4px !important;
+      font-size: 12px !important;
+
+      .dx-tag-remove-button {
+        margin-left: 4px !important;
+        color: #6b7280 !important;
+
+        &:hover {
+          color: #374151 !important;
+        }
+      }
+    }
+
+    // Override DevExtreme's default styling
+    &.dx-state-focused {
+      .dx-texteditor-input-container {
+        background-color: white !important;
+        border-color: #6b7280 !important;
+      }
+    }
+  }
+
+  // Fix CheckBox styling
+  .dx-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .dx-checkbox-icon {
+      width: 16px;
+      height: 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+
+      &.dx-checkbox-checked {
+        background-color: #2563eb;
+        border-color: #2563eb;
+
+        &::before {
+          color: white;
+          content: '✓';
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+      }
+    }
+
+    .dx-checkbox-text {
+      font-size: 14px;
+      color: #374151;
+    }
+  }
+
+  // Button styling improvements
+  .dx-button {
+    transition: all 0.2s;
+
+    &.dx-button-default {
+      background-color: #2563eb;
+      border: 1px solid #2563eb;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+
+      &:hover:not(.dx-state-disabled) {
+        background-color: #1d4ed8;
+        border-color: #1d4ed8;
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5);
+      }
+    }
+
+    &.dx-button-danger {
+      background-color: #dc2626;
+      border: 1px solid #dc2626;
+      color: white;
+
+      &:hover:not(.dx-state-disabled) {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.5);
+      }
+    }
+
+    &.dx-button-mode-text {
+      background-color: transparent;
+      border: none;
+      color: #4b5563;
+      padding: 8px;
+
+      &:hover:not(.dx-state-disabled) {
+        color: #1f2937;
+        background-color: #f3f4f6;
+      }
+    }
+
+    .dx-button-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  // Force white background and grey borders on all form elements
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    background-color: white !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: #6b7280 !important;
+      box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+    }
+  }
+
+  // DevExtreme specific overrides
+  .dx-widget {
+    &.dx-textbox,
+    &.dx-textarea,
+    &.dx-selectbox,
+    &.dx-numberbox,
+    &.dx-tagbox {
+      background-color: white !important;
+
+      &.dx-editor-filled,
+      &.dx-editor-outlined {
+        background-color: white !important;
+      }
+    }
+  }
+
+  // Additional styling for explicit policy form fields
+  .policy-form-field {
+    &.dx-widget.dx-texteditor {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+
+      .dx-texteditor-input {
+        background-color: white !important;
+        color: #374151 !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+      }
+
+      &.dx-state-focused {
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+        background-color: white !important;
+      }
+    }
+  }
+}
+
+// Tab navigation improvements
+.policy-create-tabs {
+  .tab-nav-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s;
+    min-width: max-content;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    cursor: pointer;
+
+    &:hover {
+      color: #2563eb;
+      background-color: #eff6ff;
+    }
+
+    &.active {
+      border-bottom-color: #2563eb;
+      color: #2563eb;
+      background-color: #eff6ff;
+    }
+
+    &:not(.active) {
+      color: #6b7280;
+    }
+
+    .tab-icon {
+      font-size: 16px;
+    }
+
+    .tab-title {
+      white-space: nowrap;
+    }
+  }
+
+  .tab-nav-container {
+    border-bottom: 1px solid #e5e7eb;
+    background-color: white;
+
+    .tab-nav-wrapper {
+      display: flex;
+      overflow-x: auto;
+
+      // Hide scrollbar on webkit browsers for cleaner look
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background-color: #f3f4f6;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 9999px;
+      }
+
+      &::-webkit-scrollbar-thumb:hover {
+        background-color: #9ca3af;
+      }
+    }
+  }
+}
+
+// Condition card improvements
+.condition-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:hover {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    background-color: #f3f4f6;
+  }
+
+  .condition-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: end;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  .remove-condition-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    color: #dc2626;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: #fee2e2;
+    }
+  }
+}
+
+// Info panels
+.info-panel {
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid;
+
+  &.info {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+
+    .info-icon {
+      color: #3b82f6;
+    }
+
+    .info-title {
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+
+    .info-content {
+      color: #1e40af;
+    }
+  }
+
+  &.warning {
+    background-color: #fffbeb;
+    border-color: #fde68a;
+
+    .info-icon {
+      color: #f59e0b;
+    }
+
+    .info-title {
+      color: #92400e;
+      font-weight: 600;
+    }
+
+    .info-content {
+      color: #b45309;
+    }
+  }
+}
+
+// Form validation error styling
+.dx-invalid {
+  .dx-texteditor-input {
+    border-color: #ef4444;
+
+    &:focus {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+}
+
+// Empty state styling
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+  color: #6b7280;
+
+  .empty-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 16px;
+    color: #9ca3af;
+  }
+
+  .empty-message {
+    font-size: 18px;
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 8px;
+  }
+
+  .empty-description {
+    font-size: 14px;
+    color: #6b7280;
+  }
+}
+
+// Responsive improvements
+@media (max-width: 768px) {
+  .policy-create-form {
+    padding: 1rem;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+
+    // Force single column layout on mobile
+    .tw-grid {
+      grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+      gap: 1rem;
+    }
+
+    // Adjust form field spacing for mobile
+    .dx-field {
+      margin-bottom: 1rem;
+    }
+
+    // Make form inputs touch-friendly
+    .dx-textbox,
+    .dx-selectbox,
+    .dx-numberbox,
+    .dx-textarea,
+    .dx-tagbox {
+      .dx-texteditor-input {
+        padding: 12px 16px !important;
+        font-size: 16px !important; // Prevents zoom on iOS
+        min-height: 44px !important; // Touch-friendly minimum height
+      }
+    }
+
+    // Adjust button sizes for mobile
+    .dx-button {
+      min-height: 44px;
+      padding: 12px 16px;
+      font-size: 16px;
+    }
+
+    // Checkbox and radio button adjustments
+    .dx-checkbox,
+    .dx-radiobutton {
+      margin-bottom: 1rem;
+
+      .dx-checkbox-icon,
+      .dx-radiobutton-icon {
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    // Adjust validation error messages
+    .dx-invalid-message {
+      font-size: 14px;
+      margin-top: 0.5rem;
+    }
+  }
+
+  // Mobile tab navigation
+  .policy-create-tabs {
+    .tab-nav-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+
+      .tab-nav-wrapper {
+        padding: 0 1rem;
+        white-space: nowrap;
+
+        .tab-nav-button {
+          min-width: 60px;
+          padding: 8px 12px;
+
+          .tab-title {
+            display: none;
+          }
+
+          .tab-icon {
+            font-size: 18px;
+            margin-right: 0;
+          }
+        }
+      }
+    }
+  }
+
+  // Mobile form header adjustments
+  .tw-flex.tw-items-center.tw-justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+
+    .tw-flex.tw-items-center.tw-space-x-3 {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }  // Mobile form content container
+  .tw-bg-white.tw-rounded-lg.tw-border {
+    margin: 0;
+    border-radius: 0.5rem;
+  }
+
+  // Override minimum height for mobile
+  .policy-form-container {
+    min-height: calc(100vh - 250px);
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+  }
+}
+
+// Small screen adjustments (phones in portrait)
+@media (max-width: 480px) {
+  .policy-create-form {
+    padding: 0.5rem;
+
+    .dx-field {
+      margin-bottom: 0.75rem;
+    }
+
+    .dx-field-label {
+      font-size: 14px;
+      margin-bottom: 0.5rem;
+    }
+
+    // Smaller buttons on very small screens
+    .dx-button {
+      min-height: 40px;
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+  }
+
+  // Even more compact tab navigation
+  .policy-create-tabs {
+    .tab-nav-wrapper {
+      .tab-nav-button {
+        min-width: 50px;
+        padding: 6px 10px;
+
+        .tab-icon {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}
+
+// Landscape mobile adjustments
+@media (max-width: 768px) and (orientation: landscape) {
+  .policy-create-form {
+    max-height: calc(100vh - 150px);
+  }
+
+  .policy-form-container {
+    min-height: calc(100vh - 200px);
+    max-height: calc(100vh - 200px);
+  }
+}
+
+// Additional global overrides for DevExtreme components
+// These are added with maximum specificity to ensure they override DevExtreme's defaults
+
+// Override ANY DevExtreme texteditor in the policy create form
+.policy-create-form .dx-widget.dx-editor.dx-texteditor {
+  background-color: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+
+  &, * {
+    background-color: white !important;
+  }
+
+  .dx-texteditor-input {
+    background-color: white !important;
+    border: none !important;
+    outline: none !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+
+    &::placeholder {
+      color: #9ca3af !important;
+    }
+  }
+
+  .dx-texteditor-container {
+    background-color: white !important;
+  }
+
+  .dx-texteditor-input-container {
+    background-color: white !important;
+    border: none !important;
+  }
+
+  &.dx-state-focused,
+  &.dx-state-active,
+  &:focus-within {
+    border-color: #6b7280 !important;
+    box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+    background-color: white !important;
+
+    &, * {
+      background-color: white !important;
+    }
+  }
+
+  &.dx-state-hover {
+    border-color: #9ca3af !important;
+    background-color: white !important;
+
+    &, * {
+      background-color: white !important;
+    }
+  }
+}
+
+// Force override for specific DevExtreme widget types
+.policy-create-form {
+  .dx-textbox,
+  .dx-textarea,
+  .dx-selectbox,
+  .dx-numberbox,
+  .dx-tagbox {
+    &.dx-widget {
+      background-color: white !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 6px !important;
+
+      &, *, *::before, *::after {
+        background-color: white !important;
+      }
+
+      &.dx-state-focused {
+        border-color: #6b7280 !important;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+      }
+    }
+  }
+
+  // Nuclear option - override everything with dx-texteditor class
+  [class*="dx-texteditor"]:not([class*="dx-texteditor-button"]) {
+    background-color: white !important;
+
+    &, *, *::before, *::after {
+      background-color: white !important;
+    }
+  }
+
+  // Force all input elements to have proper styling
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select,
+  textarea {
+    background-color: white !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: #6b7280 !important;
+      box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2) !important;
+      background-color: white !important;
+    }
+
+    &::placeholder {
+      color: #9ca3af !important;
+    }
+  }
+}

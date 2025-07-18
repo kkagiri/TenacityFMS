@@ -9,7 +9,7 @@ public partial class FuelRefill {
 
     public int VehicleId { get; set; }
 
-    public decimal? ManualFuelrefilAmount { get; set; }
+    public decimal? ManualFuelrefillAmount { get; set; }
 
     public DateTime? Date { get; set; }
 

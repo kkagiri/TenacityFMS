@@ -45,7 +45,7 @@ public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCo
 
             // Update fuel refill
             fuelRefill.Date = request.RefillDate;
-            fuelRefill.ManualFuelrefilAmount = request.NewAmount;
+            fuelRefill.ManualFuelrefillAmount = request.NewAmount;
             fuelRefill.DateModified = DateTime.UtcNow;
             fuelRefill.ModifiedBy = request.UserId;
 

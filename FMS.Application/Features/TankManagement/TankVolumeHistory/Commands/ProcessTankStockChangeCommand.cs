@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -8,6 +9,7 @@ using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+//frfr
 
 namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
     public record ProcessTankStockChangeCommand (
@@ -53,17 +55,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 // Different handling based on action type
                 switch (request.ActionType) {
                     case ActionType.Create:
+                        // Calculate the new volume based on previous volume + volume change
+                        decimal previousVolume = await GetPreviousVolumeAsync (request.TankId, request.Timestamp, cancellationToken);
+                        decimal newVolume = previousVolume + request.VolumeChange;
+
                         // Create new tank volume history record
                         var newRecord = new TankVolumeHistory {
                             TankId = request.TankId,
                             Timestamp = request.Timestamp,
                             VolumeChange = request.VolumeChange,
+                            NewVolume = newVolume,
                             ChangeReason = request.ChangeReason,
                             RecordedBy = request.RecordedBy,
                             ReferenceId = request.ReferenceId,
                             ReferenceType = request.ReferenceType,
                             CreatedOn = DateTime.UtcNow
-                            // NewVolume will be calculated during the update phase
                         };
 
                         _context.TankVolumeHistories.Add (newRecord);
@@ -137,6 +143,27 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 _logger.LogError (ex, "Error processing tank stock change for tank {TankId}", request.TankId);
                 return new FMSResponseMessage (false, $"Error processing tank stock change: {ex.Message}");
             }
+        }
+
+        private async Task<decimal> GetPreviousVolumeAsync (int tankId, DateTime beforeTimestamp, CancellationToken cancellationToken) {
+            var previousVolume = await _context.TankVolumeHistories
+                .Where (h => h.TankId == tankId && h.Timestamp < beforeTimestamp)
+                .OrderByDescending (h => h.Timestamp)
+                .ThenByDescending (h => h.Id)
+                .Select (h => h.NewVolume)
+                .FirstOrDefaultAsync (cancellationToken);
+
+            // If no previous history exists, get the current stock from the tank
+            if (previousVolume == null) {
+                var tank = await _context.Tanks
+                    .Where (t => t.Id == tankId)
+                    .Select (t => t.CurrentStock)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                return tank ?? 0m;
+            }
+
+            return previousVolume.Value;
         }
     }
 }

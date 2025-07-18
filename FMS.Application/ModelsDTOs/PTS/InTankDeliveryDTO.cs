@@ -3,70 +3,53 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
-namespace FMS.Application.ModelsDTOs.ATG
+namespace FMS.Application.ModelsDTOs.PTS
 {
-    public class InTankDeliveryDTO
+    public class InTankDeliveryDto
     {
-        public int DeliveryId { get; set; }
-
         public int Tank { get; set; }
-
         public int FuelGradeId { get; set; }
+        public string? FuelGradeName { get; set; }
 
-        public string FuelGradeName { get; set; }
+        public InTankDeliveryValuesDto StartValues { get; set; }
+        public InTankDeliveryValuesDto EndValues { get; set; }
+        public InTankDeliveryAbsoluteValuesDto AbsoluteValues { get; set; }
 
-        public DateTime? StartDateTime { get; set; }
+        public string? ConfigurationId { get; set; }
 
-        public float? StartProductHeight { get; set; }
+        //Cursor: Add PtsId and PacketId for handler processing
+        public string? PtsId { get; set; }
+        public int PacketId { get; set; }
 
-        public float? StartWaterHeight { get; set; }
+        //Cursor: Add TankId for linking to Tank entity
+        public int? TankId { get; set; }
+    }
 
-        public float? StartTemperature { get; set; }
+    public class InTankDeliveryValuesDto
+    {
+        [JsonProperty("DateTime")]
+        public DateTime DateTime { get; set; }
+        public float? ProductHeight { get; set; }
+        public float? WaterHeight { get; set; }
+        public float? Temperature { get; set; }
+        public float? ProductVolume { get; set; }
+        public float? ProductTCVolume { get; set; }
+        public float? ProductDensity { get; set; }
+        public float? ProductMass { get; set; }
+    }
 
-        public float? StartProductVolume { get; set; }
-
-        public float? StartProductTcvolume { get; set; }
-
-        public float? StartProductDensity { get; set; }
-
-        public float? StartProductMass { get; set; }
-
-        public DateTime? EndDateTime { get; set; }
-
-        public float? EndProductHeight { get; set; }
-
-        public float? EndWaterHeight { get; set; }
-
-        public float? EndTemperature { get; set; }
-
-        public float? EndProductVolume { get; set; }
-
-        public float? EndProductTcvolume { get; set; }
-
-        public float? EndProductDensity { get; set; }
-
-        public float? EndProductMass { get; set; }
-
-        public float? AbsoluteProductHeight { get; set; }
-
-        public float? AbsoluteWaterHeight { get; set; }
-
-        public float? AbsoluteTemperature { get; set; }
-
-        public float? AbsoluteProductVolume { get; set; }
-
-        public float? AbsoluteProductTcvolume { get; set; }
-
-        public float? AbsoluteProductDensity { get; set; }
-
-        public float? AbsoluteProductMass { get; set; }
-
+    public class InTankDeliveryAbsoluteValuesDto
+    {
+        public float? ProductHeight { get; set; }
+        public float? WaterHeight { get; set; }
+        public float? Temperature { get; set; }
+        public float? ProductVolume { get; set; }
+        public float? ProductTCVolume { get; set; }
+        public float? ProductDensity { get; set; }
+        public float? ProductMass { get; set; }
         public float? PumpsDispensedVolume { get; set; }
-
-        public string ConfigurationId { get; set; }
-
-
     }
 }
 

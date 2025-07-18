@@ -12,4 +12,4 @@ alwaysApply: true
 for font awersome icons start with "fa-light fa-icon"
 
 
-
+use scss rather than css

@@ -42,7 +42,7 @@ export default function SideNavInnerToolbar({ title, children }) {
         ? MenuStatus.Closed
         : prevMenuStatus
     );
-    return menuStatus === MenuStatus.Closed ? true : false;
+    return true; // Always allow outside clicks to be processed
   }, [isLarge]);
 
   const onNavigationChanged = useCallback(
@@ -74,7 +74,8 @@ export default function SideNavInnerToolbar({ title, children }) {
       <Drawer
         className={["drawer", patchCssClass].join(" ")}
         position={"before"}
-        closeOnOutsideClick={onOutsideClick}
+        showCloseButton
+={onOutsideClick}
         openedStateMode={isLarge ? "shrink" : "overlap"}
         revealMode={isXSmall ? "slide" : "expand"}
         minSize={isXSmall ? 0 : 60}
@@ -103,6 +104,8 @@ export default function SideNavInnerToolbar({ title, children }) {
             selectedItemChanged={onNavigationChanged}
             openMenu={temporaryOpenMenu}
             onMenuReady={onMenuReady}
+            layoutType="inner"
+            menuStatus={menuStatus}
           >
             <Toolbar id={"navigation-header"}>
               {!isXSmall && (

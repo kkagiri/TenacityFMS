@@ -1,0 +1,55 @@
+@import '../../variables.scss';
+
+.admin-dashboard {
+  &__header {
+    @apply tw-mb-8;
+  }
+
+  &__title {
+    @apply tw-text-3xl tw-font-bold tw-text-gray-800 tw-mb-2;
+  }
+
+  &__subtitle {
+    @apply tw-text-lg tw-text-gray-600;
+  }
+
+  &__grid {
+    @apply tw-grid tw-grid-cols-1 tw-gap-6;
+
+    @media (min-width: 768px) {
+      @apply tw-grid-cols-2;
+    }
+
+    @media (min-width: 1024px) {
+      @apply tw-grid-cols-3;
+    }
+  }
+
+  &__card {
+    @apply tw-cursor-pointer tw-transition-all tw-duration-200 tw-border-gray-200;
+
+    &:hover {
+      @apply tw-shadow-lg tw-transform tw-scale-105;
+    }
+  }
+
+  &__card-header {
+    @apply tw-flex tw-items-center tw-gap-3 tw-pb-3;
+  }
+
+  &__card-icon {
+    @apply tw-text-2xl;
+  }
+
+  &__card-title {
+    @apply tw-text-xl tw-font-semibold tw-text-gray-800 tw-mb-0;
+  }
+
+  &__card-body {
+    @apply tw-pt-0;
+  }
+
+  &__card-description {
+    @apply tw-text-gray-600 tw-mb-0;
+  }
+}

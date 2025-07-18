@@ -35,10 +35,13 @@ export default function UserPanel({ menuMode }) {
   );
   return (
     <div className={"user-panel"}>
-      <div className={"user-info"}>
-        <div className={"image-container"}></div>
-        <div className={"user-name"}>{user?.email}</div>
-      </div>
+      {/* //Cursor - Only show user info in list mode, not in context mode for header */}
+      {menuMode === "list" && (
+        <div className={"user-info"}>
+          <div className={"image-container"}></div>
+          <div className={"user-name"}>{user?.email}</div>
+        </div>
+      )}
 
       {menuMode === "context" && (
         <ContextMenu

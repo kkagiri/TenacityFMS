@@ -1,86 +1,151 @@
-// //Cursor - CQRS Query for retrieving reconciliation policy executions
-// using System;
-// using System.Collections.Generic;
-// using System.Threading;
-// using System.Threading.Tasks;
-// using FMS.Application.Common;
-// using FMS.Application.ModelsDTOs.FMS.AutomatedReconciliation;
-// using MediatR;
+//Cursor - CQRS Query for retrieving reconciliation policy executions
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using FMS.Application.Common;
+using FMS.Application.ModelsDTOs.FMS.AutomatedReconciliation;
+using FMS.Persistence.DataAccess;
+using AutoMapper;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
-// namespace FMS.Application.Features.AutomatedReconciliation.Queries;
+namespace FMS.Application.Features.AutomatedReconciliation.Queries;
 
-// public class GetExecutionsQuery : IRequest<FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>> {
-//     public int? PolicyId { get; set; }
-//     public string? Status { get; set; }
-//     public DateTime? StartDate { get; set; }
-//     public DateTime? EndDate { get; set; }
-//     public int? SiteId { get; set; }
-//     public int PageNumber { get; set; } = 1;
-//     public int PageSize { get; set; } = 20;
-//     public string? SortBy { get; set; } = "ExecutionStartTime";
-//     public string? SortOrder { get; set; } = "desc";
-// }
+public class GetExecutionsQuery : IRequest<FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>> {
+    public int? PolicyId { get; set; }
+    public string? Status { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public int? SiteId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string? SortBy { get; set; } = "ExecutionStartTime";
+    public string? SortOrder { get; set; } = "desc";
+}
 
-// public class GetExecutionsQueryHandler : IRequestHandler<GetExecutionsQuery, FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>> {
-//     // TODO: Add dependencies (repository, etc.)
+public class GetExecutionsQueryHandler : IRequestHandler<GetExecutionsQuery, FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>> {
+    //Cursor - Inject required dependencies
+    private readonly GpsdataContext _context;
+    private readonly IMapper _mapper;
 
-//     public async Task<FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>> Handle (
-//         GetExecutionsQuery request,
-//         CancellationToken cancellationToken) {
+    public GetExecutionsQueryHandler(GpsdataContext context, IMapper mapper)
+    {
+        _context = context;
+        _mapper = mapper;
+    }
 
-//         try {
-//             // TODO: Implement executions retrieval logic
-//             // 1. Apply filters (PolicyId, Status, DateRange, SiteId)
-//             // 2. Apply sorting
-//             // 3. Apply pagination
-//             // 4. Map to DTOs
-//             // 5. Return paged result
+    public async Task<FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>> Handle (
+        GetExecutionsQuery request,
+        CancellationToken cancellationToken) {
 
-//             // Placeholder implementation
-//             var executions = new List<ReconciliationPolicyExecutionDTO> {
-//                 new ReconciliationPolicyExecutionDTO {
-//                 Id = 1,
-//                 PolicyId = 1,
-//                 PolicyName = "Daily Reconciliation",
-//                 ExecutionStartTime = DateTime.UtcNow.AddHours (-2),
-//                 ExecutionEndTime = DateTime.UtcNow.AddHours (-1).AddMinutes (-45),
-//                 Status = Domain.Entities.enums.ReconciliationExecutionStatus.Completed,
-//                 TanksEvaluated = 15,
-//                 DiscrepanciesDetected = 2,
-//                 TanksReconciled = 2,
-//                 ReconciliationFailures = 0,
-//                 ExecutionDurationMs = 900000
-//                 },
-//                 new ReconciliationPolicyExecutionDTO {
-//                 Id = 2,
-//                 PolicyId = 1,
-//                 PolicyName = "Daily Reconciliation",
-//                 ExecutionStartTime = DateTime.UtcNow.AddDays (-1).AddHours (-2),
-//                 ExecutionEndTime = DateTime.UtcNow.AddDays (-1).AddHours (-1).AddMinutes (-50),
-//                 Status = Domain.Entities.enums.ReconciliationExecutionStatus.Completed,
-//                 TanksEvaluated = 15,
-//                 DiscrepanciesDetected = 1,
-//                 TanksReconciled = 1,
-//                 ReconciliationFailures = 0,
-//                 ExecutionDurationMs = 600000
-//                 }
-//             };
+        try {
+            //Cursor - Validate pagination parameters
+            if (request.PageNumber <= 0)
+            {
+                return FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>.ValidationFailed(
+                    new List<string> { "Page number must be greater than 0" });
+            }
 
-//             var pagedResult = new PagedResult<ReconciliationPolicyExecutionDTO> {
-//                 Items = executions,
-//                 TotalCount = 2,
-//                 PageNumber = request.PageNumber,
-//                 PageSize = request.PageSize,
-//                 TotalPages = 1
-//             };
+            if (request.PageSize <= 0 || request.PageSize > 100)
+            {
+                return FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>.ValidationFailed(
+                    new List<string> { "Page size must be between 1 and 100" });
+            }
 
-//             return FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>.Success (
-//                 pagedResult,
-//                 "Executions retrieved successfully");
+            //Cursor - Build query with includes
+            var query = _context.ReconciliationPolicyExecutions
+                .Include(e => e.Policy)
+                .ThenInclude(p => p.Site)
+                .Include(e => e.Discrepancies)
+                .AsQueryable();
 
-//         } catch (Exception ex) {
-//             return FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>.SystemError (
-//                 $"Failed to retrieve executions: {ex.Message}");
-//         }
-//     }
-// }
+            //Cursor - Apply filters
+            if (request.PolicyId.HasValue)
+            {
+                query = query.Where(e => e.PolicyId == request.PolicyId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                if (Enum.TryParse<Domain.Entities.enums.ReconciliationExecutionStatus>(request.Status, true, out var statusEnum))
+                {
+                    query = query.Where(e => e.Status == statusEnum);
+                }
+            }
+
+            if (request.StartDate.HasValue)
+            {
+                query = query.Where(e => e.ExecutionStartTime >= request.StartDate.Value);
+            }
+
+            if (request.EndDate.HasValue)
+            {
+                query = query.Where(e => e.ExecutionStartTime <= request.EndDate.Value);
+            }
+
+            if (request.SiteId.HasValue)
+            {
+                query = query.Where(e => e.Policy.SiteId == request.SiteId.Value);
+            }
+
+            //Cursor - Apply sorting
+            switch (request.SortBy?.ToLower())
+            {
+                case "executionstarttime":
+                    query = request.SortOrder?.ToLower() == "asc"
+                        ? query.OrderBy(e => e.ExecutionStartTime)
+                        : query.OrderByDescending(e => e.ExecutionStartTime);
+                    break;
+                case "policyname":
+                    query = request.SortOrder?.ToLower() == "asc"
+                        ? query.OrderBy(e => e.Policy.Name)
+                        : query.OrderByDescending(e => e.Policy.Name);
+                    break;
+                case "status":
+                    query = request.SortOrder?.ToLower() == "asc"
+                        ? query.OrderBy(e => e.Status)
+                        : query.OrderByDescending(e => e.Status);
+                    break;
+                case "tanksreconciled":
+                    query = request.SortOrder?.ToLower() == "asc"
+                        ? query.OrderBy(e => e.TanksReconciled)
+                        : query.OrderByDescending(e => e.TanksReconciled);
+                    break;
+                default:
+                    query = query.OrderByDescending(e => e.ExecutionStartTime);
+                    break;
+            }
+
+            //Cursor - Get total count before pagination
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            //Cursor - Apply pagination
+            var executions = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync(cancellationToken);
+
+            //Cursor - Map to DTOs using AutoMapper
+            var executionDtos = _mapper.Map<List<ReconciliationPolicyExecutionDTO>>(executions);
+
+            //Cursor - Create paged result
+            var pagedResult = new PagedResult<ReconciliationPolicyExecutionDTO> {
+                Items = executionDtos,
+                TotalCount = totalCount,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
+            };
+
+            return FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>.Success (
+                pagedResult,
+                $"Retrieved {executionDtos.Count} executions successfully");
+
+        } catch (Exception ex) {
+            return FMSResponse<PagedResult<ReconciliationPolicyExecutionDTO>>.SystemError (
+                $"Failed to retrieve executions: {ex.Message}");
+        }
+    }
+}

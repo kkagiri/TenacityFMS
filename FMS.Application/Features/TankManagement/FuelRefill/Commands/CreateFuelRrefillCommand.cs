@@ -6,6 +6,7 @@ using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -22,16 +23,19 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
         private readonly IMapper _mapper;
         private readonly ILogger<CreateFuelRrefillCommandCommandHandler> _logger;
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+        private readonly TankStockFutureRecordsService _futureRecordsService;
 
         public CreateFuelRrefillCommandCommandHandler (
             GpsdataContext context,
             ILogger<CreateFuelRrefillCommandCommandHandler> logger,
             IMapper mapper,
-            TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
+            TankVolumeHistoryIntegrationService tankVolumeHistoryService,
+            TankStockFutureRecordsService futureRecordsService) {
             _context = context;
             _logger = logger;
             _mapper = mapper;
             _tankVolumeHistoryService = tankVolumeHistoryService;
+            _futureRecordsService = futureRecordsService;
         }
 
         public async Task<FMSResponseMessage> Handle (CreateFuelRrefillCommand request, CancellationToken cancellationToken) {
@@ -42,6 +46,22 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                 var fuelRefilDto = request.FuelRefilDTO;
 
                 var entryDate = request.FuelRefilDTO?.Date ?? DateTime.Now;
+
+                // Validate historical entry against future records policy
+                if (entryDate.Date < DateTime.Now.Date) {
+                    var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync (
+                        fuelRefilDto.TankId ?? 0, entryDate, VolumeChangeReasonEnum.Dispensing, cancellationToken);
+
+                    if (!futureRecordsValidation.IsAllowed) {
+                        return new FMSResponseMessage (false, futureRecordsValidation.Message);
+                    }
+
+                    // Log warning for future reference
+                    if (futureRecordsValidation.RequiresUserConfirmation) {
+                        _logger.LogWarning ("Historical fuel refill entry with future records: Tank {TankId}, Date {EntryDate}, Policy {Policy}, Future Records {Count}",
+                            fuelRefilDto.TankId, entryDate, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
+                    }
+                }
                 //TODO: Insert check for configuration enforcement to use start of day for opening check
                 // Check if there is opening stock for the tank on the entry day
                 var existingOpeningStock = await _context.TankVolumeHistories
@@ -59,12 +79,12 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                         f.Date.Value.Date == fuelRefilDto.Date.Value.Date &&
                         f.PreviousMeterReading == fuelRefilDto.PreviousMeterReading &&
                         f.CurrentMeterReading == fuelRefilDto.CurrentMeterReading &&
-                        f.ManualFuelrefilAmount == fuelRefilDto.ManualFuelrefillAmount,
+                        f.ManualFuelrefillAmount == fuelRefilDto.ManualFuelrefillAmount,
                         cancellationToken);
 
                 if (existingRefuel != null) return new FMSResponseMessage (false, "Duplicate entry: A fuel refill with the same details already exists for this vehicle on the specified date.");
 
-                if (request.FuelRefilDTO.ManualFuelrefillAmount <= 0) return new FMSResponseMessage (false, "Fuel refill amount should be greater than 0.");
+                if (request.FuelRefilDTO.ManualFuelrefillAmount == null || request.FuelRefilDTO.ManualFuelrefillAmount <= 0) return new FMSResponseMessage (false, "Fuel refill amount should be greater than 0.");
 
                 var vehicle = await _context.Vehicles
                     .AsNoTracking ()
@@ -141,11 +161,11 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
 
                     if (entryDate.Date == today) {
                         // Final check to prevent negative stock (defensive programming)
-                        if (tank.CurrentStock == null || tank.CurrentStock - (decimal) fuelRefil.ManualFuelrefilAmount < 0) {
+                        if (tank.CurrentStock == null || tank.CurrentStock - (decimal) fuelRefil.ManualFuelrefillAmount < 0) {
                             return new FMSResponseMessage (false, "Operation would result in negative tank level. Cannot proceed.");
                         }
 
-                        tank.CurrentStock -= (decimal) fuelRefil.ManualFuelrefilAmount;
+                        tank.CurrentStock -= (decimal) fuelRefil.ManualFuelrefillAmount;
                         tank.LastStockUpdate = DateTime.Now;
                     }
                 }
@@ -157,7 +177,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessFuelRefillChangeAsync (
                     tankId: tank.Id,
                     timestamp: fuelRefilDto.Date.Value,
-                    volumeChange: -(decimal) fuelRefil.ManualFuelrefilAmount, // Negative because fuel is taken from the tank
+                    volumeChange: -(decimal) fuelRefil.ManualFuelrefillAmount, // Negative because fuel is taken from the tank
                     refillId : fuelRefil.Id,
                     actionType : ActionType.Create, // This is a new refill
                     recordedBy : fuelRefil.FuelBy,
@@ -168,7 +188,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                     // We continue even if volume history update fails, but log the error
                 }
 
-                return new FMSResponseMessage<Domain.Entities.FuelRefill>(true, "Fuel refill created successfully.", fuelRefil);
+                return new FMSResponseMessage<Domain.Entities.FuelRefill> (true, "Fuel refill created successfully.", fuelRefil);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error creating fuel refill");
                 return new FMSResponseMessage (false, ex.Message);

@@ -1,120 +1,161 @@
-﻿//using AutoMapper;
-//using AutoMapper.Configuration.Annotations;
-//using FMS.Application.Command.DatabaseCommand.ExpectedAVGCmd;
-//using FMS.Application.Common;
-//using FMS.Application.Common.PTSResponse;
-//using FMS.Application.ModelsDTOs.ATG;
-//using FMS.Application.ModelsDTOs.ATG.Common;
-//using FMS.Domain.Entities;
-//using FMS.Persistence.DataAccess;
-//using MediatR;
-//using Microsoft.EntityFrameworkCore;
-//using Org.BouncyCastle.Asn1.Ocsp;
-//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading;
-//using System.Threading.Tasks;
+﻿using AutoMapper;
+using FMS.Application.Common;
+using FMS.Application.ModelsDTOs.ATG;
+using FMS.Application.Services;
+using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-//namespace FMS.Application.Command.DatabaseCommand.ATGCommands.TankMeasurementsCommand
-//{
-//    public class CreateTankMeasurementCommand : IRequest<CommandResult>    
-//    {
+namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCommand
+{
+    public class CreateTankMeasurementCommand : IRequest<FMSResponse>
+    {
+        public TankMeasurementDto TankMeasurementDto { get; set; }
+        public string DeviceId { get; set; }
 
-//        public PtsBaseRequest PtsRequestDto { get; set; }
+        public CreateTankMeasurementCommand(TankMeasurementDto tankMeasurementDto, string deviceId)
+        {
+            TankMeasurementDto = tankMeasurementDto;
+            DeviceId = deviceId;
+        }
+    }
 
+    public class CreateTankMeasurementCommandHandler : IRequestHandler<CreateTankMeasurementCommand, FMSResponse>
+    {
+        private readonly GpsdataContext _context;
+        private readonly ILogger<CreateTankMeasurementCommandHandler> _logger;
+        private readonly IAlarmHandlerService _alarmHandlerService;
 
-//    }
+        public CreateTankMeasurementCommandHandler(
+            GpsdataContext context,
+            ILogger<CreateTankMeasurementCommandHandler> logger,
+            IAlarmHandlerService alarmHandlerService)
+        {
+            _context = context;
+            _logger = logger;
+            _alarmHandlerService = alarmHandlerService;
+        }
 
+        public async Task<FMSResponse> Handle(CreateTankMeasurementCommand request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                //Cursor: Validation
+                var validationErrors = new List<string>();
 
-//    public class CreateTankMeasurementCommandHandler : IRequestHandler<CreateTankMeasurementCommand, CommandResult>
-//    {
+                if (request.TankMeasurementDto == null)
+                {
+                    validationErrors.Add("Tank measurement data is required");
+                }
+                else
+                {
+                    if (request.TankMeasurementDto.Tank <= 0)
+                    {
+                        validationErrors.Add("Valid tank number is required");
+                    }
 
+                    if (request.TankMeasurementDto.FuelGradeId <= 0)
+                    {
+                        validationErrors.Add("Valid fuel grade ID is required");
+                    }
 
-//        private readonly GpsdataContext _context;
-//        private readonly IMapper _mapper;
+                    if (string.IsNullOrEmpty(request.TankMeasurementDto.PtsId))
+                    {
+                        validationErrors.Add("PTS device ID is required");
+                    }
+                }
 
-//        public CreateTankMeasurementCommandHandler(GpsdataContext context, IMapper mapper)
-//        {
-//            _context = context;
-//            _mapper = mapper;
-//        }
+                if (validationErrors.Any())
+                {
+                    return FMSResponse.ValidationFailed(validationErrors);
+                }
 
-//        public async Task<CommandResult> Handle(CreateTankMeasurementCommand request, CancellationToken cancellationToken)
-//        {
-//            var requestid =0;
+                var tankMeasurementDto = request.TankMeasurementDto;
 
-//            var tankMeasurements = new List<Tankmeasurement>();
-//            var allAlarmNames = request.PtsRequestDto.Packets
-//                               .SelectMany(p => p.Data.ToObject<TankMeasurementDto>()?.Alarms ?? new List<string>())
-//                               .Distinct();
+                //Cursor: Try to find the actual Tank entity to link
+                var tank = await _context.Tanks
+                    .FirstOrDefaultAsync(t => t.PtsId == request.DeviceId, cancellationToken);
 
-//            var alarms = await _context.Alarms
-//                              .Where(a => allAlarmNames.Contains(a.Name))
-//                              .ToListAsync(cancellationToken);
+                if (tank != null)
+                {
+                    tankMeasurementDto.TankId = tank.Id;
 
+                    //Cursor: Update tank's fuel grade info if not set
+                    if (!tank.FuelGradeId.HasValue && tankMeasurementDto.FuelGradeId > 0)
+                    {
+                        tank.FuelGradeId = tankMeasurementDto.FuelGradeId;
+                        tank.FuelGradeName = tankMeasurementDto.FuelGradeName;
+                    }
+                }
 
-//            using (var transaction = _context.Database.BeginTransaction())
-//            {
-//                try
-//                {
+                //Cursor: Handle alarms
+                var alarms = new List<Alarm>();
+                if (tankMeasurementDto.Alarms?.Any() == true)
+                {
+                    var alarmNames = tankMeasurementDto.Alarms.Distinct();
+                    alarms = await _context.Alarms
+                        .Where(a => alarmNames.Contains(a.Name))
+                        .ToListAsync(cancellationToken);
+                }
 
+                //Cursor: Create tank measurement entity
+                var tankMeasurement = new Tankmeasurement
+                {
+                    PacketId = tankMeasurementDto.PacketId,
+                    Tank = tankMeasurementDto.Tank,
+                    TankId = tankMeasurementDto.TankId,
+                    ProductUllage = tankMeasurementDto.ProductUllage,
+                    Ptsid = tankMeasurementDto.PtsId,
+                    DateTime = tankMeasurementDto.DateTime,
+                    FuelGradeId = tankMeasurementDto.FuelGradeId,
+                    FuelGradeName = tankMeasurementDto.FuelGradeName,
+                    ProductHeight = tankMeasurementDto.ProductHeight,
+                    WaterHeight = tankMeasurementDto.WaterHeight,
+                    Temperature = tankMeasurementDto.Temperature,
+                    ProductVolume = tankMeasurementDto.ProductVolume,
+                    WaterVolume = tankMeasurementDto.WaterVolume,
+                    ProductTcvolume = tankMeasurementDto.ProductTcvolume,
+                    ProductDensity = tankMeasurementDto.ProductDensity,
+                    ProductMass = tankMeasurementDto.ProductMass,
+                    TankFillingPercentage = tankMeasurementDto.TankFillingPercentage,
+                    ConfigurationId = tankMeasurementDto.ConfigurationId,
+                    Status = tankMeasurementDto.Status,
+                    Alarms = alarms
+                };
 
-//                    foreach (var packet in request.PtsRequestDto.Packets)
-//                    {
-//                        //deserialize the Json object to TankmeasurementDto
-//                        var tankdata = packet.Data.ToObject<TankMeasurementDto>();
+                _context.Tankmeasurements.Add(tankMeasurement);
+                await _context.SaveChangesAsync(cancellationToken);
 
-//                        if (tankdata == null) continue;
+                _logger.LogInformation("Tank measurement created successfully for device {DeviceId}, tank {Tank}, packet {PacketId}",
+                    request.DeviceId, tankMeasurementDto.Tank, tankMeasurementDto.PacketId);
 
-//                        var tankmeasurementsdata = new Tankmeasurement
-//                        {
-//                            PacketId = packet.Id,
-//                            Tank = tankdata.Tank,
-//                            ProductUllage = tankdata.ProductUllage,
-//                            Ptsid = request.PtsRequestDto.PtsId,
-//                            DateTime = tankdata.DateTime,
-//                            FuelGradeId = tankdata.FuelGradeId,
-//                            ProductHeight = tankdata.ProductHeight,
-//                            WaterHeight = tankdata.WaterHeight,
-//                            Temperature = tankdata.Temperature,
-//                            ProductVolume = tankdata.ProductVolume,
-//                            WaterVolume = tankdata.WaterVolume,
-//                            ProductTcvolume = tankdata.ProductTcvolume,
-//                            ProductDensity = tankdata.ProductDensity,
-//                            ProductMass = tankdata.ProductMass,
-//                            TankFillingPercentage = tankdata.TankFillingPercentage,
-//                            ConfigurationId = tankdata.ConfigurationId,
-//                            Status = tankdata.Status,
-//                            Alarms = alarms.Where(a => tankdata.Alarms.Contains(a.Name)).ToList()
+                //Cursor: Process alarms for the tank measurement
+                try
+                {
+                    await _alarmHandlerService.ProcessTankMeasurementAlarmsAsync(tankMeasurementDto, request.DeviceId, cancellationToken);
+                }
+                catch (Exception alarmEx)
+                {
+                    _logger.LogError(alarmEx, "Error processing alarms for tank measurement from device {DeviceId}", request.DeviceId);
+                    // Don't fail the main operation if alarm processing fails
+                }
 
-//                        };
+                return FMSResponse.SuccessResponse("Tank measurement processed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating tank measurement for device {DeviceId}, tank {Tank}",
+                    request.DeviceId, request.TankMeasurementDto?.Tank);
 
-//                        tankMeasurements.Add(tankmeasurementsdata);
-//                        requestid = tankmeasurementsdata.PacketId;
-
-
-//                    }
-//                    _context.Tankmeasurements.AddRange(tankMeasurements);
-
-
-
-//                    // _context.Tankmeasurements.Add(tankmeasurementsdata);
-//                    await _context.SaveChangesAsync(cancellationToken);
-//                    transaction.Commit();
-//                    return new CommandResult { Success = true, Message = "OK" };
-
-//                }
-//                catch (Exception ex)
-//                {
-//                    transaction.Rollback();
-//                    return new CommandResult { Success = false, Message = ex.Message }; 
-//                }
-
-
-//            }
-//        }
-//    }
-
-//}
+                return FMSResponse.FailedResponse($"Error processing tank measurement: {ex.Message}");
+            }
+        }
+    }
+}

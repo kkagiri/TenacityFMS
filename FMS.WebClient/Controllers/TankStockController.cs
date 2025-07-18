@@ -7,6 +7,8 @@ using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
 using FMS.Application.ModelsDTOs.FMS.TankStock;
 using FMS.Application.ModelsDTOs.FMS.TankTransfer;
 using FMS.Application.Queries.Database.FMSQuery.TankStock;
+using FMS.Application.Services.TankStock;
+using FMS.Domain.Entities.enums;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -19,32 +21,100 @@ namespace FMS.WebClient.Controllers;
 
 [Route ("api/[controller]")]
 [ApiController]
-[Authorize (Roles = "Admin,User")]
+[Authorize]
 public class TankStockController : ControllerBase {
     private readonly IMediator _mediator;
     private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+    private readonly TankStockFutureRecordsService _futureRecordsService;
     //Cursor - Add SignalR hub context for real-time updates
     private readonly IHubContext<FrontEndHub> _hubContext;
 
     public TankStockController (
         IMediator mediator,
         TankVolumeHistoryIntegrationService tankVolumeHistoryService,
+        TankStockFutureRecordsService futureRecordsService,
         IHubContext<FrontEndHub> hubContext) {
         _mediator = mediator;
         _tankVolumeHistoryService = tankVolumeHistoryService;
+        _futureRecordsService = futureRecordsService;
         _hubContext = hubContext;
+    }
+
+    /// <summary>
+    /// Validates if a historical tank stock entry can be processed based on future records policy
+    /// </summary>
+    /// <param name="request">Historical entry validation request</param>
+    /// <returns>Validation result with policy decision and warning messages</returns>
+    [HttpPost ("validate-historical-entry")]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Route ("validate-historical-entry", Order = 1)] // Lower order = higher priority
+    public async Task<IActionResult> ValidateHistoricalEntry ([FromBody] HistoricalEntryValidationRequest request) {
+        var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid ();
+
+        if (!ModelState.IsValid)
+            return BadRequest (ModelState);
+
+        try {
+            var result = await _futureRecordsService.ValidateHistoricalEntryAsync (
+                request.TankId,
+                request.EntryDate,
+                request.EntryType,
+                HttpContext.RequestAborted);
+
+            // Check if the validation result indicates the entry is not allowed
+            if (!result.IsAllowed) {
+                // Return 422 Unprocessable Entity for validation failures
+                var failedResponse = FMSResponse<TankStockFutureRecordsValidationResult>.Failed (result.Message);
+                failedResponse.Data = result;
+                return UnprocessableEntity (failedResponse);
+            }
+
+            // Return success for allowed entries (with or without warnings)
+            return Ok (FMSResponse<TankStockFutureRecordsValidationResult>.Success (result, "Validation completed successfully"));
+        } catch (Exception ex) {
+            return BadRequest (FMSResponse<TankStockFutureRecordsValidationResult>.Failed ($"Validation failed: {ex.Message}"));
+        }
     }
 
     [HttpGet]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-
     public async Task<IActionResult> GetTankStocks () {
         return User.HasClaim ("permissions", "_Read_tankStock") ?
             Ok (await _mediator.Send (new GetTankStockListQuery ())) :
             Forbid ();
     }
 
-    [HttpGet ("{id}")]
+    /// <summary>
+    /// Gets the current tank stock future records policy configuration
+    /// </summary>
+    /// <returns>Current policy configuration</returns>
+    [HttpGet ("future-records-policy")]
+    [Route ("future-records-policy", Order = 1)] // Lower order = higher priority
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetFutureRecordsPolicy () {
+        var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid ();
+
+        try {
+            // Get policy configuration from the future records service
+            var policyConfig = await _futureRecordsService.GetFutureRecordsPolicyAsync (HttpContext.RequestAborted);
+
+            var policyData = new {
+                FutureRecordsPolicy = policyConfig.Policy,
+                ShowDetailedWarnings = policyConfig.ShowDetailedWarnings,
+                MaxHistoricalDays = policyConfig.MaxHistoricalDays,
+                AllowOverride = policyConfig.AllowOverride
+            };
+
+            return Ok (FMSResponse<object>.Success (policyData, "Policy retrieved successfully"));
+        } catch (Exception ex) {
+            return BadRequest (FMSResponse<object>.Failed ($"Failed to retrieve policy: {ex.Message}"));
+        }
+    }
+
+    [HttpGet ("{id:int}")]
+    [Route ("{id:int}", Order = 2)] // Higher order = lower priority
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetTankStockById (int id) {
         var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
@@ -284,6 +354,7 @@ public class TankStockController : ControllerBase {
 
         return Ok (result);
     }
+
 }
 
 /// <summary>
@@ -298,5 +369,25 @@ public class ReconcileRequest {
     /// <summary>
     /// User ID performing the reconciliation
     /// </summary>
-    public string UserId { get; set; }
+    public required string UserId { get; set; }
+}
+
+/// <summary>
+/// Request model for historical entry validation
+/// </summary>
+public class HistoricalEntryValidationRequest {
+    /// <summary>
+    /// The tank ID
+    /// </summary>
+    public int TankId { get; set; }
+
+    /// <summary>
+    /// The date of the historical entry
+    /// </summary>
+    public DateTime EntryDate { get; set; }
+
+    /// <summary>
+    /// The type of entry (OpeningStock, ClosingStock, TransferOut, etc.)
+    /// </summary>
+    public VolumeChangeReasonEnum EntryType { get; set; }
 }

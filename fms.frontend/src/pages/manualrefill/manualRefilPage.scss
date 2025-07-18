@@ -1,0 +1,13 @@
+/* Future Records Warning in Manual Refill Form */
+.future-records-warning-container .dx-form-group-content {
+    padding: 0 !important;
+}
+
+.future-records-warning-container .dx-form-group {
+    margin-bottom: 0 !important;
+}
+
+/* Ensure the warning component has proper spacing within the form */
+.future-records-warning-container .future-records-warning {
+    margin: 10px 0;
+}

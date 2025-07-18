@@ -32,7 +32,7 @@ namespace FMS.Application.Features.PTSDevice.Commands
                 var existingDevice = await _context.Ptsdevices.FindAsync(new object[] { request.DeviceId }, cancellationToken);
                 if (existingDevice == null)
                 {
-                    return new FMSResponseMessage<Ptsdevice>(false, $"PTS Device with id {request.DeviceId} not found", null);
+                    return new FMSResponseMessage<Ptsdevice>(false, $"PTS Device with id {request.DeviceId} not found", default);
                 }
                 _mapper.Map(request.UpdatedPTSDevice, existingDevice);
                 _context.Ptsdevices.Update(existingDevice);
@@ -42,7 +42,7 @@ namespace FMS.Application.Features.PTSDevice.Commands
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating PTS device with id {DeviceId}", request.DeviceId);
-                return new FMSResponseMessage<Ptsdevice>(false, "Error updating PTS device", null);
+                return new FMSResponseMessage<Ptsdevice>(false, "Error updating PTS device", default);
             }
         }
     }

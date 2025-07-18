@@ -1,0 +1,20 @@
+.vehicle-details {
+  .dx-tabpanel-tabs {
+    .dx-tab {
+      @media (max-width: 768px) {
+        padding: 12px 8px;
+        .dx-tab-text {
+          .tw-inline {
+            display: inline !important; // Ensure title is visible on mobile
+          }
+        }
+      }
+    }
+  }
+
+  .dx-popup-content {
+    @media (max-width: 768px) {
+      padding: 16px;
+    }
+  }
+}

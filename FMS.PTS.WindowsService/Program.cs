@@ -8,13 +8,17 @@ using FMS.Application.Command.PTSCommand.UploadStatusCommands;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Connection;
 using FMS.Application.Communication.HttpPolling;
+using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Handlers;
 using FMS.Application.Handlers.Common;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.DistCacheTracker;
 // using FMS.Application.PTSServices.Configuration; // Cursor - Commented out missing namespace
+using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.AutomatedReconciliation;
+using FMS.Application.Services.Configuration;
 using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
@@ -38,8 +42,11 @@ using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
+using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.TankManagement.Services;
+using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
-using FMS.Application.Services;
+using FMS.Application.Services.TankStock;
 using FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandling;
 using Microsoft.AspNetCore.SignalR;
 
@@ -115,8 +122,23 @@ namespace FMS.PTS.WindowsService {
             ConfigureAuthentication (services, configuration); // If needed
             ConfigureAuthorization (services); // If needed
 
+            // Update this registration to use a factory - fix scoped service issue
+            services.AddSingleton<DeviceActivityMonitorService> (sp => {
+                // Create a scope factory and device connection tracker for the singleton service
+                var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory> ();
+                var deviceConnectionTracker = sp.GetRequiredService<DeviceConnectionTracker> ();
+                var logger = sp.GetRequiredService<ILogger<DeviceActivityMonitorService>> ();
+
+                // Create the service without the scoped ISystemConfigurationService dependency
+                // It will resolve the scoped service internally using the factory
+                return new DeviceActivityMonitorService (
+                    logger,
+                    serviceScopeFactory,
+                    deviceConnectionTracker);
+            });
+
             // Register DeviceActivityMonitorService as a hosted service
-            services.AddHostedService<DeviceActivityMonitorService> ();
+            services.AddHostedService (sp => sp.GetRequiredService<DeviceActivityMonitorService> ());
         }
 
         private static void ConfigureAutoMapper (IServiceCollection services) {
@@ -244,6 +266,12 @@ namespace FMS.PTS.WindowsService {
                         "Connection string 'FMSConnection' is missing in PTSService:ConnectionStrings section of appsettings");
                 }
 
+                // Add ConvertZeroDateTime to connection string if not present
+                if (!connectionString.Contains ("ConvertZeroDateTime", StringComparison.OrdinalIgnoreCase)) {
+                    connectionString += ";ConvertZeroDateTime=true";
+                    Log.Information ("Added ConvertZeroDateTime=true to connection string to handle invalid MySQL datetime values");
+                }
+
                 Log.Information ("Configuring database connection for server: {Server}, database: {Database}",
                     GetServerFromConnectionString (connectionString),
                     GetDatabaseFromConnectionString (connectionString));
@@ -333,9 +361,20 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<IAutoTransactionCompletionService, AutoTransactionCompletionService> (); //Cursor
             services.AddScoped<IDirectHttpTransactionService, DirectHttpTransactionService> (); //Cursor
 
-            // Existing registrations
+            //Cursor: Register missing configuration and alarm services
+            services.AddScoped<ISystemConfigurationService, SystemConfigurationService> (); //Cursor
+            services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService> (); //Cursor
+            services.AddScoped<IAlarmHandlerService, AlarmHandlerService> (); //Cursor
+            services.AddScoped<PumpTransactionIntegrationService> (); //Cursor
+            services.AddScoped<AutomatedReconciliationService> (); //Cursor
+            services.AddScoped<DiscrepancyDetectionService> (); //Cursor on changes to code
+            services.AddScoped<PolicyEvaluationEngine> ();
+            services.AddScoped<DailyReconciliationPolicyService> ();
             services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> ();
+            services.AddHttpClient<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+            services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
 
+            services.AddScoped<IPolicyTriggerService, PolicyTriggerService> (); //Cursor
             services.Scan (scan => scan
                 .FromAssemblyOf<UploadStatusHandler> ()
                 .AddClasses (classes => classes.AssignableTo<IPacketHandler> ())
@@ -364,11 +403,35 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<ICommandExecutor, CommandExecutor> ();
             //Cursor on changes to code
             services.AddScoped<IStaleConnectionDetectionService, StaleConnectionDetectionService> ();
+            services.AddScoped<ReconciliationOrchestrationService> (); //Cursor on changes to code
+            // ... existing code ...
 
             services.AddTransient<RoleManager<Role>> ();
             services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
 
             services.AddSingleton<PTSWebSocketListenerService> ();
+            services.AddScoped<TankStockFutureRecordsService> (); //Cursor
+
+            // Register notification services
+            services.AddScoped<INotificationService, NotificationService> ();
+            services.AddScoped<IEmailService, EmailService> ();
+            services.AddScoped<ISmsService, SmsService> ();
+
+            // Register SignalR notification service
+            services.AddScoped<ISignalRNotificationService, SignalRNotificationService> ();
+
+            // Register tank management services
+            services.AddScoped<InventoryCostingService> ();
+
+            //Cursor: Register system user service
+            services.AddScoped<ISystemUserService, SystemUserService> ();
+
+            // Register background service
+            //services.AddHostedService<NotificationBackgroundService> ();
+
+            //Cursor: Register system user initialization service
+            services.AddHostedService<SystemUserInitializationService> ();
+
         }
 
         private static void ConfigurePipelineBehaviors (IServiceCollection services) {

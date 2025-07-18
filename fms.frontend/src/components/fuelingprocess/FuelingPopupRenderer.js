@@ -139,7 +139,8 @@ const FuelingPopupRenderer = {
       <Popup
         visible={fuelingComplete}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        showCloseButton
+={false}
         showTitle={true}
         title="Fueling Complete"
         width={500}
@@ -247,7 +248,8 @@ const FuelingPopupRenderer = {
       <Popup
         visible={showNavigationDialog}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        showCloseButton
+={false}
         showTitle={true}
         title="Fueling in Progress"
         width={400}
@@ -289,7 +291,8 @@ const FuelingPopupRenderer = {
       <Popup
         visible={showAllFuelingPopup}
         dragEnabled={false}
-        closeOnOutsideClick={true}
+        showCloseButton
+={true}
         showTitle={true}
         title="Active Fueling Processes"
         width={600}

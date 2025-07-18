@@ -17,6 +17,7 @@ const FuelingHeader = ({
   rawUploadStatus,
   siteName, // Added siteName prop
   onConnectionStatusChange, // New prop to communicate connection status to parent
+  handleViewPumpTransactions, // New prop for viewing pump transactions
 }) => {
   const { isSmall, isMedium } = useScreenSize(); //Cursor
   const [connectionStatus, setConnectionStatus] = useState("connecting");
@@ -220,6 +221,15 @@ const FuelingHeader = ({
                     onClick={() => setShowAllFuelingPopup(true)}
                   />
                 )}
+
+              <Button
+                icon="orderedlist"
+                text="Pump Transactions"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleViewPumpTransactions}
+                title="View pump transaction history"
+              />
 
               <Button
                 icon="plus"

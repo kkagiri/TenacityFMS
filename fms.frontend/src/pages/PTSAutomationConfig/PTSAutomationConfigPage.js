@@ -170,9 +170,7 @@ const PTSAutomationConfigPage = () => {
   return (
     <div className="content-block">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
-        <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-          PTS Automation Configuration
-        </h2>
+
         <div className="tw-flex tw-gap-3">
           <Button
             text="PTS Device Settings"
@@ -221,7 +219,11 @@ const PTSAutomationConfigPage = () => {
           </Toolbar>
 
           <Column dataField="id" caption="ID" width={80} allowSorting={true} />
-          <Column dataField="name" caption="Configuration Name" allowSorting={true} />
+          <Column
+            dataField="name"
+            caption="Configuration Name"
+            allowSorting={true}
+          />
           <Column dataField="siteId" caption="Site ID" width={100} allowSorting={true} />
           <Column
             dataField="isGlobal"
@@ -245,10 +247,50 @@ const PTSAutomationConfigPage = () => {
             cellRender={renderBooleanColumn}
           />
           <Column
-            dataField="duplicateCheckHours"
-            caption="Duplicate Check Hours"
+            dataField="reconciliationFrequencyMinutes"
+            caption="Reconciliation Freq (min)"
             width={140}
             allowSorting={true}
+          />
+          <Column
+            dataField="updateTankVolumeFromBookKeeping"
+            caption="Use BookKeeping"
+            width={120}
+            allowSorting={true}
+            cellRender={renderBooleanColumn}
+          />
+          <Column
+            dataField="usePtsProbeReadings"
+            caption="Use PTS Probe"
+            width={120}
+            allowSorting={true}
+            cellRender={renderBooleanColumn}
+          />
+          <Column
+            dataField="volumeSourcePriorityText"
+            caption="Volume Priority"
+            width={120}
+            allowSorting={true}
+          />
+          <Column
+            dataField="autoReconcileTankVolumes"
+            caption="Auto Reconcile"
+            width={120}
+            allowSorting={true}
+            cellRender={renderBooleanColumn}
+          />
+          <Column
+            dataField="discrepancyActionText"
+            caption="Discrepancy Action"
+            width={130}
+            allowSorting={true}
+          />
+          <Column
+            dataField="maxVolumeDiscrepancyThreshold"
+            caption="Max Discrepancy"
+            width={120}
+            allowSorting={true}
+            format="###0.00"
           />
           <Column
             dataField="isActive"
@@ -271,7 +313,8 @@ const PTSAutomationConfigPage = () => {
         visible={showCreateModal || showEditModal}
         onHiding={handleModalClose}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        showCloseButton
+={false}
         showTitle={false}
         width="900px"
         height="90vh"
@@ -290,7 +333,8 @@ const PTSAutomationConfigPage = () => {
         visible={showEffectiveConfig}
         onHiding={handleModalClose}
         dragEnabled={false}
-        closeOnOutsideClick={true}
+        showCloseButton
+={true}
         showTitle={true}
         title="Effective Configuration for Site"
         width="600px"

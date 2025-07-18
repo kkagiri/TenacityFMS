@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
+using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -22,12 +23,14 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
         private readonly IMediator _mediator;
         //Cursor - Added TankVolumeHistoryIntegrationService dependency
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+        private readonly TankStockFutureRecordsService _futureRecordsService;
 
-        public ClosingStockCommandHandler (GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
+        public ClosingStockCommandHandler (GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService) {
             _context = context;
             _logger = logger;
             _mediator = mediator;
             _tankVolumeHistoryService = tankVolumeHistoryService;
+            _futureRecordsService = futureRecordsService;
         }
 
         public async Task<FMSResponseMessage> Handle (ClosingStockCommand request, CancellationToken cancellationToken) {
@@ -37,6 +40,22 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
 
                 var tank = await _context.Tanks.FindAsync (request.TankId, cancellationToken);
                 if (tank == null) return new FMSResponseMessage (false, $"TankID {request.TankId} not found ");
+
+                // Validate historical entry against future records policy
+                if (entryDate.Date < DateTime.Now.Date) {
+                    var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync (
+                        request.TankId, entryDate, VolumeChangeReasonEnum.ClosingStock, cancellationToken);
+
+                    if (!futureRecordsValidation.IsAllowed) {
+                        return new FMSResponseMessage (false, futureRecordsValidation.Message);
+                    }
+
+                    // Log warning for future reference
+                    if (futureRecordsValidation.RequiresUserConfirmation) {
+                        _logger.LogWarning ("Historical closing stock entry with future records: Tank {TankId}, Date {EntryDate}, Policy {Policy}, Future Records {Count}",
+                            request.TankId, entryDate, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
+                    }
+                }
 
                 var existingClosingStock = await _context.TankVolumeHistories
                     .Where (x => x.TankId == request.TankId &&
@@ -83,9 +102,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
 
                 await _context.SaveChangesAsync (cancellationToken);
 
-                //Cursor - Calculate volume change for closing stock
-                decimal volumeChange = 0;
-                if (tank.UseBookKeeping == 1) {
+                //Cursor - Calculate volume change for closing stock from the corresponding opening stock
+                decimal volumeChange;
+                if (openingStock != null && openingStock.NewVolume.HasValue) {
+                    // Calculate from corresponding opening stock
+                    volumeChange = request.ClosingStock - openingStock.NewVolume.Value;
+                } else {
+                    // Fallback to current tank stock (should not happen due to validation above)
                     var previousStock = tank.CurrentStock ?? 0;
                     volumeChange = request.ClosingStock - previousStock;
                 }

@@ -139,7 +139,7 @@ const UserPage = () => {
         setSearchText(e.value);
         // Apply search to the currently active grid
         const currentGrid = selectedTab === 0 ? gridRef.current : activeGridRef.current;
-        if (currentGrid) {
+        if (currentGrid && currentGrid.instance) {
             currentGrid.instance.searchByText(e.value);
         }
     };
@@ -148,7 +148,7 @@ const UserPage = () => {
         setSearchText('');
         // Clear search from the currently active grid
         const currentGrid = selectedTab === 0 ? gridRef.current : activeGridRef.current;
-        if (currentGrid) {
+        if (currentGrid && currentGrid.instance) {
             currentGrid.instance.searchByText('');
             currentGrid.instance.clearFilter();
         }
@@ -175,15 +175,15 @@ const UserPage = () => {
     };
 
     const handleViewDetails = (userId) => {
-        navigate(`/users/${userId}`);
+        navigate(`/admin/users/${userId}`);
     };
 
     const handleViewActivities = (userId) => {
-        navigate(`/users/${userId}/activities`);
+        navigate(`/admin/users/${userId}/activities`);
     };
 
     const handleManageSites = (userId) => {
-        navigate(`/users/${userId}/sites`);
+        navigate(`/admin/users/${userId}/sites`);
     };
 
     const handleStatusChange = async (user) => {
@@ -201,7 +201,7 @@ const UserPage = () => {
     };
 
     const handleRowClick = (e) => {
-        navigate(`/users/${e.data.id}`);
+        navigate(`/admin/users/${e.data.id}`);
     };
 
     // Handle tab change and ensure proper highlighting //Cursor
@@ -216,7 +216,7 @@ const UserPage = () => {
         // Apply search to newly selected grid after a brief delay
         setTimeout(() => {
             const currentGrid = newIndex === 0 ? gridRef.current : activeGridRef.current;
-            if (currentGrid) {
+            if (currentGrid && currentGrid.instance) {
                 currentGrid.instance.searchByText('');
                 currentGrid.instance.clearFilter();
             }
@@ -322,8 +322,8 @@ const UserPage = () => {
                 />
             </div>
 
-            {selectedTab === 0 && (
-                <div className="grid-container">
+            <div className="grid-container">
+                {selectedTab === 0 && (
                     <DataGrid
                         ref={gridRef}
                         dataSource={users}
@@ -391,11 +391,9 @@ const UserPage = () => {
                             width={150}
                         />
                     </DataGrid>
-                </div>
-            )}
+                )}
 
-            {selectedTab === 1 && (
-                <div className="grid-container">
+                {selectedTab === 1 && (
                     <DataGrid
                         ref={activeGridRef}
                         dataSource={activeUsers}
@@ -456,8 +454,8 @@ const UserPage = () => {
                             width={150}
                         />
                     </DataGrid>
-                </div>
-            )}
+                )}
+            </div>
 
             {/* Create User Popup */}
             <Popup

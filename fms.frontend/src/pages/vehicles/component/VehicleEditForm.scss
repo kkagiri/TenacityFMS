@@ -1,0 +1,243 @@
+.vehicle-edit-form {
+  .dx-form {
+    // Improve visibility for disabled form fields
+    &.dx-state-readonly {
+      .dx-textbox,
+      .dx-numberbox,
+      .dx-selectbox {
+        .dx-texteditor-input {
+          color: #1f2937 !important;
+          background-color: #f9fafb !important;
+          opacity: 0.9 !important;
+          font-weight: 500;
+        }
+
+        .dx-texteditor-buttons-container {
+          background-color: #f9fafb;
+        }
+
+        &.dx-state-readonly {
+          border-color: #d1d5db;
+
+          .dx-texteditor-input {
+            color: #1f2937;
+            opacity: 1 !important;
+          }
+        }
+      }
+
+      .dx-checkbox {
+        .dx-checkbox-icon {
+          border-color: #9ca3af;
+          opacity: 0.9;
+        }
+
+        &.dx-checkbox-checked .dx-checkbox-icon {
+          background-color: #3b82f6;
+          border-color: #3b82f6;
+          opacity: 1;
+        }
+
+        .dx-checkbox-text {
+          color: #1f2937;
+          opacity: 1;
+        }
+      }
+    }
+
+    // Form group styling
+    .dx-group-header {
+      background-color: #f3f4f6;
+      color: #1f2937;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-top-left-radius: 0.375rem;
+      border-top-right-radius: 0.375rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .dx-group-content {
+      background-color: #ffffff;
+      padding: 1rem;
+      border-bottom-left-radius: 0.375rem;
+      border-bottom-right-radius: 0.375rem;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 1rem;
+    }
+
+    // Label styling
+    .dx-field-label {
+      color: #374151 !important;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      opacity: 1 !important;
+    }
+
+    // Required field indicator
+    .dx-field-label-mark {
+      color: #ef4444;
+    }
+  }
+
+  // Button styling
+  .dx-button {
+    .dx-button-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    // Minimum width classes
+    &.tw-min-w-24 {
+      min-width: 6rem;
+    }
+
+    &.tw-min-w-32 {
+      min-width: 8rem;
+    }
+
+    // Edit button styling
+    &.tw-bg-blue-600 {
+      background-color: #2563eb;
+      color: white;
+
+      &:hover {
+        background-color: #1d4ed8;
+      }
+    }
+
+    // Save button styling
+    &.tw-bg-green-600 {
+      background-color: #16a34a;
+      color: white;
+
+      &:hover {
+        background-color: #15803d;
+      }
+    }
+
+    // Cancel button styling
+    &.tw-border-gray-300 {
+      border-color: #d1d5db;
+      color: #4b5563;
+
+      &:hover {
+        background-color: #f9fafb;
+      }
+    }
+  }
+
+  // Form actions container
+  .tw-flex.tw-justify-end.tw-gap-3 {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  // Loading state
+  .fa-spinner.fa-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  // Loading container
+  .tw-flex.tw-items-center.tw-justify-center.tw-h-64 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 16rem;
+
+    .tw-text-center {
+      text-align: center;
+
+      .tw-text-4xl.tw-text-blue-600.tw-mb-4 {
+        font-size: 2.25rem;
+        color: #2563eb;
+        margin-bottom: 1rem;
+      }
+
+      .tw-text-gray-600 {
+        color: #4b5563;
+      }
+    }
+  }
+
+  // Mobile responsiveness
+  @media (max-width: 768px) {
+    .dx-form {
+      .dx-layout-manager-one-col {
+        .dx-field {
+          margin-bottom: 1rem;
+        }
+      }
+    }
+
+    .tw-flex.tw-justify-end.tw-gap-3 {
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .dx-button {
+        width: 100%;
+      }
+    }
+  }
+
+  // Enhanced form field visibility for disabled state
+  .dx-form.dx-state-readonly {
+    .dx-textbox,
+    .dx-numberbox,
+    .dx-selectbox {
+      .dx-texteditor-input {
+        background-color: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        color: #1e293b !important;
+        font-weight: 500 !important;
+      }
+
+      &:not(.dx-state-focused) {
+        .dx-texteditor-input {
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+      }
+    }
+
+    .dx-selectbox {
+      .dx-texteditor-input {
+        cursor: default;
+      }
+
+      .dx-dropdowneditor-button {
+        opacity: 0.6;
+      }
+    }
+
+    .dx-checkbox {
+      .dx-checkbox-text {
+        color: #1e293b !important;
+        font-weight: 500;
+      }
+
+      .dx-checkbox-icon {
+        border-color: #94a3b8 !important;
+        background-color: #f8fafc;
+      }
+
+      &.dx-checkbox-checked .dx-checkbox-icon {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+      }
+    }
+  }
+}

@@ -21,7 +21,8 @@ const SiteConfirmation = ({
       visible={isVisible}
       onHiding={onHide}
       dragEnabled={false}
-      closeOnOutsideClick={true}
+      showCloseButton
+={true}
       showTitle={true}
       title="Confirm Site Selection"
       width={600}

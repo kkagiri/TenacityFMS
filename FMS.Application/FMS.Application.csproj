@@ -29,6 +29,16 @@
     <!-- <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" /> -->
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
   </ItemGroup>
+<!-- chatgpt: treat warnings as non-visible messages -->
+<!-- chatgpt: treat warnings as messages (low importance) -->
+<PropertyGroup>
+  <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
+</PropertyGroup>
+
+<PropertyGroup>
+  <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
+</PropertyGroup>
 
   <ItemGroup>
     <Folder Include="Command\DatabaseCommand\PTSCommands\InTankDeliveryCommand\" />

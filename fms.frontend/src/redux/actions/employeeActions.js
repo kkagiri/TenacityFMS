@@ -22,8 +22,10 @@ export const fetchEmployees = (active = true) => async (dispatch) => {
   try {
     const response = await axiosInstance.get(`/employee?active=${active}`);
     dispatch({ type: FETCH_EMPLOYEES_SUCCESS, payload: response.data });
+    return { success: true, data: response.data };
   } catch (error) {
     dispatch({ type: FETCH_EMPLOYEES_FAILURE, payload: error.message });
+    return { success: false, message: error.message };
   }
 };
 
@@ -41,7 +43,7 @@ export const createEmployee = (employeeData) => async (dispatch) => {
   dispatch({ type: CREATE_EMPLOYEE_REQUEST });
   try {
     const newValues = {
-      ...employeeData, 
+      ...employeeData,
       employeestatus: "Active",
       vehicles: employeeData.vehicles || [] // Directly use the array of vehicle IDs
     };
@@ -64,8 +66,8 @@ export const updateEmployee = (key, employeeData) => async (dispatch) => {
 
   dispatch({ type: UPDATE_EMPLOYEE_REQUEST });
   try {
-    const updatedData = { 
-      ...employeeData, 
+    const updatedData = {
+      ...employeeData,
       id: key,
       vehicles: employeeData.vehicles || [] // Directly use the array of vehicle IDs
     };

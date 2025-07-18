@@ -29,10 +29,12 @@ export const createVehicleModelFailure = (error) => ({
 // Thunk actions
 export const fetchVehicleModels = () => async (dispatch) => {
   try {
-    const response = await axiosInstance.get('/vehiclemodel');
+    const response = await axiosInstance.get('/VehicleModel');
     dispatch(fetchVehicleModelsSuccess(response.data));
+    return { success: true, data: response.data };
   } catch (error) {
     dispatch(fetchVehicleModelsFailure(error.message));
+    return { success: false, message: error.message };
   }
 };
 
@@ -40,7 +42,9 @@ export const createVehicleModel = (vehicleModel) => async (dispatch) => {
   try {
     const response = await axiosInstance.post('/vehiclemodel', vehicleModel);
     dispatch(createVehicleModelSuccess(response.data));
+    return { success: true, data: response.data };
   } catch (error) {
     dispatch(createVehicleModelFailure(error.message));
+    return { success: false, message: error.message };
   }
 };

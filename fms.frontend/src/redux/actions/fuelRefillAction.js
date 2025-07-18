@@ -11,9 +11,24 @@ export const DELETE_FUEL_REFILL_SUCCESS = 'DELETE_FUEL_REFILL_SUCCESS';
 export const DELETE_FUEL_REFILL_FAILURE = 'DELETE_FUEL_REFILL_FAILURE';
 
 
-export const fetchFuelRefills = (take = 100) => async (dispatch) => {
+//Cursor - Enhanced fetchFuelRefills with filtering support
+export const fetchFuelRefills = (take = 100, dateRange = null, siteId = 'all') => async (dispatch) => {
     try {
-        const response = await axiosInstance.get(`/fuelrefill?take=${take}`);
+        let url = `/fuelrefill?take=${take}`;
+
+        // Add date range parameters if provided
+        if (dateRange && dateRange.length === 2) {
+            const startDate = dateRange[0].toISOString().split('T')[0];
+            const endDate = dateRange[1].toISOString().split('T')[0];
+            url += `&startDate=${startDate}&endDate=${endDate}`;
+        }
+
+        // Add site filter if not 'all'
+        if (siteId && siteId !== 'all') {
+            url += `&siteId=${siteId}`;
+        }
+
+        const response = await axiosInstance.get(url);
         dispatch({ type: FETCH_FUEL_REFILLS_SUCCESS, payload: response.data });
     } catch (error) {
         dispatch({ type: FETCH_FUEL_REFILLS_FAILURE, payload: error.message });

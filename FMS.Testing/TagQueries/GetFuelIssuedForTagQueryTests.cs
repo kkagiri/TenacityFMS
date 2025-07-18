@@ -110,7 +110,7 @@ namespace FMS.Testing.TagQueries {
                 VehicleId = 1,
                 TagId = "TAG001",
                 Date = _today.AddHours (16),
-                ManualFuelrefilAmount = 15.2m,
+                ManualFuelrefillAmount = 15.2m,
                 SiteId = 1,
                 FuelBy = "User1",
                 DateCreated = _today
@@ -122,7 +122,7 @@ namespace FMS.Testing.TagQueries {
                 VehicleId = 1,
                 TagId = "TAG001",
                 Date = _yesterday.AddHours (15),
-                ManualFuelrefilAmount = 10.8m,
+                ManualFuelrefillAmount = 10.8m,
                 SiteId = 1,
                 FuelBy = "User1",
                 DateCreated = _yesterday
@@ -134,7 +134,7 @@ namespace FMS.Testing.TagQueries {
                 VehicleId = 2,
                 TagId = "TAG002",
                 Date = _today.AddHours (12),
-                ManualFuelrefilAmount = 20.5m,
+                ManualFuelrefillAmount = 20.5m,
                 SiteId = 1,
                 FuelBy = "User1",
                 DateCreated = _today
@@ -146,7 +146,7 @@ namespace FMS.Testing.TagQueries {
                 VehicleId = 1,
                 TagId = "TAG001",
                 Date = _lastMonth.AddDays (10),
-                ManualFuelrefilAmount = 25.7m,
+                ManualFuelrefillAmount = 25.7m,
                 SiteId = 1,
                 FuelBy = "User1",
                 DateCreated = _lastMonth
@@ -165,7 +165,7 @@ namespace FMS.Testing.TagQueries {
 
             var fuelRefilsSum = _fuelRefills
                 .Where (fr => fr.TagId == tagName && fr.Date >= startOfDay && fr.Date <= endOfDay)
-                .Sum (fr => fr.ManualFuelrefilAmount ?? 0m);
+                .Sum (fr => fr.ManualFuelrefillAmount ?? 0m);
 
             return pumpTransactionsSum + fuelRefilsSum;
         }
@@ -180,7 +180,7 @@ namespace FMS.Testing.TagQueries {
 
             var fuelRefilsSum = _fuelRefills
                 .Where (fr => fr.TagId == tagName && fr.Date >= startOfMonth && fr.Date < endOfMonth)
-                .Sum (fr => fr.ManualFuelrefilAmount ?? 0m);
+                .Sum (fr => fr.ManualFuelrefillAmount ?? 0m);
 
             return pumpTransactionsSum + fuelRefilsSum;
         }
@@ -201,7 +201,7 @@ namespace FMS.Testing.TagQueries {
 
             var fuelRefilsSum = _fuelRefills
                 .Where (fr => fr.VehicleId == vehicleId && fr.Date >= startOfDay && fr.Date <= endOfDay)
-                .Sum (fr => fr.ManualFuelrefilAmount ?? 0m);
+                .Sum (fr => fr.ManualFuelrefillAmount ?? 0m);
 
             return pumpTransactionsSum + fuelRefilsSum;
         }
@@ -222,7 +222,7 @@ namespace FMS.Testing.TagQueries {
 
             var fuelRefilsSum = _fuelRefills
                 .Where (fr => fr.VehicleId == vehicleId && fr.Date >= startOfMonth && fr.Date < endOfMonth)
-                .Sum (fr => fr.ManualFuelrefilAmount ?? 0m);
+                .Sum (fr => fr.ManualFuelrefillAmount ?? 0m);
 
             return pumpTransactionsSum + fuelRefilsSum;
         }

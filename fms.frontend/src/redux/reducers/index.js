@@ -13,6 +13,7 @@ import vehicleReducer from "./vehicleReducer";
 import vehicleTypeReducer from "./vehicleTypeReducer";
 import vehicleManufacturerReducer from "./vehicleManufacturerReducer";
 import vehicleModelReducer from "./vehicleModelsReducer";
+import expectedAvgReducer from "./expectedAvgReducer";
 import tankReconciliationReducer from "./tankReconciliationReducer";
 import consumptionReducer from "./consumptionReducer";
 import tankVolumeHistoryReducer from "./tankVolumeHistoryReducer";
@@ -34,6 +35,9 @@ import automatedReconciliationReducer from "./automatedReconciliationReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
 import stockManagementReducer from "./stockManagementReducer";
+import configurationReducer from "./configurationReducer";
+import systemConfigReducer from "./systemConfigReducer";
+import vehicleDashboardReducer from "./vehicleDashboardReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -50,6 +54,7 @@ const rootReducer = combineReducers({
   vehicleType: vehicleTypeReducer,
   vehicleManufacturer: vehicleManufacturerReducer,
   vehicleModel: vehicleModelReducer,
+  expectedAvg: expectedAvgReducer,
   tankReconciliation: tankReconciliationReducer,
   consumption: consumptionReducer,
   tankVolumeHistory: tankVolumeHistoryReducer,
@@ -70,6 +75,9 @@ const rootReducer = combineReducers({
   fuelReport: fuelReportReducer,
   notification: notificationReducer,
   stockManagement: stockManagementReducer,
+  configuration: configurationReducer,
+  systemConfig: systemConfigReducer,
+  vehicleDashboard: vehicleDashboardReducer,
 });
 
 export default rootReducer;

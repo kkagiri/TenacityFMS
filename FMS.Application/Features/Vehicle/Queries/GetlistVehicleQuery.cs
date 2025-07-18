@@ -35,7 +35,11 @@ namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
         {
             try
             {
-                var results = await _context.Vehicles.Include(x => x.DefaultExptdAvg.ExpectedAverageClassification).Include(x => x.Tags).ProjectTo<VehicleDTO>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
+                var results = await _context.Vehicles
+                    .Include(x => x.DefaultExptdAvg != null ? x.DefaultExptdAvg.ExpectedAverageClassification : null)
+                    .Include(x => x.Tags)
+                    .ProjectTo<VehicleDTO>(_mapper.ConfigurationProvider)
+                    .ToListAsync(cancellationToken);
                 return results;
             }
             catch (Exception ex)

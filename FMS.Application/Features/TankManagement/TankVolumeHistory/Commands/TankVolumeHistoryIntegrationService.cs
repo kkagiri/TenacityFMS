@@ -89,6 +89,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             string recordedBy,
             CancellationToken cancellationToken = default) {
             var reason = isOpening ? VolumeChangeReasonEnum.OpeningStock : VolumeChangeReasonEnum.ClosingStock;
+            var referenceType = isOpening ? "OpeningStock" : "ClosingStock"; //Cursor - Use distinct reference types
 
             return await ProcessChangeAsync (
                 tankId,
@@ -97,7 +98,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 reason,
                 recordedBy,
                 stockId,
-                "TankStock",
+                referenceType,
                 actionType,
                 cancellationToken);
         }

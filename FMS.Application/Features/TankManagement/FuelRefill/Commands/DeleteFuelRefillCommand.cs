@@ -31,7 +31,11 @@ public class DeleteFuelRefillCommandHandler : IRequestHandler<DeleteFuelRefillCo
 
     public async Task<FMSResponseMessage> Handle (DeleteFuelRefillCommand request, CancellationToken cancellationToken) {
         try {
-            var fuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.FuelRefillId }, cancellationToken);
+            // Retrieve using both parts of the composite key
+            var fuelRefill = await _context.FuelRefills
+                .FirstOrDefaultAsync (fr => fr.Id == request.FuelRefillId &&
+                    fr.TankId == request.TankId,
+                    cancellationToken);
             if (fuelRefill == null) {
                 return new FMSResponseMessage (false, $"Fuel refill with ID {request.FuelRefillId} not found");
             }

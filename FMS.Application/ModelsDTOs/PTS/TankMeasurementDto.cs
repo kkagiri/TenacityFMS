@@ -19,6 +19,8 @@ namespace FMS.Application.ModelsDTOs.ATG
         public string Status { get; set; }
         public int FuelGradeId { get; set; }
 
+        public string? FuelGradeName { get; set; }
+
         public double? ProductHeight { get; set; }
         public double? ProductUllage { get; set; }
         public double? ProductTcvolume { get; set; }
@@ -33,14 +35,15 @@ namespace FMS.Application.ModelsDTOs.ATG
 
         public double? WaterVolume { get; set; }
 
-
         public int? TankFillingPercentage { get; set; }
 
         public string ConfigurationId { get; set; }
 
-        public List<string> Alarms { get; set; }
+        public List<string> Alarms { get; set; } = new List<string>();
 
+        public string? PtsId { get; set; }
+        public int PacketId { get; set; }
 
-
+        public int? TankId { get; set; }
     }
 }

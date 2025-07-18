@@ -1,4 +1,5 @@
 import axiosInstance from './../../api/axiosInstance';
+import { fetchConfigurations } from './configurationActions';
 import {
     LOGIN_SUCCESS,
     LOGIN_FAILURE,
@@ -63,6 +64,14 @@ export const signIn = (username, password) => async (dispatch) => {
         // Load user details after successful login
         console.log('Login successful, loading user details...');
         dispatch(loadUser());
+
+        // Load configurations after successful login
+        try {
+            dispatch(fetchConfigurations());
+        } catch (configError) {
+            console.warn('Failed to load configurations on login:', configError);
+            // Don't fail login if configuration loading fails
+        }
 
         return { isOk: true };
     } catch (error) {

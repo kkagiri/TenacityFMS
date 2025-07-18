@@ -1,0 +1,30 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import ScrollView from 'devextreme-react/scroll-view';
+import Button from 'devextreme-react/button';
+import TabPanel, { Item as TabItem } from 'devextreme-react/tab-panel';
+
+const VehicleConsumptionDetails = () => {
+  const { id: vehicleId, consumptionId } = useParams();
+  const navigate = useNavigate();
+
+  return (
+    <ScrollView className="tw-view-wrapper-scroll">
+      <h2>Consumption Details - Vehicle {vehicleId}, Consumption {consumptionId}</h2>
+      <Button text="Back" onClick={() => navigate(`/vehicles/${vehicleId}/edit`)} />
+      <TabPanel height={400}>
+        <TabItem title="Charts">
+          <div>Chart content here</div>
+        </TabItem>
+        <TabItem title="Maintenance">
+          <div>Maintenance schedule here</div>
+        </TabItem>
+        <TabItem title="Inspection">
+          <div>Inspection schedule here</div>
+        </TabItem>
+      </TabPanel>
+    </ScrollView>
+  );
+};
+
+export default VehicleConsumptionDetails;

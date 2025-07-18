@@ -142,7 +142,7 @@ export const updateConfiguration = (id, configData) => async (dispatch) => {
 export const deleteConfiguration = (id) => async (dispatch) => {
   dispatch({ type: PTS_AUTOMATION_CONFIG_ACTIONS.DELETE_CONFIGURATION_REQUEST });
   try {
-    await axiosInstance.delete(`/api/automated-fueling-configuration/${id}`);
+    await axiosInstance.delete(`/automated-fueling-configuration/${id}`);
     dispatch({
       type: PTS_AUTOMATION_CONFIG_ACTIONS.DELETE_CONFIGURATION_SUCCESS,
       payload: id,

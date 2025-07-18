@@ -118,7 +118,7 @@ const UserActivitiesPage = () => {
     }, [activities, searchText, actionFilter, controllerFilter, dateFilter]);
 
     const goBack = () => {
-        navigate(`/users/${id}`);
+        navigate(`/admin/users/${id}`);
     };
 
     // Get unique actions for filter
@@ -174,7 +174,7 @@ const UserActivitiesPage = () => {
             <div className="user-not-found">
                 <h2>User Not Found</h2>
                 <p>The requested user could not be found.</p>
-                <Button text="Back to Users" onClick={() => navigate('/users')} />
+                <Button text="Back to Users" onClick={() => navigate('/admin/users')} />
             </div>
         );
     }

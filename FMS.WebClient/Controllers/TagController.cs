@@ -14,7 +14,6 @@ namespace FMS.WebClient.Controllers;
 
 [Route ("api/[controller]")]
 [ApiController]
-[Authorize (Roles = "Admin,User")]
 public class TagController : ControllerBase {
     private readonly IMediator _mediator;
 

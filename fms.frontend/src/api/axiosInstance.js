@@ -1,49 +1,46 @@
 import axios from "axios";
+// Simplified URL determination - no async needed
+const getApiUrl = () => {
+  const apiUrl = process.env.NODE_ENV === "development"
+    ? process.env.REACT_APP_API_URL
+    : process.env.REACT_APP_API_URL;
 
-const determineApiUrl = async () => {
-  if (process.env.NODE_ENV === "development") {
-    // console.log("development");
-    // console.log(process.env.REACT_APP_FMS_API_URL_DEV);
-    return process.env.REACT_APP_FMS_API_URL_DEV;
-  } else {
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_PUBLIC_FMS_API_URL}/health`
-      );
-      if (response.ok) {
-        return process.env.REACT_APP_PUBLIC_FMS_API_URL;
-      } else {
-        return process.env.REACT_APP_FMS_API_URL_PROD;
-      }
-    } catch (error) {
-      console.error("Error determining API URL:", error);
-      return process.env.REACT_APP_FMS_API_URL_PROD;
-    }
-  }
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('API URL being used:', apiUrl);
+  console.log('All env vars:', {
+    NODE_ENV: process.env.NODE_ENV,
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL
+  });
+
+  return apiUrl;
 };
 
+// Create axios instance with dynamic baseURL
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_FMS_API_URL_DEV,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
   },
+  timeout: 30000, // Increased to 30 second timeout
 });
 
+// Request interceptor
 axiosInstance.interceptors.request.use(
-  async (config) => {
-    if (
-      !axiosInstance.defaults.baseURL ||
-      axiosInstance.defaults.baseURL === process.env.REACT_APP_FMS_API_URL_DEV
-    ) {
-      axiosInstance.defaults.baseURL = await determineApiUrl();
-    }
-    config.baseURL = axiosInstance.defaults.baseURL;
+  (config) => {
+    // Set baseURL for each request (no async needed)
+    config.baseURL = getApiUrl();
+
+    // Add auth token if available
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`Making request to: ${config.baseURL}${config.url}`);
+    }
+
     return config;
   },
   (error) => {
@@ -51,22 +48,24 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Cursor: Combined response interceptor to handle both logging and authentication errors
+// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
-    if(process.env.NODE_ENV === "development")
-      {
-    console.log(`Response from ${response.config.url}:`, {
-      status: response.status,
-      statusText: response.statusText
-    });
-  }
+    if (process.env.NODE_ENV === "development") {
+      console.log(`Response from ${response.config.url}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        baseURL: response.config.baseURL
+      });
+    }
     return response;
   },
   (error) => {
-    // Handle network errors
-    if (error.message === "Network Error") {
-      console.error("Network error - possibly CORS related:", error);
+    // Handle network errors (often CORS related)
+    if (error.code === 'ECONNABORTED') {
+      console.error("Request timeout - server may be slow or unreachable:", error);
+    } else if (error.message === "Network Error") {
+      console.error("Network error - check CORS configuration or server connection:", error);
     }
 
     // Log error responses
@@ -74,29 +73,44 @@ axiosInstance.interceptors.response.use(
       console.error(`Error response from ${error.config?.url}:`, {
         status: error.response.status,
         statusText: error.response.statusText,
-        data: error.response.data
+        data: error.response.data,
+        baseURL: error.config?.baseURL
       });
 
       // Handle authentication errors
-      if (error.response.status === 401 || error.response.status === 404) {
-        // Check if it's a login redirect
-        if (
-          error.response.config &&
-          error.response.config.url.includes("Login")
-        ) {
-          console.error("Authentication error - redirecting to login page");
-          // Redirect to login or handle auth error
-          // window.location.href = '/login'; // Uncomment if you want automatic redirect
-        }
+      if (error.response.status === 401) {
+        console.error("Authentication error - token may be expired");
+        // Clear token and redirect to login
+        localStorage.removeItem("token");
+        // window.location.href = '/login'; // Uncomment if you want automatic redirect
       }
+
+      // Handle not found errors
+      if (error.response.status === 404) {
+        console.error("Resource not found");
+      }
+
+      // Handle server errors
+      if (error.response.status >= 500) {
+        console.error("Server error - please try again later");
+      }
+    } else if (error.request) {
+      console.error("No response received from server:", {
+        baseURL: error.config?.baseURL,
+        url: error.config?.url,
+        method: error.config?.method
+      });
     }
 
     return Promise.reject(error);
   }
 );
-
+// Initialize function for App.js compatibility
 export const initializeAxiosInstance = async () => {
-  axiosInstance.defaults.baseURL = await determineApiUrl();
-};
+  axiosInstance.defaults.baseURL = getApiUrl();
 
+  if (process.env.NODE_ENV === "development") {
+    console.log("Axios instance initialized with baseURL:", axiosInstance.defaults.baseURL);
+  }
+};
 export default axiosInstance;

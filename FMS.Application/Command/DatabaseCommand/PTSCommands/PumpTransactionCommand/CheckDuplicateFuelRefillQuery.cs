@@ -38,7 +38,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     .Where (f => f.VehicleId == request.VehicleId &&
                         f.Date.HasValue &&
                         f.Date.Value.Date == request.Date.Date &&
-                        Math.Abs ((decimal) f.ManualFuelrefilAmount - request.Volume) / request.Volume <= VOLUME_TOLERANCE)
+                        Math.Abs ((decimal) f.ManualFuelrefillAmount - request.Volume) / request.Volume <= VOLUME_TOLERANCE)
                     .FirstOrDefaultAsync (cancellationToken);
 
                 var hasDuplicate = manualRefill != null;
@@ -46,7 +46,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 if (hasDuplicate) {
                     _logger.LogInformation (
                         "Found potential duplicate manual fuel refill (ID: {RefillId}) for vehicle {VehicleId} on {Date} with volume {Volume}",
-                        manualRefill.Id, request.VehicleId, request.Date.ToString ("yyyy-MM-dd"), manualRefill.ManualFuelrefilAmount);
+                        manualRefill.Id, request.VehicleId, request.Date.ToString ("yyyy-MM-dd"), manualRefill.ManualFuelrefillAmount);
                 }
 
                 return new FMSResponseMessage<bool> (true,

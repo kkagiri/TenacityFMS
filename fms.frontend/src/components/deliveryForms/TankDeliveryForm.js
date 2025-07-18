@@ -33,6 +33,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
         deliveryMass: 0,
         stockBeforeDelivery: 0,
         stockAfterDelivery: 0,
+        pricePerLiter: 0,
         supplierId: 0,
         lpoNumber: '',
         product: ''
@@ -41,12 +42,12 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
     const handleChange = useCallback((e) => {
         const { dataField, value } = e;
         let updatedValue = value;
-    
+
         // Special handling for product field
         if (dataField === 'product') {
           updatedValue = Products.find(p => p.id === value)?.name || '';
         }
-    
+
         setFormData(prev => {
           const updated = { ...prev, [dataField]: updatedValue };
           updateFormData(updated);
@@ -73,19 +74,19 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
     }, [tanks]);
 
 
-   
 
-   
+
+
     return (
       <ScrollView  showScrollbar='always' scrollByThumb ={true} >
-            <Form 
-             formData={localFormData}  
+            <Form
+             formData={localFormData}
                 readOnly={isLoading} showColonAfterLabel={true} labelLocation="top"
                  onFieldDataChanged={handleChange} >
 
                 <GroupItem caption="General Details" colCount={2}>
-                <SimpleItem 
-                        dataField="date" 
+                <SimpleItem
+                        dataField="date"
                         editorType="dxDateBox"
                         editorOptions={{
                             max: new Date(),
@@ -105,13 +106,13 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
                      displayExpr: 'name',
                       valueExpr: 'id',
                         disabled: !formData.siteId
-                      
+
                       }}>
                    </SimpleItem>
 
                     </GroupItem>
            <GroupItem caption="Delivery Details" colCount={2}>
-                     
+
            <SimpleItem dataField="stockBeforeDelivery" editorType="dxNumberBox">
             <RequiredRule message="Stock Before Delivery is required" />
             <NumericRule min={0} message="Value cannot be negative" />
@@ -119,8 +120,8 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
           <SimpleItem dataField="stockAfterDelivery" editorType="dxNumberBox">
             <RequiredRule message="Stock After Delivery is required" />
             <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>         
-      
+          </SimpleItem>
+
      <SimpleItem dataField="manualDeliveryAmount" editorType="dxNumberBox">
             <RequiredRule message="Manual Delivery Amount is required" />
             <NumericRule min={0} message="Value cannot be negative" />
@@ -158,6 +159,22 @@ const TankDeliveryForm = ({ updateFormData, isLoading  }) => {
                 <SimpleItem dataField="supplierId" editorType="dxSelectBox"
                     editorOptions={{items: suppliers, displayExpr: 'name', valueExpr: 'id'}} />
                 <SimpleItem dataField="lpoNumber" />
+                <SimpleItem
+                    dataField="pricePerLiter"
+                    editorType="dxNumberBox"
+                    editorOptions={{
+                        format: {
+                            type: 'currency',
+                            currency: 'KES',
+                            precision: 2
+                        },
+                        placeholder: 'Enter price per liter in KES'
+                    }}
+                >
+                    <Label text="Price per Liter (KES)" />
+                    <RequiredRule message="Price per liter is required" />
+                    <NumericRule min={0.01} message="Price must be greater than 0" />
+                </SimpleItem>
                 </GroupItem>
             </Form>
             </ScrollView>

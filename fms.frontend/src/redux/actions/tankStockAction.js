@@ -26,6 +26,25 @@ export const FETCH_STOCK_DISCREPANCIES_REQUEST = 'FETCH_STOCK_DISCREPANCIES_REQU
 export const FETCH_STOCK_DISCREPANCIES_SUCCESS = 'FETCH_STOCK_DISCREPANCIES_SUCCESS';
 export const FETCH_STOCK_DISCREPANCIES_FAILURE = 'FETCH_STOCK_DISCREPANCIES_FAILURE';
 
+// New action types for stock adjustments
+export const CREATE_STOCK_ADJUSTMENT_REQUEST = 'CREATE_STOCK_ADJUSTMENT_REQUEST';
+export const CREATE_STOCK_ADJUSTMENT_SUCCESS = 'CREATE_STOCK_ADJUSTMENT_SUCCESS';
+export const CREATE_STOCK_ADJUSTMENT_FAILURE = 'CREATE_STOCK_ADJUSTMENT_FAILURE';
+
+export const FETCH_STOCK_ADJUSTMENTS_REQUEST = 'FETCH_STOCK_ADJUSTMENTS_REQUEST';
+export const FETCH_STOCK_ADJUSTMENTS_SUCCESS = 'FETCH_STOCK_ADJUSTMENTS_SUCCESS';
+export const FETCH_STOCK_ADJUSTMENTS_FAILURE = 'FETCH_STOCK_ADJUSTMENTS_FAILURE';
+
+export const RECONCILE_STOCKS_REQUEST = 'RECONCILE_STOCKS_REQUEST';
+export const RECONCILE_STOCKS_SUCCESS = 'RECONCILE_STOCKS_SUCCESS';
+export const RECONCILE_STOCKS_FAILURE = 'RECONCILE_STOCKS_FAILURE';
+
+export const GENERATE_STOCK_REPORT_REQUEST = 'GENERATE_STOCK_REPORT_REQUEST';
+export const GENERATE_STOCK_REPORT_SUCCESS = 'GENERATE_STOCK_REPORT_SUCCESS';
+export const GENERATE_STOCK_REPORT_FAILURE = 'GENERATE_STOCK_REPORT_FAILURE';
+
+export const FETCH_TANK_STOCKS_REQUEST = 'FETCH_TANK_STOCKS_REQUEST';
+
 const formatDateTime = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -35,12 +54,28 @@ const formatDateTime = (date) => {
   const seconds = String(date.getSeconds()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
-export const fetchTankStocks = () => async (dispatch) => {
+// Enhanced tank stock actions with better loading states
+export const fetchTankStocks = (filters = {}) => async (dispatch) => {
   try {
-    const response = await axiosInstance.get('/tankstock');
-    dispatch({ type: FETCH_TANK_STOCKS_SUCCESS, payload: response.data });
+    dispatch({ type: FETCH_TANK_STOCKS_REQUEST });
+
+    const params = new URLSearchParams();
+    if (filters.siteId) params.append('siteId', filters.siteId);
+    if (filters.tankId) params.append('tankId', filters.tankId);
+
+    const response = await axiosInstance.get(`/tankstock?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      dispatch({ type: FETCH_TANK_STOCKS_SUCCESS, payload: response.data.data || response.data });
+      return { success: true, data: response.data.data || response.data };
+    } else {
+      dispatch({ type: FETCH_TANK_STOCKS_FAILURE, payload: response.data.message });
+      return { success: false, message: response.data.message };
+    }
   } catch (error) {
-    dispatch({ type: FETCH_TANK_STOCKS_FAILURE, payload: error.message });
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching tank stocks';
+    dispatch({ type: FETCH_TANK_STOCKS_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
   }
 };
 
@@ -71,11 +106,19 @@ export const deleteTankStock = (id) => async (dispatch) => {
   }
 };
 
-export const createOpeningStock = (tankId, amount,date) => async (dispatch) => {
+export const createOpeningStock = (params) => async (dispatch) => {
   try {
-  //  const formattedDate = formatDateTime(date);
+    // Extract parameters from the params object or use individual parameters
+    const tankId = params.tankId || params;
+    const amount = params.amount;
+    const dateTime = params.dateTime || params.date;
 
-    const response = await axiosInstance.post(`/tankstock/openingstock?tankId=${tankId}&amount=${amount}&dateTime=${date}`);
+    // Format the date properly for the API
+    const formattedDate = dateTime instanceof Date ?
+      formatDateTime(dateTime) :
+      dateTime;
+
+    const response = await axiosInstance.post(`/tankstock/openingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
 
     if (response.data.success) {
       dispatch({ type: CREATE_OPENING_STOCK_SUCCESS, payload: response.data });
@@ -91,28 +134,60 @@ export const createOpeningStock = (tankId, amount,date) => async (dispatch) => {
   }
 };
 
-export const createClosingStock = (tankId, amount,date) => async (dispatch) => {
+export const createClosingStock = (params) => async (dispatch) => {
   try {
-    const formattedDate = formatDateTime(date);
+    // Extract parameters from the params object or use individual parameters
+    const tankId = params.tankId || params;
+    const amount = params.amount;
+    const dateTime = params.dateTime || params.date;
+
+    // Format the date properly for the API
+    const formattedDate = dateTime instanceof Date ?
+      formatDateTime(dateTime) :
+      dateTime;
 
     const response = await axiosInstance.post(`/tankstock/closingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
     if (response.data.success) {
-    dispatch({ type: CREATE_CLOSING_STOCK_SUCCESS, payload: response.data });
-    return response.data;
-  } else {
-    dispatch({ type: CREATE_CLOSING_STOCK_FAILURE, payload: response.data.message });
-    return response.data;
-  }
+      dispatch({ type: CREATE_CLOSING_STOCK_SUCCESS, payload: response.data });
+      return response.data;
+    } else {
+      dispatch({ type: CREATE_CLOSING_STOCK_FAILURE, payload: response.data.message });
+      return response.data;
+    }
 
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || "Error Creating closing Stock";
-    dispatch({ type: CREATE_CLOSING_STOCK_FAILURE, payload: error.message });
+    dispatch({ type: CREATE_CLOSING_STOCK_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
   }
 };
 
 export const createTankTransfer = (tankTransferDTO) => async (dispatch) => {
   try {
+    // Validate required fields before API call
+    if (!tankTransferDTO.sourceTankId || tankTransferDTO.sourceTankId <= 0) {
+      const error = 'Invalid source tank ID';
+      dispatch({ type: CREATE_TANK_TRANSFER_FAILURE, payload: error });
+      return { success: false, message: error };
+    }
+
+    if (!tankTransferDTO.destinationTankId || tankTransferDTO.destinationTankId <= 0) {
+      const error = 'Invalid destination tank ID';
+      dispatch({ type: CREATE_TANK_TRANSFER_FAILURE, payload: error });
+      return { success: false, message: error };
+    }
+
+    if (tankTransferDTO.sourceTankId === tankTransferDTO.destinationTankId) {
+      const error = 'Source and destination tanks must be different';
+      dispatch({ type: CREATE_TANK_TRANSFER_FAILURE, payload: error });
+      return { success: false, message: error };
+    }
+
+    if (!tankTransferDTO.amount || tankTransferDTO.amount <= 0) {
+      const error = 'Transfer amount must be greater than 0';
+      dispatch({ type: CREATE_TANK_TRANSFER_FAILURE, payload: error });
+      return { success: false, message: error };
+    }
 
     const response = await axiosInstance.post('/tankstock/transfer', tankTransferDTO);
 
@@ -160,22 +235,100 @@ export const fetchStockDiscrepancies = (filters = {}) => async (dispatch) => {
   }
 };
 
+// Stock Adjustments Actions
+export const createStockAdjustment = (adjustmentData) => async (dispatch) => {
+  try {
+    dispatch({ type: CREATE_STOCK_ADJUSTMENT_REQUEST });
+
+    const response = await axiosInstance.post('/tankstock/adjustments', adjustmentData);
+
+    if (response.data.isSuccess) {
+      dispatch({ type: CREATE_STOCK_ADJUSTMENT_SUCCESS, payload: response.data.data });
+      return { success: true, data: response.data.data, message: response.data.message };
+    } else {
+      dispatch({ type: CREATE_STOCK_ADJUSTMENT_FAILURE, payload: response.data.message });
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error creating stock adjustment';
+    dispatch({ type: CREATE_STOCK_ADJUSTMENT_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+export const fetchStockAdjustments = (filters = {}) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_STOCK_ADJUSTMENTS_REQUEST });
+
+    const params = new URLSearchParams();
+    if (filters.siteId) params.append('siteId', filters.siteId);
+    if (filters.tankId) params.append('tankId', filters.tankId);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+
+    const response = await axiosInstance.get(`/tankstock/adjustments?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      dispatch({ type: FETCH_STOCK_ADJUSTMENTS_SUCCESS, payload: response.data.data || response.data });
+      return { success: true, data: response.data.data || response.data };
+    } else {
+      dispatch({ type: FETCH_STOCK_ADJUSTMENTS_FAILURE, payload: response.data.message });
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching stock adjustments';
+    dispatch({ type: FETCH_STOCK_ADJUSTMENTS_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+// Enhanced reconcile stocks action
 export const reconcileStocks = (reconciliationData) => async (dispatch) => {
   try {
+    dispatch({ type: RECONCILE_STOCKS_REQUEST });
+
     const response = await axiosInstance.post('/tankstock/reconcile', {
       siteId: reconciliationData.siteId,
       userId: reconciliationData.userId
     });
 
-    if (response.data.success) {
+    if (response.data.isSuccess) {
+      dispatch({ type: RECONCILE_STOCKS_SUCCESS, payload: response.data.data });
+
       // Refresh discrepancies after successful reconciliation
-      dispatch(fetchStockDiscrepancies({ siteId: reconciliationData.siteId }));
+      if (reconciliationData.siteId) {
+        dispatch(fetchStockDiscrepancies({ siteId: reconciliationData.siteId }));
+      }
+
       return { success: true, data: response.data.data, message: response.data.message };
     } else {
+      dispatch({ type: RECONCILE_STOCKS_FAILURE, payload: response.data.message });
       return { success: false, message: response.data.message };
     }
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || 'Error reconciling stocks';
+    dispatch({ type: RECONCILE_STOCKS_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+// Stock Report Generation
+export const generateStockReport = (reportParams) => async (dispatch) => {
+  try {
+    dispatch({ type: GENERATE_STOCK_REPORT_REQUEST });
+
+    const response = await axiosInstance.post('/stockreport/generate', reportParams);
+
+    if (response.data.isSuccess) {
+      dispatch({ type: GENERATE_STOCK_REPORT_SUCCESS, payload: response.data.data });
+      return { success: true, data: response.data.data, message: response.data.message };
+    } else {
+      dispatch({ type: GENERATE_STOCK_REPORT_FAILURE, payload: response.data.message });
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error generating stock report';
+    dispatch({ type: GENERATE_STOCK_REPORT_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
   }
 };

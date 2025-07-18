@@ -78,10 +78,12 @@ export const deleteSiteFailure = (error) => ({
 export const fetchSiteList = () => async (dispatch) => {
   try {
     dispatch(fetchSitesRequest());
-    const response = await axiosInstance.get(`/site/getlist`);
+    const response = await axiosInstance.get(`/site`);
     dispatch(fetchSitesSuccess(response.data));
+    return { success: true, data: response.data };
   } catch (error) {
     dispatch(fetchSitesFailure(error.response?.data?.message || error.message));
+    return { success: false, message: error.response?.data?.message || error.message };
   }
 };
 

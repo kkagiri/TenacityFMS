@@ -33,7 +33,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery {
 
         public async Task<VehicleDTO> Handle (GetVehicleByIDQuery request, CancellationToken cancellationToken) {
             try {
-                return _mapper.Map<Vehicle, VehicleDTO> (await _context.Vehicles.FirstOrDefaultAsync (e => e.VehicleId == request.Id));
+                var vehicle = await _context.Vehicles.FirstOrDefaultAsync (e => e.VehicleId == request.Id);
+                return vehicle != null ? _mapper.Map<Vehicle, VehicleDTO>(vehicle) : new VehicleDTO();
             } catch (Exception ex) {
                 _logger.LogError (ex.Message);
                 throw new Exception (ex.Message);
