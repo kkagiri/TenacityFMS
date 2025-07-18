@@ -1,27 +1,25 @@
 //Cursor - Created Vehicle Edit page with metrics, form, tags, and consumption history
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+
+import { useParams, useNavigate } from 'react-router-dom';
 import ScrollView from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
 import { Popup } from 'devextreme-react/popup';
-import TabPanel, { Item as TabItem } from 'devextreme-react/tab-panel';
-import DateBox from 'devextreme-react/date-box';
 import notify from 'devextreme/ui/notify';
 
 // Components
-import VehicleMetricsTiles from '../../components/vehicle/VehicleMetricsTiles';
-import VehicleEditForm from '../../components/vehicle/VehicleEditForm';
-import TagAssignmentPopup from '../../components/vehicle/TagAssignmentPopup';
-import VehicleConsumptionHistoryDetails from '../../components/vehicleConsumptionHistoryDetails/vehicleConsumptionHistoryDetails';
+import VehicleMetricsTiles from './component/VehicleMetricsTiles';
+import VehicleEditForm from './component/VehicleEditForm';
+import TagAssignmentPopup from './component/TagAssignmentPopup';
+import { VehicleConsumptionHistoryDetails } from './consumption/vehicleConsumptionHistoryDetails';
 
 // Services
-import { getVehicleById, updateVehicle, deleteVehicle, getVehicleMetrics } from '../../dataservice';
+import {fetchVehicleList, getVehicleById, updateVehicle, deleteVehicle } from '../../redux/actions/vehicleActions';
 
 const VehicleEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   // State
   const [vehicle, setVehicle] = useState(null);
@@ -37,6 +35,7 @@ const VehicleEdit = () => {
   const [showTagAssignment, setShowTagAssignment] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [consumptionDays, setConsumptionDays] = useState(5);
+  const dispatch = useDispatch();
 
   // Load vehicle data
   useEffect(() => {
@@ -45,23 +44,32 @@ const VehicleEdit = () => {
 
       try {
         setIsLoading(true);
-        const [vehicleData, metricsData] = await Promise.all([
-          getVehicleById(id),
-          getVehicleMetrics(id, 1) // 1 day filter for metrics
-        ]);
+        const vehicleResponse = await dispatch(getVehicleById(id));
 
-        setVehicle(vehicleData);
-        setVehicleMetrics(metricsData);
+        if (vehicleResponse && vehicleResponse.data) {
+          setVehicle(vehicleResponse.data);
+
+          // Set default metrics (can be enhanced with actual API call later)
+          setVehicleMetrics({
+            totalDistance: vehicleResponse.data.currentPhysicalReading || 0,
+            totalFuel: 0,
+            fuelIssues: 0,
+            activeIssues: 0
+          });
+        } else {
+          throw new Error('Vehicle not found');
+        }
       } catch (error) {
         console.error('Error loading vehicle data:', error);
         notify('Failed to load vehicle data', 'error', 3000);
+        setVehicle(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadVehicleData();
-  }, [id]);
+  }, [id, dispatch]);
 
   // Handlers
   const handleEdit = () => {
@@ -71,10 +79,15 @@ const VehicleEdit = () => {
   const handleSave = async (formData) => {
     try {
       setIsSaving(true);
-      await updateVehicle(id, formData);
-      setVehicle({ ...vehicle, ...formData });
-      setIsEditing(false);
-      notify('Vehicle updated successfully', 'success', 3000);
+      const response = await dispatch(updateVehicle(id, formData));
+
+      if (response && response.success) {
+        setVehicle({ ...vehicle, ...formData });
+        setIsEditing(false);
+        notify('Vehicle updated successfully', 'success', 3000);
+      } else {
+        throw new Error(response?.message || 'Failed to update vehicle');
+      }
     } catch (error) {
       console.error('Error saving vehicle:', error);
       notify('Failed to save vehicle', 'error', 3000);
@@ -92,9 +105,14 @@ const VehicleEdit = () => {
     if (!confirmed) return;
 
     try {
-      await deleteVehicle(id);
-      notify('Vehicle deleted successfully', 'success', 3000);
-      navigate('/vehicles');
+      const response = await dispatch(deleteVehicle(id));
+
+      if (response && response.success) {
+        notify('Vehicle deleted successfully', 'success', 3000);
+        navigate('/vehicles');
+      } else {
+        throw new Error(response?.message || 'Failed to delete vehicle');
+      }
     } catch (error) {
       console.error('Error deleting vehicle:', error);
       notify('Failed to delete vehicle', 'error', 3000);
@@ -327,8 +345,8 @@ const VehicleEdit = () => {
         </div>
         <div className="tw-p-4">
           <VehicleConsumptionHistoryDetails
-            vehicleId={id}
-            days={consumptionDays}
+            vehicleID={id}
+            startDate={new Date(new Date().setDate(new Date().getDate() - consumptionDays))}
             onRowClick={handleConsumptionRowClick}
           />
         </div>
@@ -339,7 +357,8 @@ const VehicleEdit = () => {
         visible={showTagAssignment}
         onHiding={() => setShowTagAssignment(false)}
         dragEnabled={false}
-        closeOnOutsideClick={true}
+        showCloseButton
+={true}
         showTitle={true}
         title="Manage Vehicle Tags"
         width={600}

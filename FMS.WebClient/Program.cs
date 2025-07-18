@@ -420,6 +420,11 @@ public class Program {
         services.AddScoped<IAuthorizationHandler, PermissionHandler> ();
         services.AddTransient (typeof (IPipelineBehavior<,>), typeof (TransactionMiddleware<,>));
         services.AddScoped<IEmailService, EmailService> ();
+
+        // Register GPS Services
+        services.AddHttpClient<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+        services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+
         // Register the pump transaction integration service
         services.AddScoped<PumpTransactionIntegrationService> ();
         // Register missing services that are causing dependency injection errors

@@ -6,6 +6,8 @@ import FilterInfoBar from '../components/FilterInfoBar';
 import ReconciliationWorkflow from './components/ReconciliationWorkflow';
 import AdjustmentCenter from './components/AdjustmentCenter';
 import ConfigurationPanel from './components/ConfigurationPanel';
+import PumpTransactionManager from './components/PumpTransactionManager';
+import TransactionHub from './components/TransactionHub';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import ScrollView from 'devextreme-react/scroll-view';
 import Tabs from 'devextreme-react/tabs';
@@ -46,9 +48,11 @@ const StockManagement = () => {
   const safeSites = Array.isArray(sites) ? sites : [];
   const safeDateRange = Array.isArray(dateRange) && dateRange.length >= 2 ? dateRange : [new Date(), new Date()];
 
-  //Cursor - Tab data with Stock Adjustment Dashboard as first tab
+  //Cursor - Tab data with Transaction Hub as first tab, Stock Adjustment Dashboard as second
   const tabData = [
+    { text: "Transaction Hub", icon: "fa-light fa-exchange-alt" },
     { text: "Stock Adjustment Dashboard", icon: "fa-light fa-adjust" },
+    { text: "Pump Transactions", icon: "fa-light fa-gas-pump" },
     { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
     { text: "Configuration", icon: "fa-light fa-cog" }
   ];
@@ -79,6 +83,13 @@ const StockManagement = () => {
     switch (activeTabIndex) {
       case 0:
         return loadedTabs.has(0) && (
+          <TransactionHub
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+          />
+        );
+      case 1:
+        return loadedTabs.has(1) && (
           <AdjustmentCenter
             adjustments={adjustments}
             selectedSite={selectedSite}
@@ -86,8 +97,15 @@ const StockManagement = () => {
             onAdjustmentComplete={handleTransactionUpdate}
           />
         );
-      case 1:
-        return loadedTabs.has(1) && (
+      case 2:
+        return loadedTabs.has(2) && (
+          <PumpTransactionManager
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+          />
+        );
+      case 3:
+        return loadedTabs.has(3) && (
           <ReconciliationWorkflow
             reconciliationData={reconciliationData}
             selectedSite={selectedSite}
@@ -95,8 +113,8 @@ const StockManagement = () => {
             onReconciliationComplete={handleTransactionUpdate}
           />
         );
-      case 2:
-        return loadedTabs.has(2) && (
+      case 4:
+        return loadedTabs.has(4) && (
           <ConfigurationPanel
             systemConfig={systemConfig}
             selectedSite={selectedSite}

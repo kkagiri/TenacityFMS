@@ -60,11 +60,6 @@ export default function Content() {
         <Route path="/admin/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
 
-        {/* Vehicle routes */}
-        <Route path="/vehicles" element={React.createElement(resolvedComponents("vehicle-dashboard"))} />
-        <Route path="/vehicles/:id/edit" element={React.createElement(resolvedComponents("vehicle-edit"))} />
-        <Route path="/vehicles/:id/consumption/:consumptionId/details" element={React.createElement(resolvedComponents("vehicle-consumption-details"))} />
-
         {/* Tank routes */}
         <Route path="/tanks" element={React.createElement(resolvedComponents("tanks"))} />
         <Route path="/tanks/:id" element={React.createElement(resolvedComponents("tank-details"))} />

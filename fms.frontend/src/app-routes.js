@@ -25,8 +25,8 @@ import AdminMain from "./pages/admin/AdminMain";
 import VehicleMain from "./pages/vehicles/VehicleMain";
 // Import individual vehicle components
 import VehicleDashboard from "./pages/vehicles/vehicleDashboard";
+import MaintenanceAlertsPage from "./pages/vehicles/MaintenanceAlertsPage";
 import VehicleEdit from "./pages/vehicles/vehicleEdit";
-import VehicleConsumptionDetails from "./pages/vehicles/vehicleConsumptionDetails";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -75,8 +75,8 @@ const resolvedComponents = (pageName) => {
       return VehicleDashboard;
     case "vehicle-edit":
       return VehicleEdit;
-    case "vehicle-consumption-details":
-      return VehicleConsumptionDetails;
+    case "maintenance-alerts":
+      return MaintenanceAlertsPage;
     case "automated-reconciliation":
       return AutomatedReconciliationSystem;
     case "reconciliation-mission-control":

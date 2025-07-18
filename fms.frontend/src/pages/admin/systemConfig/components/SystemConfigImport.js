@@ -251,7 +251,8 @@ const SystemConfigImport = ({ visible, onClose, onImportComplete }) => {
       visible={visible}
       onHiding={handleClose}
       dragEnabled={false}
-      closeOnOutsideClick={false}
+      showCloseButton
+={false}
       showTitle={true}
       title="Import System Configurations"
       width={600}

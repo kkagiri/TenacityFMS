@@ -313,7 +313,8 @@ const PTSAutomationConfigPage = () => {
         visible={showCreateModal || showEditModal}
         onHiding={handleModalClose}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        showCloseButton
+={false}
         showTitle={false}
         width="900px"
         height="90vh"
@@ -332,7 +333,8 @@ const PTSAutomationConfigPage = () => {
         visible={showEffectiveConfig}
         onHiding={handleModalClose}
         dragEnabled={false}
-        closeOnOutsideClick={true}
+        showCloseButton
+={true}
         showTitle={true}
         title="Effective Configuration for Site"
         width="600px"

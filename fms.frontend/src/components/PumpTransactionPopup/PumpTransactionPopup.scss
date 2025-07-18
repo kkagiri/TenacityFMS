@@ -1,0 +1,229 @@
+// Pump Transaction Popup Styles
+.pump-transaction-popup {
+  .dx-overlay-content {
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(190, 190, 190, 0.15);
+  }
+
+  .dx-popup-title {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    padding: 16px 24px;
+  }
+
+  .dx-popup-content {
+    padding: 0;
+  }
+}
+
+.pump-transaction-popup-content {
+  padding: 20px;
+  height: 100%;
+  // Remove flex properties when using ScrollView to avoid DOM conflicts
+   display: flex;
+   flex-direction: column;
+
+  // Summary stats styling
+  .tw-text-gray-600 {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .tw-font-medium {
+      color: #374151;
+    }
+  }
+
+  .tw-text-green-600 {
+    color: #059669 !important;
+  }
+
+  .tw-text-yellow-600 {
+    color: #d97706 !important;
+  }  // DataGrid container - use default colors
+  .dx-datagrid {
+    // Remove custom styling to use default DevExtreme colors
+    // Only keep basic border and border radius
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  // Status badges
+  .tw-bg-green-100 {
+    background-color: #dcfce7 !important;
+  }
+
+  .tw-text-green-800 {
+    color: #166534 !important;
+  }
+
+  .tw-bg-yellow-100 {
+    background-color: #fef3c7 !important;
+  }
+
+  .tw-text-yellow-800 {
+    color: #92400e !important;
+  }
+
+  // Filter panel
+  .dx-form {
+    .dx-field-item {
+      margin-bottom: 16px;
+
+      .dx-field-item-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 4px;
+      }
+    }
+  }
+
+  // Quick filter buttons
+  .dx-button {
+    &.dx-button-mode-outlined {
+      border-color: #d1d5db;
+      color: #6b7280;
+
+      &:hover {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+      }
+    }
+  }
+
+  // Error styling
+  .tw-bg-red-50 {
+    background-color: #fef2f2 !important;
+  }
+
+  .tw-border-red-200 {
+    border-color: #fecaca !important;
+  }
+
+  .tw-text-red-500 {
+    color: #ef4444 !important;
+  }
+
+  .tw-text-red-700 {
+    color: #b91c1c !important;
+  }
+
+  .tw-text-red-600 {
+    color: #dc2626 !important;
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .pump-transaction-popup {
+    .dx-overlay-content {
+      margin: 5px;
+      max-height: calc(100vh - 10px);
+      max-width: calc(100vw - 10px);
+    }
+
+    .dx-popup-title {
+      padding: 12px 16px;
+      font-size: 16px;
+    }
+  }
+
+  .pump-transaction-popup-content {
+    padding: 10px;
+    height: 100%;
+    overflow: hidden;
+
+    // Make summary stats responsive
+    .tw-flex.tw-gap-6 {
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .tw-text-gray-600,
+      .tw-text-green-600,
+      .tw-text-yellow-600 {
+        font-size: 0.75rem;
+      }
+    }
+
+    // Adjust action buttons for mobile
+    .tw-flex.tw-gap-2 {
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .dx-button {
+        font-size: 0.75rem;
+        min-width: auto;
+        width: 100%;
+      }
+    }
+
+    // DataGrid mobile adjustments
+    .dx-datagrid {
+      font-size: 12px;
+      height: 300px !important; // Smaller height on mobile
+
+      .dx-datagrid-headers {
+        .dx-header-row {
+          .dx-datagrid-table td {
+            padding: 6px 4px;
+            font-size: 11px;
+          }
+        }
+      }
+
+      .dx-datagrid-rowsview {
+        .dx-row {
+          .dx-datagrid-table td {
+            padding: 6px 4px;
+            font-size: 11px;
+          }
+        }
+      }
+    }
+
+    // Filter panel mobile improvements
+    .filter-panel-mobile {
+      .dx-form {
+        .dx-field-item {
+          margin-bottom: 12px;
+
+          .dx-field-item-label {
+            font-size: 14px;
+            margin-bottom: 6px;
+          }
+        }
+      }
+
+      // Quick filter buttons on mobile
+      .tw-flex.tw-flex-wrap.tw-gap-2 {
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .dx-button {
+          width: 100%;
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .pump-transaction-popup-content {
+    .tw-flex.tw-justify-between.tw-items-center {
+      display: none !important;
+    }
+
+    .dx-datagrid {
+      .dx-command-column {
+        display: none !important;
+      }
+    }
+  }
+}
+
+

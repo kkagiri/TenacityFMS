@@ -13,8 +13,9 @@ using FMS.WebClient.Models.DatabaseViewModel;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Collections.Generic;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Import;
-using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 //using FMS.Application.Queries.Database.Consumption;
 using System;
 using System.Linq;
@@ -229,6 +230,34 @@ namespace FMS.WebClient.Controllers {
 
             return Ok ();
 
+        }
+
+        [HttpGet ("pumptransactions")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetPumpTransactions (
+            [FromQuery] int? vehicleId, [FromQuery] string? ptsId, [FromQuery] int? tankId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool? processedOnly) {
+            try {
+            var query = new FMS.Application.Features.TankManagement.PumpTransaction.GetPumpTransactionQuery {
+            VehicleId = vehicleId,
+            PtsId = ptsId,
+            TankId = tankId,
+            StartDate = startDate,
+            EndDate = endDate,
+            ProcessedOnly = processedOnly
+                };
+
+                var result = await _mediator.Send (query);
+
+                if (result.IsSuccess) {
+                    return Ok (result);
+                }
+
+                return BadRequest (result);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error retrieving pump transactions");
+                var errorResponse = new { message = "An error occurred while retrieving pump transactions" };
+                return StatusCode (500, errorResponse);
+            }
         }
 
         /// <summary>

@@ -20,7 +20,7 @@ module.exports = {
       );
 
       // Add support for importing files from outside of src/
-      webpackConfig.resolve.modules.push(path.resolve(__dirname));
+      webpackConfig.resolve.modules.push(path.resolve(__dirname, 'src'));
 
       // Copy FontAwesome assets and web.config to build folder
       webpackConfig.plugins.push(

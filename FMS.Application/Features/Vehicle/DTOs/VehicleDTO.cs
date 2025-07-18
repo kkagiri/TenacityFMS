@@ -42,6 +42,10 @@ namespace FMS.Application.Features.Vehicle.DTOs {
 
         public int? DefaultExptdAvgid { get; set; }
 
+        // GPS and tracking properties
+        public bool HasGPSInstalled { get; set; }
+        public bool GpsgategeneratedId { get; set; }
+
         // Added fields for tracking
         public DateTime? DateCreated { get; set; }
         public DateTime? DateModified { get; set; }

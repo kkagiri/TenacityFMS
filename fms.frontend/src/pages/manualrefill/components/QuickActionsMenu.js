@@ -130,7 +130,8 @@ const QuickActionsMenu = ({
         visible={showActionDialog}
         onHiding={handleActionCancel}
         dragEnabled={false}
-        closeOnOutsideClick={false}
+        showCloseButton
+={false}
         showTitle={true}
         title={selectedAction ? `Confirm ${selectedAction.title}` : 'Confirm Action'}
         width={450}

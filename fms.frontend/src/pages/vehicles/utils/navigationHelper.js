@@ -7,7 +7,8 @@ export const vehicleRoutes = {
   consumption: '/vehicles/consumption',
   tracking: '/vehicles/tracking',
   reports: '/vehicles/reports',
-  settings: '/vehicles/settings'
+  settings: '/vehicles/settings',
+  addVehicle: '/vehicles/fleet#vehicleaction'
 };
 
 export const getVehicleRoute = (subPath = '') => {
@@ -16,12 +17,15 @@ export const getVehicleRoute = (subPath = '') => {
   return `${basePath}/${subPath}`;
 };
 
+// Helper to get vehicle details route by ID
+export const getVehicleDetailsRoute = (vehicleId) => {
+  return `/vehicles/${vehicleId}/details`;
+};
+
 // Helper to check if current path matches a route
 export const isActiveRoute = (currentPath, targetPath) => {
-  if (targetPath === '/vehicles/dashboard') {
-    return currentPath === '/vehicles' ||
-           currentPath === '/vehicles/' ||
-           currentPath === '/vehicles/dashboard';
+  if (targetPath === '/vehicles') {
+    return currentPath === '/vehicles' || currentPath === '/vehicles/';
   }
   return currentPath.startsWith(targetPath);
 };
@@ -42,6 +46,7 @@ export const navigationGroups = {
       icon: 'fa-light fa-cars',
       path: vehicleRoutes.fleet,
       badge: null,
+      description: 'Manage all vehicles in your fleet'
     },
     {
       id: 'tracking',
@@ -63,8 +68,9 @@ export const navigationGroups = {
       title: 'Maintenance',
       icon: 'fa-light fa-wrench',
       path: vehicleRoutes.maintenance,
-      badge: '3',
+      badge: null,
     },
+
     {
       id: 'reports',
       title: 'Reports',

@@ -17,9 +17,11 @@ export const fetchVehicleTypesFailure = (error) => ({
 // Thunk action
 export const fetchVehicleTypes = () => async (dispatch) => {
   try {
-    const response = await axiosInstance.get('/vehicletype');
+    const response = await axiosInstance.get('/vehicleType');
     dispatch(fetchVehicleTypesSuccess(response.data));
+    return { success: true, data: response.data };
   } catch (error) {
     dispatch(fetchVehicleTypesFailure(error.message));
+    return { success: false, message: error.message };
   }
 };

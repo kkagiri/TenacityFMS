@@ -131,7 +131,8 @@ const SettingsPopup = ({ isOpen, onClose }) => {
         visible={isOpen}
         onHiding={onClose}
         dragEnabled={false}
-        closeOnOutsideClick={true}
+        showCloseButton
+={true}
         showTitle={true}
         title="System Settings"
         width="90%"
@@ -503,7 +504,8 @@ function PolicyFormDialog({ isOpen, onClose, onSave, title, mode, initialData })
       visible={isOpen}
       onHiding={onClose}
       dragEnabled={false}
-      closeOnOutsideClick={true}
+      showCloseButton
+={true}
       showTitle={true}
       title={title}
       width={600}

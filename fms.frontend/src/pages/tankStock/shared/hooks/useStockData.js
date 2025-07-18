@@ -24,11 +24,11 @@ export const useStockData = (selectedSite, dateRange) => {
   const prevDateRangeStringRef = useRef(null);
 
   // Redux selectors - only core data
-  const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
-  const tanks = useSelector((state) => state.tank.tanks);
-  const sites = useSelector((state) => state.site.sites);
-  const deliveries = useSelector((state) => state.delivery.deliveries);
-  const consumption = useSelector((state) => state.consumption.consumption);
+  const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory?.tankVolumeHistory || []);
+  const tanks = useSelector((state) => state.tank?.tanks || []);
+  const sites = useSelector((state) => state.site?.sites || []);
+  const deliveries = useSelector((state) => state.delivery?.deliveries || []);
+  const consumption = useSelector((state) => state.consumption?.consumption || []);
 
   // New tank stock selectors
   const {
@@ -78,10 +78,10 @@ export const useStockData = (selectedSite, dateRange) => {
       setIsLoading(true);
       try {
         // Only load essential data for initial load
-        if (sites.length === 0) {
+        if (!sites || sites.length === 0) {
           await dispatch(fetchSiteList());
         }
-        if (tanks.length === 0) {
+        if (!tanks || tanks.length === 0) {
           await dispatch(fetchTanks());
         }
         setInitialDataLoaded(true);
@@ -98,7 +98,7 @@ export const useStockData = (selectedSite, dateRange) => {
     };
 
     loadInitialData();
-  }, [dispatch, sites.length, tanks.length, initialDataLoaded]);
+  }, [dispatch, sites, tanks, initialDataLoaded]);
 
   // Stable fetch function that doesn't depend on changing props
   const fetchStockData = useCallback(async (siteId, dateRangeArray, forceRefresh = false) => {
@@ -268,13 +268,13 @@ export const useStockData = (selectedSite, dateRange) => {
 
   // Analytics data computation - memoized
   const analyticsData = useMemo(() => ({
-    volumeHistory: tankVolumeHistory,
-    deliveries: deliveries,
-    consumption: consumption,
+    volumeHistory: tankVolumeHistory || [],
+    deliveries: deliveries || [],
+    consumption: consumption || [],
     trends: {
-      stockLevels: tankVolumeHistory,
-      deliveryVolumes: deliveries,
-      consumptionRates: consumption
+      stockLevels: tankVolumeHistory || [],
+      deliveryVolumes: deliveries || [],
+      consumptionRates: consumption || []
     }
   }), [tankVolumeHistory, deliveries, consumption]);
 
@@ -302,12 +302,12 @@ export const useStockData = (selectedSite, dateRange) => {
     averageFillRate: tankLevels.length > 0 ?
       tankLevels.reduce((sum, tank) => sum + tank.fillPercentage, 0) / tankLevels.length : 0,
     criticalTankCount: criticalAlerts.length,
-    totalDeliveries: deliveries.length,
-    totalConsumption: consumption.reduce((sum, cons) => sum + (cons.volume || 0), 0)
+    totalDeliveries: (deliveries || []).length,
+    totalConsumption: (consumption || []).reduce((sum, cons) => sum + (cons.volume || 0), 0)
   }), [tanks, tankLevels, criticalAlerts, deliveries, consumption, selectedSite]);
 
   // Transactions placeholder (will be expanded in later phases) - memoized
-  const transactions = useMemo(() => tankVolumeHistory.map(history => ({
+  const transactions = useMemo(() => (tankVolumeHistory || []).map(history => ({
     ...history,
     type: 'VOLUME_HISTORY',
     transactionDate: history.date,

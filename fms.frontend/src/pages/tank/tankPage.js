@@ -447,7 +447,8 @@ const TankPage = () => {
         height="90%"
         maxHeight="90vh"
         showCloseButton={true}
-        closeOnOutsideClick={false}
+        showCloseButton
+={false}
         contentRender={() => (
           <div style={{ height: '100%', overflow: 'auto', padding: '10px' }}>
             {showTankHistory && selectedTank && <TankHistory tankId={selectedTank.id} />}

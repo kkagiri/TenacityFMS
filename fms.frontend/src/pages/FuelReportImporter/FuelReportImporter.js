@@ -538,7 +538,8 @@ const FuelReportImporter = () => {
         visible={showImportConfirmation}
         onHiding={() => setShowImportConfirmation(false)}
         dragEnabled={false}
-        closeOnOutsideClick={true}
+        showCloseButton
+={true}
         showTitle={true}
         title="Confirm Import"
         width={550}

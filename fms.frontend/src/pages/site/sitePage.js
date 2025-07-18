@@ -229,7 +229,8 @@ const SitePage = () => {
           visible={showSiteForm}
           onHiding={handleFormClose}
           dragEnabled={false}
-          closeOnOutsideClick={true}
+          showCloseButton
+={true}
           showTitle={true}
           title={editMode ? 'Edit Site' : 'Create New Site'}
           width={500}

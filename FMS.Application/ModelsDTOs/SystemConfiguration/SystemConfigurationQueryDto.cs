@@ -9,18 +9,18 @@ namespace FMS.Application.ModelsDTOs.SystemConfiguration {
         [Range (1, 100, ErrorMessage = "Page size must be between 1 and 100")]
         public int PageSize { get; set; } = 50;
 
-        public string Category { get; set; }
-        public string DataType { get; set; }
-        public string SearchTerm { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public string SearchTerm { get; set; } = string.Empty;
 
         // Using string to handle null values properly from query string
-        private string _isActive;
+        private string? _isActive = null;
         public string IsActiveString {
             get => _isActive;
             set => _isActive = value;
         }
 
-        private string _isEditable;
+        private string? _isEditable = null;
         public string IsEditableString {
             get => _isEditable;
             set => _isEditable = value;

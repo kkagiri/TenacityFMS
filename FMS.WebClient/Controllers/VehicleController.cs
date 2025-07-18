@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using FMS.Application.Features.Vehicle.Queries.VehicleDashboard;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
@@ -19,33 +20,6 @@ namespace FMS.WebClient.Controllers {
         public VehicleController (IMediator mediator, IDistributedCache cache) {
             _mediator = mediator;
             _cache = cache;
-        }
-
-        [HttpGet ("routes")]
-        public IActionResult GetRoutes () {
-            var endpoints = HttpContext.RequestServices
-                .GetRequiredService<IEnumerable<EndpointDataSource>> ()
-                .SelectMany (source => source.Endpoints)
-                .OfType<RouteEndpoint> ();
-
-            var routes = endpoints.Select (e => new {
-                Route = e.RoutePattern.RawText,
-                    Methods = e.Metadata
-                    .OfType<HttpMethodMetadata> ()
-                    .FirstOrDefault () ?
-                    .HttpMethods,
-                    HasAuthorize = e.Metadata.Any (m => m is Microsoft.AspNetCore.Authorization.IAuthorizeData)
-            });
-
-            return Ok (routes);
-        }
-
-        // Add a test endpoint to verify routing
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpGet ("test")]
-
-        public IActionResult Test () {
-            return Ok ("Vehicle controller test endpoint working!");
         }
 
         [HttpGet ("simple")]
@@ -240,5 +214,182 @@ namespace FMS.WebClient.Controllers {
             if (!result.Success) return BadRequest (result.Message);
             return Ok (result);
         }
+
+        [HttpGet ("dashboard/analytics")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetDashboardAnalytics () {
+            // Try to get from cache first
+            var cacheKey = "VehicleDashboardAnalytics";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedAnalytics = JsonSerializer.Deserialize<VehicleDashboardAnalyticsDTO> (cachedData);
+                return Ok (cachedAnalytics);
+            }
+
+            var query = new GetVehicleDashboardAnalyticsQuery ();
+            var analytics = await _mediator.Send (query);
+
+            // Store in cache for 5 minutes (dashboard data changes frequently)
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (5)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (analytics), cacheOptions);
+
+            return Ok (analytics);
+        }
+
+        [HttpGet ("dashboard/metrics")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetDashboardMetrics () {
+            // Try to get from cache first
+            var cacheKey = "VehicleDashboardMetrics";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedMetrics = JsonSerializer.Deserialize<VehicleDashboardMetricsDTO> (cachedData);
+                return Ok (cachedMetrics);
+            }
+
+            var query = new GetVehicleDashboardMetricsQuery ();
+            var metrics = await _mediator.Send (query);
+
+            // Store in cache for 3 minutes
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (3)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (metrics), cacheOptions);
+
+            return Ok (metrics);
+        }
+
+        [HttpGet ("dashboard/status-distribution")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetVehicleStatusDistribution () {
+            var cacheKey = "VehicleStatusDistribution";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedDistribution = JsonSerializer.Deserialize<List<VehicleStatusDistributionDTO>> (cachedData);
+                return Ok (cachedDistribution);
+            }
+
+            var query = new GetVehicleStatusDistributionQuery ();
+            var distribution = await _mediator.Send (query);
+
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (10)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (distribution), cacheOptions);
+
+            return Ok (distribution);
+        }
+
+        [HttpGet ("dashboard/fleet-utilization")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetFleetUtilization ([FromQuery] int days = 30) {
+            var cacheKey = $"FleetUtilization_{days}";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedUtilization = JsonSerializer.Deserialize<FleetUtilizationDTO> (cachedData);
+                return Ok (cachedUtilization);
+            }
+
+            var query = new GetFleetUtilizationQuery (days);
+            var utilization = await _mediator.Send (query);
+
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (15)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (utilization), cacheOptions);
+
+            return Ok (utilization);
+        }
+
+        [HttpGet ("dashboard/maintenance-alerts")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetMaintenanceAlerts () {
+            var cacheKey = "VehicleMaintenanceAlerts";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedAlerts = JsonSerializer.Deserialize<List<MaintenanceAlertDTO>> (cachedData);
+                return Ok (cachedAlerts);
+            }
+
+            var query = new GetVehicleMaintenanceAlertsQuery ();
+            var alerts = await _mediator.Send (query);
+
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (10)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (alerts), cacheOptions);
+
+            return Ok (alerts);
+        }
+
+        [HttpGet ("dashboard/recent-activities")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetRecentActivities ([FromQuery] int limit = 10) {
+            var cacheKey = $"VehicleRecentActivities_{limit}";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedActivities = JsonSerializer.Deserialize<List<VehicleActivityDTO>> (cachedData);
+                return Ok (cachedActivities);
+            }
+
+            var query = new GetVehicleRecentActivitiesQuery (limit);
+            var activities = await _mediator.Send (query);
+
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (2)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (activities), cacheOptions);
+
+            return Ok (activities);
+        }
+
+        [HttpGet ("dashboard/performance-metrics")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetPerformanceMetrics ([FromQuery] int days = 7) {
+            var cacheKey = $"VehiclePerformanceMetrics_{days}";
+            var cachedData = await _cache.GetStringAsync (cacheKey);
+
+            if (!string.IsNullOrEmpty (cachedData)) {
+                var cachedMetrics = JsonSerializer.Deserialize<VehiclePerformanceMetricsDTO> (cachedData);
+                return Ok (cachedMetrics);
+            }
+
+            var query = new GetVehiclePerformanceMetricsQuery (days);
+            var metrics = await _mediator.Send (query);
+
+            var cacheOptions = new DistributedCacheEntryOptions {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (15)
+            };
+            await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (metrics), cacheOptions);
+
+            return Ok (metrics);
+        }
+
+        // Helper method to invalidate all dashboard-related cache entries
+        private async Task InvalidateDashboardCache () {
+            await _cache.RemoveAsync ("VehicleDashboardAnalytics");
+            await _cache.RemoveAsync ("VehicleDashboardMetrics");
+            await _cache.RemoveAsync ("VehicleStatusDistribution");
+            await _cache.RemoveAsync ("VehicleMaintenanceAlerts");
+
+            // Remove pattern-based cache entries (you might need a more sophisticated approach)
+            var keysToRemove = new [] {
+                "FleetUtilization_",
+                "VehicleRecentActivities_",
+                "VehiclePerformanceMetrics_"
+            };
+
+            // Note: You'll need to implement pattern-based cache removal or keep track of cache keys
+            // This is a simplified example
+        }
+
     }
 }

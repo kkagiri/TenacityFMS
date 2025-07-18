@@ -32,6 +32,41 @@ After finishing task expect for bugs write or update document in the documentati
 update on process .if you create a new persistence that has to be saved in database entity fms.domain always make sure that its has a entity configuration file in
  fms .persistence and add it to gpsdatacontext , also create the myslq syntax and place it in the database folder in the feature folder in documentation folder but do not create the file holding the syntax
 
+ use GPSDataContext for all database related operations, and ensure that any new entities are properly configured in the `FMS.Persistence` project.
+
+ in FMS.Application . Most of the feature are already implemented in
+ FMS.Application/Features/ folder, so check there first before creating new files. unless you are to create a new feature or module. here is the structure.
+ - FMS.Application/Features/
+   - Vehicle/
+     - Commands/
+     - Queries/
+     - Services/
+     - DTOs/
+
+
+
+for CRQS and any CRUD and Queries in returning Errors or validation checkes must use [FMSResponse.cs](mdc:FMS.Application/Common/FMSResponse.cs)
+if you create Queries or command file , make sure that command and commandhandler are in the same file same apply to queries and query handler
+example of command and command handler
+
+
+ public record CreateVehicleCommand : IRequest<FMSResponse<VehicleDto>> {
+    public string Name { get; init; }
+    public string LicensePlate { get; init; }
+ }
+ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand, FMSResponse<VehicleDto>> {
+    private readonly IVehicleService _vehicleService;
+
+    public CreateVehicleCommandHandler(IVehicleService vehicleService) {
+        _vehicleService = vehicleService;
+    }
+
+    public async Task<FMSResponse<VehicleDto>> Handle(CreateVehicleCommand request, CancellationToken cancellationToken) {
+        // Validation and business logic here
+        var vehicle = await _vehicleService.CreateVehicleAsync(request.Name, request.LicensePlate);
+        return FMSResponse<VehicleDto>.Success(vehicle);
+    }
+ }
 
 
 # Your rule content
@@ -48,10 +83,12 @@ All PTSModel are in FMS.Domain.Entities project , dont create unless you are tol
 
 
 # FMS Frontend Architecture Guide
+all URL should not include api/ if we are usign axionInstance
+so url should be like this /vehicles instead of /api/vehicles
 
-## Overview
-The FMS Frontend is a modern React-based web application built with DevExtreme UI components, Redux for state management, and Tailwind CSS for styling. It serves as the user interface for the Fuel Management System (FMS).
+its must you make the application mobile responsive and web responsive
 
+ for all popups showCloseButton={true} width auto and height auto
 ## Key Technology Stack
 - **React 18.2.0** - Modern React with hooks and functional components
 - **DevExtreme 23.2.8** - Enterprise UI component library

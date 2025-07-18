@@ -469,6 +469,7 @@ export default [ModuleName]Layout;
 
 .[module]-main {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: #f8fafc;

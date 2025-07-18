@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
 using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,6 +26,37 @@ namespace FMS.WebClient.Controllers {
             var result = await _mediator.Send (new GetTankVolumeHistoryQuery ());
             if (result == null) return NoContent ();
             return Ok (result);
+        }
+
+        [HttpGet ("filtered")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistoryFiltered (
+            [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? take = 100, [FromQuery] bool? includeVehicleNames = true) {
+            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid ();
+
+            // Validate parameters
+            if (take.HasValue && take.Value <= 0)
+                return BadRequest ("Take parameter must be greater than 0");
+
+            if (startDate.HasValue && endDate.HasValue && startDate.Value > endDate.Value)
+                return BadRequest ("Start date cannot be greater than end date");
+
+            var query = new GetTankVolumeHistoryFilteredQuery {
+                SiteId = siteId,
+                TankId = tankId,
+                StartDate = startDate,
+                EndDate = endDate,
+                Take = take,
+                IncludeVehicleNames = includeVehicleNames
+            };
+
+            var result = await _mediator.Send (query);
+
+            if (!result.IsSuccess)
+                return BadRequest (result.Message);
+
+            return Ok (result.Data);
         }
 
         [HttpGet ("byTankAndDateRange")]

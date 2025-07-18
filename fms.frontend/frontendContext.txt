@@ -21,7 +21,7 @@ export const navigation = [
     icon: 'car'
   }
   ,
-  
+
    {
     text: 'Reports',
     path: '',
@@ -45,11 +45,11 @@ import vehicleConsumption from './report/vehicleConsumptionList/vehicleConsumpti
 import VehicleConsumptionDetails from './report/vehicleConsumptionDetails/vehicleConsumptionDetails';
 
 const routes = [
-   
+
     {
         path: '/home',
         element: HomePage
-    }, 
+    },
   {
     path: '/vehicles',
     element: Vehicles
@@ -63,7 +63,7 @@ const routes = [
     path: '/vehicleConsumptionDetails/:id',
     element: VehicleConsumptionDetails
   }
-        
+
 ];
 
 export default routes.map(route => {
@@ -252,7 +252,7 @@ export default function UnauthenticatedContent() {
   return (
     <Routes>
       <Route
-        path='/login' 
+        path='/login'
         element={
           <SingleCard title="Sign In">
             <LoginForm />
@@ -267,7 +267,7 @@ export default function UnauthenticatedContent() {
           </SingleCard>
         }
       />
-      <Route 
+      <Route
         path='/reset-password'
         element={
           <SingleCard
@@ -999,447 +999,873 @@ export default function UserPanel({ menuMode }) {
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionChartDetails\vehicleConsumptionChart.js
 
-import React, { useEffect, useState } from "react";
-;
-
-
-export const VehicleConsumptionChartDetail = ({ vehicleID, startDate }) => {   
-
-
-
-
-
-}
-
+import React, { useEffect, useState } from "react";
+
+;
+
+
+
+
+
+export const VehicleConsumptionChartDetail = ({ vehicleID, startDate }) => {
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
 //export default VehicleConsumptionChartDetail;
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionFormDetails\vehicleConsumptionForm.js
 
-import React, { useCallback, useEffect, useState } from "react";
-import axios from "axios";
-import Form, {
-    ButtonItem,
-    GroupItem,
-    SimpleItem,
-    Item,
-    Label,
-    CompareRule,
-    EmailRule,
-    PatternRule,
-    RangeRule,
-    RequiredRule,
-    StringLengthRule,
-    AsyncRule,
-    CustomRule,
-    FormTypes,
-  } from 'devextreme-react/form';
-  import { Lookup } from "devextreme-react";
-  import CustomStore from 'devextreme/data/custom_store';
-import { FormItem} from 'devextreme-react/form';
-import {getConsumptionById, getVehicleByKey,getEmployeeList,getEmployeeBySite ,getExpectedAvgBySiteIdAndVehicleId} from "../../dataservice";
-
-
-const apiUrl = process.env.REACT_APP_FMS_API_URL;
-
-
-
-export const VehicleConsumptionFormDetails = ({editData}) => {
-     
-  const [expectedAverageData, setExpectedAverageData] = useState();
-  const [employeeData, setEmployeeData] = useState();
-  const [selectedEmployee, setSelectedEmployee] = useState(); 
-  const [defaultEmployee, setDefaultEmployee] = useState();
-  const [totalDistance, setTotalDistance] = useState(editData.totalDistance);
-  const [engHours, setEngHours] = useState(editData.engHours);
-  const [totalFuel, setTotalFuel] = useState(editData.totalFuel);
-  const [expectedAveraged, setExpectedAveraged] = useState(editData.expectedAveraged);
-
-
-
-  
-
-
-  const fetchData = useCallback(async (siteID, vehicleID) => {
-    try {
-      const [vehicleResponse, expectedAvgResponse,consumptionResponse] = await Promise.all([
-        getVehicleByKey(vehicleID),
-        getExpectedAvgBySiteIdAndVehicleId(vehicleID, siteID),
-        getConsumptionById(editData.id)
-      ]);
-  
-     
-    if (vehicleResponse && vehicleResponse.defaultEmployee) {
-      setDefaultEmployee(vehicleResponse.defaultEmployee.fullName);
-    }
-
-    if (expectedAvgResponse) {
-      setExpectedAverageData(expectedAvgResponse);
-    }
-
-    if (consumptionResponse && consumptionResponse.employee) {
-      setEmployeeData([consumptionResponse.employee]);
-    
-      }
-      //if (employeeResponse) {
-      //  const modifiedEmployeeData = employeeResponse.map((emp) => ({
-       //   ...emp,
-     //     displayString: `${emp.fullName}: ${emp.vehicles && emp.vehicles.slice(0, 2).map((v) => v.hyoungNo).join(", ")}`,
-      //  }));
-       // setEmployeeData(modifiedEmployeeData);
-      
-    } catch (error) {
-      console.error("Error loading data:", error);
-      // Handle the error appropriately (e.g., show an error message)
-    }
-  }, [getConsumptionById,getVehicleByKey, getExpectedAvgBySiteIdAndVehicleId]);
-  
-
-
-  useEffect(() => {
-    console.log("Edit Data", editData);
-  
-    if (editData.siteId && editData.vehicleId) {
-      fetchData(editData.siteId, editData.vehicleId);
-    }
-  }, [editData.siteId, editData.vehicleId, fetchData]);
-
-  const onEmployeeChanged = (e) => {
-    const selectedEmployeeID = e.value;
-    if (employeeData) {
-      const selectedEmployee = employeeData.find((emp) => emp.id === selectedEmployeeID);
-      if (selectedEmployee) {
-        setSelectedEmployee(selectedEmployee);
-      }
-    }
-  };
-
-const employeeEditorOptions = {
-  dataSource: employeeData || [],
-  valueExpr: 'id',
-  displayExpr: 'fullName',
-  onValueChanged: onEmployeeChanged,
-  value: editData.employeeId
-};
-
-
-  const calculateFuelLost = () => {
-    let fuelLost = 0;
-
-  if (editData.isAverageKm) {
-    if (expectedAveraged && totalDistance && totalFuel && expectedAveraged < totalDistance / totalFuel && totalDistance / totalFuel > 0) {
-      fuelLost = totalFuel - (totalDistance / expectedAveraged);
-    }
-  } else {
-    if (expectedAveraged && engHours && totalFuel && expectedAveraged > totalFuel / engHours && totalFuel / engHours > 0) {
-      fuelLost = totalFuel - (expectedAveraged * engHours);
-    }
-  }
-
-  return fuelLost.toFixed(2);
-};
-
-const handleTotalDistanceChange = (e) => {
-  setTotalDistance(e.value);
-};
-
-const handleEngHoursChange = (e) => {
-  setEngHours(e.value);
-};
-
-const handleTotalFuelChange = (e) => {
-  setTotalFuel(e.value);
-};
-
-const handleExpectedAveragedChange = (e) => {
-  setExpectedAveraged(e.value);
-};
-;
-
-
-return (
-
-
-  <Form formData={editData}>
-    <label text="%{editData.vehicleId} Consumption Form" />
-   <GroupItem colCount={4}>
-  <GroupItem caption="Employee Details">
-  <Item
-            dataField="employeeId"
-            caption="Default Employee"           
-            editorType="dxSelectBox"
-            editorOptions={employeeEditorOptions}
-            
-          />
-
-
-           <Item
-            dataField="employeeWorkNo"
-            caption="Work Number"
-            editorOptions={{ readOnly: true, value: selectedEmployee?.employeeWorkNo }}
-          />
-        <Item
-            dataField="employeePhoneNumber"
-            caption="Phone Number"
-            editorOptions={{ readOnly: true, value: selectedEmployee?.employeePhoneNumber }}
-          />
-
-    </GroupItem>
-    <Item itemType="group" caption="Operation Details">
-    <Item dataField="isNightShift" caption="Night Shift"
-      editorType="dxCheckBox"
-     />
-    <Item dataField="isAverageKm" caption="Km/l"        editorType="dxCheckBox"
-/>
-    <Item
-            dataField="comments"
-            caption="Comments"
-            editorType="dxTextArea"
-            colSpan={2}
-            editorOptions={{ height: 140 }}
-          />
-     </Item>
-     <Item itemType="group" caption="Vehicle Telemetry Details">
-          <Item
-            dataField="totalDistance"
-            caption="Distance"
-            editorType="dxNumberBox"
-            editorOptions={{
-              format: "#0.## km",
-              value: totalDistance / 1000,
-              placeholder: "km",
-              onValueChanged: handleTotalDistanceChange,
-            }}
-          />
-  <Item
-            dataField="engHours"
-            caption="Engine Hours"
-            editorType="dxNumberBox"
-            editorOptions={{
-              format: "#0.## hrs",
-              value: engHours / 3600,
-              placeholder: "hrs",
-              onValueChanged: handleEngHoursChange,
-            }}
-          />
-          <Item
-            dataField="maxSpeed"
-            caption="Max Speed"
-            editorType="dxNumberBox"
-            editorOptions={{
-              format: "#0.## km/h",
-              placeholder: "km/h",
-            }}
-          />
-          <Item
-            dataField="avgSpeed"
-            caption="Avg Speed"
-            editorType="dxNumberBox"
-            editorOptions={{
-              format: "#0.## km/h",
-              placeholder: "km/h",
-            }}
-          />
-        </Item>
-
-        <Item itemType="group" caption="Fuel Details">
-          <Item
-            dataField="totalFuel"
-            caption="Total Fuel used"
-            editorType="dxNumberBox"
-            editorOptions={{
-              format: "#0.## liters",
-              placeholder: "liters",
-              onValueChanged: handleTotalFuelChange,
-            }}
-          />
-          <Item dataField="expectedAveraged" caption="Expected Averaged">
-            <Lookup
-             dataSource={expectedAverageData}
-             valueExpr="id"
-             displayExpr="expectedAveraged"
-             value={expectedAveraged}
-             onValueChanged={handleExpectedAveragedChange}
-            />
-          </Item>
-          <Item
-            dataField="fuelEfficiency"
-            caption="Fuel Efficiency"
-            editorType="dxNumberBox"
-          />
-          <Item
-            dataField="fuelLost"
-            caption="Fuel Lost"
-            editorOptions={{ readOnly: true, value: calculateFuelLost() }}
-          />
-        </Item>
-
-
-
-    </GroupItem>
-
-
-
-    </Form>
-
-
-)
-}
+import React, { useCallback, useEffect, useState } from "react";
+
+import axios from "axios";
+
+import Form, {
+
+    ButtonItem,
+
+    GroupItem,
+
+    SimpleItem,
+
+    Item,
+
+    Label,
+
+    CompareRule,
+
+    EmailRule,
+
+    PatternRule,
+
+    RangeRule,
+
+    RequiredRule,
+
+    StringLengthRule,
+
+    AsyncRule,
+
+    CustomRule,
+
+    FormTypes,
+
+  } from 'devextreme-react/form';
+
+  import { Lookup } from "devextreme-react";
+
+  import CustomStore from 'devextreme/data/custom_store';
+
+import { FormItem} from 'devextreme-react/form';
+
+import {getConsumptionById, getVehicleByKey,getEmployeeList,getEmployeeBySite ,getExpectedAvgBySiteIdAndVehicleId} from "../../dataservice";
+
+
+
+
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+
+
+
+
+export const VehicleConsumptionFormDetails = ({editData}) => {
+
+
+
+  const [expectedAverageData, setExpectedAverageData] = useState();
+
+  const [employeeData, setEmployeeData] = useState();
+
+  const [selectedEmployee, setSelectedEmployee] = useState();
+
+  const [defaultEmployee, setDefaultEmployee] = useState();
+
+  const [totalDistance, setTotalDistance] = useState(editData.totalDistance);
+
+  const [engHours, setEngHours] = useState(editData.engHours);
+
+  const [totalFuel, setTotalFuel] = useState(editData.totalFuel);
+
+  const [expectedAveraged, setExpectedAveraged] = useState(editData.expectedAveraged);
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const fetchData = useCallback(async (siteID, vehicleID) => {
+
+    try {
+
+      const [vehicleResponse, expectedAvgResponse,consumptionResponse] = await Promise.all([
+
+        getVehicleByKey(vehicleID),
+
+        getExpectedAvgBySiteIdAndVehicleId(vehicleID, siteID),
+
+        getConsumptionById(editData.id)
+
+      ]);
+
+
+
+
+
+    if (vehicleResponse && vehicleResponse.defaultEmployee) {
+
+      setDefaultEmployee(vehicleResponse.defaultEmployee.fullName);
+
+    }
+
+
+
+    if (expectedAvgResponse) {
+
+      setExpectedAverageData(expectedAvgResponse);
+
+    }
+
+
+
+    if (consumptionResponse && consumptionResponse.employee) {
+
+      setEmployeeData([consumptionResponse.employee]);
+
+
+
+      }
+
+      //if (employeeResponse) {
+
+      //  const modifiedEmployeeData = employeeResponse.map((emp) => ({
+
+       //   ...emp,
+
+     //     displayString: `${emp.fullName}: ${emp.vehicles && emp.vehicles.slice(0, 2).map((v) => v.hyoungNo).join(", ")}`,
+
+      //  }));
+
+       // setEmployeeData(modifiedEmployeeData);
+
+
+
+    } catch (error) {
+
+      console.error("Error loading data:", error);
+
+      // Handle the error appropriately (e.g., show an error message)
+
+    }
+
+  }, [getConsumptionById,getVehicleByKey, getExpectedAvgBySiteIdAndVehicleId]);
+
+
+
+
+
+
+
+  useEffect(() => {
+
+    console.log("Edit Data", editData);
+
+
+
+    if (editData.siteId && editData.vehicleId) {
+
+      fetchData(editData.siteId, editData.vehicleId);
+
+    }
+
+  }, [editData.siteId, editData.vehicleId, fetchData]);
+
+
+
+  const onEmployeeChanged = (e) => {
+
+    const selectedEmployeeID = e.value;
+
+    if (employeeData) {
+
+      const selectedEmployee = employeeData.find((emp) => emp.id === selectedEmployeeID);
+
+      if (selectedEmployee) {
+
+        setSelectedEmployee(selectedEmployee);
+
+      }
+
+    }
+
+  };
+
+
+
+const employeeEditorOptions = {
+
+  dataSource: employeeData || [],
+
+  valueExpr: 'id',
+
+  displayExpr: 'fullName',
+
+  onValueChanged: onEmployeeChanged,
+
+  value: editData.employeeId
+
+};
+
+
+
+
+
+  const calculateFuelLost = () => {
+
+    let fuelLost = 0;
+
+
+
+  if (editData.isAverageKm) {
+
+    if (expectedAveraged && totalDistance && totalFuel && expectedAveraged < totalDistance / totalFuel && totalDistance / totalFuel > 0) {
+
+      fuelLost = totalFuel - (totalDistance / expectedAveraged);
+
+    }
+
+  } else {
+
+    if (expectedAveraged && engHours && totalFuel && expectedAveraged > totalFuel / engHours && totalFuel / engHours > 0) {
+
+      fuelLost = totalFuel - (expectedAveraged * engHours);
+
+    }
+
+  }
+
+
+
+  return fuelLost.toFixed(2);
+
+};
+
+
+
+const handleTotalDistanceChange = (e) => {
+
+  setTotalDistance(e.value);
+
+};
+
+
+
+const handleEngHoursChange = (e) => {
+
+  setEngHours(e.value);
+
+};
+
+
+
+const handleTotalFuelChange = (e) => {
+
+  setTotalFuel(e.value);
+
+};
+
+
+
+const handleExpectedAveragedChange = (e) => {
+
+  setExpectedAveraged(e.value);
+
+};
+
+;
+
+
+
+
+
+return (
+
+
+
+
+
+  <Form formData={editData}>
+
+    <label text="%{editData.vehicleId} Consumption Form" />
+
+   <GroupItem colCount={4}>
+
+  <GroupItem caption="Employee Details">
+
+  <Item
+
+            dataField="employeeId"
+
+            caption="Default Employee"
+
+            editorType="dxSelectBox"
+
+            editorOptions={employeeEditorOptions}
+
+
+
+          />
+
+
+
+
+
+           <Item
+
+            dataField="employeeWorkNo"
+
+            caption="Work Number"
+
+            editorOptions={{ readOnly: true, value: selectedEmployee?.employeeWorkNo }}
+
+          />
+
+        <Item
+
+            dataField="employeePhoneNumber"
+
+            caption="Phone Number"
+
+            editorOptions={{ readOnly: true, value: selectedEmployee?.employeePhoneNumber }}
+
+          />
+
+
+
+    </GroupItem>
+
+    <Item itemType="group" caption="Operation Details">
+
+    <Item dataField="isNightShift" caption="Night Shift"
+
+      editorType="dxCheckBox"
+
+     />
+
+    <Item dataField="isAverageKm" caption="Km/l"        editorType="dxCheckBox"
+
+/>
+
+    <Item
+
+            dataField="comments"
+
+            caption="Comments"
+
+            editorType="dxTextArea"
+
+            colSpan={2}
+
+            editorOptions={{ height: 140 }}
+
+          />
+
+     </Item>
+
+     <Item itemType="group" caption="Vehicle Telemetry Details">
+
+          <Item
+
+            dataField="totalDistance"
+
+            caption="Distance"
+
+            editorType="dxNumberBox"
+
+            editorOptions={{
+
+              format: "#0.## km",
+
+              value: totalDistance / 1000,
+
+              placeholder: "km",
+
+              onValueChanged: handleTotalDistanceChange,
+
+            }}
+
+          />
+
+  <Item
+
+            dataField="engHours"
+
+            caption="Engine Hours"
+
+            editorType="dxNumberBox"
+
+            editorOptions={{
+
+              format: "#0.## hrs",
+
+              value: engHours / 3600,
+
+              placeholder: "hrs",
+
+              onValueChanged: handleEngHoursChange,
+
+            }}
+
+          />
+
+          <Item
+
+            dataField="maxSpeed"
+
+            caption="Max Speed"
+
+            editorType="dxNumberBox"
+
+            editorOptions={{
+
+              format: "#0.## km/h",
+
+              placeholder: "km/h",
+
+            }}
+
+          />
+
+          <Item
+
+            dataField="avgSpeed"
+
+            caption="Avg Speed"
+
+            editorType="dxNumberBox"
+
+            editorOptions={{
+
+              format: "#0.## km/h",
+
+              placeholder: "km/h",
+
+            }}
+
+          />
+
+        </Item>
+
+
+
+        <Item itemType="group" caption="Fuel Details">
+
+          <Item
+
+            dataField="totalFuel"
+
+            caption="Total Fuel used"
+
+            editorType="dxNumberBox"
+
+            editorOptions={{
+
+              format: "#0.## liters",
+
+              placeholder: "liters",
+
+              onValueChanged: handleTotalFuelChange,
+
+            }}
+
+          />
+
+          <Item dataField="expectedAveraged" caption="Expected Averaged">
+
+            <Lookup
+
+             dataSource={expectedAverageData}
+
+             valueExpr="id"
+
+             displayExpr="expectedAveraged"
+
+             value={expectedAveraged}
+
+             onValueChanged={handleExpectedAveragedChange}
+
+            />
+
+          </Item>
+
+          <Item
+
+            dataField="fuelEfficiency"
+
+            caption="Fuel Efficiency"
+
+            editorType="dxNumberBox"
+
+          />
+
+          <Item
+
+            dataField="fuelLost"
+
+            caption="Fuel Lost"
+
+            editorOptions={{ readOnly: true, value: calculateFuelLost() }}
+
+          />
+
+        </Item>
+
+
+
+
+
+
+
+    </GroupItem>
+
+
+
+
+
+
+
+    </Form>
+
+
+
+
+
+)
+
+}
+
 
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionGrid\vehicleConsumptionDataGrid.js
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ScrollView from 'devextreme-react/scroll-view';
-import consumptionDataGridRules from '../../utils/consumptionDataGridRules';
-import DataGrid, {
-  Column, Selection, Sorting, HeaderFilter, DataGridTypes,
-  RequiredRule, Paging, Pager, Editing, Scrolling, LoadPanel,Lookup
-} from 'devextreme-react/data-grid';
-
-import { getEmployeeList } from '../../dataservice';
-
-import SelectBox from 'devextreme-react/select-box';
-
-
-
-export const VehicleConsumptionGridList = (dataSource) => {
-  const [data, setData] = useState();
-  const navigate = useNavigate();
- // const employeeData = getEmployeeList();
-
-
-
-
-const onRowPrepared = (e) => {
-  const rowData = e.data;
-
-  consumptionDataGridRules.forEach((rule) => {
-    if (rule.condition(rowData)) {
-      e.rowElement.classList.add(rule.rowClassName);
-    }
-  });
-};
-
-
-useEffect(() => {
-  // Perform any side effects or data fetching here
-  setData(dataSource.dataSource);
-  }, [dataSource]); // Empty dependency array means the effect runs only once on component mount
-
-  const navigationToDetails = useCallback((rowData) => {
-    navigate(`/vehicleConsumptionDetails/${rowData.data.id}`);
-  }, [navigate]);
-
-// const toogleUseNavigation = useCallback(() => {
-//   useNavigation = !useNavigation;
-// }, []);
-
-
-return(
-  <div>
-    <DataGrid
-    className='theme-dependent'
-
-      dataSource={data}
-      showBorders={true}
-      showColumnLines={true}
-      showRowLines={true}
-      rowAlternationEnabled={true}
-      columnAutoWidth={true}
-      allowColumnReordering={true}
-      allowColumnResizing={true}
-      allowColumnDragging={true}
-      allowColumnGrouping={true}
-      onRowPrepared={onratechange}
-      allowColumnHiding={true}
-      showColumnHeaders={true}
-       hoverStateEnabled={true}
-      //  onEditingStart={toogleUseNavigation}
-      //  onEditCanceled={toogleUseNavigation}
-      //  onSaved={toogleUseNavigation}
-       onRowClick={navigationToDetails}
-      >
-        <LoadPanel enabled={false} />
-        <scrolling mode="virtual" />
-        <Paging defaultPageSize={20} />
-        <Pager
-          showPageSizeSelector={true}
-          allowedPageSizes={[5, 10, 20]}
-          showInfo={true} />
-          <Editing mode="row" allowUpdating={true} allowDeleting={false} useIcons={true} />
-          <Selection mode="multiple" selectAllMode={'allPages'} showCheckBoxesMode={'always'} />
-          <Sorting mode="multiple" />
-          <HeaderFilter visible={true} />
-          
-          <Column dataField="date"
-                    width={100}
-                    FilterRow={false}
-                    fixed={true}
-                    dataType="date"
-                    caption="Date" 
-                    allowEditing={false}
-                    />
-          <Column dataField="vehicleId" visible={false} caption="Vehicle ID" />
-          <Column dataField="hyoungNo" allowEditing={false}   fixed={true} caption="Hyoung No" />
-          <Column dataField='defaultEmployees'  caption="Employee Details" width={200}allowSorting={false} >  
-          </Column>               
-          <Column dataField="maxSpeed" caption="Max Speed" />
-          <Column dataField="avgSpeed" caption="AVG Speed" />
-          <Column dataField="totalDistance"
-
-          dataType="number"
-          caption="Distance"
-          cellRender={({ value }) => (value / 1000).toFixed(2)
-          }
-        />
-         <Column dataField="engHours"
-                    caption="Engine Hours"
-                    format={{ type: 'fixedPoint', precision: 1 }}
-                    cellRender={({ value }) => (value / 3600).toFixed(2)}
-                />
-                  <Column dataField="totalFuel"
-                    visible={true}
-                    caption="Fuel" />
-
-     <Column dataField="expectedAveraged" caption="Expected Averaged" >
-                {/* <Lookup dataSource={expectedAveragedDataSource} valueExpr="id" displayExpr="expectedAveragevalue" /> */}
-                </Column>
-                <Column dataField="fuelEfficiency" caption="Fuel Efficiency" />
-                <Column dataField="fuelLost" caption="Fuel Lost" />
-          
-                <Column dataField="siteId" caption="Site" >
-                   {/* <Lookup dataSource={siteDataSource} valueExpr="id" displayExpr="name" />*/}
-                </Column>
-      </DataGrid>
-      </div>
-)
-
-
-};
-
-export default VehicleConsumptionGridList;
-
+import React, { useEffect, useState, useCallback } from 'react';
+
+import { useNavigate } from 'react-router-dom';
+
+import ScrollView from 'devextreme-react/scroll-view';
+
+import consumptionDataGridRules from '../../utils/consumptionDataGridRules';
+
+import DataGrid, {
+
+  Column, Selection, Sorting, HeaderFilter, DataGridTypes,
+
+  RequiredRule, Paging, Pager, Editing, Scrolling, LoadPanel,Lookup
+
+} from 'devextreme-react/data-grid';
+
+
+
+import { getEmployeeList } from '../../dataservice';
+
+
+
+import SelectBox from 'devextreme-react/select-box';
+
+
+
+
+
+
+
+export const VehicleConsumptionGridList = (dataSource) => {
+
+  const [data, setData] = useState();
+
+  const navigate = useNavigate();
+
+ // const employeeData = getEmployeeList();
+
+
+
+
+
+
+
+
+
+const onRowPrepared = (e) => {
+
+  const rowData = e.data;
+
+
+
+  consumptionDataGridRules.forEach((rule) => {
+
+    if (rule.condition(rowData)) {
+
+      e.rowElement.classList.add(rule.rowClassName);
+
+    }
+
+  });
+
+};
+
+
+
+
+
+useEffect(() => {
+
+  // Perform any side effects or data fetching here
+
+  setData(dataSource.dataSource);
+
+  }, [dataSource]); // Empty dependency array means the effect runs only once on component mount
+
+
+
+  const navigationToDetails = useCallback((rowData) => {
+
+    navigate(`/vehicleConsumptionDetails/${rowData.data.id}`);
+
+  }, [navigate]);
+
+
+
+// const toogleUseNavigation = useCallback(() => {
+
+//   useNavigation = !useNavigation;
+
+// }, []);
+
+
+
+
+
+return(
+
+  <div>
+
+    <DataGrid
+
+    className='theme-dependent'
+
+
+
+      dataSource={data}
+
+      showBorders={true}
+
+      showColumnLines={true}
+
+      showRowLines={true}
+
+      rowAlternationEnabled={true}
+
+      columnAutoWidth={true}
+
+      allowColumnReordering={true}
+
+      allowColumnResizing={true}
+
+      allowColumnDragging={true}
+
+      allowColumnGrouping={true}
+
+      onRowPrepared={onratechange}
+
+      allowColumnHiding={true}
+
+      showColumnHeaders={true}
+
+       hoverStateEnabled={true}
+
+      //  onEditingStart={toogleUseNavigation}
+
+      //  onEditCanceled={toogleUseNavigation}
+
+      //  onSaved={toogleUseNavigation}
+
+       onRowClick={navigationToDetails}
+
+      >
+
+        <LoadPanel enabled={false} />
+
+        <scrolling mode="virtual" />
+
+        <Paging defaultPageSize={20} />
+
+        <Pager
+
+          showPageSizeSelector={true}
+
+          allowedPageSizes={[5, 10, 20]}
+
+          showInfo={true} />
+
+          <Editing mode="row" allowUpdating={true} allowDeleting={false} useIcons={true} />
+
+          <Selection mode="multiple" selectAllMode={'allPages'} showCheckBoxesMode={'always'} />
+
+          <Sorting mode="multiple" />
+
+          <HeaderFilter visible={true} />
+
+
+
+          <Column dataField="date"
+
+                    width={100}
+
+                    FilterRow={false}
+
+                    fixed={true}
+
+                    dataType="date"
+
+                    caption="Date"
+
+                    allowEditing={false}
+
+                    />
+
+          <Column dataField="vehicleId" visible={false} caption="Vehicle ID" />
+
+          <Column dataField="hyoungNo" allowEditing={false}   fixed={true} caption="Hyoung No" />
+
+          <Column dataField='defaultEmployees'  caption="Employee Details" width={200}allowSorting={false} >
+
+          </Column>
+
+          <Column dataField="maxSpeed" caption="Max Speed" />
+
+          <Column dataField="avgSpeed" caption="AVG Speed" />
+
+          <Column dataField="totalDistance"
+
+
+
+          dataType="number"
+
+          caption="Distance"
+
+          cellRender={({ value }) => (value / 1000).toFixed(2)
+
+          }
+
+        />
+
+         <Column dataField="engHours"
+
+                    caption="Engine Hours"
+
+                    format={{ type: 'fixedPoint', precision: 1 }}
+
+                    cellRender={({ value }) => (value / 3600).toFixed(2)}
+
+                />
+
+                  <Column dataField="totalFuel"
+
+                    visible={true}
+
+                    caption="Fuel" />
+
+
+
+     <Column dataField="expectedAveraged" caption="Expected Averaged" >
+
+                {/* <Lookup dataSource={expectedAveragedDataSource} valueExpr="id" displayExpr="expectedAveragevalue" /> */}
+
+                </Column>
+
+                <Column dataField="fuelEfficiency" caption="Fuel Efficiency" />
+
+                <Column dataField="fuelLost" caption="Fuel Lost" />
+
+
+
+                <Column dataField="siteId" caption="Site" >
+
+                   {/* <Lookup dataSource={siteDataSource} valueExpr="id" displayExpr="name" />*/}
+
+                </Column>
+
+      </DataGrid>
+
+      </div>
+
+)
+
+
+showCloseButton
+
+
+
+};
+
+
+
+export default VehicleConsumptionGridList;
+
+
+
 
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionHistoryDetails\vehicleConsumptionHistoryDetails.js
 
-import React, { useCallback, useEffect,useState } from "react";
-
-
-export const VehicleConsumptionHistoryDetails = (vehicleID,startDate) => {
-    
+import React, { useCallback, useEffect,useState } from "react";
+
+
+
+
+
+export const VehicleConsumptionHistoryDetails = (vehicleID,startDate) => {
+
+
+
 }
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionMapDetails\vehicleConsumptionMap.js
 
-import react from 'react';
-import axios from 'axios';
-import { CustomStore } from 'devextreme/data/custom_store';
-
-
-
-export const VehicleConsumptionMapDetails = (vehicleID,startDate) => {
+import react from 'react';
+
+import axios from 'axios';
+
+import { CustomStore } from 'devextreme/data/custom_store';
+
+
+
+
+
+
+
+export const VehicleConsumptionMapDetails = (vehicleID,startDate) => {
+
 }
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\auth.js
@@ -1529,218 +1955,427 @@ export {
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\index.js
 
-import axios  from "axios";
-import CustomStore from "devextreme/data/custom_store";
-
-const apiUrl = process.env.REACT_APP_FMS_API_URL;
-
-export const getVehicleList = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/vehicle/getlist`);
-    return response.data;
-  } catch (error) {
-    console.error('Error loading vehicle data:', error);
-    throw new Error('Data loading error');
-  }
-};
-
-export const updateVehicle = async (key, values) => {
-  try {
-    // Retrieve the original data
-    const originalData = await getVehicleByKey(key);
-    const updatedData = { ...originalData, ...values, vehicleId: key };
-
-    // Update the data
-    const updateResponse = await axios.put(`${apiUrl}/vehicle/UpdateVehicle/${key}`, updatedData);
-    return updateResponse.data;
-  } catch (error) {
-    console.error('Error updating vehicle data:', error);
-    throw new Error('Data updating error');
-  }
-};
-
-export const getVehicleByKey = async (key) => {
-  try {
-    const response = await axios.get(`${apiUrl}/vehicle/getvehiclebyid`, {
-      params: { id: key }
-    });
-return  response.data;
-  } catch (error) {
-    console.error('Error fetching vehicle by key:', error);
-    throw new Error('Error in byKey operation');
-  }
-};
-
-export const getVehicleDataSource = () => {
-  return new CustomStore({
-    key: 'vehicleId',
-    load: getVehicleList,
-    update: updateVehicle,
-    byKey: getVehicleByKey
-  });
-};
-
-
-
-export const getManufacturers = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/VehicleManufacturer/getlist`);
-    return response.data;
-  } catch (error) {
-    console.error('Error loading manufacturers data:', error);
-    throw new Error('Data loading error');
-  }
-};
-
-// Fetch vehicle models data
-export const getVehicleModels = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/VehicleModel/getlist`);
-    return response.data;
-  } catch (error) {
-    console.error('Error loading vehicle models data:', error);
-    throw new Error('Data loading error');
-  }
-};
-
-export const getVehicleModelByVehicleManfuacturerId = async (manufacturerId) => {
-  try {
-    const response = await axios.get(`${apiUrl}/VehicleModel/GetVehicleModelsByManufacturerId`, {
-      params: { manufacturerId: manufacturerId }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error loading vehicle models data:', error);
-    throw new Error('Data loading error');
-  }
-}
-
-// Fetch expected average data
-export const getExpectedAvg = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/expectedavg/getlist`);
-    return response.data;
-  } catch (error) {
-    console.error('Error loading expected average data:', error);
-    throw new Error('Data loading error');
-  }
-};
-
-
-//get expectded Average by SiteiD and Vehicle ID 
-export const getExpectedAvgBySiteIdAndVehicleId = async (vehicleId,siteId) => {
-  try {
-
-      const response = await axios.get(`${apiUrl}/expectedavg/getlistbyvehiclebysite`, {
-        params: {vehicleid: vehicleId, siteid: siteId }
-      });
-      return response.data;
-  }
-  catch (error) {
-    console.error('Error loading expected average data:', error);
-    throw new Error('Data loading error');
-  }
-};
-
-
-
-export const getSiteList = async () => { 
-  try {
-    const response = await axios.get(`${apiUrl}/site/getlist`);
-    return response.data;
-  } catch (error) {
-    console.error('Error loading site data:', error);
-    throw new Error('Data loading error');
-  }
-}
-//Fetch Employees
-
-export const getEmployeeList = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/employee/getlist`);
-    return response.data;
-  } catch (error) {
-    console.error('Error loading employee data:', error);
-    throw new Error('Data loading error');
-  }
-}
-
-
-//get Employee by Site ID
-export const getEmployeeBySite = async (siteID) => {
-  try {
-    const response = await axios.get(`${apiUrl}/employee/getemployeebysiteid`, {
-      params: { siteid: siteID }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error loading employee data:', error);
-    throw new Error('Data loading error');
-  }
-}
-
-
-
-
-
-
-// Fetch vehicle type data
-  export const getVehicleTypeList = async () => { 
-    try {
-      const response = await axios.get(`${apiUrl}/vehicleType/getlist`);
-      return response.data;
-    } catch (error) {
-      console.error('Error loading vehicle type data:', error);
-      throw new Error('Data loading error');
-    }
-  }
-
-
-  export const getConsumptionById = async (id) => {
-    try {
-      const response = await axios.get(`${apiUrl}/consumption/getbyid`, {
-         params: { id: id }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error loading consumption data by ID:', error);
-      throw new Error('Data loading error');
-    }
+import axios  from "axios";
+
+import CustomStore from "devextreme/data/custom_store";
+
+showCloseButton
+
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+export const getVehicleList = async () => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/vehicle/getlist`);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading vehicle data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+};
+
+
+
+export const updateVehicle = async (key, values) => {
+
+  try {
+
+    // Retrieve the original data
+
+    const originalData = await getVehicleByKey(key);
+
+    const updatedData = { ...originalData, ...values, vehicleId: key };
+
+
+
+    // Update the data
+
+    const updateResponse = await axios.put(`${apiUrl}/vehicle/UpdateVehicle/${key}`, updatedData);
+
+    return updateResponse.data;
+
+  } catch (error) {
+
+    console.error('Error updating vehicle data:', error);
+
+    throw new Error('Data updating error');
+
+  }
+
+};
+
+
+
+export const getVehicleByKey = async (key) => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/vehicle/getvehiclebyid`, {
+
+      params: { id: key }
+
+    });
+
+return  response.data;
+
+  } catch (error) {
+
+    console.error('Error fetching vehicle by key:', error);
+
+    throw new Error('Error in byKey operation');
+
+  }
+
+};
+
+
+
+export const getVehicleDataSource = () => {
+
+  return new CustomStore({
+
+    key: 'vehicleId',
+
+    load: getVehicleList,
+
+    update: updateVehicle,
+
+    byKey: getVehicleByKey
+
+  });
+
+};
+
+
+
+
+
+
+
+export const getManufacturers = async () => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/VehicleManufacturer/getlist`);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading manufacturers data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+};
+
+
+
+// Fetch vehicle models data
+
+export const getVehicleModels = async () => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/VehicleModel/getlist`);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading vehicle models data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+};
+
+
+
+export const getVehicleModelByVehicleManfuacturerId = async (manufacturerId) => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/VehicleModel/GetVehicleModelsByManufacturerId`, {
+
+      params: { manufacturerId: manufacturerId }
+
+    });
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading vehicle models data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+}
+
+
+
+// Fetch expected average data
+
+export const getExpectedAvg = async () => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/expectedavg/getlist`);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading expected average data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+};
+
+
+
+
+
+//get expectded Average by SiteiD and Vehicle ID
+
+export const getExpectedAvgBySiteIdAndVehicleId = async (vehicleId,siteId) => {
+
+  try {
+
+
+
+      const response = await axios.get(`${apiUrl}/expectedavg/getlistbyvehiclebysite`, {
+
+        params: {vehicleid: vehicleId, siteid: siteId }
+
+      });
+
+      return response.data;
+
+  }
+
+  catch (error) {
+
+    console.error('Error loading expected average data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+};
+
+
+
+
+
+
+
+export const getSiteList = async () => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/site/getlist`);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading site data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+}
+
+//Fetch Employees
+
+
+
+export const getEmployeeList = async () => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/employee/getlist`);
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading employee data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+}
+
+
+
+
+
+//get Employee by Site ID
+
+export const getEmployeeBySite = async (siteID) => {
+
+  try {
+
+    const response = await axios.get(`${apiUrl}/employee/getemployeebysiteid`, {
+
+      params: { siteid: siteID }
+
+    });
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error('Error loading employee data:', error);
+
+    throw new Error('Data loading error');
+
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Fetch vehicle type data
+
+  export const getVehicleTypeList = async () => {
+
+    try {
+
+      const response = await axios.get(`${apiUrl}/vehicleType/getlist`);
+
+      return response.data;
+
+    } catch (error) {
+
+      console.error('Error loading vehicle type data:', error);
+
+      throw new Error('Data loading error');
+
+    }
+
+  }
+
+
+
+
+
+  export const getConsumptionById = async (id) => {
+
+    try {
+
+      const response = await axios.get(`${apiUrl}/consumption/getbyid`, {
+
+         params: { id: id }
+
+      });
+
+      return response.data;
+
+    } catch (error) {
+
+      console.error('Error loading consumption data by ID:', error);
+
+      throw new Error('Data loading error');
+
+    }
+
   };
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\sampleconsumptiondata.js
 
-const sampleData= [{"id":485828,
-                   "vehicleId":45,
-                 "totalFuel":21,
-              "hyoungNo":"TP113","vehicleType":"TP",
-              "vehicleModel":"ZZ3257N3247B",
-              "vehicleManufacturer":"SINOTRUK HOWO",
-              "expectedAveraged":43,
-              "defaultEmployees":28487,
-              "siteId":1,
-              "excessWorkingHrCost":null,
-              "date":"2023-05-09T08:00:55",
-              "maxSpeed":13.10,
-              "avgSpeed":4.70,
-              "totalDistance":44407,
-              "fuelLost":0,
-              "isAverageKm":true,
-              "flowMeterFuelUsed":null,
-              "flowMeterFuelLost":0,
-              "flowMeterEffiency":0,
-              "fuelEfficiency":0.00,"engHours":null,
-              "flowMeterEngineHrs":null,
-              "isNightShift":false,"comments":"Demo data","isModified":false},
-              {"id":485876,"vehicleId":52,"totalFuel":15,"hyoungNo":"TP119","vehicleType":"TP",
-              "vehicleModel":"ZZ3257N3247B","vehicleManufacturer":"SINOTRUK HOWO","expectedAveraged":0,"defaultEmployees":28489,
-              "siteId":18,"excessWorkingHrCost":null,"date":"2023-05-09T00:00:03","maxSpeed":9.70,"avgSpeed":1.80,"totalDistance":26787,
-              "fuelLost":0,"isAverageKm":true,"flowMeterFuelUsed":null,"flowMeterFuelLost":0,"flowMeterEffiency":0,"fuelEfficiency":0.00,"engHours":null,
-              "flowMeterEngineHrs":null,"isNightShift":false,"comments":"Demo data","isModified":false}]
-
-
-export default sampleData;
-
+const sampleData= [{"id":485828,
+
+                   "vehicleId":45,
+
+                 "totalFuel":21,
+
+              "hyoungNo":"TP113","vehicleType":"TP",
+
+              "vehicleModel":"ZZ3257N3247B",
+
+              "vehicleManufacturer":"SINOTRUK HOWO",
+
+              "expectedAveraged":43,
+
+              "defaultEmployees":28487,
+
+              "siteId":1,
+
+              "excessWorkingHrCost":null,
+
+              "date":"2023-05-09T08:00:55",
+
+              "maxSpeed":13.10,
+
+              "avgSpeed":4.70,
+
+              "totalDistance":44407,
+
+              "fuelLost":0,
+
+              "isAverageKm":true,
+
+              "flowMeterFuelUsed":null,
+
+              "flowMeterFuelLost":0,
+
+              "flowMeterEffiency":0,
+
+              "fuelEfficiency":0.00,"engHours":null,
+
+              "flowMeterEngineHrs":null,
+
+              "isNightShift":false,"comments":"Demo data","isModified":false},
+
+              {"id":485876,"vehicleId":52,"totalFuel":15,"hyoungNo":"TP119","vehicleType":"TP",
+
+              "vehicleModel":"ZZ3257N3247B","vehicleManufacturer":"SINOTRUK HOWO","expectedAveraged":0,"defaultEmployees":28489,
+
+              "siteId":18,"excessWorkingHrCost":null,"date":"2023-05-09T00:00:03","maxSpeed":9.70,"avgSpeed":1.80,"totalDistance":26787,
+
+              "fuelLost":0,"isAverageKm":true,"flowMeterFuelUsed":null,"flowMeterFuelLost":0,"flowMeterEffiency":0,"fuelEfficiency":0.00,"engHours":null,
+
+              "flowMeterEngineHrs":null,"isNightShift":false,"comments":"Demo data","isModified":false}]
+
+
+
+
+
+export default sampleData;
+
+
+
 
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\index.js
@@ -2277,31 +2912,31 @@ const apiUrl = process.env.REACT_APP_FMS_API_URL;
 
 
 
-export default  function Vehicles() 
-{ 
+export default  function Vehicles()
+{
     const [expectedAVG, setExpectedAVG] = useState([]);
     const [manufacturers, setManufacturers] = useState([]);
     const [vehicleModels, setVehicleModels] = useState([]);
     const [site, setSite] = useState([]);
     const [employee, setEmployee] = useState([]);
-    const [vehicleType, setVehicleType] = useState([]); 
+    const [vehicleType, setVehicleType] = useState([]);
     const vehicleDataSource = getVehicleDataSource;
 
     const [selectedSiteId, setSelectedSiteId] = useState(null);
         const [selectedManufacturer, setSelectedManufacturer] = useState(null);
-  
+
 
 
     useEffect(() => {
 
         const fetchdata = async () => {
             try{
-            const[ manufacturersResponse, 
+            const[ manufacturersResponse,
               vehicleModelsResponse ,
               expectedAVGResponce ,
                siteResponse,
-               employeeResponse  , vehicleTypeResponse] 
-               
+               employeeResponse  , vehicleTypeResponse]
+
                = await Promise.all([
                 getManufacturers(),
                getVehicleModels(),
@@ -2310,7 +2945,7 @@ export default  function Vehicles()
                   getEmployeeList(),
                   getVehicleTypeList()
             ]);
-              
+
          setManufacturers(manufacturersResponse);
             setVehicleModels(vehicleModelsResponse);
             setExpectedAVG(expectedAVGResponce);
@@ -2320,14 +2955,14 @@ export default  function Vehicles()
         }
         catch(error){
             console.error('Error loading Support data:', error);
-            throw 'Data loading error'; 
+            throw 'Data loading error';
         };
       }
-      
-      
+
+
         fetchdata();
       },[]);
-      
+
 
 
 
@@ -2335,32 +2970,32 @@ export default  function Vehicles()
 
 
 //   const fetchFilteredExpectedAVGData = (options) => {
-  
-  
+
+
 //     if(options.data && options.data.vehicleId && options.data.workingSiteId)
 //     {
-   
+
 //         console.log("expectedAVG", expectedAVG);
 //         console.log("options.data", options.data);
 //         console.log("options.data.vehicleId", options.data.vehicleId);
 //         console.log("options.data.workingSiteId", options.data.workingSiteId);
-  
-        
+
+
 //         const filterData = expectedAVG.filter(item =>
-//              item.vehicleID === options.data.vehicleId && 
+//              item.vehicleID === options.data.vehicleId &&
 //             item.siteId === options.data.workingSiteId);
-  
-//      console.log("Filtered Data:", filterData); 
+
+//      console.log("Filtered Data:", filterData);
 //         return filterData;
-       
+
 //     }else{
 //         console.log("Returning empty array expectedAVG",expectedAVG);
 //         return {store: expectedAVG};
 //     };
-  
+
 //   };
 
-  
+
 
 //   const getFilteredVehicleModels = (options) => {
 //     //console.log("Options.data:", options.data)
@@ -2433,10 +3068,10 @@ const handleManufacturerChange = (selectedRowKeys) => {
                 allowColumnReordering={true}
                 allowColumnResizing={true}
                 columnAutoWidth={true}
-                rowAlernationEnable={true}        
+                rowAlernationEnable={true}
                 repaintChangesOnly={true}>
                 <Paging enabled={true} defaultPageSize={30} />
-                
+
 
                 <FilterRow visible={true} />
                 <HeaderFilter visible={true} />
@@ -2448,9 +3083,9 @@ const handleManufacturerChange = (selectedRowKeys) => {
                     allowDeleting={false}
                     selectTextOnEditStart={true}
                     startEditAction="dblClick"
-                   
+
                     />
-               
+
                 <Column dataField="vehicleId" caption="Vehicle ID" allowEditing={false} visible={false} defaultSortOrder="asc" />
                 <Column dataField="hyoungNo" fixed={true} caption="Hyoung No" allowEditing={false} width={100} />
                 <Column dataField="defaultExpectedAverageId"width={200} caption="Default Expected AVG" alignment="center"
@@ -2483,10 +3118,10 @@ const handleManufacturerChange = (selectedRowKeys) => {
                 <Column dataField="defaultEmployeeId" caption="Default Employee"
                       width={230}  >
                     <Lookup
-                    dataSource={employee} 
-                    valueExpr="id" 
-                    displayExpr="fullName" 
-                   
+                    dataSource={employee}
+                    valueExpr="id"
+                    displayExpr="fullName"
+
                     />
                 </Column>
 
@@ -2500,9 +3135,9 @@ const handleManufacturerChange = (selectedRowKeys) => {
                         displayExpr="name" />
                 </Column>
 
-                <Column dataField="vehicleManufacturerId" 
-                caption="Vehicle Manufacturer"    
-             //   setCellValue = {setManufacturersCellValue}   
+                <Column dataField="vehicleManufacturerId"
+                caption="Vehicle Manufacturer"
+             //   setCellValue = {setManufacturersCellValue}
                 width={230}
 
                 >
@@ -2510,7 +3145,7 @@ const handleManufacturerChange = (selectedRowKeys) => {
                         dataSource={manufacturers}
                         valueExpr="id"
                         displayExpr="name"
-                       
+
 
                     />
                 </Column>
@@ -2523,15 +3158,15 @@ const handleManufacturerChange = (selectedRowKeys) => {
                         displayExpr="name"
                     />
                 </Column>
-                <Column 
-                dataField="excessWorkingHrCost" 
-                caption="Excess Working Hr Cost" 
+                <Column
+                dataField="excessWorkingHrCost"
+                caption="Excess Working Hr Cost"
                 dataType="number"
                 setCellValue={(newData, value) => {
                     // Enforce the number range 0 - 10000
                     newData.excessWorkingHrCost = Math.max(0, Math.min(10000, Number(value)));
                 }}
-                
+
                 />
 
 
@@ -2545,220 +3180,426 @@ const handleManufacturerChange = (selectedRowKeys) => {
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionDetails\vehicleConsumptionDetails.js
 
-import React, { useCallback, useEffect,useState } from "react";
-import { useParams  } from 'react-router-dom';
-import { Toolbar, Item as ToolbarItem } from 'devextreme-react/toolbar';
-import Button from 'devextreme-react/button';
-import ValidationGroup from 'devextreme-react/validation-group';
-import DropDownButton, { Item as DropDownItem } from 'devextreme-react/drop-down-button';
-import TabPanel, { Item as TabPanelItem } from 'devextreme-react/tab-panel';
-import {VehicleConsumptionChartDetail,
-        VehicleConsumptionHistoryDetails,
-        VehicleConsumptionMapDetails,
-        VehicleConsumptionFormDetails} from '../../components';
-        import { getConsumptionById } from '../../dataservice';
-        
-//show form and load history data + map details 
-const VehicleConsumptionDetails= () => {
-  const { id } = useParams();
-    const [consumptionData, setConsumptionData] = useState(null);
- 
- 
-
-    useEffect(() => {
-      const fetchData = async () => {
-        try {
-          const data = await getConsumptionById(id);
-          setConsumptionData(data);
-        } catch (error) {
-          console.error('Error fetching consumption data:', error);
-        }
-      };
-  
-      fetchData();
-    }, [id]);
-
-
-    if (!consumptionData) {
-      return <div>Loading...</div>;
-    }
-
-return (
-  <React.Fragment>
-    <div className="">
-  <Toolbar className='toolbar-details theme-dependent'>
-  <ToolbarItem location='before'>
-            <Button icon='arrowleft' stylingMode='text' />
-    </ToolbarItem>
-
-    <ToolbarItem location='after' locateInMenu='auto'>
-    <DropDownButton text='Actions' stylingMode='text' dropDownOptions={{ width: 'auto' }}>
-    <DropDownItem text='Request Project Admin assistance' />
-    <DropDownItem text='Seek Approval' />
-
-   </DropDownButton>
-     </ToolbarItem>
-   
-  </Toolbar>
-        <div className='content content-block'>
-        <div className='responsive-paddings dx-card '>
-        <ValidationGroup>
-        <VehicleConsumptionFormDetails editData ={consumptionData}/>
-
-       </ValidationGroup>
-            </div>
-
-<div className='content content-block'>
-<div className='dx-card details-card'>
-        <TabPanel
-         showNavButtons
-         focusStateEnabled={false}
-         deferRendering={false}>
-            
-            <TabPanelItem title="chart " >
-            <VehicleConsumptionChartDetail
-                   vehicleID={consumptionData.vehicleId}
-                  startDate={consumptionData.date}/>
-            </TabPanelItem>
-
-            <TabPanelItem title="History ">
-            <VehicleConsumptionHistoryDetails 
-            vehicleID={consumptionData.vehicleId}
-                  startDate={consumptionData.date}/>
-            </TabPanelItem>
-
-            <TabPanelItem title="Map ">
-         <VehicleConsumptionMapDetails
-      vehicleID={consumptionData.vehicleId}
-      startDate={consumptionData.date}
-           />
-            </TabPanelItem>
-
-
-        </TabPanel>
-    </div>
-   </div>
-    </div>
-    </div>
-    </React.Fragment>
-);
-
-
-
-
-};
-export default VehicleConsumptionDetails;
-
+import React, { useCallback, useEffect,useState } from "react";
+
+import { useParams  } from 'react-router-dom';
+
+import { Toolbar, Item as ToolbarItem } from 'devextreme-react/toolbar';
+
+import Button from 'devextreme-react/button';
+
+import ValidationGroup from 'devextreme-react/validation-group';
+
+import DropDownButton, { Item as DropDownItem } from 'devextreme-react/drop-down-button';
+
+import TabPanel, { Item as TabPanelItem } from 'devextreme-react/tab-panel';
+
+import {VehicleConsumptionChartDetail,
+
+        VehicleConsumptionHistoryDetails,
+
+        VehicleConsumptionMapDetails,
+
+        VehicleConsumptionFormDetails} from '../../components';
+
+        import { getConsumptionById } from '../../dataservice';
+
+
+
+//show form and load history data + map details
+
+const VehicleConsumptionDetails= () => {
+
+  const { id } = useParams();
+
+    const [consumptionData, setConsumptionData] = useState(null);
+
+
+
+
+
+
+
+    useEffect(() => {
+
+      const fetchData = async () => {
+
+        try {
+
+          const data = await getConsumptionById(id);
+
+          setConsumptionData(data);
+
+        } catch (error) {
+
+          console.error('Error fetching consumption data:', error);
+
+        }
+
+      };
+
+
+
+      fetchData();
+
+    }, [id]);
+
+
+
+
+
+    if (!consumptionData) {
+
+      return <div>Loading...</div>;
+
+    }
+
+
+
+return (
+
+  <React.Fragment>
+
+    <div className="">
+
+  <Toolbar className='toolbar-details theme-dependent'>
+
+  <ToolbarItem location='before'>
+
+            <Button icon='arrowleft' stylingMode='text' />
+
+    </ToolbarItem>
+
+
+
+    <ToolbarItem location='after' locateInMenu='auto'>
+
+    <DropDownButton text='Actions' stylingMode='text' dropDownOptions={{ width: 'auto' }}>
+
+    <DropDownItem text='Request Project Admin assistance' />
+
+    <DropDownItem text='Seek Approval' />
+
+
+
+   </DropDownButton>
+
+     </ToolbarItem>
+
+
+
+  </Toolbar>
+
+        <div className='content content-block'>
+
+        <div className='responsive-paddings dx-card '>
+
+        <ValidationGroup>
+
+        <VehicleConsumptionFormDetails editData ={consumptionData}/>
+
+
+
+       </ValidationGroup>
+
+            </div>
+
+
+
+<div className='content content-block'>
+
+<div className='dx-card details-card'>
+
+        <TabPanel
+
+         showNavButtons
+
+         focusStateEnabled={false}
+
+         deferRendering={false}>
+
+
+
+            <TabPanelItem title="chart " >
+
+            <VehicleConsumptionChartDetail
+
+                   vehicleID={consumptionData.vehicleId}
+
+                  startDate={consumptionData.date}/>
+
+            </TabPanelItem>
+
+
+
+            <TabPanelItem title="History ">
+
+            <VehicleConsumptionHistoryDetails
+
+            vehicleID={consumptionData.vehicleId}
+
+                  startDate={consumptionData.date}/>
+
+            </TabPanelItem>
+
+
+
+            <TabPanelItem title="Map ">
+
+         <VehicleConsumptionMapDetails
+
+      vehicleID={consumptionData.vehicleId}
+
+      startDate={consumptionData.date}
+
+           />
+
+            </TabPanelItem>
+
+
+
+
+
+        </TabPanel>
+
+    </div>
+
+   </div>
+
+    </div>
+
+    </div>
+
+    </React.Fragment>
+
+);
+
+
+
+
+
+
+
+
+
+};
+
+export default VehicleConsumptionDetails;
+
+
+
 
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionList\vehicleConsumptionList.js
 
-import React, { useState, useEffect ,useRef} from 'react';
-import DataGrid, { Column, Paging, FilterRow, Sorting, ColumnChooser, ColumnFixing, Editing, Popup, Lookup } from 'devextreme-react/data-grid';
-import axios from "axios";
-import CustomStore from 'devextreme/data/custom_store';
-import { HeaderFilter } from 'devextreme-react/pivot-grid-field-chooser';
-import sampleData from '../../dataservice/sampleconsumptiondata';
-import DateBox from 'devextreme-react/date-box';
-import Button from 'devextreme-react/button';
-import LoadPanel from 'devextreme-react/load-panel';
-import Toolbar, { Item } from 'devextreme-react/toolbar';
-import './vehicleConsumption.scss';
-import { VehicleConsumptionGridList } from '../../components';
-const apiUrl = process.env.REACT_APP_FMS_API_URL;
-
- const  VehicleConsumptionList = () => {
-  const [consumptionData, setConsumptionData] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedData, setSelectedData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-
-  const gridRef = useRef(null);
-
-
-
-  const fetchData = async () => {
-
-    // if (!selectedDate) {
-    //     return;
-    // }
-    setLoading(true); // Start loading
-    setConsumptionData(sampleData);
-    setLoading(false); // End loading
-    console.log("sample data",consumptionData);
-};
-
-
-  useEffect(() => {
-    // Perform any side effects or data fetching here
-    fetchData();
-  }, []); // Empty dependency array means the effect runs only once on component mount
-
-  // Rest of your component code...
-
- 
-  return (
-    <React.Fragment>
-  <div className='view-wrapper view-wrapper-list list-page' >
-    <Toolbar className='toolbar-common theme-dependent'>
-        <Item location='before'>
-          <span className='toolbar-header'>Vehicle Consumption</span>
-        </Item>
-        <Item location={'after'} locateInMenu={'auto'} widget={'dxlabel'} >
-          <span className=''>Generate data From GPSGate</span>
-</Item>
-        <Item location='after' locateInMenu='auto' widget='dxtextbox' >
-          <DateBox
-           width={500}
-           defaultValue="select date"
-            value={selectedDate}
-            onValueChanged={e => setSelectedDate(e.value)}
-            displayFormat="dd-MM-yyyy"
-            type="date"
-          />
-        </Item>
-    </Toolbar>
-
-    <LoadPanel container='.content' showPane={false} visible ={loading} position={{ of: '.content' }} />
-    <VehicleConsumptionGridList dataSource={consumptionData}  />
-
-  </div>
-  </React.Fragment>
-  );
-};
-
+import React, { useState, useEffect ,useRef} from 'react';
+
+import DataGrid, { Column, Paging, FilterRow, Sorting, ColumnChooser, ColumnFixing, Editing, Popup, Lookup } from 'devextreme-react/data-grid';
+
+import axios from "axios";
+
+import CustomStore from 'devextreme/data/custom_store';
+
+import { HeaderFilter } from 'devextreme-react/pivot-grid-field-chooser';
+
+import sampleData from '../../dataservice/sampleconsumptiondata';
+
+import DateBox from 'devextreme-react/date-box';
+
+import Button from 'devextreme-react/button';
+
+import LoadPanel from 'devextreme-react/load-panel';
+
+import Toolbar, { Item } from 'devextreme-react/toolbar';
+
+import './vehicleConsumption.scss';
+
+import { VehicleConsumptionGridList } from '../../components';
+
+const apiUrl = process.env.REACT_APP_FMS_API_URL;
+
+
+
+ const  VehicleConsumptionList = () => {
+
+  const [consumptionData, setConsumptionData] = useState([]);
+
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const [selectedData, setSelectedData] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+
+
+
+
+
+  const gridRef = useRef(null);
+
+
+
+
+
+
+
+  const fetchData = async () => {
+
+
+
+    // if (!selectedDate) {
+
+    //     return;
+
+    // }
+
+    setLoading(true); // Start loading
+
+    setConsumptionData(sampleData);
+
+    setLoading(false); // End loading
+
+    console.log("sample data",consumptionData);
+
+};
+
+
+
+
+
+  useEffect(() => {
+
+    // Perform any side effects or data fetching here
+
+    fetchData();
+
+  }, []); // Empty dependency array means the effect runs only once on component mount
+
+
+
+  // Rest of your component code...
+
+
+
+
+
+  return (
+
+    <React.Fragment>
+
+  <div className='view-wrapper view-wrapper-list list-page' >
+
+    <Toolbar className='toolbar-common theme-dependent'>
+
+        <Item location='before'>
+
+          <span className='toolbar-header'>Vehicle Consumption</span>
+
+        </Item>
+
+        <Item location={'after'} locateInMenu={'auto'} widget={'dxlabel'} >
+
+          <span className=''>Generate data From GPSGate</span>
+
+</Item>
+
+        <Item location='after' locateInMenu='auto' widget='dxtextbox' >
+
+          <DateBox
+
+           width={500}
+
+           defaultValue="select date"
+
+            value={selectedDate}
+
+            onValueChanged={e => setSelectedDate(e.value)}
+
+            displayFormat="dd-MM-yyyy"
+
+            type="date"
+
+          />
+
+        </Item>
+
+    </Toolbar>
+
+
+
+    <LoadPanel container='.content' showPane={false} visible ={loading} position={{ of: '.content' }} />
+
+    <VehicleConsumptionGridList dataSource={consumptionData}  />
+
+
+
+  </div>
+
+  </React.Fragment>
+
+  );
+
+};
+
+
+
 export default VehicleConsumptionList;
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\consumptionDataGridRules.js
 
-const consumptionDataGridRules = [
-    {
-      condition: (rowData) => rowData.fuelLost > 0,
-      rowClassName: 'highlight-red',
-    },
-    {
-      condition: (rowData) => rowData.engineHours > 10,
-      rowClassName: 'highlight-red',
-    },
-    {
-      condition: (rowData) => rowData.isKmPerLiter && rowData.distance === 0 && rowData.fuelUsed > 0,
-      rowClassName: 'highlight-yellow',
-    },
-    {
-      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours === 0 && rowData.fuelUsed > 0,
-      rowClassName: 'highlight-yellow',
-    },
-    {
-      condition: (rowData) => rowData.isKmPerLiter && rowData.distance > 10 && rowData.fuelUsed === 0,
-      rowClassName: 'highlight-blue',
-    },
-    {
-      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours > 0.5 && rowData.fuelUsed === 0,
-      rowClassName: 'highlight-blue',
-    },
-  ];
-  
+const consumptionDataGridRules = [
+
+    {
+
+      condition: (rowData) => rowData.fuelLost > 0,
+
+      rowClassName: 'highlight-red',
+
+    },
+
+    {
+
+      condition: (rowData) => rowData.engineHours > 10,
+
+      rowClassName: 'highlight-red',
+
+    },
+
+    {
+
+      condition: (rowData) => rowData.isKmPerLiter && rowData.distance === 0 && rowData.fuelUsed > 0,
+
+      rowClassName: 'highlight-yellow',
+
+    },
+
+    {
+
+      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours === 0 && rowData.fuelUsed > 0,
+
+      rowClassName: 'highlight-yellow',
+
+    },
+
+    {
+
+      condition: (rowData) => rowData.isKmPerLiter && rowData.distance > 10 && rowData.fuelUsed === 0,
+
+      rowClassName: 'highlight-blue',
+
+    },
+
+    {
+
+      condition: (rowData) => !rowData.isKmPerLiter && rowData.engineHours > 0.5 && rowData.fuelUsed === 0,
+
+      rowClassName: 'highlight-blue',
+
+    },
+
+  ];
+
+
+
   export default consumptionDataGridRules;
 
 //File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\default-user.js

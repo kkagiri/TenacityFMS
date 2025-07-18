@@ -1,0 +1,207 @@
+/* Pump Transaction Manager Styles */
+.pump-transaction-manager {
+  .dx-datagrid {
+    .dx-datagrid-headers {
+      background-color: #f8f9fa;
+      border-bottom: 2px solid #dee2e6;
+    }
+
+    .dx-header-row {
+      .dx-datagrid-text-content {
+        font-weight: 600;
+        color: #495057;
+      }
+    }
+
+    .dx-row-alt {
+      background-color: #f8f9fa;
+    }
+
+    .dx-row:hover {
+      background-color: #e3f2fd !important;
+    }
+
+    .dx-datagrid-rowsview .dx-selection.dx-row:not(.dx-row-focused) {
+      background-color: #bbdefb;
+    }
+
+    .dx-datagrid-filter-row {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .dx-editor-cell .dx-texteditor {
+      background-color: transparent;
+    }
+
+    .dx-datagrid-search-panel {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      padding: 8px 12px;
+
+      .dx-searchbox {
+        .dx-textbox {
+          background-color: white;
+          border: 1px solid #ced4da;
+          border-radius: 4px;
+        }
+      }
+    }
+
+    .dx-toolbar {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      padding: 8px 12px;
+
+      .dx-toolbar-item {
+        margin-right: 8px;
+
+        .dx-button {
+          height: 32px;
+          border-radius: 4px;
+
+          &.dx-button-mode-contained {
+            background-color: #007bff;
+            border-color: #007bff;
+
+            &:hover {
+              background-color: #0056b3;
+              border-color: #0056b3;
+            }
+          }
+
+          &.dx-button-mode-outlined {
+            color: #007bff;
+            border-color: #007bff;
+
+            &:hover {
+              background-color: #007bff;
+              color: white;
+            }
+          }
+        }
+      }
+    }
+
+    .dx-pager {
+      background-color: #f8f9fa;
+      border-top: 1px solid #dee2e6;
+      padding: 8px 12px;
+
+      .dx-pages {
+        .dx-page {
+          border: 1px solid #dee2e6;
+          border-radius: 4px;
+          margin: 0 2px;
+
+          &.dx-selection {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: white;
+          }
+        }
+      }
+    }
+  }
+
+  // Status badge styles
+  .status-badge {
+    &.processed {
+      @apply tw-bg-green-100 tw-text-green-800;
+    }
+
+    &.pending {
+      @apply tw-bg-yellow-100 tw-text-yellow-800;
+    }
+  }
+
+  // Filter form styles
+  .dx-popup-content {
+    .dx-form {
+      .dx-field {
+        margin-bottom: 16px;
+
+        .dx-field-label {
+          font-weight: 500;
+          color: #495057;
+          margin-bottom: 4px;
+        }
+
+        .dx-field-value {
+          .dx-textbox,
+          .dx-numberbox,
+          .dx-datebox,
+          .dx-selectbox {
+            .dx-texteditor-input {
+              border: 1px solid #ced4da;
+              border-radius: 4px;
+              padding: 8px 12px;
+
+              &:focus {
+                border-color: #007bff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Summary cards
+  .summary-card {
+    @apply tw-bg-white tw-p-4 tw-rounded-lg tw-shadow-sm tw-border;
+
+    .summary-value {
+      @apply tw-text-2xl tw-font-bold tw-text-blue-600;
+    }
+
+    .summary-label {
+      @apply tw-text-sm tw-text-gray-600 tw-mt-1;
+    }
+  }
+
+  // Loading overlay
+  .loading-overlay {
+    @apply tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-z-10;
+
+    .loading-content {
+      @apply tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg tw-text-center;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .pump-transaction-manager {
+    .dx-datagrid {
+      .dx-datagrid-headers {
+        .dx-header-row {
+          .dx-datagrid-text-content {
+            font-size: 12px;
+          }
+        }
+      }
+
+      .dx-toolbar {
+        flex-wrap: wrap;
+
+        .dx-toolbar-item {
+          margin-bottom: 4px;
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .pump-transaction-manager {
+    .dx-datagrid {
+      .dx-toolbar,
+      .dx-pager {
+        display: none !important;
+      }
+    }
+  }
+}

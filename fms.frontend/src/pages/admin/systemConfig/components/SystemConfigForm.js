@@ -202,7 +202,8 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
       visible={visible}
       onHiding={onCancel}
       dragEnabled={false}
-      closeOnOutsideClick={false}
+      showCloseButton
+={false}
       showTitle={true}
       title={title}
       width="800px"

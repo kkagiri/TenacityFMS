@@ -27,7 +27,10 @@ namespace FMS.Application.ModelsDTOs.ATG {
 
         // Add these fields to match PumpAuthorizeCommand
         public int? TankId { get; set; }
+        public string? TankName { get; set; }
         public int? VehicleId { get; set; }
+        public string? VehicleName { get; set; } // This will be HyoungNo from Vehicle entity
+        public string? VehicleNumberPlate { get; set; }
 
         // Processing flag
         public bool HasBeenProcessed { get; set; } = false; //Cursor

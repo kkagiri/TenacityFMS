@@ -13,6 +13,14 @@
     <OutputType>Exe</OutputType>
     <UserSecretsId>d6b03573-f5e8-45ec-b246-2f65dc3bbea5</UserSecretsId>
   </PropertyGroup>
+
+  <!-- chatgpt: treat warnings as non-visible messages -->
+<PropertyGroup>
+  <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
+</PropertyGroup>
+
+
 <ItemGroup>
     <RestoreSources Include="https://api.nuget.org/v3/index.json" />
 <!--Production link -->

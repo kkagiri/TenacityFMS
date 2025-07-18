@@ -143,7 +143,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
 
           {/* Quick Action Button */}
           {!sidebarCollapsed && (
-            <div className="add-vehicle-btn" onClick={() => handleNavigation('/vehicles/dashboard')}>
+            <div className="add-vehicle-btn" onClick={() => handleNavigation('/vehicles/fleet#vehicleaction')}>
               <i className="fa-light fa-plus"></i>
               <span>Add New Vehicle</span>
             </div>
@@ -164,13 +164,10 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
                 )}
               </div>
               <div className="tw-flex tw-items-center tw-space-x-4">
-                <div className="tw-flex tw-items-center tw-space-x-2 tw-text-sm tw-text-gray-600">
-                  <i className="fa-light fa-truck"></i>
-                  <span>Vehicle Management</span>
-                </div>
+
                 {/* Quick Action Buttons */}
                 <button
-                  onClick={() => handleNavigation('/vehicles/dashboard')}
+                  onClick={() => handleNavigation('/vehicles/fleet#vehicleaction')}
                   className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-text-sm tw-font-medium tw-flex tw-items-center tw-gap-2 hover:tw-bg-blue-700 tw-transition-colors"
                 >
                   <i className="fa-light fa-plus"></i>
@@ -181,7 +178,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
                   className="tw-bg-gray-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-text-sm tw-font-medium tw-flex tw-items-center tw-gap-2 hover:tw-bg-gray-700 tw-transition-colors"
                 >
                   <i className="fa-light fa-download"></i>
-                  Export
+                  Report
                 </button>
               </div>
             </div>

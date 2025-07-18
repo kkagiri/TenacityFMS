@@ -35,6 +35,7 @@ import FuelingHeader from "./FuelingHeader";
 import FuelingUtils from "./FuelingUtils";
 import TagSelector from "./TagSelector"; //Cursor
 import FuelingRulePopup from "./FuelingRulePopup"; //Cursor
+import PumpTransactionPopup from "../PumpTransactionPopup/PumpTransactionPopup";
 
 // Import custom hooks
 import { useDeviceData } from "../../hooks/useDeviceData";
@@ -172,6 +173,9 @@ const FuelingProcess = () => {
   const [showTransactionMonitoring, setShowTransactionMonitoring] = useState(false);
   const [deviceConnectionType, setDeviceConnectionType] = useState("Unknown");
   const [transactionMonitoringData, setTransactionMonitoringData] = useState(null);
+
+  // Pump transaction popup state
+  const [showPumpTransactionPopup, setShowPumpTransactionPopup] = useState(false);
 
   // Fetch vehicles and sites when component mounts //Cursor
   useEffect(() => {
@@ -1061,6 +1065,11 @@ const FuelingProcess = () => {
     }
   };
 
+  // Handle opening pump transaction popup
+  const handleViewPumpTransactions = () => {
+    setShowPumpTransactionPopup(true);
+  };
+
   // Determine display details for steps
   const displayDetails = tagDetails || vehicleInfo;
 
@@ -1239,6 +1248,7 @@ const FuelingProcess = () => {
         handleNavigation={handleNavigation}
         siteName={siteName()} // Use the siteName function to get the site name
         onConnectionStatusChange={handleConnectionStatusChange} // New prop
+        handleViewPumpTransactions={handleViewPumpTransactions} // Add pump transactions handler
       />
 
       {/* Main Content - Disable interaction when disconnected */}
@@ -1365,6 +1375,16 @@ const FuelingProcess = () => {
         onCancel={handleCancelTransaction}
         onComplete={handleCompleteTransaction}
         connectionType={transactionMonitoringData?.connectionType}
+      />
+
+      {/* Pump Transaction Popup */}
+      <PumpTransactionPopup
+        isVisible={showPumpTransactionPopup}
+        onClose={() => setShowPumpTransactionPopup(false)}
+        title={`Pump Transactions - ${ptsDevice?.ptsid || ptsId}`}
+        ptsId={ptsId}
+        width="95%"
+        height="90%"
       />
     </div>
   );

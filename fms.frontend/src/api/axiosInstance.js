@@ -1,12 +1,18 @@
 import axios from "axios";
 // Simplified URL determination - no async needed
 const getApiUrl = () => {
-  if (process.env.NODE_ENV === "development") {
-    return process.env.REACT_APP_API_URL; // Use the simplified env var
-  } else {
-    // In production, you could add fallback logic here if needed
-    return process.env.REACT_APP_API_URL;
-  }
+  const apiUrl = process.env.NODE_ENV === "development"
+    ? process.env.REACT_APP_API_URL
+    : process.env.REACT_APP_API_URL;
+
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('API URL being used:', apiUrl);
+  console.log('All env vars:', {
+    NODE_ENV: process.env.NODE_ENV,
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL
+  });
+
+  return apiUrl;
 };
 
 // Create axios instance with dynamic baseURL
@@ -16,7 +22,7 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
     "Accept": "application/json",
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // Increased to 30 second timeout
 });
 
 // Request interceptor
@@ -56,8 +62,10 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     // Handle network errors (often CORS related)
-    if (error.code === 'ECONNABORTED' || error.message === "Network Error") {
-      console.error("Network error - check CORS configuration:", error);
+    if (error.code === 'ECONNABORTED') {
+      console.error("Request timeout - server may be slow or unreachable:", error);
+    } else if (error.message === "Network Error") {
+      console.error("Network error - check CORS configuration or server connection:", error);
     }
 
     // Log error responses
@@ -74,13 +82,24 @@ axiosInstance.interceptors.response.use(
         console.error("Authentication error - token may be expired");
         // Clear token and redirect to login
         localStorage.removeItem("token");
-         window.location.href = '/login'; // Uncomment if you want automatic redirect
+        // window.location.href = '/login'; // Uncomment if you want automatic redirect
       }
 
       // Handle not found errors
       if (error.response.status === 404) {
         console.error("Resource not found");
       }
+
+      // Handle server errors
+      if (error.response.status >= 500) {
+        console.error("Server error - please try again later");
+      }
+    } else if (error.request) {
+      console.error("No response received from server:", {
+        baseURL: error.config?.baseURL,
+        url: error.config?.url,
+        method: error.config?.method
+      });
     }
 
     return Promise.reject(error);

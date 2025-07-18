@@ -1,0 +1,103 @@
+/* VehicleFleetPage specific styles */
+
+.vehicle-add-popup {
+  .dx-popup-content {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .dx-popup-title {
+    font-weight: 600;
+    color: #1f2937;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Responsive popup sizing */
+  @media (max-width: 768px) {
+    .dx-popup-normal {
+      width: 95% !important;
+      max-width: none !important;
+      height: 95vh !important;
+    }
+  }
+}
+
+/* Fleet page header improvements */
+.fleet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+
+  .header-content {
+    flex: 1;
+
+    h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin-bottom: 0;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+}
+
+/* Add vehicle button enhancements */
+.add-vehicle-btn {
+  .dx-button {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    }
+
+    .dx-button-content {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+}
+
+/* Fleet stats or summary cards */
+.fleet-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  .summary-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .metric-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+  }
+}
