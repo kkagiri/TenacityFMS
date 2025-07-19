@@ -67,16 +67,3 @@
       }
     }
   }
-
-  // Dark mode support
-  @media (prefers-color-scheme: dark) {
-    .live-metrics-header {
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-      border-color: #475569;
-
-      .metric-card {
-        background: linear-gradient(135deg, #334155 0%, #475569 100%);
-        color: #f1f5f9;
-      }
-    }
-  }

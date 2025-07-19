@@ -25,6 +25,8 @@ export const FETCH_USER_ROLES_SUCCESS = 'FETCH_USER_ROLES_SUCCESS';
 export const FETCH_USER_ROLES_FAILURE = 'FETCH_USER_ROLES_FAILURE';
 export const FETCH_USER_PERMISSIONS_SUCCESS = 'FETCH_USER_PERMISSIONS_SUCCESS';
 export const FETCH_USER_PERMISSIONS_FAILURE = 'FETCH_USER_PERMISSIONS_FAILURE';
+export const FETCH_USERS_FOR_FILTER_SUCCESS = 'FETCH_USERS_FOR_FILTER_SUCCESS';
+export const FETCH_USERS_FOR_FILTER_FAILURE = 'FETCH_USERS_FOR_FILTER_FAILURE';
 
 // Action Creators
 export const fetchUsers = () => async (dispatch) => {
@@ -212,5 +214,17 @@ export const fetchUserPermissions = (userId) => async (dispatch) => {
     } catch (error) {
         dispatch({ type: FETCH_USER_PERMISSIONS_FAILURE, payload: error.message });
         throw new Error('Error loading user permissions');
+    }
+};
+
+// Fetch users for filter dropdown
+export const fetchUsersForFilter = () => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get('/tankvolumehistory/users');
+        dispatch({ type: FETCH_USERS_FOR_FILTER_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_USERS_FOR_FILTER_FAILURE, payload: error.message });
+        throw new Error('Error loading users for filter');
     }
 };

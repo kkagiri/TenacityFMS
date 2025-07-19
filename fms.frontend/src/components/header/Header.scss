@@ -21,6 +21,17 @@
     text-align: center;
     padding: 0;
   }
+
+  // Ensure proper spacing and icon visibility for user panel
+  .dx-toolbar-item.user-panel-item {
+    margin-right: 20px;
+
+    .dx-item-content {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+  }
 }
 
 
@@ -38,40 +49,42 @@
 }
 
 .notification-item {
-  // z-index: 1050;
-  // margin-right: 10px;
-  // position: relative;
+  z-index: 1050;
+  margin-right: 10px;
+  position: relative;
 
-  // .header-notification-wrapper {
-  //   height: 100%;
-  //   display: flex;
-  //   align-items: center;
-  //   position: relative;
-  //   padding: 0 2px;
+  .header-notification-wrapper {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 0 2px;
 
-  //   .notification-center {
-  //     display: flex;
-  //     align-items: center;
-  //     height: 100%;
-  //   }
+    .notification-center {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
 
-  //   .notification-popover {
-  //     right: -8px;
-  //   }
-  // }
+    .notification-popover {
+      right: -8px;
+    }
+  }
 
-  // .dx-item-content {
-  //   height: 100%;
-  // }
+  .dx-item-content {
+    height: 100%;
+  }
 }
 
 // Cursor - Updated user panel styling for icon-only button
 .user-panel-item {
   z-index: 5;
-  margin-right: 12px;
+  margin-right: 20px; // Increased margin from window edge
 
   .dx-item-content {
     height: 100%;
+    display: flex;
+    align-items: center;
   }
 
   .user-button {
@@ -79,6 +92,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    // Ensure FontAwesome icon is visible and styled
+    &.dx-button .dx-button-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .dx-icon {
+        font-size: 16px;
+        color: var(--base-text-color, #333);
+        font-family: "Font Awesome 6 Pro";
+        font-weight: 300; // Light weight for fa-light
+      }
+
+      // Fallback for FontAwesome classes
+      i[class*="fa-"] {
+        font-size: 16px;
+        color: var(--base-text-color, #333);
+      }
+    }
 
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
@@ -93,6 +126,23 @@
 
   .user-button > .dx-button-content {
     padding: 3px;
+
+    // Ensure FontAwesome icon displays properly in generic theme
+    .dx-icon {
+      display: inline-block !important;
+      visibility: visible !important;
+    }
+  }
+
+  // Additional styling for user button
+  .user-panel-item .user-button {
+    .dx-button-content {
+      width: 100%;
+      height: 100%;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
   }
 }
 

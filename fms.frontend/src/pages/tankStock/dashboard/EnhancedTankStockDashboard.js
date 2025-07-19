@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from 'devextreme-react';
 import { useSelector } from 'react-redux';
 import { useTankStockSignalR } from '../../../hooks/useTankStockSignalR';
 import { useStockData } from '../shared/hooks/useStockData';
@@ -7,6 +8,7 @@ import MissionControlLayout from '../../../components/missionControl/layout/Miss
 import TankLevelGauge from './components/TankLevelGauge';
 import SiteOverviewCards from './components/SiteOverviewCards';
 import EmergencyResponsePanel from './components/EmergencyResponsePanel';
+import TankFilterPanel from './components/TankFilterPanel';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import ScrollView from 'devextreme-react/scroll-view';
 import './EnhancedTankStockDashboard.scss';
@@ -39,12 +41,20 @@ const EnhancedTankStockDashboard = () => {
     refreshData
   } = useStockData(selectedSite, dateRange);
 
+  // State for filtered tank data
+  const [filteredTankLevels, setFilteredTankLevels] = useState([]);
+
   // Mission Control specific data
   const [missionControlData, setMissionControlData] = useState({
     criticalAlerts: [],
     liveMetrics: {},
     quickActions: []
   });
+
+  // Handle filter changes from TankFilterPanel
+  const handleFiltersChange = useCallback((filteredTanks) => {
+    setFilteredTankLevels(filteredTanks);
+  }, []);
 
   const handleEmergencyAction = useCallback((alert) => {
     //Cursor - Handle emergency actions from alerts
@@ -82,6 +92,36 @@ const EnhancedTankStockDashboard = () => {
     // Implementation for maintenance scheduling
   }, []);
 
+  // Tank action handlers
+  const handleViewTransactions = useCallback((tank) => {
+    console.log('Viewing transactions for tank:', tank.name);
+    // Implementation for viewing tank transactions
+  }, []);
+
+  const handleStockReconciliation = useCallback((tank) => {
+    console.log('Starting stock reconciliation for tank:', tank.name);
+    // Implementation for stock reconciliation
+  }, []);
+
+  const handleEditTank = useCallback((tank) => {
+    console.log('Editing tank:', tank.name);
+    // Implementation for editing tank
+  }, []);
+
+  const handleStockAdjustmentSubmit = useCallback(async (adjustmentData) => {
+    console.log('Submitting stock adjustment:', adjustmentData);
+    // Implementation for stock adjustment submission
+    // This would call your stock adjustment API
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true };
+    } catch (error) {
+      console.error('Stock adjustment failed:', error);
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     //Cursor - Transform data for Mission Control format
     const transformedAlerts = criticalAlerts.map(alert => ({
@@ -94,7 +134,7 @@ const EnhancedTankStockDashboard = () => {
     }));
 
     const metrics = {
-      totalTanks: tankLevels.length,
+      totalTanks: filteredTankLevels.length > 0 ? filteredTankLevels.length : tankLevels.length,
       stockLevel: Math.round(siteMetrics.averageStockLevel || 0),
       reconciliationAccuracy: 98.5, // This would come from reconciliation service
       activeAlerts: criticalAlerts.length,
@@ -102,16 +142,7 @@ const EnhancedTankStockDashboard = () => {
     };
 
     const actions = [
-      {
-        id: 'emergency_delivery',
-        label: 'Emergency Delivery',
-        icon: 'fa-truck-fast',
-        criticality: 'HIGH',
-        isPrimary: true,
-        requiresConfirmation: true,
-        estimatedTime: '45 min',
-        onClick: () => handleEmergencyDelivery()
-      },
+
       {
         id: 'force_reconciliation',
         label: 'Force Reconciliation',
@@ -155,7 +186,7 @@ const EnhancedTankStockDashboard = () => {
       liveMetrics: metrics,
       quickActions: actions
     });
-  }, [criticalAlerts, tankLevels, siteMetrics, handleEmergencyAction, handleEmergencyDelivery, handleForceReconciliation, handleCrossSiteTransfer, handleManualGaugeReading, handleScheduleMaintenance]);
+  }, [criticalAlerts, tankLevels, filteredTankLevels, siteMetrics, handleEmergencyAction, handleEmergencyDelivery, handleForceReconciliation, handleCrossSiteTransfer, handleManualGaugeReading, handleScheduleMaintenance]);
 
   const additionalHeaderContent = (
     <div className="tw-flex tw-items-center tw-space-x-4">
@@ -172,14 +203,15 @@ const EnhancedTankStockDashboard = () => {
           {signalRConnected ? 'Live Updates' : 'Offline'}
         </div>
       </div>
-      <button
+      <Button
+        text="Refresh"
+        icon={`fa-light fa-refresh ${isLoading ? 'tw-animate-spin' : ''}`}
         onClick={refreshData}
         disabled={isLoading}
-        className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-text-sm tw-font-medium tw-transition-all tw-hover:bg-blue-700 tw-disabled:opacity-50"
-      >
-        <i className={`fa-light fa-refresh ${isLoading ? 'tw-animate-spin' : ''} tw-mr-2`}></i>
-        Refresh
-      </button>
+        type="default"
+        stylingMode="contained"
+        className="tw-ml-3"
+      />
     </div>
   );
 
@@ -222,6 +254,12 @@ const EnhancedTankStockDashboard = () => {
           />
         </div>
 
+        {/* Tank Anomaly Filter Panel */}
+        <TankFilterPanel
+          tankData={tankLevels}
+          onFiltersChange={handleFiltersChange}
+        />
+
         {/* Real-time Tank Monitoring */}
         <div className="tw-mb-6">
           <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
@@ -235,20 +273,33 @@ const EnhancedTankStockDashboard = () => {
                   Last updated: {new Date().toLocaleTimeString()}
                 </div>
                 <div className="tw-bg-blue-50 tw-text-blue-700 tw-px-3 tw-py-1 tw-rounded-full tw-text-sm tw-font-medium">
-                  {tankLevels.length} Tanks Active
+                  {filteredTankLevels.length > 0 ? filteredTankLevels.length : tankLevels.length} Tanks Shown
                 </div>
               </div>
             </div>
 
             <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 xl:tw-grid-cols-4 tw-gap-6">
-              {tankLevels.map((tank) => (
-                <TankLevelGauge
-                  key={tank.id}
-                  tank={tank}
-                  isConnected={signalRConnected}
-                  enhanced={true}
-                />
-              ))}
+              {(filteredTankLevels.length > 0 ? filteredTankLevels : tankLevels).length === 0 ? (
+                <div className="tw-col-span-full tw-text-center tw-py-12 no-tanks-message">
+                  <i className="fa-light fa-tank-water tw-text-4xl tw-text-gray-300 tw-mb-4"></i>
+                  <p className="tw-text-gray-500 tw-text-lg tw-font-medium">No tanks match the current filters</p>
+                  <p className="tw-text-gray-400 tw-text-sm tw-mt-2">Try adjusting your filter criteria or refresh the data</p>
+                </div>
+              ) : (
+                (filteredTankLevels.length > 0 ? filteredTankLevels : tankLevels).map((tank) => (
+                  <TankLevelGauge
+                    key={tank.id}
+                    tank={tank}
+                    isConnected={signalRConnected}
+                    enhanced={true}
+                    showActions={true}
+                    onViewTransactions={handleViewTransactions}
+                    onStockReconciliation={handleStockReconciliation}
+                    onEditTank={handleEditTank}
+                    onStockAdjustmentSubmit={handleStockAdjustmentSubmit}
+                  />
+                ))
+              )}
             </div>
           </div>
         </div>

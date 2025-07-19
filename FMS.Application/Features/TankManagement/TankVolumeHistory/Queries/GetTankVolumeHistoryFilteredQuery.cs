@@ -17,6 +17,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
     public record GetTankVolumeHistoryFilteredQuery : IRequest<FMSResponse<List<TankVolumeHistoryDTO>>> {
         public int? SiteId { get; init; }
         public int? TankId { get; init; }
+        public string? RecordedBy { get; init; }
         public DateTime? StartDate { get; init; }
         public DateTime? EndDate { get; init; }
         public int? Take { get; init; } = 100; // Default limit
@@ -60,13 +61,15 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
                     query = query.Where (tvh => tvh.TankId == request.TankId.Value);
                 }
 
-                // Order by timestamp descending and apply limit
-                query = query.OrderByDescending (tvh => tvh.Timestamp);
-
-                if (request.Take.HasValue && request.Take.Value > 0) {
-                    query = query.Take (request.Take.Value);
+                // Apply recorded by filter
+                if (!string.IsNullOrEmpty (request.RecordedBy)) {
+                    query = query.Where (tvh => tvh.RecordedBy == request.RecordedBy);
                 }
 
+                // Order by timestamp descending
+                query = query.OrderByDescending (tvh => tvh.Timestamp);
+
+                // Note: Removed take limit to allow frontend paging
                 var tankVolumeHistories = await query.ToListAsync (cancellationToken);
 
                 var result = new List<TankVolumeHistoryDTO> ();
@@ -77,6 +80,9 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
                     // Set site information
                     dto.Site = history.Tank?.Site?.Name ?? "Unknown";
                     dto.SiteId = history.Tank?.SiteId;
+
+                    // Set recorded by user name
+                    dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";
 
                     // Handle vehicle names for dispensing transactions
                     if (request.IncludeVehicleNames == true &&

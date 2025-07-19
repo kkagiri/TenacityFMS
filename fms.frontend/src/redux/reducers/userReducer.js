@@ -19,11 +19,14 @@ import {
     FETCH_USER_ROLES_SUCCESS,
     FETCH_USER_ROLES_FAILURE,
     FETCH_USER_PERMISSIONS_SUCCESS,
-    FETCH_USER_PERMISSIONS_FAILURE
+    FETCH_USER_PERMISSIONS_FAILURE,
+    FETCH_USERS_FOR_FILTER_SUCCESS,
+    FETCH_USERS_FOR_FILTER_FAILURE
 } from '../actions/userActions';
 
 const initialState = {
     users: [],
+    usersForFilter: [],
     selectedUser: null,
     selectedUserDetails: null,
     userActivities: [],
@@ -115,6 +118,10 @@ const userReducer = (state = initialState, action) => {
         case FETCH_USER_PERMISSIONS_SUCCESS:
             return { ...state, userPermissions: action.payload, loading: false };
         case FETCH_USER_PERMISSIONS_FAILURE:
+            return { ...state, loading: false, error: action.payload };
+        case FETCH_USERS_FOR_FILTER_SUCCESS:
+            return { ...state, usersForFilter: action.payload, loading: false };
+        case FETCH_USERS_FOR_FILTER_FAILURE:
             return { ...state, loading: false, error: action.payload };
         default:
             return state;

@@ -67,6 +67,7 @@ using Role = FMS.Domain.Entities.Role;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 // using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Features.AutomatedReconciliation.Services;
+using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.TankStock;
@@ -478,6 +479,9 @@ public class Program {
             .AsImplementedInterfaces ()
             .WithScopedLifetime ()
         );
+
+        // Add this in ConfigureServices method
+        services.AddScoped<IServiceControlService, ServiceControlService> ();
     }
 
     static void RegisterDistributedCache (IServiceCollection services) {

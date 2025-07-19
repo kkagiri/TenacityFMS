@@ -76,7 +76,15 @@ const AdminDashboard = () => {
       icon: 'fa-light fa-key',
       route: getAdminRoute('permissions'),
       color: 'tw-text-pink-600'
+    },
+    {
+      title: 'PTS Service Control',
+      description: 'Monitor and control PTS Windows Service',
+      icon: 'fa-light fa-server',
+      route: getAdminRoute('pts-service'),
+      color: 'tw-text-cyan-600'
     }
+
   ];
 
   return (

@@ -38,7 +38,7 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
         <Item
           location={"after"}
           locateInMenu={"never"}
- //          cssClass={"notification-item"} //this is causing the Icon to go on the left side//TODo: fix
+          cssClass={"notification-item"}
         >
           <div className="header-notification-wrapper">
             <NotificationCenter />
@@ -48,7 +48,6 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
         {/* //Cursor - Simplified user button to show only icon */}
         <Item
           location={"after"}
-          // locateInMenu={"auto"}
           cssClass={"user-panel-item"}
         >
           <Button
@@ -57,9 +56,8 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
             width={40}
             height={40}
             stylingMode={"text"}
-          >
-            <UserPanel menuMode={"context"} />
-          </Button>
+          />
+          <UserPanel menuMode={"context"} />
         </Item>
         {/* <Template name={"userPanelTemplate"}>
           <UserPanel menuMode={"list"} />

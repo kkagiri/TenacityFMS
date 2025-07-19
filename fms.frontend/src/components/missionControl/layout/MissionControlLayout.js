@@ -13,13 +13,13 @@ const MissionControlLayout = ({
   liveMetrics = {},
   quickActions = [],
   showAlerts = true,
-  showMetrics = true,
+  showMetrics = false,
   showQuickActions = true,
   additionalHeaderContent,
   className = ""
 }) => {
   return (
-    <div className={`mission-control-layout tw-min-h-screen tw-bg-gray-50 ${className}`}>
+    <div className={`mission-control-layout tw-min-h-screen  ${className}`}>
       {/* Critical Alert Banner - Always visible when alerts exist */}
       {showAlerts && criticalAlerts.length > 0 && (
         <CriticalAlertBanner alerts={criticalAlerts} />

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, {
   Paging,
+  Pager,
   HeaderFilter,
   SearchPanel,
   Toolbar,
@@ -13,16 +14,20 @@ import DataGrid, {
   Selection,
   FilterPanel,
   GroupPanel,
-  Grouping
+  Grouping,
+  Summary,
+  TotalItem
 } from 'devextreme-react/data-grid';
 import Button from 'devextreme-react/button';
 import Popup from 'devextreme-react/popup';
 import  notify  from 'devextreme/ui/notify';
 import { Workbook } from 'exceljs';
 import { exportDataGrid } from 'devextreme/excel_exporter';
-import { fetchTankVolumeHistoryFiltered } from '../../../redux/actions/tankVolumeHistoryActions';
+import { fetchTankVolumeHistoryFiltered } from '../../../../redux/actions/tankVolumeHistoryActions';
 import { fetchTanks } from '../../../../redux/actions/tankActions';
-import { fetchSites } from '../../../../redux/actions/siteActions';
+import { fetchSiteList } from '../../../../redux/actions/siteActions';
+import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
+import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import ManualRefillForm from './ManualRefillForm';
 import TransactionFilterPopup from './TransactionFilterPopup';
 
@@ -39,14 +44,27 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   // Local state
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
-  const [currentFilters, setCurrentFilters] = useState({
-    siteId: null,
-    tankId: null,
-    startDate: null,
-    endDate: null,
-    take: 100,
-    includeVehicleNames: true
-  });
+
+  // Default to today's data only
+  const getDefaultFilters = useCallback(() => {
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return {
+      siteId: selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null,
+      tankId: null,
+      recordedBy: null,
+      startDate: startOfDay.toISOString(),
+      endDate: endOfDay.toISOString(),
+      includeVehicleNames: true
+    };
+  }, [selectedSite]);
+
+  const [currentFilters, setCurrentFilters] = useState(getDefaultFilters);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Volume Change Reason Enum mapping
   const VolumeChangeReasonEnum = useMemo(() => [
@@ -60,46 +78,115 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     { id: 7, name: 'ManualRefill' }
   ], []);
 
-  // Load transaction data with filters
-  const loadTransactionData = useCallback((filters = currentFilters) => {
-    dispatch(fetchTankVolumeHistoryFiltered(filters));
+  // Load transaction data with filters - removed from dependency arrays to prevent loops
+  const loadTransactionData = useCallback(async (filters) => {
+    const filtersToUse = filters || currentFilters;
+    console.log('Loading transaction data with filters:', filtersToUse);
+
+    try {
+      const result = await dispatch(fetchTankVolumeHistoryFiltered(filtersToUse));
+      console.log('Data loaded successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error loading transaction data:', error);
+      throw error;
+    }
   }, [dispatch, currentFilters]);
 
-  // Initialize data and load sites
+  // Initialize data and load sites - only run once
   useEffect(() => {
-    dispatch(fetchTanks());
-    dispatch(fetchSites());
+    if (!isInitialized) {
+      console.log('Initializing TransactionHub...');
+      dispatch(fetchTanks());
+      dispatch(fetchSiteList());
+      dispatch(fetchVehicleList());
+      dispatch(fetchEmployees());
+      
+      const defaultFilters = getDefaultFilters();
+      setCurrentFilters(defaultFilters);
+      loadTransactionData(defaultFilters);
+      setIsInitialized(true);
+    }
+  }, [dispatch, getDefaultFilters, isInitialized, loadTransactionData]);
 
-    // Set initial filters based on props
-    const initialFilters = {
-      siteId: selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null,
-      tankId: null,
-      startDate: dateRange?.startDate || null,
-      endDate: dateRange?.endDate || null,
-      take: 100,
-      includeVehicleNames: true
-    };
+  // Handle prop changes separately to avoid infinite loops
+  useEffect(() => {
+    if (isInitialized) {
+      const updatedFilters = {
+        ...currentFilters,
+        siteId: selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null
+      };
 
-    setCurrentFilters(initialFilters);
-    loadTransactionData(initialFilters);
-  }, [dispatch, selectedSite, dateRange, loadTransactionData]);
+      // Only update if site actually changed
+      if (updatedFilters.siteId !== currentFilters.siteId) {
+        console.log('Site changed, updating filters...');
+        setCurrentFilters(updatedFilters);
+        loadTransactionData(updatedFilters);
+      }
+    }
+  }, [selectedSite, isInitialized, currentFilters, loadTransactionData]);
 
   // Apply filters from popup
-  const handleApplyFilters = useCallback((filters) => {
+  const handleApplyFilters = useCallback(async (filters) => {
+    console.log('Applying new filters:', filters);
     setCurrentFilters(filters);
-    loadTransactionData(filters);
+
+    try {
+      await loadTransactionData(filters);
+      console.log('Filters applied successfully');
+
+      // Show success notification
+      notify({
+        message: 'Filters applied successfully!',
+        type: 'success',
+        displayTime: 2000
+      });
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      notify({
+        message: 'Failed to load transaction data. Please try again.',
+        type: 'error',
+        displayTime: 4000
+      });
+    }
   }, [loadTransactionData]);
+
+  // Manual refresh function
+  const handleRefresh = useCallback(async () => {
+    console.log('Manual refresh triggered');
+    try {
+      await loadTransactionData(currentFilters);
+      notify({
+        message: 'Data refreshed successfully!',
+        type: 'success',
+        displayTime: 2000
+      });
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      notify({
+        message: 'Failed to refresh data. Please try again.',
+        type: 'error',
+        displayTime: 3000
+      });
+    }
+  }, [loadTransactionData, currentFilters]);
 
   // Refresh data after successful manual refill
   const handleManualRefillSuccess = useCallback(() => {
     setShowManualRefillForm(false);
-    loadTransactionData();
+    handleRefresh();
     notify({
       message: 'Manual refill recorded successfully',
       type: 'success',
       displayTime: 3000
     });
-  }, [loadTransactionData]);
+  }, [handleRefresh]);
+
+  // Clear all filters and reset to today
+  const handleClearFilters = useCallback(() => {
+    const defaultFilters = getDefaultFilters();
+    handleApplyFilters(defaultFilters);
+  }, [getDefaultFilters, handleApplyFilters]);
 
   // Format timestamp for display
   const formatTime = (cellInfo) => {
@@ -155,8 +242,6 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     e.cancel = true;
   }, [VolumeChangeReasonEnum]);
 
-
-
   return (
     <div className="transaction-hub tw-h-full tw-flex tw-flex-col">
       {/* Header with actions */}
@@ -168,7 +253,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               Transaction Hub
             </h2>
             <p className="tw-text-gray-600 tw-text-sm tw-mt-1">
-              Unified view of all tank transactions and volume changes
+              Unified view of all tank transactions (Default: Today's data)
             </p>
           </div>
           <div className="tw-flex tw-space-x-2">
@@ -189,61 +274,55 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             <Button
               text="Refresh"
               icon="fa-light fa-refresh"
-              onClick={() => loadTransactionData()}
+              onClick={handleRefresh}
               stylingMode="outlined"
             />
           </div>
         </div>
 
         {/* Current Filters Display */}
-        {(currentFilters.siteId || currentFilters.tankId || currentFilters.startDate || currentFilters.endDate) && (
-          <div className="tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
-            <div className="tw-flex tw-items-center tw-justify-between">
-              <div className="tw-flex tw-items-center tw-text-sm tw-text-blue-800">
-                <i className="fa-light fa-info-circle tw-mr-2"></i>
-                <span className="tw-font-medium">Active Filters:</span>
-                <div className="tw-ml-2 tw-flex tw-flex-wrap tw-gap-2">
-                  {currentFilters.siteId && (
-                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                      Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
-                    </span>
-                  )}
-                  {currentFilters.tankId && (
-                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                      Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
-                    </span>
-                  )}
-                  {currentFilters.startDate && (
-                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                      From: {new Date(currentFilters.startDate).toLocaleDateString()}
-                    </span>
-                  )}
-                  {currentFilters.endDate && (
-                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                      To: {new Date(currentFilters.endDate).toLocaleDateString()}
-                    </span>
-                  )}
-                  <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                    Limit: {currentFilters.take} records
+        <div className="tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <div className="tw-flex tw-items-center tw-text-sm tw-text-blue-800">
+              <i className="fa-light fa-info-circle tw-mr-2"></i>
+              <span className="tw-font-medium">Active Filters:</span>
+              <div className="tw-ml-2 tw-flex tw-flex-wrap tw-gap-2">
+                {currentFilters.siteId ? (
+                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                    Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
                   </span>
-                </div>
+                ) : (
+                  <span className="tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                    All Sites
+                  </span>
+                )}
+                {currentFilters.tankId && (
+                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                    Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
+                  </span>
+                )}
+                {currentFilters.recordedBy && (
+                  <span className="tw-bg-purple-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                    User: {currentFilters.recordedBy}
+                  </span>
+                )}
+                <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                  {currentFilters.startDate && currentFilters.endDate ? (
+                    `${new Date(currentFilters.startDate).toLocaleDateString()} - ${new Date(currentFilters.endDate).toLocaleDateString()}`
+                  ) : (
+                    'Today'
+                  )}
+                </span>
               </div>
-              <Button
-                text="Clear All"
-                onClick={() => handleApplyFilters({
-                  siteId: null,
-                  tankId: null,
-                  startDate: null,
-                  endDate: null,
-                  take: 100,
-                  includeVehicleNames: true
-                })}
-                stylingMode="text"
-                className="tw-text-xs tw-text-blue-600"
-              />
             </div>
+            <Button
+              text="Reset to Today"
+              onClick={handleClearFilters}
+              stylingMode="text"
+              className="tw-text-xs tw-text-blue-600"
+            />
           </div>
-        )}
+        </div>
       </div>
 
       {/* Main content */}
@@ -265,7 +344,15 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
           <HeaderFilter visible={true} />
           <FilterRow visible={true} />
           <SearchPanel visible={true} placeholder="Search transactions..." />
-          <Paging defaultPageSize={50} />
+          <Paging enabled={true} defaultPageSize={100} />
+          <Pager
+            visible={true}
+            allowedPageSizes={[50, 100, 200, 500]}
+            displayMode="full"
+            showPageSizeSelector={true}
+            showInfo={true}
+            showNavigationButtons={true}
+          />
           <Selection mode="multiple" />
 
           <Toolbar>
@@ -280,7 +367,13 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             />
           </Toolbar>
 
-          <LoadPanel enabled={isLoading} />
+          <LoadPanel
+            enabled={isLoading}
+            showIndicator={true}
+            showPane={true}
+            text="Loading transaction data..."
+            position="center"
+          />
 
           {/* Columns */}
           <Column dataField="id" caption="ID" visible={false} defaultSortOrder="desc" />
@@ -316,14 +409,25 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             format="#,##0.00"
           />
           <Column
-            dataField="recordedBy"
+            dataField="recordedByUserName"
             caption="Recorded By"
-            minWidth={100}
+            minWidth={120}
+          />
 
-          >
-          </Column>
-
-
+          {/* Summary for grouped data */}
+          <Summary>
+            <TotalItem
+              column="volumeChange"
+              summaryType="sum"
+              valueFormat="#,##0.00"
+              displayFormat="Total Volume Change: {0}L"
+            />
+            <TotalItem
+              column="id"
+              summaryType="count"
+              displayFormat="Total Transactions: {0}"
+            />
+          </Summary>
         </DataGrid>
       </div>
 
@@ -333,8 +437,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         onHiding={() => setShowManualRefillForm(false)}
         showTitle={true}
         title="Manual Fuel Refill"
-        width="90%"
-        height="90%"
+        width="auto"
+        height="auto"
         showCloseButton={true}
         dragEnabled={false}
         className="manual-refill-popup"

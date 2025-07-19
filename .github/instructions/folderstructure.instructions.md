@@ -7,7 +7,8 @@ if you have created the file - on applying the code if there is no content do no
 if a file is missing , first check  if there is the file in other folder before creating ..
 
 Coding standards, domain knowledge, and preferences that AI should follow.
-All Response for CRQS and any CRUD and Queries in returning Errors or validation checkes must use [FMSResponse.cs](mdc:FMS.Application/Common/FMSResponse.cs)
+All Response for CRQS and any CRUD and Queries in returning Errors or validation checkes must use [FMSResponse.cs](mdc:FMS.Application/Common/FMSResponse.cs) for endpoint responses usign FMSResponseMessage
+for internal process using FMSResponse<T> for returning data and FMSResponse for returning errors or validation checkes .
 always have validation check
 FMS.Application/                // Core business logic, DTOs, commands, queries, and services for the FMS system . All services ,DTO,command and quieres are to located in feature of the module
 FMS.webclient/                  // Likely contains the web client API for FMS (files not yet listed) all controllers are located here
@@ -22,7 +23,7 @@ documentation folder with feature .. create a file folder based on the feature b
         with DevExtreme.
 for font awersome icons start with "fa-light fa-icon"
 
-
+for frontend do no use dark mode , use light mode only
 
 use scss rather than css
 if you have created the file - on applying the code if there is no content do not repeat the file eatino or deletetion , just continue with the excution of other files .

@@ -22,18 +22,87 @@
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+
+    // DevExtreme Button styling overrides
+    .dx-button {
+      position: relative;
+      border-radius: 6px !important;
+      border: none !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      font-weight: 500 !important;
+      transform: translateY(0);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      }
+
+      &:active {
+        transform: translateY(0);
+        transition: all 0.1s ease !important;
+      }
+
+      .dx-button-content {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .dx-icon {
+          font-size: 16px;
+          transition: transform 0.2s ease;
+        }
+
+        &:hover .dx-icon {
+          transform: scale(1.1);
+        }
+      }
+
+      // High criticality styling
+      &.tw-bg-red-600 {
+        background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+        box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2) !important;
+
+        &:hover {
+          background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+        }
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          background: linear-gradient(45deg, #fca5a5, #dc2626);
+          border-radius: inherit;
+          z-index: -1;
+          animation: glow 2s ease-in-out infinite alternate;
+        }
+      }
+
+      // Medium criticality styling
+      &.tw-bg-orange-600 {
+        background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+
+        &:hover {
+          background: linear-gradient(135deg, #d97706, #b45309) !important;
+        }
+      }
+
+      // Low criticality styling
+      &.tw-bg-blue-600 {
+        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+
+        &:hover {
+          background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        }
+      }
+    }
   }
 
+  // Legacy button styles - kept for backward compatibility
   &__action-btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-
     &--primary {
       background-color: #1976d2;
       color: white;
@@ -171,6 +240,26 @@
   .quick-action-panel {
     padding: 1rem;
 
+    &__actions {
+      .dx-button {
+        flex: 1;
+        min-width: 120px;
+        margin-bottom: 8px;
+
+        .dx-button-content {
+          justify-content: center;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+
+          .dx-button-text {
+            font-size: 13px;
+          }
+        }
+      }
+    }
+
+    // Legacy button support
     .quick-action-btn {
       flex: 1;
       min-width: 0;

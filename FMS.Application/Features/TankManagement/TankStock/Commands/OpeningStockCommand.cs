@@ -64,25 +64,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     .OrderByDescending (x => x.Timestamp)
                     .FirstOrDefaultAsync (cancellationToken);
 
-                if (existingOpeningStock != null) {
-                    // Check if there's a closing stock after the existing opening stock
-                    var closingStockAfterOpening = await _context.TankVolumeHistories
-                        .Where (x => x.TankId == request.TankId &&
-                            x.Timestamp > existingOpeningStock.Timestamp &&
-                            x.Timestamp.Date == entryDate &&
-                            x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
-                        .OrderBy (x => x.Timestamp)
-                        .FirstOrDefaultAsync (cancellationToken);
-
-                    if (closingStockAfterOpening == null) {
-                        return new FMSResponseMessage (false, $"An opening stock already exists for this date {entryDate.Date} without a subsequent closing stock.");
-                    }
-                    // Ensure the new opening stock is after the closing stock
-                    if (request.EntryDate <= closingStockAfterOpening.Timestamp) {
-                        return new FMSResponseMessage (false, "New opening stock must be after the previous closing stock.");
-                    }
-                }
-
                 //Cursor - Check for previous closing stock but don't require it (allow first opening stock)
                 var previousClosingStock = await _context.TankVolumeHistories
                     .Where (x => x.TankId == request.TankId &&

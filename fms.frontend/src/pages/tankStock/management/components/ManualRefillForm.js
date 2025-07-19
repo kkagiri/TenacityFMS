@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
@@ -6,6 +6,8 @@ import ScrollView from 'devextreme-react/scroll-view';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import  notify from 'devextreme/ui/notify';
 import { createFuelRefill } from '../../../../redux/actions/fuelRefillAction';
+import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
+import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { useFutureRecordsValidation } from '../../../../hooks/useFutureRecordsValidation';
 import FutureRecordsWarning from '../../../../components/tank-stock/FutureRecordsWarning';
 
@@ -60,6 +62,29 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
       }
     });
   }, []);
+
+  // Load vehicles and employees on component mount if not already loaded
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Only load if data is empty or not available
+        if (!vehicles || vehicles.length === 0) {
+          console.log('Loading vehicles...');
+          await dispatch(fetchVehicleList());
+        }
+        
+        if (!employees || employees.length === 0) {
+          console.log('Loading employees...');
+          await dispatch(fetchEmployees());
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showNotification('Error loading form data', 'error');
+      }
+    };
+
+    loadData();
+  }, [dispatch, vehicles, employees, showNotification]);
 
   const handleSiteChange = useCallback((e) => {
     const siteId = e.value;
@@ -193,18 +218,34 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
   }, [formData, validateForm, canSubmitForm, dispatch, onSuccess, showNotification]);
 
   return (
-    <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView className="tw-flex-1">
-        <div className="tw-p-4">
+    <div className="manual-refill-form tw-max-w-4xl tw-mx-auto">
+      <div className="tw-p-6">
           {/* Header */}
           <div className="tw-mb-6">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2 tw-flex tw-items-center">
               <i className="fa-light fa-gas-pump tw-mr-2 tw-text-blue-600"></i>
               Manual Fuel Refill
             </h3>
-            <p className="tw-text-gray-600 tw-text-sm">
+            <p className="tw-text-gray-600 tw-text-sm tw-mb-3">
               Record manual fuel refill for vehicles.
             </p>
+            
+            {/* Information Panel */}
+            <div className="tw-bg-blue-50 tw-border-l-4 tw-border-blue-400 tw-p-3 tw-mb-4">
+              <div className="tw-flex">
+                <div className="tw-flex-shrink-0">
+                  <i className="fa-light fa-info-circle tw-text-blue-400"></i>
+                </div>
+                <div className="tw-ml-3">
+                  <p className="tw-text-sm tw-text-blue-700">
+                    <strong>Important:</strong> Opening stock must be done on the tank before inserting entry.
+                  </p>
+                  <p className="tw-text-sm tw-text-blue-700 tw-mt-1">
+                    Back-dated entry will force Auto-Correlation on Tank current stock. (Limit is 30 days)
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <Form
@@ -388,7 +429,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
           )}
 
           {/* Action buttons */}
-          <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
+          <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
             <Button
               text="Cancel"
               onClick={onCancel}
@@ -412,7 +453,6 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
             </Button>
           </div>
         </div>
-      </ScrollView>
     </div>
   );
 };

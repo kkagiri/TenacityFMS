@@ -16,6 +16,7 @@ import DeviceDashboard from '../PTSDevice/DeviceDashboard';
 import PTSAutomationConfigPage from '../PTSAutomationConfig/PTSAutomationConfigPage';
 import ConfigurationPage from './configuration';
 import SystemConfiguration from './systemConfig/SystemConfigPage';
+import PTSServiceControl from './ptsService/PTSServiceControl';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -52,6 +53,10 @@ const AdminMain = () => {
         <Route path="systemconfig/*" element={<SystemConfiguration />} />
         <Route path="configuration" element={<ConfigurationPage />} />
         <Route path="configuration/*" element={<ConfigurationPage />} />
+
+        {/* PTS Service Control Route */}
+        <Route path="pts-service" element={<PTSServiceControl />} />
+        <Route path="pts-service/*" element={<PTSServiceControl />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

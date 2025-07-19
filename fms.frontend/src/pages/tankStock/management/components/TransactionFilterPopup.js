@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Popup } from 'devextreme-react/popup';
 import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
 import { ScrollView } from 'devextreme-react/scroll-view';
+import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 
 const TransactionFilterPopup = ({
   visible,
@@ -11,15 +12,17 @@ const TransactionFilterPopup = ({
   currentFilters,
   onApplyFilters
 }) => {
+  const dispatch = useDispatch();
   const sites = useSelector((state) => state.site.sites);
   const tanks = useSelector((state) => state.tank.tanks);
+  const usersForFilter = useSelector((state) => state.user.usersForFilter);
 
   const [filters, setFilters] = useState({
     siteId: null,
     tankId: null,
+    recordedBy: null,
     startDate: null,
-    endDate: null,
-    take: 100
+    endDate: null
   });
 
   const [filteredTanks, setFilteredTanks] = useState([]);
@@ -30,12 +33,15 @@ const TransactionFilterPopup = ({
       setFilters({
         siteId: currentFilters.siteId || null,
         tankId: currentFilters.tankId || null,
+        recordedBy: currentFilters.recordedBy || null,
         startDate: currentFilters.startDate ? new Date(currentFilters.startDate) : null,
-        endDate: currentFilters.endDate ? new Date(currentFilters.endDate) : null,
-        take: currentFilters.take || 100
+        endDate: currentFilters.endDate ? new Date(currentFilters.endDate) : null
       });
+
+      // Load users for filter dropdown
+      dispatch(fetchUsersForFilter());
     }
-  }, [visible, currentFilters]);
+  }, [visible, currentFilters, dispatch]);
 
   // Filter tanks based on selected site
   useEffect(() => {
@@ -65,23 +71,26 @@ const TransactionFilterPopup = ({
     const filterParams = {
       siteId: filters.siteId,
       tankId: filters.tankId,
+      recordedBy: filters.recordedBy,
       startDate: filters.startDate?.toISOString(),
       endDate: filters.endDate?.toISOString(),
-      take: filters.take || 100,
       includeVehicleNames: true
     };
 
-    onApplyFilters(filterParams);
+    console.log('Applying filters from popup:', filterParams);
+
+    // Close popup immediately, then apply filters
     onHiding();
+    onApplyFilters(filterParams);
   }, [filters, onApplyFilters, onHiding]);
 
   const handleReset = useCallback(() => {
     setFilters({
       siteId: null,
       tankId: null,
+      recordedBy: null,
       startDate: null,
-      endDate: null,
-      take: 100
+      endDate: null
     });
   }, []);
 
@@ -196,6 +205,22 @@ const TransactionFilterPopup = ({
             </SimpleItem>
 
             <SimpleItem
+              dataField="recordedBy"
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: [{ id: null, userName: 'All Users' }, ...(usersForFilter || [])],
+                displayExpr: 'userName',
+                valueExpr: 'id',
+                onValueChanged: handleFieldChange('recordedBy'),
+                value: filters.recordedBy,
+                placeholder: "Select user",
+                width: "100%"
+              }}
+            >
+              <Label text="Recorded By" />
+            </SimpleItem>
+
+            <SimpleItem
               dataField="startDate"
               editorType="dxDateBox"
               editorOptions={{
@@ -224,32 +249,10 @@ const TransactionFilterPopup = ({
             >
               <Label text="End Date" />
             </SimpleItem>
-
-            <SimpleItem
-              dataField="take"
-              editorType="dxSelectBox"
-              colSpan={2}
-              editorOptions={{
-                items: [
-                  { value: 50, text: '50 records' },
-                  { value: 100, text: '100 records' },
-                  { value: 200, text: '200 records' },
-                  { value: 500, text: '500 records' },
-                  { value: 1000, text: '1000 records' }
-                ],
-                displayExpr: 'text',
-                valueExpr: 'value',
-                onValueChanged: handleFieldChange('take'),
-                value: filters.take,
-                width: "100%"
-              }}
-            >
-              <Label text="Maximum Records" />
-            </SimpleItem>
           </Form>
 
           {/* Current Filter Summary */}
-          {(filters.siteId || filters.tankId || filters.startDate || filters.endDate) && (
+          {(filters.siteId || filters.tankId || filters.recordedBy || filters.startDate || filters.endDate) && (
             <div className="tw-mb-6 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
               <h4 className="tw-text-sm tw-font-medium tw-text-blue-800 tw-mb-2">Current Filters</h4>
               <div className="tw-text-xs tw-text-blue-700">
@@ -265,7 +268,6 @@ const TransactionFilterPopup = ({
                 {filters.endDate && (
                   <div>To: {filters.endDate.toLocaleDateString()}</div>
                 )}
-                <div>Limit: {filters.take} records</div>
               </div>
             </div>
           )}

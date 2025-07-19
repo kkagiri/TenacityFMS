@@ -31,7 +31,7 @@ namespace FMS.WebClient.Controllers {
         [HttpGet ("filtered")]
         [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetTankVolumeHistoryFiltered (
-            [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? take = 100, [FromQuery] bool? includeVehicleNames = true) {
+            [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] string? recordedBy = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? take = 100, [FromQuery] bool? includeVehicleNames = true) {
             var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
             if (!hasPermission) return Forbid ();
 
@@ -45,6 +45,7 @@ namespace FMS.WebClient.Controllers {
             var query = new GetTankVolumeHistoryFilteredQuery {
                 SiteId = siteId,
                 TankId = tankId,
+                RecordedBy = recordedBy,
                 StartDate = startDate,
                 EndDate = endDate,
                 Take = take,
@@ -100,6 +101,20 @@ namespace FMS.WebClient.Controllers {
             if (result == null) return NotFound ();
 
             return Ok (result);
+        }
+
+        [HttpGet ("users")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetUsersForFilter () {
+            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid ();
+
+            var result = await _mediator.Send (new GetAllUsersForFilterQuery ());
+
+            if (!result.IsSuccess)
+                return BadRequest (result.Message);
+
+            return Ok (result.Data);
         }
     }
 }
