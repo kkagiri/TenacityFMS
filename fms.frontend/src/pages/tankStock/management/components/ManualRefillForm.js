@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
-import ScrollView from 'devextreme-react/scroll-view';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import  notify from 'devextreme/ui/notify';
 import { createFuelRefill } from '../../../../redux/actions/fuelRefillAction';
@@ -35,6 +34,9 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     tankId: null
   });
 
+  // Track if data has been loaded to prevent multiple API calls
+  const dataLoadedRef = useRef(false);
+
   // Future records validation hook
   const {
     isValidating,
@@ -66,17 +68,21 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
   // Load vehicles and employees on component mount if not already loaded
   useEffect(() => {
     const loadData = async () => {
+      if (dataLoadedRef.current) return; // Prevent multiple loads
+
       try {
         // Only load if data is empty or not available
         if (!vehicles || vehicles.length === 0) {
           console.log('Loading vehicles...');
           await dispatch(fetchVehicleList());
         }
-        
+
         if (!employees || employees.length === 0) {
           console.log('Loading employees...');
           await dispatch(fetchEmployees());
         }
+
+        dataLoadedRef.current = true;
       } catch (error) {
         console.error('Error loading data:', error);
         showNotification('Error loading form data', 'error');
@@ -84,7 +90,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     };
 
     loadData();
-  }, [dispatch, vehicles, employees, showNotification]);
+  }, [dispatch, showNotification, vehicles, employees]);
 
   const handleSiteChange = useCallback((e) => {
     const siteId = e.value;
@@ -229,7 +235,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
             <p className="tw-text-gray-600 tw-text-sm tw-mb-3">
               Record manual fuel refill for vehicles.
             </p>
-            
+
             {/* Information Panel */}
             <div className="tw-bg-blue-50 tw-border-l-4 tw-border-blue-400 tw-p-3 tw-mb-4">
               <div className="tw-flex">

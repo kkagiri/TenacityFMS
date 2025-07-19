@@ -101,7 +101,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       dispatch(fetchSiteList());
       dispatch(fetchVehicleList());
       dispatch(fetchEmployees());
-      
+
       const defaultFilters = getDefaultFilters();
       setCurrentFilters(defaultFilters);
       loadTransactionData(defaultFilters);
@@ -437,10 +437,11 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         onHiding={() => setShowManualRefillForm(false)}
         showTitle={true}
         title="Manual Fuel Refill"
-        width="auto"
-        height="auto"
+        width={800}
+        height={600}
         showCloseButton={true}
-        dragEnabled={false}
+        dragEnabled={true}
+        resizeEnabled={true}
         className="manual-refill-popup"
       >
         <ManualRefillForm
