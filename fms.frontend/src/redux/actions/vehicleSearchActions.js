@@ -1,0 +1,251 @@
+import axiosInstance from "../../api/axiosInstance";
+
+// Action types for vehicle search
+export const SEARCH_VEHICLES_REQUEST = "SEARCH_VEHICLES_REQUEST";
+export const SEARCH_VEHICLES_SUCCESS = "SEARCH_VEHICLES_SUCCESS";
+export const SEARCH_VEHICLES_FAILURE = "SEARCH_VEHICLES_FAILURE";
+export const CLEAR_SEARCH_RESULTS = "CLEAR_SEARCH_RESULTS";
+
+// Search vehicles action
+export const searchVehicles = (searchTerm, filters = {}) => async (dispatch) => {
+  try {
+    dispatch({ type: SEARCH_VEHICLES_REQUEST });
+
+    // Use the backend search endpoint
+    const response = await axiosInstance.get('/vehicle/search', {
+      params: {
+        searchTerm: searchTerm,
+        ...filters
+      }
+    });
+
+    const result = response.data;
+    console.log('Search vehicles response:', result); // Debug log
+
+    // Handle both camelCase and PascalCase properties
+    const isSuccess = result.isSuccess || result.IsSuccess;
+    const data = result.data || result.Data || [];
+    const message = result.message || result.Message || '';
+
+    if (isSuccess) {
+      dispatch({
+        type: SEARCH_VEHICLES_SUCCESS,
+        payload: data
+      });
+
+      return {
+        success: true,
+        data: data,
+        message: message
+      };
+    } else {
+      dispatch({
+        type: SEARCH_VEHICLES_FAILURE,
+        payload: message
+      });
+
+      return {
+        success: false,
+        data: [],
+        message: message
+      };
+    }
+  } catch (error) {
+    console.error('Error searching vehicles:', error);
+    console.error('Error response:', error.response?.data); // Additional debug info
+    const errorMessage = error.response?.data?.message || error.response?.data?.Message || error.message || 'Failed to search vehicles';
+
+    dispatch({
+      type: SEARCH_VEHICLES_FAILURE,
+      payload: errorMessage
+    });
+
+    return {
+      success: false,
+      data: [],
+      message: errorMessage
+    };
+  }
+};
+
+// Clear search results action
+export const clearSearchResults = () => ({
+  type: CLEAR_SEARCH_RESULTS
+});
+
+// Advanced search with multiple criteria
+export const advancedVehicleSearch = (criteria) => async (dispatch) => {
+  try {
+    dispatch({ type: SEARCH_VEHICLES_REQUEST });
+
+    // Use the backend advanced search endpoint
+    const response = await axiosInstance.get('/vehicle/search', {
+      params: {
+        searchTerm: criteria.searchTerm || '',
+        vehicleType: criteria.vehicleType,
+        manufacturer: criteria.manufacturer,
+        status: criteria.status,
+        model: criteria.model,
+        isActive: criteria.isActive,
+        limit: criteria.limit || 50
+      }
+    });
+
+    const result = response.data;
+    if (result.isSuccess) {
+      dispatch({
+        type: SEARCH_VEHICLES_SUCCESS,
+        payload: result.data
+      });
+
+      return {
+        success: true,
+        data: result.data,
+        message: result.message
+      };
+    } else {
+      dispatch({
+        type: SEARCH_VEHICLES_FAILURE,
+        payload: result.message
+      });
+
+      return {
+        success: false,
+        data: [],
+        message: result.message
+      };
+    }
+  } catch (error) {
+    console.error('Error in advanced vehicle search:', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to perform advanced search';
+
+    dispatch({
+      type: SEARCH_VEHICLES_FAILURE,
+      payload: errorMessage
+    });
+
+    return {
+      success: false,
+      data: [],
+      message: errorMessage
+    };
+  }
+};
+
+// Quick search for vehicle suggestions (autocomplete)
+export const quickSearchVehicles = async (searchTerm, limit = 10) => {
+  try {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return {
+        success: true,
+        data: []
+      };
+    }
+
+    const response = await axiosInstance.get('/vehicle/quick-search', {
+      params: {
+        searchTerm: searchTerm.trim(),
+        limit
+      },
+    });
+
+    console.log('Quick search response:', response.data); // Debug log
+
+    // Handle both camelCase (data) and PascalCase (Data) properties
+    const responseData = response.data.data || response.data.Data || [];
+    const isSuccess = response.data.isSuccess || response.data.IsSuccess;
+
+    if (isSuccess) {
+      return {
+        success: true,
+        data: responseData
+      };
+    } else {
+      return {
+        success: false,
+        data: [],
+        error: response.data.message || response.data.Message || 'Search failed'
+      };
+    }
+  } catch (error) {
+    console.error('Error in quick vehicle search:', error);
+    console.error('Error response:', error.response?.data); // Additional debug info
+    const errorMessage = error.response?.data?.message || error.response?.data?.Message || error.message || 'Quick search failed';
+
+    return {
+      success: false,
+      error: errorMessage,
+      data: []
+    };
+  }
+};
+
+
+
+// Search vehicles by plate number
+export const searchVehiclesByPlate = (plateNumber) => async (dispatch) => {
+  try {
+    dispatch({ type: SEARCH_VEHICLES_REQUEST });
+
+    const response = await axiosInstance.get('/vehicle/search-by-plate', {
+      params: { plateNumber },
+    });
+
+    dispatch({
+      type: SEARCH_VEHICLES_SUCCESS,
+      payload: {
+        results: response.data.data || [],
+        searchTerm: plateNumber,
+        totalCount: response.data.data?.length || 0
+      },
+    });
+
+    return { success: true, data: response.data.data || [] };
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Plate search failed';
+
+    dispatch({
+      type: SEARCH_VEHICLES_FAILURE,
+      payload: {
+        error: errorMessage,
+        searchTerm: plateNumber
+      },
+    });
+
+    return { success: false, error: errorMessage };
+  }
+};
+
+// Search vehicles by Hyoung number
+export const searchVehiclesByHyoungNo = (hyoungNo) => async (dispatch) => {
+  try {
+    dispatch({ type: SEARCH_VEHICLES_REQUEST });
+
+    const response = await axiosInstance.get('/vehicle/search-by-hyoung', {
+      params: { hyoungNo },
+    });
+
+    dispatch({
+      type: SEARCH_VEHICLES_SUCCESS,
+      payload: {
+        results: response.data.data || [],
+        searchTerm: hyoungNo,
+        totalCount: response.data.data?.length || 0
+      },
+    });
+
+    return { success: true, data: response.data.data || [] };
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Hyoung number search failed';
+
+    dispatch({
+      type: SEARCH_VEHICLES_FAILURE,
+      payload: {
+        error: errorMessage,
+        searchTerm: hyoungNo
+      },
+    });
+
+    return { success: false, error: errorMessage };
+  }
+};

@@ -95,14 +95,14 @@ const SiteActionsMenu = ({ siteId, siteName, onActionSelected, visible, onClose 
           <i className="fa-light fa-building-columns tw-text-blue-600 tw-mr-2"></i>
           <span className="tw-font-semibold">Select an action for {siteName}</span>
         </div>
-        
+
         <List
           dataSource={siteActions}
           itemRender={renderActionItem}
           onItemClick={(e) => handleActionClick(e.itemData.id)}
           className="site-actions-list"
         />
-        
+
         <div className="site-actions-footer">
           <Button
             text="Cancel"
