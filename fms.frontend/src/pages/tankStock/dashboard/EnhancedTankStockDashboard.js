@@ -7,6 +7,7 @@ import { useDateRange } from '../../../hooks/useDateRange';
 import MissionControlLayout from '../../../components/missionControl/layout/MissionControlLayout';
 import TankLevelGauge from './components/TankLevelGauge';
 import SiteOverviewCards from './components/SiteOverviewCards';
+import SiteDetailsWithFilter from './components/SiteDetailsWithFilter';
 import EmergencyResponsePanel from './components/EmergencyResponsePanel';
 import TankFilterPanel from './components/TankFilterPanel';
 import LoadIndicator from 'devextreme-react/load-indicator';
@@ -251,6 +252,19 @@ const EnhancedTankStockDashboard = () => {
             siteMetrics={siteMetrics}
             selectedSite={selectedSite}
             enhanced={true}
+          />
+        </div>
+
+        {/* Site Details with Filtering */}
+        <div className="tw-mb-6">
+          <SiteDetailsWithFilter
+            siteMetrics={siteMetrics}
+            tankData={tankLevels}
+            selectedSite={selectedSite}
+            onSiteSelect={(siteId) => {
+              setSelectedSite(siteId);
+              localStorage.setItem('selectedSite', siteId);
+            }}
           />
         </div>
 
