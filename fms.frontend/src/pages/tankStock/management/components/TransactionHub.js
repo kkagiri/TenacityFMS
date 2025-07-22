@@ -10,7 +10,6 @@ import DataGrid, {
   FilterRow,
   Column,
   Lookup,
-  LoadPanel,
   Selection,
   FilterPanel,
   GroupPanel,
@@ -18,6 +17,7 @@ import DataGrid, {
   Summary,
   TotalItem
 } from 'devextreme-react/data-grid';
+import { LoadPanel } from 'devextreme-react/load-panel';
 import Button from 'devextreme-react/button';
 import Popup from 'devextreme-react/popup';
 import  notify  from 'devextreme/ui/notify';
@@ -28,8 +28,10 @@ import { fetchTanks } from '../../../../redux/actions/tankActions';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
 import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
 import { fetchEmployees } from '../../../../redux/actions/employeeActions';
-import ManualRefillForm from './ManualRefillForm';
+import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
+import ManualRefillForm from '../../forms/ManualRefillForm';
 import TransactionFilterPopup from './TransactionFilterPopup';
+import transactionDeleteService from '../../../../services/transactionDeleteService';
 
 const TransactionHub = ({ selectedSite, dateRange }) => {
   const dispatch = useDispatch();
@@ -40,13 +42,23 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   const tanks = useSelector((state) => state.tank.tanks);
   const sites = useSelector((state) => state.site.sites);
   const isLoading = useSelector((state) => state.tankVolumeHistory.isLoading);
+  const usersForFilter = useSelector((state) => state.user.usersForFilter);
 
   // Local state
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    visible: false,
+    transaction: null,
+    validationResult: null,
+    isDeleting: false,
+    showImpactDetails: false,
+    deletionReason: '',
+    userConfirmed: false
+  });
 
-  // Default to today's data only
-  const getDefaultFilters = useCallback(() => {
+  // Default to today's data only - ALWAYS start with ALL sites
+  const [currentFilters, setCurrentFilters] = useState(() => {
     const today = new Date();
     const startOfDay = new Date(today);
     startOfDay.setHours(0, 0, 0, 0);
@@ -54,16 +66,14 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     return {
-      siteId: selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null,
+      siteId: null, // Always start with ALL sites
       tankId: null,
       recordedBy: null,
       startDate: startOfDay.toISOString(),
       endDate: endOfDay.toISOString(),
       includeVehicleNames: true
     };
-  }, [selectedSite]);
-
-  const [currentFilters, setCurrentFilters] = useState(getDefaultFilters);
+  });
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Volume Change Reason Enum mapping
@@ -78,20 +88,19 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     { id: 7, name: 'ManualRefill' }
   ], []);
 
-  // Load transaction data with filters - removed from dependency arrays to prevent loops
+  // Load transaction data with filters
   const loadTransactionData = useCallback(async (filters) => {
-    const filtersToUse = filters || currentFilters;
-    console.log('Loading transaction data with filters:', filtersToUse);
+    console.log('Loading transaction data with filters:', filters);
 
     try {
-      const result = await dispatch(fetchTankVolumeHistoryFiltered(filtersToUse));
+      const result = await dispatch(fetchTankVolumeHistoryFiltered(filters));
       console.log('Data loaded successfully:', result);
       return result;
     } catch (error) {
       console.error('Error loading transaction data:', error);
       throw error;
     }
-  }, [dispatch, currentFilters]);
+  }, [dispatch]);
 
   // Initialize data and load sites - only run once
   useEffect(() => {
@@ -101,30 +110,51 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       dispatch(fetchSiteList());
       dispatch(fetchVehicleList());
       dispatch(fetchEmployees());
+      dispatch(fetchUsersForFilter());
 
-      const defaultFilters = getDefaultFilters();
+      // Create default filters inline - ALWAYS start with ALL sites
+      const today = new Date();
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const defaultFilters = {
+        siteId: null, // Always start with ALL sites
+        tankId: null,
+        recordedBy: null,
+        startDate: startOfDay.toISOString(),
+        endDate: endOfDay.toISOString(),
+        includeVehicleNames: true
+      };
+
       setCurrentFilters(defaultFilters);
-      loadTransactionData(defaultFilters);
+      dispatch(fetchTankVolumeHistoryFiltered(defaultFilters));
       setIsInitialized(true);
     }
-  }, [dispatch, getDefaultFilters, isInitialized, loadTransactionData]);
+  }, [dispatch, isInitialized]); // Remove selectedSite dependency
 
   // Handle prop changes separately to avoid infinite loops
   useEffect(() => {
-    if (isInitialized) {
-      const updatedFilters = {
-        ...currentFilters,
-        siteId: selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null
-      };
+    if (isInitialized && selectedSite !== undefined) {
+      const newSiteId = selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null;
+      const currentSiteId = currentFilters.siteId;
 
-      // Only update if site actually changed
-      if (updatedFilters.siteId !== currentFilters.siteId) {
-        console.log('Site changed, updating filters...');
+      // Only apply prop changes if:
+      // 1. The site actually changed
+      // 2. We're not trying to override an intentional "All Sites" selection (null)
+      // 3. We have a valid selectedSite prop that should take precedence
+      if (newSiteId !== currentSiteId && selectedSite !== undefined && selectedSite !== 'all') {
+        const updatedFilters = {
+          ...currentFilters,
+          siteId: newSiteId
+        };
         setCurrentFilters(updatedFilters);
-        loadTransactionData(updatedFilters);
+        dispatch(fetchTankVolumeHistoryFiltered(updatedFilters));
       }
     }
-  }, [selectedSite, isInitialized, currentFilters, loadTransactionData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSite, isInitialized]);
 
   // Apply filters from popup
   const handleApplyFilters = useCallback(async (filters) => {
@@ -182,11 +212,146 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     });
   }, [handleRefresh]);
 
-  // Clear all filters and reset to today
+  // Clear all filters and reset to today with ALL sites
   const handleClearFilters = useCallback(() => {
-    const defaultFilters = getDefaultFilters();
+    // Create default filters inline - ALWAYS reset to ALL sites (null)
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const defaultFilters = {
+      siteId: null, // Always reset to ALL sites
+      tankId: null,
+      recordedBy: null,
+      startDate: startOfDay.toISOString(),
+      endDate: endOfDay.toISOString(),
+      includeVehicleNames: true
+    };
+
     handleApplyFilters(defaultFilters);
-  }, [getDefaultFilters, handleApplyFilters]);
+  }, [handleApplyFilters]);
+
+  // Delete transaction handlers
+  const handleDeleteTransaction = useCallback(async (transaction) => {
+    console.log('Delete transaction initiated:', transaction);
+
+    try {
+      // Set initial state
+      setDeleteConfirmation({
+        visible: true,
+        transaction,
+        validationResult: null,
+        isDeleting: false,
+        showImpactDetails: false,
+        deletionReason: '',
+        userConfirmed: false
+      });
+
+      // Validate deletion with future records service
+      const validation = await transactionDeleteService.validateDelete({
+        tankId: transaction.tankId,
+        entryDate: transaction.timestamp,
+        entryType: transaction.changeReason
+      });
+
+      console.log('Delete validation result:', validation);
+
+      if (!validation.success) {
+        throw new Error(validation.error || 'Validation failed');
+      }
+
+      // Update state with validation result
+      setDeleteConfirmation(prev => ({
+        ...prev,
+        validationResult: validation.data
+      }));
+
+    } catch (error) {
+      console.error('Error validating deletion:', error);
+      notify({
+        message: `Failed to validate deletion: ${error.message}`,
+        type: 'error',
+        displayTime: 4000
+      });
+
+      // Close dialog on error
+      setDeleteConfirmation({
+        visible: false,
+        transaction: null,
+        validationResult: null,
+        isDeleting: false,
+        showImpactDetails: false,
+        deletionReason: '',
+        userConfirmed: false
+      });
+    }
+  }, []);
+
+  const executeDelete = useCallback(async () => {
+    const { transaction, userConfirmed, deletionReason } = deleteConfirmation;
+
+    if (!transaction) return;
+
+    setDeleteConfirmation(prev => ({ ...prev, isDeleting: true }));
+
+    try {
+      // Call delete API endpoint using the new service
+      const result = await transactionDeleteService.deleteTransaction(
+        transaction.id,
+        userConfirmed,
+        deletionReason
+      );
+
+      if (result.success) {
+        notify({
+          message: 'Transaction deleted successfully!',
+          type: 'success',
+          displayTime: 3000
+        });
+
+        // Close dialog and refresh data
+        setDeleteConfirmation({
+          visible: false,
+          transaction: null,
+          validationResult: null,
+          isDeleting: false,
+          showImpactDetails: false,
+          deletionReason: '',
+          userConfirmed: false
+        });
+
+        // Refresh the transaction data
+        await handleRefresh();
+
+      } else {
+        throw new Error(result.error || 'Failed to delete transaction');
+      }
+
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      notify({
+        message: `Failed to delete transaction: ${error.message}`,
+        type: 'error',
+        displayTime: 4000
+      });
+    } finally {
+      setDeleteConfirmation(prev => ({ ...prev, isDeleting: false }));
+    }
+  }, [deleteConfirmation, handleRefresh]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteConfirmation({
+      visible: false,
+      transaction: null,
+      validationResult: null,
+      isDeleting: false,
+      showImpactDetails: false,
+      deletionReason: '',
+      userConfirmed: false
+    });
+  }, []);
 
   // Format timestamp for display
   const formatTime = (cellInfo) => {
@@ -264,13 +429,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               stylingMode="outlined"
               className="tw-min-w-24"
             />
-            <Button
-              text="Manual Refill"
-              icon="fa-light fa-plus"
-              onClick={() => setShowManualRefillForm(true)}
-              type="default"
-              className="tw-min-w-32"
-            />
+
             <Button
               text="Refresh"
               icon="fa-light fa-refresh"
@@ -303,7 +462,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 )}
                 {currentFilters.recordedBy && (
                   <span className="tw-bg-purple-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                    User: {currentFilters.recordedBy}
+                    User: {usersForFilter?.find(u => u.id === currentFilters.recordedBy)?.userName || 'Unknown'}
                   </span>
                 )}
                 <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
@@ -316,7 +475,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               </div>
             </div>
             <Button
-              text="Reset to Today"
+              text="Reset to All Sites"
               onClick={handleClearFilters}
               stylingMode="text"
               className="tw-text-xs tw-text-blue-600"
@@ -367,14 +526,6 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             />
           </Toolbar>
 
-          <LoadPanel
-            enabled={isLoading}
-            showIndicator={true}
-            showPane={true}
-            text="Loading transaction data..."
-            position="center"
-          />
-
           {/* Columns */}
           <Column dataField="id" caption="ID" visible={false} defaultSortOrder="desc" />
           <Column
@@ -412,6 +563,28 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             dataField="recordedByUserName"
             caption="Recorded By"
             minWidth={120}
+          />
+
+          {/* Actions Column */}
+          <Column
+            type="buttons"
+            width={100}
+            caption="Actions"
+            allowSorting={false}
+            allowGrouping={false}
+            allowFiltering={false}
+            cellRender={(cellData) => (
+              <div className="tw-flex tw-space-x-2">
+                <Button
+                  icon="fa-light fa-trash"
+                  stylingMode="text"
+                  onClick={() => handleDeleteTransaction(cellData.data)}
+                  className="tw-text-red-600 hover:tw-text-red-800"
+                  hint="Delete Transaction"
+                  disabled={isLoading || deleteConfirmation.isDeleting}
+                />
+              </div>
+            )}
           />
 
           {/* Summary for grouped data */}
@@ -456,6 +629,184 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         onHiding={() => setShowFilterPopup(false)}
         currentFilters={currentFilters}
         onApplyFilters={handleApplyFilters}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Popup
+        visible={deleteConfirmation.visible}
+        onHiding={handleCancelDelete}
+        showTitle={true}
+        title="Delete Transaction"
+        width={600}
+        height="auto"
+        showCloseButton={true}
+        dragEnabled={true}
+        contentRender={() => (
+          <div className="tw-p-6">
+            {deleteConfirmation.validationResult ? (
+              <div>
+                {/* Transaction Details */}
+                <div className="tw-mb-6">
+                  <h4 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
+                    Transaction to Delete
+                  </h4>
+                  <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-space-y-2">
+                    <div className="tw-flex tw-justify-between">
+                      <span className="tw-font-medium">Date:</span>
+                      <span>{deleteConfirmation.transaction ? new Date(deleteConfirmation.transaction.timestamp).toLocaleString() : ''}</span>
+                    </div>
+                    <div className="tw-flex tw-justify-between">
+                      <span className="tw-font-medium">Type:</span>
+                      <span>{deleteConfirmation.transaction ? VolumeChangeReasonEnum.find(r => r.id === deleteConfirmation.transaction.changeReason)?.name : ''}</span>
+                    </div>
+                    <div className="tw-flex tw-justify-between">
+                      <span className="tw-font-medium">Volume Change:</span>
+                      <span className={`tw-font-medium ${(deleteConfirmation.transaction?.volumeChange || 0) >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
+                        {deleteConfirmation.transaction?.volumeChange?.toLocaleString()} L
+                      </span>
+                    </div>
+                    <div className="tw-flex tw-justify-between">
+                      <span className="tw-font-medium">Tank:</span>
+                      <span>{tanks?.find(t => t.id === deleteConfirmation.transaction?.tankId)?.name || 'Unknown'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Validation Results */}
+                {!deleteConfirmation.validationResult.isAllowed ? (
+                  <div className="tw-mb-6">
+                    <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
+                      <div className="tw-flex tw-items-start">
+                        <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
+                        <div>
+                          <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
+                          <p className="tw-text-red-700">{deleteConfirmation.validationResult.message}</p>
+                          {deleteConfirmation.validationResult.detailedWarning && (
+                            <p className="tw-text-red-600 tw-text-sm tw-mt-2">
+                              {deleteConfirmation.validationResult.detailedWarning}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : deleteConfirmation.validationResult.requiresUserConfirmation ? (
+                  <div className="tw-mb-6">
+                    <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
+                      <div className="tw-flex tw-items-start">
+                        <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
+                        <div>
+                          <h5 className="tw-font-semibold tw-text-yellow-800 tw-mb-2">Warning: Future Records Detected</h5>
+                          <p className="tw-text-yellow-700 tw-mb-3">{deleteConfirmation.validationResult.message}</p>
+
+                          {deleteConfirmation.validationResult.futureRecordsCount > 0 && (
+                            <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
+                              <div className="tw-text-sm tw-space-y-1">
+                                <div className="tw-flex tw-justify-between">
+                                  <span>Future Records:</span>
+                                  <span className="tw-font-medium">{deleteConfirmation.validationResult.futureRecordsCount}</span>
+                                </div>
+                                {deleteConfirmation.validationResult.earliestFutureRecord && (
+                                  <div className="tw-flex tw-justify-between">
+                                    <span>Earliest:</span>
+                                    <span className="tw-font-medium">
+                                      {new Date(deleteConfirmation.validationResult.earliestFutureRecord).toLocaleString()}
+                                    </span>
+                                  </div>
+                                )}
+                                {deleteConfirmation.validationResult.latestFutureRecord && (
+                                  <div className="tw-flex tw-justify-between">
+                                    <span>Latest:</span>
+                                    <span className="tw-font-medium">
+                                      {new Date(deleteConfirmation.validationResult.latestFutureRecord).toLocaleString()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {deleteConfirmation.validationResult.detailedWarning && (
+                            <p className="tw-text-yellow-600 tw-text-sm">
+                              {deleteConfirmation.validationResult.detailedWarning}
+                            </p>
+                          )}
+
+                          <div className="tw-mt-4">
+                            <label className="tw-flex tw-items-center tw-space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={deleteConfirmation.userConfirmed}
+                                onChange={(e) => setDeleteConfirmation(prev => ({
+                                  ...prev,
+                                  userConfirmed: e.target.checked
+                                }))}
+                                className="tw-w-4 tw-h-4"
+                              />
+                              <span className="tw-text-sm tw-text-gray-700">
+                                I understand the impact and want to proceed with the deletion
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="tw-mb-6">
+                    <div className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
+                      <div className="tw-flex tw-items-start">
+                        <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
+                        <div>
+                          <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
+                          <p className="tw-text-green-700">{deleteConfirmation.validationResult.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="tw-flex tw-justify-end tw-space-x-3">
+                  <Button
+                    text="Cancel"
+                    onClick={handleCancelDelete}
+                    stylingMode="outlined"
+                    disabled={deleteConfirmation.isDeleting}
+                  />
+                  {deleteConfirmation.validationResult.isAllowed && (
+                    <Button
+                      text={deleteConfirmation.isDeleting ? "Deleting..." : "Delete Transaction"}
+                      onClick={executeDelete}
+                      type="default"
+                      disabled={
+                        deleteConfirmation.isDeleting ||
+                        (deleteConfirmation.validationResult.requiresUserConfirmation && !deleteConfirmation.userConfirmed)
+                      }
+                      className="tw-bg-red-600 hover:tw-bg-red-700"
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
+                <div className="tw-text-center">
+                  <i className="fa-light fa-spinner tw-animate-spin tw-text-2xl tw-text-blue-600 tw-mb-3"></i>
+                  <p className="tw-text-gray-600">Validating deletion...</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      />
+
+      {/* Page-level LoadPanel */}
+      <LoadPanel
+        visible={isLoading}
+        showIndicator={true}
+        showPane={true}
+        text="Loading transaction data..."
+        position="center"
       />
     </div>
   );

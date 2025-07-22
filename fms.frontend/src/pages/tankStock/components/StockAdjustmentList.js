@@ -17,7 +17,7 @@ import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateRangeBox } from 'devextreme-react/date-range-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
-import { useStockManagement } from '../../hooks/useStockManagement';
+import { useStockManagement } from '../../../hooks/useStockManagement';
 import notify from 'devextreme/ui/notify';
 
 const AdjustmentTypes = [

@@ -4,11 +4,11 @@ import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import  notify from 'devextreme/ui/notify';
-import { createFuelRefill } from '../../../../redux/actions/fuelRefillAction';
-import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
-import { fetchEmployees } from '../../../../redux/actions/employeeActions';
-import { useFutureRecordsValidation } from '../../../../hooks/useFutureRecordsValidation';
-import FutureRecordsWarning from '../../../../components/tank-stock/FutureRecordsWarning';
+import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
+import { fetchVehicleList } from '../../../redux/actions/vehicleActions';
+import { fetchEmployees } from '../../../redux/actions/employeeActions';
+import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
+import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
 
 const ManualRefillForm = ({ onCancel, onSuccess }) => {
   const dispatch = useDispatch();

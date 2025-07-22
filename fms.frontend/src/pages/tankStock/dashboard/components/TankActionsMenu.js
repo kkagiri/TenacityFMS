@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Popup } from 'devextreme-react/popup';
-import StockAdjustmentForm from '../../components/forms/StockAdjustmentForm';
+import StockAdjustmentForm from '../../forms/StockAdjustmentForm';
 import './TankActionsMenu.scss';
 
 // AI-Generated: Custom Dropdown Menu for Tank Actions

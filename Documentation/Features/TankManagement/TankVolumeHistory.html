@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tank Volume History - Tank Management</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { width: 80%; margin: 0 auto; }
+  h1, h2, h3 { color: #333; }
+  pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; }
+  .section { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tank Volume History</h1>
+  <div class="nav">
+    <a href="../TankManagement.html">Back to Tank Management</a>
+  </div>
+
+  <div class="section">
+    <h2>TankVolumeHistoryIntegrationService</h2>
+    <p>This service is a crucial component of the Tank Management feature. It provides a centralized way to process all changes that affect tank volume, ensuring that the `TankVolumeHistory` is always consistent and up-to-date. It is called by various commands, such as `CreateDeliveryCommand`, `CreateFuelRefillCommand`, and `CreateTankTransfer`.</p>
+    <h3>Methods</h3>
+    <ul>
+      <li><strong>ProcessFuelRefillChangeAsync:</strong> Processes a fuel refill and updates the `TankVolumeHistory`.</li>
+      <li><strong>ProcessDeliveryChangeAsync:</strong> Processes a delivery and updates the `TankVolumeHistory`.</li>
+      <li><strong>ProcessTankStockChangeAsync:</strong> Processes a tank stock change (opening or closing) and updates the `TankVolumeHistory`.</li>
+      <li><strong>ProcessTankTransferOutChangeAsync:</strong> Processes the outgoing side of a tank transfer.</li>
+      <li><strong>ProcessTankTransferInChangeAsync:</strong> Processes the incoming side of a tank transfer.</li>
+      <li><strong>ProcessAdjustmentChangeAsync:</strong> Processes a manual stock adjustment.</li>
+      <li><strong>ProcessPumpTransactionChangeAsync:</strong> Processes an automated pump transaction.</li>
+      <li><strong>ReconcileTankCurrentStockAsync:</strong> Reconciles the `CurrentStock` of a tank with its `TankVolumeHistory`.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>UpdateTankVolumeHistoryCommand</h2>
+    <p>This command is responsible for recalculating the `NewVolume` for all `TankVolumeHistory` records for a given tank from a specified effective date. This is essential for maintaining data integrity when a historical transaction is added or modified.</p>
+    <h3>Properties</h3>
+    <pre><code>
+    public int TankId { get; set; }
+    public DateTime EffectiveDate { get; set; }
+    public bool IsHistoricalUpdate { get; set; }
+    public bool UpdateTankCurrentStock { get; set; }
+    </code></pre>
+  </div>
+
+</div>
+</body>
+</html>

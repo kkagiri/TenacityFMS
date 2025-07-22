@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -7,7 +6,7 @@ import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { DateBox } from 'devextreme-react/date-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
-import { useStockManagement } from '../../../../hooks/useStockManagement';
+import { useStockManagement } from '../../../hooks/useStockManagement';
 import notify from 'devextreme/ui/notify';
 
 const AdjustmentTypes = [
@@ -30,7 +29,7 @@ const AdjustmentReasons = [
 ];
 
 //Cursor - Stock Adjustment Form Component - Updated for new entity structure
-const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, preSelectedTank }) => {
+const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => {
   const { validateTankCapacity, calculateVolumeChange } = useStockManagement();
   const sites = useSelector((state) => state.site.sites);
   const tanks = useSelector((state) => state.tank.tanks);
@@ -40,8 +39,8 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, preSelectedTank })
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
-    tankId: preSelectedTank?.tankId || '',
-    siteId: preSelectedTank?.siteId || '',
+    tankId: '',
+    siteId: '',
     adjustmentDate: new Date(),
     currentVolume: 0,
     newVolume: 0,
@@ -56,23 +55,21 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, preSelectedTank })
 
   const [formErrors, setFormErrors] = useState({});
 
-  // Initialize form when preSelectedTank is provided
+  //Cursor - Handle initialData for editing or quick actions
   useEffect(() => {
-    if (preSelectedTank && preSelectedTank.tankId) {
-      const tank = tanks.find(t => t.id === preSelectedTank.tankId);
-      if (tank) {
-        setFormData(prev => ({
-          ...prev,
-          tankId: preSelectedTank.tankId,
-          siteId: preSelectedTank.siteId,
-          currentVolume: tank.currentStock || 0,
-          newVolume: tank.currentStock || 0,
-          volumeChange: 0,
-          adjustmentType: 2
-        }));
-      }
+    if (initialData) {
+      setFormData(prevData => ({
+        ...prevData,
+        ...initialData,
+        // Ensure some fields are properly set
+        adjustmentDate: initialData.adjustmentDate ? new Date(initialData.adjustmentDate) : new Date(),
+        createdBy: user?.id || '',
+        // Set reason text based on reasonCode if not provided
+        reason: initialData.reason || (initialData.reasonCode ?
+          AdjustmentReasons.find(r => r.id === initialData.reasonCode)?.name || '' : '')
+      }));
     }
-  }, [preSelectedTank, tanks]);
+  }, [initialData, user]);
 
   // Filter tanks based on selected site
   const filteredTanks = useMemo(() => {
@@ -459,16 +456,6 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, preSelectedTank })
       </div>
     </div>
   );
-};
-
-StockAdjustmentForm.propTypes = {
-  onSubmit: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-  isVisible: PropTypes.bool.isRequired,
-  preSelectedTank: PropTypes.shape({
-    tankId: PropTypes.string,
-    siteId: PropTypes.string
-  })
 };
 
 export default StockAdjustmentForm;

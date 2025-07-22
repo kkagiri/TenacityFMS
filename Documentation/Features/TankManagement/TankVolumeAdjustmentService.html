@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tank Volume Adjustment Service - Tank Management</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { width: 80%; margin: 0 auto; }
+  h1, h2, h3 { color: #333; }
+  pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; }
+  .section { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tank Volume Adjustment Service</h1>
+  <div class="nav">
+    <a href="../TankManagement.html">Back to Tank Management</a>
+  </div>
+
+  <div class="section">
+    <h2>ITankVolumeAdjustmentService</h2>
+    <p>This service provides a method to adjust the tank volume and create a corresponding `TankVolumeHistory` record. It is used when a transaction that affects the tank volume is updated or deleted.</p>
+    <h3>Methods</h3>
+    <ul>
+      <li><strong>AdjustTankVolumeAsync:</strong> Adjusts the tank volume, creates a `TankVolumeHistory` record, and optionally rebases subsequent transactions.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

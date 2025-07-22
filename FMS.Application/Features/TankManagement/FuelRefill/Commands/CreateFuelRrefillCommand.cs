@@ -71,7 +71,21 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                     .OrderByDescending (x => x.Timestamp.Date)
                     .FirstOrDefaultAsync (cancellationToken);
 
-                if (existingOpeningStock == null) return new FMSResponseMessage (false, $"Opening stock for the tank on {entryDate.Date} not found Create A new Opening Stock ");
+                if (existingOpeningStock == null) return new FMSResponseMessage (false, $"Opening stock for the tank on {entryDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.");
+
+                // Ensure there is a proper sequence: if there's an opening stock, fuel refills should come after it
+                // but before or after a closing stock if it exists
+                var closingStockForDay = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.FuelRefilDTO.TankId &&
+                        x.Timestamp.Date == entryDate.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                // If there's already a closing stock for the day, and fuel refill is after that closing stock,
+                // then we need a new opening stock first
+                if (closingStockForDay != null && fuelRefilDto.Date > closingStockForDay.Timestamp) {
+                    return new FMSResponseMessage (false, $"Cannot add fuel refill after closing stock for {entryDate.Date:yyyy-MM-dd}. Please create a new opening stock first.");
+                }
 
                 var existingRefuel = await _context.FuelRefills
                     .FirstOrDefaultAsync (f =>

@@ -10,15 +10,17 @@ import OpeningStockForm from '../forms/OpeningStockForm';
 import ClosingStockForm from '../forms/ClosingStockForm';
 import TankDeliveryForm from '../forms/TankDeliveryForm';
 import TankTransferForm from '../forms/TankTransferForm';
+import ManualRefillForm from '../forms/ManualRefillForm';
 
 // API actions
 import {
   createOpeningStock,
   createClosingStock,
   createTankTransfer
+
 } from '../../../redux/actions/tankStockAction';
 import { createDelivery } from '../../../redux/actions/DeliveryActions';
-import { max } from 'lodash';
+import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
 
 const POPUP_CONFIG = {
   openingStock: {
@@ -50,6 +52,13 @@ const POPUP_CONFIG = {
     maxWidth: "800px",
     height: "auto",
   },
+  manualRefill: {
+    title: "Manual Refill",
+    Form: ManualRefillForm,
+    width: "90%",
+    maxWidth: "600px",
+    height: "auto",
+  }
 };
 
 const QuickActions = ({ collapsed = false, onRefreshData }) => {
@@ -62,6 +71,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     closingStock: false,
     delivery: false,
     transfer: false,
+    manualRefill: false,
   });
 
   const [currentForm, setCurrentForm] = useState(null);
@@ -92,6 +102,12 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
       icon: "fa-light fa-exchange",
       type: "normal",
     },
+    {
+      key: "manualRefill",
+      text: "Manual Refill",
+      icon: "fa-light fa-fuel-pump",
+      type: "normal",
+    }
   ];
 
 
@@ -144,6 +160,9 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         case 'transfer':
           result = await dispatch(createTankTransfer(formData));
           break;
+        case 'manualRefill':
+          result = await dispatch(createFuelRefill(formData));
+          break;
 
         default:
           throw new Error(`Unknown action type: ${actionType}`);
@@ -180,6 +199,9 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
   const handleTransferSubmit = useCallback((formData) =>
     handleStockSubmit(formData, 'transfer'), [handleStockSubmit]);
 
+  const handleManualRefillSubmit = useCallback((formData) =>
+    handleStockSubmit(formData, 'manualRefill'), [handleStockSubmit]);
+
   const renderPopup = () => {
     if (!currentForm) return null;
 
@@ -199,6 +221,9 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         break;
       case 'transfer':
         submitHandler = handleTransferSubmit;
+        break;
+      case 'manualRefill':
+        submitHandler = handleManualRefillSubmit;
         break;
       default:
         submitHandler = () => {};
