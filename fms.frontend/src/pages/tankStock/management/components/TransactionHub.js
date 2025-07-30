@@ -31,7 +31,23 @@ import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
 import TransactionFilterPopup from './TransactionFilterPopup';
-import transactionDeleteService from '../../../../services/transactionDeleteService';
+
+// Import service with fallback
+let transactionDeleteService;
+try {
+  transactionDeleteService = require('../../../../services/transactionDeleteService').default;
+} catch (error) {
+  console.warn('transactionDeleteService not available:', error.message);
+  // Create a fallback service
+  transactionDeleteService = {
+    validateDelete: async () => {
+      throw new Error('Delete validation service is not available');
+    },
+    deleteTransaction: async () => {
+      throw new Error('Delete service is not available');
+    }
+  };
+}
 
 const TransactionHub = ({ selectedSite, dateRange }) => {
   const dispatch = useDispatch();
@@ -255,23 +271,31 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       });
 
       // Validate deletion with future records service
-      const validation = await transactionDeleteService.validateDelete({
-        tankId: transaction.tankId,
-        entryDate: transaction.timestamp,
-        entryType: transaction.changeReason
-      });
+      let validation;
+      try {
+        validation = await transactionDeleteService.validateDelete({
+          tankId: transaction.tankId,
+          entryDate: transaction.timestamp,
+          entryType: transaction.changeReason
+        });
+      } catch (serviceError) {
+        console.error('Service error:', serviceError);
+        throw new Error('Validation service is unavailable. Please try again later.');
+      }
 
       console.log('Delete validation result:', validation);
 
-      if (!validation.success) {
-        throw new Error(validation.error || 'Validation failed');
+      if (!validation?.success) {
+        throw new Error(validation?.error || 'Validation failed');
       }
 
-      // Update state with validation result
-      setDeleteConfirmation(prev => ({
-        ...prev,
-        validationResult: validation.data
-      }));
+      // Update state with validation result - use setTimeout to avoid DOM conflicts
+      setTimeout(() => {
+        setDeleteConfirmation(prev => ({
+          ...prev,
+          validationResult: validation.data
+        }));
+      }, 0);
 
     } catch (error) {
       console.error('Error validating deletion:', error);
@@ -281,16 +305,18 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         displayTime: 4000
       });
 
-      // Close dialog on error
-      setDeleteConfirmation({
-        visible: false,
-        transaction: null,
-        validationResult: null,
-        isDeleting: false,
-        showImpactDetails: false,
-        deletionReason: '',
-        userConfirmed: false
-      });
+      // Close dialog on error - use setTimeout to avoid DOM conflicts
+      setTimeout(() => {
+        setDeleteConfirmation({
+          visible: false,
+          transaction: null,
+          validationResult: null,
+          isDeleting: false,
+          showImpactDetails: false,
+          deletionReason: '',
+          userConfirmed: false
+        });
+      }, 100);
     }
   }, []);
 
@@ -303,35 +329,45 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
     try {
       // Call delete API endpoint using the new service
-      const result = await transactionDeleteService.deleteTransaction(
-        transaction.id,
-        userConfirmed,
-        deletionReason
-      );
+      let result;
+      try {
+        result = await transactionDeleteService.deleteTransaction(
+          transaction.id,
+          userConfirmed,
+          deletionReason
+        );
+      } catch (serviceError) {
+        console.error('Service error:', serviceError);
+        throw new Error('Delete service is unavailable. Please try again later.');
+      }
 
-      if (result.success) {
+      if (result?.success) {
         notify({
           message: 'Transaction deleted successfully!',
           type: 'success',
           displayTime: 3000
         });
 
-        // Close dialog and refresh data
-        setDeleteConfirmation({
-          visible: false,
-          transaction: null,
-          validationResult: null,
-          isDeleting: false,
-          showImpactDetails: false,
-          deletionReason: '',
-          userConfirmed: false
-        });
+        // Close dialog and refresh data - use setTimeout to avoid DOM conflicts
+        setTimeout(() => {
+          setDeleteConfirmation({
+            visible: false,
+            transaction: null,
+            validationResult: null,
+            isDeleting: false,
+            showImpactDetails: false,
+            deletionReason: '',
+            userConfirmed: false
+          });
+        }, 100);
 
         // Refresh the transaction data
-        await handleRefresh();
+        setTimeout(() => {
+          handleRefresh();
+        }, 200);
 
       } else {
-        throw new Error(result.error || 'Failed to delete transaction');
+        throw new Error(result?.error || 'Failed to delete transaction');
       }
 
     } catch (error) {
@@ -357,6 +393,167 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       userConfirmed: false
     });
   }, []);
+
+  // Create a stable dialog content component to avoid DOM issues
+  const DeleteConfirmationContent = useMemo(() => {
+    if (!deleteConfirmation.validationResult) {
+      return (
+        <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
+          <div className="tw-text-center">
+            <i className="fa-light fa-spinner tw-animate-spin tw-text-2xl tw-text-blue-600 tw-mb-3"></i>
+            <p className="tw-text-gray-600">Validating deletion...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {/* Transaction Details */}
+        <div className="tw-mb-6">
+          <h4 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
+            Transaction to Delete
+          </h4>
+          <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-space-y-2">
+            <div className="tw-flex tw-justify-between">
+              <span className="tw-font-medium">Date:</span>
+              <span>{deleteConfirmation.transaction ? new Date(deleteConfirmation.transaction.timestamp).toLocaleString() : ''}</span>
+            </div>
+            <div className="tw-flex tw-justify-between">
+              <span className="tw-font-medium">Type:</span>
+              <span>{deleteConfirmation.transaction ? VolumeChangeReasonEnum.find(r => r.id === deleteConfirmation.transaction.changeReason)?.name : ''}</span>
+            </div>
+            <div className="tw-flex tw-justify-between">
+              <span className="tw-font-medium">Volume Change:</span>
+              <span className={`tw-font-medium ${(deleteConfirmation.transaction?.volumeChange || 0) >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
+                {deleteConfirmation.transaction?.volumeChange?.toLocaleString()} L
+              </span>
+            </div>
+            <div className="tw-flex tw-justify-between">
+              <span className="tw-font-medium">Tank:</span>
+              <span>{tanks?.find(t => t.id === deleteConfirmation.transaction?.tankId)?.name || 'Unknown'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Validation Results */}
+        {!deleteConfirmation.validationResult.isAllowed ? (
+          <div className="tw-mb-6">
+            <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
+              <div className="tw-flex tw-items-start">
+                <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
+                <div>
+                  <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
+                  <p className="tw-text-red-700">{deleteConfirmation.validationResult.message}</p>
+                  {deleteConfirmation.validationResult.detailedWarning && (
+                    <p className="tw-text-red-600 tw-text-sm tw-mt-2">
+                      {deleteConfirmation.validationResult.detailedWarning}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : deleteConfirmation.validationResult.requiresUserConfirmation ? (
+          <div className="tw-mb-6">
+            <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
+              <div className="tw-flex tw-items-start">
+                <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
+                <div>
+                  <h5 className="tw-font-semibold tw-text-yellow-800 tw-mb-2">Warning: Future Records Detected</h5>
+                  <p className="tw-text-yellow-700 tw-mb-3">{deleteConfirmation.validationResult.message}</p>
+
+                  {deleteConfirmation.validationResult.futureRecordsCount > 0 && (
+                    <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
+                      <div className="tw-text-sm tw-space-y-1">
+                        <div className="tw-flex tw-justify-between">
+                          <span>Future Records:</span>
+                          <span className="tw-font-medium">{deleteConfirmation.validationResult.futureRecordsCount}</span>
+                        </div>
+                        {deleteConfirmation.validationResult.earliestFutureRecord && (
+                          <div className="tw-flex tw-justify-between">
+                            <span>Earliest:</span>
+                            <span className="tw-font-medium">
+                              {new Date(deleteConfirmation.validationResult.earliestFutureRecord).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {deleteConfirmation.validationResult.latestFutureRecord && (
+                          <div className="tw-flex tw-justify-between">
+                            <span>Latest:</span>
+                            <span className="tw-font-medium">
+                              {new Date(deleteConfirmation.validationResult.latestFutureRecord).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {deleteConfirmation.validationResult.detailedWarning && (
+                    <p className="tw-text-yellow-600 tw-text-sm">
+                      {deleteConfirmation.validationResult.detailedWarning}
+                    </p>
+                  )}
+
+                  <div className="tw-mt-4">
+                    <label className="tw-flex tw-items-center tw-space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={deleteConfirmation.userConfirmed}
+                        onChange={(e) => setDeleteConfirmation(prev => ({
+                          ...prev,
+                          userConfirmed: e.target.checked
+                        }))}
+                        className="tw-w-4 tw-h-4"
+                      />
+                      <span className="tw-text-sm tw-text-gray-700">
+                        I understand the impact and want to proceed with the deletion
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="tw-mb-6">
+            <div className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
+              <div className="tw-flex tw-items-start">
+                <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
+                <div>
+                  <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
+                  <p className="tw-text-green-700">{deleteConfirmation.validationResult.message}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="tw-flex tw-justify-end tw-space-x-3">
+          <Button
+            text="Cancel"
+            onClick={handleCancelDelete}
+            stylingMode="outlined"
+            disabled={deleteConfirmation.isDeleting}
+          />
+          {deleteConfirmation.validationResult.isAllowed && (
+            <Button
+              text={deleteConfirmation.isDeleting ? "Deleting..." : "Delete Transaction"}
+              onClick={executeDelete}
+              type="default"
+              disabled={
+                deleteConfirmation.isDeleting ||
+                (deleteConfirmation.validationResult.requiresUserConfirmation && !deleteConfirmation.userConfirmed)
+              }
+              className="tw-bg-red-600 hover:tw-bg-red-700"
+            />
+          )}
+        </div>
+      </div>
+    );
+  }, [deleteConfirmation, VolumeChangeReasonEnum, tanks, executeDelete, handleCancelDelete]);
 
   // Format timestamp for display
   const formatTime = (cellInfo) => {
@@ -646,164 +843,11 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         height="auto"
         showCloseButton={true}
         dragEnabled={true}
-        contentRender={() => (
-          <div className="tw-p-6">
-            {deleteConfirmation.validationResult ? (
-              <div>
-                {/* Transaction Details */}
-                <div className="tw-mb-6">
-                  <h4 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
-                    Transaction to Delete
-                  </h4>
-                  <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-space-y-2">
-                    <div className="tw-flex tw-justify-between">
-                      <span className="tw-font-medium">Date:</span>
-                      <span>{deleteConfirmation.transaction ? new Date(deleteConfirmation.transaction.timestamp).toLocaleString() : ''}</span>
-                    </div>
-                    <div className="tw-flex tw-justify-between">
-                      <span className="tw-font-medium">Type:</span>
-                      <span>{deleteConfirmation.transaction ? VolumeChangeReasonEnum.find(r => r.id === deleteConfirmation.transaction.changeReason)?.name : ''}</span>
-                    </div>
-                    <div className="tw-flex tw-justify-between">
-                      <span className="tw-font-medium">Volume Change:</span>
-                      <span className={`tw-font-medium ${(deleteConfirmation.transaction?.volumeChange || 0) >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
-                        {deleteConfirmation.transaction?.volumeChange?.toLocaleString()} L
-                      </span>
-                    </div>
-                    <div className="tw-flex tw-justify-between">
-                      <span className="tw-font-medium">Tank:</span>
-                      <span>{tanks?.find(t => t.id === deleteConfirmation.transaction?.tankId)?.name || 'Unknown'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Validation Results */}
-                {!deleteConfirmation.validationResult.isAllowed ? (
-                  <div className="tw-mb-6">
-                    <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
-                      <div className="tw-flex tw-items-start">
-                        <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
-                        <div>
-                          <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
-                          <p className="tw-text-red-700">{deleteConfirmation.validationResult.message}</p>
-                          {deleteConfirmation.validationResult.detailedWarning && (
-                            <p className="tw-text-red-600 tw-text-sm tw-mt-2">
-                              {deleteConfirmation.validationResult.detailedWarning}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : deleteConfirmation.validationResult.requiresUserConfirmation ? (
-                  <div className="tw-mb-6">
-                    <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
-                      <div className="tw-flex tw-items-start">
-                        <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
-                        <div>
-                          <h5 className="tw-font-semibold tw-text-yellow-800 tw-mb-2">Warning: Future Records Detected</h5>
-                          <p className="tw-text-yellow-700 tw-mb-3">{deleteConfirmation.validationResult.message}</p>
-
-                          {deleteConfirmation.validationResult.futureRecordsCount > 0 && (
-                            <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
-                              <div className="tw-text-sm tw-space-y-1">
-                                <div className="tw-flex tw-justify-between">
-                                  <span>Future Records:</span>
-                                  <span className="tw-font-medium">{deleteConfirmation.validationResult.futureRecordsCount}</span>
-                                </div>
-                                {deleteConfirmation.validationResult.earliestFutureRecord && (
-                                  <div className="tw-flex tw-justify-between">
-                                    <span>Earliest:</span>
-                                    <span className="tw-font-medium">
-                                      {new Date(deleteConfirmation.validationResult.earliestFutureRecord).toLocaleString()}
-                                    </span>
-                                  </div>
-                                )}
-                                {deleteConfirmation.validationResult.latestFutureRecord && (
-                                  <div className="tw-flex tw-justify-between">
-                                    <span>Latest:</span>
-                                    <span className="tw-font-medium">
-                                      {new Date(deleteConfirmation.validationResult.latestFutureRecord).toLocaleString()}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {deleteConfirmation.validationResult.detailedWarning && (
-                            <p className="tw-text-yellow-600 tw-text-sm">
-                              {deleteConfirmation.validationResult.detailedWarning}
-                            </p>
-                          )}
-
-                          <div className="tw-mt-4">
-                            <label className="tw-flex tw-items-center tw-space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={deleteConfirmation.userConfirmed}
-                                onChange={(e) => setDeleteConfirmation(prev => ({
-                                  ...prev,
-                                  userConfirmed: e.target.checked
-                                }))}
-                                className="tw-w-4 tw-h-4"
-                              />
-                              <span className="tw-text-sm tw-text-gray-700">
-                                I understand the impact and want to proceed with the deletion
-                              </span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="tw-mb-6">
-                    <div className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
-                      <div className="tw-flex tw-items-start">
-                        <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
-                        <div>
-                          <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
-                          <p className="tw-text-green-700">{deleteConfirmation.validationResult.message}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="tw-flex tw-justify-end tw-space-x-3">
-                  <Button
-                    text="Cancel"
-                    onClick={handleCancelDelete}
-                    stylingMode="outlined"
-                    disabled={deleteConfirmation.isDeleting}
-                  />
-                  {deleteConfirmation.validationResult.isAllowed && (
-                    <Button
-                      text={deleteConfirmation.isDeleting ? "Deleting..." : "Delete Transaction"}
-                      onClick={executeDelete}
-                      type="default"
-                      disabled={
-                        deleteConfirmation.isDeleting ||
-                        (deleteConfirmation.validationResult.requiresUserConfirmation && !deleteConfirmation.userConfirmed)
-                      }
-                      className="tw-bg-red-600 hover:tw-bg-red-700"
-                    />
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
-                <div className="tw-text-center">
-                  <i className="fa-light fa-spinner tw-animate-spin tw-text-2xl tw-text-blue-600 tw-mb-3"></i>
-                  <p className="tw-text-gray-600">Validating deletion...</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      />
+      >
+        <div className="tw-p-6">
+          {DeleteConfirmationContent}
+        </div>
+      </Popup>
 
       {/* Page-level LoadPanel */}
       <LoadPanel

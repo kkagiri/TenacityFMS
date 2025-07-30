@@ -403,7 +403,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 onValueChanged: (e) => handleFieldChange('stockBeforeDelivery', e.value),
                 placeholder: "Enter stock before delivery",
                 width: "100%",
-                format: "#,##0.00"
+                ...(formData.stockBeforeDelivery !== null && formData.stockBeforeDelivery !== undefined && { format: "#,##0.00" })
               }}
             >
               <Label text="Stock Before Delivery (Liters)" />
@@ -420,7 +420,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 onValueChanged: (e) => handleFieldChange('deliveryAmount', e.value),
                 placeholder: "Enter delivery amount",
                 width: "100%",
-                format: "#,##0.00",
+                ...(formData.deliveryAmount !== null && formData.deliveryAmount !== undefined && { format: "#,##0.00" }),
                 isValid: !validationErrors.deliveryAmount,
                 validationError: validationErrors.deliveryAmount ? { message: validationErrors.deliveryAmount } : null
               }}
@@ -439,7 +439,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 onValueChanged: (e) => handleFieldChange('stockAfterDelivery', e.value),
                 placeholder: "Calculated automatically",
                 width: "100%",
-                format: "#,##0.00",
+                ...(formData.stockAfterDelivery !== null && formData.stockAfterDelivery !== undefined && { format: "#,##0.00" }),
                 readOnly: true
               }}
             >

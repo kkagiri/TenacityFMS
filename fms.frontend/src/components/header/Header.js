@@ -34,13 +34,13 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
 
        {/* Todo: insert Theme selector . */}
 
-        {/* //Cursor - Notification bell positioned first on the right */}
+        {/* //Cursor - Notification bell positioned on the right */}
         <Item
           location={"after"}
           locateInMenu={"never"}
           cssClass={"notification-item"}
         >
-          <div className="header-notification-wrapper">
+          <div className="notification-wrapper">
             <NotificationCenter />
           </div>
         </Item>

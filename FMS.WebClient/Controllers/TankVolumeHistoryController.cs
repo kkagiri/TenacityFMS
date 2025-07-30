@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 namespace FMS.WebClient.Controllers {
     [Route ("api/[controller]")]
     [ApiController]
-    [Authorize (Roles = "Admin,User")]
+    [Authorize]
     public class TankVolumeHistoryController : ControllerBase {
         private readonly IMediator _mediator;
 
@@ -173,8 +173,13 @@ namespace FMS.WebClient.Controllers {
                 return BadRequest ("Invalid transaction ID");
 
             try {
+                // Get the current user identifier
+                var deletedBy = User.Identity?.Name ?? User.FindFirst ("email")?.Value ?? "Unknown";
+
                 var command = new DeleteTankVolumeHistoryCommand (
-                    Id: id);
+                    DeletedBy: deletedBy,
+                    Id: id,
+                    ValidateFutureRecords: !userConfirmed);
 
                 var result = await _mediator.Send (command);
 

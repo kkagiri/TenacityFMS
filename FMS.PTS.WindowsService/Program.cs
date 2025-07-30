@@ -411,6 +411,7 @@ namespace FMS.PTS.WindowsService {
 
             services.AddSingleton<PTSWebSocketListenerService> ();
             services.AddScoped<TankStockFutureRecordsService> (); //Cursor
+            services.AddScoped<OpeningStockValidationService> ();
 
             // Register notification services
             services.AddScoped<INotificationService, NotificationService> ();

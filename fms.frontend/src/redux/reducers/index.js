@@ -25,7 +25,6 @@ import tagMonitoringReducer from "./tagMonitoringReducer";
 import ptsDeviceReducer from "./ptsReducers/ptsDeviceReducer";
 import fuelingRuleReducer from "./fuelingRuleReducer";
 import pumpReducer from "./ptsReducers/pumpReducer";
-import atgReducer from "./atgReducer";
 import realtimeStatusReducer from "./ptsReducers/realtimeStatusReducer";
 import deviceConnectionReducer from "./deviceConnectionReducer";
 import fuelingEventsReducer from "./fuelingEventsReducer";
@@ -38,6 +37,7 @@ import stockManagementReducer from "./stockManagementReducer";
 import configurationReducer from "./configurationReducer";
 import systemConfigReducer from "./systemConfigReducer";
 import vehicleDashboardReducer from "./vehicleDashboardReducer";
+import issueTrackerReducer from "./issueTrackerReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -78,6 +78,7 @@ const rootReducer = combineReducers({
   configuration: configurationReducer,
   systemConfig: systemConfigReducer,
   vehicleDashboard: vehicleDashboardReducer,
+  issueTracker: issueTrackerReducer,
 });
 
 export default rootReducer;

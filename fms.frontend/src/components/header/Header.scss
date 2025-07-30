@@ -53,26 +53,27 @@
   margin-right: 10px;
   position: relative;
 
-  .header-notification-wrapper {
+  .dx-item-content {
     height: 100%;
     display: flex;
     align-items: center;
-    position: relative;
-    padding: 0 2px;
-
-    .notification-center {
-      display: flex;
-      align-items: center;
-      height: 100%;
-    }
-
-    .notification-popover {
-      right: -8px;
-    }
+    justify-content: center;
   }
 
-  .dx-item-content {
+  .notification-wrapper {
+    height: 40px;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .notification-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 100%;
+    width: 100%;
   }
 }
 

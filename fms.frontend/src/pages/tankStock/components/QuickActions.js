@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { DropDownButton } from 'devextreme-react/drop-down-button';
 import { Popup } from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
+import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
 import './QuickActions.scss';
 
 // Form imports
@@ -168,8 +169,22 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
           throw new Error(`Unknown action type: ${actionType}`);
       }
 
-      if (result?.success) {
-        notify(`${actionType.charAt(0).toUpperCase() + actionType.slice(1)} stock created successfully`, 'success');
+      console.log(`${actionType || 'stock'} stock creation result:`, result);
+
+      // Check for success more thoroughly
+      if (result && result.success === true) {
+        // Safely format action type with null/undefined check
+        const actionTypeDisplay = actionType && typeof actionType === 'string'
+          ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
+          : 'Stock';
+
+        notify({
+          message: `${actionTypeDisplay} stock created successfully`,
+          type: 'success',
+          displayTime: 3000
+        });
+
+        // Only close popup on success
         handlePopupVisibility(currentForm, false);
 
         // Refresh data if callback provided
@@ -177,11 +192,41 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
           onRefreshData();
         }
       } else {
-        notify(result?.message || `Error creating ${actionType} stock`, 'error');
+        // Handle both explicit failure and undefined success
+        const actionTypeDisplay = actionType && typeof actionType === 'string' ? actionType : 'stock';
+        const errorMessage = result?.message || `Error creating ${actionTypeDisplay} stock`;
+        console.error(`${actionTypeDisplay} stock creation failed:`, errorMessage);
+
+        // Use the error handler for consistent error messaging
+        const notifyFunction = (message, type, duration) => {
+          notify({
+            message,
+            type,
+            displayTime: duration
+          });
+        };
+
+        TankStockErrorHandler.showErrorNotification(errorMessage, notifyFunction);
+
+        // Keep popup open so user can retry
       }
     } catch (error) {
-      console.error(`Error creating ${actionType} stock:`, error);
-      notify(`Error creating ${actionType} stock`, 'error');
+      const actionTypeDisplay = actionType && typeof actionType === 'string' ? actionType : 'stock';
+      console.error(`Error creating ${actionTypeDisplay} stock:`, error);
+      const errorMessage = error.response?.data?.message || error.message || `Error creating ${actionTypeDisplay} stock`;
+
+      // Use the error handler for consistent error messaging
+      const notifyFunction = (message, type, duration) => {
+        notify({
+          message,
+          type,
+          displayTime: duration
+        });
+      };
+
+      TankStockErrorHandler.showErrorNotification(errorMessage, notifyFunction);
+
+      // Keep popup open on error
     } finally {
       setIsSubmitting(false);
     }

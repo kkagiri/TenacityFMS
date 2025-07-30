@@ -44,8 +44,24 @@ namespace FMS.Domain.Entities {
         public string? ReferenceType { get; set; }
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this record is soft deleted.
+        /// </summary>
+        public bool? IsDeleted { get; set; }
+
+        /// <summary>
+        /// Gets or sets the date and time when this record was deleted.
+        /// </summary>
+        public DateTime? DeletedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user who deleted this record.
+        /// </summary>
+        public string? DeletedBy { get; set; }
+
         public virtual Tank Tank { get; set; } = null!;
         public virtual User RecordedByNavigation { get; set; } = null!;
+        public virtual User? DeletedByNavigation { get; set; }
         // Add this to the TankVolumeHistory entity:
         public virtual StockAdjustment? StockAdjustment { get; set; }
 

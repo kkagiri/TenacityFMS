@@ -1,0 +1,261 @@
+// Issue Tracker Main Styles
+// Following FMS styling patterns with Tailwind CSS
+
+.issue-tracker-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+
+  // Header styling
+  .page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    h1 {
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  // Card hover effects
+  .tw-shadow-sm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  // Loading states
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  // Custom button styles for Issue Tracker
+  .btn-issue-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+  }
+
+  .btn-issue-secondary {
+    border: 2px solid #667eea;
+    color: #667eea;
+    background: transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #667eea;
+      color: white;
+    }
+  }
+
+  // Stats card animations
+  .stats-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  // Priority-based border styling
+  .priority-critical {
+    border-left-color: #ef4444 !important;
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%);
+  }
+
+  .priority-high {
+    border-left-color: #f97316 !important;
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.05) 0%, transparent 100%);
+  }
+
+  .priority-medium {
+    border-left-color: #eab308 !important;
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.05) 0%, transparent 100%);
+  }
+
+  .priority-low {
+    border-left-color: #22c55e !important;
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.05) 0%, transparent 100%);
+  }
+
+  // Status indicator animations
+  .status-indicator {
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    &:hover::before {
+      left: 100%;
+    }
+  }
+
+  // Chart container styling
+  .chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+
+    h3 {
+      margin-bottom: 16px;
+      color: #374151;
+      font-weight: 600;
+    }
+  }
+
+  // DataGrid custom styling
+  .dx-datagrid {
+    border: none !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    .dx-datagrid-headers {
+      background: #f8fafc !important;
+      border-bottom: 2px solid #e5e7eb !important;
+
+      .dx-datagrid-table .dx-row > td {
+        font-weight: 600 !important;
+        color: #374151 !important;
+        text-transform: uppercase !important;
+        font-size: 12px !important;
+        letter-spacing: 0.05em !important;
+      }
+    }
+
+    .dx-row {
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f8fafc !important;
+      }
+
+      &.dx-row-alt {
+        background: #fcfcfc !important;
+      }
+    }
+
+    .dx-datagrid-rowsview .dx-row > td {
+      border-bottom: 1px solid #f3f4f6 !important;
+      padding: 12px 8px !important;
+    }
+  }
+
+  // Mobile responsive adjustments
+  @media (max-width: 768px) {
+    .tw-grid-cols-1.md\\:tw-grid-cols-2.lg\\:tw-grid-cols-4 {
+      grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    }
+
+    .tw-grid-cols-1.md\\:tw-grid-cols-2.lg\\:tw-grid-cols-3 {
+      grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    }
+
+    .chart-container {
+      padding: 16px;
+    }
+
+    .issue-tracker-page {
+      padding: 1rem;
+    }
+  }
+
+  // Dark mode support (if needed in future)
+  @media (prefers-color-scheme: dark) {
+    .issue-tracker-page {
+      background-color: #1f2937;
+      color: #f9fafb;
+    }
+
+    .chart-container {
+      background: #374151;
+      border-color: #4b5563;
+    }
+  }
+}
+
+// Animation keyframes
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Utility classes for animations
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out;
+}
+
+// Custom scrollbar
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

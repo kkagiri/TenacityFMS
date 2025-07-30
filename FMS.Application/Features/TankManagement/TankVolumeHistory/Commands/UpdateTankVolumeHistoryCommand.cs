@@ -40,10 +40,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 _logger.LogInformation ("Starting tank volume history update for tank {TankId} from {EffectiveDate}",
                     request.TankId, request.EffectiveDate);
 
-                // Get all tank volume history records for this tank from the effective date onwards
+                // Get all non-deleted tank volume history records for this tank from the effective date onwards
                 // ordered by timestamp (oldest first)
                 var affectedRecords = await _context.TankVolumeHistories
-                    .Where (h => h.TankId == request.TankId && h.Timestamp >= request.EffectiveDate)
+                    .Where (h => h.TankId == request.TankId &&
+                        h.Timestamp >= request.EffectiveDate &&
+                        (h.IsDeleted != true))
                     .OrderBy (h => h.Timestamp)
                     .ToListAsync (cancellationToken);
 
@@ -51,9 +53,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                     return new FMSResponseMessage (true, "No records found to update");
                 }
 
-                // Get the last record before the effective date to use as base volume
+                // Get the last non-deleted record before the effective date to use as base volume
                 var baseRecord = await _context.TankVolumeHistories
-                    .Where (h => h.TankId == request.TankId && h.Timestamp < request.EffectiveDate)
+                    .Where (h => h.TankId == request.TankId &&
+                        h.Timestamp < request.EffectiveDate &&
+                        (h.IsDeleted != true))
                     .OrderByDescending (h => h.Timestamp)
                     .FirstOrDefaultAsync (cancellationToken);
 

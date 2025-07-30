@@ -361,7 +361,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 onValueChanged: handleFieldChange('manualFuelrefillAmount'),
                 placeholder: "Enter fuel amount",
                 width: "100%",
-                format: "#,##0.00",
+                ...(formData.manualFuelrefillAmount !== null && formData.manualFuelrefillAmount !== undefined && { format: "#,##0.00" }),
                 isValid: !validationErrors.manualFuelrefillAmount,
                 validationError: validationErrors.manualFuelrefillAmount ? { message: validationErrors.manualFuelrefillAmount } : null
               }}
@@ -378,7 +378,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 onValueChanged: handleFieldChange('previousMeterReading'),
                 placeholder: "Previous reading",
                 width: "100%",
-                format: "#,##0"
+                ...(formData.previousMeterReading !== null && formData.previousMeterReading !== undefined && { format: "#,##0" })
               }}
             >
               <Label text="Previous Meter Reading" />
@@ -393,7 +393,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 onValueChanged: handleFieldChange('currentMeterReading'),
                 placeholder: "Current reading",
                 width: "100%",
-                format: "#,##0"
+                ...(formData.currentMeterReading !== null && formData.currentMeterReading !== undefined && { format: "#,##0" })
               }}
             >
               <Label text="Current Meter Reading" />

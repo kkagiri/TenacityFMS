@@ -110,16 +110,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                         break;
 
                     case ActionType.Delete:
-                        // Find and delete tank volume history record
+                        // Find and soft delete tank volume history record
                         var recordToDelete = await _context.TankVolumeHistories
                             .FirstOrDefaultAsync (h =>
                                 h.TankId == request.TankId &&
                                 h.ReferenceId == request.ReferenceId &&
-                                h.ReferenceType == request.ReferenceType,
+                                h.ReferenceType == request.ReferenceType &&
+                                (h.IsDeleted != true),
                                 cancellationToken);
 
                         if (recordToDelete != null) {
-                            _context.TankVolumeHistories.Remove (recordToDelete);
+                            // Perform soft delete instead of hard delete
+                            recordToDelete.IsDeleted = true;
+                            recordToDelete.DeletedAt = DateTime.UtcNow;
+                            recordToDelete.DeletedBy = request.RecordedBy;
+
                             await _context.SaveChangesAsync (cancellationToken);
                         }
                         break;
@@ -147,7 +152,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
 
         private async Task<decimal> GetPreviousVolumeAsync (int tankId, DateTime beforeTimestamp, CancellationToken cancellationToken) {
             var previousVolume = await _context.TankVolumeHistories
-                .Where (h => h.TankId == tankId && h.Timestamp < beforeTimestamp)
+                .Where (h => h.TankId == tankId &&
+                    h.Timestamp < beforeTimestamp &&
+                    (h.IsDeleted != true))
                 .OrderByDescending (h => h.Timestamp)
                 .ThenByDescending (h => h.Id)
                 .Select (h => h.NewVolume)

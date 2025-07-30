@@ -120,17 +120,35 @@ export const createOpeningStock = (params) => async (dispatch) => {
 
     const response = await axiosInstance.post(`/tankstock/openingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
 
-    if (response.data.success) {
+    // Check multiple possible success indicators from backend
+    if (response.data.success === true || response.data.isSuccess === true) {
       dispatch({ type: CREATE_OPENING_STOCK_SUCCESS, payload: response.data });
-      return response.data;
+      return {
+        success: true,
+        message: response.data.message || 'Opening stock created successfully',
+        data: response.data
+      };
     } else {
-      dispatch({ type: CREATE_OPENING_STOCK_FAILURE, payload: response.data.message });
-      return response.data; // Return the response data even if it's not successful
+      // Handle failure case
+      const errorMessage = response.data.message || response.data.error || 'Failed to create opening stock';
+      dispatch({ type: CREATE_OPENING_STOCK_FAILURE, payload: errorMessage });
+      return {
+        success: false,
+        message: errorMessage,
+        data: response.data
+      };
     }
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message || 'Error creating opening stock';
+    const errorMessage = error.response?.data?.message ||
+                        error.response?.data?.error ||
+                        error.message ||
+                        'Error creating opening stock';
     dispatch({ type: CREATE_OPENING_STOCK_FAILURE, payload: errorMessage });
-    return { success: false, message: errorMessage }; // Return a consistent error object
+    return {
+      success: false,
+      message: errorMessage,
+      error: error
+    };
   }
 };
 

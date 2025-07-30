@@ -2,15 +2,13 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Domain.Entities
-{
+namespace FMS.Domain.Entities {
     /// <summary>
     /// Represents a manual stock adjustment made to a tank
     /// This entity tracks manual adjustments separately from the TankVolumeHistory
     /// but integrates with it through the TankVolumeHistoryIntegrationService
     /// </summary>
-    public partial class StockAdjustment
-    {
+    public partial class StockAdjustment {
         public int Id { get; set; }
 
         /// <summary>
@@ -56,19 +54,19 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Human-readable reason for the adjustment
         /// </summary>
-        [StringLength(200)]
+        [StringLength (200)]
         public string Reason { get; set; } = string.Empty;
 
         /// <summary>
         /// Additional notes about the adjustment
         /// </summary>
-        [StringLength(500)]
+        [StringLength (500)]
         public string? Notes { get; set; }
 
         /// <summary>
         /// User who created the adjustment
         /// </summary>
-        [StringLength(450)]
+        [StringLength (450)]
         public string CreatedBy { get; set; } = string.Empty;
 
         /// <summary>
@@ -79,7 +77,7 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// User who approved the adjustment (if approval is required)
         /// </summary>
-        [StringLength(450)]
+        [StringLength (450)]
         public string? ApprovedBy { get; set; }
 
         /// <summary>
@@ -97,11 +95,50 @@ namespace FMS.Domain.Entities
         /// </summary>
         public int? TankVolumeHistoryId { get; set; }
 
+        // Soft delete properties
+        /// <summary>
+        /// Indicates if this record has been soft deleted
+        /// </summary>
+        public bool IsDeleted { get; set; } = false;
+
+        /// <summary>
+        /// When this record was soft deleted
+        /// </summary>
+        public DateTime? DeletedAt { get; set; }
+
+        /// <summary>
+        /// User who soft deleted this record
+        /// </summary>
+        [StringLength (450)]
+        public string? DeletedBy { get; set; }
+
+        // Correction tracking properties
+        /// <summary>
+        /// Indicates if this record is a correction entry
+        /// </summary>
+        public bool IsCorrection { get; set; } = false;
+
+        /// <summary>
+        /// Reference to the original record ID that this entry corrects (if this is a correction)
+        /// </summary>
+        public int? CorrectsRecordId { get; set; }
+
+        /// <summary>
+        /// Reason for the correction
+        /// </summary>
+        [StringLength (200)]
+        public string? CorrectionReason { get; set; }
+
         // Navigation properties
         public virtual Tank Tank { get; set; } = null!;
         public virtual Site Site { get; set; } = null!;
         public virtual User CreatedByNavigation { get; set; } = null!;
         public virtual User? ApprovedByNavigation { get; set; }
+        public virtual User? DeletedByNavigation { get; set; }
         public virtual TankVolumeHistory? TankVolumeHistory { get; set; }
+
+        // Self-referencing relationship for corrections
+        public virtual StockAdjustment? CorrectsRecord { get; set; }
+        public virtual ICollection<StockAdjustment> CorrectionRecords { get; set; } = [];
     }
 }

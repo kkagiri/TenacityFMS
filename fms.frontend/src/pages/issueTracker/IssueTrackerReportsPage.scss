@@ -1,0 +1,407 @@
+/* Issue Tracker Reports Page Styles */
+
+.issue-tracker-reports-page {
+  @apply tw-p-6 tw-bg-gray-50 tw-min-h-screen;
+
+  .reports-header {
+    @apply tw-flex tw-justify-between tw-items-center tw-mb-6;
+
+    h1 {
+      @apply tw-text-2xl tw-font-bold tw-text-gray-800;
+    }
+
+    .header-actions {
+      @apply tw-flex tw-gap-3;
+
+      .dx-button {
+        min-width: 120px;
+      }
+    }
+  }
+
+  .reports-filters {
+    @apply tw-bg-white tw-rounded-lg tw-p-4 tw-mb-6 tw-shadow-sm;
+
+    .dx-form {
+      .dx-field-item {
+        margin-bottom: 0;
+      }
+
+      .dx-field-item-label {
+        @apply tw-font-medium tw-text-gray-700;
+        margin-bottom: 4px;
+      }
+    }
+  }
+
+  .reports-content {
+    @apply tw-bg-white tw-rounded-lg tw-shadow-sm;
+
+    .dx-tabpanel {
+      .dx-tabpanel-tabs {
+        @apply tw-border-b tw-border-gray-200;
+
+        .dx-tab {
+          @apply tw-px-6 tw-py-3;
+
+          &.dx-tab-selected {
+            @apply tw-border-b-2 tw-border-blue-500 tw-text-blue-600;
+          }
+
+          .dx-tab-text {
+            @apply tw-font-medium;
+          }
+        }
+      }
+
+      .dx-tabpanel-container {
+        @apply tw-p-6;
+      }
+    }
+  }
+
+  // Dashboard Tab Styles
+  .dashboard-tab {
+    .charts-container {
+      @apply tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6 tw-mb-8;
+
+      .chart-section {
+        @apply tw-bg-gray-50 tw-rounded-lg tw-p-4;
+
+        h3 {
+          @apply tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4;
+        }
+
+        .dx-chart {
+          min-height: 300px;
+        }
+      }
+    }
+
+    .metrics-container {
+      @apply tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4;
+
+      .metric-card {
+        @apply tw-bg-gradient-to-r tw-from-blue-50 tw-to-indigo-50 tw-rounded-lg tw-p-6 tw-text-center;
+        border: 1px solid #e2e8f0;
+
+        h4 {
+          @apply tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-2;
+        }
+
+        .metric-value {
+          @apply tw-text-2xl tw-font-bold tw-text-blue-600;
+        }
+
+        &:nth-child(2) {
+          @apply tw-from-green-50 tw-to-emerald-50;
+
+          .metric-value {
+            @apply tw-text-green-600;
+          }
+        }
+
+        &:nth-child(3) {
+          @apply tw-from-orange-50 tw-to-amber-50;
+
+          .metric-value {
+            @apply tw-text-orange-600;
+          }
+        }
+
+        &:nth-child(4) {
+          @apply tw-from-purple-50 tw-to-violet-50;
+
+          .metric-value {
+            @apply tw-text-purple-600;
+          }
+        }
+      }
+    }
+  }
+
+  // Pivot Tab Styles
+  .pivot-tab {
+    .dx-pivotgrid {
+      font-size: 13px;
+
+      .dx-pivotgrid-area {
+        border: 1px solid #e2e8f0;
+      }
+
+      .dx-pivotgrid-header-area {
+        background-color: #f8fafc;
+      }
+
+      .dx-pivotgrid-data-area {
+        .dx-pivotgrid-cell {
+          @apply tw-text-center;
+        }
+      }
+
+      .dx-pivotgrid-fields-container {
+        @apply tw-border-t tw-border-gray-200 tw-bg-gray-50;
+        padding: 12px;
+      }
+    }
+  }
+
+  // Details Tab Styles
+  .details-tab {
+    .dx-datagrid {
+      border: 1px solid #e2e8f0;
+
+      .dx-datagrid-headers {
+        background-color: #f8fafc;
+        font-weight: 600;
+      }
+
+      .dx-datagrid-rowsview {
+        .dx-row {
+          &:hover {
+            background-color: #f1f5f9;
+          }
+        }
+      }
+
+      .dx-datagrid-total-footer {
+        background-color: #f8fafc;
+        font-weight: 600;
+        border-top: 2px solid #e2e8f0;
+      }
+    }
+  }
+
+  // Trends Tab Styles
+  .trends-tab {
+    .trend-charts {
+      @apply tw-space-y-8;
+
+      .chart-section {
+        @apply tw-bg-gray-50 tw-rounded-lg tw-p-6;
+
+        h3 {
+          @apply tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4;
+        }
+
+        .dx-chart {
+          min-height: 350px;
+        }
+      }
+    }
+  }
+
+  // Popup Styles
+  .dx-popup-content {
+    .dx-scrollview-content {
+      padding: 20px;
+    }
+
+    .dx-form {
+      .dx-field-item {
+        margin-bottom: 16px;
+
+        .dx-field-item-label {
+          @apply tw-font-medium tw-text-gray-700;
+          margin-bottom: 6px;
+        }
+
+        .dx-editor-outlined {
+          border-color: #d1d5db;
+
+          &:hover {
+            border-color: #9ca3af;
+          }
+
+          &.dx-state-focused {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+          }
+        }
+      }
+    }
+
+    .popup-actions {
+      @apply tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200;
+
+      .dx-button {
+        min-width: 100px;
+      }
+    }
+  }
+
+  // Load Panel Styles
+  .dx-loadpanel {
+    .dx-loadpanel-content {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .dx-loadpanel-message {
+      @apply tw-text-gray-700 tw-font-medium;
+    }
+  }
+}
+
+// Mobile Responsive Design
+@media (max-width: 768px) {
+  .issue-tracker-reports-page {
+    @apply tw-p-4;
+
+    .reports-header {
+      @apply tw-flex-col tw-items-start tw-gap-4;
+
+      .header-actions {
+        @apply tw-flex-wrap tw-w-full;
+
+        .dx-button {
+          @apply tw-flex-1;
+          min-width: auto;
+        }
+      }
+    }
+
+    .reports-filters {
+      .dx-form {
+        .dx-layout-manager {
+          .dx-layout-manager-one-col {
+            .dx-col {
+              width: 100% !important;
+            }
+          }
+        }
+      }
+    }
+
+    .dashboard-tab {
+      .charts-container {
+        @apply tw-grid-cols-1;
+
+        .chart-section {
+          .dx-chart {
+            min-height: 250px;
+          }
+        }
+      }
+
+      .metrics-container {
+        @apply tw-grid-cols-2;
+
+        .metric-card {
+          @apply tw-p-4;
+
+          .metric-value {
+            @apply tw-text-xl;
+          }
+        }
+      }
+    }
+
+    .trends-tab {
+      .trend-charts {
+        .chart-section {
+          .dx-chart {
+            min-height: 250px;
+          }
+        }
+      }
+    }
+
+    .dx-popup {
+      .dx-popup-content {
+        width: 95% !important;
+        max-width: none !important;
+      }
+    }
+  }
+}
+
+// Print Styles
+@media print {
+  .issue-tracker-reports-page {
+    background: white !important;
+    padding: 0 !important;
+
+    .reports-header {
+      .header-actions {
+        display: none !important;
+      }
+    }
+
+    .reports-filters {
+      display: none !important;
+    }
+
+    .dx-tabpanel-tabs {
+      display: none !important;
+    }
+
+    .dashboard-tab {
+      .charts-container {
+        .chart-section {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+      }
+
+      .metrics-container {
+        .metric-card {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+      }
+    }
+
+    .dx-popup,
+    .dx-loadpanel {
+      display: none !important;
+    }
+  }
+}
+
+// Dark Mode Support (if needed in future)
+@media (prefers-color-scheme: dark) {
+  .issue-tracker-reports-page {
+    // Dark mode styles would go here
+    // Currently not implemented as per FMS requirements
+  }
+}
+
+// High Contrast Mode
+@media (prefers-contrast: high) {
+  .issue-tracker-reports-page {
+    .reports-content {
+      border: 2px solid #000;
+    }
+
+    .metric-card {
+      border: 2px solid #000 !important;
+    }
+
+    .dx-datagrid {
+      border: 2px solid #000 !important;
+
+      .dx-datagrid-headers {
+        border-bottom: 2px solid #000;
+      }
+    }
+  }
+}
+
+// Reduced Motion
+@media (prefers-reduced-motion: reduce) {
+  .issue-tracker-reports-page {
+    .dx-tabpanel {
+      .dx-tabpanel-container {
+        transition: none !important;
+      }
+    }
+
+    .dx-chart {
+      .dx-chart-series {
+        animation: none !important;
+      }
+    }
+  }
+}

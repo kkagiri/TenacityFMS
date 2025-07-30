@@ -1,0 +1,258 @@
+// Issue Tracker Layout Styles
+.issue-tracker-layout {
+  display: flex;
+  height: 100vh;
+  background: #f8fafc;
+
+  .issue-tracker-sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease;
+    z-index: 1000;
+
+    &.collapsed {
+      width: 64px;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .sidebar-brand {
+        display: flex;
+        align-items: center;
+        color: white;
+
+        i {
+          font-size: 1.5rem;
+          margin-right: 0.5rem;
+        }
+
+        span {
+          font-weight: 600;
+          white-space: nowrap;
+        }
+      }
+
+      .collapse-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+
+        i {
+          font-size: 1rem;
+        }
+      }
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 0;
+
+      .nav-group {
+        margin-bottom: 1.5rem;
+
+        .group-label {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .nav-menu {
+          .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            margin: 0 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.8);
+            position: relative;
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.1);
+              color: white;
+            }
+
+            &.active {
+              background: rgba(255, 255, 255, 0.15);
+              color: white;
+
+              &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 4px;
+                background: #fb923c;
+                border-radius: 0 2px 2px 0;
+              }
+            }
+
+            .nav-item-content {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+
+              i {
+                font-size: 1.1rem;
+                width: 20px;
+                text-align: center;
+                color: #fdba74;
+              }
+
+              span {
+                font-weight: 500;
+              }
+            }
+
+            .nav-badge {
+              background: #dc2626;
+              color: white;
+              font-size: 0.75rem;
+              font-weight: 600;
+              padding: 0.25rem 0.5rem;
+              border-radius: 12px;
+              min-width: 20px;
+              text-align: center;
+            }
+          }
+        }
+      }
+
+      .nav-separator {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 1rem 0.5rem;
+      }
+    }
+  }
+
+  .issue-tracker-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .page-header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1.5rem 2rem;
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .header-text {
+          .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+          }
+
+          .page-subtitle {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 0.25rem 0 0 0;
+          }
+        }
+      }
+    }
+
+    .page-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      background: #f8fafc;
+    }
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .issue-tracker-layout {
+    .issue-tracker-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      z-index: 1000;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+
+      &.mobile-open {
+        transform: translateX(0);
+      }
+
+      &.collapsed {
+        width: 280px;
+        transform: translateX(-100%);
+      }
+    }
+
+    .issue-tracker-main {
+      margin-left: 0;
+      width: 100%;
+
+      .page-header {
+        padding: 1rem;
+
+        .header-content {
+          .header-text {
+            .page-title {
+              font-size: 1.25rem;
+            }
+          }
+        }
+      }
+
+      .page-content {
+        padding: 1rem;
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .issue-tracker-layout {
+    .issue-tracker-sidebar {
+      display: none;
+    }
+
+    .issue-tracker-main {
+      margin-left: 0;
+      width: 100%;
+
+      .page-header {
+        border-bottom: 2px solid #000;
+        margin-bottom: 1rem;
+      }
+    }
+  }
+}

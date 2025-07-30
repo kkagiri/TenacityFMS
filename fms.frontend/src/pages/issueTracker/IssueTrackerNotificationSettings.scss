@@ -1,0 +1,486 @@
+/* Issue Tracker Notification Settings Styles */
+
+.issue-tracker-notification-settings {
+  padding: 24px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+
+  .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+
+      .dx-button {
+        min-width: 120px;
+      }
+    }
+  }
+
+  .notification-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    .rules-section {
+      padding: 24px;
+
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 16px 0;
+      }
+
+      .dx-datagrid {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+
+        .dx-datagrid-headers {
+          background-color: #f9fafb;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .dx-datagrid-rowsview {
+          .dx-row {
+            &:hover {
+              background-color: #f3f4f6;
+            }
+
+            &.dx-row-alt {
+              background-color: #fafafa;
+            }
+          }
+
+          .dx-command-edit {
+            .dx-link {
+              color: #3b82f6;
+
+              &:hover {
+                color: #1d4ed8;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Edit Rule Popup Styles
+  .edit-rule-popup {
+    padding: 20px;
+
+    .dx-form {
+      .dx-tabpanel {
+        .dx-tabpanel-tabs {
+          border-bottom: 1px solid #e5e7eb;
+
+          .dx-tab {
+            padding: 12px 20px;
+
+            &.dx-tab-selected {
+              border-bottom: 2px solid #3b82f6;
+              color: #3b82f6;
+            }
+
+            .dx-tab-text {
+              font-weight: 500;
+            }
+          }
+        }
+
+        .dx-tabpanel-container {
+          padding: 20px 0;
+        }
+      }
+
+      .dx-field-item {
+        margin-bottom: 16px;
+
+        .dx-field-item-label {
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 6px;
+        }
+
+        .dx-editor-outlined {
+          border-color: #d1d5db;
+
+          &:hover {
+            border-color: #9ca3af;
+          }
+
+          &.dx-state-focused {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+          }
+        }
+
+        .dx-checkbox {
+          .dx-checkbox-icon {
+            border-color: #d1d5db;
+          }
+
+          &.dx-checkbox-checked {
+            .dx-checkbox-icon {
+              background-color: #3b82f6;
+              border-color: #3b82f6;
+            }
+          }
+        }
+      }
+
+      .dx-group-colcount-2 {
+        .dx-field-item {
+          margin-right: 12px;
+
+          &:last-child {
+            margin-right: 0;
+          }
+        }
+      }
+
+      .dx-form-group-caption {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+    }
+
+    .popup-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+
+      .dx-button {
+        min-width: 100px;
+      }
+    }
+  }
+
+  // Test Notification Popup Styles
+  .test-notification-popup {
+    padding: 20px;
+
+    .dx-form {
+      .dx-field-item {
+        margin-bottom: 16px;
+
+        .dx-field-item-label {
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 6px;
+        }
+
+        .dx-editor-outlined {
+          border-color: #d1d5db;
+
+          &:hover {
+            border-color: #9ca3af;
+          }
+
+          &.dx-state-focused {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+          }
+        }
+      }
+    }
+
+    .popup-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+
+      .dx-button {
+        min-width: 100px;
+      }
+    }
+  }
+
+  // Toast Styles
+  .dx-toast {
+    &.dx-toast-success {
+      .dx-toast-content {
+        background-color: #10b981;
+        color: white;
+      }
+    }
+
+    &.dx-toast-error {
+      .dx-toast-content {
+        background-color: #ef4444;
+        color: white;
+      }
+    }
+
+    &.dx-toast-warning {
+      .dx-toast-content {
+        background-color: #f59e0b;
+        color: white;
+      }
+    }
+
+    &.dx-toast-info {
+      .dx-toast-content {
+        background-color: #3b82f6;
+        color: white;
+      }
+    }
+
+    .dx-toast-content {
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      font-weight: 500;
+    }
+  }
+
+  // Load Panel Styles
+  .dx-loadpanel {
+    .dx-loadpanel-content {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .dx-loadpanel-message {
+      color: #374151;
+      font-weight: 500;
+    }
+  }
+}
+
+// Mobile Responsive Design
+@media (max-width: 768px) {
+  .issue-tracker-notification-settings {
+    padding: 16px;
+
+    .notification-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+
+      .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+
+        .dx-button {
+          flex: 1;
+          min-width: auto;
+        }
+      }
+    }
+
+    .notification-content {
+      .rules-section {
+        padding: 16px;
+
+        .dx-datagrid {
+          .dx-datagrid-headers {
+            font-size: 14px;
+          }
+
+          .dx-datagrid-rowsview {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+
+    .edit-rule-popup {
+      padding: 16px;
+
+      .dx-form {
+        .dx-tabpanel {
+          .dx-tabpanel-tabs {
+            .dx-tab {
+              padding: 8px 12px;
+              font-size: 14px;
+            }
+          }
+
+          .dx-tabpanel-container {
+            padding: 16px 0;
+          }
+        }
+
+        .dx-field-item {
+          margin-bottom: 12px;
+
+          .dx-field-item-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+          }
+        }
+      }
+
+      .popup-actions {
+        margin-top: 16px;
+        padding-top: 12px;
+
+        .dx-button {
+          min-width: 80px;
+          font-size: 14px;
+        }
+      }
+    }
+
+    .test-notification-popup {
+      padding: 16px;
+
+      .dx-form {
+        .dx-field-item {
+          margin-bottom: 12px;
+
+          .dx-field-item-label {
+            font-size: 14px;
+            margin-bottom: 4px;
+          }
+        }
+      }
+
+      .popup-actions {
+        margin-top: 16px;
+        padding-top: 12px;
+
+        .dx-button {
+          min-width: 80px;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  // Popup responsive adjustments
+  .dx-popup {
+    .dx-popup-content {
+      width: 95% !important;
+      max-width: none !important;
+      height: 90% !important;
+      max-height: none !important;
+    }
+  }
+}
+
+// Tablet Design
+@media (max-width: 1024px) and (min-width: 769px) {
+  .issue-tracker-notification-settings {
+    .edit-rule-popup {
+      .dx-form {
+        .dx-group-colcount-2 {
+          .dx-field-item {
+            width: 100% !important;
+            margin-right: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Print Styles
+@media print {
+  .issue-tracker-notification-settings {
+    background: white !important;
+    padding: 0 !important;
+
+    .notification-header {
+      .header-actions {
+        display: none !important;
+      }
+    }
+
+    .dx-popup,
+    .dx-toast,
+    .dx-loadpanel {
+      display: none !important;
+    }
+
+    .notification-content {
+      box-shadow: none !important;
+      border: 1px solid #000 !important;
+
+      .rules-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+
+        .dx-datagrid {
+          .dx-command-edit {
+            display: none !important;
+          }
+        }
+      }
+    }
+  }
+}
+
+// High Contrast Mode
+@media (prefers-contrast: high) {
+  .issue-tracker-notification-settings {
+    .notification-content {
+      border: 2px solid #000 !important;
+    }
+
+    .dx-datagrid {
+      border: 2px solid #000 !important;
+
+      .dx-datagrid-headers {
+        border-bottom: 2px solid #000;
+      }
+    }
+
+    .dx-form {
+      .dx-editor-outlined {
+        border: 2px solid #000 !important;
+      }
+
+      .dx-checkbox {
+        .dx-checkbox-icon {
+          border: 2px solid #000 !important;
+        }
+      }
+    }
+  }
+}
+
+// Reduced Motion
+@media (prefers-reduced-motion: reduce) {
+  .issue-tracker-notification-settings {
+    .dx-tabpanel {
+      .dx-tabpanel-container {
+        transition: none !important;
+      }
+    }
+
+    .dx-toast {
+      animation: none !important;
+    }
+
+    .dx-popup {
+      .dx-popup-content {
+        transition: none !important;
+      }
+    }
+  }
+}

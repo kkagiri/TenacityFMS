@@ -404,6 +404,8 @@ public class Program {
         services.AddHostedService<PolicyTriggerBackgroundService> ();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService> ();
         services.AddScoped<TankStockFutureRecordsService> ();
+        services.AddScoped<OpeningStockValidationService> ();
+        services.AddScoped<OpeningStockValidationService> ();
         services.AddTransient<RoleManager<Role>> ();
 
         services.AddMemoryCache ();
@@ -443,6 +445,7 @@ public class Program {
 
         // Register tank management services
         services.AddScoped<InventoryCostingService> ();
+        services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService> ();
 
         //Cursor: Register system user service
         services.AddScoped<ISystemUserService, SystemUserService> ();

@@ -348,7 +348,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             onValueChanged: handleAmountChange,
                             placeholder: "Enter amount",
                             width: "100%",
-                            format: "#,##0",
+                            ...(formData.amount !== null && formData.amount !== undefined && { format: "#,##0" }),
                             isValid: !validationErrors.amount,
                             validationError: validationErrors.amount ? { message: validationErrors.amount } : null
                         }}

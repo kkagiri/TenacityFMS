@@ -69,8 +69,32 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
                 // Order by timestamp descending
                 query = query.OrderByDescending (tvh => tvh.Timestamp);
 
-                // Note: Removed take limit to allow frontend paging
+                // Execute the main query
                 var tankVolumeHistories = await query.ToListAsync (cancellationToken);
+
+                // Get all dispensing transaction IDs for bulk vehicle name lookup
+                var dispensingTransactionIds = new List<int> ();
+                if (request.IncludeVehicleNames == true) {
+                    dispensingTransactionIds = tankVolumeHistories
+                        .Where (h => h.ChangeReason == VolumeChangeReasonEnum.Dispensing && h.ReferenceId.HasValue)
+                        .Select (h => h.ReferenceId.Value)
+                        .ToList ();
+                }
+
+                // Bulk load vehicle names for dispensing transactions to avoid N+1 queries
+                var vehicleNameLookup = new Dictionary<int, string> ();
+                if (dispensingTransactionIds.Any ()) {
+                    var fuelRefillsWithVehicles = await _context.FuelRefills
+                        .Where (fr => dispensingTransactionIds.Contains (fr.Id))
+                        .Include (fr => fr.Vehicle)
+                        .Select (fr => new { fr.Id, VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : "N/A" })
+                        .ToListAsync (cancellationToken);
+
+                    vehicleNameLookup = fuelRefillsWithVehicles.ToDictionary (
+                        fr => fr.Id,
+                        fr => fr.VehicleName ?? "N/A"
+                    );
+                }
 
                 var result = new List<TankVolumeHistoryDTO> ();
 
@@ -84,15 +108,12 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
                     // Set recorded by user name
                     dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";
 
-                    // Handle vehicle names for dispensing transactions
+                    // Handle vehicle names for dispensing transactions using lookup
                     if (request.IncludeVehicleNames == true &&
                         history.ChangeReason == VolumeChangeReasonEnum.Dispensing &&
-                        history.ReferenceId.HasValue) {
-                        var fuelRefill = await _context.FuelRefills
-                            .Include (fr => fr.Vehicle)
-                            .FirstOrDefaultAsync (fr => fr.Id == history.ReferenceId, cancellationToken);
-
-                        dto.VehicleName = fuelRefill?.Vehicle?.HyoungNo ?? "N/A";
+                        history.ReferenceId.HasValue &&
+                        vehicleNameLookup.TryGetValue (history.ReferenceId.Value, out string? vehicleName)) {
+                        dto.VehicleName = vehicleName;
                     } else {
                         dto.VehicleName = "N/A";
                     }
