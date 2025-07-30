@@ -136,6 +136,10 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
   // Handle prop changes separately to avoid infinite loops
   useEffect(() => {
+    // DISABLED: TransactionHub should always start with "All Sites" and ignore parent selectedSite prop
+    // This prevents the parent's selectedSite from overriding our "All Sites" default
+
+    /*
     if (isInitialized && selectedSite !== undefined) {
       const newSiteId = selectedSite && selectedSite !== 'all' ? parseInt(selectedSite) : null;
       const currentSiteId = currentFilters.siteId;
@@ -153,6 +157,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         dispatch(fetchTankVolumeHistoryFiltered(updatedFilters));
       }
     }
+    */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSite, isInitialized]);
 
