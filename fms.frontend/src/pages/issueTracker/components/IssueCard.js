@@ -23,15 +23,16 @@ const IssueCard = ({
 
   const {
     id,
-    title,
-    description,
-    priority,
-    status,
-    vehicle,
-    assignedTo,
-    createdDate,
-    updatedDate,
-    category,
+    problemTitle: title,
+    problemDescription: description,
+    priorityName: priority,
+    statusName: status,
+    vehicleHyoungNo,
+    vehicleNumber,
+    assignToUserName: assignedTo,
+    openDate: createdDate,
+    lastModfield: updatedDate,
+    categoryName: category,
     gpsLatitude,
     gpsLongitude,
     autoCreated
@@ -103,11 +104,11 @@ const IssueCard = ({
         {/* Metadata */}
         <div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-mb-4">
           {/* Vehicle */}
-          {vehicle && (
+          {(vehicleHyoungNo || vehicleNumber) && (
             <div className="tw-flex tw-items-center tw-gap-2">
               <i className="fa-light fa-car tw-text-gray-400 tw-text-sm"></i>
               <span className="tw-text-sm tw-text-gray-700 tw-truncate">
-                {vehicle.name || vehicle}
+                {vehicleHyoungNo || vehicleNumber || 'N/A'}
               </span>
             </div>
           )}
@@ -123,14 +124,23 @@ const IssueCard = ({
           )}
 
           {/* Assigned To */}
-          {assignedTo && (
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <i className="fa-light fa-user tw-text-gray-400 tw-text-sm"></i>
-              <span className="tw-text-sm tw-text-gray-700 tw-truncate">
-                {assignedTo}
-              </span>
-            </div>
-          )}
+          <div className="tw-flex tw-items-center tw-gap-2">
+            {assignedTo ? (
+              <div className="tw-flex tw-items-center tw-bg-blue-50 tw-px-2 tw-py-1 tw-rounded tw-border tw-border-blue-200">
+                <i className="fa-light fa-user tw-text-blue-600 tw-text-sm tw-mr-1"></i>
+                <span className="tw-text-sm tw-text-blue-700 tw-font-medium tw-truncate">
+                  {assignedTo}
+                </span>
+              </div>
+            ) : (
+              <div className="tw-flex tw-items-center tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-border tw-border-gray-200">
+                <i className="fa-light fa-user-slash tw-text-gray-400 tw-text-sm tw-mr-1"></i>
+                <span className="tw-text-sm tw-text-gray-500 tw-italic">
+                  Unassigned
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Status */}
           <div className="tw-flex tw-items-center tw-gap-2">

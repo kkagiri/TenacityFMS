@@ -352,7 +352,7 @@ const IssueTrackerDashboard = () => {
               cellRender={renderStatusCell}
             />
             <Column dataField="categoryName" caption="Category" width={120} />
-            <Column dataField="vehicleName" caption="Vehicle" width={120} />
+            <Column dataField="vehicleHyoungNo" caption="Vehicle" width={120} />
             <Column
               dataField="openDate"
               caption="Created"

@@ -132,9 +132,10 @@ const IssueTrackerFormPage = ({
         setFormData(prev => ({
           ...prev,
           id: issueData.id,
-          issueCategory: issueData.issueCategoryId || issueData.issueCategory,
-          site: issueData.siteId || issueData.site,
-          openby: issueData.openby || '',
+          // Map from DTO structure
+          issueCategory: issueData.issueCategoryId,
+          site: issueData.siteId,
+          openby: issueData.openbyUserName || '', // Use username from DTO
           relatedIssue: issueData.relatedIssue,
           problemDescription: issueData.problemDescription || '',
           problemTitle: issueData.problemTitle || '',
@@ -144,10 +145,10 @@ const IssueTrackerFormPage = ({
           openDate: issueData.openDate ? new Date(issueData.openDate) : new Date(),
           closingDate: issueData.closingDate ? new Date(issueData.closingDate) : null,
           lastModfield: issueData.lastModfield ? new Date(issueData.lastModfield) : null,
-          vehicle: issueData.vehicleId || issueData.vehicle,
-          device: issueData.deviceId || issueData.device,
+          vehicle: issueData.vehicleId,
+          device: issueData.deviceId,
           deviceType: issueData.deviceType,
-          assignTo: issueData.assignTo || '',
+          assignTo: issueData.assignToUserName || '', // Use username from DTO
           gpsTimestamp: issueData.gpsTimestamp ? new Date(issueData.gpsTimestamp) : null
         }));
 
@@ -283,14 +284,11 @@ const IssueTrackerFormPage = ({
       const openbyUserName = formData.openby || 'System';
       const assignToUserName = formData.assignTo || 'Unassigned';
 
-      const openbyUser = users.find(u => u.userName === openbyUserName);
-      const assignToUser = users.find(u => u.userName === assignToUserName);
-
       const issueData = {
         // Only include id for edit mode, and ensure it's a number
         ...(isEditMode && formData.id ? { id: parseInt(formData.id) } : {}),
 
-        // Map to backend field names (case-sensitive)
+        // Map to backend field names (case-sensitive matching IssueTrackerDTO)
         IssueCategory: formData.issueCategory,
         Site: formData.site,
         Openby: openbyUserName,
@@ -306,32 +304,16 @@ const IssueTrackerFormPage = ({
         Vehicle: formData.vehicle,
         Device: formData.device,
         DeviceType: formData.deviceType,
-        AssignTo: assignToUserName,
-
-        // Navigation fields - provide minimal user objects if user not found
-        OpenbyNavigation: openbyUser || {
-          id: 0,
-          userName: openbyUserName,
-          email: openbyUserName === 'System' ? 'system@company.com' : '',
-          firstName: openbyUserName === 'System' ? 'System' : openbyUserName,
-          lastName: openbyUserName === 'System' ? 'User' : ''
-        },
-        AssignToNavigation: assignToUser || {
-          id: 0,
-          userName: assignToUserName,
-          email: assignToUserName === 'Unassigned' ? 'unassigned@company.com' : '',
-          firstName: assignToUserName === 'Unassigned' ? 'Unassigned' : assignToUserName,
-          lastName: assignToUserName === 'Unassigned' ? 'User' : ''
-        }
+        AssignTo: assignToUserName
       };
 
-      console.log('Sending issue data:', { issueData });
+      console.log('Sending issue data:', issueData);
 
       let savedIssue;
       if (isEditMode) {
-        savedIssue = await dispatch(updateIssue(id, { issueData }));
+        savedIssue = await dispatch(updateIssue(id, issueData));
       } else {
-        savedIssue = await dispatch(createIssue({ issueData }));
+        savedIssue = await dispatch(createIssue(issueData));
       }
 
       // Handle attachments if any

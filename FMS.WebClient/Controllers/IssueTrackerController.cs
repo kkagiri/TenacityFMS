@@ -2,6 +2,7 @@ using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Category;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Priority;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Status;
+using FMS.Application.Features.IssueTracker.Commands.Issues;
 using FMS.Application.ModelsDTOs.FMS.Issuetracker;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Category;
@@ -31,7 +32,7 @@ namespace FMS.WebClient.Controllers {
         public async Task<IActionResult> GetIssueTrackerById (int id) {
             try {
                 GetIssueListByIdQuery query = new (id);
-                Issuetracker issueTracker = await _mediator.Send (query);
+                IssueTrackerResponseDTO issueTracker = await _mediator.Send (query);
                 return Ok (issueTracker);
             } catch (Exception ex) {
                 return BadRequest (new { message = $"Error fetching issue {id}: {ex.Message}" });
@@ -40,7 +41,7 @@ namespace FMS.WebClient.Controllers {
 
         //Api: Create issue tracker
         [HttpPost]
-        public async Task<IActionResult> PostIssueTracker ([FromBody] Issuetracker issueData) {
+        public async Task<IActionResult> PostIssueTracker ([FromBody] IssueTrackerDTO issueData) {
             if (issueData is null) {
                 throw new ArgumentNullException (nameof (issueData));
             }

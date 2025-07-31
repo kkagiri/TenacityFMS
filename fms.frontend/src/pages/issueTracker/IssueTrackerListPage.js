@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DataGrid,
   Column,
@@ -31,6 +31,10 @@ import IssueFilters from './components/IssueFilters';
  */
 const IssueTrackerListPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if we came from a related issue link
+  const highlightIssueId = location.state?.highlightIssueId;
 
   const {
     issues,
@@ -60,10 +64,36 @@ const IssueTrackerListPage = () => {
   const [bulkAction, setBulkAction] = useState('');
   const [bulkAssignTo, setBulkAssignTo] = useState('');
   const [bulkStatus, setBulkStatus] = useState('');
+  const dataGridRef = useRef(null);
 
   useEffect(() => {
     loadIssues(filters);
   }, [filters, loadIssues]);
+
+  // Debug: Log issue data to console
+  useEffect(() => {
+    if (issues && issues.length > 0) {
+      console.log('🔍 Issue data structure:', issues[0]);
+      console.log('🔍 Assigned to value:', issues[0]?.assignToUserName);
+    }
+  }, [issues]);
+
+  // Handle row highlighting when coming from related issue
+  useEffect(() => {
+    if (highlightIssueId && dataGridRef.current && issues.length > 0) {
+      const instance = dataGridRef.current.instance;
+      const rowIndex = instance.getRowIndexByKey(highlightIssueId);
+      if (rowIndex >= 0) {
+        instance.selectRows([highlightIssueId], false);
+        instance.navigateToRow(highlightIssueId);
+
+        // Clear highlight after a few seconds
+        setTimeout(() => {
+          instance.clearSelection();
+        }, 3000);
+      }
+    }
+  }, [highlightIssueId, issues]);
 
   const handleRowClick = (e) => {
     if (e.rowType === 'data') {
@@ -258,7 +288,9 @@ const IssueTrackerListPage = () => {
         // DataGrid View
         <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
           <DataGrid
+            ref={dataGridRef}
             dataSource={issues}
+            keyExpr="id"
             showBorders={false}
             showRowLines={true}
             showColumnLines={false}
@@ -294,7 +326,7 @@ const IssueTrackerListPage = () => {
             />
 
             <Column
-              dataField="title"
+              dataField="problemTitle"
               caption="Title"
               minWidth="250"
               cellRender={(data) => (
@@ -308,7 +340,7 @@ const IssueTrackerListPage = () => {
             />
 
             <Column
-              dataField="priority"
+              dataField="priorityName"
               caption="Priority"
               width="120"
               cellRender={renderPriorityCell}
@@ -316,7 +348,7 @@ const IssueTrackerListPage = () => {
             />
 
             <Column
-              dataField="status"
+              dataField="statusName"
               caption="Status"
               width="130"
               cellRender={renderStatusCell}
@@ -324,28 +356,83 @@ const IssueTrackerListPage = () => {
             />
 
             <Column
-              dataField="category"
+              dataField="categoryName"
               caption="Category"
               width="120"
               allowSorting={true}
             />
 
             <Column
-              dataField="vehicle.name"
+              dataField="vehicleHyoungNo"
               caption="Vehicle"
               width="150"
               allowSorting={true}
+              cellRender={(data) => (
+                <span>{data.data.vehicleHyoungNo || data.data.vehicleNumber || 'N/A'}</span>
+              )}
             />
 
             <Column
-              dataField="assignedTo"
+              dataField="assignToUserName"
               caption="Assigned To"
               width="150"
               allowSorting={true}
+              cellRender={(data) => (
+                <div className="tw-flex tw-items-center">
+                  {data.value ? (
+                    <div className="tw-flex tw-items-center tw-bg-blue-50 tw-px-2 tw-py-1 tw-rounded tw-border tw-border-blue-200">
+                      <i className="fa-light fa-user tw-mr-1 tw-text-blue-600"></i>
+                      <span className="tw-font-medium tw-text-blue-700 tw-text-sm">
+                        {data.value}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="tw-flex tw-items-center tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-border tw-border-gray-200">
+                      <i className="fa-light fa-user-slash tw-mr-1 tw-text-gray-400"></i>
+                      <span className="tw-text-gray-500 tw-italic tw-text-sm">Unassigned</span>
+                    </div>
+                  )}
+                </div>
+              )}
             />
 
             <Column
-              dataField="createdDate"
+              dataField="relatedIssue"
+              caption="Related Issue"
+              width="130"
+              allowSorting={true}
+              cellRender={(data) => (
+                <div>
+                  {data.value ? (
+                    <Button
+                      text={`#${data.value}`}
+                      type="normal"
+                      stylingMode="text"
+                      icon="fa-light fa-link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // First navigate to list page with highlight state
+                        navigate('/issue-tracker', {
+                          state: { highlightIssueId: data.value },
+                          replace: true
+                        });
+                        // Then navigate to details after a brief delay to show the highlight
+                        setTimeout(() => {
+                          navigate(`/issue-tracker/details/${data.value}`);
+                        }, 1000);
+                      }}
+                      className="tw-text-blue-600 tw-font-mono tw-text-sm"
+                      hint={`Go to related issue #${data.value}`}
+                    />
+                  ) : (
+                    <span className="tw-text-gray-400 tw-text-sm">-</span>
+                  )}
+                </div>
+              )}
+            />
+
+            <Column
+              dataField="openDate"
               caption="Created"
               dataType="datetime"
               width="160"
