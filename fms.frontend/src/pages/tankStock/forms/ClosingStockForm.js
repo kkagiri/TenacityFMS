@@ -7,9 +7,12 @@ import DataGrid, {
     GroupPanel,
     Grouping,
     Summary,
-    GroupItem,
     TotalItem,
-    Lookup
+    Lookup,
+    SearchPanel,
+    ColumnChooser,
+    HeaderFilter,
+    FilterRow
 } from 'devextreme-react/data-grid';
 import { fetchSitebyUserId } from '../../../redux/actions/siteActions';
 import { fetchTanks } from '../../../redux/actions/tankActions';
@@ -67,7 +70,8 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     const [formData, setFormData] = useState({
         siteId: null,
         tankId: null,
-        amount: null,
+        amount: null,           // Physical stock measurement
+        bookBalance: null,      // Current book balance (read-only)
         date: new Date()
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +80,6 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
     // Future records validation hook
     const {
-        isValidating,
         validationResult,
         error: validationError,
         showWarning,
@@ -119,9 +122,15 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
     const handleTankChange = useCallback((e) => {
         const tankId = e.value;
+
+        // Get selected tank to retrieve book balance
+        const selectedTank = tanksFromStore.find(tank => tank.id === tankId);
+        const bookBalance = selectedTank ? selectedTank.currentStock : null;
+
         const updatedData = {
             ...formData,
-            tankId: tankId
+            tankId: tankId,
+            bookBalance: bookBalance  // Set current book balance for comparison
         };
         setFormData(updatedData);
 
@@ -150,7 +159,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
         // Clear validation errors for this field
         setValidationErrors(prev => ({ ...prev, tankId: null }));
-    }, [formData, dispatch, validateHistoricalEntry, resetValidation]);
+    }, [formData, dispatch, validateHistoricalEntry, resetValidation, tanksFromStore]);
 
     const handleDateChange = useCallback((e) => {
         const newDate = e.value;
@@ -339,6 +348,22 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                         <Label text="Tank" />
                     </SimpleItem>
 
+                    {/* Book Balance Display (Read-only) */}
+                    {formData.bookBalance !== null && formData.bookBalance !== undefined && (
+                        <SimpleItem
+                            dataField="bookBalance"
+                            editorType="dxTextBox"
+                            editorOptions={{
+                                value: formData.bookBalance ? formData.bookBalance.toLocaleString() + ' L' : '0 L',
+                                readOnly: true,
+                                width: "100%",
+                                stylingMode: "filled"
+                            }}
+                        >
+                            <Label text="Current Book Balance (Calculated)" />
+                        </SimpleItem>
+                    )}
+
                     <SimpleItem
                         dataField="amount"
                         editorType="dxNumberBox"
@@ -346,15 +371,39 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             showSpinButtons: true,
                             value: formData.amount,
                             onValueChanged: handleAmountChange,
-                            placeholder: "Enter amount",
+                            placeholder: "Enter physical stock measurement",
                             width: "100%",
                             ...(formData.amount !== null && formData.amount !== undefined && { format: "#,##0" }),
                             isValid: !validationErrors.amount,
                             validationError: validationErrors.amount ? { message: validationErrors.amount } : null
                         }}
                     >
-                        <Label text="Amount (Liters)" />
+                        <Label text="Physical Stock Amount (Liters)" />
                     </SimpleItem>
+
+                    {/* Discrepancy Indicator */}
+                    {formData.amount && formData.bookBalance && (
+                        <div className="discrepancy-indicator" style={{
+                            padding: '10px',
+                            marginTop: '10px',
+                            borderRadius: '4px',
+                            backgroundColor: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#ffebee' : '#e8f5e8',
+                            border: `1px solid ${Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'}`
+                        }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                                Stock Comparison:
+                            </div>
+                            <div>Physical Stock: {formData.amount.toLocaleString()} L</div>
+                            <div>Book Balance: {formData.bookBalance.toLocaleString()} L</div>
+                            <div style={{
+                                fontWeight: 'bold',
+                                color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
+                            }}>
+                                Discrepancy: {(formData.amount - formData.bookBalance).toLocaleString()} L
+                                ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
+                            </div>
+                        </div>
+                    )}
                 </Form>
 
                 {/* Future Records Warning */}
@@ -385,29 +434,17 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                     Tank Volume History
                                 </h4>
                                 <p className="tw-text-sm tw-text-gray-600">
-                                    Recent volume changes for selected tank
+                                    Recent volume changes for selected tank. Use search and filters to analyze transaction data. Negative values indicate fuel dispensed or transferred out.
                                 </p>
                             </div>
 
                             <div className="tw-p-4">
-                                {/* Debug information */}
-                                {process.env.NODE_ENV === 'development' && (
-                                    <div className="tw-mb-4 tw-p-2 tw-bg-gray-100 tw-text-xs">
-                                        <strong>Debug:</strong> Tank Volume History Count: {tankVolumeHistory?.length || 0}
-                                        {tankVolumeHistory?.length > 0 && (
-                                            <pre className="tw-mt-1 tw-text-xs">
-                                                {JSON.stringify(tankVolumeHistory[0], null, 2)}
-                                            </pre>
-                                        )}
-                                    </div>
-                                )}
-
                                 {Array.isArray(tankVolumeHistory) && tankVolumeHistory.length > 0 ? (
                                     <DataGrid
                                         dataSource={tankVolumeHistory}
                                         showBorders={true}
                                         columnAutoWidth={true}
-                                        height="300px"
+                                        height="400px"
                                         width="100%"
                                         columnResizingMode="widget"
                                         allowColumnResizing={true}
@@ -416,69 +453,114 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                         <GroupPanel visible={false} />
                                         <Grouping autoExpandAll={false} />
 
+                                        {/* Search functionality */}
+                                        <SearchPanel visible={true} highlightCaseSensitive={true} />
+
+                                        {/* Column chooser */}
+                                        <ColumnChooser enabled={true} />
+
+                                        {/* Header filter */}
+                                        <HeaderFilter visible={true} />
+
+                                        {/* Filter row */}
+                                        <FilterRow visible={true} />                                        {/* Transaction Type Column */}
+
+
                                         <Column
-                                            dataField="Timestamp"
+                                            dataField="timestamp"
                                             caption="Date/Time"
                                             dataType="datetime"
                                             format="dd/MM/yyyy HH:mm"
-                                            width="150"
+                                            width="140"
+                                            sortOrder="desc"
                                         />
+
                                         <Column
-                                            dataField="NewVolume"
-                                            caption="Volume"
+                                            dataField="volumeChange"
+                                            caption="Volume Change (L)"
                                             dataType="number"
                                             format="#,##0.00"
-                                            width="100"
-                                        />
-                                        <Column
-                                            dataField="VolumeChange"
-                                            caption="Change"
-                                            dataType="number"
-                                            format="#,##0.00"
-                                            width="100"
+                                            width="120"
                                             cellRender={(cellData) => (
-                                                <span className={cellData.value >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}>
+                                                <span className={cellData.value >= 0 ? 'tw-text-green-600 tw-font-medium' : 'tw-text-red-600 tw-font-medium'}>
                                                     {cellData.value >= 0 ? '+' : ''}{cellData.value?.toFixed(2)}
                                                 </span>
                                             )}
                                         />
+
                                         <Column
-                                            dataField="ChangeReason"
-                                            caption="Reason"
-                                            width="120"
-                                        >
-                                            <Lookup
-                                                dataSource={Object.entries(VolumeChangeReasonEnum).map(([key, value]) => ({
-                                                    id: value,
-                                                    name: key
-                                                }))}
-                                                valueExpr="id"
-                                                displayExpr="name"
-                                            />
-                                        </Column>
-                                        <Column
-                                            dataField="RecordedBy"
-                                            caption="Recorded By"
-                                            width="120"
+                                            dataField="newVolume"
+                                            caption="Resulting Volume (L)"
+                                            dataType="number"
+                                            format="#,##0.00"
+                                            width="130"
                                         />
+
                                         <Column
-                                            dataField="VehicleName"
+                                            dataField="recordedByUserName"
+                                            caption="Recorded By"
+                                            width="110"
+                                        />
+
+                                        <Column
+                                            dataField="vehicleName"
                                             caption="Vehicle"
-                                            width="120"
+                                            width="100"
+                                        />
+
+                                        <Column
+                                            dataField="referenceType"
+                                            caption="Reference"
+                                            width="100"
                                         />
 
                                         <Summary>
-                                            <GroupItem
-                                                column="VolumeChange"
+                                            {/* Overall totals */}
+                                            <TotalItem
+                                                column="volumeChange"
                                                 summaryType="sum"
-                                                displayFormat="Total: {0}"
+                                                displayFormat="Net Volume Change: {0} L"
                                                 valueFormat="#,##0.00"
+                                                cssClass="tw-font-bold tw-text-blue-600"
                                             />
                                             <TotalItem
-                                                column="VolumeChange"
-                                                summaryType="sum"
-                                                displayFormat="Grand Total: {0}"
+                                                column="volumeChange"
+                                                summaryType="count"
+                                                displayFormat="Total Transactions: {0}"
+                                                cssClass="tw-font-bold tw-text-gray-600"
+                                            />
+                                            {/* Custom summary for positive and negative changes */}
+                                            <TotalItem
+                                                column="volumeChange"
+                                                summaryType="custom"
+                                                displayFormat="Volume In: {0} L"
                                                 valueFormat="#,##0.00"
+                                                cssClass="tw-font-medium tw-text-green-600"
+                                                calculateCustomSummary={(options) => {
+                                                    if (options.summaryProcess === 'start') {
+                                                        options.totalValue = 0;
+                                                    } else if (options.summaryProcess === 'calculate') {
+                                                        if (options.value > 0) {
+                                                            options.totalValue += options.value;
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <TotalItem
+                                                column="volumeChange"
+                                                summaryType="custom"
+                                                displayFormat="Volume Out: {0} L"
+                                                valueFormat="#,##0.00"
+                                                cssClass="tw-font-medium tw-text-red-600"
+                                                calculateCustomSummary={(options) => {
+                                                    if (options.summaryProcess === 'start') {
+                                                        options.totalValue = 0;
+                                                    } else if (options.summaryProcess === 'calculate') {
+                                                        if (options.value < 0) {
+                                                            options.totalValue += Math.abs(options.value);
+                                                        }
+                                                    }
+                                                }}
                                             />
                                         </Summary>
                                     </DataGrid>

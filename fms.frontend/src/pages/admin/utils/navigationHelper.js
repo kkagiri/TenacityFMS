@@ -13,7 +13,8 @@ export const adminRoutes = {
   ptsconfig: '/admin/ptsconfig',
   configuration: '/admin/configuration',
   systemconfig: '/admin/systemconfig',
-  ptsService: '/admin/pts-service'
+  ptsService: '/admin/pts-service',
+  notifications: '/admin/notifications'
 };
 
 export const getAdminRoute = (subPath = '') => {

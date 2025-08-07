@@ -323,13 +323,8 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -350,13 +345,8 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -378,17 +368,8 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 //RequireAcknowledgment = true, //Cursor: Property doesn't exist on CreateNotificationRequest
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                },
-                new CreateNotificationRecipientRequest {
-                UserId = SystemConstants.SystemAdministrator.UserId,
-                DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -409,13 +390,8 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 //RequireAcknowledgment = true, //Cursor: Property doesn't exist on CreateNotificationRequest
                 SiteId = tank.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -435,13 +411,8 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
                 Message = $"Policy '{policy.Name}': {summary.TotalDiscrepancies} discrepancies, {summary.SuccessfulReconciliations} resolved, {summary.FailedReconciliations} failed",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                SiteId = policy.SiteId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                SiteId = policy.SiteId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);

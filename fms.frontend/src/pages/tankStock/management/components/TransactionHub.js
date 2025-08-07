@@ -18,8 +18,10 @@ import DataGrid, {
   TotalItem
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
+import { ScrollView } from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
 import Popup from 'devextreme-react/popup';
+import { Chart, Series, CommonSeriesSettings, Legend, ValueAxis, ArgumentAxis, Label, Tooltip } from 'devextreme-react/chart';
 import  notify  from 'devextreme/ui/notify';
 import { Workbook } from 'exceljs';
 import { exportDataGrid } from 'devextreme/excel_exporter';
@@ -31,6 +33,8 @@ import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
 import TransactionFilterPopup from './TransactionFilterPopup';
+import { usePermissions } from '../../../../hooks/usePermissions';
+import './TransactionHub.scss';
 
 // Import service with fallback
 let transactionDeleteService;
@@ -53,6 +57,11 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   const dispatch = useDispatch();
   const dataGridRef = useRef(null);
 
+  // Permission checks using JWT token
+  const { hasPermission } = usePermissions();
+  const canReadTankVolumeHistory = hasPermission('_Read_tankVolumeHistory');
+  const canDeleteTankVolumeHistory = hasPermission('_Delete_tankVolumeHistory');
+
   // Redux state
   const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
   const tanks = useSelector((state) => state.tank.tanks);
@@ -63,6 +72,9 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   // Local state
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [showChartPopup, setShowChartPopup] = useState(false);
+  // TODO: Future implementation - Add chart grouping by site/tank with color-coded lines
+  // const [chartGroupBy, setChartGroupBy] = useState('site'); // 'site' or 'tank'
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     visible: false,
     transaction: null,
@@ -103,6 +115,159 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     { id: 6, name: 'Dispensing' },
     { id: 7, name: 'ManualRefill' }
   ], []);
+
+  // TODO: Future implementation - Chart data processing with grouping functions
+  // This will be enhanced to support grouping by site/tank with color-coded lines
+  const getChartData = useMemo(() => {
+    if (!tankVolumeHistory || tankVolumeHistory.length === 0) return [];
+
+    console.log('🔍 Chart Data Debug - Raw data:', tankVolumeHistory);
+
+    // Sort data by timestamp for simple line chart
+    const sortedData = [...tankVolumeHistory].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    console.log('🔍 Chart Data Debug - Sorted data:', sortedData);
+    return sortedData;
+  }, [tankVolumeHistory]);
+
+  // TODO: Future implementation - Generate colors for chart series when grouping is implemented
+
+  // Chart tooltip customization function
+  const customizeTooltip = useCallback((pointInfo) => {
+    console.log('🔍 Chart Tooltip Debug - pointInfo:', pointInfo);
+
+    const { argument, value, point } = pointInfo;
+    console.log('🔍 Chart Tooltip Debug - point.data:', point?.data);
+
+    if (!point || !point.data) {
+      console.warn('⚠️ Chart Tooltip Warning: No point data available');
+      return {
+        html: `<div style="padding: 10px; background: #ffffff; border: 1px solid #d1d5db;">
+          <strong>Tank Volume:</strong> ${value?.toLocaleString() || 'N/A'} L<br/>
+          <strong>Date:</strong> ${new Date(argument).toLocaleDateString()}
+        </div>`
+      };
+    }
+
+    const { changeReason, vehicleName, volumeChange, recordedByUserName, site, referenceType, referenceId, tankId } = point.data;
+    const date = new Date(argument);
+    const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    const formattedTime = date.toLocaleTimeString();
+
+    // Reason names mapping
+    const reasonNames = {
+      0: 'Opening Stock',
+      1: 'Closing Stock',
+      2: 'Delivery',
+      3: 'Transfer In',
+      4: 'Transfer Out',
+      5: 'Adjustment',
+      6: 'Dispensing',
+      7: 'Manual Refill'
+    };
+
+    const changeReasonText = reasonNames[changeReason] || 'Unknown';
+    const volumeChangeValue = volumeChange || 0;
+    const changeSymbol = volumeChangeValue > 0 ? '+' : '';
+
+    // Get tank name
+    const tankName = tanks?.find(t => t.id === tankId)?.name || `Tank ${tankId}`;
+
+    let tooltipHtml = `
+      <div style="
+        padding: 12px;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        text-align: left;
+        min-width: 220px;
+        max-width: 300px;
+        color: #000000;
+      ">
+        <div style="font-weight: bold; color: #1f2937; margin-bottom: 10px; text-align: center; font-size: 14px;">
+          Transaction Details
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <span style="color: #000000;"><strong>Date:</strong></span> <span style="color: #000000;">${formattedDate}</span><br/>
+          <span style="color: #000000;"><strong>Time:</strong></span> <span style="color: #000000;">${formattedTime}</span>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <span style="color: #000000;"><strong>Tank:</strong></span> <span style="color: #000000;">${tankName}</span><br/>
+          <span style="color: #000000;"><strong>Volume:</strong></span> <span style="color: #059669; font-weight: 600;">${value.toLocaleString()} L</span>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <span style="color: #000000;"><strong>Change:</strong></span>
+          <span style="color: ${volumeChangeValue >= 0 ? '#059669' : '#dc2626'}; font-weight: 600;">
+            ${changeSymbol}${volumeChangeValue.toFixed(2)} L
+          </span><br/>
+          <span style="color: #000000;"><strong>Type:</strong></span>
+          <span style="background: #f3f4f6; color: #000000; padding: 2px 6px; border-radius: 4px; font-weight: 500;">
+            ${changeReasonText}
+          </span>
+        </div>
+    `;
+
+    // Add vehicle name for all transactions, especially dispensing
+    if (vehicleName && vehicleName !== 'N/A' && vehicleName.trim() !== '') {
+      tooltipHtml += `
+        <div style="margin-bottom: 6px;">
+          <span style="color: #000000;"><strong>Vehicle:</strong></span>
+          <span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: 500;">
+            ${vehicleName}
+          </span>
+        </div>`;
+    } else if (changeReason === 6) {
+      // Show "No Vehicle" for dispensing transactions without vehicle name
+      tooltipHtml += `
+        <div style="margin-bottom: 6px;">
+          <span style="color: #000000;"><strong>Vehicle:</strong></span>
+          <span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-style: italic;">
+            No Vehicle Assigned
+          </span>
+        </div>`;
+    }
+
+    // Add site information
+    if (site && site.trim() !== '') {
+      tooltipHtml += `
+        <div style="margin-bottom: 6px;">
+          <span style="color: #000000;"><strong>Site:</strong></span> <span style="color: #000000;">${site}</span>
+        </div>`;
+    }
+
+    // Add user information
+    let userName = '';
+    if (recordedByUserName && recordedByUserName.trim() !== '') {
+      userName = recordedByUserName;
+    }
+
+    if (userName) {
+      tooltipHtml += `
+        <div style="margin-bottom: 6px;">
+          <span style="color: #000000;"><strong>Recorded By:</strong></span> <span style="color: #000000;">${userName}</span>
+        </div>`;
+    }
+
+    // Add reference information if available
+    if (referenceType && referenceId) {
+      tooltipHtml += `
+        <div style="margin-bottom: 6px;">
+          <span style="color: #000000;"><strong>Reference:</strong></span> <span style="color: #000000;">${referenceType} #${referenceId}</span>
+        </div>`;
+    }
+
+    tooltipHtml += '</div>';
+
+    console.log('✅ Chart Tooltip HTML generated successfully');
+    return { html: tooltipHtml };
+  }, [tanks]);
 
   // Load transaction data with filters
   const loadTransactionData = useCallback(async (filters) => {
@@ -254,101 +419,51 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     handleApplyFilters(defaultFilters);
   }, [handleApplyFilters]);
 
-  // Delete transaction handlers
+  // Delete transaction handlers - FIXED VERSION with stable state management
   const handleDeleteTransaction = useCallback(async (transaction) => {
     console.log('Delete transaction initiated:', transaction);
 
-    try {
-      // Set initial state
-      setDeleteConfirmation({
-        visible: true,
-        transaction,
-        validationResult: null,
-        isDeleting: false,
-        showImpactDetails: false,
-        deletionReason: '',
-        userConfirmed: false
-      });
+    // Set initial state with loading
+    setDeleteConfirmation({
+      visible: true,
+      transaction,
+      validationResult: null,
+      isDeleting: false,
+      showImpactDetails: false,
+      deletionReason: '',
+      userConfirmed: false
+    });
 
-      // Validate deletion with future records service
-      let validation;
+    // Use a timeout to ensure DOM is stable before async operations
+    setTimeout(async () => {
       try {
-        validation = await transactionDeleteService.validateDelete({
+        const validation = await transactionDeleteService.validateDelete({
           tankId: transaction.tankId,
           entryDate: transaction.timestamp,
           entryType: transaction.changeReason
         });
-      } catch (serviceError) {
-        console.error('Service error:', serviceError);
-        throw new Error('Validation service is unavailable. Please try again later.');
-      }
 
-      console.log('Delete validation result:', validation);
+        console.log('Delete validation result:', validation);
 
-      if (!validation?.success) {
-        throw new Error(validation?.error || 'Validation failed');
-      }
+        if (!validation?.success) {
+          throw new Error(validation?.error || 'Validation failed');
+        }
 
-      // Update state with validation result - use setTimeout to avoid DOM conflicts
-      setTimeout(() => {
+        // Update only the validation result to avoid full re-render
         setDeleteConfirmation(prev => ({
           ...prev,
           validationResult: validation.data
         }));
-      }, 0);
 
-    } catch (error) {
-      console.error('Error validating deletion:', error);
-      notify({
-        message: `Failed to validate deletion: ${error.message}`,
-        type: 'error',
-        displayTime: 4000
-      });
-
-      // Close dialog on error - use setTimeout to avoid DOM conflicts
-      setTimeout(() => {
-        setDeleteConfirmation({
-          visible: false,
-          transaction: null,
-          validationResult: null,
-          isDeleting: false,
-          showImpactDetails: false,
-          deletionReason: '',
-          userConfirmed: false
-        });
-      }, 100);
-    }
-  }, []);
-
-  const executeDelete = useCallback(async () => {
-    const { transaction, userConfirmed, deletionReason } = deleteConfirmation;
-
-    if (!transaction) return;
-
-    setDeleteConfirmation(prev => ({ ...prev, isDeleting: true }));
-
-    try {
-      // Call delete API endpoint using the new service
-      let result;
-      try {
-        result = await transactionDeleteService.deleteTransaction(
-          transaction.id,
-          userConfirmed,
-          deletionReason
-        );
-      } catch (serviceError) {
-        console.error('Service error:', serviceError);
-        throw new Error('Delete service is unavailable. Please try again later.');
-      }
-
-      if (result?.success) {
+      } catch (error) {
+        console.error('Error validating deletion:', error);
         notify({
-          message: 'Transaction deleted successfully!',
-          type: 'success',
-          displayTime: 3000
+          message: `Failed to validate deletion: ${error.message}`,
+          type: 'error',
+          displayTime: 4000
         });
 
-        // Close dialog and refresh data - use setTimeout to avoid DOM conflicts
+        // Use timeout to ensure DOM stability before closing
         setTimeout(() => {
           setDeleteConfirmation({
             visible: false,
@@ -360,11 +475,48 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             userConfirmed: false
           });
         }, 100);
+      }
+    }, 50);
+  }, []);
 
-        // Refresh the transaction data
+  const executeDelete = useCallback(async () => {
+    const { transaction, userConfirmed, deletionReason } = deleteConfirmation;
+
+    if (!transaction) return;
+
+    setDeleteConfirmation(prev => ({ ...prev, isDeleting: true }));
+
+    try {
+      const result = await transactionDeleteService.deleteTransaction(
+        transaction.id,
+        userConfirmed,
+        deletionReason
+      );
+
+      if (result?.success) {
+        notify({
+          message: 'Transaction deleted successfully!',
+          type: 'success',
+          displayTime: 3000
+        });
+
+        // Close dialog with timeout for DOM stability
         setTimeout(() => {
-          handleRefresh();
-        }, 200);
+          setDeleteConfirmation({
+            visible: false,
+            transaction: null,
+            validationResult: null,
+            isDeleting: false,
+            showImpactDetails: false,
+            deletionReason: '',
+            userConfirmed: false
+          });
+
+          // Refresh data after dialog is closed
+          setTimeout(() => {
+            handleRefresh();
+          }, 100);
+        }, 100);
 
       } else {
         throw new Error(result?.error || 'Failed to delete transaction');
@@ -377,28 +529,32 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         type: 'error',
         displayTime: 4000
       });
-    } finally {
+
       setDeleteConfirmation(prev => ({ ...prev, isDeleting: false }));
     }
-  }, [deleteConfirmation, handleRefresh]);
-
-  const handleCancelDelete = useCallback(() => {
-    setDeleteConfirmation({
-      visible: false,
-      transaction: null,
-      validationResult: null,
-      isDeleting: false,
-      showImpactDetails: false,
-      deletionReason: '',
-      userConfirmed: false
-    });
+  }, [deleteConfirmation, handleRefresh]);  const handleCancelDelete = useCallback(() => {
+    // Use timeout to ensure DOM stability before state change
+    setTimeout(() => {
+      setDeleteConfirmation({
+        visible: false,
+        transaction: null,
+        validationResult: null,
+        isDeleting: false,
+        showImpactDetails: false,
+        deletionReason: '',
+        userConfirmed: false
+      });
+    }, 50);
   }, []);
 
-  // Create a stable dialog content component to avoid DOM issues
-  const DeleteConfirmationContent = useMemo(() => {
-    if (!deleteConfirmation.validationResult) {
+  // Stable dialog content with better key management
+  const DeleteConfirmationContent = useCallback(() => {
+    const { validationResult, transaction, userConfirmed, isDeleting } = deleteConfirmation;
+
+    // Loading state
+    if (!validationResult) {
       return (
-        <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
+        <div key="loading" className="tw-flex tw-items-center tw-justify-center tw-py-8">
           <div className="tw-text-center">
             <i className="fa-light fa-spinner tw-animate-spin tw-text-2xl tw-text-blue-600 tw-mb-3"></i>
             <p className="tw-text-gray-600">Validating deletion...</p>
@@ -407,8 +563,14 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       );
     }
 
+    // Content with stable keys
+    const transactionDate = transaction ? new Date(transaction.timestamp).toLocaleString() : '';
+    const transactionType = transaction ? VolumeChangeReasonEnum.find(r => r.id === transaction.changeReason)?.name || 'Unknown' : '';
+    const tankName = tanks?.find(t => t.id === transaction?.tankId)?.name || 'Unknown';
+    const volumeChange = transaction?.volumeChange || 0;
+
     return (
-      <div>
+      <div key="content">
         {/* Transaction Details */}
         <div className="tw-mb-6">
           <h4 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
@@ -417,72 +579,70 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
           <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-space-y-2">
             <div className="tw-flex tw-justify-between">
               <span className="tw-font-medium">Date:</span>
-              <span>{deleteConfirmation.transaction ? new Date(deleteConfirmation.transaction.timestamp).toLocaleString() : ''}</span>
+              <span>{transactionDate}</span>
             </div>
             <div className="tw-flex tw-justify-between">
               <span className="tw-font-medium">Type:</span>
-              <span>{deleteConfirmation.transaction ? VolumeChangeReasonEnum.find(r => r.id === deleteConfirmation.transaction.changeReason)?.name : ''}</span>
+              <span>{transactionType}</span>
             </div>
             <div className="tw-flex tw-justify-between">
               <span className="tw-font-medium">Volume Change:</span>
-              <span className={`tw-font-medium ${(deleteConfirmation.transaction?.volumeChange || 0) >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
-                {deleteConfirmation.transaction?.volumeChange?.toLocaleString()} L
+              <span className={`tw-font-medium ${volumeChange >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
+                {volumeChange.toLocaleString()} L
               </span>
             </div>
             <div className="tw-flex tw-justify-between">
               <span className="tw-font-medium">Tank:</span>
-              <span>{tanks?.find(t => t.id === deleteConfirmation.transaction?.tankId)?.name || 'Unknown'}</span>
+              <span>{tankName}</span>
             </div>
           </div>
         </div>
 
         {/* Validation Results */}
-        {!deleteConfirmation.validationResult.isAllowed ? (
-          <div className="tw-mb-6">
-            <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
+        <div className="tw-mb-6">
+          {!validationResult.isAllowed ? (
+            <div key="blocked" className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
               <div className="tw-flex tw-items-start">
                 <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
                 <div>
                   <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
-                  <p className="tw-text-red-700">{deleteConfirmation.validationResult.message}</p>
-                  {deleteConfirmation.validationResult.detailedWarning && (
+                  <p className="tw-text-red-700">{validationResult.message || 'Cannot delete this transaction'}</p>
+                  {validationResult.detailedWarning && (
                     <p className="tw-text-red-600 tw-text-sm tw-mt-2">
-                      {deleteConfirmation.validationResult.detailedWarning}
+                      {validationResult.detailedWarning}
                     </p>
                   )}
                 </div>
               </div>
             </div>
-          </div>
-        ) : deleteConfirmation.validationResult.requiresUserConfirmation ? (
-          <div className="tw-mb-6">
-            <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
+          ) : validationResult.requiresUserConfirmation ? (
+            <div key="warning" className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
               <div className="tw-flex tw-items-start">
                 <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
                 <div>
                   <h5 className="tw-font-semibold tw-text-yellow-800 tw-mb-2">Warning: Future Records Detected</h5>
-                  <p className="tw-text-yellow-700 tw-mb-3">{deleteConfirmation.validationResult.message}</p>
+                  <p className="tw-text-yellow-700 tw-mb-3">{validationResult.message || 'This action will affect future records'}</p>
 
-                  {deleteConfirmation.validationResult.futureRecordsCount > 0 && (
+                  {validationResult.futureRecordsCount > 0 && (
                     <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
                       <div className="tw-text-sm tw-space-y-1">
                         <div className="tw-flex tw-justify-between">
                           <span>Future Records:</span>
-                          <span className="tw-font-medium">{deleteConfirmation.validationResult.futureRecordsCount}</span>
+                          <span className="tw-font-medium">{validationResult.futureRecordsCount}</span>
                         </div>
-                        {deleteConfirmation.validationResult.earliestFutureRecord && (
+                        {validationResult.earliestFutureRecord && (
                           <div className="tw-flex tw-justify-between">
                             <span>Earliest:</span>
                             <span className="tw-font-medium">
-                              {new Date(deleteConfirmation.validationResult.earliestFutureRecord).toLocaleString()}
+                              {new Date(validationResult.earliestFutureRecord).toLocaleString()}
                             </span>
                           </div>
                         )}
-                        {deleteConfirmation.validationResult.latestFutureRecord && (
+                        {validationResult.latestFutureRecord && (
                           <div className="tw-flex tw-justify-between">
                             <span>Latest:</span>
                             <span className="tw-font-medium">
-                              {new Date(deleteConfirmation.validationResult.latestFutureRecord).toLocaleString()}
+                              {new Date(validationResult.latestFutureRecord).toLocaleString()}
                             </span>
                           </div>
                         )}
@@ -490,9 +650,9 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                     </div>
                   )}
 
-                  {deleteConfirmation.validationResult.detailedWarning && (
+                  {validationResult.detailedWarning && (
                     <p className="tw-text-yellow-600 tw-text-sm">
-                      {deleteConfirmation.validationResult.detailedWarning}
+                      {validationResult.detailedWarning}
                     </p>
                   )}
 
@@ -500,7 +660,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                     <label className="tw-flex tw-items-center tw-space-x-2">
                       <input
                         type="checkbox"
-                        checked={deleteConfirmation.userConfirmed}
+                        checked={userConfirmed}
                         onChange={(e) => setDeleteConfirmation(prev => ({
                           ...prev,
                           userConfirmed: e.target.checked
@@ -515,20 +675,18 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="tw-mb-6">
-            <div className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
+          ) : (
+            <div key="safe" className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
               <div className="tw-flex tw-items-start">
                 <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
                 <div>
                   <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
-                  <p className="tw-text-green-700">{deleteConfirmation.validationResult.message}</p>
+                  <p className="tw-text-green-700">{validationResult.message || 'This transaction can be safely deleted'}</p>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Action Buttons */}
         <div className="tw-flex tw-justify-end tw-space-x-3">
@@ -536,16 +694,16 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             text="Cancel"
             onClick={handleCancelDelete}
             stylingMode="outlined"
-            disabled={deleteConfirmation.isDeleting}
+            disabled={isDeleting}
           />
-          {deleteConfirmation.validationResult.isAllowed && (
+          {validationResult.isAllowed && (
             <Button
-              text={deleteConfirmation.isDeleting ? "Deleting..." : "Delete Transaction"}
+              text={isDeleting ? "Deleting..." : "Delete Transaction"}
               onClick={executeDelete}
               type="default"
               disabled={
-                deleteConfirmation.isDeleting ||
-                (deleteConfirmation.validationResult.requiresUserConfirmation && !deleteConfirmation.userConfirmed)
+                isDeleting ||
+                (validationResult.requiresUserConfirmation && !userConfirmed)
               }
               className="tw-bg-red-600 hover:tw-bg-red-700"
             />
@@ -608,6 +766,19 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     });
     e.cancel = true;
   }, [VolumeChangeReasonEnum]);
+
+  // Early return if no read permission (after all hooks are defined)
+  if (!canReadTankVolumeHistory) {
+    return (
+      <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
+        <div className="tw-text-center">
+          <i className="fa-light fa-lock tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
+          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-600 tw-mb-2">Access Denied</h3>
+          <p className="tw-text-gray-500">You don't have permission to view tank volume history.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="transaction-hub tw-h-full tw-flex tw-flex-col">
@@ -721,6 +892,18 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               location="after"
               widget="dxButton"
               options={{
+                icon: 'fa-light fa-chart-line',
+                text: 'Chart View',
+                onClick: () => setShowChartPopup(true),
+                elementAttr: {
+                  class: 'chart-view-button'
+                }
+              }}
+            />
+            <TBItem
+              location="after"
+              widget="dxButton"
+              options={{
                 icon: 'fa-light fa-file-export',
                 text: 'Export',
                 onClick: onExporting
@@ -777,14 +960,21 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             allowFiltering={false}
             cellRender={(cellData) => (
               <div className="tw-flex tw-space-x-2">
-                <Button
-                  icon="fa-light fa-trash"
-                  stylingMode="text"
-                  onClick={() => handleDeleteTransaction(cellData.data)}
-                  className="tw-text-red-600 hover:tw-text-red-800"
-                  hint="Delete Transaction"
-                  disabled={isLoading || deleteConfirmation.isDeleting}
-                />
+                {canDeleteTankVolumeHistory && (
+                  <Button
+                    icon="fa-light fa-trash"
+                    stylingMode="text"
+                    onClick={() => handleDeleteTransaction(cellData.data)}
+                    className="tw-text-red-600 hover:tw-text-red-800"
+                    hint="Delete Transaction"
+                    disabled={isLoading || deleteConfirmation.isDeleting}
+                  />
+                )}
+                {!canDeleteTankVolumeHistory && (
+                  <span className="tw-text-gray-400 tw-text-xs" title="No delete permission">
+                    <i className="fa-light fa-lock"></i>
+                  </span>
+                )}
               </div>
             )}
           />
@@ -833,7 +1023,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         onApplyFilters={handleApplyFilters}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog - FIXED VERSION */}
       <Popup
         visible={deleteConfirmation.visible}
         onHiding={handleCancelDelete}
@@ -843,10 +1033,272 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         height="auto"
         showCloseButton={true}
         dragEnabled={true}
+        hideOnOutsideClick={false}
       >
         <div className="tw-p-6">
-          {DeleteConfirmationContent}
+          <DeleteConfirmationContent />
         </div>
+      </Popup>
+
+      {/* Chart View Popup */}
+      <Popup
+        visible={showChartPopup}
+        onHiding={() => setShowChartPopup(false)}
+        showTitle={true}
+        title="Transaction Volume Chart"
+        width="95%"
+        height="85%"
+        showCloseButton={true}
+        dragEnabled={true}
+        resizeEnabled={false}
+        className="chart-popup"
+      >
+        <ScrollView
+          height="100%"
+          showScrollbar="always"
+          bounceEnabled={false}
+        >
+          <div className="tw-p-4">
+            {/* Chart Controls */}
+            <div className="chart-controls tw-mb-4 tw-flex tw-items-center tw-gap-4 tw-p-3 tw-bg-gray-50 tw-rounded-lg">
+              {/* Data summary */}
+              <div className="tw-flex tw-items-center tw-gap-4 tw-text-xs tw-text-gray-600">
+                <span className="tw-font-medium">Data:</span>
+                <span className="tw-px-2 tw-py-1 tw-rounded tw-bg-white tw-border tw-border-gray-200">
+                  {getChartData.length} transactions
+                </span>
+              </div>
+
+              {/* Instructions */}
+              <div className="tw-text-xs tw-text-blue-600 tw-italic">
+                💡 Hover over points to see transaction details
+              </div>
+            </div>
+
+            <div className="chart-info-panel tw-mb-4">
+              <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-4 tw-text-sm">
+                <span className="tw-flex tw-items-center tw-font-medium tw-text-gray-700">
+                  <i className="fa-light fa-chart-bar tw-mr-2 tw-text-blue-600"></i>
+                  <strong>{tankVolumeHistory?.length || 0}</strong> transactions
+                </span>
+
+                {/* Show data range info */}
+                {currentFilters.startDate && currentFilters.endDate && (
+                  <span className="tw-flex tw-items-center tw-text-gray-600">
+                    <i className="fa-light fa-calendar tw-mr-2 tw-text-green-600"></i>
+                    {new Date(currentFilters.startDate).toLocaleDateString()} - {new Date(currentFilters.endDate).toLocaleDateString()}
+                  </span>
+                )}
+
+                {currentFilters.siteId ? (
+                  <span className="tw-flex tw-items-center tw-text-gray-600">
+                    <i className="fa-light fa-map-marker tw-mr-2 tw-text-purple-600"></i>
+                    Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
+                  </span>
+                ) : (
+                  <span className="tw-flex tw-items-center tw-text-gray-600">
+                    <i className="fa-light fa-globe tw-mr-2 tw-text-purple-600"></i>
+                    All Sites
+                  </span>
+                )}
+                {currentFilters.tankId && (
+                  <span className="tw-flex tw-items-center tw-text-gray-600">
+                    <i className="fa-light fa-oil-can tw-mr-2 tw-text-orange-600"></i>
+                    Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
+                  </span>
+                )}
+              </div>
+            </div>            <Chart
+              height={500}
+              dataSource={getChartData}
+              title={{
+                text: "Tank Volume Changes Over Time",
+                font: {
+                  size: 18,
+                  weight: 600
+                }
+              }}
+              tooltip={{
+                enabled: true,
+                format: "fixedPoint",
+                precision: 2,
+                container: "body"
+              }}
+              crosshair={{
+                enabled: true,
+                color: '#949494',
+                width: 1,
+                dashStyle: 'dash'
+              }}
+              adaptiveLayout={{
+                width: 80,
+                height: 80,
+                keepLabels: true
+              }}
+              onInitialized={(e) => {
+                console.log('🎨 Chart initialized:', e);
+                console.log('🎨 Chart data:', getChartData);
+                console.log('🎨 Total data points:', getChartData.length);
+
+                // Log sample data for debugging
+                if (getChartData.length > 0) {
+                  console.log('🎨 Sample data point:', getChartData[0]);
+                  console.log('🎨 Timestamp:', getChartData[0]?.timestamp);
+                  console.log('🎨 NewVolume:', getChartData[0]?.newVolume);
+                }
+
+                // Debug series rendering
+                setTimeout(() => {
+                  const chartElement = e.element;
+                  const seriesElements = chartElement.querySelectorAll('.dx-chart-series, path[class*="dx-chart-series"], .dx-chart-series-line');
+                  console.log('🎨 Found series elements:', seriesElements.length);
+
+                  seriesElements.forEach((element, index) => {
+                    console.log(`🎨 Series ${index}:`, element);
+                    // Force visibility
+                    element.style.strokeWidth = '4px';
+                    element.style.strokeOpacity = '1';
+                    element.style.opacity = '1';
+                    element.style.visibility = 'visible';
+                    element.style.display = 'block';
+                    element.style.stroke = '#3b82f6';
+                  });
+                }, 500);
+
+                // Fix tooltip z-index after chart initialization
+                setTimeout(() => {
+                  const tooltips = document.querySelectorAll('.dx-chart-tooltip, .dx-tooltip, .dx-tooltip-wrapper, div[class*="tooltip"]');
+                  tooltips.forEach(tooltip => {
+                    tooltip.style.zIndex = '99999';
+                    tooltip.style.position = 'fixed';
+                  });
+                }, 100);
+
+                // Set up mutation observer to catch dynamically created tooltips
+                const observer = new MutationObserver((mutations) => {
+                  mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                      if (node.nodeType === 1) { // Element node
+                        const tooltips = node.querySelectorAll?.('.dx-chart-tooltip, .dx-tooltip, .dx-tooltip-wrapper') || [];
+                        tooltips.forEach(tooltip => {
+                          tooltip.style.zIndex = '99999';
+                          tooltip.style.position = 'fixed';
+                        });
+
+                        // Check if the node itself is a tooltip
+                        if (node.classList && (node.classList.contains('dx-chart-tooltip') || node.classList.contains('dx-tooltip'))) {
+                          node.style.zIndex = '99999';
+                          node.style.position = 'fixed';
+                        }
+                      }
+                    });
+                  });
+                });
+
+                observer.observe(document.body, { childList: true, subtree: true });
+              }}
+            >
+              <CommonSeriesSettings argumentField="timestamp" type="line" />
+              <Series
+                valueField="newVolume"
+                name="Tank Volume"
+                color="#3b82f6"
+                point={{
+                  visible: true,
+                  size: 8,
+                  symbol: 'circle',
+                  color: '#1d4ed8',
+                  border: {
+                    visible: true,
+                    width: 2,
+                    color: '#ffffff'
+                  }
+                }}
+                width={3}
+              />
+              <ValueAxis>
+                <Label format="#,##0 L" />
+              </ValueAxis>
+              <ArgumentAxis>
+                <Label
+                  customizeText={(e) => {
+                    const date = new Date(e.value);
+                    return date.toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    }) + '\n' + date.toLocaleTimeString('en-GB', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                  }}
+                  rotationAngle={45}
+                />
+              </ArgumentAxis>
+              <Legend visible={true} />
+              <Tooltip
+                enabled={true}
+                customizeTooltip={customizeTooltip}
+                onTooltipShown={(e) => {
+                  // Ensure tooltip has the highest z-index when shown
+                  console.log('Tooltip shown event:', e);
+                  if (e.element) {
+                    e.element.style.zIndex = '99999';
+                    e.element.style.position = 'fixed';
+                  }
+
+                  // Also check for parent elements that might be tooltip containers
+                  let parent = e.element?.parentElement;
+                  while (parent && parent !== document.body) {
+                    if (parent.classList && (parent.classList.contains('dx-tooltip') || parent.classList.contains('dx-chart-tooltip'))) {
+                      parent.style.zIndex = '99999';
+                      parent.style.position = 'fixed';
+                    }
+                    parent = parent.parentElement;
+                  }
+
+                  // Force immediate DOM update
+                  setTimeout(() => {
+                    const allTooltips = document.querySelectorAll('.dx-chart-tooltip, .dx-tooltip, div[class*="tooltip"]');
+                    allTooltips.forEach(tooltip => {
+                      tooltip.style.zIndex = '99999';
+                      tooltip.style.position = 'fixed';
+                    });
+                  }, 0);
+                }}
+              />
+            </Chart>
+
+            <div className="chart-guide tw-mt-4">
+              <div className="tw-flex tw-items-center tw-mb-3">
+                <i className="fa-light fa-lightbulb tw-mr-2 tw-text-blue-600"></i>
+                <strong className="tw-text-gray-800">Chart Guide:</strong>
+              </div>
+              <ul className="tw-space-y-2 tw-text-sm tw-text-gray-600">
+                <li className="tw-flex tw-items-start">
+                  <i className="fa-light fa-mouse tw-mr-2 tw-mt-1 tw-text-blue-500"></i>
+                  <span>Hover over data points to see detailed transaction information</span>
+                </li>
+                <li className="tw-flex tw-items-start">
+                  <i className="fa-light fa-search-plus tw-mr-2 tw-mt-1 tw-text-green-500"></i>
+                  <span>Use mouse wheel to zoom in/out on the chart</span>
+                </li>
+                <li className="tw-flex tw-items-start">
+                  <i className="fa-light fa-arrows tw-mr-2 tw-mt-1 tw-text-purple-500"></i>
+                  <span>Click and drag to pan around the chart when zoomed</span>
+                </li>
+                <li className="tw-flex tw-items-start">
+                  <i className="fa-light fa-chart-line tw-mr-2 tw-mt-1 tw-text-orange-500"></i>
+                  <span>Volume increases show as upward trends, decreases as downward trends</span>
+                </li>
+                <li className="tw-flex tw-items-start">
+                  <i className="fa-light fa-layer-group tw-mr-2 tw-mt-1 tw-text-indigo-500"></i>
+                  <span>Single line shows all tank volume changes chronologically</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </ScrollView>
       </Popup>
 
       {/* Page-level LoadPanel */}

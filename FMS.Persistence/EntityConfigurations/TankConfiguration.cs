@@ -1,75 +1,79 @@
+using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using FMS.Domain.Entities;
 
-namespace FMS.Persistence.EntityConfigurations
-{
+namespace FMS.Persistence.EntityConfigurations {
     /// <summary>
     /// Configuration for the Tank entity
     /// </summary>
-    public class TankConfiguration : EntityTypeConfiguration<Tank>
-    {
+    public class TankConfiguration : EntityTypeConfiguration<Tank> {
         /// <summary>
         /// Configures the entity
         /// </summary>
         /// <param name="builder">The entity type builder</param>
-        public override void Configure(EntityTypeBuilder<Tank> builder)
-        {
-            try
-            {
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+        public override void Configure (EntityTypeBuilder<Tank> builder) {
+            try {
+                builder.HasKey (e => e.Id).HasName ("PRIMARY");
 
-                builder.ToTable("tank");
+                builder.ToTable ("tank");
 
-                builder.HasIndex(e => e.SiteId, "Tank_site_idx");
+                builder.HasIndex (e => e.SiteId, "Tank_site_idx");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
-                builder.Property(e => e.CurrentStock).HasPrecision(10);
-                builder.Property(e => e.DiscrepancyThreshold).HasPrecision(10, 2);
+                builder.Property (e => e.Id).HasColumnType ("int(11)");
+                builder.Property (e => e.CurrentStock).HasPrecision (10);
+                builder.Property (e => e.DiscrepancyThreshold).HasPrecision (10, 2);
 
-                builder.Property(e => e.Name).HasMaxLength(45);
-                builder.Property(e => e.PtsId)
-                    .HasColumnType("varchar(100)")
-                    .HasColumnName("ptsID");
+                builder.Property (e => e.Name).HasMaxLength (45);
+                builder.Property (e => e.PtsId)
+                    .HasColumnType ("varchar(100)")
+                    .HasColumnName ("ptsID");
 
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
-                builder.Property(e => e.TankHeight).HasPrecision(10);
-                builder.Property(e => e.TankLength).HasPrecision(10);
-                builder.Property(e => e.TankVolume).HasPrecision(10);
-                builder.Property(e => e.UseBookKeeping)
-                    .HasDefaultValueSql("'0'")
-                    .HasColumnType("tinyint(4)");
+                builder.Property (e => e.SiteId)
+                    .HasColumnType ("int(11)")
+                    .HasColumnName ("SiteID");
+                builder.Property (e => e.TankHeight).HasPrecision (10);
+                builder.Property (e => e.TankLength).HasPrecision (10);
+                builder.Property (e => e.TankVolume).HasPrecision (10);
+                builder.Property (e => e.UseBookKeeping)
+                    .HasDefaultValueSql ("'0'")
+                    .HasColumnType ("tinyint(4)");
 
                 //Cursor: Add FuelGradeId and FuelGradeName configuration
-                builder.Property(e => e.FuelGradeId)
-                    .HasColumnType("int(11)")
-                    .IsRequired(false);
+                builder.Property (e => e.FuelGradeId)
+                    .HasColumnType ("int(11)")
+                    .IsRequired (false);
 
-                builder.Property(e => e.FuelGradeName)
-                    .HasMaxLength(45)
-                    .IsRequired(false);
+                builder.Property (e => e.FuelGradeName)
+                    .HasMaxLength (45)
+                    .IsRequired (false);
+
+                //Cursor: Add PhysicalStockValue and LastPhysicalStockUpdate configuration
+                builder.Property (e => e.PhysicalStockValue)
+                    .HasPrecision (10, 2)
+                    .IsRequired (false);
+
+                builder.Property (e => e.LastPhysicalStockUpdate)
+                    .IsRequired (false);
+
+                builder.Property (e => e.PhysicalStockSource)
+                    .HasMaxLength (50)
+                    .IsRequired (false);
 
                 // Relationships
-                builder.HasOne(d => d.Site).WithMany(p => p.Tanks)
-                    .HasForeignKey(d => d.SiteId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("Tank_site");
+                builder.HasOne (d => d.Site).WithMany (p => p.Tanks)
+                    .HasForeignKey (d => d.SiteId)
+                    .OnDelete (DeleteBehavior.ClientSetNull)
+                    .HasConstraintName ("Tank_site");
 
                 //Cursor: Add relationship to tank measurements
-                builder.HasMany(e => e.Tankmeasurements)
-                    .WithOne(e => e.TankNavigation)
-                    .HasForeignKey(e => e.TankId)
-                    .OnDelete(DeleteBehavior.SetNull);
-            }
+                builder.HasMany (e => e.Tankmeasurements)
+                    .WithOne (e => e.TankNavigation)
+                    .HasForeignKey (e => e.TankId)
+                    .OnDelete (DeleteBehavior.SetNull);
+            } catch (Exception ex) {
+                Console.WriteLine ($"Error configuring  : {ex.Message}");
 
-
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error configuring  : {ex.Message}");
-
-                throw new Exception($"Error configuring TankConfiguration: {ex.Message}", ex);
+                throw new Exception ($"Error configuring TankConfiguration: {ex.Message}", ex);
             }
         }
     }

@@ -90,6 +90,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     }
                 }
 
+                //Cursor: Update physical stock value and timestamp
+                tank.PhysicalStockValue = request.OpeningStock;
+                tank.LastPhysicalStockUpdate = entryDate;
+                tank.PhysicalStockSource = "Manual"; // Set source for manual entry
+
                 _context.Tanks.Update (tank);
 
                 await _context.SaveChangesAsync (cancellationToken);

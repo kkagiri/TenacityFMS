@@ -5,6 +5,7 @@ namespace FMS.Application.Features.Notification.DTOs {
         public int Id { get; set; }
         public string NotificationId { get; set; } = null!;
         public string Type { get; set; } = null!;
+        public string? Data { get; set; }
         public string Category { get; set; } = null!;
         public string Priority { get; set; } = null!;
         public string Title { get; set; } = null!;

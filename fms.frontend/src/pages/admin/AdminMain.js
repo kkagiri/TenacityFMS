@@ -17,6 +17,7 @@ import PTSAutomationConfigPage from '../PTSAutomationConfig/PTSAutomationConfigP
 import ConfigurationPage from './configuration';
 import SystemConfiguration from './systemConfig/SystemConfigPage';
 import PTSServiceControl from './ptsService/PTSServiceControl';
+import NotificationSettings from './notification-settings/NotificationSettings';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -37,6 +38,8 @@ const AdminMain = () => {
         <Route path="permissions/*" element={<PermissionTreeList />} />
         <Route path="navigation" element={<NavigationPage />} />
         <Route path="navigation/*" element={<NavigationPage />} />
+        <Route path="notifications" element={<NotificationSettings />} />
+        <Route path="notifications/*" element={<NotificationSettings />} />
 
         {/* System Configuration Routes */}
         <Route path="tags" element={<Tagpage />} />

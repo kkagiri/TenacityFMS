@@ -22,6 +22,7 @@
          private readonly IEmailService _emailService;
          private readonly ISmsService _smsService;
          private readonly ISystemUserService _systemUserService;
+         private readonly INotificationRecipientResolver _recipientResolver;
 
          public NotificationService (
              GpsdataContext context,
@@ -29,13 +30,15 @@
              ISignalRNotificationService signalRService,
              IEmailService emailService,
              ISmsService smsService,
-             ISystemUserService systemUserService) {
+             ISystemUserService systemUserService,
+             INotificationRecipientResolver recipientResolver) {
              _context = context;
              _logger = logger;
              _signalRService = signalRService;
              _emailService = emailService;
              _smsService = smsService;
              _systemUserService = systemUserService;
+             _recipientResolver = recipientResolver;
          }
 
          public async Task<FMSResponse<int>> CreateNotificationAsync (CreateNotificationRequest request, CancellationToken cancellationToken = default) {
@@ -101,31 +104,38 @@
                  _context.Notifications.Add (notification);
                  await _context.SaveChangesAsync (cancellationToken);
 
-                 // Create recipients
-                 foreach (var recipientRequest in request.Recipients) {
-                     var user = await _context.Users.FirstOrDefaultAsync (u => u.Id == recipientRequest.UserId, cancellationToken);
-                     if (user == null) {
-                         _logger.LogWarning ("User {UserId} not found for notification recipient", recipientRequest.UserId);
-                         continue;
-                     }
+                 // ✅ Dynamic recipient resolution - no hardcoded recipients
+                 var resolvedRecipients = await _recipientResolver.ResolveRecipientsAsync (request, cancellationToken);
 
-                     foreach (var deliveryMethod in recipientRequest.DeliveryMethods) {
-                         var recipientAddress = GetRecipientAddress (user, deliveryMethod);
-                         if (string.IsNullOrEmpty (recipientAddress)) {
-                             _logger.LogWarning ("No {DeliveryMethod} address found for user {UserId}", deliveryMethod, user.Id);
+                 if (resolvedRecipients.Any ()) {
+                     foreach (var recipientRequest in resolvedRecipients) {
+                         var user = await _context.Users.FirstOrDefaultAsync (u => u.Id == recipientRequest.UserId, cancellationToken);
+                         if (user == null) {
+                             _logger.LogWarning ("User {UserId} not found for notification recipient", recipientRequest.UserId);
                              continue;
                          }
 
-                         var recipient = new NotificationRecipient {
-                             NotificationId = notification.Id,
-                             UserId = recipientRequest.UserId,
-                             DeliveryMethod = deliveryMethod,
-                             RecipientAddress = recipientAddress,
-                             PriorityOverride = recipientRequest.PriorityOverride
-                         };
+                         foreach (var deliveryMethod in recipientRequest.DeliveryMethods) {
+                             var recipientAddress = GetRecipientAddress (user, deliveryMethod);
+                             if (string.IsNullOrEmpty (recipientAddress)) {
+                                 _logger.LogWarning ("No {DeliveryMethod} address found for user {UserId}", deliveryMethod, user.Id);
+                                 continue;
+                             }
 
-                         _context.NotificationRecipients.Add (recipient);
+                             var recipient = new NotificationRecipient {
+                                 NotificationId = notification.Id,
+                                 UserId = recipientRequest.UserId,
+                                 DeliveryMethod = deliveryMethod,
+                                 RecipientAddress = recipientAddress,
+                                 PriorityOverride = recipientRequest.PriorityOverride
+                             };
+
+                             _context.NotificationRecipients.Add (recipient);
+                         }
                      }
+                 } else {
+                     _logger.LogWarning ("No recipients resolved for notification {NotificationId} category {Category}",
+                         notification.NotificationId, request.Category);
                  }
 
                  await _context.SaveChangesAsync (cancellationToken);

@@ -23,6 +23,12 @@ public partial class Tank {
 
     public DateTime LastStockUpdate { get; set; }
 
+    public decimal? PhysicalStockValue { get; set; }
+
+    public DateTime? LastPhysicalStockUpdate { get; set; }
+
+    public string? PhysicalStockSource { get; set; }
+
     public int? FuelGradeId { get; set; }
     public string? FuelGradeName { get; set; }
 
@@ -44,8 +50,8 @@ public partial class Tank {
     public virtual ICollection<TankTransfer> TankTransfersAsDestination { get; set; } = new List<TankTransfer> ();
 
     public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction> ();
-    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment>();
+    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment> ();
 
-    public virtual ICollection<Tankmeasurement> Tankmeasurements { get; set; } = new List<Tankmeasurement>();
+    public virtual ICollection<Tankmeasurement> Tankmeasurements { get; set; } = new List<Tankmeasurement> ();
 
 }

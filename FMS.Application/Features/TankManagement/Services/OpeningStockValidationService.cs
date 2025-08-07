@@ -43,6 +43,7 @@ namespace FMS.Application.Services.TankStock {
                 }
 
                 // Check for any unclosed opening stock for this tank
+                // An opening stock is considered "unclosed" if there's no closing stock after it (on any date)
                 var lastUnClosedOpeningStock = await _context.TankVolumeHistories
                     .Where (x => x.TankId == tankId &&
                         x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
@@ -50,8 +51,7 @@ namespace FMS.Application.Services.TankStock {
                     .FirstOrDefaultAsync (os => !_context.TankVolumeHistories
                         .Any (cs => cs.TankId == tankId &&
                             cs.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
-                            cs.Timestamp > os.Timestamp &&
-                            cs.Timestamp.Date == os.Timestamp.Date), cancellationToken);
+                            cs.Timestamp > os.Timestamp), cancellationToken);
 
                 if (lastUnClosedOpeningStock != null) {
                     var lastOpeningDate = lastUnClosedOpeningStock.Timestamp;
@@ -59,13 +59,13 @@ namespace FMS.Application.Services.TankStock {
 
                     return new OpeningStockValidationResult {
                         Success = false,
-                            Message = $"An opening stock already exists for {lastOpeningDate:yyyy-MM-dd} ({lastOpeningAmount:N0}L) without a subsequent closing stock. Please create a closing stock for {lastOpeningDate:yyyy-MM-dd} before adding another opening stock.",
+                            Message = $"An opening stock already exists for {lastOpeningDate:yyyy-MM-dd} ({lastOpeningAmount:N0}L) without a subsequent closing stock. Please create a closing stock after {lastOpeningDate:yyyy-MM-dd} before adding another opening stock.",
                             Details = new ValidationDetails {
                             LastOpeningStockDate = lastOpeningDate,
                             LastOpeningStockAmount = lastOpeningAmount,
                             TankId = tankId,
                             TankName = tank.Name,
-                            SuggestedAction = $"Create a closing stock for {lastOpeningDate:yyyy-MM-dd} with the appropriate amount before proceeding.",
+                            SuggestedAction = $"Create a closing stock for any date after {lastOpeningDate:yyyy-MM-dd} with the appropriate amount before proceeding.",
                             ErrorType = "OpeningStockExists"
                             }
                     };

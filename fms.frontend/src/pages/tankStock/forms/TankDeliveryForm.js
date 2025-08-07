@@ -120,6 +120,16 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
       [field]: value
     };
 
+    // If tank is selected, get tank information for display
+    if (field === 'tankId' && value) {
+      const selectedTank = tanksFromStore.find(tank => tank.id === value);
+      if (selectedTank) {
+        updatedData.currentBookBalance = selectedTank.currentStock;
+        updatedData.currentPhysicalStock = selectedTank.physicalStockValue;
+        updatedData.tankName = selectedTank.name;
+      }
+    }
+
     // Auto-calculate stock after delivery if both delivery amount and stock before are provided
     if (field === 'deliveryAmount' || field === 'stockBeforeDelivery') {
       const deliveryAmount = field === 'deliveryAmount' ? value : updatedData.deliveryAmount;
@@ -148,7 +158,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     if (validationErrors[field]) {
       setValidationErrors(prev => ({ ...prev, [field]: null }));
     }
-  }, [formData, validateHistoricalEntry, resetValidation, validationErrors]);
+  }, [formData, validateHistoricalEntry, resetValidation, validationErrors, tanksFromStore]);
 
   // Validation logic
   const validateForm = useCallback(() => {
@@ -354,6 +364,57 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               <Label text="Tank" />
               <RequiredRule message="Tank is required"/>
             </SimpleItem>
+
+            {/* Tank Stock Information Display */}
+            {formData.tankId && (formData.currentBookBalance !== null || formData.currentPhysicalStock !== null) && (
+              <>
+                <SimpleItem
+                  dataField="currentBookBalance"
+                  editorType="dxTextBox"
+                  editorOptions={{
+                    value: formData.currentBookBalance !== null ? formData.currentBookBalance.toLocaleString() + ' L' : 'N/A',
+                    readOnly: true,
+                    width: "100%",
+                    stylingMode: "filled"
+                  }}
+                >
+                  <Label text="Current Book Balance" />
+                </SimpleItem>
+
+                <SimpleItem
+                  dataField="currentPhysicalStock"
+                  editorType="dxTextBox"
+                  editorOptions={{
+                    value: formData.currentPhysicalStock !== null ? formData.currentPhysicalStock.toLocaleString() + ' L' : 'Not measured',
+                    readOnly: true,
+                    width: "100%",
+                    stylingMode: "filled"
+                  }}
+                >
+                  <Label text="Current Physical Stock" />
+                </SimpleItem>
+
+                {/* Discrepancy Display */}
+                {formData.currentBookBalance !== null && formData.currentPhysicalStock !== null && (
+                  <div style={{
+                    gridColumn: 'span 2',
+                    padding: '10px',
+                    marginTop: '10px',
+                    borderRadius: '4px',
+                    backgroundColor: Math.abs(formData.currentPhysicalStock - formData.currentBookBalance) > (formData.currentBookBalance * 0.05) ? '#fff3cd' : '#d4edda',
+                    border: `1px solid ${Math.abs(formData.currentPhysicalStock - formData.currentBookBalance) > (formData.currentBookBalance * 0.05) ? '#ffc107' : '#28a745'}`
+                  }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                      Current Stock Discrepancy:
+                    </div>
+                    <div>
+                      Difference: {(formData.currentPhysicalStock - formData.currentBookBalance).toLocaleString()} L
+                      ({formData.currentBookBalance > 0 ? (((formData.currentPhysicalStock - formData.currentBookBalance) / formData.currentBookBalance) * 100).toFixed(2) : '100'}%)
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <SimpleItem
               dataField="product"

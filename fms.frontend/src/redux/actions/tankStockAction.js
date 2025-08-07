@@ -139,16 +139,28 @@ export const createOpeningStock = (params) => async (dispatch) => {
       };
     }
   } catch (error) {
-    const errorMessage = error.response?.data?.message ||
-                        error.response?.data?.error ||
-                        error.message ||
-                        'Error creating opening stock';
-    dispatch({ type: CREATE_OPENING_STOCK_FAILURE, payload: errorMessage });
-    return {
-      success: false,
-      message: errorMessage,
-      error: error
-    };
+    // Handle HTTP error responses (like 400, 500, etc.)
+    if (error.response) {
+      // Server responded with error status
+      const errorData = error.response.data;
+      const errorMessage = errorData?.message || errorData?.error || `HTTP ${error.response.status}: ${error.response.statusText}`;
+
+      dispatch({ type: CREATE_OPENING_STOCK_FAILURE, payload: errorMessage });
+      return {
+        success: false,
+        message: errorMessage,
+        data: errorData
+      };
+    } else {
+      // Network or other error
+      const errorMessage = error.message || 'Error creating opening stock';
+      dispatch({ type: CREATE_OPENING_STOCK_FAILURE, payload: errorMessage });
+      return {
+        success: false,
+        message: errorMessage,
+        error: error
+      };
+    }
   }
 };
 

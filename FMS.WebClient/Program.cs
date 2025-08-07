@@ -70,6 +70,7 @@ using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
+using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Services.TankStock;
 using FMS.BackgroundServices.FMS;
 //using FMS.Application.Extensions;
@@ -435,6 +436,7 @@ public class Program {
         services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
         services.AddScoped<TankStockFutureRecordsService> (); //Cursor
         services.AddScoped<ITransactionCompletionService, TransactionCompletionService> (); //Cursor        // Register notification services
+        services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver> ();
         services.AddScoped<INotificationService, NotificationService> ();
         services.AddScoped<IAlarmHandlerService, AlarmHandlerService> ();
         services.AddScoped<IEmailService, EmailService> ();
@@ -706,7 +708,14 @@ public class Program {
                     options
                         .UseMySql (
                             fmsConnectionString,
-                            new MySqlServerVersion (new Version (5, 5, 61))
+                            new MySqlServerVersion (new Version (5, 5, 61)),
+                            mySqlOptions => {
+                                mySqlOptions.EnableRetryOnFailure (
+                                    maxRetryCount: 5,
+                                    maxRetryDelay: TimeSpan.FromSeconds (30),
+                                    errorNumbersToAdd: null);
+                                mySqlOptions.CommandTimeout (60); // Set command timeout to 60 seconds
+                            }
                         )
                         .EnableDetailedErrors ()
                         .EnableSensitiveDataLogging ()

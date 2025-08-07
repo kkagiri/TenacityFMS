@@ -20,7 +20,9 @@ namespace FMS.Application.Features.Notification.DTOs {
         public int? IssueTrackerId { get; set; }
         public int? AlarmId { get; set; }
         public int? NotificationPolicyId { get; set; }
-        public List<CreateNotificationRecipientRequest> Recipients { get; set; } = new ();
+
+        // ✅ Optional - will be dynamically resolved if not provided
+        public List<CreateNotificationRecipientRequest> ? Recipients { get; set; }
     }
 
     public class CreateNotificationRecipientRequest {

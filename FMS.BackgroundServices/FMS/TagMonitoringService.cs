@@ -185,13 +185,8 @@ namespace FMS.BackgroundServices.FMS {
                     Message = $"Tag monitoring error for vehicle {vehicle.HyoungNo}: {errorMessage}",
                     TriggerSource = "TagMonitoring",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    VehicleId = vehicle.VehicleId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = SystemConstants.SystemAdministrator.UserId,
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
-                    }
-                    }
+                    VehicleId = vehicle.VehicleId
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -212,13 +207,8 @@ namespace FMS.BackgroundServices.FMS {
                     Message = $"Vehicle {vehicle.HyoungNo} tag updated to '{newTag}' based on location: {location}",
                     TriggerSource = "TagMonitoring",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    VehicleId = vehicle.VehicleId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = "fleet-operations",
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
-                    }
-                    }
+                    VehicleId = vehicle.VehicleId
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);

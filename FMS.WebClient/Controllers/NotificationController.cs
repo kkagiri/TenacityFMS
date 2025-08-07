@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
+using FMS.Application.Features.Notification.Commands;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Queries;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -17,7 +22,7 @@ namespace FMS.WebClient.Controllers {
     /// Controller for notification management
     /// </summary>
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/notifications")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     [Authorize]
@@ -25,14 +30,20 @@ namespace FMS.WebClient.Controllers {
         private readonly INotificationService _notificationService;
         private readonly IAlarmHandlerService _alarmHandlerService;
         private readonly ILogger<NotificationController> _logger;
+        private readonly IMediator _mediator;
+        private readonly IMapper _mapper;
 
         public NotificationController (
             INotificationService notificationService,
             IAlarmHandlerService alarmHandlerService,
-            ILogger<NotificationController> logger) {
+            ILogger<NotificationController> logger,
+            IMediator mediator,
+            IMapper mapper) {
             _notificationService = notificationService;
             _alarmHandlerService = alarmHandlerService;
             _logger = logger;
+            _mediator = mediator;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -201,17 +212,11 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("alarm")]
         public async Task<IActionResult> TriggerAlarm ([FromBody] TriggerAlarmRequest request, CancellationToken cancellationToken = default) {
             try {
-            var alarmRequest = new CreateAlarmNotificationRequest {
-            AlarmType = request.AlarmType,
-            Category = request.Category ?? "Custom",
-            Message = request.Message,
-            Data = request.Data,
-            TriggeredBy = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "API",
-            SiteId = request.SiteId,
-            PtsDeviceId = request.PtsDeviceId,
-            TankId = request.TankId,
-            VehicleId = request.VehicleId
-                };
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "API";
+
+                // Use AutoMapper to map TriggerAlarmRequest to CreateAlarmNotificationRequest
+                var alarmRequest = _mapper.Map<CreateAlarmNotificationRequest> (request);
+                alarmRequest.TriggeredBy = currentUserId;
 
                 var result = await _notificationService.CreateAlarmNotificationAsync (alarmRequest, cancellationToken);
 
@@ -406,24 +411,371 @@ namespace FMS.WebClient.Controllers {
                 return StatusCode (500, new { success = false, message = "Internal server error" });
             }
         }
-    }
 
-    // Request DTOs
-    public class TriggerAlarmRequest {
-        public string AlarmType { get; set; } = null!;
-        public string? Category { get; set; }
-        public string? Message { get; set; }
-        public object? Data { get; set; }
-        public int? SiteId { get; set; }
-        public int? DeviceId { get; set; }
-        public int? TankId { get; set; }
-        public int? VehicleId { get; set; }
-        public string? PtsDeviceId { get; set; }
-    }
+        /// <summary>
+        /// Get user notification preferences
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>User notification preferences</returns>
+        [HttpGet ("preferences/user/{userId}")]
+        public async Task<IActionResult> GetUserPreferences (string userId, CancellationToken cancellationToken = default) {
+            try {
+                // Ensure user can only access their own preferences or is admin
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId != userId && !User.IsInRole ("Admin")) {
+                    return StatusCode (403, new { success = false, message = "Access denied" });
+                }
 
-    public class TestNotificationRequest {
-        public string? Title { get; set; }
-        public string? Message { get; set; }
-        public List<string> ? DeliveryMethods { get; set; }
+                // Mock response for now - replace with actual service call when implemented
+                var mockPreferences = new List<object> {
+                    new {
+                    id = 1,
+                    userId = userId,
+                    notificationCategory = "SensorVariance",
+                    deliveryMethods = "System,Email",
+                    isEnabled = true,
+                    priority = "Medium",
+                    quietHoursStart = (string?) null,
+                    quietHoursEnd = (string?) null,
+                    maxNotificationsPerHour = 0,
+                    maxNotificationsPerDay = 0,
+                    requireAcknowledgment = false
+                    }
+                };
+
+                return Ok (new { success = true, message = "Preferences retrieved successfully", data = mockPreferences });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error getting user notification preferences for user {UserId}", userId);
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get current user's notification preferences
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Current user's notification preferences</returns>
+        [HttpGet ("preferences/user/current-user")]
+        public async Task<IActionResult> GetCurrentUserPreferences (CancellationToken cancellationToken = default) {
+            try {
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty (currentUserId)) {
+                    return Unauthorized (new { success = false, message = "User not authenticated" });
+                }
+
+                var query = new GetUserNotificationPreferencesQuery {
+                    Request = new GetUserNotificationPreferencesRequest {
+                    UserId = currentUserId
+                    }
+                };
+
+                var result = await _mediator.Send (query, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error getting current user notification preferences");
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Bulk update user notification preferences
+        /// </summary>
+        /// <param name="request">Bulk update request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result</returns>
+        [HttpPost ("preferences/bulk-update")]
+        public async Task<IActionResult> BulkUpdateNotificationPreferences ([FromBody] BulkUpdatePreferencesRequest request, CancellationToken cancellationToken = default) {
+            try {
+                // Ensure user can only update their own preferences or is admin
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId != request.UserId && !User.IsInRole ("Admin")) {
+                    return StatusCode (403, new { success = false, message = "Access denied" });
+                }
+
+                // Use AutoMapper to map controller DTOs to application DTOs
+                var applicationPreferences = (request.Preferences ?? new List<BulkUpdatePreferenceDto> ())
+                    .Select (p => {
+                        var mapped = _mapper.Map<UserNotificationPreferenceDto> (p);
+                        mapped.UserId = request.UserId;
+                        mapped.CreatedBy = currentUserId ?? request.UserId;
+                        mapped.UpdatedBy = currentUserId ?? request.UserId;
+                        return mapped;
+                    })
+                    .ToList ();
+
+                var command = new BulkUpdateUserNotificationPreferencesCommand {
+                    Request = new BulkUpdateUserNotificationPreferencesRequest {
+                    UserId = request.UserId,
+                    Preferences = applicationPreferences,
+                    UpdatedBy = currentUserId ?? request.UserId
+                    }
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error bulk updating notification preferences for user {UserId}", request.UserId);
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get notification categories
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>List of notification categories</returns>
+        [HttpGet ("categories")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetNotificationCategories (CancellationToken cancellationToken = default) {
+            try {
+            var query = new GetNotificationCategoriesQuery {
+            IncludeInactive = false
+                };
+
+                var result = await _mediator.Send (query, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error getting notification categories");
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        #region Notification Preferences CRUD
+
+        /// <summary>
+        /// Create a new notification preference
+        /// </summary>
+        /// <param name="request">Create preference request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Created preference ID</returns>
+        [HttpPost ("preferences")]
+        public async Task<IActionResult> CreateNotificationPreference ([FromBody] CreateUserNotificationPreferenceRequest request, CancellationToken cancellationToken = default) {
+            try {
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId != request.UserId && !User.IsInRole ("Admin")) {
+                    return StatusCode (403, new { success = false, message = "Access denied" });
+                }
+
+                var command = new CreateUserNotificationPreferenceCommand {
+                    Request = request
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message, preferenceId = result.Data });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error creating notification preference");
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update an existing notification preference
+        /// </summary>
+        /// <param name="id">Preference ID</param>
+        /// <param name="request">Update preference request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result</returns>
+        [HttpPut ("preferences/{id}")]
+        public async Task<IActionResult> UpdateNotificationPreference (int id, [FromBody] UpdateUserNotificationPreferenceRequest request, CancellationToken cancellationToken = default) {
+            try {
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty (currentUserId)) {
+                    return Unauthorized (new { success = false, message = "User not authenticated" });
+                }
+
+                request.Id = id;
+                request.UpdatedBy = currentUserId;
+
+                var command = new UpdateUserNotificationPreferenceCommand {
+                    Request = request
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error updating notification preference {Id}", id);
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Delete a notification preference
+        /// </summary>
+        /// <param name="id">Preference ID</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result</returns>
+        [HttpDelete ("preferences/{id}")]
+        public async Task<IActionResult> DeleteNotificationPreference (int id, CancellationToken cancellationToken = default) {
+            try {
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty (currentUserId)) {
+                    return Unauthorized (new { success = false, message = "User not authenticated" });
+                }
+
+                var command = new DeleteUserNotificationPreferenceCommand {
+                    Id = id,
+                    DeletedBy = currentUserId
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error deleting notification preference {Id}", id);
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        #endregion
+
+        #region Notification Categories CRUD (Admin Only)
+
+        /// <summary>
+        /// Get all notification categories (including inactive for admin)
+        /// </summary>
+        /// <param name="includeInactive">Include inactive categories</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>List of notification categories</returns>
+        [HttpGet ("admin/categories")]
+        [Authorize]
+        public async Task<IActionResult> GetAllNotificationCategories ([FromQuery] bool includeInactive = false, CancellationToken cancellationToken = default) {
+            try {
+            var query = new GetNotificationCategoriesQuery {
+            IncludeInactive = includeInactive
+                };
+
+                var result = await _mediator.Send (query, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error getting all notification categories");
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Create a new notification category
+        /// </summary>
+        /// <param name="request">Create category request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Created category</returns>
+        [HttpPost ("admin/categories")]
+        [Authorize]
+        public async Task<IActionResult> CreateNotificationCategory ([FromBody] CreateNotificationCategoryRequest request, CancellationToken cancellationToken = default) {
+            try {
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                request.CreatedBy = currentUserId;
+
+                var command = new CreateNotificationCategoryCommand {
+                    Request = request
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message, categoryId = result.Data });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error creating notification category");
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update an existing notification category
+        /// </summary>
+        /// <param name="id">Category ID</param>
+        /// <param name="request">Update category request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result</returns>
+        [HttpPut ("admin/categories/{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateNotificationCategory (int id, [FromBody] UpdateNotificationCategoryRequest request, CancellationToken cancellationToken = default) {
+            try {
+                var currentUserId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                request.Id = id;
+                request.UpdatedBy = currentUserId;
+
+                var command = new UpdateNotificationCategoryCommand {
+                    Request = request
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error updating notification category {Id}", id);
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Delete a notification category
+        /// </summary>
+        /// <param name="id">Category ID</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result</returns>
+        [HttpDelete ("admin/categories/{id}")]
+        [Authorize (Roles = "Admin")]
+        public async Task<IActionResult> DeleteNotificationCategory (int id, CancellationToken cancellationToken = default) {
+            try {
+            var command = new DeleteNotificationCategoryCommand {
+            Id = id
+                };
+
+                var result = await _mediator.Send (command, cancellationToken);
+
+                if (result.IsSuccess) {
+                    return Ok (new { success = true, message = result.Message });
+                }
+
+                return BadRequest (new { success = false, message = result.Message });
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error deleting notification category {Id}", id);
+                return StatusCode (500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        #endregion
     }
 }

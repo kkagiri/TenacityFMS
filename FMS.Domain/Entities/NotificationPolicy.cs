@@ -34,7 +34,7 @@ namespace FMS.Domain.Entities {
         /// </summary>
         [Required]
         [MaxLength (50)]
-        public string Category { get; set; } = null!;
+        public string NotificationCategoryId { get; set; } = null!;
 
         /// <summary>
         /// Type of notification this policy applies to (Alert, Warning, Info, etc.)
@@ -214,6 +214,8 @@ namespace FMS.Domain.Entities {
         public virtual User? ModifiedByNavigation { get; set; }
         public virtual Issuecategory? IssueCategoryNavigation { get; set; }
         public virtual Issuepriority? IssuePriorityNavigation { get; set; }
+
+        public virtual NotificationCategory NotificationCategory { get; set; } = null!;
 
         // Collections
         public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification> ();

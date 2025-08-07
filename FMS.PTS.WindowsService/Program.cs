@@ -13,6 +13,7 @@ using FMS.Application.Handlers;
 using FMS.Application.Handlers.Common;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.BackgroundServices.FMS;
 // using FMS.Application.PTSServices.Configuration; // Cursor - Commented out missing namespace
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.PTSServices.PumpService;
@@ -46,6 +47,7 @@ using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Services.TankStock;
 using FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandling;
 using Microsoft.AspNetCore.SignalR;
@@ -414,6 +416,7 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<OpeningStockValidationService> ();
 
             // Register notification services
+            services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver> ();
             services.AddScoped<INotificationService, NotificationService> ();
             services.AddScoped<IEmailService, EmailService> ();
             services.AddScoped<ISmsService, SmsService> ();

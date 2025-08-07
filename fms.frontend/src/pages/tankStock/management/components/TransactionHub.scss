@@ -1,0 +1,324 @@
+/* TransactionHub Chart Popup Styles */
+.chart-popup {
+  z-index: 1500 !important; /* Ensure popup is above other elements */
+
+  .dx-popup-content {
+    padding: 0;
+    position: relative;
+    z-index: 1501;
+    background: #f8fafc;
+    border-radius: 8px;
+  }
+
+  // ScrollView styling
+  .dx-scrollview {
+    height: 100% !important;
+
+    .dx-scrollview-content {
+      padding: 0;
+    }
+
+    .dx-scrollable-scrollbar {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      width: 8px;
+
+      .dx-scrollable-scroll {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.5);
+        }
+      }
+    }
+  }
+
+  // Chart controls styling
+  .chart-controls {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    select {
+      transition: all 0.2s ease;
+      border-color: #d1d5db;
+
+      &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  // Chart info panel styling
+  .chart-info-panel {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    padding: 16px;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    i {
+      filter: brightness(1.2);
+    }
+  }
+
+  .dx-chart {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    position: relative;
+    z-index: 1502;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .dx-chart-series {
+      .dx-chart-series-point {
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          transform: scale(1.2);
+          filter: brightness(1.1);
+        }
+      }
+    }
+
+    .dx-chart-tooltip {
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      border: none;
+      z-index: 99999 !important; /* Much higher z-index for tooltips */
+      position: fixed !important; /* Ensure tooltip is positioned relative to viewport */
+    }
+  }
+
+  /* Force all tooltip-related elements to highest z-index */
+  .dx-tooltip,
+  .dx-tooltip-wrapper,
+  div[class*="tooltip"] {
+    z-index: 99999 !important;
+    position: fixed !important;
+  }  .chart-info-panel {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .chart-guide {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 16px;
+    border-left: 4px solid #3b82f6;
+    margin-top: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    ul {
+      margin: 0;
+      padding-left: 16px;
+
+      li {
+        padding: 8px 0;
+        border-bottom: 1px solid #e5e7eb;
+        transition: background 0.2s ease;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:hover {
+          background: rgba(59, 130, 246, 0.05);
+          border-radius: 4px;
+          margin: 0 -8px;
+          padding: 8px;
+        }
+
+        i {
+          transition: transform 0.2s ease;
+        }
+
+        &:hover i {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+}
+
+/* Chart button styling in toolbar */
+.dx-datagrid .dx-toolbar .dx-button {
+  &.chart-view-button {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border: none;
+    color: white;
+
+    &:hover {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .dx-icon {
+      margin-right: 6px;
+    }
+  }
+}
+
+/* Responsive chart */
+@media (max-width: 768px) {
+  .chart-popup {
+    .dx-popup-content {
+      padding: 8px;
+    }
+
+    .dx-chart {
+      height: 300px !important;
+    }
+  }
+}
+
+/* Global DevExtreme Chart Tooltip Z-Index Fix */
+/* This fixes the tooltip z-index issue for all charts in popups */
+.dx-chart-tooltip {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Specific fix for tooltips in popups */
+.dx-popup .dx-chart-tooltip,
+.dx-popup-content .dx-chart-tooltip {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Fix for TankHistory and other chart components */
+.dx-chart-tooltip-wrapper {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Ensure tooltip container has proper stacking */
+body > .dx-chart-tooltip {
+  z-index: 9999 !important;
+}
+
+/* Enhanced chart series styling for single line chart */
+.chart-popup .dx-chart {
+  background: #ffffff !important;
+
+  .dx-chart-series {
+    stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    &:hover {
+      stroke-width: 4px !important;
+    }
+
+    // Ensure line visibility
+    &.dx-chart-series-line {
+      stroke-width: 3px !important;
+      stroke-opacity: 1 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: block !important;
+    }
+  }
+
+  .dx-chart-series-point {
+    fill-opacity: 1 !important;
+    stroke-opacity: 1 !important;
+    r: 4 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    &:hover {
+      r: 6 !important;
+    }
+  }
+
+  // Force SVG path elements to be visible - DevExtreme Chart pattern
+  path[class*="dx-chart-series"] {
+    stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    stroke: #3b82f6 !important;
+  }
+
+  // Force circle elements (points) to be visible
+  circle[class*="dx-chart-series"] {
+    fill-opacity: 1 !important;
+    stroke-opacity: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    r: 4 !important;
+    fill: #1d4ed8 !important;
+    stroke: #ffffff !important;
+    stroke-width: 2px !important;
+  }
+
+  .dx-chart-legend {
+    .dx-legend-item {
+      cursor: default !important;
+
+      .dx-legend-marker {
+        cursor: default !important;
+      }
+
+      .dx-legend-text {
+        cursor: default !important;
+        font-weight: 500;
+        color: #374151 !important;
+      }
+    }
+  }
+
+  // Additional force visibility rules for all SVG elements
+  .dx-chart-canvas-root {
+    svg * {
+      &[stroke] {
+        stroke-opacity: 1 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      &[fill] {
+        fill-opacity: 1 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+    }
+  }
+
+  // Force all possible chart elements to be visible - comprehensive approach
+  g[class*="dx-chart-series"],
+  g[class*="series"],
+  path[d*="M"],
+  path[d*="L"] {
+    stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    stroke: #3b82f6 !important;
+  }
+
+  // Ensure points/circles are visible with proper styling
+  circle {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    fill: #1d4ed8 !important;
+    stroke: #ffffff !important;
+    stroke-width: 2px !important;
+  }
+}

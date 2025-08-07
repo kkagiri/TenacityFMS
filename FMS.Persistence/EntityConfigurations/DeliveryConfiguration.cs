@@ -21,6 +21,9 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasIndex (e => e.RecordedBy, "Delivery_User_idx");
                 builder.HasIndex (e => e.TankId, "Delivery_tank_idx");
 
+                // Add composite index for performance optimization
+                builder.HasIndex (e => new { e.TankId, e.DeliveryDate, e.PricePerLiter }, "IX_Delivery_TankId_DeliveryDate_PricePerLiter");
+
                 builder.Property (e => e.Id).HasColumnType ("int(11)");
                 builder.Property (e => e.DeliveryDensity).HasPrecision (10);
                 builder.Property (e => e.DeliveryMass).HasPrecision (10);
@@ -40,6 +43,16 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.SupplierId).HasColumnType ("int(11)");
                 builder.Property (e => e.TankId).HasColumnType ("int(11)");
 
+                // CreatedOn and PricePerLiter properties
+                builder.Property (e => e.CreatedOn)
+                    .HasColumnType ("datetime")
+                    .IsRequired ();
+
+                builder.Property (e => e.PricePerLiter)
+                    .HasPrecision (10, 2)
+                    .HasDefaultValue (150.00m)
+                    .HasComment ("Price per liter in Kenya Shillings (KES)");
+
                 // Soft delete properties
                 builder.Property (e => e.IsDeleted)
                     .HasColumnType ("tinyint(1)")
@@ -55,18 +68,18 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasColumnName ("deleted_by");
 
                 // Correction tracking properties
-                builder.Property (e => e.IsCorrection)
-                    .HasColumnType ("tinyint(1)")
-                    .HasColumnName ("is_correction")
-                    .HasDefaultValue (false);
+                // builder.Property (e => e.IsCorrection)
+                //     .HasColumnType ("tinyint(1)")
+                //     .HasColumnName ("is_correction")
+                //     .HasDefaultValue (false);
 
-                builder.Property (e => e.CorrectsRecordId)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("corrects_record_id");
+                // builder.Property (e => e.CorrectsRecordId)
+                //     .HasColumnType ("int(11)")
+                //     .HasColumnName ("corrects_record_id");
 
-                builder.Property (e => e.CorrectionReason)
-                    .HasMaxLength (200)
-                    .HasColumnName ("correction_reason");
+                // builder.Property (e => e.CorrectionReason)
+                //     .HasMaxLength (200)
+                //     .HasColumnName ("correction_reason");
 
                 // Global query filter to exclude soft deleted records
                 builder.HasQueryFilter (d => !d.IsDeleted);
@@ -93,11 +106,11 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasConstraintName ("Delivery_tank");
 
                 // Self-referencing relationship for corrections
-                builder.HasOne (d => d.CorrectsRecord)
-                    .WithMany (d => d.CorrectionRecords)
-                    .HasForeignKey (d => d.CorrectsRecordId)
-                    .OnDelete (DeleteBehavior.Restrict)
-                    .HasConstraintName ("Delivery_CorrectsRecord");
+                // builder.HasOne (d => d.CorrectsRecord)
+                //     .WithMany (d => d.CorrectionRecords)
+                //     .HasForeignKey (d => d.CorrectsRecordId)
+                //     .OnDelete (DeleteBehavior.Restrict)
+                //     .HasConstraintName ("Delivery_CorrectsRecord");
             } catch (Exception ex) {
                 Console.WriteLine ($"Error configuring  : {ex.Message}");
 

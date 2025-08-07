@@ -31,7 +31,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.AdjustmentAmount).HasPrecision (15, 3);
                 builder.Property (e => e.AdjustmentTimestamp).HasColumnType ("datetime");
                 builder.Property (e => e.AdjustmentReason).HasMaxLength (255);
-                builder.Property (e => e.ProcessedBy).HasMaxLength (50);
+                builder.Property (e => e.ProcessedBy).HasMaxLength (100);
                 builder.Property (e => e.TankId).HasColumnType ("int(11)");
                 builder.Property (e => e.OriginalVolumeChange).HasPrecision (15, 3);
                 builder.Property (e => e.NewVolumeChange).HasPrecision (15, 3);

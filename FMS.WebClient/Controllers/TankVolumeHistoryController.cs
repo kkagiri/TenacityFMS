@@ -174,7 +174,11 @@ namespace FMS.WebClient.Controllers {
 
             try {
                 // Get the current user identifier
-                var deletedBy = User.Identity?.Name ?? User.FindFirst ("email")?.Value ?? "Unknown";
+                var userIdClaim = User.Claims.FirstOrDefault (c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse (c.Value, out _));
+
+                var deletedBy = userIdClaim?.Value;
 
                 var command = new DeleteTankVolumeHistoryCommand (
                     DeletedBy: deletedBy,

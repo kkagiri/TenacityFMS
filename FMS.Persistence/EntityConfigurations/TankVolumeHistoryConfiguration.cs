@@ -26,7 +26,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.VolumeChange).HasPrecision (10, 2);
                 builder.Property (e => e.NewVolume).HasPrecision (10, 2);
                 builder.Property (e => e.ChangeReason).HasColumnType ("int(11)");
-                builder.Property (e => e.RecordedBy).HasMaxLength (50);
+                builder.Property (e => e.RecordedBy).HasMaxLength (100);
                 builder.Property (e => e.ReferenceId).HasColumnType ("int(11)");
                 builder.Property (e => e.ReferenceType).HasMaxLength (50);
                 builder.Property (e => e.CreatedOn).HasColumnType ("datetime");
@@ -41,7 +41,7 @@ namespace FMS.Persistence.EntityConfigurations {
                     .IsRequired (false);
 
                 builder.Property (e => e.DeletedBy)
-                    .HasMaxLength (50)
+                    .HasMaxLength (100)
                     .IsRequired (false);
 
                 builder.HasOne (d => d.Tank)
@@ -57,7 +57,8 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasOne (d => d.DeletedByNavigation)
                     .WithMany ()
                     .HasForeignKey (d => d.DeletedBy)
-                    .HasConstraintName ("FK_TankVolumeHistory_DeletedBy_User");
+                    .HasConstraintName ("FK_tankvolumehistory_user_DeletedBy")
+                    .OnDelete (DeleteBehavior.SetNull);
 
                 // Apply global query filter for soft delete - exclude deleted records
                 builder.HasQueryFilter (tvh => tvh.IsDeleted != true);

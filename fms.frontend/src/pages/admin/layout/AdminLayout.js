@@ -63,6 +63,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'Configuration Management',
         subtitle: 'Manage automated fueling configurations'
       };
+    } else if (pathname.includes('/notifications')) {
+      return {
+        title: 'Notification Settings',
+        subtitle: 'Manage notification categories and policies'
+      };
 
 
     } else if (pathname.includes('/pts-service')) {
@@ -122,6 +127,15 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       icon: 'fa-light fa-link',
       path: adminRoutes.navigation,
       badge: null,
+    }
+    ,
+    {
+      id:'notifications',
+      title:'Notifications',
+      icon: 'fa-light fa-bell',
+      path: adminRoutes.notifications,
+      badge:null,
+
     }
   ];
 

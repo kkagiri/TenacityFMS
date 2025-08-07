@@ -12,9 +12,7 @@ public class AutomatedReconciliationMappingProfile : Profile {
         CreateMap<ReconciliationPolicy, ReconciliationPolicyDTO> ()
             .ForMember (dest => dest.SiteName, opt => opt.MapFrom (src => src.Site != null ? src.Site.Name : string.Empty))
             .ReverseMap ()
-            .ForMember (dest => dest.Site, opt => opt.Ignore ())
-            .ForMember (dest => dest.Executions, opt => opt.Ignore ())
-            .ForMember (dest => dest.DiscrepancyRecords, opt => opt.Ignore ());
+            .ForMember (dest => dest.Site, opt => opt.Ignore ());
 
         //Cursor - ReconciliationTankScope mappings - now enabled with DTO
         CreateMap<ReconciliationTankScope, ReconciliationTankScopeDTO> ()

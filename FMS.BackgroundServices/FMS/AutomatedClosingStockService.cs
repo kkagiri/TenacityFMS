@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.Notification;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
@@ -105,8 +106,22 @@ namespace FMS.BackgroundServices.FMS {
             foreach (var priority in priorityList) {
                 switch (priority) {
                     case "Sensor":
-                        // Implement sensor reading logic here
-                        // For now, we'll skip this as it's not implemented
+                        // Get latest sensor reading from tank measurements
+                        var tank = await context.Tanks.FindAsync (new object[] { tankId }, stoppingToken);
+                        if (tank?.PtsId != null) {
+                            var latestMeasurement = await context.Tankmeasurements
+                                .Where (tm => tm.Ptsid == tank.PtsId)
+                                .OrderByDescending (tm => tm.DateTime)
+                                .FirstOrDefaultAsync (stoppingToken);
+
+                            if (latestMeasurement?.ProductVolume.HasValue == true && latestMeasurement.ProductVolume.Value > 0) {
+                                // Use sensor reading if it's recent (within last 24 hours)
+                                var measurementAge = DateTime.Now - latestMeasurement.DateTime;
+                                if (measurementAge.TotalHours <= 24) {
+                                    return (decimal) latestMeasurement.ProductVolume.Value;
+                                }
+                            }
+                        }
                         break;
 
                     case "LastEntry":
@@ -121,9 +136,9 @@ namespace FMS.BackgroundServices.FMS {
                         break;
 
                     case "CurrentVolume":
-                        var tank = await context.Tanks.FindAsync (new object[] { tankId }, stoppingToken);
-                        if (tank?.CurrentStock.HasValue == true) {
-                            return tank.CurrentStock.Value;
+                        var tank2 = await context.Tanks.FindAsync (new object[] { tankId }, stoppingToken);
+                        if (tank2?.CurrentStock.HasValue == true) {
+                            return tank2.CurrentStock.Value;
                         }
                         break;
                 }
@@ -137,19 +152,14 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = "Info",
-                    Category = "System",
-                    Priority = "Low",
+                    Type = NotificationTypes.Info,
+                    Category = NotificationCategories.System,
+                    Priority = NotificationPriorities.Low,
                     Title = "Closing Stock Process Started",
                     Message = "Daily closing stock process has started",
                     TriggerSource = "AutomatedClosingStock",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = "SystemConstants.SystemAdministrator.UserId",
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
-                    }
-                    }
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -163,21 +173,16 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = "Alert",
-                    Category = "ClosingStock",
-                    Priority = "Medium",
+                    Type = NotificationTypes.Info,
+                    Category = NotificationCategories.ClosingStock,
+                    Priority = NotificationPriorities.Medium,
                     Title = "Closing Stock Error",
                     Message = $"Error processing closing stock for tank {tank.Name}: {errorMessage}",
                     TriggerSource = "AutomatedClosingStock",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                     TankId = tank.Id,
-                    SiteId = tank.SiteId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = "fuel-operations",
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
-                    }
-                    }
+                    SiteId = tank.SiteId
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -198,13 +203,8 @@ namespace FMS.BackgroundServices.FMS {
                     Title = "Closing Stock Process Summary",
                     Message = $"Closing stock process completed. Success: {successCount}, Failed: {failureCount}",
                     TriggerSource = "AutomatedClosingStock",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = "fuel-operations",
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
-                    }
-                    }
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -224,13 +224,8 @@ namespace FMS.BackgroundServices.FMS {
                     Title = "Critical Closing Stock Service Error",
                     Message = $"Automated Closing Stock Service encountered a critical error: {errorMessage}",
                     TriggerSource = "AutomatedClosingStock",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = SystemConstants.SystemAdministrator.UserId,
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email", "SMS" }
-                    }
-                    }
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);

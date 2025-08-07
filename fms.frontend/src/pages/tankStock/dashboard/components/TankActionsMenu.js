@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Popup } from 'devextreme-react/popup';
 import StockAdjustmentForm from '../../forms/StockAdjustmentForm';
+import TankHistory from '../../../tank/components/TankHistory';
 import './TankActionsMenu.scss';
 
 // AI-Generated: Custom Dropdown Menu for Tank Actions
@@ -14,13 +15,14 @@ const TankActionsMenu = ({
 }) => {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [showStockAdjustment, setShowStockAdjustment] = useState(false);
+  const [showTankHistory, setShowTankHistory] = useState(false);
   const menuRef = useRef(null);
 
   const menuItems = [
     {
       text: 'View Transactions',
       icon: 'fa-light fa-list',
-      onClick: () => onViewTransactions(tank)
+      onClick: () => setShowTankHistory(true)
     },
     {
       text: 'Stock Reconciliation',
@@ -92,7 +94,8 @@ const TankActionsMenu = ({
             {menuItems.map((item) => (
               <li key={item.text}>
                 <button onClick={() => handleMenuItemClick(item)}>
-                 {item.text}
+                  <i className={item.icon}></i>
+                  {item.text}
                 </button>
               </li>
             ))}
@@ -122,6 +125,23 @@ const TankActionsMenu = ({
             siteId: tank.siteId
           }}
         />
+      </Popup>
+
+      <Popup
+        visible={showTankHistory}
+        onHiding={() => setShowTankHistory(false)}
+        dragEnabled={true}
+        hideOnOutsideClick={false}
+        showCloseButton={true}
+        title={`Tank History - ${tank.name} (${tank.siteName || 'Site ' + tank.siteId})`}
+        width="95%"
+        height="90vh"
+        maxWidth="1400px"
+        className="tank-history-popup"
+      >
+        <div className="tw-p-4">
+          <TankHistory tankId={tank.id} />
+        </div>
       </Popup>
     </div>
   );

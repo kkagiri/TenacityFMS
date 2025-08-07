@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { CheckBox } from 'devextreme-react/check-box';
 import { Button } from 'devextreme-react/button';
@@ -106,6 +106,7 @@ const getIssueColor = (issueType) => {
 //Cursor - Enhanced Site Details component with filtering capabilities
 const SiteDetailsWithFilter = ({
   siteMetrics = {},
+  sitesFromRedux = [], // Fallback sites data from Redux
   tankData = [],
   selectedSite,
   onSiteSelect
@@ -122,47 +123,90 @@ const SiteDetailsWithFilter = ({
 
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [filteredSites, setFilteredSites] = useState([]);
-  const [filterCounts, setFilterCounts] = useState({
-    sitesWithIssues: 0,
-    criticalSites: 0,
-    warningSites: 0,
-    healthySites: 0,
-    sitesWithTanks: 0,
-    total: 0
-  });
 
-  // Safely handle siteMetrics data structure
-  const getSafeSiteMetrics = () => {
-    console.log('Debug: siteMetrics type and value:', typeof siteMetrics, siteMetrics);
+  // Safely handle siteMetrics data structure - Memoized to prevent recalculation
+  const safeSiteMetrics = useMemo(() => {
+    console.log('Debug: Raw siteMetrics received:', siteMetrics);
+    console.log('Debug: Redux sites fallback:', sitesFromRedux);
 
-    if (!siteMetrics) {
-      console.log('Debug: siteMetrics is null/undefined');
-      return [];
-    }
+    let sitesData = [];
 
-    if (Array.isArray(siteMetrics)) {
-      console.log('Debug: siteMetrics is array with length:', siteMetrics.length);
-      return siteMetrics;
-    }
-
-    if (typeof siteMetrics === 'object') {
+    if (!siteMetrics || (typeof siteMetrics === 'object' && Object.keys(siteMetrics).length === 0)) {
+      console.log('Debug: siteMetrics is empty, using Redux sites as fallback');
+      sitesData = sitesFromRedux || [];
+    } else if (Array.isArray(siteMetrics)) {
+      console.log('Debug: siteMetrics is array:', siteMetrics);
+      sitesData = siteMetrics;
+    } else if (typeof siteMetrics === 'object') {
       const values = Object.values(siteMetrics);
-      console.log('Debug: siteMetrics is object with values count:', values.length);
-      return values;
+      console.log('Debug: Converting siteMetrics object to array:', {
+        originalObject: siteMetrics,
+        keysAvailable: Object.keys(siteMetrics),
+        valuesCount: values.length,
+        sampleKeys: Object.keys(siteMetrics).slice(0, 5),
+        sampleValues: values.slice(0, 3)
+      });
+      sitesData = values;
     }
 
-    console.log('Debug: siteMetrics has unexpected type:', typeof siteMetrics);
-    return [];
-  };
+    console.log('Debug: Final sites data:', sitesData);
+    return sitesData;
+  }, [siteMetrics, sitesFromRedux]);
 
-  const safeSiteMetrics = getSafeSiteMetrics();
+  // Memoized sites to display based on selection
+  const sitesToDisplay = useMemo(() => {
+    console.log('Debug: Filtering sites for display:', {
+      selectedSite,
+      safeSiteMetricsLength: safeSiteMetrics.length,
+      allSiteKeys: safeSiteMetrics.map(site => ({
+        id: site.id,
+        siteId: site.siteId,
+        name: site.name || site.siteName
+      }))
+    });
 
-  const sitesToDisplay = selectedSite === 'all'
-    ? safeSiteMetrics
-    : safeSiteMetrics.filter(site => site.siteId === selectedSite || site.id === selectedSite);
+    if (selectedSite === 'all') {
+      return safeSiteMetrics;
+    }
 
-  // Calculate site metrics with issue data
-  const getSiteWithIssues = (site) => {
+    // Try to find the site by different ID fields
+    const filtered = safeSiteMetrics.filter(site => {
+      const matches = site.siteId === selectedSite ||
+                     site.id === selectedSite ||
+                     site.siteId === parseInt(selectedSite) ||
+                     site.id === parseInt(selectedSite) ||
+                     String(site.siteId) === selectedSite ||
+                     String(site.id) === selectedSite;
+
+      if (matches) {
+        console.log('Debug: Found matching site:', site);
+      }
+      return matches;
+    });
+
+    console.log('Debug: After filtering:', {
+      selectedSite,
+      filteredCount: filtered.length,
+      filteredSites: filtered.map(s => ({ id: s.id, siteId: s.siteId, name: s.name || s.siteName }))
+    });
+
+    // If no site found and we have sites available, auto-correct to show all sites
+    if (filtered.length === 0 && safeSiteMetrics.length > 0) {
+      console.log('Debug: No matching site found, auto-correcting to show all sites');
+      // Trigger site selection change to 'all' after a short delay
+      setTimeout(() => {
+        if (onSiteSelect) {
+          console.log('Debug: Auto-correcting selectedSite from', selectedSite, 'to "all"');
+          onSiteSelect('all');
+        }
+      }, 100);
+    }
+
+    return filtered;
+  }, [safeSiteMetrics, selectedSite, onSiteSelect]);
+
+  // Calculate site metrics with issue data - Memoized to prevent recalculation
+  const getSiteWithIssues = useCallback((site) => {
     const siteTanks = tankData.filter(tank => tank.siteId === site.siteId || tank.siteId === site.id);
     const issueMetrics = calculateTankIssueMetrics(siteTanks);
     const systemStatus = getSiteSystemStatus(issueMetrics);
@@ -172,12 +216,15 @@ const SiteDetailsWithFilter = ({
       issueMetrics,
       systemStatus
     };
-  };
+  }, [tankData]);
 
-  const enrichedSites = sitesToDisplay.map(getSiteWithIssues);
+  // Memoized enriched sites to prevent infinite re-renders
+  const enrichedSites = useMemo(() => {
+    return sitesToDisplay.map(getSiteWithIssues);
+  }, [sitesToDisplay, getSiteWithIssues]);
 
-  // Calculate filter counts
-  useEffect(() => {
+  // Calculate filter counts - Memoized and only recalculated when enrichedSites changes
+  const filterCounts = useMemo(() => {
     const counts = {
       sitesWithIssues: 0,
       criticalSites: 0,
@@ -207,17 +254,16 @@ const SiteDetailsWithFilter = ({
       }
     });
 
-    setFilterCounts(counts);
+    return counts;
   }, [enrichedSites, tankData]);
 
-  // Apply filters
-  useEffect(() => {
+  // Apply filters - Memoized to prevent re-calculation on every render
+  const filteredSitesData = useMemo(() => {
     if (filters.allSites) {
-      setFilteredSites(enrichedSites);
-      return;
+      return enrichedSites;
     }
 
-    const filtered = enrichedSites.filter(site => {
+    return enrichedSites.filter(site => {
       // Check if site has tanks
       const siteTanks = tankData.filter(tank => tank.siteId === site.siteId || tank.siteId === site.id);
       const hasTanks = siteTanks.length > 0;
@@ -230,11 +276,14 @@ const SiteDetailsWithFilter = ({
 
       return matchesSitesWithTanks || matchesIssues || matchesCritical || matchesWarning || matchesHealthy;
     });
-
-    setFilteredSites(filtered);
   }, [filters, enrichedSites, tankData]);
 
-  const handleFilterChange = (filterKey, value) => {
+  // Update filteredSites state only when filteredSitesData changes
+  useEffect(() => {
+    setFilteredSites(filteredSitesData);
+  }, [filteredSitesData]);
+
+  const handleFilterChange = useCallback((filterKey, value) => {
     if (filterKey === 'allSites' && value) {
       // If "All Sites" is selected, disable other filters
       setFilters({
@@ -253,9 +302,9 @@ const SiteDetailsWithFilter = ({
         allSites: false
       }));
     }
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       sitesWithIssues: false,
       criticalSites: false,
@@ -264,9 +313,9 @@ const SiteDetailsWithFilter = ({
       sitesWithTanks: false,
       allSites: true
     });
-  };
+  }, []);
 
-  const selectIssuesOnly = () => {
+  const selectIssuesOnly = useCallback(() => {
     setFilters({
       sitesWithIssues: true,
       criticalSites: true,
@@ -275,9 +324,9 @@ const SiteDetailsWithFilter = ({
       sitesWithTanks: false,
       allSites: false
     });
-  };
+  }, []);
 
-  const selectSitesWithTanks = () => {
+  const selectSitesWithTanks = useCallback(() => {
     setFilters({
       sitesWithIssues: false,
       criticalSites: false,
@@ -286,26 +335,32 @@ const SiteDetailsWithFilter = ({
       sitesWithTanks: true,
       allSites: false
     });
-  };
+  }, []);
 
-  const getActiveFiltersCount = () => {
+  const getActiveFiltersCount = useMemo(() => {
     if (filters.allSites) return 0;
     return Object.values(filters).filter(Boolean).length;
-  };
+  }, [filters]);
 
-  // Debug logging for troubleshooting
-  console.log('Debug SiteDetailsWithFilter:', {
-    sitesToDisplayLength: sitesToDisplay.length,
-    filteredSitesLength: filteredSites.length,
-    selectedSite,
-    tankDataLength: tankData.length,
-    siteMetricsType: typeof siteMetrics,
-    siteMetricsKeys: siteMetrics ? Object.keys(siteMetrics) : 'null',
-    filters
-  });
+  // Debug logging moved to useEffect to prevent spam (only log when data actually changes)
+  useEffect(() => {
+    console.log('Debug SiteDetailsWithFilter - Data Changed:', {
+      sitesToDisplayLength: sitesToDisplay.length,
+      filteredSitesLength: filteredSites.length,
+      selectedSite,
+      tankDataLength: tankData.length,
+      siteMetricsType: typeof siteMetrics,
+      siteMetricsKeys: siteMetrics && typeof siteMetrics === 'object' ? Object.keys(siteMetrics).slice(0, 10) : 'not-object',
+      tankDataSample: tankData.slice(0, 3).map(t => ({ id: t.id, siteId: t.siteId, name: t.name })),
+      sitesToDisplaySample: sitesToDisplay.slice(0, 3).map(s => ({ id: s.id, siteId: s.siteId, name: s.name || s.siteName })),
+      filters
+    });
+  }, [sitesToDisplay.length, filteredSites.length, selectedSite, tankData.length, siteMetrics, filters, sitesToDisplay, tankData]);
 
   // Don't show site details if no sites available
   if (sitesToDisplay.length === 0) {
+    const hasDataButNoMatch = safeSiteMetrics.length > 0 && selectedSite !== 'all';
+
     return (
       <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
         <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
@@ -313,13 +368,45 @@ const SiteDetailsWithFilter = ({
             <i className="fa-light fa-building-columns tw-mr-2 tw-text-blue-600"></i>
             Site Details
           </h2>
+          {hasDataButNoMatch && (
+            <Button
+              text="Show All Sites"
+              icon="fa-light fa-eye"
+              onClick={() => onSiteSelect && onSiteSelect('all')}
+              type="default"
+              stylingMode="contained"
+            />
+          )}
         </div>
         <div className="tw-text-center tw-py-12">
           <i className="fa-light fa-building-columns tw-text-4xl tw-text-gray-300 tw-mb-4"></i>
-          <p className="tw-text-gray-500 tw-text-lg tw-font-medium">No site data available</p>
-          <p className="tw-text-gray-400 tw-text-sm tw-mt-2">
-            {siteMetrics ? 'Site data is loading or empty' : 'Please check data connection and refresh the page'}
-          </p>
+          {hasDataButNoMatch ? (
+            <>
+              <p className="tw-text-gray-500 tw-text-lg tw-font-medium">
+                No site found with ID "{selectedSite}"
+              </p>
+              <p className="tw-text-gray-400 tw-text-sm tw-mt-2">
+                Found {safeSiteMetrics.length} total sites available.
+                <button
+                  onClick={() => onSiteSelect && onSiteSelect('all')}
+                  className="tw-text-blue-600 tw-underline tw-ml-1"
+                >
+                  View all sites
+                </button>
+              </p>
+              <div className="tw-mt-4 tw-text-xs tw-text-gray-400">
+                Available sites: {safeSiteMetrics.slice(0, 5).map(s => s.name || s.siteName || `Site ${s.siteId || s.id}`).join(', ')}
+                {safeSiteMetrics.length > 5 && '...'}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="tw-text-gray-500 tw-text-lg tw-font-medium">No site data available</p>
+              <p className="tw-text-gray-400 tw-text-sm tw-mt-2">
+                {siteMetrics ? 'Site data is loading or empty' : 'Please check data connection and refresh the page'}
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -346,9 +433,9 @@ const SiteDetailsWithFilter = ({
           <div className="tw-flex tw-items-center">
             <i className="fa-light fa-filter tw-mr-2 tw-text-blue-600"></i>
             <h3 className="tw-text-lg tw-font-medium tw-text-gray-800">Site Filters</h3>
-            {getActiveFiltersCount() > 0 && (
+            {getActiveFiltersCount > 0 && (
               <span className="tw-ml-2 tw-bg-blue-100 tw-text-blue-800 tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium">
-                {getActiveFiltersCount()} active
+                {getActiveFiltersCount} active
               </span>
             )}
           </div>
@@ -645,6 +732,7 @@ const SiteDetailsWithFilter = ({
 
 SiteDetailsWithFilter.propTypes = {
   siteMetrics: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+  sitesFromRedux: PropTypes.array,
   tankData: PropTypes.array,
   selectedSite: PropTypes.string,
   onSiteSelect: PropTypes.func

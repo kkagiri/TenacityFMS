@@ -68,7 +68,8 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
   const [formData, setFormData] = useState({
     siteId: null,
     tankId: null,
-    amount: null,
+    amount: null,           // Physical stock measurement
+    bookBalance: null,      // Current book balance (read-only)
     date: new Date()
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,9 +110,15 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
   const handleTankChange = useCallback(async (e) => {
     const tankId = e.value;
+
+    // Get selected tank to retrieve book balance
+    const selectedTank = tanksFromStore.find(tank => tank.id === tankId);
+    const bookBalance = selectedTank ? selectedTank.currentStock : null;
+
     const updatedData = {
       ...formData,
-      tankId: tankId
+      tankId: tankId,
+      bookBalance: bookBalance  // Set current book balance for comparison
     };
     setFormData(updatedData);
 
@@ -130,7 +137,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         showNotification(validation.error, 'error');
       }
     }
-  }, [formData, resetValidation, validateHistoricalEntry, showNotification]);
+  }, [formData, resetValidation, validateHistoricalEntry, showNotification, tanksFromStore]);
 
   const handleDateChange = (e) => {
     // Ensure we have a valid date object or null
@@ -193,7 +200,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
       console.log('Opening stock creation response:', response);
 
-      // Check for success more thoroughly
+      // Check for success - be more explicit about what constitutes success
       if (response && response.success === true) {
         showNotification(response.message || 'Opening stock created successfully', 'success', 3000);
 
@@ -208,9 +215,9 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
           onSubmit(preparedData);
         }
       } else {
-        // Handle both explicit failure and undefined success
+        // Handle both explicit failure and undefined success - including backend validation errors
         const errorMessage = response?.message || 'Failed to create opening stock';
-        console.error('Opening stock creation failed:', errorMessage);
+        console.error('Opening stock creation failed:', errorMessage, response);
 
         // Set backend error for inline display instead of notification
         setBackendError({
@@ -321,6 +328,22 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               <Label text="Tank" />
             </SimpleItem>
 
+            {/* Book Balance Display (Read-only) */}
+            {formData.bookBalance !== null && formData.bookBalance !== undefined && (
+              <SimpleItem
+                dataField="bookBalance"
+                editorType="dxTextBox"
+                editorOptions={{
+                  value: formData.bookBalance ? formData.bookBalance.toLocaleString() + ' L' : '0 L',
+                  readOnly: true,
+                  width: "100%",
+                  stylingMode: "filled"
+                }}
+              >
+                <Label text="Current Book Balance (Calculated)" />
+              </SimpleItem>
+            )}
+
             <SimpleItem
               dataField="amount"
               editorType="dxNumberBox"
@@ -328,15 +351,39 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 showSpinButtons: true,
                 value: formData.amount || null,
                 onValueChanged: handleAmountChange,
-                placeholder: "Enter value ",
+                placeholder: "Enter physical stock measurement",
                 width: "100%",
                 ...(formData.amount !== null && formData.amount !== undefined && { format: "#,##0" }),
                 isValid: !validationErrors.amount,
                 validationError: validationErrors.amount ? { message: validationErrors.amount } : null
               }}
             >
-              <Label text="Amount (Liters)" />
+              <Label text="Physical Stock Amount (Liters)" />
             </SimpleItem>
+
+            {/* Discrepancy Indicator */}
+            {formData.amount && formData.bookBalance && (
+              <div className="discrepancy-indicator" style={{
+                padding: '10px',
+                marginTop: '10px',
+                borderRadius: '4px',
+                backgroundColor: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#ffebee' : '#e8f5e8',
+                border: `1px solid ${Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'}`
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                  Stock Comparison:
+                </div>
+                <div>Physical Stock: {formData.amount.toLocaleString()} L</div>
+                <div>Book Balance: {formData.bookBalance.toLocaleString()} L</div>
+                <div style={{
+                  fontWeight: 'bold',
+                  color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
+                }}>
+                  Discrepancy: {(formData.amount - formData.bookBalance).toLocaleString()} L
+                  ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
+                </div>
+              </div>
+            )}
           </Form>
 
           {/* Future Records Validation Warning */}

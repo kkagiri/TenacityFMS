@@ -58,17 +58,17 @@ public partial class Delivery {
     /// <summary>
     /// Indicates if this record is a correction entry
     /// </summary>
-    public bool IsCorrection { get; set; } = false;
+    // public bool IsCorrection { get; set; } = false;
 
     /// <summary>
     /// Reference to the original record ID that this entry corrects (if this is a correction)
     /// </summary>
-    public int? CorrectsRecordId { get; set; }
+    //public int? CorrectsRecordId { get; set; }
 
     /// <summary>
     /// Reason for the correction
     /// </summary>
-    public string? CorrectionReason { get; set; }
+    // public string? CorrectionReason { get; set; }
 
     public virtual User RecordedByNavigation { get; set; } = null!;
     public virtual User? DeletedByNavigation { get; set; }
@@ -78,6 +78,6 @@ public partial class Delivery {
     public virtual Tank Tank { get; set; } = null!;
 
     // Self-referencing relationship for corrections
-    public virtual Delivery? CorrectsRecord { get; set; }
-    public virtual ICollection<Delivery> CorrectionRecords { get; set; } = [];
+    //public virtual Delivery? CorrectsRecord { get; set; }
+    // public virtual ICollection<Delivery> CorrectionRecords { get; set; } = [];
 }

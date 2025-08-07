@@ -32,6 +32,13 @@ const NotificationLayout = ({ children, currentPath }) => {
       badge: null,
     },
     {
+      id: 'preferences',
+      title: 'My Preferences',
+      icon: 'fa-light fa-user-cog',
+      path: notificationRoutes.preferences,
+      badge: null,
+    },
+    {
       id: 'history',
       title: 'History',
       icon: 'fa-light fa-history',

@@ -172,5 +172,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
 
             return previousVolume.Value;
         }
+
     }
 }
