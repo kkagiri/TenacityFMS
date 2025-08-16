@@ -392,3 +392,25 @@
 .category-card.disabled .card-content {
   background-color: #f3f4f6;
 }
+
+/* Preferences Table */
+.preferences-table-wrapper { max-width: 100%; overflow-x: auto; }
+.preferences-table { width: 100%; border-collapse: separate; border-spacing: 0; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+.preferences-table th { background:#f3f4f6; text-align:left; padding:8px 10px; font-size:12px; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb; position:sticky; top:0; z-index:1; }
+.preferences-table td { padding:8px 10px; vertical-align:top; font-size:12px; border-bottom:1px solid #f1f5f9; }
+.preferences-table tr:last-child td { border-bottom:none; }
+.preferences-table tbody tr:hover { background:#f9fafb; }
+.preferences-table .disabled-row { opacity:.55; }
+.cat-name { font-weight:600; color:#111827; }
+.cat-desc { font-size:11px; color:#6b7280; margin-top:2px; max-width:260px; }
+.delivery-method-badges { display:flex; flex-wrap:wrap; gap:4px; }
+.delivery-badge { border:1px solid #d1d5db; background:#fff; font-size:11px; padding:2px 6px; border-radius:4px; cursor:pointer; display:flex; align-items:center; gap:4px; line-height:1.1; transition:all .15s; }
+.delivery-badge.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+.delivery-badge:disabled { opacity:.4; cursor:not-allowed; }
+.quiet-inline { display:flex; align-items:center; gap:4px; }
+.quiet-inline input { font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; }
+.quiet-inline .dash { color:#6b7280; }
+.limits-inline { display:flex; gap:6px; }
+.row-errors { list-style:none; margin:0; padding:0; font-size:11px; color:#dc2626; }
+.empty-hint { padding:1rem; text-align:center; font-size:12px; color:#6b7280; }
+.center { text-align:center; }

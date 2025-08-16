@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { TabPanel, Tabs, LoadPanel } from "devextreme-react";
+import { TabPanel, LoadPanel } from "devextreme-react";
 import NotificationCategoriesTab from "./NotificationCategoriesTab";
 import NotificationPoliciesTab from "./NotificationPoliciesTab";
 import "./NotificationSettings.css";
@@ -24,12 +24,12 @@ const NotificationSettings = () => {
   ];
 
   const handleTabChange = useCallback((e) => {
-    setSelectedTab(e.selectedIndex);
+    setSelectedTab(e.component.option("selectedIndex") ?? 0);
   }, []);
 
   return (
-    <div className="notification-settings-container">
-      <div className="settings-header">
+    <div className="notification-settings">
+      <div className="notification-settings-header">
         <div className="header-content">
           <h1 className="settings-title">
             <i className="fa-light fa-bell tw-mr-3"></i>
@@ -42,28 +42,23 @@ const NotificationSettings = () => {
       </div>
 
       <div className="settings-content">
-        <Tabs
+        <TabPanel
           selectedIndex={selectedTab}
           onSelectionChanged={handleTabChange}
-          className="settings-tabs"
           showNavButtons={false}
-        >
-          {tabs.map((tab, index) => (
-            <TabPanel
-              key={tab.id}
-              title={
-                <span className="tab-title">
-                  <i className={`${tab.icon} tw-mr-2`}></i>
-                  {tab.title}
-                </span>
-              }
-            >
-              <div className="tab-content">
-                <tab.component />
-              </div>
-            </TabPanel>
-          ))}
-        </Tabs>
+          dataSource={tabs}
+          itemTitleRender={(tab) => (
+            <span className="tab-title">
+              <i className={`${tab.icon} tw-mr-2`}></i>
+              {tab.title}
+            </span>
+          )}
+          itemRender={(tab) => (
+            <div className="tab-content">
+              <tab.component />
+            </div>
+          )}
+        />
       </div>
 
       <LoadPanel visible={loading} message="Loading notification settings..." />

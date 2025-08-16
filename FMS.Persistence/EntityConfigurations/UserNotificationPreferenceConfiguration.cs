@@ -21,8 +21,8 @@ namespace FMS.Persistence.EntityConfigurations {
 
                 // Indexes
                 builder.HasIndex (e => e.UserId, "IX_UserNotificationPreference_UserId");
-                builder.HasIndex (e => e.NotificationCategory, "IX_UserNotificationPreference_Category");
-                builder.HasIndex (e => new { e.UserId, e.NotificationCategory }, "IX_UserNotificationPreference_UserCategory")
+                builder.HasIndex (e => e.NotificationCategoryId, "IX_UserNotificationPreference_Category");
+                builder.HasIndex (e => new { e.UserId, e.NotificationCategoryId }, "IX_UserNotificationPreference_UserCategory")
                     .IsUnique ();
                 builder.HasIndex (e => e.IsEnabled, "IX_UserNotificationPreference_IsEnabled");
                 builder.HasIndex (e => e.CreatedAt, "IX_UserNotificationPreference_CreatedAt");
@@ -78,18 +78,15 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.UpdatedBy)
                     .HasMaxLength (100);
 
-                // Foreign key relationships
+                // Foreign key relationships - match existing database constraints
                 builder.HasOne (d => d.User)
                     .WithMany ()
                     .HasForeignKey (d => d.UserId)
                     .OnDelete (DeleteBehavior.Cascade)
                     .HasConstraintName ("FK_UserNotificationPreference_User");
 
-                builder.HasOne (d => d.NotificationCategory)
-                    .WithMany ()
-                    .HasForeignKey (d => d.NotificationCategoryId)
-                    .OnDelete (DeleteBehavior.Cascade)
-                    .HasConstraintName ("FK_UserNotificationPreference_Category");
+                // NOTE: The NotificationCategory relationship is configured from NotificationCategoryConfiguration
+                // to avoid ambiguity in foreign key mapping and uses constraint name "FK_UserNotificationPreference_Category"
 
                 builder.HasOne (d => d.CreatedByNavigation)
                     .WithMany ()

@@ -1,6 +1,7 @@
 # Notification System Frontend - Product Requirements Document (PRD)
 
 ## Document Information
+
 - **Document Type**: Product Requirements Document
 - **System**: FMS Notification System Frontend
 - **Version**: 2.0
@@ -15,6 +16,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ## Current State Analysis
 
 ### Existing Components
+
 - ✅ `NotificationDashboard.js` - Basic dashboard with tabbed interface
 - ✅ `NotificationController.cs` - Complete backend API endpoints
 - ✅ `NotificationService.cs` - Full backend service implementation
@@ -22,6 +24,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - ✅ Basic routing and navigation structure
 
 ### Critical Gaps Identified
+
 - ❌ **Email Configuration Management** - No frontend interface for SMTP settings
 - ❌ **Policy Edit Functionality** - Only basic creation, no editing/updating
 - ❌ **Proper Page Structure** - Dashboard should be separate dedicated pages
@@ -33,9 +36,10 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 
 ## Product Vision
 
-**"Create a comprehensive, user-friendly notification management system that enables administrators to configure email settings, manage notification policies, and monitor system communications with enterprise-grade functionality."**
+Vision: Create a comprehensive, user-friendly notification management system that enables administrators to configure email settings, manage notification policies, and monitor system communications with enterprise-grade functionality.
 
 ### Success Metrics
+
 - **User Productivity**: 80% reduction in notification configuration time
 - **System Reliability**: 99.5% notification delivery success rate
 - **User Adoption**: 95% of administrators actively use the interface
@@ -44,6 +48,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ## Target Users
 
 ### Primary Users
+
 1. **System Administrators**
    - Configure email settings and SMTP servers
    - Manage notification policies and rules
@@ -60,6 +65,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
    - Audit notification logs
 
 ### Secondary Users
+
 1. **Business Users** - Receive and acknowledge notifications
 2. **Compliance Officers** - Review audit trails and reporting
 
@@ -68,9 +74,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ### 1. Email Configuration Management
 
 #### 1.1 SMTP Configuration Interface
+
 **Priority**: Critical | **Effort**: Medium
 
 **Requirements**:
+
 - Dedicated email configuration page with form-based SMTP settings
 - Support for multiple SMTP profiles (Primary, Backup, Testing)
 - Real-time connection testing with visual feedback
@@ -78,6 +86,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Validation for all email configuration parameters
 
 **Acceptance Criteria**:
+
 - [ ] Administrator can configure SMTP server settings through UI
 - [ ] System validates SMTP connectivity in real-time
 - [ ] Multiple SMTP profiles can be managed (active/inactive)
@@ -86,9 +95,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - [ ] Sensitive data (passwords) are properly secured
 
 #### 1.2 Email Template Management
+
 **Priority**: High | **Effort**: High
 
 **Requirements**:
+
 - Visual email template editor with HTML/text support
 - Template variables system ({{tankName}}, {{alertLevel}}, etc.)
 - Preview functionality for templates
@@ -96,6 +107,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Import/export template functionality
 
 **Acceptance Criteria**:
+
 - [ ] Templates can be created/edited with rich text editor
 - [ ] Variable placeholders are automatically populated
 - [ ] Template preview shows actual data rendering
@@ -105,9 +117,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ### 2. Enhanced Notification Policy Management
 
 #### 2.1 Policy Creation & Editing
+
 **Priority**: Critical | **Effort**: Medium
 
 **Requirements**:
+
 - Complete CRUD operations for notification policies
 - Advanced policy rules engine (conditions, triggers, thresholds)
 - Policy versioning and change tracking
@@ -115,16 +129,47 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Policy inheritance and templates
 
 **Acceptance Criteria**:
+
 - [ ] Policies can be created, read, updated, and deleted
 - [ ] Complex rules can be configured with visual editor
+
+### 2.2 Recipient Targeting: Roles and Groups
+
+Priority: High | Effort: Medium-High
+
+#### Requirements
+
+- Support mapping categories (policies) to recipients via:
+  - Users (existing NotificationPolicyRecipient)
+  - Roles (new NotificationPolicyRole)
+  - Notification Groups (new NotificationGroup, NotificationGroupMember, NotificationPolicyGroup)
+- Site-scoped targeting: When Site is selected, recipients are filtered to users associated with that site.
+- Channel configuration per mapping (allowed delivery methods) constrained by policy flags.
+- De-duplication across users/roles/groups and respect user preferences.
+
+#### Acceptance Criteria
+
+- [ ] Site Admin can configure recipients by user, by role, and by group per category.
+- [ ] Frontend shows effective recipients preview for a policy and site.
+- [ ] Delivery methods are constrained by policy flags and intersected with user preferences.
+- [ ] Resolver sends exactly one record per user per delivery method with no duplicates.
+
+#### Checklist
+
+- [ ] Add tables: NotificationPolicyRole, NotificationGroup, NotificationGroupMember, NotificationPolicyGroup
+- [ ] Update resolver to expand roles/groups to users with site filtering
+- [ ] Admin UI to manage mappings and allowed channels per mapping
+- [ ] Migrations and seeds for initial role/group mappings (optional)
 - [ ] Policy changes are tracked with version history
 - [ ] Bulk operations work on multiple policies
 - [ ] Policy templates accelerate creation process
 
 #### 2.2 Recipient Management
+
 **Priority**: High | **Effort**: Medium
 
 **Requirements**:
+
 - User/group recipient management interface
 - Role-based notification routing
 - Escalation chains and fallback recipients
@@ -132,6 +177,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Integration with existing user management system
 
 **Acceptance Criteria**:
+
 - [ ] Recipients can be managed individually and in groups
 - [ ] Escalation chains can be configured visually
 - [ ] Users can set personal notification preferences
@@ -141,9 +187,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ### 3. Advanced Dashboard & Analytics
 
 #### 3.1 Enhanced Dashboard
+
 **Priority**: High | **Effort**: High
 
 **Requirements**:
+
 - Real-time notification monitoring dashboard
 - Advanced filtering and search capabilities
 - Export functionality for all data views
@@ -151,6 +199,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Mobile-responsive design
 
 **Acceptance Criteria**:
+
 - [ ] Dashboard displays real-time notification status
 - [ ] Advanced filters work across all data dimensions
 - [ ] Data can be exported in multiple formats (CSV, PDF, Excel)
@@ -158,9 +207,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - [ ] Interface is fully responsive on mobile devices
 
 #### 3.2 Analytics & Reporting
+
 **Priority**: Medium | **Effort**: High
 
 **Requirements**:
+
 - Comprehensive notification analytics
 - Delivery rate and failure analysis
 - Performance trending and forecasting
@@ -168,6 +219,7 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Scheduled report delivery
 
 **Acceptance Criteria**:
+
 - [ ] Analytics show comprehensive delivery metrics
 - [ ] Failure analysis provides actionable insights
 - [ ] Trends can be analyzed over custom time periods
@@ -177,9 +229,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ### 4. Page Structure & Navigation
 
 #### 4.1 Dedicated Page Architecture
+
 **Priority**: Critical | **Effort**: Medium
 
 **Requirements**:
+
 - Separate dedicated pages for each major function
 - Consistent navigation and breadcrumb system
 - Context-aware actions and toolbars
@@ -187,7 +241,8 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 - Progressive disclosure of complex features
 
 **Page Structure**:
-```
+
+```text
 /notifications/
 ├── /dashboard          # Overview & analytics
 ├── /policies           # Policy management
@@ -203,9 +258,11 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ```
 
 #### 4.2 Navigation Enhancement
+
 **Priority**: Medium | **Effort**: Low
 
 **Requirements**:
+
 - Contextual navigation with clear hierarchy
 - Quick access toolbar for common actions
 - Search functionality across all modules
@@ -217,7 +274,8 @@ The FMS Notification System Frontend requires a comprehensive redesign to provid
 ### 1. Frontend Architecture
 
 #### 1.1 Component Structure
-```
+
+```text
 fms.frontend/src/pages/notifications/
 ├── index.js                    # Main notification routing
 ├── NotificationDashboard/      # Dashboard page
@@ -262,6 +320,7 @@ fms.frontend/src/pages/notifications/
 ```
 
 #### 1.2 State Management
+
 ```javascript
 // Redux store structure for notifications
 {
@@ -301,7 +360,8 @@ fms.frontend/src/pages/notifications/
 ### 2. API Integration
 
 #### 2.1 New API Endpoints Required
-```csharp
+
+```http
 // Email Configuration
 GET /api/notification/configuration/email
 PUT /api/notification/configuration/email
@@ -326,6 +386,7 @@ DELETE /api/notification/recipients/{id}
 ```
 
 #### 2.2 Authentication & Authorization
+
 - Role-based access control for configuration pages
 - Audit logging for all administrative actions
 - API key management for external integrations
@@ -333,6 +394,7 @@ DELETE /api/notification/recipients/{id}
 ### 3. Data Models
 
 #### 3.1 Email Configuration
+
 ```javascript
 {
   id: string,
@@ -354,6 +416,7 @@ DELETE /api/notification/recipients/{id}
 ```
 
 #### 3.2 Enhanced Policy Model
+
 ```javascript
 {
   id: string,
@@ -401,7 +464,9 @@ DELETE /api/notification/recipients/{id}
 
 ### 1. Usability Requirements
 
+
 #### 1.1 Interface Design
+
 - **Consistency**: Follow FMS design system and patterns
 - **Accessibility**: WCAG 2.1 AA compliance
 - **Responsiveness**: Mobile-first responsive design
@@ -409,6 +474,7 @@ DELETE /api/notification/recipients/{id}
 - **Internationalization**: Support for multiple languages
 
 #### 1.2 User Journey Optimization
+
 - **Onboarding**: Guided setup wizard for new installations
 - **Context Awareness**: Smart defaults based on user role and history
 - **Error Prevention**: Inline validation and confirmation dialogs
@@ -418,6 +484,7 @@ DELETE /api/notification/recipients/{id}
 ### 2. Workflow Requirements
 
 #### 2.1 Configuration Workflow
+
 1. **Initial Setup**: Guided SMTP configuration with testing
 2. **Policy Creation**: Template-based policy creation wizard
 3. **Recipient Setup**: User import and group configuration
@@ -425,6 +492,7 @@ DELETE /api/notification/recipients/{id}
 5. **Monitoring**: Ongoing monitoring and alerting
 
 #### 2.2 Operational Workflow
+
 1. **Dashboard Review**: Daily operational health checks
 2. **Issue Investigation**: Drill-down from alerts to root cause
 3. **Policy Adjustment**: Real-time policy modifications
@@ -433,10 +501,13 @@ DELETE /api/notification/recipients/{id}
 
 ## Implementation Phases
 
+
 ### Phase 1: Foundation (4 weeks)
+
 **Goal**: Establish proper page structure and basic functionality
 
 **Deliverables**:
+
 - [ ] New page architecture with dedicated routes
 - [ ] Email configuration interface with SMTP settings
 - [ ] Enhanced policy creation form
@@ -444,15 +515,18 @@ DELETE /api/notification/recipients/{id}
 - [ ] Unit tests for new components
 
 **Success Criteria**:
+
 - All critical functionality works without errors
 - Email configuration can be completed through UI
 - Policies can be created and basic edited
 - Recipients can be managed effectively
 
 ### Phase 2: Enhancement (6 weeks)
+
 **Goal**: Add advanced features and improved user experience
 
 **Deliverables**:
+
 - [ ] Template management system
 - [ ] Advanced policy editing with rules engine
 - [ ] Escalation chain configuration
@@ -460,15 +534,18 @@ DELETE /api/notification/recipients/{id}
 - [ ] Notification history interface
 
 **Success Criteria**:
+
 - Template system is fully functional
 - Complex policies can be configured
 - Dashboard provides actionable insights
 - History interface supports investigation
 
 ### Phase 3: Optimization (4 weeks)
+
 **Goal**: Polish, optimization, and advanced features
 
 **Deliverables**:
+
 - [ ] Performance optimization
 - [ ] Advanced analytics and reporting
 - [ ] Bulk operations
@@ -476,6 +553,7 @@ DELETE /api/notification/recipients/{id}
 - [ ] Documentation and training materials
 
 **Success Criteria**:
+
 - System performs under load
 - Advanced analytics provide business value
 - Mobile interface is fully functional
@@ -484,12 +562,14 @@ DELETE /api/notification/recipients/{id}
 ## Risk Assessment
 
 ### High-Risk Items
+
 1. **Data Migration**: Existing notification data must be preserved
 2. **Performance**: Large notification volumes may impact UI performance
 3. **Integration**: Backend API changes may break existing functionality
 4. **User Adoption**: Complex interface may reduce user adoption
 
 ### Mitigation Strategies
+
 1. **Incremental Rollout**: Phase-based deployment with rollback capability
 2. **Performance Testing**: Load testing with realistic data volumes
 3. **API Versioning**: Maintain backward compatibility
@@ -497,19 +577,23 @@ DELETE /api/notification/recipients/{id}
 
 ## Success Criteria
 
+
 ### Functional Success
+
 - [ ] All critical notification workflows can be completed through UI
 - [ ] Email configuration works without technical assistance
 - [ ] Policy management is intuitive and error-free
 - [ ] System performance meets or exceeds current levels
 
 ### Business Success
+
 - [ ] 50% reduction in notification configuration time
 - [ ] 90% user satisfaction rating
 - [ ] 99.5% notification delivery success rate
 - [ ] Zero critical security vulnerabilities
 
 ### Technical Success
+
 - [ ] Code coverage > 85%
 - [ ] Performance benchmarks met
 - [ ] Security scan passes
@@ -518,12 +602,14 @@ DELETE /api/notification/recipients/{id}
 ## Dependencies
 
 ### Internal Dependencies
+
 - **Backend API**: NotificationService and EmailService completion
 - **User Management**: Integration with existing user system
 - **Design System**: FMS UI component library
 - **Infrastructure**: Email server configuration
 
 ### External Dependencies
+
 - **DevExtreme**: UI component library licensing
 - **SMTP Servers**: External email service availability
 - **Browser Support**: Modern browser compatibility requirements
@@ -537,6 +623,7 @@ The phased approach ensures manageable development cycles while delivering value
 ---
 
 **Document Approval**:
+
 - [ ] Product Owner
 - [ ] Development Team Lead
 - [ ] UI/UX Designer

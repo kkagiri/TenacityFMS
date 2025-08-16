@@ -275,9 +275,9 @@ public class AutomatedReconciliationService {
     private async Task SendPolicyExecutionFailureNotificationAsync (int policyId, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "High",
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Features.Notification.Enums.NotificationPriority.High,
                 Title = "Reconciliation Policy Execution Failed",
                 Message = $"Policy {policyId} execution failed: {errorMessage}",
                 TriggerSource = "AutomatedReconciliation",
@@ -294,9 +294,9 @@ public class AutomatedReconciliationService {
     private async Task SendCycleSummaryNotificationAsync (ReconciliationCycleResult cycleResult, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = cycleResult.FailedPolicies > cycleResult.SuccessfulPolicies ? "High" : "Medium",
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = cycleResult.FailedPolicies > cycleResult.SuccessfulPolicies ? Features.Notification.Enums.NotificationPriority.High : Features.Notification.Enums.NotificationPriority.Medium,
                 Title = "Reconciliation Cycle Summary",
                 Message = $"Cycle {cycleResult.CycleId}: {cycleResult.SuccessfulPolicies} successful, {cycleResult.FailedPolicies} failed policies. Duration: {cycleResult.Duration.TotalMinutes:F1}min",
                 TriggerSource = "AutomatedReconciliation",
@@ -312,9 +312,9 @@ public class AutomatedReconciliationService {
     private async Task SendCycleCriticalFailureNotificationAsync (Guid cycleId, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "Critical",
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Features.Notification.Enums.NotificationPriority.Critical,
                 Title = "Critical Reconciliation System Failure",
                 Message = $"Reconciliation cycle {cycleId} failed critically: {errorMessage}",
                 TriggerSource = "AutomatedReconciliation",
@@ -334,9 +334,9 @@ public class AutomatedReconciliationService {
             var priority = Math.Abs (discrepancyResult.VarianceLiters) > 50 ? "High" : "Medium";
 
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Tank",
-                Priority = priority,
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.DiscrepancyDetected,
+                Priority = Features.Notification.Enums.NotificationPriority.Critical,
                 Title = "Tank Volume Discrepancy Detected",
                 Message = $"Tank {tank.Name} discrepancy: {discrepancyResult.VarianceLiters:F2}L ({discrepancyResult.VariancePercentage:F1}%)",
                 TriggerSource = "AutomatedReconciliation",
@@ -359,9 +359,9 @@ public class AutomatedReconciliationService {
             var priority = unresolvedCount > 0 ? "Medium" : "Low";
 
             var request = new CreateNotificationRequest {
-                Type = "Info",
-                Category = "Reconciliation",
-                Priority = priority,
+                Type = Features.Notification.Enums.NotificationType.Info,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = unresolvedCount > 0 ? Features.Notification.Enums.NotificationPriority.Medium : Features.Notification.Enums.NotificationPriority.Low,
                 Title = "Reconciliation Policy Completed",
                 Message = $"Policy '{policy.Name}': {discrepanciesFound} discrepancies found, {discrepanciesResolved} resolved",
                 TriggerSource = "AutomatedReconciliation",

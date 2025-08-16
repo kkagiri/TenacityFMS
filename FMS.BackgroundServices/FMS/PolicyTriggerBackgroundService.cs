@@ -3,8 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common.Constants;
 using FMS.Application.Communication.Redis;
-using FMS.Application.Features.Notification;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,13 +99,14 @@ public class PolicyTriggerBackgroundService : BackgroundService {
 
         try {
             var request = new CreateNotificationRequest {
-                Type = NotificationTypes.Info,
-                Category = NotificationCategories.System,
-                Priority = NotificationPriorities.Low,
+                Type = NotificationType.Info,
+                CategoryId = (int) WellKnownCategories.System,
+                Priority = NotificationPriority.Low,
                 Title = "Policy Trigger Service Started",
                 Message = "Policy Trigger Background Service has started and is listening for Redis events",
                 TriggerSource = "PolicyTriggerBackground",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                DisableFallbackAllUsers = true,
 
             };
 
@@ -123,13 +124,14 @@ public class PolicyTriggerBackgroundService : BackgroundService {
 
         try {
             var request = new CreateNotificationRequest {
-                Type = NotificationTypes.Alert,
-                Category = NotificationCategories.System,
-                Priority = NotificationPriorities.High,
+                Type = NotificationType.Alert,
+                CategoryId = (int) WellKnownCategories.System,
+                Priority = NotificationPriority.High,
                 Title = "Policy Trigger Service Configuration Error",
                 Message = "IPolicyTriggerService not available. Check service registration and Redis configuration.",
                 TriggerSource = "PolicyTriggerBackground",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                DisableFallbackAllUsers = true,
 
             };
 
@@ -150,13 +152,14 @@ public class PolicyTriggerBackgroundService : BackgroundService {
             if (notificationService == null) return;
 
             var request = new CreateNotificationRequest {
-                Type = NotificationTypes.Error,
-                Category = NotificationCategories.System,
-                Priority = NotificationPriorities.Critical,
+                Type = NotificationType.Error,
+                CategoryId = (int) WellKnownCategories.System,
+                Priority = NotificationPriority.Critical,
                 Title = "Policy Trigger Service Critical Error",
                 Message = $"Policy Trigger Background Service encountered a critical error: {exception.Message}",
                 TriggerSource = "PolicyTriggerBackground",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                DisableFallbackAllUsers = true
 
             };
 
@@ -172,13 +175,14 @@ public class PolicyTriggerBackgroundService : BackgroundService {
     private async Task SendHealthCheckFailureNotificationAsync (INotificationService notificationService, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = NotificationTypes.Alert,
-                Category = NotificationCategories.System,
-                Priority = NotificationPriorities.Medium,
+                Type = NotificationType.Alert,
+                CategoryId = (int) WellKnownCategories.System,
+                Priority = NotificationPriority.Medium,
                 Title = "Policy Trigger Service Health Check Failed",
                 Message = $"Policy Trigger service health check failed: {errorMessage}",
                 TriggerSource = "PolicyTriggerBackground",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                DisableFallbackAllUsers = true
 
             };
 
@@ -197,13 +201,14 @@ public class PolicyTriggerBackgroundService : BackgroundService {
 
             if (notificationService != null) {
                 var request = new CreateNotificationRequest {
-                Type = NotificationTypes.Info,
-                Category = NotificationCategories.System,
-                Priority = NotificationPriorities.Medium,
+                Type = NotificationType.Info,
+                CategoryId = (int) WellKnownCategories.System,
+                Priority = NotificationPriority.Medium,
                 Title = "Policy Trigger Service Stopped",
                 Message = "Policy Trigger Background Service has been stopped",
                 TriggerSource = "PolicyTriggerBackground",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                DisableFallbackAllUsers = true
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);

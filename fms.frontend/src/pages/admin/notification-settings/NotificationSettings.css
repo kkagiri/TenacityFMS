@@ -316,20 +316,4 @@
   }
 }
 
-/* Dark mode support (if needed) */
-@media (prefers-color-scheme: dark) {
-  .notification-settings {
-    background: #1e1e1e;
-    color: #ffffff;
-  }
-
-  .notification-settings .dx-tabpanel {
-    background: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .categories-grid .dx-datagrid-headers {
-    background: #2d2d2d;
-    color: #ffffff;
-  }
-}
+/* Dark mode support removed to maintain consistent light background */

@@ -31,20 +31,20 @@ namespace FMS.Application.Features.Notification.Examples {
                 var priority = variancePercentage >= 5 ? "High" : "Medium";
 
                 // ✅ No hardcoded recipients - will be dynamically resolved
-                var notificationRequest = new CreateNotificationRequest {
-                    Type = "Alert",
-                    Category = "SensorVariance",
-                    Priority = priority,
-                    Title = $"Sensor Variance - Tank {tank.Name}",
-                    Message = $"Variance: {variance:F2}L ({variancePercentage:F2}%) detected",
-                    TriggerSource = "ClosingStockSensorVariance",
-                    TriggeredBy = recordedBy,
-                    SiteId = tank.SiteId,
-                    TankId = tank.Id
-                    // Recipients removed - will be dynamically resolved
-                };
+                // var notificationRequest = new CreateNotificationRequest {
+                //     Type = "Alert",
+                //     Category = "SensorVariance",
+                //     Priority = priority,
+                //     Title = $"Sensor Variance - Tank {tank.Name}",
+                //     Message = $"Variance: {variance:F2}L ({variancePercentage:F2}%) detected",
+                //     TriggerSource = "ClosingStockSensorVariance",
+                //     TriggeredBy = recordedBy,
+                //     SiteId = tank.SiteId,
+                //     TankId = tank.Id
+                //     // Recipients removed - will be dynamically resolved
+                // };
 
-                var result = await _notificationService.CreateNotificationAsync (notificationRequest, cancellationToken);
+                // var result = await _notificationService.CreateNotificationAsync (notificationRequest, cancellationToken);
                 return FMSResponse<bool>.Success (true);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error processing sensor variance for Tank {TankId}", tank.Id);

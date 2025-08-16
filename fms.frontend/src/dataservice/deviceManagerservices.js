@@ -1,4 +1,4 @@
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../api/axiosInstance';
 
 
 //Devices
@@ -28,7 +28,7 @@ export const createDevice = async (device) => {
 
 //get device by id
 export const getDeviceById = async (id) => {
-    try {       
+    try {
         const response = await axiosInstance.get(`/device/`, {
             params: { id: id }
         });
@@ -111,7 +111,7 @@ export const deleteDeviceModel = async (id) => {
     }
 };
 
-//Create Device Model 
+//Create Device Model
 export const createDeviceModel = async (deviceModelData) => {
     try {
         if (!deviceModelData.devicemanufacturerId || deviceModelData.devicemanufacturerId <= 0) {
@@ -162,7 +162,7 @@ export const getDeviceTypeById = async (id) => {
     }
 };
 
-//update device type    
+//update device type
 export const updateDeviceType = async (id, deviceTypeData) => {
     try {
         const response = await axiosInstance.put(`/devicetype/${id}`, deviceTypeData);
@@ -231,7 +231,7 @@ export const updateDeviceManufacturer = async (id, deviceManufacturerData) => {
         }
     };
 
-    //create Device Manufaturer 
+    //create Device Manufaturer
     export const createDeviceManufacturer = async (deviceManufacturerData) => {
         try {
             if (!deviceManufacturerData.name || deviceManufacturerData.name.length <= 0) {
@@ -243,5 +243,5 @@ export const updateDeviceManufacturer = async (id, deviceManufacturerData) => {
         } catch (error) {
             console.error('Error creating device manufacturer data:', error);
             throw new Error('Data creation error');
-        }        
+        }
     };

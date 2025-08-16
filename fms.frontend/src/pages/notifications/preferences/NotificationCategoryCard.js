@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CheckBox, SelectBox, NumberBox } from "devextreme-react";
-import notificationPreferencesApi from "../../../api/notificationPreferencesApi";
+import notificationPreferencesApi from "../../../dataservice/notificationPreferencesApi";
 
 const NotificationCategoryCard = ({ category, preference, errors, onChange }) => {
   const [expanded, setExpanded] = useState(false);

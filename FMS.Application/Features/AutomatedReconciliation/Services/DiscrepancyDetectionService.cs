@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Events;
@@ -23,19 +24,22 @@ public class DiscrepancyDetectionService {
     private readonly IMediator _mediator;
     private readonly GpsdataContext _context;
     private readonly InventoryCostingService _costingService;
+    private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
 
     public DiscrepancyDetectionService (
         ILogger<DiscrepancyDetectionService> logger,
         IMediator mediator,
         GpsdataContext context,
-        InventoryCostingService costingService) {
+        InventoryCostingService costingService,
+        AlarmHandlerActiveAlarmIntegration activeAlarmIntegration) {
         _logger = logger;
         _mediator = mediator;
         _context = context;
         _costingService = costingService;
+        _activeAlarmIntegration = activeAlarmIntegration;
     }
 
-    //Cursor - Enhanced discrepancy detection with configurable thresholds
+    // Enhanced discrepancy detection with configurable thresholds
     public async Task<DiscrepancyDetectionResult> DetectDiscrepancies (
         Tank tank,
         ReconciliationPolicy policy,
@@ -48,7 +52,7 @@ public class DiscrepancyDetectionService {
             // Perform discrepancy calculation
             var discrepancyResult = await CalculateDiscrepancy (tank, varianceThresholdLiters, varianceThresholdPercentage, cancellationToken);
 
-            //Cursor - Generate and push domain event when variance is significant
+            //  - Generate and push domain event when variance is significant
             if (discrepancyResult.IsSignificant) {
                 var discrepancyEvent = new DiscrepancyDetectedEvent {
                     TankId = tank.Id,
@@ -63,6 +67,30 @@ public class DiscrepancyDetectionService {
 
                 // Publish domain event for downstream alerting
                 await _mediator.Publish (discrepancyEvent, cancellationToken);
+
+                // Create ActiveAlarm record for discrepancy tracking
+                try {
+                    var alarmType = $"StockDiscrepancy-{DetermineDiscrepancySeverity(discrepancyResult)}";
+                    var message = $"Stock discrepancy detected in Tank {tank.Name}: Expected {discrepancyResult.ExpectedVolume:F1}L, Actual {discrepancyResult.ActualVolume:F1}L, Variance {discrepancyResult.VarianceLiters:F1}L ({discrepancyResult.VariancePercentage:F1}%)";
+
+                    await _activeAlarmIntegration.CreateActiveAlarmFromDiscrepancy (
+                        0, // Discrepancy ID will be set later when record is created
+                        alarmType,
+                        message,
+                        DetermineDiscrepancySeverity (discrepancyResult),
+                        tank.SiteId,
+                        tank.Id,
+                        discrepancyResult.ThresholdLiters,
+                        discrepancyResult.VarianceLiters,
+                        "L",
+                        "Reconciliation-System",
+                        cancellationToken);
+
+                    _logger.LogInformation ("Created ActiveAlarm for discrepancy in Tank {TankId}", tank.Id);
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Failed to create ActiveAlarm for discrepancy in Tank {TankId}", tank.Id);
+                    // Don't fail the entire discrepancy detection if ActiveAlarm creation fails
+                }
 
                 _logger.LogWarning ("Significant discrepancy detected for Tank {TankId}. Variance: {VarianceLiters}L ({VariancePercentage}%)",
                     tank.Id, discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);

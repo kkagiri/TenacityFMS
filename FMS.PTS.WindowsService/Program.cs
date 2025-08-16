@@ -44,6 +44,8 @@ using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
 using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.Businessfunction;
+using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
@@ -375,6 +377,7 @@ namespace FMS.PTS.WindowsService {
             services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> ();
             services.AddHttpClient<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
             services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+            services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService> ();
 
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService> (); //Cursor
             services.Scan (scan => scan

@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper.Features;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Common.Constants;
-using FMS.Application.Features.Notification;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
@@ -152,9 +153,9 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = NotificationTypes.Info,
-                    Category = NotificationCategories.System,
-                    Priority = NotificationPriorities.Low,
+                    Type = NotificationType.Info,
+                    CategoryId = (int) WellKnownCategories.System,
+                    Priority = NotificationPriority.Low,
                     Title = "Closing Stock Process Started",
                     Message = "Daily closing stock process has started",
                     TriggerSource = "AutomatedClosingStock",
@@ -173,9 +174,9 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = NotificationTypes.Info,
-                    Category = NotificationCategories.ClosingStock,
-                    Priority = NotificationPriorities.Medium,
+                    Type = NotificationType.Info,
+                    CategoryId = (int) WellKnownCategories.ClosingStock,
+                    Priority = NotificationPriority.Medium,
                     Title = "Closing Stock Error",
                     Message = $"Error processing closing stock for tank {tank.Name}: {errorMessage}",
                     TriggerSource = "AutomatedClosingStock",
@@ -195,15 +196,15 @@ namespace FMS.BackgroundServices.FMS {
             if (notificationService == null) return;
 
             try {
-                var priority = failureCount > 0 ? "Medium" : "Low";
                 var request = new CreateNotificationRequest {
-                    Type = "Info",
-                    Category = "ClosingStock",
-                    Priority = priority,
+                    Type = NotificationType.Info,
+                    CategoryId = (int) WellKnownCategories.ClosingStock,
+                    Priority = failureCount > 0 ? NotificationPriority.Medium : NotificationPriority.Low,
                     Title = "Closing Stock Process Summary",
                     Message = $"Closing stock process completed. Success: {successCount}, Failed: {failureCount}",
                     TriggerSource = "AutomatedClosingStock",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    DisableFallbackAllUsers = true // ✅ Prevent spam to all users
 
                 };
 
@@ -218,13 +219,14 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = "Alert",
-                    Category = "System",
-                    Priority = "Critical",
+                    Type = NotificationType.Alert,
+                    CategoryId = (int) WellKnownCategories.System,
+                    Priority = NotificationPriority.Critical,
                     Title = "Critical Closing Stock Service Error",
                     Message = $"Automated Closing Stock Service encountered a critical error: {errorMessage}",
                     TriggerSource = "AutomatedClosingStock",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                    DisableFallbackAllUsers = true // ✅ Prevent spam to all users
 
                 };
 

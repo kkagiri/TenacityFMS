@@ -38,6 +38,7 @@ import configurationReducer from "./configurationReducer";
 import systemConfigReducer from "./systemConfigReducer";
 import vehicleDashboardReducer from "./vehicleDashboardReducer";
 import issueTrackerReducer from "./issueTrackerReducer";
+import activeAlarmReducer from "./activeAlarmReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -79,6 +80,7 @@ const rootReducer = combineReducers({
   systemConfig: systemConfigReducer,
   vehicleDashboard: vehicleDashboardReducer,
   issueTracker: issueTrackerReducer,
+  activeAlarm: activeAlarmReducer,
 });
 
 export default rootReducer;

@@ -30,6 +30,8 @@ import VehicleEdit from "./pages/vehicles/vehicleEdit";
 // Import Issue Tracker components
 import IssueTrackerPage from "./pages/issueTracker/IssueTrackerPage";
 import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
+// Import Active Alarm components
+import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -91,6 +93,9 @@ const resolvedComponents = (pageName) => {
     case "issue-tracker":
     case "issues":
       return IssueTrackerPage;
+
+    case "active-alarms":
+      return ActiveAlarmMain;
 
     case "unauthorized":
       return unauthorized;

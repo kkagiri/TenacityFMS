@@ -11,7 +11,7 @@ import { Column } from "devextreme-react/data-grid";
 import { Item as ToolbarItem } from "devextreme-react/toolbar";
 import { SimpleItem, RequiredRule, PatternRule } from "devextreme-react/form";
 import { confirm } from "devextreme/ui/dialog";
-import notificationCategoriesApi from "../../../api/notificationCategoriesApi";
+import notificationCategoriesApi from "../../../dataservice/notificationCategoriesApi";
 
 const NotificationCategoriesTab = () => {
   const [categories, setCategories] = useState([]);

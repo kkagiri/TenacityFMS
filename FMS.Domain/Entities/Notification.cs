@@ -28,10 +28,10 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// Category for grouping notifications (Tank, Pump, Vehicle, System, User, etc.)
         /// </summary>
-        [Required]
-        [MaxLength (50)]
         public string Category { get; set; } = null!;
 
+        // FK to NotificationCategory (must match principal key type)
+        public int NotificationCategoryId { get; set; }
         /// <summary>
         /// Priority level (Low, Medium, High, Critical)
         /// </summary>
@@ -131,9 +131,9 @@ namespace FMS.Domain.Entities {
         public int? IssueTrackerId { get; set; }
 
         /// <summary>
-        /// Alarm ID if triggered by an alarm
+        /// Active alarm ID if related to an active alarm
         /// </summary>
-        public int? AlarmId { get; set; }
+        public int? ActiveAlarmId { get; set; }
 
         /// <summary>
         /// Notification policy ID that governs this notification
@@ -166,9 +166,10 @@ namespace FMS.Domain.Entities {
         public virtual Vehicle? Vehicle { get; set; }
         public virtual Ptsdevice? PtsDevice { get; set; }
         public virtual Issuetracker? IssueTracker { get; set; }
-        public virtual Alarm? Alarm { get; set; }
+        public virtual ActiveAlarm? ActiveAlarm { get; set; }
         public virtual NotificationPolicy? NotificationPolicy { get; set; }
         public virtual User? TriggeredByNavigation { get; set; }
+        public virtual NotificationCategory NotificationCategory { get; set; } = null!;
 
         // Recipients collection
         public virtual ICollection<NotificationRecipient> Recipients { get; set; } = new List<NotificationRecipient> ();

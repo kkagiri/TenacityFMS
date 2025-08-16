@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
-  removeNotification,
-  clearNotifications,
-  safeResetAllNotifications,
+  fetchNotifications,
+  markNotificationAsRead,
 } from "../../redux/actions/notificationActions";
 import { Button } from "devextreme-react";
 import "./NotificationCenter.scss";
+import signalRService from "../../signalR/SignalRService";
 
 // Maximum notifications to show initially
 const MAX_VISIBLE_NOTIFICATIONS = 3;
@@ -44,9 +45,10 @@ class NotificationErrorBoundary extends React.Component {
 
 const NotificationCenter = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // Get notifications and import progress from Redux store
-  const { notifications, importProgress } = useSelector(
+  const { notifications, importProgress, backendNotifications } = useSelector(
     (state) => state.notification
   );
 
@@ -135,6 +137,15 @@ const NotificationCenter = () => {
 
     document.addEventListener("keydown", handleKeyDown);
 
+    // Ensure SignalR connection for live notifications
+    (async () => {
+      try {
+        await signalRService.ensureConnected();
+      } catch (e) {
+        console.error("Failed to initialize SignalR for NotificationCenter", e);
+      }
+    })();
+
     return () => {
       isMounted.current = false;
       document.removeEventListener("keydown", handleKeyDown);
@@ -143,14 +154,42 @@ const NotificationCenter = () => {
 
   // Update visible notifications when notifications changes or showAllNotifications toggles
   useEffect(() => {
+    // Combine UI notifications and backend notifications
+    const allNotifications = [
+      ...notifications,
+      ...(backendNotifications || []).map(backendNotification => ({
+        ...backendNotification,
+        id: backendNotification.id || `backend-${backendNotification.notificationId}`,
+        type: backendNotification.type || 'info',
+        title: backendNotification.title || 'Notification',
+        message: backendNotification.message || backendNotification.content,
+        timestamp: new Date(backendNotification.createdAt || backendNotification.timestamp).getTime(),
+        isBackendNotification: true,
+        isRead: backendNotification.isRead === true // Strict boolean check
+      }))
+    ];    // Sort notifications by timestamp (latest first), with fallback sorting
+    const sortedNotifications = allNotifications.sort((a, b) => {
+      const timeA = a.timestamp || a.createdAt || 0;
+      const timeB = b.timestamp || b.createdAt || 0;
+
+      // Primary sort: by timestamp (latest first)
+      const timeDiff = timeB - timeA;
+      if (timeDiff !== 0) return timeDiff;
+
+      // Secondary sort: by ID (higher ID first - newer records)
+      const idA = typeof a.id === 'number' ? a.id : parseInt(a.id) || 0;
+      const idB = typeof b.id === 'number' ? b.id : parseInt(b.id) || 0;
+      return idB - idA;
+    });
+
     if (showAllNotifications) {
-      setVisibleNotifications(notifications);
+      setVisibleNotifications(sortedNotifications);
     } else {
       setVisibleNotifications(
-        notifications.slice(0, MAX_VISIBLE_NOTIFICATIONS)
+        sortedNotifications.slice(0, MAX_VISIBLE_NOTIFICATIONS)
       );
     }
-  }, [notifications, showAllNotifications]);
+  }, [notifications, backendNotifications, showAllNotifications]);
 
   // Handle click outside to close notification panel
   useEffect(() => {
@@ -174,44 +213,49 @@ const NotificationCenter = () => {
 
   // Check for unread notifications
   useEffect(() => {
-    setHasUnread(notifications.length > 0 || !!importProgress);
-  }, [notifications, importProgress]);
+    const unreadBackendCount = (backendNotifications || []).filter(n => !n.isRead).length;
+    const hasAnyUnread = notifications.length > 0 || !!importProgress || unreadBackendCount > 0;
+    setHasUnread(hasAnyUnread);
+  }, [notifications, importProgress, backendNotifications]);
+
+  // Fetch backend notifications when component mounts
+  useEffect(() => {
+    dispatch(fetchNotifications({ take: 50 })); // Fetch all recent notifications
+  }, [dispatch]);
 
   // Handle toggle notifications
   const toggleNotifications = useCallback(() => {
     if (isLoading.current) return;
 
     isLoading.current = true;
-    setIsOpen((prevOpen) => !prevOpen);
+    setIsOpen((prevOpen) => {
+      const newOpen = !prevOpen;
 
-    // Clear hasUnread when opening
-    if (!isOpen) {
-      setHasUnread(false);
-    }
+      // Fetch fresh notifications when opening
+      if (newOpen) {
+        dispatch(fetchNotifications({ take: 50 })); // Get all recent notifications, not just unread
+        setHasUnread(false);
+      }
+
+      return newOpen;
+    });
 
     // Reset loading state after a small delay
     setTimeout(() => {
       isLoading.current = false;
     }, 300);
-  }, [isOpen]);
-
-  // Handle removing a notification
-  const handleRemoveNotification = useCallback(
-    (id) => {
-      dispatch(removeNotification(id));
-    },
-    [dispatch]
-  );
+  }, [dispatch]);
 
   // Toggle show all notifications
   const toggleShowAllNotifications = useCallback(() => {
     setShowAllNotifications((prev) => !prev);
   }, []);
 
-  // Clear all notifications
-  const handleClearAll = useCallback(() => {
-    dispatch(safeResetAllNotifications());
-  }, [dispatch]);
+  // Navigate to notification preferences
+  const handlePreferences = useCallback(() => {
+    navigate('/notifications/preferences');
+    setIsOpen(false); // Close the notification center
+  }, [navigate]);
 
   // Format timestamp into relative time
   const formatTimeAgo = (timestamp) => {
@@ -278,12 +322,6 @@ const NotificationCenter = () => {
             Fuel Report Import
           </div>
           <div className="tw-text-xs tw-text-gray-500 tw-mr-2">{timeAgo}</div>
-          <button
-            className="tw-text-gray-400 hover:tw-text-gray-600 tw-transition-colors tw-p-1"
-            onClick={() => dispatch({ type: "CLEAR_IMPORT_PROGRESS" })}
-          >
-            <i className="fa-regular fa-xmark"></i>
-          </button>
         </div>
 
         <div className="tw-flex tw-items-center tw-mb-2">
@@ -338,7 +376,7 @@ const NotificationCenter = () => {
   const renderNotificationItem = (item) => {
     if (!item || !item.id) return null;
 
-    const { id, title, message, type, timestamp, data } = item;
+    const { id, title, message, type, timestamp, data, isBackendNotification, isRead } = item;
     const timeAgo = formatTimeAgo(timestamp || Date.now());
 
     // Determine icon based on notification type
@@ -357,29 +395,34 @@ const NotificationCenter = () => {
     } else if (type === "info") {
       icon = "fa-regular fa-circle-info";
       iconColor = "tw-text-blue-500";
+    } else if (type === "alarm") {
+      icon = "fa-regular fa-bell-exclamation";
+      iconColor = "tw-text-red-500";
     }
 
     // Check for specific notification types based on ID prefix
-    if (id.startsWith("pump-")) {
+    // Convert id to string to handle both string and number IDs
+    const idString = String(id);
+    if (idString.startsWith("pump-")) {
       icon = "fa-regular fa-gas-pump";
       iconColor = type === "error" ? "tw-text-red-500" : "tw-text-blue-500";
-    } else if (id.startsWith("tag-")) {
+    } else if (idString.startsWith("tag-")) {
       icon = "fa-regular fa-tag";
       iconColor = "tw-text-indigo-500";
-    } else if (id.startsWith("tank-")) {
+    } else if (idString.startsWith("tank-")) {
       icon = "fa-regular fa-tank";
       iconColor = "tw-text-amber-600";
     }
 
     return (
-      <div className="notification-item tw-py-3 tw-border-t tw-border-gray-200">
+      <div className={`notification-item tw-py-3 tw-border-t tw-border-gray-200 ${isBackendNotification && !isRead ? 'tw-bg-blue-50' : ''}`}>
         <div className="tw-flex tw-justify-between tw-items-start">
           <div className="tw-flex tw-items-start">
             <div className="tw-w-6 tw-h-6 tw-mr-2 tw-flex tw-items-center tw-justify-center">
               <i className={`${icon} ${iconColor}`}></i>
             </div>
-            <div className="tw-flex-grow tw-max-w-[220px]">
-              {title && <div className="tw-font-semibold">{title}</div>}
+            <div className="tw-flex-grow tw-max-w-[300px]">
+              {title && <div className={`tw-font-semibold ${isBackendNotification && !isRead ? 'tw-text-gray-900' : ''}`}>{title}</div>}
               <div className="tw-text-sm">{message || "Notification"}</div>
 
               {/* Show device ID if present in data */}
@@ -391,25 +434,48 @@ const NotificationCenter = () => {
 
               <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
                 {timeAgo}
+                {isBackendNotification && !isRead && (
+                  <span className="tw-ml-2 tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-bg-blue-100 tw-text-blue-800">
+                    Unread
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <button
-            className="tw-text-gray-400 hover:tw-text-gray-600 tw-transition-colors tw-p-1"
-            onClick={() => handleRemoveNotification(id)}
-          >
-            <i className="fa-regular fa-xmark"></i>
-          </button>
+          {/* Action buttons on the right side */}
+          <div className="tw-flex tw-items-center tw-space-x-1 tw-ml-2 tw-min-w-[40px]">
+            {/* Only show read button for unread backend notifications */}
+            {isBackendNotification && !isRead && (
+              <button
+                className="tw-bg-blue-100 tw-text-blue-600 hover:tw-bg-blue-200 hover:tw-text-blue-800 tw-transition-colors tw-p-2 tw-text-lg tw-rounded-full tw-border tw-border-blue-300"
+                onClick={() => dispatch(markNotificationAsRead(item.id))}
+                title="Mark as read"
+              >
+                <i className="fa-solid fa-check"></i>
+              </button>
+            )}
+            {/* Show check-circle for read notifications (no click action) */}
+            {isBackendNotification && isRead && (
+              <div
+                className="tw-bg-green-100 tw-text-green-600 tw-p-2 tw-text-lg tw-rounded-full tw-border tw-border-green-300 tw-opacity-60"
+                title="Read"
+              >
+                <i className="fa-solid fa-check-circle"></i>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
   // Calculate unread count
-  const unreadCount = notifications.length + (importProgress ? 1 : 0);
+  const unreadBackendCount = (backendNotifications || []).filter(n => !n.isRead).length;
+  const unreadCount = notifications.length + unreadBackendCount + (importProgress ? 1 : 0);
 
   // Check if we need to show the "Show More" button
-  const hasMoreNotifications = notifications.length > MAX_VISIBLE_NOTIFICATIONS;
+  const totalNotifications = notifications.length + (backendNotifications || []).length;
+  const hasMoreNotifications = totalNotifications > MAX_VISIBLE_NOTIFICATIONS;
 
   return (
     <NotificationErrorBoundary>
@@ -431,19 +497,20 @@ const NotificationCenter = () => {
         {/* Popover for notifications */}
         {isOpen && (
           <div className="notification-popover" ref={popoverRef}>
-            <div className="tw-bg-white tw-rounded tw-shadow-lg tw-w-80">
+            <div className="tw-bg-white tw-rounded tw-shadow-lg tw-w-96">
               <div className="tw-flex tw-justify-between tw-items-center tw-p-3">
                 <h4 className="tw-text-lg tw-font-semibold tw-m-0">
                   Notifications
                 </h4>
-                {(visibleNotifications.length > 0 || importProgress) && (
+                <div className="tw-flex tw-gap-2">
                   <Button
-                    text="Clear All"
-                    onClick={handleClearAll}
+                    onClick={handlePreferences}
                     stylingMode="text"
-                    className="clear-all-btn"
+                    className="preferences-btn"
+                    icon="fa-solid fa-cog"
+                    hint="Notification Preferences"
                   />
-                )}
+                </div>
               </div>
 
               <div className="tw-overflow-auto notification-content">

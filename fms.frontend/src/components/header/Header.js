@@ -18,7 +18,26 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
           widget={"dxButton"}
           // cssClass={"menu-button"}
         >
-          <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
+          <Button
+            icon="menu"
+            stylingMode="text"
+            onClick={(e) => {
+              // Create a proper event object for toggleMenu
+              const syntheticEvent = {
+                stopPropagation: () => {
+                  if (e && e.stopPropagation) {
+                    e.stopPropagation();
+                  }
+                },
+                preventDefault: () => {
+                  if (e && e.preventDefault) {
+                    e.preventDefault();
+                  }
+                }
+              };
+              toggleMenu({ event: syntheticEvent });
+            }}
+          />
         </Item>
 
 
@@ -34,7 +53,7 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
 
        {/* Todo: insert Theme selector . */}
 
-        {/* //Cursor - Notification bell positioned on the right */}
+        {/* //Cursor - Notification bell positioned on the right - moved to be first on right side */}
         <Item
           location={"after"}
           locateInMenu={"never"}

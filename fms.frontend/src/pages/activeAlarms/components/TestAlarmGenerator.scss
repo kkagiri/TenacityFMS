@@ -1,0 +1,366 @@
+// Test Alarm Generator Styles
+.test-alarm-generator {
+  .tw-container {
+    max-width: 1400px;
+  }
+
+  // Ensure text is always visible
+  .tw-text-gray-900 {
+    color: #111827 !important;
+  }
+
+  .tw-text-gray-700 {
+    color: #374151 !important;
+  }
+
+  .tw-text-gray-600 {
+    color: #4b5563 !important;
+  }
+
+  .tw-text-gray-500 {
+    color: #6b7280 !important;
+  }
+
+  .tw-text-sm {
+    color: #374151 !important;
+  }
+
+  // Card styling with proper contrast
+  .tw-bg-white {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    transition: box-shadow 0.2s ease-in-out;
+
+    &:hover {
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  // Scenario buttons
+  .scenario-button {
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  // Status indicators
+  .status-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transition: all 0.3s ease-in-out;
+
+    &.active {
+      animation: pulse 2s infinite;
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  // Form inputs with proper contrast
+  .form-input,
+  input,
+  select,
+  textarea {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+    &:focus {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+      outline: none;
+    }
+
+    &::placeholder {
+      color: #9ca3af !important;
+    }
+  }
+
+  // Labels and form text
+  label {
+    color: #374151 !important;
+  }
+
+  .tw-font-medium {
+    color: #374151 !important;
+  }
+
+  // Action buttons
+  .action-button {
+    transition: all 0.2s ease-in-out;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  // Test results section with better contrast
+  .test-results {
+    .result-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      transition: all 0.2s ease-in-out;
+
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 12px;
+        transition: all 0.3s ease-in-out;
+
+        &.success {
+          background-color: #10b981;
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        &.pending {
+          background-color: #d1d5db;
+        }
+
+        &.error {
+          background-color: #ef4444;
+          box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+      }
+
+      .result-text {
+        font-size: 14px;
+        color: #111827 !important;
+      }
+    }
+  }
+
+  // Button text contrast
+  button {
+    .tw-text-sm {
+      color: inherit !important;
+    }
+  }
+
+  // Ensure all text in white backgrounds is dark
+  .tw-bg-white * {
+    color: #111827 !important;
+  }
+
+  // Override specific utility classes
+  .tw-text-white {
+    color: #ffffff !important;
+  }
+
+  .tw-text-blue-600 {
+    color: #2563eb !important;
+  }
+
+  .tw-text-red-600 {
+    color: #dc2626 !important;
+  }
+
+  .tw-text-green-600 {
+    color: #059669 !important;
+  }
+
+  .tw-text-yellow-600 {
+    color: #d97706 !important;
+  }
+
+  .tw-text-purple-600 {
+    color: #9333ea !important;
+  }
+
+  // Error display with better contrast
+  .error-display {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+
+    .error-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #991b1b !important;
+      margin-bottom: 8px;
+    }
+
+    .error-list {
+      font-size: 13px;
+      color: #7f1d1d !important;
+
+      li {
+        margin-bottom: 4px;
+        color: #7f1d1d !important;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+
+  // Statistics cards with proper text contrast
+  .stats-card {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 4px;
+
+      &.critical {
+        color: #dc2626 !important;
+      }
+
+      &.high {
+        color: #ea580c !important;
+      }
+
+      &.medium {
+        color: #d97706 !important;
+      }
+
+      &.low {
+        color: #65a30d !important;
+      }
+
+      &.total {
+        color: #2563eb !important;
+      }
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #374151 !important;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  // Connection status with proper contrast
+  .connection-status {
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    margin-bottom: 16px;
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .status-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151 !important;
+      }
+
+      .status-value {
+        font-size: 14px;
+        font-weight: 600;
+
+        &.connected {
+          color: #059669 !important;
+        }
+
+        &.disconnected {
+          color: #dc2626 !important;
+        }
+      }
+    }
+  }
+
+  // Loading animations
+  .loading-spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .tw-grid-cols-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .tw-grid-cols-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .action-button {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+// Global notification styles for testing with proper contrast
+.test-notification {
+  .notification-item {
+    border-left: 4px solid #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af !important;
+
+    &.alarm-notification {
+      border-left-color: #dc2626;
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      color: #991b1b !important;
+    }
+
+    &.success-notification {
+      border-left-color: #059669;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      color: #065f46 !important;
+    }
+
+    * {
+      color: inherit !important;
+    }
+  }
+}

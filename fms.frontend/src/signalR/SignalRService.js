@@ -497,6 +497,99 @@ class SignalRService {
         }
       }, 100) // Use minimal debounce to ensure responsive progress
     );
+
+    // Add handlers for Active Alarm events
+    registerEvent(
+      "ActiveAlarmCreated",
+      createDynamicDebouncedHandler((alarm) => {
+        console.log("[SignalR] Active alarm created:", alarm);
+        // Dispatch to active alarm store
+        store.dispatch({
+          type: "ACTIVE_ALARM_CREATED",
+          payload: alarm
+        });
+        // Also create a notification for the new alarm
+        store.dispatch({
+          type: "ADD_NOTIFICATION",
+          payload: {
+            type: 'alarm',
+            title: 'New Active Alarm',
+            message: alarm.message || 'A new alarm has been created',
+            priority: alarm.priority?.toLowerCase() || 'medium',
+            relatedId: alarm.id,
+            timestamp: Date.now(),
+            autoExpire: false
+          }
+        });
+      })
+    );
+
+    registerEvent(
+      "ActiveAlarmUpdated",
+      createDynamicDebouncedHandler((alarm) => {
+        console.log("[SignalR] Active alarm updated:", alarm);
+        store.dispatch({
+          type: "ACTIVE_ALARM_UPDATED",
+          payload: alarm
+        });
+      })
+    );
+
+    registerEvent(
+      "ActiveAlarmStateChanged",
+      createDynamicDebouncedHandler((data) => {
+        console.log("[SignalR] Active alarm state changed:", data);
+        store.dispatch({
+          type: "ACTIVE_ALARM_STATE_CHANGED",
+          payload: { alarmId: data.alarmId, newState: data.newState }
+        });
+        // Create notification for state changes
+        store.dispatch({
+          type: "ADD_NOTIFICATION",
+          payload: {
+            type: 'info',
+            title: 'Alarm State Changed',
+            message: `Alarm ${data.alarmId} state changed to ${data.newState}`,
+            relatedId: data.alarmId,
+            timestamp: Date.now(),
+            autoExpire: true,
+            expireAfter: 10000
+          }
+        });
+      })
+    );
+
+    registerEvent(
+      "NotificationCreated",
+      createDynamicDebouncedHandler((notification) => {
+        console.log("[SignalR] Notification created:", notification);
+        store.dispatch({
+          type: "ADD_NOTIFICATION",
+          payload: {
+            ...notification,
+            timestamp: notification.timestamp || Date.now()
+          }
+        });
+      })
+    );
+
+    registerEvent(
+      "AlarmTestBroadcast",
+      createDynamicDebouncedHandler((testData) => {
+        console.log("[SignalR] Alarm test broadcast received:", testData);
+        store.dispatch({
+          type: "ADD_NOTIFICATION",
+          payload: {
+            type: 'success',
+            title: 'SignalR Test',
+            message: `Test alarm broadcast received: ${testData.message}`,
+            timestamp: Date.now(),
+            autoExpire: true,
+            expireAfter: 5000
+          }
+        });
+      })
+    );
   };
 
   stopConnection = () => {

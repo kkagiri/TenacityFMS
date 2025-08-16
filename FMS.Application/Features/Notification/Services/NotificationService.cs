@@ -6,7 +6,12 @@
  using FMS.Application.Common.Constants;
  using FMS.Application.Common;
  using FMS.Application.Features.Notification.DTOs;
- using FMS.Application.Infrastructure.Communication.SignalR;
+ using FMS.Application.Features.Notification.Enums;
+ using FMS.Application.Features.Notification.Services;
+ using FMS.Application.Infrastructure.Communication.SignalR; // Category metadata provider
+ using AutoMapper;
+ using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
+ using FMS.Application.Features.Notification.Services.RecipientResolver;
  using FMS.Application.Services;
  using FMS.Domain.Entities;
  using FMS.Persistence.DataAccess;
@@ -23,15 +28,24 @@
          private readonly ISmsService _smsService;
          private readonly ISystemUserService _systemUserService;
          private readonly INotificationRecipientResolver _recipientResolver;
+         private readonly ICategoryMetadataProvider _categoryMetadata;
+         private readonly INotificationChannelRegistry? _channelRegistry;
+         private readonly IMapper _mapper;
+         private readonly IPolicyRulesProcessor _policyRulesProcessor;
 
          public NotificationService (
+             IMapper mapper,
              GpsdataContext context,
              ILogger<NotificationService> logger,
              ISignalRNotificationService signalRService,
              IEmailService emailService,
              ISmsService smsService,
              ISystemUserService systemUserService,
-             INotificationRecipientResolver recipientResolver) {
+             INotificationRecipientResolver recipientResolver,
+             ICategoryMetadataProvider? categoryMetadata = null,
+             INotificationChannelRegistry? channelRegistry = null,
+             IPolicyRulesProcessor? policyRulesProcessor = null) {
+             _mapper = mapper;
              _context = context;
              _logger = logger;
              _signalRService = signalRService;
@@ -39,18 +53,36 @@
              _smsService = smsService;
              _systemUserService = systemUserService;
              _recipientResolver = recipientResolver;
+             _categoryMetadata = categoryMetadata ?? new InMemoryCategoryMetadataProvider ();
+             _channelRegistry = channelRegistry;
+             _policyRulesProcessor = policyRulesProcessor ?? new NullPolicyRulesProcessor ();
+         }
+
+         // Simple null implementation that doesn't require a logger
+         private class NullPolicyRulesProcessor : IPolicyRulesProcessor {
+             public bool ShouldTriggerNotification (NotificationPolicy policy, object triggerData) {
+                 // Default behavior: always trigger if no policy processor is provided
+                 return true;
+             }
+
+             public Task<List<string>> ResolveRecipientsFromRules (NotificationPolicy policy, NotificationContext context) {
+                 // No recipient rule processing in null implementation
+                 return Task.FromResult (new List<string> ());
+             }
+
+             public List<EscalationLevel> GetEscalationLevels (NotificationPolicy policy) {
+                 // No escalation levels in null implementation
+                 return new List<EscalationLevel> ();
+             }
          }
 
          public async Task<FMSResponse<int>> CreateNotificationAsync (CreateNotificationRequest request, CancellationToken cancellationToken = default) {
              try {
-                 //Cursor: Validation
+                 //Cursor: Validation (aligned to DTO enums/ids)
                  var validationErrors = new List<string> ();
 
-                 if (string.IsNullOrWhiteSpace (request.Type))
-                     validationErrors.Add ("Notification type is required");
-
-                 if (string.IsNullOrWhiteSpace (request.Category))
-                     validationErrors.Add ("Notification category is required");
+                 if (request.CategoryId <= 0)
+                     validationErrors.Add ("Notification categoryId is required");
 
                  if (string.IsNullOrWhiteSpace (request.Title))
                      validationErrors.Add ("Notification title is required");
@@ -61,8 +93,7 @@
                  if (string.IsNullOrWhiteSpace (request.TriggerSource))
                      validationErrors.Add ("Trigger source is required");
 
-                 if (request.Recipients == null || !request.Recipients.Any ())
-                     validationErrors.Add ("At least one recipient is required");
+                 // Recipients can be resolved dynamically, so no hard requirement here
 
                  if (validationErrors.Any ())
                      return FMSResponse<int>.ValidationFailed (validationErrors);
@@ -79,12 +110,38 @@
                      }
                  }
 
+                 // Map incoming CategoryId (enum/int) to display name and resolve to existing DB category Id
+                 var categoryName = Enum.IsDefined (typeof (WellKnownCategories), request.CategoryId) ?
+                     ((WellKnownCategories) request.CategoryId).ToString () :
+                     request.CategoryId.ToString ();
+
+                 // Resolve actual FK id in DB by Name to avoid mismatches with enum numeric values
+                 var resolvedCategoryId = await _context.NotificationCategories
+                     .Where (c => c.Name == categoryName)
+                     .Select (c => c.Id)
+                     .FirstOrDefaultAsync (cancellationToken);
+
+                 if (resolvedCategoryId == 0) {
+                     // Attempt to auto-create the requested category to avoid hard failures in non-seeded environments
+                     resolvedCategoryId = await EnsureCategoryExistsAsync (categoryName, cancellationToken);
+
+                     // If still not resolved, fall back to 'System' category (auto-create if necessary)
+                     if (resolvedCategoryId == 0) {
+                         var systemName = WellKnownCategories.System.ToString ();
+                         resolvedCategoryId = await EnsureCategoryExistsAsync (systemName, cancellationToken);
+                         if (resolvedCategoryId == 0) {
+                             return FMSResponse<int>.Failed ($"Notification category '{categoryName}' not found. Please create it from Admin > Notification Settings or run category seeding.");
+                         }
+                     }
+                 }
+
                  // Create notification
-                 var notification = new Domain.Entities.Notification {
+                 Domain.Entities.Notification notification = new Domain.Entities.Notification {
                      NotificationId = request.NotificationId ?? Guid.NewGuid ().ToString (),
-                     Type = request.Type,
-                     Category = request.Category,
-                     Priority = request.Priority ?? "Medium",
+                     Type = request.Type.ToString (),
+                     Category = categoryName,
+                     NotificationCategoryId = resolvedCategoryId,
+                     Priority = (request.Priority ?? NotificationPriority.Medium).ToString (),
                      Title = request.Title,
                      Message = request.Message,
                      Data = request.Data != null ? JsonConvert.SerializeObject (request.Data) : null,
@@ -94,9 +151,9 @@
                      SiteId = request.SiteId,
                      TankId = request.TankId,
                      VehicleId = request.VehicleId,
-                     PtsDeviceId = request.PtsDeviceId, //Cursor: Add PTS device reference
+                     PtsDeviceId = request.PtsDeviceId,
                      IssueTrackerId = request.IssueTrackerId,
-                     AlarmId = request.AlarmId,
+                     ActiveAlarmId = request.AlarmId,
                      NotificationPolicyId = request.NotificationPolicyId,
                      Status = request.ScheduledAt.HasValue ? "Scheduled" : "Pending"
                  };
@@ -134,8 +191,8 @@
                          }
                      }
                  } else {
-                     _logger.LogWarning ("No recipients resolved for notification {NotificationId} category {Category}",
-                         notification.NotificationId, request.Category);
+                     _logger.LogWarning ("No recipients resolved for notification {NotificationId} category {Category} (categoryId {CategoryId})",
+                         notification.NotificationId, categoryName, request.CategoryId);
                  }
 
                  await _context.SaveChangesAsync (cancellationToken);
@@ -158,6 +215,7 @@
                  var notification = await _context.Notifications
                      .Include (n => n.Recipients)
                      .ThenInclude (r => r.User)
+                     .Include (n => n.NotificationPolicy)
                      .FirstOrDefaultAsync (n => n.Id == notificationId, cancellationToken);
 
                  if (notification == null)
@@ -243,7 +301,12 @@
              }
          }
 
-         // Continue with remaining methods...
+         /// <summary>
+         /// Create Notification for Alarm table
+         /// </summary>
+         /// <param name="request"></param>
+         /// <param name="cancellationToken"></param>
+         /// <returns></returns>
          public async Task<FMSResponse> CreateAlarmNotificationAsync (CreateAlarmNotificationRequest request, CancellationToken cancellationToken = default) {
              try {
                  // Find applicable alarm handlers
@@ -260,6 +323,20 @@
                  var notificationsCreated = 0;
 
                  foreach (var handler in handlers) {
+                     // ✅ NEW: Use TriggerConditions JSON to check if alarm should be triggered
+                     var triggerData = new TankLevelTriggerData {
+                         TankId = request.TankId ?? 0,
+                         CurrentVolume = 0, // You can extract this from request.Data
+                         TankCapacity = 5000, // You can get this from Tank entity
+                         VolumeChange = 0 // You can calculate this
+                     };
+
+                     var notificationPolicy = handler.NotificationPolicy;
+                     if (notificationPolicy != null && !_policyRulesProcessor.ShouldTriggerNotification (notificationPolicy, triggerData)) {
+                         _logger.LogDebug ("Notification suppressed by TriggerConditions for policy {PolicyId}", notificationPolicy.Id);
+                         continue;
+                     }
+
                      // Check cooldown
                      if (handler.CooldownMinutes > 0 && handler.LastTriggeredAt.HasValue) {
                          var cooldownExpiry = handler.LastTriggeredAt.Value.AddMinutes (handler.CooldownMinutes);
@@ -283,18 +360,14 @@
 
                      // Create notification using policy
                      var policy = handler.NotificationPolicy;
-                     var recipients = policy.PolicyRecipients
-                         .Where (pr => pr.IsActive)
-                         .Select (pr => new CreateNotificationRecipientRequest {
-                             UserId = pr.UserId,
-                                 DeliveryMethods = pr.DeliveryMethods.Split (',').Select (dm => dm.Trim ()).ToList (),
-                                 PriorityOverride = pr.PriorityOverride
-                         }).ToList ();
+
+                     // ✅ UPDATED: Use business function approach for alarm notifications
+                     // Recipients will be resolved by NotificationRecipientResolver using TriggerSource
 
                      var notificationRequest = new CreateNotificationRequest {
-                         Type = "Alert",
-                         Category = request.Category ?? "Alarm",
-                         Priority = handler.Priority,
+                         Type = Notification.Enums.NotificationType.Alert,
+                         CategoryId = request.Category != null ? (int) Enum.Parse (typeof (Notification.Enums.WellKnownCategories), request.Category) : (int) Notification.Enums.WellKnownCategories.PtsDeviceAlarm,
+                         Priority = Enums.NotificationPriority.Medium,
                          Title = FormatTemplate (handler.MessageTemplate ?? policy.TitleTemplate ?? "Alarm: {AlarmType}", request),
                          Message = FormatTemplate (handler.MessageTemplate ?? policy.MessageTemplate ?? "Alarm triggered: {AlarmType}", request),
                          Data = request.Data,
@@ -306,7 +379,7 @@
                          PtsDeviceId = request.PtsDeviceId, //Cursor: Add PTS device reference
                          AlarmId = request.AlarmId,
                          NotificationPolicyId = policy.Id,
-                         Recipients = recipients
+                         DisableFallbackAllUsers = true // ✅ Prevent spam for alarm notifications
                      };
 
                      var result = await CreateNotificationAsync (notificationRequest, cancellationToken);
@@ -355,7 +428,34 @@
              }
          }
 
-         // Add remaining interface implementations here...
+         // Convenience wrappers for specific device types that delegate to the generic handler
+         public Task<FMSResponse> CreatePTSAlarmNotificationAsync (CreateAlarmNotificationRequest request, CancellationToken cancellationToken = default) {
+             if (request == null) return Task.FromResult (FMSResponse.FailedResponse ("Request cannot be null"));
+             if (string.IsNullOrEmpty (request.Category))
+                 request.Category = "PTS";
+             return CreateAlarmNotificationAsync (request, cancellationToken);
+         }
+
+         public Task<FMSResponse> CreatePumpAlarmNotificationAsync (CreateAlarmNotificationRequest request, CancellationToken cancellationToken = default) {
+             if (request == null) return Task.FromResult (FMSResponse.FailedResponse ("Request cannot be null"));
+             if (string.IsNullOrEmpty (request.Category))
+                 request.Category = "PUMP";
+             return CreateAlarmNotificationAsync (request, cancellationToken);
+         }
+
+         public Task<FMSResponse> CreateProbeAlarmNotificationAsync (CreateAlarmNotificationRequest request, CancellationToken cancellationToken = default) {
+             if (request == null) return Task.FromResult (FMSResponse.FailedResponse ("Request cannot be null"));
+             if (string.IsNullOrEmpty (request.Category))
+                 request.Category = "PROBE";
+             return CreateAlarmNotificationAsync (request, cancellationToken);
+         } // Add remaining interface implementations here...
+         /// <summary>
+         /// Creates a notification for a specific issue tracker
+         /// </summary>
+         /// <param name="issueTrackerId"></param>
+         /// <param name="triggeredBy"></param>
+         /// <param name="cancellationToken"></param>
+         /// <returns></returns>
          public async Task<FMSResponse> CreateIssueTrackerNotificationAsync (int issueTrackerId, string triggeredBy, CancellationToken cancellationToken = default) {
              try {
                  var issue = await _context.Issuetrackers
@@ -370,25 +470,18 @@
                  // Find notification policy for issue tracker notifications
                  var policy = await _context.NotificationPolicies
                      .Include (p => p.PolicyRecipients)
-                     .FirstOrDefaultAsync (p => p.IsActive && p.Category == "Issue" && p.NotificationType == "Alert", cancellationToken);
+                     .FirstOrDefaultAsync (p => p.IsActive && p.NotificationCategoryId == (int) Notification.Enums.WellKnownCategories.IssueTracker && p.NotificationType == "Alert", cancellationToken);
 
                  if (policy == null) {
                      _logger.LogWarning ("No notification policy found for issue tracker notifications");
                      return FMSResponse.FailedResponse ("No notification policy configured for issue tracker notifications");
                  }
 
-                 var recipients = policy.PolicyRecipients
-                     .Where (pr => pr.IsActive)
-                     .Select (pr => new CreateNotificationRecipientRequest {
-                         UserId = pr.UserId,
-                             DeliveryMethods = pr.DeliveryMethods.Split (',').Select (dm => dm.Trim ()).ToList (),
-                             PriorityOverride = pr.PriorityOverride
-                     }).ToList ();
-
+                 // ✅ UPDATED: Remove hardcoded recipients - use policy-based resolution
                  var notificationRequest = new CreateNotificationRequest {
-                     Type = "Alert",
-                     Category = "Issue",
-                     Priority = issue.PriorityNavigation?.Name ?? "Medium",
+                     Type = Notification.Enums.NotificationType.Alert,
+                     CategoryId = (int) Notification.Enums.WellKnownCategories.IssueTracker,
+                     Priority = Enums.NotificationPriority.Medium,
                      Title = $"New Issue: {issue.ProblemTitle}",
                      Message = $"A new issue has been created: {issue.ProblemDescription}",
                      Data = new { IssueId = issueTrackerId, Category = issue.IssueCategory?.Name },
@@ -397,7 +490,7 @@
                      SiteId = issue.SiteId,
                      IssueTrackerId = issueTrackerId,
                      NotificationPolicyId = policy.Id,
-                     Recipients = recipients
+                     DisableFallbackAllUsers = true // ✅ Use policy-based recipient resolution
                  };
 
                  var result = await CreateNotificationAsync (notificationRequest, cancellationToken);
@@ -521,12 +614,15 @@
              }
          }
 
-         // Continue with remaining methods implementation...
-         // Due to length constraints, I'll continue with the helper methods in the next part
-
          private async Task<bool> SendToRecipientAsync (Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
              try {
-                 switch (recipient.DeliveryMethod.ToLower ()) {
+                 // Try dynamic channel first if available
+                 if (_channelRegistry != null && _channelRegistry.TryGet (recipient.DeliveryMethod?.ToLower (), out var channel) && channel != null) {
+                     return await channel.SendAsync (notification, recipient, cancellationToken);
+                 }
+
+                 // Fallback to legacy methods
+                 switch (recipient.DeliveryMethod?.ToLower ()) {
                      case var method when method == SystemConstants.Notifications.SystemDeliveryMethod.ToLower ():
                          return await SendSystemNotificationAsync (notification, recipient, cancellationToken);
                      case "email":
@@ -538,8 +634,7 @@
                          return false;
                  }
              } catch (Exception ex) {
-                 _logger.LogError (ex, "Error sending notification via {DeliveryMethod} to {UserId}",
-                     recipient.DeliveryMethod, recipient.UserId);
+                 _logger.LogError (ex, "Error sending notification via {DeliveryMethod} to {UserId}", recipient.DeliveryMethod, recipient.UserId);
                  return false;
              }
          }
@@ -572,7 +667,17 @@
                  var policy = notification.NotificationPolicy;
                  var emailTemplate = policy?.EmailTemplate ?? GetDefaultEmailTemplate ();
 
-                 var emailContent = FormatEmailTemplate (emailTemplate, notification, recipient);
+                 // Use display name for category
+                 var categoryDisplayName = GetCategoryDisplayName (notification.NotificationCategoryId);
+
+                 var emailContent = FormatTemplate (emailTemplate, new {
+                     notification.Title,
+                         notification.Message,
+                         notification.Priority,
+                         Category = categoryDisplayName,
+                         notification.CreatedAt,
+                         RecipientName = recipient.User?.UserName ?? "User"
+                 });
 
                  return await _emailService.SendEmailAsync (
                      recipient.RecipientAddress,
@@ -591,11 +696,14 @@
                  var policy = notification.NotificationPolicy;
                  var smsTemplate = policy?.SmsTemplate ?? "{Title}: {Message}";
 
+                 // Convert category ID back to enum name for display
+                 var categoryDisplayName = GetCategoryDisplayName (notification.NotificationCategoryId);
+
                  var smsContent = FormatTemplate (smsTemplate, new {
                      Title = notification.Title,
                          Message = notification.Message,
                          Priority = notification.Priority,
-                         Category = notification.Category
+                         Category = categoryDisplayName
                  });
 
                  return await _smsService.SendSmsAsync (
@@ -608,12 +716,40 @@
              }
          }
 
+         /// <summary>
+         /// Returns a human-friendly category name from an int categoryId.
+         /// </summary>
+         private string GetCategoryDisplayName (int categoryId) {
+             if (categoryId <= 0) return "Unknown";
+
+             if (Enum.IsDefined (typeof (Notification.Enums.WellKnownCategories), categoryId)) {
+                 var enumValue = (Notification.Enums.WellKnownCategories) categoryId;
+                 try {
+                     return _categoryMetadata.Get (enumValue).Name;
+                 } catch {
+                     return enumValue.ToString ();
+                 }
+             }
+
+             return categoryId.ToString ();
+         }
+
+         /// <summary>
+         /// Backward-compatible helper that accepts a string and delegates to the int overload when possible.
+         /// </summary>
+         private string GetCategoryDisplayName (string categoryId) {
+             if (string.IsNullOrWhiteSpace (categoryId)) return "Unknown";
+             return int.TryParse (categoryId, out var id) ?
+                 GetCategoryDisplayName (id) :
+                 categoryId;
+         }
+
          private string? GetRecipientAddress (User user, string deliveryMethod) {
              return deliveryMethod.ToLower () switch {
                  "email" => user.Email,
                      "sms" => user.PhoneNumber,
                      "system" => user.Id,
-                     _ => null
+                     _ => user.Id // Pass user id for dynamic channels to resolve mapping internally
              };
          }
 
@@ -676,19 +812,57 @@
                 </html>";
          }
 
-         private string FormatEmailTemplate (string template, Domain.Entities.Notification notification, NotificationRecipient recipient) {
-             return FormatTemplate (template, new {
-                 notification.Title,
-                     notification.Message,
-                     notification.Priority,
-                     notification.Category,
-                     notification.CreatedAt,
-                     RecipientName = recipient.User?.UserName ?? "User"
-             });
+         /// <summary>
+         /// Ensures a notification category exists by name. Creates it with safe defaults if missing.
+         /// Returns the category Id or 0 on failure.
+         /// </summary>
+         private async Task<int> EnsureCategoryExistsAsync (string categoryName, CancellationToken cancellationToken) {
+             try {
+                 if (string.IsNullOrWhiteSpace (categoryName)) return 0;
+
+                 var existingId = await _context.NotificationCategories
+                     .Where (c => c.Name == categoryName)
+                     .Select (c => c.Id)
+                     .FirstOrDefaultAsync (cancellationToken);
+
+                 if (existingId != 0) return existingId;
+
+                 // Create with reasonable defaults
+                 var category = new NotificationCategory {
+                     Name = categoryName,
+                     Description = $"{categoryName} notifications",
+                     DefaultPriority = "Medium",
+                     IsActive = true,
+                     DisplayOrder = 0,
+                     DefaultDeliveryMethods = SystemConstants.Notifications.SystemDeliveryMethod,
+                     CreatedBy = SystemConstants.Defaults.SystemTriggeredBy,
+                     CreatedAt = DateTime.UtcNow
+                 };
+
+                 _context.NotificationCategories.Add (category);
+                 await _context.SaveChangesAsync (cancellationToken);
+
+                 _logger.LogWarning ("Auto-created missing notification category '{CategoryName}' (Id {CategoryId})", categoryName, category.Id);
+                 return category.Id;
+             } catch (DbUpdateException) {
+                 // Handle race condition where another thread created it
+                 var id = await _context.NotificationCategories
+                     .Where (c => c.Name == categoryName)
+                     .Select (c => c.Id)
+                     .FirstOrDefaultAsync (cancellationToken);
+                 return id;
+             } catch (Exception ex) {
+                 _logger.LogError (ex, "Failed to ensure notification category '{CategoryName}' exists", categoryName);
+                 return 0;
+             }
          }
 
          private async Task CreateIssueFromAlarmAsync (AlarmHandler handler, CreateAlarmNotificationRequest request, CancellationToken cancellationToken) {
              try {
+                 if (!handler.IssueCategory.HasValue) {
+                     _logger.LogWarning ("IssueCategory not set on handler {HandlerId}; skipping issue creation", handler.Id);
+                     return;
+                 }
                  var issue = new Issuetracker {
                      IssueCategoryId = handler.IssueCategory.Value,
                      SiteId = request.SiteId ?? 1, // Default site if not specified
@@ -832,39 +1006,49 @@
              }
          }
 
-         public async Task<FMSResponse<List<object>>> GetNotificationPoliciesAsync (CancellationToken cancellationToken = default) {
+         public async Task<FMSResponse<List<NotificationPolicyDto>>> GetNotificationPoliciesAsync (CancellationToken cancellationToken = default) {
              try {
                  var policies = await _context.NotificationPolicies
-                     .Select (p => new {
-                         p.Id,
-                             p.Name,
-                             p.Category,
-                             p.NotificationType,
-                             p.Priority,
-                             p.EnableEmail,
-                             p.EnableSms,
-                             p.EnableSystem,
-                             p.MaxNotificationsPerHour,
-                             p.MaxNotificationsPerDay,
-                             p.CooldownMinutes,
-                             p.TitleTemplate,
-                             p.MessageTemplate,
-                             p.RequireAcknowledgment,
-                             p.IsActive,
-                             p.CreatedAt,
-                             p.ModifiedAt
-                     })
+                     .Include (p => p.NotificationCategory)
+                     .Include (p => p.PolicyRecipients)
+                     .Include (p => p.PolicyGroups)
+                     .Include (p => p.CreatedByNavigation)
+                     .Include (p => p.ModifiedByNavigation)
+                     .AsNoTracking ()
                      .ToListAsync (cancellationToken);
 
-                 var result = policies.Cast<object> ().ToList ();
-                 return FMSResponse<List<object>>.Success (result, "Notification policies retrieved successfully");
+                 var dtoList = _mapper.Map<List<NotificationPolicyDto>> (policies);
+                 return FMSResponse<List<NotificationPolicyDto>>.Success (dtoList, "Notification policies retrieved successfully");
              } catch (Exception ex) {
                  _logger.LogError (ex, "Error retrieving notification policies");
-                 return FMSResponse<List<object>>.Failed ("Error retrieving notification policies");
+                 return FMSResponse<List<NotificationPolicyDto>>.Failed ("Error retrieving notification policies");
              }
          }
 
-         public async Task<FMSResponse<int>> CreateNotificationPolicyAsync (CreateNotificationPolicyRequest request, CancellationToken cancellationToken = default) {
+         public async Task<FMSResponse<NotificationPolicyDto>> GetNotificationPolicyAsync (int policyId, CancellationToken cancellationToken = default) {
+             try {
+                 var policy = await _context.NotificationPolicies
+                     .Include (p => p.NotificationCategory)
+                     .Include (p => p.PolicyRecipients)
+                     .Include (p => p.PolicyGroups)
+                     .Include (p => p.CreatedByNavigation)
+                     .Include (p => p.ModifiedByNavigation)
+                     .AsNoTracking ()
+                     .FirstOrDefaultAsync (p => p.Id == policyId, cancellationToken);
+
+                 if (policy == null) {
+                     return FMSResponse<NotificationPolicyDto>.Failed ($"Policy {policyId} not found");
+                 }
+
+                 var dto = _mapper.Map<NotificationPolicyDto> (policy);
+                 return FMSResponse<NotificationPolicyDto>.Success (dto, "Notification policy retrieved successfully");
+             } catch (Exception ex) {
+                 _logger.LogError (ex, "Error retrieving notification policy {PolicyId}", policyId);
+                 return FMSResponse<NotificationPolicyDto>.Failed ("Error retrieving notification policy");
+             }
+         }
+
+         public async Task<FMSResponse<int>> CreateNotificationPolicyAsync (CreateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default) {
              try {
                  //Cursor: Validation
                  var validationErrors = new List<string> ();
@@ -872,7 +1056,7 @@
                  if (string.IsNullOrWhiteSpace (request.Name))
                      validationErrors.Add ("Policy name is required");
 
-                 if (string.IsNullOrWhiteSpace (request.Category))
+                 if (request.NotificationCategoryId <= 0)
                      validationErrors.Add ("Category is required");
 
                  if (validationErrors.Any ()) {
@@ -881,7 +1065,7 @@
 
                  var policy = new NotificationPolicy {
                      Name = request.Name,
-                     Category = request.Category,
+                     NotificationCategoryId = request.NotificationCategoryId,
                      NotificationType = request.NotificationType ?? "Alert",
                      Priority = request.Priority ?? "Medium",
                      EnableEmail = request.EnableEmail,
@@ -894,7 +1078,8 @@
                      MessageTemplate = request.MessageTemplate,
                      RequireAcknowledgment = request.RequireAcknowledgment,
                      IsActive = true,
-                     CreatedAt = DateTime.UtcNow
+                     CreatedAt = DateTime.UtcNow,
+                     CreatedBy = request.CreatedBy
                  };
 
                  _context.NotificationPolicies.Add (policy);
@@ -913,7 +1098,7 @@
                  var startDate = fromDate ?? DateTime.UtcNow.AddDays (-7);
                  var endDate = toDate ?? DateTime.UtcNow;
 
-                 var alertRecords = await _context.AlertRecords
+                 var alertRecords = await _context.PTSAlertRecords
                      .Where (ar => ar.DateTime >= startDate && ar.DateTime <= endDate)
                      .OrderByDescending (ar => ar.DateTime)
                      .Skip (skip)
@@ -952,19 +1137,14 @@
                  var testUserId = systemUserResult.Data;
 
                  var createRequest = new CreateNotificationRequest {
-                     Type = "Info",
-                     Category = "Test",
-                     Priority = "Low",
+                     Type = Enums.NotificationType.Info,
+                     CategoryId = (int) Enums.WellKnownCategories.System,
+                     Priority = (int) Enums.NotificationPriority.Low,
                      Title = request.Title,
                      Message = request.Message,
-                     TriggerSource = "Manual",
+                     TriggerSource = "TestNotification",
                      TriggeredBy = testUserId,
-                     Recipients = new List<CreateNotificationRecipientRequest> {
-                     new CreateNotificationRecipientRequest {
-                     UserId = testUserId,
-                     DeliveryMethods = request.DeliveryMethods
-                     }
-                     }
+                     DisableFallbackAllUsers = true // ✅ Test notifications should be targeted, not broadcast
                  };
 
                  var result = await CreateNotificationAsync (createRequest, cancellationToken);

@@ -9,6 +9,7 @@ import { TankLevels } from "./TankLevels";
 import { PumpStatus } from "./PumpStatus";
 import { SystemModules } from "./SystemModules";
 import { DashboardFilters } from "./DashboardFilters";
+import DashboardAlarmWidget from "./DashboardAlarmWidget";
 
 //claude - created main dashboard component that composes smaller components
 
@@ -421,6 +422,10 @@ export default function Dashboard() {
 
       {/* Key Stats */}
       <StatsCards pdTotals={previousDayTotals()} stats={stats} />
+
+      {/* Alarm Status Widget */}
+      <h2 className="section-title">System Alerts</h2>
+      <DashboardAlarmWidget />
 
       {/* Combined Fuel Efficiency and Weekly Performance */}
       <h2 className="section-title">Performance Metrics</h2>

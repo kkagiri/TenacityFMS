@@ -37,8 +37,8 @@ namespace FMS.Application.Features.Notification.Queries {
                 var queryable = _context.UserNotificationPreferences
                     .Where (p => p.UserId == request.UserId);
 
-                if (!string.IsNullOrEmpty (request.Category)) {
-                    queryable = queryable.Where (p => p.NotificationCategory == request.Category);
+                if (request.Category > 0) {
+                    queryable = queryable.Where (p => p.NotificationCategoryId == request.Category);
                 }
 
                 if (request.IsEnabled.HasValue) {
@@ -52,7 +52,7 @@ namespace FMS.Application.Features.Notification.Queries {
                 var result = preferences.Select (p => new UserNotificationPreferenceDto {
                     Id = p.Id,
                         UserId = p.UserId,
-                        NotificationCategory = p.NotificationCategory,
+                        NotificationCategoryId = p.NotificationCategoryId,
                         DeliveryMethods = p.DeliveryMethods.Split (',', StringSplitOptions.RemoveEmptyEntries).ToList (),
                         IsEnabled = p.IsEnabled,
                         Priority = p.Priority,

@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.DTOs.AlarmHandlers;
 using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.ModelsDTOs.ATG;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
@@ -23,27 +25,36 @@ namespace FMS.Application.Services {
         Task<FMSResponse> ProcessDeviceDisconnectionAlarmAsync (string deviceId, CancellationToken cancellationToken = default);
         Task<FMSResponse> ProcessCustomAlarmAsync (string alarmType, object alarmData, CancellationToken cancellationToken = default);
         Task<FMSResponse> ProcessScheduledAlarmChecksAsync (CancellationToken cancellationToken = default);
-
-        //Cursor: Methods for processing specific alarm types from PTS alerts
         Task<FMSResponse> ProcessPumpAlarmAsync (CreateAlarmNotificationRequest alarmRequest, CancellationToken cancellationToken = default);
         Task<FMSResponse> ProcessTankAlarmAsync (CreateAlarmNotificationRequest alarmRequest, CancellationToken cancellationToken = default);
         Task<FMSResponse> ProcessDeviceAlarmAsync (CreateAlarmNotificationRequest alarmRequest, CancellationToken cancellationToken = default);
         Task<FMSResponse> ProcessGenericAlarmAsync (CreateAlarmNotificationRequest alarmRequest, CancellationToken cancellationToken = default);
-        Task<FMSResponse<List<object>>> GetAlarmHandlersAsync (CancellationToken cancellationToken = default);
+        Task<FMSResponse<List<object>>> GetAlarmHandlersAsync (int? policyId = null, CancellationToken cancellationToken = default);
+        Task<FMSResponse<int>> CreateAlarmHandlerAsync (CreateAlarmHandlerRequestDto request, string createdBy, CancellationToken cancellationToken = default);
+        Task<FMSResponse> UpdateAlarmHandlerAsync (int id, UpdateAlarmHandlerRequestDto request, string modifiedBy, CancellationToken cancellationToken = default);
+        Task<FMSResponse> DeleteAlarmHandlerAsync (int id, CancellationToken cancellationToken = default);
+        Task<FMSResponse<List<AlarmHandlerTypeMetadataDto>>> GetAlarmHandlerTypesAsync (int? categoryId = null, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Evaluate active alarm handlers against an incoming generic event (telemetry / alarm output) and create notifications for matches.
+        /// </summary>
+        Task<FMSResponse<int>> EvaluateHandlersAsync (AlarmEvaluationEvent evt, CancellationToken cancellationToken = default);
     }
 
     public class AlarmHandlerService : IAlarmHandlerService {
         private readonly GpsdataContext _context;
         private readonly ILogger<AlarmHandlerService> _logger;
         private readonly INotificationService _notificationService;
+        private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
 
         public AlarmHandlerService (
             GpsdataContext context,
             ILogger<AlarmHandlerService> logger,
-            INotificationService notificationService) {
+            INotificationService notificationService,
+            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration) {
             _context = context;
             _logger = logger;
             _notificationService = notificationService;
+            _activeAlarmIntegration = activeAlarmIntegration;
         }
 
         public async Task<FMSResponse> ProcessTankMeasurementAlarmsAsync (TankMeasurementDto tankMeasurement, string deviceId, CancellationToken cancellationToken = default) {
@@ -61,56 +72,108 @@ namespace FMS.Application.Services {
                     return FMSResponse.FailedResponse ($"Tank not found for device {deviceId}");
                 }
 
-                // Check for low tank volume alarm
-                if (await ShouldTriggerLowVolumeAlarm (tank, tankMeasurement)) {
-                    var result = await TriggerLowVolumeAlarmAsync (tank, tankMeasurement, cancellationToken);
-                    if (result.IsSuccess)
+                // Determine if dynamic alarm handlers exist for specific types; if so, prefer evaluation engine over legacy direct triggers
+                bool hasDynamicLowLevel = await _context.AlarmHandlers.AnyAsync (h => h.IsActive && h.AlarmType == "TankLevelBelowThreshold", cancellationToken);
+                bool hasDynamicWaterDetected = await _context.AlarmHandlers.AnyAsync (h => h.IsActive && h.AlarmType == "WaterDetected", cancellationToken);
+
+                // Check for low tank volume alarm (legacy path only if no dynamic handler configured)
+                if (!hasDynamicLowLevel && await ShouldTriggerLowVolumeAlarm (tank, tankMeasurement)) {
+                    FMSResponse result = await TriggerLowVolumeAlarmAsync (tank, tankMeasurement, cancellationToken);
+                    if (result.IsSuccess) {
                         alarmsProcessed++;
-                    else
+                    } else {
                         errors.Add ($"Low volume alarm: {result.Message}");
+                    }
                 }
 
-                // Check for high tank volume alarm
+                // High volume alarm still uses legacy path (no dynamic handler type yet)
                 if (await ShouldTriggerHighVolumeAlarm (tank, tankMeasurement)) {
-                    var result = await TriggerHighVolumeAlarmAsync (tank, tankMeasurement, cancellationToken);
-                    if (result.IsSuccess)
+                    FMSResponse result = await TriggerHighVolumeAlarmAsync (tank, tankMeasurement, cancellationToken);
+                    if (result.IsSuccess) {
                         alarmsProcessed++;
-                    else
+                    } else {
                         errors.Add ($"High volume alarm: {result.Message}");
+                    }
                 }
 
-                // Check for water detection alarm
-                if (await ShouldTriggerWaterDetectionAlarm (tank, tankMeasurement)) {
-                    var result = await TriggerWaterDetectionAlarmAsync (tank, tankMeasurement, cancellationToken);
-                    if (result.IsSuccess)
+                // Water detection (legacy path only if no dynamic handler)
+                if (!hasDynamicWaterDetected && await ShouldTriggerWaterDetectionAlarm (tank, tankMeasurement)) {
+                    FMSResponse result = await TriggerWaterDetectionAlarmAsync (tank, tankMeasurement, cancellationToken);
+                    if (result.IsSuccess) {
                         alarmsProcessed++;
-                    else
+                    } else {
                         errors.Add ($"Water detection alarm: {result.Message}");
+                    }
                 }
 
                 // Check for temperature alarm
                 if (await ShouldTriggerTemperatureAlarm (tank, tankMeasurement)) {
-                    var result = await TriggerTemperatureAlarmAsync (tank, tankMeasurement, cancellationToken);
-                    if (result.IsSuccess)
+                    FMSResponse result = await TriggerTemperatureAlarmAsync (tank, tankMeasurement, cancellationToken);
+                    if (result.IsSuccess) {
                         alarmsProcessed++;
-                    else
+                    } else {
                         errors.Add ($"Temperature alarm: {result.Message}");
+                    }
                 }
 
                 // Process specific alarms from the measurement
                 if (tankMeasurement.Alarms?.Any () == true) {
-                    foreach (var alarmName in tankMeasurement.Alarms) {
-                        var result = await ProcessSpecificAlarmAsync (tank, alarmName, tankMeasurement, cancellationToken);
-                        if (result.IsSuccess)
+                    foreach (string alarmName in tankMeasurement.Alarms) {
+                        FMSResponse result = await ProcessSpecificAlarmAsync (tank, alarmName, tankMeasurement, cancellationToken);
+                        if (result.IsSuccess) {
                             alarmsProcessed++;
-                        else
+                        } else {
                             errors.Add ($"Specific alarm {alarmName}: {result.Message}");
+                        }
+                    }
+                }
+
+                // Emit evaluation events for dynamic handlers (percentageFull, waterHeight etc.)
+                decimal? pctFull = null;
+                if (tankMeasurement.ProductVolume.HasValue && tank.TankVolume > 0) {
+                    try { pctFull = (decimal) tankMeasurement.ProductVolume / tank.TankVolume * 100m; } catch { }
+                }
+                if (hasDynamicLowLevel && pctFull.HasValue) {
+                    var evt = new AlarmEvaluationEvent {
+                        AlarmType = "TankLevelBelowThreshold",
+                        SiteId = tank.SiteId,
+                        TankId = tank.Id,
+                        PtsDeviceId = deviceId,
+                        OccurredAtUtc = DateTime.UtcNow,
+                        Data = new Dictionary<string, object?> (StringComparer.OrdinalIgnoreCase) {
+                        ["percentageFull"] = pctFull.Value, ["productVolume"] = tankMeasurement.ProductVolume, ["tankVolume"] = tank.TankVolume
+                        }
+                    };
+                    var evalResult = await EvaluateHandlersAsync (evt, cancellationToken);
+                    if (evalResult.IsSuccess) {
+                        alarmsProcessed += evalResult.Data;
+                    } else {
+                        errors.Add ($"Dynamic low level evaluation: {evalResult.Message}");
+                    }
+                }
+                if (hasDynamicWaterDetected && tankMeasurement.WaterHeight.HasValue) {
+                    var evt = new AlarmEvaluationEvent {
+                        AlarmType = "WaterDetected",
+                        SiteId = tank.SiteId,
+                        TankId = tank.Id,
+                        PtsDeviceId = deviceId,
+                        OccurredAtUtc = DateTime.UtcNow,
+                        Data = new Dictionary<string, object?> (StringComparer.OrdinalIgnoreCase) {
+                        ["waterHeight"] = tankMeasurement.WaterHeight, ["waterVolume"] = tankMeasurement.WaterVolume
+                        }
+                    };
+                    var evalResult = await EvaluateHandlersAsync (evt, cancellationToken);
+                    if (evalResult.IsSuccess) {
+                        alarmsProcessed += evalResult.Data;
+                    } else {
+                        errors.Add ($"Dynamic water evaluation: {evalResult.Message}");
                     }
                 }
 
                 var message = $"Processed {alarmsProcessed} alarms for tank {tank.Name}";
-                if (errors.Any ())
+                if (errors.Any ()) {
                     message += $". Errors: {string.Join(", ", errors)}";
+                }
 
                 _logger.LogInformation ("Processed tank measurement alarms for tank {TankName}: {AlarmsProcessed} alarms, {ErrorCount} errors",
                     tank.Name, alarmsProcessed, errors.Count);
@@ -152,6 +215,22 @@ namespace FMS.Application.Services {
                 };
 
                 var result = await _notificationService.CreateAlarmNotificationAsync (alarmRequest, cancellationToken);
+
+                // Also dispatch dynamic evaluation for DeviceOffline handlers if they exist
+                bool hasDeviceOfflineHandlers = await _context.AlarmHandlers.AnyAsync (h => h.IsActive && h.AlarmType == "DeviceOffline", cancellationToken);
+                if (hasDeviceOfflineHandlers) {
+                    double offlineMinutes = device.LastActivity.HasValue ? (DateTime.UtcNow - device.LastActivity.Value).TotalMinutes : 0;
+                    var evt = new AlarmEvaluationEvent {
+                        AlarmType = "DeviceOffline",
+                        SiteId = device.Site,
+                        PtsDeviceId = device.Ptsid,
+                        OccurredAtUtc = DateTime.UtcNow,
+                        Data = new Dictionary<string, object?> (StringComparer.OrdinalIgnoreCase) {
+                        ["offlineMinutes"] = offlineMinutes, ["lastActivityUtc"] = device.LastActivity
+                        }
+                    };
+                    await EvaluateHandlersAsync (evt, cancellationToken);
+                }
 
                 _logger.LogInformation ("Processed device disconnection alarm for PTS device {DeviceId}", deviceId);
                 return result;
@@ -209,8 +288,9 @@ namespace FMS.Application.Services {
                 await CheckCapacityLimitsAsync (cancellationToken);
 
                 var message = $"Processed {alarmsProcessed} scheduled alarm checks";
-                if (errors.Any ())
+                if (errors.Any ()) {
                     message += $". Errors: {string.Join(", ", errors)}";
+                }
 
                 _logger.LogInformation ("Completed scheduled alarm checks: {AlarmsProcessed} alarms, {ErrorCount} errors",
                     alarmsProcessed, errors.Count);
@@ -283,7 +363,7 @@ namespace FMS.Application.Services {
                 TankNumber = tank.Name, //Cursor: Use Name instead of TankNumber
                 CurrentVolume = measurement.ProductVolume,
                 Capacity = tank.TankVolume, //Cursor: Use TankVolume instead of Capacity
-                PercentageFull = ((decimal) (measurement.ProductVolume ?? 0) / tank.TankVolume) * 100, //Cursor: Handle nullable ProductVolume with cast
+                PercentageFull = (decimal) (measurement.ProductVolume ?? 0) / tank.TankVolume * 100, //Cursor: Handle nullable ProductVolume with cast
                 SiteName = tank.Site?.Name
                 },
                 TriggeredBy = "System",
@@ -304,7 +384,7 @@ namespace FMS.Application.Services {
                 TankNumber = tank.Name, //Cursor: Use Name instead of TankNumber
                 CurrentVolume = measurement.ProductVolume,
                 Capacity = tank.TankVolume, //Cursor: Use TankVolume instead of Capacity
-                PercentageFull = ((decimal) (measurement.ProductVolume ?? 0) / tank.TankVolume) * 100, //Cursor: Handle nullable ProductVolume with cast
+                PercentageFull = (decimal) (measurement.ProductVolume ?? 0) / tank.TankVolume * 100, //Cursor: Handle nullable ProductVolume with cast
                 SiteName = tank.Site?.Name
                 },
                 TriggeredBy = "System",
@@ -372,7 +452,7 @@ namespace FMS.Application.Services {
                 MeasurementData = measurement,
                 SiteName = tank.Site?.Name
                 },
-                TriggeredBy = "System",
+                TriggeredBy = SystemConstants.SystemAdministrator.DisplayName,
                 SiteId = tank.SiteId,
                 TankId = tank.Id
             };
@@ -454,7 +534,7 @@ namespace FMS.Application.Services {
                         .FirstOrDefaultAsync (cancellationToken);
 
                     if (latestMeasurement != null) {
-                        var percentageFull = ((decimal) (latestMeasurement.ProductVolume ?? 0) / tank.TankVolume) * 100; //Cursor: Handle nullable ProductVolume with cast and use TankVolume
+                        var percentageFull = (decimal) (latestMeasurement.ProductVolume ?? 0) / tank.TankVolume * 100; //Cursor: Handle nullable ProductVolume with cast and use TankVolume
 
                         // Check if tank is approaching capacity (90% full)
                         if (percentageFull >= 90) {
@@ -511,28 +591,31 @@ namespace FMS.Application.Services {
         //Cursor: Implementation of PTS alert processing methods
         public async Task<FMSResponse> ProcessPumpAlarmAsync (CreateAlarmNotificationRequest alarmRequest, CancellationToken cancellationToken = default) {
             try {
-            // Process pump-specific alarm logic
-            var createRequest = new CreateNotificationRequest {
-            Type = "Alert",
-            Category = alarmRequest.Category ?? "Pump",
-            Priority = alarmRequest.Priority ?? "Medium",
-            Title = $"Pump Alarm: {alarmRequest.AlarmType}",
-            Message = alarmRequest.Message ?? $"Pump alarm triggered: {alarmRequest.AlarmType}",
-            Data = alarmRequest.Data,
-            TriggerSource = "PTS",
-            TriggeredBy = alarmRequest.TriggeredBy ?? "System",
-            SiteId = alarmRequest.SiteId,
-            //  DeviceId = alarmRequest.DeviceId,
-            AlarmId = alarmRequest.AlarmId,
-            Recipients = new List<CreateNotificationRecipientRequest> ()
+                // Create ActiveAlarm record first
+                var activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromAlarmHandler (
+                    alarmRequest,
+                    alarmRequest.AlarmId ?? 0,
+                    cancellationToken);
+
+                // Process pump-specific alarm logic
+                var createRequest = new CreateNotificationRequest {
+                    Type = Features.Notification.Enums.NotificationType.Alert,
+                    CategoryId = (int) Features.Notification.Enums.WellKnownCategories.PtsDeviceAlarm,
+                    Priority = Features.Notification.Enums.NotificationPriority.Medium,
+                    Title = $"Pump Alarm: {alarmRequest.AlarmType}",
+                    Message = alarmRequest.Message ?? $"Pump alarm triggered: {alarmRequest.AlarmType}",
+                    Data = alarmRequest.Data,
+                    TriggerSource = "PTS",
+                    TriggeredBy = alarmRequest.TriggeredBy ?? "System",
+                    SiteId = alarmRequest.SiteId,
+                    //  DeviceId = alarmRequest.DeviceId,
+                    AlarmId = alarmRequest.AlarmId,
                 };
 
-                // Add default recipients for pump alarms (site managers, maintenance staff)
-                // This would typically be configured per site
                 var result = await _notificationService.CreateNotificationAsync (createRequest, cancellationToken);
 
-                _logger.LogInformation ("Processed pump alarm: {AlarmType}",
-                    alarmRequest.AlarmType);
+                _logger.LogInformation ("Processed pump alarm: {AlarmType}, ActiveAlarm ID: {ActiveAlarmId}",
+                    alarmRequest.AlarmType, activeAlarm?.Id);
 
                 return FMSResponse.SuccessResponse ($"Pump alarm notification created: {alarmRequest.AlarmType}");
             } catch (Exception ex) {
@@ -543,27 +626,32 @@ namespace FMS.Application.Services {
 
         public async Task<FMSResponse> ProcessTankAlarmAsync (CreateAlarmNotificationRequest alarmRequest, CancellationToken cancellationToken = default) {
             try {
-            // Process tank-specific alarm logic
-            var createRequest = new CreateNotificationRequest {
-            Type = "Alert",
-            Category = alarmRequest.Category ?? "Tank",
-            Priority = alarmRequest.Priority ?? "Medium",
-            Title = $"Tank Alarm: {alarmRequest.AlarmType}",
-            Message = alarmRequest.Message ?? $"Tank alarm triggered: {alarmRequest.AlarmType}",
-            Data = alarmRequest.Data,
-            TriggerSource = "PTS",
-            TriggeredBy = alarmRequest.TriggeredBy ?? "System",
-            SiteId = alarmRequest.SiteId,
-            TankId = alarmRequest.TankId,
-            AlarmId = alarmRequest.AlarmId,
-            Recipients = new List<CreateNotificationRecipientRequest> ()
+                // Create ActiveAlarm record first
+                var activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromAlarmHandler (
+                    alarmRequest,
+                    alarmRequest.AlarmId ?? 0,
+                    cancellationToken);
+
+                // Process tank-specific alarm logic
+                var createRequest = new CreateNotificationRequest {
+                    Type = Features.Notification.Enums.NotificationType.Alert,
+                    CategoryId = (int) Features.Notification.Enums.WellKnownCategories.PtsTankAlarm,
+                    Priority = Features.Notification.Enums.NotificationPriority.Medium,
+                    Title = $"Tank Alarm: {alarmRequest.AlarmType}",
+                    Message = alarmRequest.Message ?? $"Tank alarm triggered: {alarmRequest.AlarmType}",
+                    Data = alarmRequest.Data,
+                    TriggerSource = "PTS",
+                    TriggeredBy = alarmRequest.TriggeredBy ?? "System",
+                    SiteId = alarmRequest.SiteId,
+                    TankId = alarmRequest.TankId,
+                    AlarmId = alarmRequest.AlarmId,
                 };
 
                 // Add default recipients for tank alarms
                 var result = await _notificationService.CreateNotificationAsync (createRequest, cancellationToken);
 
-                _logger.LogInformation ("Processed tank alarm: {AlarmType} for tank {TankId}",
-                    alarmRequest.AlarmType, alarmRequest.TankId);
+                _logger.LogInformation ("Processed tank alarm: {AlarmType} for tank {TankId}, ActiveAlarm ID: {ActiveAlarmId}",
+                    alarmRequest.AlarmType, alarmRequest.TankId, activeAlarm?.Id);
 
                 return FMSResponse.SuccessResponse ($"Tank alarm notification created: {alarmRequest.AlarmType}");
             } catch (Exception ex) {
@@ -576,9 +664,9 @@ namespace FMS.Application.Services {
             try {
             // Process device-specific alarm logic
             var createRequest = new CreateNotificationRequest {
-            Type = "Alert",
-            Category = alarmRequest.Category ?? "Device",
-            Priority = alarmRequest.Priority ?? "Medium",
+            Type = Features.Notification.Enums.NotificationType.Alert,
+            CategoryId = (int) Features.Notification.Enums.WellKnownCategories.PtsDeviceAlarm,
+            Priority = Features.Notification.Enums.NotificationPriority.Medium,
             Title = $"Device Alarm: {alarmRequest.AlarmType}",
             Message = alarmRequest.Message ?? $"Device alarm triggered: {alarmRequest.AlarmType}",
             Data = alarmRequest.Data,
@@ -587,7 +675,7 @@ namespace FMS.Application.Services {
             SiteId = alarmRequest.SiteId,
             PtsDeviceId = alarmRequest.PtsDeviceId,
             AlarmId = alarmRequest.AlarmId,
-            Recipients = new List<CreateNotificationRecipientRequest> ()
+
                 };
 
                 // Add default recipients for device alarms
@@ -607,9 +695,9 @@ namespace FMS.Application.Services {
             try {
             // Process generic alarm logic
             var createRequest = new CreateNotificationRequest {
-            Type = "Alert",
-            Category = alarmRequest.Category ?? "General",
-            Priority = alarmRequest.Priority ?? "Medium",
+            Type = Features.Notification.Enums.NotificationType.Alert,
+            CategoryId = (int) Features.Notification.Enums.WellKnownCategories.PtsDeviceAlarm,
+            Priority = Features.Notification.Enums.NotificationPriority.Medium,
             Title = $"Alarm: {alarmRequest.AlarmType}",
             Message = alarmRequest.Message ?? $"Alarm triggered: {alarmRequest.AlarmType}",
             Data = alarmRequest.Data,
@@ -619,8 +707,8 @@ namespace FMS.Application.Services {
             //DeviceId = alarmRequest.DeviceId,
             TankId = alarmRequest.TankId,
             VehicleId = alarmRequest.VehicleId,
-            AlarmId = alarmRequest.AlarmId,
-            Recipients = new List<CreateNotificationRecipientRequest> ()
+            AlarmId = alarmRequest.AlarmId
+
                 };
 
                 // Add default recipients for generic alarms
@@ -635,28 +723,346 @@ namespace FMS.Application.Services {
             }
         }
 
-        public async Task<FMSResponse<List<object>>> GetAlarmHandlersAsync (CancellationToken cancellationToken = default) {
+        public async Task<FMSResponse<List<object>>> GetAlarmHandlersAsync (int? policyId = null, CancellationToken cancellationToken = default) {
             try {
-                var handlers = await _context.AlarmHandlers
-                    .Select (ah => new {
-                        ah.Id,
-                            ah.Name,
-                            ah.AlarmType, //Cursor: Use AlarmType instead of HandlerType
-                            ah.AlarmId,
-                            ah.TriggerConditions, //Cursor: Use TriggerConditions instead of Configuration
-                            ah.IsActive,
-                            ah.Priority,
-                            ah.CreatedAt,
-                            ah.ModifiedAt //Cursor: Use ModifiedAt instead of UpdatedAt
-                    })
-                    .ToListAsync (cancellationToken);
-
-                var result = handlers.Cast<object> ().ToList ();
-                return FMSResponse<List<object>>.Success (result, "Alarm handlers retrieved successfully");
+                var query = _context.AlarmHandlers.AsQueryable ();
+                if (policyId.HasValue) {
+                    query = query.Where (h => h.NotificationPolicyId == policyId.Value);
+                }
+                var handlers = await query.Select (ah => new {
+                    id = ah.Id,
+                        name = ah.Name,
+                        type = ah.AlarmType,
+                        alarmId = ah.AlarmId,
+                        config = ah.TriggerConditions,
+                        isActive = ah.IsActive,
+                        priority = ah.Priority,
+                        cooldownMinutes = ah.CooldownMinutes,
+                        maxNotificationsPerDay = ah.MaxNotificationsPerDay,
+                        policyId = ah.NotificationPolicyId,
+                        createdAt = ah.CreatedAt,
+                        modifiedAt = ah.ModifiedAt
+                }).ToListAsync (cancellationToken);
+                return FMSResponse<List<object>>.Success (handlers.Cast<object> ().ToList (), "Alarm handlers retrieved successfully");
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error retrieving alarm handlers");
-                return FMSResponse<List<object>>.Failed ($"Error retrieving alarm handlers: {ex.Message}"); //Cursor: Use generic Failed method
+                return FMSResponse<List<object>>.Failed ($"Error retrieving alarm handlers: {ex.Message}");
             }
+        }
+
+        public async Task<FMSResponse<int>> CreateAlarmHandlerAsync (CreateAlarmHandlerRequestDto request, string createdBy, CancellationToken cancellationToken = default) {
+            try {
+                if (string.IsNullOrWhiteSpace (request.AlarmType)) {
+                    return FMSResponse<int>.Failed ("AlarmType is required");
+                }
+                var policy = await _context.NotificationPolicies.FirstOrDefaultAsync (p => p.Id == request.NotificationPolicyId, cancellationToken);
+                if (policy == null) {
+                    return FMSResponse<int>.Failed ("Notification policy not found");
+                }
+                var entity = new AlarmHandler {
+                    NotificationPolicyId = request.NotificationPolicyId,
+                    AlarmType = request.AlarmType,
+                    Name = string.IsNullOrWhiteSpace (request.Name) ? request.AlarmType : request.Name!,
+                    Description = request.Description,
+                    TriggerConditions = request.TriggerConfig != null ? JsonConvert.SerializeObject (request.TriggerConfig) : null,
+                    IsActive = request.IsActive,
+                    Priority = string.IsNullOrWhiteSpace (request.Priority) ? policy.Priority : request.Priority!,
+                    SiteId = request.SiteId,
+                    TankId = request.TankId,
+                    DeviceId = request.DeviceId,
+                    CooldownMinutes = request.CooldownMinutes,
+                    MaxNotificationsPerDay = request.MaxNotificationsPerDay,
+                    CreatedBy = createdBy
+                };
+                _context.AlarmHandlers.Add (entity);
+                await _context.SaveChangesAsync (cancellationToken);
+                _logger.LogInformation ("Alarm handler created {Id} for policy {PolicyId}", entity.Id, entity.NotificationPolicyId);
+                return FMSResponse<int>.Success (entity.Id, "Alarm handler created");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error creating alarm handler");
+                return FMSResponse<int>.Failed ($"Error creating alarm handler: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse> UpdateAlarmHandlerAsync (int id, UpdateAlarmHandlerRequestDto request, string modifiedBy, CancellationToken cancellationToken = default) {
+            try {
+                var entity = await _context.AlarmHandlers.FirstOrDefaultAsync (h => h.Id == id, cancellationToken);
+                if (entity == null) {
+                    return FMSResponse.FailedResponse ("Alarm handler not found");
+                }
+                if (request.Name != null) { entity.Name = request.Name; }
+                if (request.Description != null) { entity.Description = request.Description; }
+                if (request.IsActive.HasValue) { entity.IsActive = request.IsActive.Value; }
+                if (request.TriggerConfig != null) { entity.TriggerConditions = JsonConvert.SerializeObject (request.TriggerConfig); }
+                if (request.Priority != null) { entity.Priority = request.Priority; }
+                if (request.CooldownMinutes.HasValue) { entity.CooldownMinutes = request.CooldownMinutes.Value; }
+                if (request.MaxNotificationsPerDay.HasValue) { entity.MaxNotificationsPerDay = request.MaxNotificationsPerDay.Value; }
+                entity.ModifiedBy = modifiedBy;
+                entity.ModifiedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync (cancellationToken);
+                _logger.LogInformation ("Alarm handler {Id} updated", id);
+                return FMSResponse.SuccessResponse ("Alarm handler updated");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error updating alarm handler {Id}", id);
+                return FMSResponse.FailedResponse ($"Error updating alarm handler: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse> DeleteAlarmHandlerAsync (int id, CancellationToken cancellationToken = default) {
+            try {
+                var entity = await _context.AlarmHandlers.FirstOrDefaultAsync (h => h.Id == id, cancellationToken);
+                if (entity == null) {
+                    return FMSResponse.FailedResponse ("Alarm handler not found");
+                }
+                _context.AlarmHandlers.Remove (entity);
+                await _context.SaveChangesAsync (cancellationToken);
+                _logger.LogInformation ("Alarm handler {Id} deleted", id);
+                return FMSResponse.SuccessResponse ("Alarm handler deleted");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error deleting alarm handler {Id}", id);
+                return FMSResponse.FailedResponse ($"Error deleting alarm handler: {ex.Message}");
+            }
+        }
+
+        public Task<FMSResponse<List<AlarmHandlerTypeMetadataDto>>> GetAlarmHandlerTypesAsync (int? categoryId = null, CancellationToken cancellationToken = default) {
+            var list = new List<AlarmHandlerTypeMetadataDto> {
+            new () {
+            Type = "TankLevelBelowThreshold",
+            Label = "Tank Level Below Threshold",
+            Description = "Triggers when a tank level percentage is below a configured threshold.",
+            Fields = new () {
+            new () { Name = "threshold", Label = "Threshold", FieldType = "number", Unit = "%", Required = true, DefaultValue = 10 },
+            new () { Name = "hysteresis", Label = "Hysteresis", FieldType = "number", Unit = "%", Required = false, DefaultValue = 1 }
+            }
+            },
+            new () {
+            Type = "WaterDetected",
+            Label = "Water Detected",
+            Description = "Triggers when water height is above a threshold.",
+            Fields = new () {
+            new () { Name = "sustainedForMinutes", Label = "Sustained For (min)", FieldType = "number", Required = false, DefaultValue = 5 }
+            }
+            },
+            new () {
+            Type = "DeviceOffline",
+            Label = "Device Offline",
+            Description = "Triggers when a device has been offline for a specified duration.",
+            Fields = new () {
+            new () { Name = "offlineDurationMinutes", Label = "Offline Duration (min)", FieldType = "number", Required = true, DefaultValue = 30 }
+            }
+            }
+            };
+            return Task.FromResult (FMSResponse<List<AlarmHandlerTypeMetadataDto>>.Success (list, "Alarm handler types retrieved"));
+        }
+
+        /// <summary>
+        /// Core evaluation engine: finds applicable handlers, evaluates trigger conditions, enforces cooldown & daily caps, and emits notifications.
+        /// Trigger conditions JSON is expected to be a flat object of simple comparisons, e.g. {"threshold":10,"operator":"lt","field":"percentageFull"} OR
+        /// more generic multi-field form: {"rules":[{"field":"temperature","op":">","value":50}]} . Minimal implementation – extend as needed.
+        /// </summary>
+        public async Task<FMSResponse<int>> EvaluateHandlersAsync (AlarmEvaluationEvent evt, CancellationToken cancellationToken = default) {
+            try {
+                var now = DateTime.UtcNow;
+                // Load active handlers filtered by type + context scoping (site/tank/device) + active policy
+                var handlersQuery = _context.AlarmHandlers
+                    .Include (h => h.NotificationPolicy)
+                    .Where (h => h.IsActive && h.NotificationPolicy.IsActive && h.AlarmType == evt.AlarmType);
+                if (evt.SiteId.HasValue) { handlersQuery = handlersQuery.Where (h => h.SiteId == null || h.SiteId == evt.SiteId); }
+                if (evt.TankId.HasValue) { handlersQuery = handlersQuery.Where (h => h.TankId == null || h.TankId == evt.TankId); }
+                if (evt.DeviceId.HasValue) { handlersQuery = handlersQuery.Where (h => h.DeviceId == null || h.DeviceId == evt.DeviceId); }
+
+                var handlers = await handlersQuery.ToListAsync (cancellationToken);
+                if (handlers.Count == 0) { return FMSResponse<int>.Success (0, "No matching handlers"); }
+
+                int created = 0;
+                var errors = new List<string> ();
+                foreach (var h in handlers) {
+                    try {
+                        if (!PassesCooldown (h, now)) { continue; }
+                        if (!PassesDailyCap (h, now)) { continue; }
+                        if (!EvaluateTriggerConditions (h.TriggerConditions, evt)) { continue; }
+
+                        // Build notification from policy + handler context
+                        var policy = h.NotificationPolicy;
+                        var title = h.MessageTemplate ?? policy.TitleTemplate ?? $"{evt.AlarmType} triggered";
+                        var message = policy.MessageTemplate ?? h.Description ?? $"Alarm {evt.AlarmType} matched conditions";
+                        var request = new CreateNotificationRequest {
+                            Type = Enum.TryParse<Features.Notification.Enums.NotificationType> (policy.NotificationType, true, out var nt) ? nt : Features.Notification.Enums.NotificationType.Alert,
+                            CategoryId = policy.NotificationCategoryId,
+                            Priority = Enum.TryParse<Features.Notification.Enums.NotificationPriority> (h.Priority, true, out var pr) ? pr : Features.Notification.Enums.NotificationPriority.Medium,
+                            Title = title,
+                            Message = message,
+                            TriggerSource = "AlarmHandler",
+                            TriggeredBy = "System",
+                            SiteId = evt.SiteId ?? h.SiteId,
+                            TankId = evt.TankId ?? h.TankId,
+                            PtsDeviceId = evt.PtsDeviceId,
+                            VehicleId = null,
+                            Data = new {
+                            handlerId = h.Id,
+                            evt.AlarmType,
+                            evt.OccurredAtUtc,
+                            telemetry = evt.Data,
+                            handlerTrigger = h.TriggerConditions
+                            }
+                        };
+                        var result = await _notificationService.CreateNotificationAsync (request, cancellationToken);
+                        // Track execution record
+                        _context.AlarmHandlerExecutions.Add (new AlarmHandlerExecution {
+                            AlarmHandlerId = h.Id,
+                                NotificationId = result.IsSuccess ? result.Data : null,
+                                Success = result.IsSuccess,
+                                ErrorMessage = result.IsSuccess ? null : result.Message,
+                                TriggerData = JsonConvert.SerializeObject (evt),
+                                ExecutionDetails = result.Message,
+                                ExecutedAt = now
+                        });
+                        if (result.IsSuccess) {
+                            h.TriggerCount += 1;
+                            h.LastTriggeredAt = now;
+                            created++;
+                        } else {
+                            errors.Add ($"Handler {h.Id}: {result.Message}");
+                        }
+                    } catch (Exception exEval) {
+                        errors.Add ($"Handler {h.Id} exception: {exEval.Message}");
+                        _context.AlarmHandlerExecutions.Add (new AlarmHandlerExecution {
+                            AlarmHandlerId = h.Id,
+                                Success = false,
+                                ErrorMessage = exEval.Message,
+                                TriggerData = JsonConvert.SerializeObject (evt),
+                                ExecutedAt = now
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync (cancellationToken);
+                var msg = $"Created {created} notifications for {evt.AlarmType}" + (errors.Count > 0 ? $"; errors: {string.Join("; ", errors)}" : string.Empty);
+                if (errors.Count == 0) {
+                    return FMSResponse<int>.Success (created, msg);
+                }
+                return new FMSResponse<int> (false, msg, created);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error evaluating alarm handlers for {AlarmType}", evt.AlarmType);
+                return FMSResponse<int>.Failed ($"Evaluation failed: {ex.Message}");
+            }
+        }
+
+        private bool PassesCooldown (AlarmHandler handler, DateTime now) {
+            if (handler.CooldownMinutes <= 0 || handler.LastTriggeredAt == null) {
+                return true;
+            }
+            return (now - handler.LastTriggeredAt.Value).TotalMinutes >= handler.CooldownMinutes;
+        }
+
+        private bool PassesDailyCap (AlarmHandler handler, DateTime now) {
+            if (handler.MaxNotificationsPerDay <= 0) {
+                return true;
+            }
+            // Approximation: count executions today. Could optimize with cached counter.
+            DateTime today = now.Date;
+            int countToday = _context.AlarmHandlerExecutions.Count (e => e.AlarmHandlerId == handler.Id && e.ExecutedAt >= today);
+            return countToday < handler.MaxNotificationsPerDay;
+        }
+
+        private bool EvaluateTriggerConditions (string? json, Features.Notification.DTOs.AlarmHandlers.AlarmEvaluationEvent evt) {
+            if (string.IsNullOrWhiteSpace (json)) {
+                return true; // no condition = always match
+            }
+            try {
+                Newtonsoft.Json.Linq.JToken node = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JToken> (json);
+                if (node == null) {
+                    return true;
+                }
+                // Specialized fast-paths based on AlarmType & known config schemas
+                if (evt.AlarmType == "TankLevelBelowThreshold" && node.Type == Newtonsoft.Json.Linq.JTokenType.Object) {
+                    var thresholdToken = ((Newtonsoft.Json.Linq.JObject) node) ["threshold"];
+                    if (thresholdToken != null && evt.Data.TryGetValue ("percentageFull", out object pctObj) && TryAsDecimal (pctObj, out var pct) && TryAsDecimal (thresholdToken, out var thresholdVal)) {
+                        // optional hysteresis: only fire when below threshold (threshold) and not above threshold + hysteresis
+                        decimal hysteresis = 0;
+                        var hysteresisToken = ((Newtonsoft.Json.Linq.JObject) node) ["hysteresis"];
+                        if (hysteresisToken != null && TryAsDecimal (hysteresisToken, out var hVal)) { hysteresis = hVal; }
+                        return pct <= thresholdVal; // hysteresis handling on reset handled by cooldown logic for simplicity
+                    }
+                }
+                if (evt.AlarmType == "WaterDetected" && node.Type == Newtonsoft.Json.Linq.JTokenType.Object) {
+                    // Any waterHeight > 0 qualifies; sustainedForMinutes not implemented yet
+                    if (evt.Data.TryGetValue ("waterHeight", out object waterObj) && TryAsDecimal (waterObj, out var wh)) {
+                        return wh > 0;
+                    }
+                }
+                if (evt.AlarmType == "DeviceOffline" && node.Type == Newtonsoft.Json.Linq.JTokenType.Object) {
+                    var offlineDurToken = ((Newtonsoft.Json.Linq.JObject) node) ["offlineDurationMinutes"];
+                    if (offlineDurToken != null && evt.Data.TryGetValue ("offlineMinutes", out object offlineObj) && TryAsDecimal (offlineObj, out var offlineMins) && TryAsDecimal (offlineDurToken, out var cfgMins)) {
+                        return offlineMins >= cfgMins;
+                    }
+                }
+                // Support simplified schema: {"field":"temperature","operator":"gt","value":50}
+                if (node.Type == Newtonsoft.Json.Linq.JTokenType.Object) {
+                    Newtonsoft.Json.Linq.JObject obj = (Newtonsoft.Json.Linq.JObject) node;
+                    if (obj.TryGetValue ("rules", out Newtonsoft.Json.Linq.JToken rulesToken) && rulesToken is Newtonsoft.Json.Linq.JArray arr) {
+                        foreach (Newtonsoft.Json.Linq.JToken r in arr) {
+                            if (!EvaluateSingleRule (r as Newtonsoft.Json.Linq.JObject, evt)) {
+                                return false; // AND semantics
+                            }
+                        }
+                        return true;
+                    }
+                    return EvaluateSingleRule (obj, evt);
+                }
+                return true;
+            } catch (Exception ex) {
+                _logger.LogWarning (ex, "Failed to parse trigger conditions; defaulting to match");
+                return true; // fail open to avoid missing alerts
+            }
+        }
+
+        private bool EvaluateSingleRule (Newtonsoft.Json.Linq.JObject? rule, Features.Notification.DTOs.AlarmHandlers.AlarmEvaluationEvent evt) {
+            if (rule == null) { return true; }
+            var field = rule.Value<string> ("field") ?? rule.Value<string> ("Field") ?? rule.Properties ().FirstOrDefault (p => p.Name.Equals ("threshold", StringComparison.OrdinalIgnoreCase))?.Name;
+            if (string.IsNullOrWhiteSpace (field)) {
+                return true;
+            }
+            if (!evt.Data.TryGetValue (field, out object raw)) {
+                return false;
+            }
+            string op = rule.Value<string> ("operator") ?? rule.Value<string> ("op") ?? "eq";
+            Newtonsoft.Json.Linq.JToken valueToken = rule["value"] ?? rule[field];
+            object expected = valueToken?.ToObject<object> ();
+            // numeric comparison if both numeric
+            if (TryAsDecimal (raw, out decimal actualNum) && TryAsDecimal (expected, out decimal expectedNum)) {
+                return op.ToLowerInvariant () switch {
+                    ">"
+                    or "gt" => actualNum > expectedNum,
+                        ">="
+                    or "gte" => actualNum >= expectedNum,
+                        "<"
+                    or "lt" => actualNum < expectedNum,
+                        "<="
+                    or "lte" => actualNum <= expectedNum,
+                        "!="
+                    or "ne" => actualNum != expectedNum,
+                        _ => actualNum == expectedNum
+                };
+            }
+            // string equality fallback
+            string actualStr = raw?.ToString ();
+            string expectedStr = expected?.ToString ();
+            return op.ToLowerInvariant () switch {
+                "!="
+                or "ne" => !string.Equals (actualStr, expectedStr, StringComparison.OrdinalIgnoreCase),
+                    _ => string.Equals (actualStr, expectedStr, StringComparison.OrdinalIgnoreCase)
+            };
+        }
+
+        private bool TryAsDecimal (object? v, out decimal d) {
+            if (v is decimal dec) { d = dec; return true; }
+            if (v is double db) { d = (decimal) db; return true; }
+            if (v is float fl) { d = (decimal) fl; return true; }
+            if (v is int i) { d = i; return true; }
+            if (v is long l) { d = l; return true; }
+            if (v is string s && decimal.TryParse (s, out var parsed)) { d = parsed; return true; }
+            d = 0;
+            return false;
         }
     }
 }

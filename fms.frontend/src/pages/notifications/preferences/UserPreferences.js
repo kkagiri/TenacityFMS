@@ -1,30 +1,38 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSelector } from 'react-redux';
 import { Button, LoadPanel } from "devextreme-react";
 import { confirm } from "devextreme/ui/dialog";
-import notificationPreferencesApi from "../../../api/notificationPreferencesApi";
-import NotificationCategoryCard from "./NotificationCategoryCard";
+import notificationPreferencesApi from "../../../dataservice/notificationPreferencesApi";
+import notify from 'devextreme/ui/notify';
+import PreferencesTable from "./PreferencesTable";
+import ErrorBoundary from "./ErrorBoundary";
 import "./UserPreferences.scss";
 
 const UserPreferences = () => {
   // Get current user ID from localStorage or context
-  const getCurrentUserId = () => {
-    // This would typically come from your authentication context
-    return localStorage.getItem("userId") || "current-user";
-  };
 
-  const [userId] = useState(getCurrentUserId());
+
   const [preferences, setPreferences] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Distinguish between initial page load (can show blocking panel) and subsequent silent refreshes
+  const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [errors, setErrors] = useState({});
+  // NOTE: Previous attempt used a reloading flag to fully unmount/remount the table after save
+  // to avoid a DevExtreme disposal race that threw NotFoundError (removeChild). That approach
+  // itself can trigger the race when unmounting during synchronous DevExtreme layout work.
+  // We now use a lightweight, deferred in-place data refresh instead of hard unmount.
+  const user = useSelector((state) => state.auth?.user);
+
+  // Resolve userId from redux user, falling back to localStorage placeholder
+  const userId = (user && (user.id || user.Id)) || localStorage.getItem('userId') || '';
 
   // Default preference template
   const createDefaultPreference = useCallback((category) => ({
     id: null,
     userId: userId,
-    notificationCategory: category.id,
+    notificationCategoryId: category.id,
     deliveryMethods: ["System"],
     isEnabled: true,
     priority: "Medium",
@@ -37,8 +45,11 @@ const UserPreferences = () => {
   }), [userId]);
 
   // Load initial data
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (opts = { silent: false }) => {
+    const { silent } = opts;
+    if (!silent) {
+      setInitialLoading(true);
+    }
     try {
       // Load categories and user preferences in parallel
       const [categoriesResult, preferencesResult] = await Promise.all([
@@ -52,7 +63,10 @@ const UserPreferences = () => {
         // Create preferences map for easier lookup
         const existingPreferences = preferencesResult.isSuccess ? preferencesResult.data : [];
         const preferencesMap = new Map(
-          existingPreferences.map(pref => [pref.notificationCategory, pref])
+          existingPreferences.map(pref => [pref.notificationCategoryId ?? pref.notificationCategory, {
+            ...pref,
+            notificationCategoryId: pref.notificationCategoryId ?? pref.notificationCategory
+          }])
         );
 
         // Create complete preferences list with defaults for missing categories
@@ -82,20 +96,23 @@ const UserPreferences = () => {
       setCategories([]);
       setPreferences([]);
     } finally {
-      setLoading(false);
+  if (!silent) setInitialLoading(false);
     }
   }, [createDefaultPreference]);
 
-  // Load data on component mount
+  // Track mounted state to avoid setState after unmount
+  const isMountedRef = useRef(false);
   useEffect(() => {
-    loadData();
+    isMountedRef.current = true;
+  loadData();
+    return () => { isMountedRef.current = false; };
   }, [loadData]);
 
   // Handle preference updates
   const handlePreferenceChange = useCallback((categoryId, field, value) => {
     setPreferences(prev =>
       prev.map(pref =>
-        pref.notificationCategory === categoryId
+  (pref.notificationCategoryId === categoryId)
           ? { ...pref, [field]: value }
           : pref
       )
@@ -120,11 +137,15 @@ const UserPreferences = () => {
     preferences.forEach(preference => {
       const result = notificationPreferencesApi.validatePreference(preference);
       if (!result.isValid) {
-        result.errors.forEach(error => {
-          const key = `${preference.notificationCategory}_general`;
-          validationErrors[key] = error;
-          isValid = false;
-        });
+        // Filter out category required error if category id exists (auto-provisioned)
+        const filteredErrors = result.errors.filter(e => !(e.includes('Notification category is required') && (preference.notificationCategoryId ?? preference.notificationCategory)));
+        if (filteredErrors.length > 0) {
+          filteredErrors.forEach(error => {
+            const key = `${preference.notificationCategoryId}_general`;
+            validationErrors[key] = error;
+            isValid = false;
+          });
+        }
       }
     });
 
@@ -142,21 +163,33 @@ const UserPreferences = () => {
     try {
       // Convert deliveryMethods arrays to comma-separated strings for backend
       const preferencesToSave = preferences.map(pref => ({
-        ...pref,
-        deliveryMethods: Array.isArray(pref.deliveryMethods)
-          ? pref.deliveryMethods.join(',')
-          : pref.deliveryMethods,
-        updatedBy: userId
+        id: pref.id,
+        notificationCategoryId: pref.notificationCategoryId,
+        deliveryMethods: Array.isArray(pref.deliveryMethods) ? pref.deliveryMethods : (pref.deliveryMethods ? String(pref.deliveryMethods).split(',') : ["System"]),
+        isEnabled: pref.isEnabled,
+        priority: pref.priority,
+        quietHoursStart: pref.quietHoursStart,
+        quietHoursEnd: pref.quietHoursEnd,
+        maxNotificationsPerHour: pref.maxNotificationsPerHour,
+        maxNotificationsPerDay: pref.maxNotificationsPerDay,
+        requireAcknowledgment: pref.requireAcknowledgment
       }));
 
-      const result = await notificationPreferencesApi.bulkUpdatePreferences(userId, preferencesToSave);
+  const effectiveUserId = userId || 'unknown-user';
+  const result = await notificationPreferencesApi.bulkUpdatePreferences(effectiveUserId, preferencesToSave);
 
       if (result.isSuccess) {
-        setHasChanges(false);
-        console.log("Preferences saved successfully");
-
-        // Reload data to get updated IDs for new preferences
-        await loadData();
+        if (!isMountedRef.current) return;
+  setHasChanges(false);
+  const backendMsg = result?.data?.message || result?.message;
+  // Try to surface created/updated counts if present in backend message
+  notify(backendMsg || 'Notification preferences saved', 'success', 3000);
+  console.log("Preferences saved successfully");
+        // Defer reload to the next tick so DevExtreme event handlers finish before React diffs
+        setTimeout(async () => {
+          if (!isMountedRef.current) return;
+          await loadData({ silent: true });
+        }, 0); // next tick
       } else {
         console.error("Failed to save preferences:", result.message);
       }
@@ -177,7 +210,7 @@ const UserPreferences = () => {
     }
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="user-preferences-container">
         <LoadPanel visible={true} message="Loading notification preferences..." />
@@ -206,24 +239,14 @@ const UserPreferences = () => {
             <p className="tw-text-gray-500">No notification categories available</p>
           </div>
         ) : (
-          <div className="categories-grid">
-            {categories.map(category => {
-              const preference = preferences.find(p => p.notificationCategory === category.id);
-              const categoryErrors = Object.keys(errors)
-                .filter(key => key.startsWith(`${category.id}_`))
-                .map(key => errors[key]);
-
-              return (
-                <NotificationCategoryCard
-                  key={category.id}
-                  category={category}
-                  preference={preference}
-                  errors={categoryErrors}
-                  onChange={handlePreferenceChange}
-                />
-              );
-            })}
-          </div>
+          <ErrorBoundary onRetry={loadData}>
+            <PreferencesTable
+              preferences={preferences}
+              categories={categories}
+              onChange={handlePreferenceChange}
+              errors={errors}
+            />
+          </ErrorBoundary>
         )}
       </div>
 
@@ -239,16 +262,13 @@ const UserPreferences = () => {
           />
           <div className="save-buttons">
             <Button
-              text="Save Preferences"
+              text={saving ? 'Saving...' : 'Save Preferences'}
               stylingMode="contained"
               type="default"
               onClick={handleSave}
               disabled={saving || !hasChanges}
               className="save-button"
-            >
-              {saving && <i className="fa-light fa-spinner fa-spin tw-mr-2"></i>}
-              Save Preferences
-            </Button>
+            />
           </div>
         </div>
 
@@ -260,7 +280,7 @@ const UserPreferences = () => {
         )}
       </div>
 
-      <LoadPanel visible={saving} message="Saving preferences..." />
+  <LoadPanel visible={saving} message="Saving preferences..." />
     </div>
   );
 };

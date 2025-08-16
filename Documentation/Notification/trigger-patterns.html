@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Trigger Patterns - FMS</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+        h1, h2, h3 { color: #333; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .pattern-section { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; border-radius: 5px; }
+        .flow-diagram { background-color: #eee; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; }
+        .trigger-example { background-color: #e8f5e8; padding: 10px; border-left: 4px solid #28a745; margin: 10px 0; }
+        .service-list { list-style-type: disc; margin-left: 20px; }
+        .condition-type { font-weight: bold; color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>Notification Trigger Patterns</h1>
+    <p><a href="index.html">Back to Main Documentation</a></p>
+
+    <h2>Overview</h2>
+    <p>The FMS notification system follows a <strong>condition-driven pattern</strong> where notifications are primarily triggered by specific events or conditions being met. This document outlines the primary trigger patterns and their implementations.</p>
+
+    <div class="flow-diagram">
+        <strong>Primary Flow:</strong><br>
+        Condition Met → AlarmHandlerService/BackgroundService → CreateNotificationRequest → NotificationService → Recipients Resolution → Delivery
+    </div>
+
+    <h2>Primary Trigger Patterns</h2>
+
+    <div class="pattern-section">
+        <h3>1. Alarm-Based Triggers (Most Common)</h3>
+        <p>These are the most frequent notification triggers in the system, monitoring critical operational conditions.</p>
+
+        <h4>Tank Level Conditions</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">Low Volume Alarms:</span> Triggered when tank product volume falls below defined thresholds</li>
+            <li><span class="condition-type">High Volume Alarms:</span> Triggered when tank reaches maximum capacity limits</li>
+            <li><span class="condition-type">Water Detection:</span> Alerts when water contamination is detected in fuel tanks</li>
+            <li><span class="condition-type">Temperature Anomalies:</span> Notifications for abnormal temperature readings</li>
+        </ul>
+
+        <div class="trigger-example">
+            <strong>Example Implementation:</strong><br>
+            <code>AlarmHandlerService.TriggerLowVolumeAlarmAsync()</code><br>
+            Condition: <code>tank.ProductVolume < tank.LowVolumeThreshold</code><br>
+            Result: Creates alarm notification with tank details and site information
+        </div>
+
+        <h4>Device Alarms</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">PTS Device Failures:</span> Point-of-sale terminal malfunctions or communication errors</li>
+            <li><span class="condition-type">Pump Issues:</span> Fuel dispenser operational problems</li>
+            <li><span class="condition-type">Probe Malfunctions:</span> Tank monitoring equipment failures</li>
+        </ul>
+
+        <div class="trigger-example">
+            <strong>Example Implementation:</strong><br>
+            <code>NotificationService.CreatePTSAlarmNotificationAsync()</code><br>
+            Condition: PTS device communication timeout or error response<br>
+            Result: Device-specific alarm with location and error details
+        </div>
+
+        <h4>Policy-Based Alarms</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">Configurable Thresholds:</span> User-defined conditions using AlarmHandlers</li>
+            <li><span class="condition-type">Cooldown Management:</span> Prevents notification spam with configurable intervals</li>
+            <li><span class="condition-type">Daily Limits:</span> Maximum notifications per day per handler</li>
+            <li><span class="condition-type">Site/Tank Scoping:</span> Conditions applied to specific locations or equipment</li>
+        </ul>
+
+        <div class="trigger-example">
+            <strong>Example Implementation:</strong><br>
+            <code>AlarmHandlerService.ProcessGenericAlarmAsync()</code><br>
+            Condition: <code>EvaluateTriggerConditions(handler.TriggerConditions, event)</code><br>
+            Result: Policy-defined notification with template-based messaging
+        </div>
+    </div>
+
+    <div class="pattern-section">
+        <h3>2. Background Service Triggers</h3>
+        <p>Automated monitoring services that continuously check system health and operational status.</p>
+
+        <h4>System Health Monitoring</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">Service Failures:</span> Background service startup/shutdown notifications</li>
+            <li><span class="condition-type">Configuration Errors:</span> Invalid service configurations or missing dependencies</li>
+            <li><span class="condition-type">Health Checks:</span> Periodic system health verification failures</li>
+        </ul>
+
+        <div class="trigger-example">
+            <strong>Example Services:</strong><br>
+            • <code>PolicyTriggerBackgroundService</code> - Redis event processing<br>
+            • <code>NotificationBackgroundService</code> - Scheduled notification processing<br>
+            • <code>AutomatedReconciliationBackgroundService</code> - Data consistency checks
+        </div>
+
+        <h4>Reconciliation Issues</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">High Failure Rates:</span> When reconciliation processes fail above threshold (≥50%)</li>
+            <li><span class="condition-type">Data Discrepancies:</span> Inconsistencies found during automated checks</li>
+            <li><span class="condition-type">Processing Errors:</span> Failures in background data processing tasks</li>
+        </ul>
+
+        <div class="trigger-example">
+            <strong>Example Implementation:</strong><br>
+            <code>AutomatedReconciliationBackgroundService.SendSystemHealthNotificationIfNeeded()</code><br>
+            Condition: <code>failureRate >= 0.5 && processedPolicies > 0</code><br>
+            Result: High-priority system health alert
+        </div>
+
+        <h4>Scheduled Checks</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">Automated Monitoring Cycles:</span> Regular system checks (every 1-5 minutes)</li>
+            <li><span class="condition-type">Maintenance Windows:</span> Scheduled maintenance and update notifications</li>
+            <li><span class="condition-type">Periodic Reports:</span> Scheduled summary notifications</li>
+        </ul>
+    </div>
+
+    <div class="pattern-section">
+        <h3>3. Business Logic Triggers</h3>
+        <p>Notifications triggered by specific business process events and validation failures.</p>
+
+        <h4>Issue Tracker Events</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">Problem Escalations:</span> Issues requiring management attention</li>
+            <li><span class="condition-type">Status Changes:</span> Updates to issue resolution progress</li>
+            <li><span class="condition-type">Assignment Changes:</span> Issue ownership transfers</li>
+        </ul>
+
+        <div class="trigger-example">
+            <strong>Example Implementation:</strong><br>
+            <code>NotificationService.CreateIssueTrackerNotificationAsync()</code><br>
+            Condition: Issue status change or escalation trigger<br>
+            Result: Stakeholder notification with issue details and actions required
+        </div>
+
+        <h4>Data Validation</h4>
+        <ul class="service-list">
+            <li><span class="condition-type">Invalid Configurations:</span> System setup or parameter validation failures</li>
+            <li><span class="condition-type">Missing Data:</span> Required information not provided or corrupted</li>
+            <li><span class="condition-type">Compliance Violations:</span> Regulatory or business rule violations</li>
+        </ul>
+    </div>
+
+    <h2>Notification Creation Flow</h2>
+    <div class="flow-diagram">
+        <strong>Detailed Trigger Flow:</strong><br><br>
+        1. <strong>Condition Detection</strong><br>
+           ├── Tank measurement ingestion<br>
+           ├── Device status monitoring<br>
+           ├── Background service health checks<br>
+           └── Business process validation<br><br>
+        2. <strong>Trigger Evaluation</strong><br>
+           ├── AlarmHandlerService.EvaluateTriggerConditions()<br>
+           ├── Policy matching (site, tank, device scope)<br>
+           ├── Cooldown period checking<br>
+           └── Daily limit validation<br><br>
+        3. <strong>Notification Creation</strong><br>
+           ├── CreateNotificationRequest assembly<br>
+           ├── Template message formatting<br>
+           ├── Priority assignment<br>
+           └── Metadata collection<br><br>
+        4. <strong>Recipient Resolution</strong><br>
+           ├── Policy-based recipients<br>
+           ├── Site administrator lookup<br>
+           ├── User subscription preferences<br>
+           └── Fallback recipient handling<br><br>
+        5. <strong>Delivery Processing</strong><br>
+           ├── Multi-channel delivery (Email, SMS, System)<br>
+           ├── Delivery status tracking<br>
+           ├── Real-time SignalR notifications<br>
+           └── Audit trail creation
+    </div>
+
+    <h2>Configuration and Customization</h2>
+
+    <h3>AlarmHandler Configuration</h3>
+    <p>The system uses AlarmHandlers to define configurable trigger conditions:</p>
+    <ul class="service-list">
+        <li><strong>TriggerConditions:</strong> JSON configuration defining when to trigger</li>
+        <li><strong>Scope Filtering:</strong> Site, Tank, or Device-specific conditions</li>
+        <li><strong>Rate Limiting:</strong> Cooldown periods and daily notification caps</li>
+        <li><strong>Message Templates:</strong> Customizable notification content</li>
+        <li><strong>Priority Levels:</strong> Critical, High, Medium, Low priorities</li>
+    </ul>
+
+    <h3>Notification Policies</h3>
+    <p>Policies control how notifications are processed and delivered:</p>
+    <ul class="service-list">
+        <li><strong>Channel Configuration:</strong> Enable/disable Email, SMS, System notifications</li>
+        <li><strong>Recipient Groups:</strong> Define who receives specific notification types</li>
+        <li><strong>Delivery Preferences:</strong> User-specific notification settings</li>
+        <li><strong>Escalation Rules:</strong> Automatic escalation for unacknowledged critical alerts</li>
+    </ul>
+
+    <h2>Integration Points</h2>
+    <p>Key services and components involved in the trigger system:</p>
+    <ul class="service-list">
+        <li><strong>AlarmHandlerService:</strong> Primary alarm condition evaluation</li>
+        <li><strong>NotificationService:</strong> Central notification creation and management</li>
+        <li><strong>NotificationRecipientResolver:</strong> Dynamic recipient determination</li>
+        <li><strong>Background Services:</strong> Automated monitoring and health checks</li>
+        <li><strong>SignalR Hub:</strong> Real-time notification delivery</li>
+        <li><strong>Email/SMS Services:</strong> External communication channels</li>
+    </ul>
+
+    <p><em>Last updated: August 2025</em></p>
+</body>
+</html>

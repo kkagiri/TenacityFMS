@@ -4,8 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Common.Constants;
-using FMS.Application.Features.Notification;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
@@ -142,9 +142,9 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = NotificationTypes.Error,
-                    Category = NotificationCategories.OpeningStock,
-                    Priority = NotificationPriorities.Medium,
+                    Type = NotificationType.Error,
+                    CategoryId = (int) WellKnownCategories.OpeningStock,
+                    Priority = NotificationPriority.Medium,
                     Title = "Opening Stock Error",
                     Message = $"Error processing opening stock for tank {tank.Name}: {errorMessage}",
                     TriggerSource = "AutomatedOpeningStock",
@@ -164,10 +164,10 @@ namespace FMS.BackgroundServices.FMS {
             if (notificationService == null) return;
 
             try {
-                var priority = failureCount > 0 ? NotificationPriorities.Medium : NotificationPriorities.Low;
+                var priority = failureCount > 0 ? NotificationPriority.Medium : NotificationPriority.Low;
                 var request = new CreateNotificationRequest {
-                    Type = NotificationTypes.Info,
-                    Category = NotificationCategories.OpeningStock,
+                    Type = NotificationType.Info,
+                    CategoryId = (int) WellKnownCategories.OpeningStock,
                     Priority = priority,
                     Title = "Opening Stock Process Summary",
                     Message = $"Opening stock process completed. Success: {successCount}, Failed: {failureCount}",
@@ -187,9 +187,9 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = NotificationTypes.Alert,
-                    Category = NotificationCategories.System,
-                    Priority = NotificationPriorities.Critical,
+                    Type = NotificationType.Alert,
+                    CategoryId = (int) WellKnownCategories.System,
+                    Priority = NotificationPriority.Critical,
                     Title = "Critical Opening Stock Service Error",
                     Message = $"Automated Opening Stock Service encountered a critical error: {errorMessage}",
                     TriggerSource = "AutomatedOpeningStock",

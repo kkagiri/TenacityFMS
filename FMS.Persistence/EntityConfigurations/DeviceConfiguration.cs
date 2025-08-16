@@ -11,7 +11,7 @@ namespace FMS.Persistence.EntityConfigurations {
 
                             // Configure DeviceImei as the primary key
                             builder.HasKey (d => d.DeviceImei)
-                                   .HasName ("primary");
+                                   .HasName ("PRIMARY");
 
                             // Map DeviceImei property to the corresponding column
                             builder.Property (d => d.DeviceImei)
@@ -21,19 +21,19 @@ namespace FMS.Persistence.EntityConfigurations {
 
                             // Map DeviceMakerId property to a column
                             builder.Property (d => d.DeviceMakerId)
-                                   .HasColumnName ("deviceMakerId")
+                                   .HasColumnName ("DeviceMakerID")
                                    .HasColumnType ("int(11)")
                                    .IsRequired ();
 
                             // Map DevicePhoneNumber property to a column
                             builder.Property (d => d.DevicePhoneNumber)
-                                   .HasColumnName ("devicePhoneNumber")
+                                   .HasColumnName ("DevicePhoneNumber")
                                    .HasColumnType ("int(11)")
                                    .IsRequired ();
 
                             // Map DeviceType property (the foreign key) to a column
                             builder.Property (d => d.DeviceType)
-                                   .HasColumnName ("deviceType")
+                                   .HasColumnName ("DeviceType")
                                    .HasColumnType ("int(11)")
                                    .IsRequired ();
 
@@ -43,7 +43,7 @@ namespace FMS.Persistence.EntityConfigurations {
                             builder.HasOne (d => d.DeviceTypeNavigation)
                                    .WithMany (dt => dt.Devices)
                                    .HasForeignKey (d => d.DeviceType)
-                                   .HasConstraintName ("FK_Device_Devicetype");
+                                   .HasConstraintName ("Device_type");
 
                             // Configure the one-to-many relationship with Vehicle.
                             // When a Device is deleted, we set the foreign key in related Vehicle rows to NULL.

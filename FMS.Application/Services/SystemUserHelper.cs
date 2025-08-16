@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,25 +71,25 @@ namespace FMS.Application.Services {
         /// <summary>
         /// Creates system user notification recipients
         /// </summary>
-        public static List<CreateNotificationRecipientRequest> CreateSystemNotificationRecipients (
+        public static List<NotificationRecipientDto> CreateSystemNotificationRecipients (
             bool includeSystemAdmin = true,
             bool includeEmail = true,
             bool includeSms = false) {
-            var recipients = new List<CreateNotificationRecipientRequest> ();
+            var recipients = new List<NotificationRecipientDto> ();
 
             // Add system user
             var deliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod };
             if (includeEmail) deliveryMethods.Add ("Email");
             if (includeSms) deliveryMethods.Add ("SMS");
 
-            recipients.Add (new CreateNotificationRecipientRequest {
+            recipients.Add (new NotificationRecipientDto {
                 UserId = GetSystemUserId (),
                     DeliveryMethods = deliveryMethods
             });
 
             // Add system administrator if requested
             if (includeSystemAdmin) {
-                recipients.Add (new CreateNotificationRecipientRequest {
+                recipients.Add (new NotificationRecipientDto {
                     UserId = GetSystemAdministratorId (),
                         DeliveryMethods = deliveryMethods
                 });

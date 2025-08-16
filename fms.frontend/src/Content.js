@@ -128,7 +128,8 @@ export default function Content() {
           path="/issue-tracker/*"
           element={React.createElement(resolvedComponents("issue tracker"))}
         />
-
+<Route path="/active-alarms" element={React.createElement(resolvedComponents("active-alarms"))} />
+<Route path="/active-alarms/*" element={React.createElement(resolvedComponents("active-alarms"))} />
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>

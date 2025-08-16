@@ -65,6 +65,7 @@ namespace FMS.Application.MappingProfile {
 
             // Controller DTO to Application DTO mappings
             CreateMap<BulkUpdatePreferenceDto, UserNotificationPreferenceDto> ()
+                .ForMember (dest => dest.NotificationCategoryId, opt => opt.MapFrom (src => src.NotificationCategoryId))
                 .ForMember (dest => dest.CreatedAt, opt => opt.MapFrom (src => DateTime.UtcNow))
                 .ForMember (dest => dest.UpdatedAt, opt => opt.MapFrom (src => DateTime.UtcNow))
                 .ForMember (dest => dest.UserId, opt => opt.Ignore ())
@@ -75,6 +76,16 @@ namespace FMS.Application.MappingProfile {
             CreateMap<TriggerAlarmRequest, CreateAlarmNotificationRequest> ()
                 .ForMember (dest => dest.Category, opt => opt.MapFrom (src => src.Category ?? "Custom"))
                 .ForMember (dest => dest.TriggeredBy, opt => opt.Ignore ());
+
+            // Notification policy listing
+            CreateMap<NotificationPolicy, NotificationPolicyDto> ()
+                .ForMember (d => d.CategoryName, opt => opt.MapFrom (s => s.NotificationCategory != null ? s.NotificationCategory.Name : null))
+                .ForMember (d => d.RecipientCount, opt => opt.MapFrom (s => s.PolicyRecipients.Count (r => r.IsActive)))
+                .ForMember (d => d.GroupCount, opt => opt.MapFrom (s => s.PolicyGroups.Count ()))
+                .ForMember (d => d.NotificationCount, opt => opt.MapFrom (s => s.NotificationCount))
+                .ForMember (d => d.LastTriggered, opt => opt.MapFrom (s => s.LastNotificationAt))
+                .ForMember (d => d.CreatedBy, opt => opt.MapFrom (s => s.CreatedByNavigation != null ? s.CreatedByNavigation.UserName : s.CreatedBy))
+                .ForMember (d => d.ModifiedBy, opt => opt.MapFrom (s => s.ModifiedByNavigation != null ? s.ModifiedByNavigation.UserName : s.ModifiedBy));
         }
     }
 }
