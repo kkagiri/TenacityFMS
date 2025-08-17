@@ -2,13 +2,11 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FMS.Domain.Entities
-{
+namespace FMS.Domain.Entities {
     /// <summary>
     /// Tracks recipients of notifications and delivery status
     /// </summary>
-    public class NotificationRecipient
-    {
+    public class NotificationRecipient {
         [Key]
         public int Id { get; set; }
 
@@ -22,28 +20,28 @@ namespace FMS.Domain.Entities
         /// The user receiving the notification
         /// </summary>
         [Required]
-        [MaxLength(100)]
+        [MaxLength (100)]
         public string UserId { get; set; } = null!;
 
         /// <summary>
         /// Delivery method (Email, SMS, System, Push)
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [MaxLength (20)]
         public string DeliveryMethod { get; set; } = null!;
 
         /// <summary>
         /// Recipient address (email, phone number, etc.)
         /// </summary>
         [Required]
-        [MaxLength(255)]
+        [MaxLength (255)]
         public string RecipientAddress { get; set; } = null!;
 
         /// <summary>
         /// Delivery status (Pending, Sent, Delivered, Failed, Bounced)
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [MaxLength (20)]
         public string DeliveryStatus { get; set; } = "Pending";
 
         /// <summary>
@@ -69,7 +67,7 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Error message if delivery failed
         /// </summary>
-        [MaxLength(500)]
+        [MaxLength (500)]
         public string? DeliveryError { get; set; }
 
         /// <summary>
@@ -90,13 +88,13 @@ namespace FMS.Domain.Entities
         /// <summary>
         /// Priority override for this specific recipient
         /// </summary>
-        [MaxLength(20)]
+        [MaxLength (20)]
         public string? PriorityOverride { get; set; }
 
         /// <summary>
         /// Additional metadata for delivery tracking
         /// </summary>
-        [Column(TypeName = "json")]
+        [Column (TypeName = "json")]
         public string? DeliveryMetadata { get; set; }
 
         // Navigation Properties

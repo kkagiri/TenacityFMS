@@ -67,9 +67,17 @@ using Role = FMS.Domain.Entities.Role;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 // using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Features.AutomatedReconciliation.Services;
+using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.ActiveAlarm;
+using FMS.Application.Features.Notification.Services.Businessfunction;
+using FMS.Application.Features.Notification.Services.Integration;
+using FMS.Application.Features.Notification.Services.RecipientResolver;
+using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
+using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Services.TankStock;
+using FMS.BackgroundServices.ActiveAlarmProcessing;
 using FMS.BackgroundServices.FMS;
 //using FMS.Application.Extensions;
 
@@ -403,6 +411,8 @@ public class Program {
         services.AddHostedService<PolicyTriggerBackgroundService> ();
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService> ();
         services.AddScoped<TankStockFutureRecordsService> ();
+        services.AddScoped<OpeningStockValidationService> ();
+        services.AddScoped<OpeningStockValidationService> ();
         services.AddTransient<RoleManager<Role>> ();
 
         services.AddMemoryCache ();
@@ -432,22 +442,44 @@ public class Program {
         services.AddScoped<TankVolumeHistoryIntegrationService> (); //Cursor
         services.AddScoped<TankStockFutureRecordsService> (); //Cursor
         services.AddScoped<ITransactionCompletionService, TransactionCompletionService> (); //Cursor        // Register notification services
+        services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver> ();
+        services.AddScoped<IActiveAlarmService, ActiveAlarmService> ();
+        services.AddScoped<AlarmHandlerActiveAlarmIntegration> ();
+        services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService> ();
+
+        // Register background service
+        services.AddHostedService<ActiveAlarmProcessingService> ();
         services.AddScoped<INotificationService, NotificationService> ();
+        services.AddScoped<INotificationCategoryService, NotificationCategoryService> ();
+        services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService> ();
         services.AddScoped<IAlarmHandlerService, AlarmHandlerService> ();
         services.AddScoped<IEmailService, EmailService> ();
         services.AddScoped<ISmsService, SmsService> ();
+        services.AddSingleton<ICategoryMetadataProvider, InMemoryCategoryMetadataProvider> ();
+
+        // Dynamic notification channels and registry
+        services.AddScoped<INotificationChannelRegistry, NotificationChannelRegistry> ();
+        services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SystemNotificationChannel> ();
+        services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.EmailNotificationChannel> ();
+        services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SmsNotificationChannel> ();
+        services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SlackNotificationChannel> ();
+        services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.PushNotificationChannel> ();
+
+        services.AddSingleton<ConnectionMonitor> ();
 
         // Register SignalR notification service
         services.AddScoped<ISignalRNotificationService, SignalRNotificationService> ();
 
         // Register tank management services
         services.AddScoped<InventoryCostingService> ();
+        services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService> ();
 
         //Cursor: Register system user service
         services.AddScoped<ISystemUserService, SystemUserService> ();
 
         // Register background service
         services.AddHostedService<NotificationBackgroundService> ();
+        services.AddHostedService<TankMonitoringService> ();
 
         //Cursor: Register system user initialization service
         services.AddHostedService<SystemUserInitializationService> ();
@@ -478,6 +510,9 @@ public class Program {
             .AsImplementedInterfaces ()
             .WithScopedLifetime ()
         );
+
+        // Add this in ConfigureServices method
+        services.AddScoped<IServiceControlService, ServiceControlService> ();
     }
 
     static void RegisterDistributedCache (IServiceCollection services) {
@@ -699,7 +734,14 @@ public class Program {
                     options
                         .UseMySql (
                             fmsConnectionString,
-                            new MySqlServerVersion (new Version (5, 5, 61))
+                            new MySqlServerVersion (new Version (5, 5, 61)),
+                            mySqlOptions => {
+                                mySqlOptions.EnableRetryOnFailure (
+                                    maxRetryCount: 5,
+                                    maxRetryDelay: TimeSpan.FromSeconds (30),
+                                    errorNumbersToAdd: null);
+                                mySqlOptions.CommandTimeout (60); // Set command timeout to 60 seconds
+                            }
                         )
                         .EnableDetailedErrors ()
                         .EnableSensitiveDataLogging ()

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entity Definition & Domain Architecture - FMS Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        h3 { color: #e74c3c; }
+        h4 { color: #27ae60; }
+        .back-link {
+            background: #ecf0f1;
+            color: #2c3e50;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .back-link:hover {
+            background: #3498db;
+            color: white;
+        }
+        .domain-box {
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .entity-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .entity-table th, .entity-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .entity-table th {
+            background: #3498db;
+            color: white;
+        }
+        .entity-table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        .concept-highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .architectural-pattern {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .integration-list {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Main Documentation</a>
+
+        <h1>📋 Entity Definition & Domain Architecture</h1>
+
+        <h2>🎯 Overview</h2>
+        <p>This document defines the key entities within the FMS notification system, their attributes, and their real-world meaning.</p>
+
+        <div class="concept-highlight">
+            <h2>🏗️ Domain Architecture: Events, Alarms, Alerts, and Notifications</h2>
+            <p>The FMS system distinguishes between four critical domain concepts that are often confused but serve distinct purposes</p>
+        </div>
+
+        <h3>📐 Domain Separation Theory</h3>
+        <div class="domain-box">
+            <h4>🔄 Events (Business Occurrences)</h4>
+            <p><strong>Definition:</strong> Business occurrences that happen within the system as part of normal operations.</p>
+            <ul>
+                <li><strong>Examples:</strong> Stock reconciliation completed, delivery recorded, tank transfer executed</li>
+                <li><strong>Characteristics:</strong> Expected, part of workflow, informational</li>
+                <li><strong>Domain Layer:</strong> Event sourcing patterns, business state changes</li>
+            </ul>
+        </div>
+
+        <div class="domain-box">
+            <h4>🚨 Alarms (System Conditions)</h4>
+            <p><strong>Definition:</strong> System-detected conditions that require attention, either automatically triggered by business rules or manually triggered by operators.</p>
+            <ul>
+                <li><strong>Examples:</strong> Low fuel level detected, high consumption rate, discrepancy threshold exceeded</li>
+                <li><strong>Characteristics:</strong> Conditional, require evaluation, have persistence and lifecycle</li>
+                <li><strong>Domain Layer:</strong> ActiveAlarm entity with state management (Active → Acknowledged → Resolved)</li>
+                <li><strong>Trigger Types:</strong>
+                    <ul>
+                        <li><strong>Policy-Driven:</strong> Automatic triggers based on business rules and thresholds</li>
+                    <li><strong>Manual:</strong> Operator-initiated using Tank.DiscrepancyThreshold for validation</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h4>📡 Alerts (Hardware Signals)</h4>
+        <p><strong>Definition:</strong> Raw signals from physical hardware devices, particularly PTS (Petrotec Terminal System) devices.</p>
+        <ul>
+            <li><strong>Examples:</strong> PTS device communication failure, sensor malfunction, probe calibration error</li>
+            <li><strong>Characteristics:</strong> Hardware-originated, protocol-specific, require interpretation</li>
+            <li><strong>Domain Layer:</strong> PTSAlertRecord entity storing raw device signals</li>
+        </ul>
+
+        <h4>📢 Notifications (User Communications)</h4>
+        <p><strong>Definition:</strong> Messages delivered to users through various channels to inform them of Events, Alarms, or Alerts.</p>
+        <ul>
+            <li><strong>Examples:</strong> Email about low fuel, SMS for critical alarm, system notification for completion</li>
+            <li><strong>Characteristics:</strong> Communication mechanism, multi-channel, delivery-focused</li>
+            <li><strong>Domain Layer:</strong> Notification entity with delivery tracking and acknowledgment</li>
+        </ul>
+    </div>
+
+    <h3>ActiveAlarm Domain Entity</h3>
+    <p>The <code>ActiveAlarm</code> entity represents persistent alarm state within the domain layer, managing the complete lifecycle of alarm conditions from detection through resolution:</p>
+
+    <div style="background-color: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 4px; margin: 15px 0;">
+        <h4>🏗️ Architectural Pattern</h4>
+        <p><strong>Layer:</strong> Domain Entity (not DTO, not just persistence)</p>
+        <p><strong>Purpose:</strong> Track alarm lifecycle, maintain business state, enable policy-driven processing</p>
+        <p><strong>State Flow:</strong> Active → Acknowledged → Resolved (with possible escalation paths)</p>
+    </div>
+
+    <table style="margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Property</th>
+                <th>Type</th>
+                <th>Business Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>AlarmState</code></td>
+                <td><code>enum</code></td>
+                <td>Tracks lifecycle: Active, Acknowledged, Resolved, Escalated</td>
+            </tr>
+            <tr>
+                <td><code>TriggerSource</code></td>
+                <td><code>enum</code></td>
+                <td>Distinguishes Manual vs PolicyDriven vs PTSAlert origins</td>
+            </tr>
+            <tr>
+                <td><code>ThresholdValue</code></td>
+                <td><code>decimal?</code></td>
+                <td>Business rule threshold that triggered the alarm</td>
+            </tr>
+            <tr>
+                <td><code>ActualValue</code></td>
+                <td><code>decimal?</code></td>
+                <td>Measured value that exceeded the threshold</td>
+            </tr>
+            <tr>
+                <td><code>CooldownUntil</code></td>
+                <td><code>DateTime?</code></td>
+                <td>Prevents alarm spam through policy-driven cooldown periods</td>
+            </tr>
+            <tr>
+                <td><code>EscalationLevel</code></td>
+                <td><code>int</code></td>
+                <td>Tracks escalation progression for unacknowledged alarms</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Integration Patterns</h3>
+    <ul>
+        <li><strong>Event → Alarm:</strong> Stock reconciliation events can trigger discrepancy alarms when thresholds are exceeded</li>
+        <li><strong>Alert → Alarm:</strong> PTS hardware alerts are interpreted and may create alarms requiring attention</li>
+        <li><strong>Alarm → Notification:</strong> Active alarms trigger notifications to appropriate recipients based on policies</li>
+        <li><strong>Manual Triggers:</strong> Operators can create alarms using Tank.DiscrepancyThreshold for validation</li>
+    </ul>
+
+    <h2>NotificationPolicy: Business Rules Engine</h2>
+    <p>The <code>NotificationPolicy</code> entity serves as a business rules engine that governs notification behavior, delivery, and lifecycle management across the FMS system.</p>
+
+    <div style="background-color: #e8f5e8; padding: 20px; border-left: 4px solid #28a745; margin: 20px 0;">
+        <h4>🎯 Policy-Driven Architecture</h4>
+        <p><strong>Core Concept:</strong> Instead of hardcoded notification logic, policies provide configurable rules that determine:</p>
+        <ul>
+            <li><strong>When:</strong> Trigger conditions and cooldown periods</li>
+            <li><strong>Who:</strong> Recipient selection and escalation rules</li>
+            <li><strong>How:</strong> Delivery channels (email, SMS, system notifications)</li>
+            <li><strong>What:</strong> Message templates and formatting</li>
+            <li><strong>Actions:</strong> Automatic issue tracker creation and acknowledgment requirements</li>
+        </ul>
+    </div>
+
+    <h3>Policy Resolution Flow</h3>
+    <div style="background-color: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 4px; margin: 15px 0;">
+        <h4>🔄 Multi-Layered Policy Application</h4>
+        <ol>
+            <li><strong>Category-Based Selection:</strong> <code>NotificationCategoryId</code> filters applicable policies</li>
+            <li><strong>Site Scoping:</strong> Global policies + site-specific policies are merged</li>
+            <li><strong>Rate Limiting:</strong> <code>CooldownMinutes</code>, <code>MaxNotificationsPerHour/Day</code> prevent spam</li>
+            <li><strong>Channel Control:</strong> <code>EnableEmail/Sms/System</code> flags determine delivery methods</li>
+            <li><strong>Template Application:</strong> <code>TitleTemplate</code>, <code>MessageTemplate</code> standardize formatting</li>
+            <li><strong>Integration Actions:</strong> <code>CreateIssueTracker</code> triggers automatic issue creation</li>
+        </ol>
+    </div>
+
+    <h3>Policy Implementation Patterns</h3>
+    <table style="margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Policy Type</th>
+                <th>Use Case</th>
+                <th>Key Configuration</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Tank Alarm Policy</strong></td>
+                <td>Critical fuel level alerts</td>
+                <td>High priority, all channels enabled, 30min cooldown, issue tracker creation</td>
+            </tr>
+            <tr>
+                <td><strong>PTS Device Policy</strong></td>
+                <td>Hardware communication failures</td>
+                <td>Device-specific scope, SMS enabled, acknowledgment required</td>
+            </tr>
+            <tr>
+                <td><strong>Reconciliation Policy</strong></td>
+                <td>Daily stock variance reports</td>
+                <td>Low priority, email only, scheduled delivery, no cooldown</td>
+            </tr>
+            <tr>
+                <td><strong>Maintenance Policy</strong></td>
+                <td>Scheduled maintenance reminders</td>
+                <td>Medium priority, email + system, 24hr advance notification</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Policy vs. Preference Distinction</h3>
+    <ul>
+        <li><strong>NotificationPolicy:</strong> System-wide business rules and automation (administrator-controlled)</li>
+        <li><strong>NotificationPreference:</strong> Individual user preferences that can override policy defaults</li>
+        <li><strong>Hierarchy:</strong> Policy → Preference → System Default (most specific wins)</li>
+    </ul>
+
+    <h3><code>Notification</code> Entity</h3>
+    <p>Represents a single notification event or message intended for a user or a group of users. It captures the content, status, and metadata of a notification.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Attribute</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Real-world Meaning</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Id</code></td>
+                <td><code>int</code></td>
+                <td>Primary key, unique identifier for the notification.</td>
+                <td>A unique internal reference number for each specific message.</td>
+            </tr>
+            <tr>
+                <td><code>NotificationId</code></td>
+                <td><code>string (GUID)</code></td>
+                <td>Unique identifier for tracking notifications, generated as a GUID.</td>
+                <td>A public-facing unique ID for the notification, useful for external references.</td>
+            </tr>
+            <tr>
+                <td><code>Type</code></td>
+                <td><code>string</code></td>
+                <td>Type of notification (e.g., Alert, Info, Warning, Error, System).</td>
+                <td>Indicates the general nature or severity of the message.</td>
+            </tr>
+            <tr>
+                <td><code>Category</code></td>
+                <td><code>string</code></td>
+                <td>Category for grouping notifications (e.g., Tank, Pump, Vehicle, System, User).</td>
+                <td>Helps in filtering and organizing notifications based on their subject area.</td>
+            </tr>
+            <tr>
+                <td><code>NotificationCategoryId</code></td>
+                <td><code>int</code></td>
+                <td>Foreign key to the NotificationCategory entity.</td>
+                <td>Links to a predefined category for this notification.</td>
+            </tr>
+            <tr>
+                <td><code>Priority</code></td>
+                <td><code>string</code></td>
+                <td>Priority level (e.g., Low, Medium, High, Critical).</td>
+                <td>Indicates the urgency of the notification.</td>
+            </tr>
+            <tr>
+                <td><code>Title</code></td>
+                <td><code>string</code></td>
+                <td>Title or subject of the notification.</td>
+                <td>A short, descriptive headline for the message.</td>
+            </tr>
+            <tr>
+                <td><code>Message</code></td>
+                <td><code>string</code></td>
+                <td>Main message content.</td>
+                <td>The full text of the message.</td>
+            </tr>
+            <tr>
+                <td><code>Data</code></td>
+                <td><code>string (JSON)</code></td>
+                <td>Additional data in JSON format, providing more context.</td>
+                <td>Extra structured information relevant to the notification.</td>
+            </tr>
+            <tr>
+                <td><code>TriggerSource</code></td>
+                <td><code>string</code></td>
+                <td>How the notification was triggered (e.g., Manual, Scheduled, Alarm, System, API).</td>
+                <td>The origin or cause of the notification.</td>
+            </tr>
+            <tr>
+                <td><code>TriggeredBy</code></td>
+                <td><code>string</code></td>
+                <td>ID of the user who triggered the notification (if applicable).</td>
+                <td>The user responsible for initiating the notification.</td>
+            </tr>
+            <tr>
+                <td><code>CreatedAt</code></td>
+                <td><code>DateTime</code></td>
+                <td>When the notification was created.</td>
+                <td>The timestamp when the message was generated by the system.</td>
+            </tr>
+            <tr>
+                <td><code>ScheduledAt</code></td>
+                <td><code>DateTime?</code></td>
+                <td>When the notification should be sent (for scheduled notifications).</td>
+                <td>The planned delivery time for future notifications.</td>
+            </tr>
+            <tr>
+                <td><code>SentAt</code></td>
+                <td><code>DateTime?</code></td>
+                <td>When the notification was actually sent.</td>
+                <td>The actual delivery time of the message.</td>
+            </tr>
+            <tr>
+                <td><code>Status</code></td>
+                <td><code>string</code></td>
+                <td>Current status (e.g., Pending, Sent, Failed, Cancelled).</td>
+                <td>The current state of the notification in its lifecycle.</td>
+            </tr>
+            <tr>
+                <td><code>SendAttempts</code></td>
+                <td><code>int</code></td>
+                <td>Number of send attempts.</td>
+                <td>How many times the system tried to send this notification.</td>
+            </tr>
+            <tr>
+                <td><code>ErrorMessage</code></td>
+                <td><code>string?</code></td>
+                <td>Error message if sending failed.</td>
+                <td>Details about any issues encountered during sending.</td>
+            </tr>
+            <tr>
+                <td><code>SiteId</code></td>
+                <td><code>int?</code></td>
+                <td>Site ID if notification is site-specific.</td>
+                <td>Links the notification to a specific physical site.</td>
+            </tr>
+            <tr>
+                <td><code>TankId</code></td>
+                <td><code>int?</code></td>
+                <td>Tank ID if notification is tank-specific.</td>
+                <td>Links the notification to a specific fuel tank.</td>
+            </tr>
+            <tr>
+                <td><code>VehicleId</code></td>
+                <td><code>int?</code></td>
+                <td>Vehicle ID if notification is vehicle-specific.</td>
+                <td>Links the notification to a specific vehicle.</td>
+            </tr>
+            <tr>
+                <td><code>PtsDeviceId</code></td>
+                <td><code>string?</code></td>
+                <td>PTS Device ID if notification is PTS device-specific.</td>
+                <td>Links the notification to a specific PTS device.</td>
+            </tr>
+            <tr>
+                <td><code>IssueTrackerId</code></td>
+                <td><code>int?</code></td>
+                <td>Issue tracker ID if related to an issue.</td>
+                <td>Links the notification to an entry in the issue tracking system.</td>
+            </tr>
+            <tr>
+                <td><code>AlarmId</code></td>
+                <td><code>int?</code></td>
+                <td>Alarm ID if triggered by an alarm.</td>
+                <td>Links the notification to a specific alarm event.</td>
+            </tr>
+            <tr>
+                <td><code>NotificationPolicyId</code></td>
+                <td><code>int?</code></td>
+                <td>Notification policy ID that governs this notification.</td>
+                <td>Links the notification to the policy that defined its creation and behavior.</td>
+            </tr>
+            <tr>
+                <td><code>IsRead</code></td>
+                <td><code>bool</code></td>
+                <td>Whether this notification has been read by admin.</td>
+                <td>Indicates if the notification has been viewed by an administrator.</td>
+            </tr>
+            <tr>
+                <td><code>ReadAt</code></td>
+                <td><code>DateTime?</code></td>
+                <td>When the notification was marked as read.</td>
+                <td>The timestamp when the notification was marked as viewed.</td>
+            </tr>
+            <tr>
+                <td><code>IsArchived</code></td>
+                <td><code>bool</code></td>
+                <td>Whether this notification is archived.</td>
+                <td>Indicates if the notification has been moved to an archive.</td>
+            </tr>
+            <tr>
+                <td><code>ArchivedAt</code></td>
+                <td><code>DateTime?</code></td>
+                <td>When the notification was archived.</td>
+                <td>The timestamp when the notification was archived.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3><code>NotificationGroup</code> Entity</h3>
+    <p>Represents a logical grouping of users or notification types. Notifications can be sent to a group rather than individual users, simplifying management.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Attribute</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Real-world Meaning</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Id</code></td>
+                <td><code>int</code></td>
+                <td>Primary key, unique identifier for the notification group.</td>
+                <td>A unique internal reference for this collection of users or notification types.</td>
+            </tr>
+            <tr>
+                <td><code>Name</code></td>
+                <td><code>string</code></td>
+                <td>The name of the notification group.</td>
+                <td>A human-readable name for the group (e.g., 'All Administrators', 'Maintenance Team', 'Critical Alerts').</td>
+            </tr>
+            <tr>
+                <td><code>Description</code></td>
+                <td><code>string?</code></td>
+                <td>A brief description of the group's purpose.</td>
+                <td>Explains what this group is for.</td>
+            </tr>
+            <tr>
+                <td><code>SiteId</code></td>
+                <td><code>int?</code></td>
+                <td>The ID of the site this notification group is associated with.</td>
+                <td>Links the group to a specific physical location.</td>
+            </tr>
+            <tr>
+                <td><code>AllowedDeliveryMethods</code></td>
+                <td><code>string?</code></td>
+                <td>Comma-separated list of allowed delivery methods (e.g., 'Email,SMS,InApp').</td>
+                <td>Specifies how notifications sent to this group can be delivered.</td>
+            </tr>
+            <tr>
+                <td><code>IsActive</code></td>
+                <td><code>bool</code></td>
+                <td>Indicates if the group is currently active and can receive notifications.</td>
+                <td>Whether this group is currently enabled to receive messages.</td>
+            </tr>
+            <tr>
+                <td><code>CreatedBy</code></td>
+                <td><code>string</code></td>
+                <td>The user who created this notification group.</td>
+                <td>The individual who initially set up this group.</td>
+            </tr>
+            <tr>
+                <td><code>CreatedAt</code></td>
+                <td><code>DateTime</code></td>
+                <td>The timestamp when the notification group was created.</td>
+                <td>When this group was first defined in the system.</td>
+            </tr>
+            <tr>
+                <td><code>UpdatedBy</code></td>
+                <td><code>string?</code></td>
+                <td>The user who last updated this notification group.</td>
+                <td>The individual who last modified this group's settings.</td>
+            </tr>
+            <tr>
+                <td><code>UpdatedAt</code></td>
+                <td><code>DateTime?</code></td>
+                <td>The timestamp when the notification group was last updated.</td>
+                <td>When this group's definition was last changed.</td>
+            </tr>
+            <tr>
+                <td><code>Members</code></td>
+                <td><code>ICollection&lt;NotificationGroupMember&gt;</code></td>
+                <td>Collection of members belonging to this group.</td>
+                <td>The list of individuals who are part of this group and will receive its notifications.</td>
+            </tr>
+            <tr>
+                <td><code>PolicyMappings</code></td>
+                <td><code>ICollection&lt;NotificationPolicyGroup&gt;</code></td>
+                <td>Collection of notification policies associated with this group.</td>
+                <td>Links this group to specific rules governing notification behavior.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3><code>NotificationPreference</code> Entity</h3>
+    <p>Allows individual users to customize how and when they receive notifications, providing a personalized experience.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Attribute</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Real-world Meaning</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Id</code></td>
+                <td><code>int</code></td>
+                <td>Primary key, unique identifier for the preference setting.</td>
+                <td>A unique internal reference for this specific user's notification settings.</td>
+            </tr>
+            <tr>
+                <td><code>UserId</code></td>
+                <td><code>string</code></td>
+                <td>The ID of the user whose preferences these are.</td>
+                <td>The specific person whose notification settings are being defined.</td>
+            </tr>
+            <tr>
+            <tr>
+                <td><code>NotificationCategoryId</code></td>
+                <td><code>int</code></td>
+                <td>Foreign key to the NotificationCategory entity this preference applies to.</td>
+                <td>The category of messages this setting controls.</td>
+            </tr>
+            <tr>
+                <td><code>DeliveryMethods</code></td>
+                <td><code>string</code></td>
+                <td>Comma-separated list of delivery methods enabled for this category (e.g., 'Email,SMS,System').</td>
+                <td>How the user wants to receive notifications for this category.</td>
+            </tr>
+            <tr>
+                <td><code>IsEnabled</code></td>
+                <td><code>bool</code></td>
+                <td>Whether notifications for this category are enabled.</td>
+                <td>If the user wants to receive any notifications for this category.</td>
+            </tr>
+            <tr>
+                <td><code>Priority</code></td>
+                <td><code>string?</code></td>
+                <td>Priority level for this category (e.g., Low, Medium, High, Critical).</td>
+                <td>The preferred urgency level for notifications in this category.</td>
+            </tr>
+            <tr>
+                <td><code>QuietHoursStart</code></td>
+                <td><code>TimeSpan?</code></td>
+                <td>Start time for quiet hours (when notifications should be suppressed).</td>
+                <td>The beginning of a period when the user prefers not to receive notifications.</td>
+            </tr>
+            <tr>
+                <td><code>QuietHoursEnd</code></td>
+                <td><code>TimeSpan?</code></td>
+                <td>End time for quiet hours.</td>
+                <td>The end of a period when the user prefers not to receive notifications.</td>
+            </tr>
+            <tr>
+                <td><code>MaxNotificationsPerHour</code></td>
+                <td><code>int</code></td>
+                <td>Maximum notifications per hour for this category (0 = unlimited).</td>
+                <td>A limit on how many notifications of this type the user receives per hour.</td>
+            </tr>
+            <tr>
+                <td><code>MaxNotificationsPerDay</code></td>
+                <td><code>int</code></td>
+                <td>Maximum notifications per day for this category (0 = unlimited).</td>
+                <td>A limit on how many notifications of this type the user receives per day.</td>
+            </tr>
+            <tr>
+                <td><code>RequireAcknowledgment</code></td>
+                <td><code>bool</code></td>
+                <td>Whether to require acknowledgment for notifications in this category.</td>
+                <td>If the user must explicitly confirm receipt of notifications in this category.</td>
+            </tr>
+            <tr>
+                <td><code>CreatedAt</code></td>
+                <td><code>DateTime</code></td>
+                <td>When this preference was created.</td>
+                <td>The timestamp when these notification settings were first defined.</td>
+            </tr>
+            <tr>
+                <td><code>UpdatedAt</code></td>
+                <td><code>DateTime?</code></td>
+                <td>When this preference was last updated.</td>
+                <td>The timestamp when these notification settings were last modified.</td>
+            </tr>
+            <tr>
+                <td><code>CreatedBy</code></td>
+                <td><code>string</code></td>
+                <td>Who created this preference.</td>
+                <td>The user who initially set up these preferences.</td>
+            </tr>
+            <tr>
+                <td><code>UpdatedBy</code></td>
+                <td><code>string?</code></td>
+                <td>Who last updated this preference.</td>
+                <td>The user who last modified these preferences.</td>
+            </tr>
+        </tbody>
+    </table>
+
+        <hr style="margin: 40px 0;">
+        <p style="text-align: center; color: #7f8c8d;"><em>📋 Database entities and domain architecture for FMS notification system</em></p>
+    </div>
+</body>
+</html>

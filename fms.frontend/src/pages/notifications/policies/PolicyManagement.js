@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DataGrid,
@@ -19,6 +19,7 @@ import {
   Export
 } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
+import notificationsApi from '../../../dataservice/notificationsApi';
 import { notificationRoutes } from '../utils/navigationHelper';
 import '../layout/NotificationLayout.scss';
 
@@ -47,98 +48,36 @@ const PolicyManagement = () => {
     { value: 'inactive', text: 'Inactive' }
   ];
 
-  useEffect(() => {
-    loadPolicies();
-  }, []);
-
-  const loadPolicies = async () => {
+  const loadPolicies = useCallback(async () => {
     setLoading(true);
     try {
-      // Mock data - replace with actual API call
-      const mockPolicies = [
-        {
-          id: 1,
-          name: 'Tank Level Critical Alert',
-          description: 'Triggers when tank levels fall below critical thresholds',
-          category: 'Tank Monitoring',
-          priority: 'Critical',
-          status: 'Active',
-          recipients: 8,
-          lastTriggered: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          triggerCount: 15,
-          rules: 3,
-          createdBy: 'John Smith',
-          createdAt: new Date('2024-01-15'),
-          successRate: 98.5
-        },
-        {
-          id: 2,
-          name: 'Pump Maintenance Reminder',
-          description: 'Scheduled maintenance notifications for pump equipment',
-          category: 'Maintenance',
-          priority: 'Medium',
-          status: 'Active',
-          recipients: 5,
-          lastTriggered: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          triggerCount: 8,
-          rules: 2,
-          createdBy: 'Sarah Johnson',
-          createdAt: new Date('2024-01-10'),
-          successRate: 100
-        },
-        {
-          id: 3,
-          name: 'Device Connection Failure',
-          description: 'Alerts when devices lose connection to the system',
-          category: 'Device Monitoring',
-          priority: 'High',
-          status: 'Active',
-          recipients: 12,
-          lastTriggered: new Date(Date.now() - 30 * 60 * 1000),
-          triggerCount: 42,
-          rules: 4,
-          createdBy: 'Mike Wilson',
-          createdAt: new Date('2024-01-08'),
-          successRate: 94.2
-        },
-        {
-          id: 4,
-          name: 'Daily System Report',
-          description: 'Automated daily system health and activity reports',
-          category: 'System Reports',
-          priority: 'Low',
-          status: 'Active',
-          recipients: 3,
-          lastTriggered: new Date(Date.now() - 6 * 60 * 60 * 1000),
-          triggerCount: 30,
-          rules: 1,
-          createdBy: 'Admin',
-          createdAt: new Date('2024-01-01'),
-          successRate: 100
-        },
-        {
-          id: 5,
-          name: 'Emergency Shutdown Alert',
-          description: 'Critical alerts for emergency system shutdowns',
-          category: 'Emergency',
-          priority: 'Critical',
-          status: 'Inactive',
-          recipients: 15,
-          lastTriggered: null,
-          triggerCount: 0,
-          rules: 5,
-          createdBy: 'John Smith',
-          createdAt: new Date('2024-01-20'),
-          successRate: null
-        }
-      ];
-      setPolicies(mockPolicies);
+      const result = await notificationsApi.getPolicies();
+      if (!result.isSuccess) throw new Error(result.message);
+      // Normalize shape if backend differs
+      const transformed = (result.data || []).map(p => ({
+        id: p.id || p.policyId,
+        name: p.name,
+        description: p.description,
+        category: p.category || p.notificationCategory || p.categoryName,
+        priority: p.priority || p.severity || 'Medium',
+        status: (p.isActive === false ? 'Inactive' : 'Active'),
+        recipients: p.recipientCount ?? p.recipients?.length ?? 0,
+        lastTriggered: p.lastTriggered ? new Date(p.lastTriggered) : null,
+        triggerCount: p.triggerCount ?? p.executions ?? 0,
+        rules: Array.isArray(p.rules) ? p.rules.length : (p.ruleCount ?? 0),
+        createdBy: p.createdBy || p.createdByUser || '—',
+        createdAt: p.createdAt ? new Date(p.createdAt) : null,
+        successRate: p.successRate ?? null
+      }));
+      setPolicies(transformed);
     } catch (error) {
-      notify('Error loading policies', 'error', 3000);
+      notify(error.message || 'Error loading policies', 'error', 3000);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { loadPolicies(); }, [loadPolicies]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Never';
@@ -152,7 +91,7 @@ const PolicyManagement = () => {
   };
 
   const handleEditPolicy = (policy) => {
-    navigate(`${policy.id}/edit`);
+  navigate(notificationRoutes.policyEdit(policy.id));
   };
 
   const handleDeletePolicy = (policy) => {
@@ -162,17 +101,13 @@ const PolicyManagement = () => {
 
   const confirmDelete = async () => {
     if (!policyToDelete) return;
-
     try {
-      // Simulate API call - replace with actual API call
-      await fetch(`/api/notifications/policies/${policyToDelete.id}`, {
-        method: 'DELETE'
-      });
-
+      const res = await notificationsApi.deletePolicy(policyToDelete.id);
+      if (!res.isSuccess) throw new Error(res.message);
       setPolicies(prev => prev.filter(p => p.id !== policyToDelete.id));
       notify('Policy deleted successfully', 'success', 3000);
     } catch (error) {
-      notify('Error deleting policy', 'error', 3000);
+      notify(error.message || 'Error deleting policy', 'error', 3000);
     } finally {
       setDeleteConfirmVisible(false);
       setPolicyToDelete(null);
@@ -182,39 +117,24 @@ const PolicyManagement = () => {
   const togglePolicyStatus = async (policy) => {
     try {
       const newStatus = policy.status === 'Active' ? 'Inactive' : 'Active';
-
-      // Simulate API call - replace with actual API call
-      await fetch(`/api/notifications/policies/${policy.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      setPolicies(prev => prev.map(p =>
-        p.id === policy.id ? { ...p, status: newStatus } : p
-      ));
-
+      const res = await notificationsApi.updatePolicyStatus(policy.id, newStatus);
+      if (!res.isSuccess) throw new Error(res.message);
+      setPolicies(prev => prev.map(p => p.id === policy.id ? { ...p, status: newStatus } : p));
       notify(`Policy ${newStatus.toLowerCase()} successfully`, 'success', 3000);
     } catch (error) {
-      notify('Error updating policy status', 'error', 3000);
+      notify(error.message || 'Error updating policy status', 'error', 3000);
     }
   };
 
   const duplicatePolicy = async (policy) => {
     try {
-      const newPolicy = {
-        ...policy,
-        id: Math.max(...policies.map(p => p.id)) + 1,
-        name: `${policy.name} (Copy)`,
-        status: 'Inactive',
-        createdAt: new Date(),
-        createdBy: 'Current User'
-      };
-
-      setPolicies(prev => [...prev, newPolicy]);
+      const res = await notificationsApi.duplicatePolicy(policy.id);
+      if (!res.isSuccess) throw new Error(res.message);
+      // Reload list to include new duplicate (assuming backend returns it)
+      await loadPolicies();
       notify('Policy duplicated successfully', 'success', 3000);
     } catch (error) {
-      notify('Error duplicating policy', 'error', 3000);
+      notify(error.message || 'Error duplicating policy', 'error', 3000);
     }
   };
 

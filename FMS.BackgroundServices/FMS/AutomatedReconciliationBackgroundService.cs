@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using Microsoft.Extensions.Configuration;
@@ -173,23 +174,14 @@ namespace FMS.BackgroundServices.FMS {
                 if (failureRate >= 0.5 && result.ProcessedPolicies > 0) // 50% or more failures
                 {
                     var request = new CreateNotificationRequest {
-                    Type = "Alert",
-                    Category = "System",
-                    Priority = "High",
+                    Type = NotificationType.Alert,
+                    CategoryId = (int) WellKnownCategories.System,
+                    Priority = NotificationPriority.High,
                     Title = "Reconciliation System Health Alert",
                     Message = $"High failure rate detected: {result.FailedPolicies}/{result.ProcessedPolicies} policies failed ({failureRate:P0})",
                     TriggerSource = "AutomatedReconciliationBackground",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = SystemConstants.SystemAdministrator.UserId,
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
-                    },
-                    new CreateNotificationRecipientRequest {
-                    UserId = "fuel-operations",
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
-                    }
-                    }
+                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
+
                     };
 
                     await notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -207,25 +199,9 @@ namespace FMS.BackgroundServices.FMS {
                 using var scope = _serviceScopeFactory.CreateScope ();
                 var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService> ();
 
-                var request = new CreateNotificationRequest {
-                    Type = "Alert",
-                    Category = "System",
-                    Priority = "Critical",
-                    Title = "Critical Reconciliation System Error",
-                    Message = $"Automated Reconciliation Background Service encountered a critical error: {exception.Message}",
-                    TriggerSource = "AutomatedReconciliationBackground",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = SystemConstants.SystemAdministrator.UserId,
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email", "SMS" }
-                    }
-                    }
-                };
-
-                await notificationService.CreateNotificationAsync (request, cancellationToken);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Failed to send critical system error notification");
+                _logger.LogError (exception, "Critical error occurred in Automated Reconciliation Background Service");
+            } finally {
+                _logger.LogInformation ("Automated Reconciliation Background Service has completed error handling");
             }
         }
 
@@ -236,23 +212,7 @@ namespace FMS.BackgroundServices.FMS {
                 using var scope = _serviceScopeFactory.CreateScope ();
                 var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService> ();
 
-                var request = new CreateNotificationRequest {
-                    Type = "Info",
-                    Category = "System",
-                    Priority = "Medium",
-                    Title = "Reconciliation Service Stopped",
-                    Message = "Automated Reconciliation Background Service has been stopped",
-                    TriggerSource = "AutomatedReconciliationBackground",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = SystemConstants.SystemAdministrator.UserId,
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
-                    }
-                    }
-                };
-
-                await notificationService.CreateNotificationAsync (request, cancellationToken);
+                _logger.LogInformation ("Automated Reconciliation Background Service has been stopped");
             } catch (Exception ex) {
                 _logger.LogError (ex, "Failed to send service stopped notification");
             }

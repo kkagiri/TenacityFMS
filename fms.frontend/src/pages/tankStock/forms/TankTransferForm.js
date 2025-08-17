@@ -413,7 +413,7 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                 onValueChanged: handleAmountChange,
                                 placeholder: "Enter transfer amount",
                                 width: "100%",
-                                format: "#,##0.00",
+                                ...(formData.amount !== null && formData.amount !== undefined && { format: "#,##0.00" }),
                                 isValid: !validationErrors.amount,
                                 validationError: validationErrors.amount ? { message: validationErrors.amount } : null
                             }}

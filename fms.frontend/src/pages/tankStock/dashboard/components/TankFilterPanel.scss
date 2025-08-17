@@ -1,0 +1,87 @@
+// Tank Filter Panel Styles
+.tank-filter-panel {
+  .filter-card {
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    &.active {
+      border-color: #3B82F6;
+      background-color: #EFF6FF;
+    }
+  }
+
+  .filter-count-badge {
+    animation: pulse-glow 2s infinite;
+
+    &.critical {
+      background-color: #FEE2E2;
+      color: #DC2626;
+    }
+
+    &.warning {
+      background-color: #FEF3C7;
+      color: #D97706;
+    }
+
+    &.success {
+      background-color: #D1FAE5;
+      color: #059669;
+    }
+
+    &.info {
+      background-color: #DBEAFE;
+      color: #2563EB;
+    }
+  }
+
+  .filter-header {
+    transition: all 0.3s ease;
+
+    &.expanded {
+      border-bottom: 2px solid #E5E7EB;
+    }
+  }
+
+  .filter-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+// Enhanced Tank Dashboard Styles with Filter Integration
+.enhanced-tank-dashboard {
+  .tank-monitoring-section {
+    .no-tanks-message {
+      animation: fade-in 0.5s ease-in-out;
+    }
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

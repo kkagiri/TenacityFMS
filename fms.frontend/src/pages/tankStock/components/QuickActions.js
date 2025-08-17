@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { DropDownButton } from 'devextreme-react/drop-down-button';
 import { Popup } from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
+import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
 import './QuickActions.scss';
 
 // Form imports
@@ -10,15 +11,17 @@ import OpeningStockForm from '../forms/OpeningStockForm';
 import ClosingStockForm from '../forms/ClosingStockForm';
 import TankDeliveryForm from '../forms/TankDeliveryForm';
 import TankTransferForm from '../forms/TankTransferForm';
+import ManualRefillForm from '../forms/ManualRefillForm';
 
 // API actions
 import {
   createOpeningStock,
   createClosingStock,
   createTankTransfer
+
 } from '../../../redux/actions/tankStockAction';
 import { createDelivery } from '../../../redux/actions/DeliveryActions';
-import { max } from 'lodash';
+import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
 
 const POPUP_CONFIG = {
   openingStock: {
@@ -50,6 +53,13 @@ const POPUP_CONFIG = {
     maxWidth: "800px",
     height: "auto",
   },
+  manualRefill: {
+    title: "Manual Refill",
+    Form: ManualRefillForm,
+    width: "90%",
+    maxWidth: "600px",
+    height: "auto",
+  }
 };
 
 const QuickActions = ({ collapsed = false, onRefreshData }) => {
@@ -62,6 +72,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     closingStock: false,
     delivery: false,
     transfer: false,
+    manualRefill: false,
   });
 
   const [currentForm, setCurrentForm] = useState(null);
@@ -92,6 +103,12 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
       icon: "fa-light fa-exchange",
       type: "normal",
     },
+    {
+      key: "manualRefill",
+      text: "Manual Refill",
+      icon: "fa-light fa-fuel-pump",
+      type: "normal",
+    }
   ];
 
 
@@ -144,13 +161,30 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         case 'transfer':
           result = await dispatch(createTankTransfer(formData));
           break;
+        case 'manualRefill':
+          result = await dispatch(createFuelRefill(formData));
+          break;
 
         default:
           throw new Error(`Unknown action type: ${actionType}`);
       }
 
-      if (result?.success) {
-        notify(`${actionType.charAt(0).toUpperCase() + actionType.slice(1)} stock created successfully`, 'success');
+      console.log(`${actionType || 'stock'} stock creation result:`, result);
+
+      // Check for success more thoroughly
+      if (result && result.success === true) {
+        // Safely format action type with null/undefined check
+        const actionTypeDisplay = actionType && typeof actionType === 'string'
+          ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
+          : 'Stock';
+
+        notify({
+          message: `${actionTypeDisplay} stock created successfully`,
+          type: 'success',
+          displayTime: 3000
+        });
+
+        // Only close popup on success
         handlePopupVisibility(currentForm, false);
 
         // Refresh data if callback provided
@@ -158,11 +192,41 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
           onRefreshData();
         }
       } else {
-        notify(result?.message || `Error creating ${actionType} stock`, 'error');
+        // Handle both explicit failure and undefined success
+        const actionTypeDisplay = actionType && typeof actionType === 'string' ? actionType : 'stock';
+        const errorMessage = result?.message || `Error creating ${actionTypeDisplay} stock`;
+        console.error(`${actionTypeDisplay} stock creation failed:`, errorMessage);
+
+        // Use the error handler for consistent error messaging
+        const notifyFunction = (message, type, duration) => {
+          notify({
+            message,
+            type,
+            displayTime: duration
+          });
+        };
+
+        TankStockErrorHandler.showErrorNotification(errorMessage, notifyFunction);
+
+        // Keep popup open so user can retry
       }
     } catch (error) {
-      console.error(`Error creating ${actionType} stock:`, error);
-      notify(`Error creating ${actionType} stock`, 'error');
+      const actionTypeDisplay = actionType && typeof actionType === 'string' ? actionType : 'stock';
+      console.error(`Error creating ${actionTypeDisplay} stock:`, error);
+      const errorMessage = error.response?.data?.message || error.message || `Error creating ${actionTypeDisplay} stock`;
+
+      // Use the error handler for consistent error messaging
+      const notifyFunction = (message, type, duration) => {
+        notify({
+          message,
+          type,
+          displayTime: duration
+        });
+      };
+
+      TankStockErrorHandler.showErrorNotification(errorMessage, notifyFunction);
+
+      // Keep popup open on error
     } finally {
       setIsSubmitting(false);
     }
@@ -179,6 +243,9 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
 
   const handleTransferSubmit = useCallback((formData) =>
     handleStockSubmit(formData, 'transfer'), [handleStockSubmit]);
+
+  const handleManualRefillSubmit = useCallback((formData) =>
+    handleStockSubmit(formData, 'manualRefill'), [handleStockSubmit]);
 
   const renderPopup = () => {
     if (!currentForm) return null;
@@ -199,6 +266,9 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         break;
       case 'transfer':
         submitHandler = handleTransferSubmit;
+        break;
+      case 'manualRefill':
+        submitHandler = handleManualRefillSubmit;
         break;
       default:
         submitHandler = () => {};

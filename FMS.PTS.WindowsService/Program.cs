@@ -13,6 +13,7 @@ using FMS.Application.Handlers;
 using FMS.Application.Handlers.Common;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.BackgroundServices.FMS;
 // using FMS.Application.PTSServices.Configuration; // Cursor - Commented out missing namespace
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.PTSServices.PumpService;
@@ -43,9 +44,12 @@ using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
 using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.Businessfunction;
+using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Services.TankStock;
 using FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandling;
 using Microsoft.AspNetCore.SignalR;
@@ -373,6 +377,7 @@ namespace FMS.PTS.WindowsService {
             services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> ();
             services.AddHttpClient<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
             services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+            services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService> ();
 
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService> (); //Cursor
             services.Scan (scan => scan
@@ -411,8 +416,10 @@ namespace FMS.PTS.WindowsService {
 
             services.AddSingleton<PTSWebSocketListenerService> ();
             services.AddScoped<TankStockFutureRecordsService> (); //Cursor
+            services.AddScoped<OpeningStockValidationService> ();
 
             // Register notification services
+            services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver> ();
             services.AddScoped<INotificationService, NotificationService> ();
             services.AddScoped<IEmailService, EmailService> ();
             services.AddScoped<ISmsService, SmsService> ();

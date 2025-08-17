@@ -22,13 +22,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
         //Cursor - Added TankVolumeHistoryIntegrationService dependency
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
         private readonly TankStockFutureRecordsService _futureRecordsService;
+        private readonly OpeningStockValidationService _openingStockValidationService;
 
-        public OpeningStockCommandHandler (GpsdataContext context, ILogger<OpeningStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService) {
+        public OpeningStockCommandHandler (GpsdataContext context, ILogger<OpeningStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, OpeningStockValidationService openingStockValidationService) {
             _context = context;
             _logger = logger;
             _mediator = mediator;
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
+            _openingStockValidationService = openingStockValidationService;
         }
         public async Task<FMSResponseMessage> Handle (OpeningStockCommand request, CancellationToken cancellationToken) {
 
@@ -56,31 +58,10 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     }
                 }
 
-                // Check for existing opening stock on the same day
-                var existingOpeningStock = await _context.TankVolumeHistories
-                    .Where (x => x.TankId == request.TankId &&
-                        x.Timestamp.Date == entryDate &&
-                        x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
-                    .OrderByDescending (x => x.Timestamp)
-                    .FirstOrDefaultAsync (cancellationToken);
-
-                if (existingOpeningStock != null) {
-                    // Check if there's a closing stock after the existing opening stock
-                    var closingStockAfterOpening = await _context.TankVolumeHistories
-                        .Where (x => x.TankId == request.TankId &&
-                            x.Timestamp > existingOpeningStock.Timestamp &&
-                            x.Timestamp.Date == entryDate &&
-                            x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
-                        .OrderBy (x => x.Timestamp)
-                        .FirstOrDefaultAsync (cancellationToken);
-
-                    if (closingStockAfterOpening == null) {
-                        return new FMSResponseMessage (false, $"An opening stock already exists for this date {entryDate.Date} without a subsequent closing stock.");
-                    }
-                    // Ensure the new opening stock is after the closing stock
-                    if (request.EntryDate <= closingStockAfterOpening.Timestamp) {
-                        return new FMSResponseMessage (false, "New opening stock must be after the previous closing stock.");
-                    }
+                // Enhanced validation using the new validation service
+                var validationResult = await _openingStockValidationService.ValidateOpeningStockCreationAsync (request.TankId, entryDate, cancellationToken);
+                if (!validationResult.Success) {
+                    return new FMSResponseMessage (false, validationResult.Message);
                 }
 
                 //Cursor - Check for previous closing stock but don't require it (allow first opening stock)
@@ -108,6 +89,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                         tank.LastStockUpdate = DateTime.Now;
                     }
                 }
+
+                //Cursor: Update physical stock value and timestamp
+                tank.PhysicalStockValue = request.OpeningStock;
+                tank.LastPhysicalStockUpdate = entryDate;
+                tank.PhysicalStockSource = "Manual"; // Set source for manual entry
 
                 _context.Tanks.Update (tank);
 

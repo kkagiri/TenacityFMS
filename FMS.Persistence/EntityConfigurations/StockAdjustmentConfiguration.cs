@@ -100,6 +100,23 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasColumnType ("int(11)")
                     .HasColumnName ("tank_volume_history_id");
 
+                // Soft delete properties
+                builder.Property (e => e.IsDeleted)
+                    .HasColumnType ("tinyint(1)")
+                    .HasColumnName ("is_deleted")
+                    .HasDefaultValue (false);
+
+                builder.Property (e => e.DeletedAt)
+                    .HasColumnType ("datetime")
+                    .HasColumnName ("deleted_at");
+
+                builder.Property (e => e.DeletedBy)
+                    .HasMaxLength (450)
+                    .HasColumnName ("deleted_by");
+
+                // Global query filter to exclude soft deleted records
+                builder.HasQueryFilter (sa => !sa.IsDeleted);
+
                 // Relationships
                 builder.HasOne (d => d.Tank)
                     .WithMany (p => p.StockAdjustments)
@@ -124,6 +141,12 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasForeignKey (d => d.ApprovedBy)
                     .OnDelete (DeleteBehavior.SetNull)
                     .HasConstraintName ("fk_stock_adjustments_approved_by");
+
+                builder.HasOne (d => d.DeletedByNavigation)
+                    .WithMany (p => p.StockAdjustmentsDeleted)
+                    .HasForeignKey (d => d.DeletedBy)
+                    .OnDelete (DeleteBehavior.SetNull)
+                    .HasConstraintName ("fk_stock_adjustments_deleted_by");
 
                 builder.HasOne (d => d.TankVolumeHistory)
                     .WithOne (p => p.StockAdjustment)

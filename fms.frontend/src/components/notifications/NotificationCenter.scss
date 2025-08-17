@@ -66,11 +66,11 @@
 .notification-popover {
   position: absolute;
   top: 48px;
-  right: 0;
+  right: -20px; /* Nudged 20px to the left */
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 1050;
-  width: 320px;
+  width: 384px; /* Updated to match tw-w-96 */
   background-color: white;
 
   .tw-bg-white {

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
@@ -178,20 +179,15 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = "Alert",
-                    Category = "TagMonitoring",
-                    Priority = "Medium",
+                    Type = NotificationType.Alert,
+                    CategoryId = (int) WellKnownCategories.TagMonitoring,
+                    Priority = NotificationPriority.Medium,
                     Title = "Tag Monitoring Error",
                     Message = $"Tag monitoring error for vehicle {vehicle.HyoungNo}: {errorMessage}",
                     TriggerSource = "TagMonitoring",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    VehicleId = vehicle.VehicleId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = SystemConstants.SystemAdministrator.UserId,
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
-                    }
-                    }
+                    VehicleId = vehicle.VehicleId
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -205,20 +201,15 @@ namespace FMS.BackgroundServices.FMS {
 
             try {
                 var request = new CreateNotificationRequest {
-                    Type = "Info",
-                    Category = "TagMonitoring",
-                    Priority = "Low",
+                    Type = NotificationType.Info,
+                    CategoryId = (int) WellKnownCategories.TagMonitoring,
+                    Priority = NotificationPriority.Low,
                     Title = "Tag Updated Successfully",
                     Message = $"Vehicle {vehicle.HyoungNo} tag updated to '{newTag}' based on location: {location}",
                     TriggerSource = "TagMonitoring",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    VehicleId = vehicle.VehicleId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = "fleet-operations",
-                    DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod }
-                    }
-                    }
+                    VehicleId = vehicle.VehicleId
+
                 };
 
                 await notificationService.CreateNotificationAsync (request, cancellationToken);

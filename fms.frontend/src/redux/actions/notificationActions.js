@@ -1,6 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
+import axiosInstance from "../../api/axiosInstance";
+import notificationsApi from "../../dataservice/notificationsApi";
+import notificationPreferencesApi from "../../dataservice/notificationPreferencesApi";
+import notificationGroupsApi from "../../dataservice/notificationGroupsApi";
+import notificationCategoriesApi from "../../dataservice/notificationCategoriesApi";
 
-// Action Types
+// UI Notification Action Types (existing)
 export const ADD_NOTIFICATION = "ADD_NOTIFICATION";
 export const REMOVE_NOTIFICATION = "REMOVE_NOTIFICATION";
 export const CLEAR_NOTIFICATIONS = "CLEAR_NOTIFICATIONS";
@@ -9,7 +14,40 @@ export const ADD_IMPORT_PROGRESS = "ADD_IMPORT_PROGRESS";
 export const UPDATE_IMPORT_PROGRESS_STATUS = "UPDATE_IMPORT_PROGRESS_STATUS";
 export const CLEAR_IMPORT_PROGRESS = "CLEAR_IMPORT_PROGRESS";
 
-// Action Creators
+// Backend Notification Management Action Types
+export const FETCH_NOTIFICATIONS_REQUEST = "FETCH_NOTIFICATIONS_REQUEST";
+export const FETCH_NOTIFICATIONS_SUCCESS = "FETCH_NOTIFICATIONS_SUCCESS";
+export const FETCH_NOTIFICATIONS_FAILURE = "FETCH_NOTIFICATIONS_FAILURE";
+
+export const FETCH_NOTIFICATION_STATISTICS_REQUEST = "FETCH_NOTIFICATION_STATISTICS_REQUEST";
+export const FETCH_NOTIFICATION_STATISTICS_SUCCESS = "FETCH_NOTIFICATION_STATISTICS_SUCCESS";
+export const FETCH_NOTIFICATION_STATISTICS_FAILURE = "FETCH_NOTIFICATION_STATISTICS_FAILURE";
+
+export const MARK_NOTIFICATION_READ_SUCCESS = "MARK_NOTIFICATION_READ_SUCCESS";
+export const ACKNOWLEDGE_NOTIFICATION_SUCCESS = "ACKNOWLEDGE_NOTIFICATION_SUCCESS";
+
+export const FETCH_NOTIFICATION_POLICIES_REQUEST = "FETCH_NOTIFICATION_POLICIES_REQUEST";
+export const FETCH_NOTIFICATION_POLICIES_SUCCESS = "FETCH_NOTIFICATION_POLICIES_SUCCESS";
+export const FETCH_NOTIFICATION_POLICIES_FAILURE = "FETCH_NOTIFICATION_POLICIES_FAILURE";
+
+export const CREATE_NOTIFICATION_POLICY_SUCCESS = "CREATE_NOTIFICATION_POLICY_SUCCESS";
+export const DELETE_NOTIFICATION_POLICY_SUCCESS = "DELETE_NOTIFICATION_POLICY_SUCCESS";
+
+export const FETCH_NOTIFICATION_PREFERENCES_REQUEST = "FETCH_NOTIFICATION_PREFERENCES_REQUEST";
+export const FETCH_NOTIFICATION_PREFERENCES_SUCCESS = "FETCH_NOTIFICATION_PREFERENCES_SUCCESS";
+export const FETCH_NOTIFICATION_PREFERENCES_FAILURE = "FETCH_NOTIFICATION_PREFERENCES_FAILURE";
+
+export const UPDATE_NOTIFICATION_PREFERENCES_SUCCESS = "UPDATE_NOTIFICATION_PREFERENCES_SUCCESS";
+
+export const FETCH_NOTIFICATION_GROUPS_REQUEST = "FETCH_NOTIFICATION_GROUPS_REQUEST";
+export const FETCH_NOTIFICATION_GROUPS_SUCCESS = "FETCH_NOTIFICATION_GROUPS_SUCCESS";
+export const FETCH_NOTIFICATION_GROUPS_FAILURE = "FETCH_NOTIFICATION_GROUPS_FAILURE";
+
+export const FETCH_NOTIFICATION_CATEGORIES_REQUEST = "FETCH_NOTIFICATION_CATEGORIES_REQUEST";
+export const FETCH_NOTIFICATION_CATEGORIES_SUCCESS = "FETCH_NOTIFICATION_CATEGORIES_SUCCESS";
+export const FETCH_NOTIFICATION_CATEGORIES_FAILURE = "FETCH_NOTIFICATION_CATEGORIES_FAILURE";
+
+// UI Notification Action Creators (existing)
 export const addNotification = (notification) => {
   const id = notification.id || uuidv4();
   return {
@@ -36,6 +74,276 @@ export const updateNotification = (id, updates) => ({
   type: UPDATE_NOTIFICATION,
   payload: { id, updates },
 });
+
+// Backend Notification Management Actions
+export const fetchNotifications = (filters = {}) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_NOTIFICATIONS_REQUEST });
+
+    const response = await notificationsApi.getNotifications(filters);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: FETCH_NOTIFICATIONS_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      dispatch({
+        type: FETCH_NOTIFICATIONS_FAILURE,
+        payload: response.message
+      });
+    }
+
+    return response;
+  } catch (error) {
+    const errorMessage = error.message || 'Failed to fetch notifications';
+    dispatch({
+      type: FETCH_NOTIFICATIONS_FAILURE,
+      payload: errorMessage
+    });
+    return { isSuccess: false, message: errorMessage };
+  }
+};
+
+export const fetchNotificationStatistics = (filters = {}) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_NOTIFICATION_STATISTICS_REQUEST });
+
+    const response = await notificationsApi.getStatistics(filters);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: FETCH_NOTIFICATION_STATISTICS_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      dispatch({
+        type: FETCH_NOTIFICATION_STATISTICS_FAILURE,
+        payload: response.message
+      });
+    }
+
+    return response;
+  } catch (error) {
+    const errorMessage = error.message || 'Failed to fetch statistics';
+    dispatch({
+      type: FETCH_NOTIFICATION_STATISTICS_FAILURE,
+      payload: errorMessage
+    });
+    return { isSuccess: false, message: errorMessage };
+  }
+};
+
+export const markNotificationAsRead = (notificationId) => async (dispatch) => {
+  try {
+    const response = await notificationsApi.markAsRead(notificationId);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: MARK_NOTIFICATION_READ_SUCCESS,
+        payload: notificationId
+      });
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return { isSuccess: false, message: error.message || 'Failed to mark as read' };
+  }
+};
+
+export const acknowledgeNotification = (notificationId) => async (dispatch) => {
+  try {
+    const response = await notificationsApi.acknowledge(notificationId);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: ACKNOWLEDGE_NOTIFICATION_SUCCESS,
+        payload: notificationId
+      });
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error acknowledging notification:', error);
+    return { isSuccess: false, message: error.message || 'Failed to acknowledge' };
+  }
+};
+
+export const fetchNotificationPolicies = () => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_NOTIFICATION_POLICIES_REQUEST });
+
+    const response = await notificationsApi.getPolicies();
+
+    if (response.isSuccess) {
+      dispatch({
+        type: FETCH_NOTIFICATION_POLICIES_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      dispatch({
+        type: FETCH_NOTIFICATION_POLICIES_FAILURE,
+        payload: response.message
+      });
+    }
+
+    return response;
+  } catch (error) {
+    const errorMessage = error.message || 'Failed to fetch policies';
+    dispatch({
+      type: FETCH_NOTIFICATION_POLICIES_FAILURE,
+      payload: errorMessage
+    });
+    return { isSuccess: false, message: errorMessage };
+  }
+};
+
+export const createNotificationPolicy = (policyData) => async (dispatch) => {
+  try {
+    const response = await notificationsApi.createPolicy(policyData);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: CREATE_NOTIFICATION_POLICY_SUCCESS,
+        payload: response.data
+      });
+
+      // Refresh policies list
+      dispatch(fetchNotificationPolicies());
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error creating policy:', error);
+    return { isSuccess: false, message: error.message || 'Failed to create policy' };
+  }
+};
+
+export const deleteNotificationPolicy = (policyId) => async (dispatch) => {
+  try {
+    const response = await notificationsApi.deletePolicy(policyId);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: DELETE_NOTIFICATION_POLICY_SUCCESS,
+        payload: policyId
+      });
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error deleting policy:', error);
+    return { isSuccess: false, message: error.message || 'Failed to delete policy' };
+  }
+};
+
+export const fetchNotificationPreferences = (userId = null) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_NOTIFICATION_PREFERENCES_REQUEST });
+
+    const response = userId
+      ? await notificationPreferencesApi.getUserPreferences(userId)
+      : await notificationPreferencesApi.getCurrentUserPreferences();
+
+    if (response.isSuccess) {
+      dispatch({
+        type: FETCH_NOTIFICATION_PREFERENCES_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      dispatch({
+        type: FETCH_NOTIFICATION_PREFERENCES_FAILURE,
+        payload: response.message
+      });
+    }
+
+    return response;
+  } catch (error) {
+    const errorMessage = error.message || 'Failed to fetch preferences';
+    dispatch({
+      type: FETCH_NOTIFICATION_PREFERENCES_FAILURE,
+      payload: errorMessage
+    });
+    return { isSuccess: false, message: errorMessage };
+  }
+};
+
+export const updateNotificationPreferences = (userId, preferences) => async (dispatch) => {
+  try {
+    const response = await notificationPreferencesApi.bulkUpdatePreferences(userId, preferences);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: UPDATE_NOTIFICATION_PREFERENCES_SUCCESS,
+        payload: { userId, preferences: response.data }
+      });
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error updating preferences:', error);
+    return { isSuccess: false, message: error.message || 'Failed to update preferences' };
+  }
+};
+
+export const fetchNotificationGroups = (siteId = null) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_NOTIFICATION_GROUPS_REQUEST });
+
+    const response = await notificationGroupsApi.getGroups(siteId);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: FETCH_NOTIFICATION_GROUPS_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      dispatch({
+        type: FETCH_NOTIFICATION_GROUPS_FAILURE,
+        payload: response.message
+      });
+    }
+
+    return response;
+  } catch (error) {
+    const errorMessage = error.message || 'Failed to fetch groups';
+    dispatch({
+      type: FETCH_NOTIFICATION_GROUPS_FAILURE,
+      payload: errorMessage
+    });
+    return { isSuccess: false, message: errorMessage };
+  }
+};
+
+export const fetchNotificationCategories = (includeInactive = false) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_NOTIFICATION_CATEGORIES_REQUEST });
+
+    const response = await notificationCategoriesApi.getAllCategories(includeInactive);
+
+    if (response.isSuccess) {
+      dispatch({
+        type: FETCH_NOTIFICATION_CATEGORIES_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      dispatch({
+        type: FETCH_NOTIFICATION_CATEGORIES_FAILURE,
+        payload: response.message
+      });
+    }
+
+    return response;
+  } catch (error) {
+    const errorMessage = error.message || 'Failed to fetch categories';
+    dispatch({
+      type: FETCH_NOTIFICATION_CATEGORIES_FAILURE,
+      payload: errorMessage
+    });
+    return { isSuccess: false, message: errorMessage };
+  }
+};
 
 export const addImportProgress = (progressData) => ({
   type: ADD_IMPORT_PROGRESS,

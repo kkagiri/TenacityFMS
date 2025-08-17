@@ -6929,11 +6929,8 @@ Example {
 "Mode":"Autonomous"
 }]
 }]
-
- 240 from 289
 }
 
- 241 from 289
 179. ReportGetAlertRecords request
 Purpose Gets list of alert records saved
 Data "DateTimeStart" – date and time of alert records start in format YYYY-MM-

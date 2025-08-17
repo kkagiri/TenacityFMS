@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>FMS Application - Tank Management Documentation</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { width: 80%; margin: 0 auto; }
+  h1, h2, h3 { color: #333; }
+  pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; }
+  .section { margin-bottom: 20px; }
+  .nav { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tank Management Feature Documentation</h1>
+
+  <div class="section">
+    <h2>1. User Flow</h2>
+    <p>The Tank Management feature allows users to manage all aspects of fuel tanks, including their creation, monitoring, and the various transactions that affect their stock levels. The primary user flows are:</p>
+    <ul>
+      <li><strong>Tank Administration:</strong> Creating, updating, and deleting tank records.</li>
+      <li><strong>Deliveries:</strong> Recording fuel deliveries to tanks.</li>
+      <li><strong>Fuel Refills:</strong> Recording fuel dispensed from tanks into vehicles.</li>
+      <li><strong>Tank Stock Management:</strong> Managing opening and closing stock, performing stock adjustments, and reconciling stock levels.</li>
+      <li><strong>Tank Transfers:</strong> Recording the transfer of fuel between tanks.</li>
+      <li><strong>Reporting:</strong> Generating various reports related to tank stock and volume history.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>2. Data Flow</h2>
+    <p>The data flow for the Tank Management feature revolves around the `Tank` entity and its related transactional entities. All changes to tank volume are recorded in the `TankVolumeHistory` entity, which serves as a ledger for all tank transactions.</p>
+    <p>The key data flows are:</p>
+    <ul>
+      <li><strong>Creation/Update of Tanks:</strong> New tanks are created with their specifications. Updates can be made to these details.</li>
+      <li><strong>Deliveries:</strong> A new `Delivery` record is created, and the `TankVolumeHistory` is updated with a positive volume change.</li>
+      <li><strong>Fuel Refills:</strong> A new `FuelRefill` record is created, and the `TankVolumeHistory` is updated with a negative volume change.</li>
+      <li><strong>Tank Transfers:</strong> A `TankTransfer` record is created. The source tank's volume is decreased, and the destination tank's volume is increased in the `TankVolumeHistory`.</li>
+      <li><strong>Stock Management:</strong> `TankStock` records are created for opening and closing stock. `StockAdjustment` records are created for manual adjustments. Reconciliations update the `Tank`'s `CurrentStock` based on the `TankVolumeHistory`.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>3. Architectural Design</h2>
+    <p>The Tank Management feature follows a CQRS (Command Query Responsibility Segregation) pattern, utilizing MediatR to decouple commands and queries from their handlers. This results in a clean and maintainable architecture.</p>
+    <p>The main components are:</p>
+    <ul>
+      <li><strong>Commands:</strong> Represent actions that change the state of the system (e.g., `CreateTankCommand`, `UpdateDeliveryCommand`).</li>
+      <li><strong>Queries:</strong> Represent requests for data (e.g., `GetTankByIdQuery`, `GetDeliveryListQuery`).</li>
+      <li><strong>Handlers:</strong> Contain the business logic to process commands and queries.</li>
+      <li><strong>DTOs (Data Transfer Objects):</strong> Used to transfer data between the application layers.</li>
+      <li><strong>Entities:</strong> Represent the domain objects (e.g., `Tank`, `Delivery`, `FuelRefill`).</li>
+      <li><strong>Services:</strong> Encapsulate business logic that doesn't fit neatly into a command or query handler (e.g., `InventoryCostingService`, `TankVolumeHistoryIntegrationService`).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>4. System Architecture Overview</h2>
+    <p>The following diagram illustrates the high-level architecture and interconnections within the Tank Management feature, showing how various components interact.</p>
+    <pre class="mermaid">
+flowchart TD
+    subgraph FMSApp[FMS.Application.Features.TankManagement]
+        DTR[DailyTankReconciliation]
+        DEL[Deliveries]
+        FR[FuelRefill]
+        PT[PumpTransaction]
+        SVC[Services]
+        TNK[Tank]
+        TS[TankStock]
+        TT[TankTransfer]
+        TVH[TankVolumeHistory]
+    end
+
+    subgraph CoreSvc[Core Services]
+        TVHIS[TankVolumeHistoryIntegrationService]
+        TSFRS[TankStockFutureRecordsService]
+        TVAS[ITankVolumeAdjustmentService]
+    end
+
+    subgraph Infra[Infrastructure]
+        MED[MediatR]
+        AM[AutoMapper]
+        EF[GpsdataContext (EF Core)]
+    end
+
+    DEL --> MED
+    FR --> MED
+    TS --> MED
+    TT --> MED
+    DTR --> MED
+    PT --> MED
+    TNK --> MED
+
+    DEL -- uses --> TVHIS
+    FR -- uses --> TVHIS
+    TS -- uses --> TVHIS
+    TT -- uses --> TVHIS
+    TVHIS -- dispatches --> TVH
+
+    FR -- validates with --> TSFRS
+    TS -- validates with --> TSFRS
+    TT -- validates with --> TSFRS
+
+    DEL -- adjusts via --> TVAS
+    TT -- adjusts via --> TVAS
+
+    MED -- dispatches to --> Handlers[Command/Query Handlers]
+    Handlers -- interacts with --> EF
+    Handlers -- maps with --> AM
+
+    TVH -- stores data for --> TNK
+    TVH -- stores data for --> DEL
+    TVH -- stores data for --> FR
+    TVH -- stores data for --> TS
+    TVH -- stores data for --> TT
+    TVH -- stores data for --> PT
+
+    SVC -- provides logic for --> DEL
+    SVC -- provides logic for --> FR
+    SVC -- provides logic for --> TS
+    SVC -- provides logic for --> TT
+    SVC -- provides logic for --> PT
+    SVC -- provides logic for --> TNK
+    SVC -- provides logic for --> DTR
+
+    style FMSApp fill:#f9f,stroke:#333,stroke-width:2px
+    style CoreSvc fill:#ccf,stroke:#333,stroke-width:2px
+    style Infra fill:#cfc,stroke:#333,stroke-width:2px
+
+
+    </pre>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({ startOnLoad: true });
+    </script>
+  </div>
+
+  <div class="section">
+    <h2>5. Dependencies</h2>
+    <p>The Tank Management feature has the following key dependencies:</p>
+    <ul>
+      <li><strong>MediatR:</strong> For implementing the CQRS pattern.</li>
+      <li><strong>AutoMapper:</strong> For mapping between entities and DTOs.</li>
+      <li><strong>Entity Framework Core:</strong> For data access and persistence.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Important Services</h2>
+    <ul>
+      <li><a href="TankManagement/TankVolumeHistoryIntegrationService.html">Tank Volume History Integration Service - Detailed Documentation</a></li>
+      <li><a href="TankManagement/TankStockFutureRecordsService.html">Tank Stock Future Records Service</a></li>
+      <li><a href="TankManagement/TankVolumeAdjustmentService.html">Tank Volume Adjustment Service</a></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>5. Sub-component Details</h2>
+    <div class="nav">
+      <ul>
+        <li><a href="TankManagement/DailyTankReconciliation.html">Daily Tank Reconciliation</a></li>
+        <li><a href="TankManagement/Deliveries.html">Deliveries</a></li>
+        <li><a href="TankManagement/FuelRefill.html">Fuel Refill</a></li>
+        <li><a href="TankManagement/PumpTransaction.html">Pump Transaction</a></li>
+        <li><a href="TankManagement/Services.html">Services</a></li>
+        <li><a href="TankManagement/Tank.html">Tank</a></li>
+        <li><a href="TankManagement/TankStock.html">Tank Stock</a></li>
+        <li><a href="TankManagement/TankTransfer.html">Tank Transfer</a></li>
+        <li><a href="TankManagement/TankVolumeHistory.html">Tank Volume History</a></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -41,9 +41,16 @@ public static class ServiceCollectionExtensions {
             connectionString += "AllowZeroDateTime=True;ConvertZeroDateTime=True";
         }
 
-        //: Registering the main DbContext using MySQL.
+        //: Registering the main DbContext using MySQL with retry on failure for transient errors.
         services.AddDbContext<GpsdataContext> (options =>
-            options.UseMySql (connectionString, new MySqlServerVersion (new Version (5, 5, 61))),
+            options.UseMySql (connectionString, new MySqlServerVersion (new Version (5, 5, 61)),
+                mySqlOptions => {
+                    mySqlOptions.EnableRetryOnFailure (
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds (30),
+                        errorNumbersToAdd: null);
+                    mySqlOptions.CommandTimeout (60); // Set command timeout to 60 seconds
+                }),
             ServiceLifetime.Scoped);
 
         //chatgpt: Register Identity services after the DbContext.

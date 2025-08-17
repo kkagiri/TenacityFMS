@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tank - Tank Management</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { width: 80%; margin: 0 auto; }
+  h1, h2, h3 { color: #333; }
+  pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; }
+  .section { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tank</h1>
+  <div class="nav">
+    <a href="../TankManagement.html">Back to Tank Management</a>
+  </div>
+
+  <div class="section">
+    <h2>CreateTankCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public TankDTO TankDto { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>Tank name is required.</li>
+        <li>SiteId is required and must be valid.</li>
+        <li>If PtsId is provided, it must be valid.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>UpdateTankCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public int Id { get; set; }
+    public TankDTO Tank { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>Tank with the given Id must exist.</li>
+        <li>SiteId is required and must be valid.</li>
+        <li>If PtsId is provided, it must be valid.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>DeleteTankCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public int Id { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>Tank with the given Id must exist.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

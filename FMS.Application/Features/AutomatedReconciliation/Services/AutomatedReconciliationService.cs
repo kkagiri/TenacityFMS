@@ -146,9 +146,9 @@ public class AutomatedReconciliationService {
         });
 
         try {
-            //Cursor - Replace temporary policy creation with actual fetch from context
+            //Cursor - Fetch policy with proper navigation properties
             var policy = await _context.ReconciliationPolicies
-                .Include (p => p.TankScopeConfiguration)
+                .Include (p => p.Site)
                 .FirstOrDefaultAsync (p => p.Id == policyId && p.IsActive, cancellationToken);
 
             if (policy == null) {
@@ -193,24 +193,31 @@ public class AutomatedReconciliationService {
                 var tanksToReconcile = await _policyEvaluationEngine.GetTanksRequiringReconciliation (policy, cancellationToken);
                 executionResult.ProcessedTanks = tanksToReconcile.Count;
 
-                // Process each tank
-                var discrepancyRecords = new List<DiscrepancyRecord> ();
+                // Process each tank - using ReconciliationDiscrepancy as primary entity
+                var reconciliationDiscrepancies = new List<ReconciliationDiscrepancy> ();
 
                 foreach (var tank in tanksToReconcile) {
                     var discrepancyResult = await _discrepancyDetectionService.DetectDiscrepancies (tank, policy, cancellationToken);
 
                     if (discrepancyResult.IsSignificant) {
-                        var discrepancyRecord = new DiscrepancyRecord {
+                        // Determine severity based on variance thresholds
+                        var severity = DetermineSeverity (discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);
+
+                        var reconciliationDiscrepancy = new ReconciliationDiscrepancy {
+                            PolicyExecutionId = execution.Id,
                             TankId = tank.Id,
-                            PolicyId = policyId,
-                            ExecutionId = execution.Id,
                             DetectedAt = DateTime.UtcNow,
-                            VarianceLiters = discrepancyResult.VarianceLiters,
-                            VariancePercentage = discrepancyResult.VariancePercentage,
-                            IsResolved = false
+                            CurrentStock = discrepancyResult.ActualVolume,
+                            ExpectedStock = discrepancyResult.ExpectedVolume,
+                            AbsoluteVariance = discrepancyResult.VarianceLiters,
+                            PercentageVariance = discrepancyResult.VariancePercentage,
+                            Severity = severity,
+                            IsResolved = false,
+                            AnalysisNotes = $"Discrepancy detected by policy '{policy.Name}' (ID: {policyId})",
+                            BusinessImpactScore = CalculateBusinessImpact (discrepancyResult.VarianceLiters, tank)
                         };
 
-                        discrepancyRecords.Add (discrepancyRecord);
+                        reconciliationDiscrepancies.Add (reconciliationDiscrepancy);
 
                         //Cursor - Send discrepancy detection notification
                         await SendDiscrepancyDetectedNotificationAsync (tank, discrepancyResult, policy, cancellationToken);
@@ -218,26 +225,11 @@ public class AutomatedReconciliationService {
                 }
 
                 // Process all discrepancies
-                if (discrepancyRecords.Any ()) {
-                    // Convert DiscrepancyRecord to ReconciliationDiscrepancy
-                    var reconciliationDiscrepancies = discrepancyRecords.Select (dr => new ReconciliationDiscrepancy {
-                        PolicyExecutionId = dr.ExecutionId,
-                            TankId = dr.TankId,
-                            DetectedAt = dr.DetectedAt,
-                            CurrentStock = 0, // Will be populated by the service
-                            ExpectedStock = 0, // Will be populated by the service
-                            AbsoluteVariance = dr.VarianceLiters,
-                            PercentageVariance = dr.VariancePercentage,
-                            Severity = FMS.Domain.Entities.enums.DiscrepancySeverity.Medium,
-                            IsResolved = dr.IsResolved,
-                            AnalysisNotes = $"Discrepancy detected by policy {policyId}",
-                            BusinessImpactScore = 0 // Will be calculated by the service
-                    }).ToList ();
-
+                if (reconciliationDiscrepancies.Any ()) {
                     var reconciliationResults = await _orchestrationService.ProcessAllDiscrepanciesAsync (
                         reconciliationDiscrepancies, policy, execution.Id, cancellationToken);
 
-                    executionResult.DiscrepanciesFound = discrepancyRecords.Count;
+                    executionResult.DiscrepanciesFound = reconciliationDiscrepancies.Count;
                     executionResult.DiscrepanciesResolved = reconciliationResults.Count (r => r.Success);
 
                     //Cursor - Send reconciliation completion notification
@@ -283,19 +275,14 @@ public class AutomatedReconciliationService {
     private async Task SendPolicyExecutionFailureNotificationAsync (int policyId, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "High",
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Features.Notification.Enums.NotificationPriority.High,
                 Title = "Reconciliation Policy Execution Failed",
                 Message = $"Policy {policyId} execution failed: {errorMessage}",
                 TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = "System",
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                }
-                }
+                TriggeredBy = "System"
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -307,19 +294,13 @@ public class AutomatedReconciliationService {
     private async Task SendCycleSummaryNotificationAsync (ReconciliationCycleResult cycleResult, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = cycleResult.FailedPolicies > cycleResult.SuccessfulPolicies ? "High" : "Medium",
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = cycleResult.FailedPolicies > cycleResult.SuccessfulPolicies ? Features.Notification.Enums.NotificationPriority.High : Features.Notification.Enums.NotificationPriority.Medium,
                 Title = "Reconciliation Cycle Summary",
                 Message = $"Cycle {cycleResult.CycleId}: {cycleResult.SuccessfulPolicies} successful, {cycleResult.FailedPolicies} failed policies. Duration: {cycleResult.Duration.TotalMinutes:F1}min",
                 TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = "System",
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                TriggeredBy = "System"
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -331,23 +312,14 @@ public class AutomatedReconciliationService {
     private async Task SendCycleCriticalFailureNotificationAsync (Guid cycleId, string errorMessage, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "Critical",
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Features.Notification.Enums.NotificationPriority.Critical,
                 Title = "Critical Reconciliation System Failure",
                 Message = $"Reconciliation cycle {cycleId} failed critically: {errorMessage}",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email", "SMS" }
-                },
-                new CreateNotificationRecipientRequest {
-                UserId = "system-administrator",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                }
-                }
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -362,21 +334,16 @@ public class AutomatedReconciliationService {
             var priority = Math.Abs (discrepancyResult.VarianceLiters) > 50 ? "High" : "Medium";
 
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Tank",
-                Priority = priority,
+                Type = Features.Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.DiscrepancyDetected,
+                Priority = Features.Notification.Enums.NotificationPriority.Critical,
                 Title = "Tank Volume Discrepancy Detected",
                 Message = $"Tank {tank.Name} discrepancy: {discrepancyResult.VarianceLiters:F2}L ({discrepancyResult.VariancePercentage:F1}%)",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 SiteId = tank.SiteId,
-                TankId = tank.Id,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                }
-                }
+                TankId = tank.Id
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -392,20 +359,15 @@ public class AutomatedReconciliationService {
             var priority = unresolvedCount > 0 ? "Medium" : "Low";
 
             var request = new CreateNotificationRequest {
-                Type = "Info",
-                Category = "Reconciliation",
-                Priority = priority,
+                Type = Features.Notification.Enums.NotificationType.Info,
+                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = unresolvedCount > 0 ? Features.Notification.Enums.NotificationPriority.Medium : Features.Notification.Enums.NotificationPriority.Low,
                 Title = "Reconciliation Policy Completed",
                 Message = $"Policy '{policy.Name}': {discrepanciesFound} discrepancies found, {discrepanciesResolved} resolved",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                SiteId = policy.SiteId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                SiteId = policy.SiteId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -434,6 +396,40 @@ public class AutomatedReconciliationService {
         }
 
         return duePolicies;
+    }
+
+    //Cursor - Helper methods for ReconciliationDiscrepancy processing
+    private DiscrepancySeverity DetermineSeverity (decimal varianceLiters, decimal variancePercentage) {
+        decimal absVarianceLiters = Math.Abs (varianceLiters);
+        decimal absVariancePercentage = Math.Abs (variancePercentage);
+
+        // Define severity thresholds - these could be configurable
+        if (absVarianceLiters > 100 || absVariancePercentage > 10) {
+            return DiscrepancySeverity.High;
+        }
+
+        if (absVarianceLiters > 50 || absVariancePercentage > 5) {
+            return DiscrepancySeverity.Medium;
+        }
+
+        return DiscrepancySeverity.Low;
+    }
+
+    private decimal CalculateBusinessImpact (decimal varianceLiters, Tank tank) {
+        // Simple business impact calculation based on variance amount
+        // This could be enhanced with fuel cost, tank capacity, operational criticality, etc.
+        decimal absVariance = Math.Abs (varianceLiters);
+
+        // Base impact score (0-100 scale)
+        decimal impactScore = Math.Min (absVariance / 10, 100); // 10 liters = 1 point, max 100
+
+        // Adjust based on tank capacity if available
+        if (tank.TankVolume > 0) {
+            decimal percentageOfCapacity = absVariance / tank.TankVolume * 100;
+            impactScore = Math.Max (impactScore, percentageOfCapacity * 2); // Weight capacity percentage higher
+        }
+
+        return Math.Round (impactScore, 2);
     }
 }
 

@@ -8,6 +8,7 @@ import PolicyEdit from './policies/PolicyEdit';
 import EmailConfiguration from './configuration/EmailConfiguration';
 import TemplateManagement from './configuration/TemplateManagement';
 import RecipientManagement from './recipients/RecipientManagement';
+import UserPreferences from './preferences/UserPreferences';
 import NotificationHistory from './history/NotificationHistory';
 import TestingPanel from './testing/TestingPanel';
 
@@ -52,6 +53,8 @@ const NotificationSystem = () => {
         return <EmailConfiguration />; // Default to email config
       case 'recipients':
         return <RecipientManagement />;
+      case 'preferences':
+        return <UserPreferences />;
       case 'history':
         return <NotificationHistory />;
       case 'testing':

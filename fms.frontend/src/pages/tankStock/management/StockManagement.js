@@ -39,14 +39,7 @@ const StockManagement = () => {
     refreshData
   } = useStockData(selectedSite, dateRange);
 
-  const handleFilterClick = useCallback(() => {
-    // TODO: Open filter popup
-    console.log('Filter clicked');
-  }, []);
 
-  // Ensure arrays are available for FilterInfoBar
-  const safeSites = Array.isArray(sites) ? sites : [];
-  const safeDateRange = Array.isArray(dateRange) && dateRange.length >= 2 ? dateRange : [new Date(), new Date()];
 
   //Cursor - Tab data with Transaction Hub as first tab, Stock Adjustment Dashboard as second
   const tabData = [
@@ -128,14 +121,7 @@ const StockManagement = () => {
 
   return (
     <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
-      {/* Render filter info in header */}
-      <FilterInfoBar
-        dateRange={safeDateRange}
-        selectedSite={selectedSite}
-        sites={safeSites}
-        user={user}
-        onFilterClick={handleFilterClick}
-      />
+
 
       {/* Cursor - Loading overlay instead of blocking entire screen */}
       {isLoading && (

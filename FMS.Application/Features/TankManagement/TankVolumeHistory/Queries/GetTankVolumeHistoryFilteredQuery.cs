@@ -17,6 +17,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
     public record GetTankVolumeHistoryFilteredQuery : IRequest<FMSResponse<List<TankVolumeHistoryDTO>>> {
         public int? SiteId { get; init; }
         public int? TankId { get; init; }
+        public string? RecordedBy { get; init; }
         public DateTime? StartDate { get; init; }
         public DateTime? EndDate { get; init; }
         public int? Take { get; init; } = 100; // Default limit
@@ -60,14 +61,40 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
                     query = query.Where (tvh => tvh.TankId == request.TankId.Value);
                 }
 
-                // Order by timestamp descending and apply limit
-                query = query.OrderByDescending (tvh => tvh.Timestamp);
-
-                if (request.Take.HasValue && request.Take.Value > 0) {
-                    query = query.Take (request.Take.Value);
+                // Apply recorded by filter
+                if (!string.IsNullOrEmpty (request.RecordedBy)) {
+                    query = query.Where (tvh => tvh.RecordedBy == request.RecordedBy);
                 }
 
+                // Order by timestamp descending
+                query = query.OrderByDescending (tvh => tvh.Timestamp);
+
+                // Execute the main query
                 var tankVolumeHistories = await query.ToListAsync (cancellationToken);
+
+                // Get all dispensing transaction IDs for bulk vehicle name lookup
+                var dispensingTransactionIds = new List<int> ();
+                if (request.IncludeVehicleNames == true) {
+                    dispensingTransactionIds = tankVolumeHistories
+                        .Where (h => h.ChangeReason == VolumeChangeReasonEnum.Dispensing && h.ReferenceId.HasValue)
+                        .Select (h => h.ReferenceId.Value)
+                        .ToList ();
+                }
+
+                // Bulk load vehicle names for dispensing transactions to avoid N+1 queries
+                var vehicleNameLookup = new Dictionary<int, string> ();
+                if (dispensingTransactionIds.Any ()) {
+                    var fuelRefillsWithVehicles = await _context.FuelRefills
+                        .Where (fr => dispensingTransactionIds.Contains (fr.Id))
+                        .Include (fr => fr.Vehicle)
+                        .Select (fr => new { fr.Id, VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : "N/A" })
+                        .ToListAsync (cancellationToken);
+
+                    vehicleNameLookup = fuelRefillsWithVehicles.ToDictionary (
+                        fr => fr.Id,
+                        fr => fr.VehicleName ?? "N/A"
+                    );
+                }
 
                 var result = new List<TankVolumeHistoryDTO> ();
 
@@ -78,15 +105,15 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries {
                     dto.Site = history.Tank?.Site?.Name ?? "Unknown";
                     dto.SiteId = history.Tank?.SiteId;
 
-                    // Handle vehicle names for dispensing transactions
+                    // Set recorded by user name
+                    dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";
+
+                    // Handle vehicle names for dispensing transactions using lookup
                     if (request.IncludeVehicleNames == true &&
                         history.ChangeReason == VolumeChangeReasonEnum.Dispensing &&
-                        history.ReferenceId.HasValue) {
-                        var fuelRefill = await _context.FuelRefills
-                            .Include (fr => fr.Vehicle)
-                            .FirstOrDefaultAsync (fr => fr.Id == history.ReferenceId, cancellationToken);
-
-                        dto.VehicleName = fuelRefill?.Vehicle?.HyoungNo ?? "N/A";
+                        history.ReferenceId.HasValue &&
+                        vehicleNameLookup.TryGetValue (history.ReferenceId.Value, out string? vehicleName)) {
+                        dto.VehicleName = vehicleName;
                     } else {
                         dto.VehicleName = "N/A";
                     }

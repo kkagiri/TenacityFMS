@@ -17,6 +17,7 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'User Management',
         subtitle: 'Manage system users and their access'
       };
+
     } else if (pathname.includes('/roles')) {
       return {
         title: 'Role Management',
@@ -61,6 +62,18 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       return {
         title: 'Configuration Management',
         subtitle: 'Manage automated fueling configurations'
+      };
+    } else if (pathname.includes('/notifications')) {
+      return {
+        title: 'Notification Settings',
+        subtitle: 'Manage notification categories and policies'
+      };
+
+
+    } else if (pathname.includes('/pts-service')) {
+      return {
+        title: 'PTS Service Control',
+        subtitle: 'Monitor and control PTS Windows Service'
       };
     } else if (pathname.includes('/systemconfig')) {
       return {
@@ -115,6 +128,15 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       path: adminRoutes.navigation,
       badge: null,
     }
+    ,
+    {
+      id:'notifications',
+      title:'Notifications',
+      icon: 'fa-light fa-bell',
+      path: adminRoutes.notifications,
+      badge:null,
+
+    }
   ];
 
   const systemItems = [
@@ -133,20 +155,8 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
     {
       id: 'tanks',
       title: 'Tanks',
-      icon: 'fa-light fa-oil-drum',
+      icon: 'fa-light fa-tank-water',
       path: adminRoutes.tanks,
-    },
-    {
-      id: 'ptsdevice',
-      title: 'PTS Devices',
-      icon: 'fa-light fa-meter',
-      path: adminRoutes.ptsdevice,
-    },
-    {
-      id: 'ptsconfig',
-      title: 'PTS Configuration',
-      icon: 'fa-light fa-gears',
-      path: adminRoutes.ptsconfig,
     },
     {
       id: 'configuration',
@@ -159,6 +169,28 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: 'System Config',
       icon: 'fa-light fa-sliders',
       path: adminRoutes.systemconfig,
+    }
+
+  ];
+
+  const ptsItems = [
+    {
+      id: 'pts-service',
+      title: 'PTS Service Control',
+      icon: 'fa-light fa-server',
+      path: adminRoutes.ptsService,
+    },
+    {
+      id: 'ptsdevice',
+      title: 'PTS Devices',
+      icon: 'fa-light fa-meter',
+      path: adminRoutes.ptsdevice,
+    },
+     {
+      id: 'ptsconfig',
+      title: 'PTS Configuration',
+      icon: 'fa-light fa-gears',
+      path: adminRoutes.ptsconfig,
     }
   ];
 
@@ -193,6 +225,31 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             {!sidebarCollapsed && <div className="group-label">Access Control</div>}
             <nav className="nav-menu">
               {navigationItems.map((item) => {
+                const isActive = isActiveRoute(currentPath, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
+                    {!sidebarCollapsed && item.badge && (
+                      <span className="nav-badge">{item.badge}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+           <div className="nav-separator"></div>
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">PTS Management</div>}
+            <nav className="nav-menu">
+              {ptsItems.map((item) => {
                 const isActive = isActiveRoute(currentPath, item.path);
                 return (
                   <div

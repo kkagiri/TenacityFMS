@@ -18,7 +18,26 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
           widget={"dxButton"}
           // cssClass={"menu-button"}
         >
-          <Button icon="menu" stylingMode="text" onClick={toggleMenu} />
+          <Button
+            icon="menu"
+            stylingMode="text"
+            onClick={(e) => {
+              // Create a proper event object for toggleMenu
+              const syntheticEvent = {
+                stopPropagation: () => {
+                  if (e && e.stopPropagation) {
+                    e.stopPropagation();
+                  }
+                },
+                preventDefault: () => {
+                  if (e && e.preventDefault) {
+                    e.preventDefault();
+                  }
+                }
+              };
+              toggleMenu({ event: syntheticEvent });
+            }}
+          />
         </Item>
 
 
@@ -34,13 +53,13 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
 
        {/* Todo: insert Theme selector . */}
 
-        {/* //Cursor - Notification bell positioned first on the right */}
+        {/* //Cursor - Notification bell positioned on the right - moved to be first on right side */}
         <Item
           location={"after"}
           locateInMenu={"never"}
- //          cssClass={"notification-item"} //this is causing the Icon to go on the left side//TODo: fix
+          cssClass={"notification-item"}
         >
-          <div className="header-notification-wrapper">
+          <div className="notification-wrapper">
             <NotificationCenter />
           </div>
         </Item>
@@ -48,7 +67,6 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
         {/* //Cursor - Simplified user button to show only icon */}
         <Item
           location={"after"}
-          // locateInMenu={"auto"}
           cssClass={"user-panel-item"}
         >
           <Button
@@ -57,9 +75,8 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
             width={40}
             height={40}
             stylingMode={"text"}
-          >
-            <UserPanel menuMode={"context"} />
-          </Button>
+          />
+          <UserPanel menuMode={"context"} />
         </Item>
         {/* <Template name={"userPanelTemplate"}>
           <UserPanel menuMode={"list"} />

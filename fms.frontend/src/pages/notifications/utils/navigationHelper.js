@@ -14,6 +14,7 @@ export const notificationRoutes = {
   emailConfig: '/notifications/configuration/email',
   templates: '/notifications/configuration/templates',
   recipients: '/notifications/recipients',
+  preferences: '/notifications/preferences',
   history: '/notifications/history',
   testing: '/notifications/testing'
 };

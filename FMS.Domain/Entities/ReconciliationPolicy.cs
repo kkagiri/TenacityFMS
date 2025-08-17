@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.enums;
-using FMS.Domain.Entities.Features.AutomaticReconciliation;
 
 namespace FMS.Domain.Entities {
     /// <summary>
@@ -100,11 +99,13 @@ namespace FMS.Domain.Entities {
         public virtual Site? Site { get; set; }
         public virtual User CreatedByNavigation { get; set; } = null!;
         public virtual User? ModifiedByNavigation { get; set; }
+
+        // Primary navigation for policy executions
         public virtual ICollection<ReconciliationPolicyExecution> PolicyExecutions { get; set; } = new List<ReconciliationPolicyExecution> ();
 
-        //Cursor - Enhanced navigation properties (from new version)
-        public virtual ICollection<ReconciliationPolicyExecution> Executions { get; set; } = new List<ReconciliationPolicyExecution> ();
-        public virtual ICollection<DiscrepancyRecord> DiscrepancyRecords { get; set; } = new List<DiscrepancyRecord> ();
+        // Navigation to discrepancies through policy executions (using ReconciliationDiscrepancy as primary entity)
+        // Note: ReconciliationDiscrepancy entities are linked via PolicyExecutionId, not directly to Policy
+        public virtual ICollection<ReconciliationDiscrepancy> Discrepancies { get; set; } = new List<ReconciliationDiscrepancy> ();
 
         //Cursor - Enhanced computed property for tank scope (from new version)
         [NotMapped]

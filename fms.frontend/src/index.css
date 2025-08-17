@@ -40,3 +40,97 @@ code {
 .dx-form .dx-layout-manager .dx-field-item {
   padding-bottom: 10px;
 }
+
+/* Global DevExtreme Chart Tooltip Z-Index Fix */
+/* Fixes tooltips showing behind popups and overlays */
+.dx-chart-tooltip,
+.dx-chart-tooltip-wrapper,
+.dx-chart-tooltip-content {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Specific fix for tooltips in DevExtreme popups */
+.dx-popup .dx-chart-tooltip,
+.dx-popup-content .dx-chart-tooltip,
+.dx-popup-wrapper .dx-chart-tooltip {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Ensure tooltips are above all other elements */
+body > .dx-chart-tooltip,
+body > .dx-chart-tooltip-wrapper {
+  z-index: 99999 !important;
+}
+
+/* Additional fix for tooltip containers */
+.dx-overlay-wrapper .dx-chart-tooltip {
+  z-index: 99999 !important;
+}
+
+/* Force all tooltip elements to the highest z-index */
+.dx-tooltip,
+.dx-tooltip-wrapper,
+div[id*="tooltip"] {
+  z-index: 99999 !important;
+}
+
+/* DevExtreme popup z-index override for chart tooltips */
+.dx-popup-wrapper .dx-chart-tooltip,
+.dx-overlay .dx-chart-tooltip {
+  z-index: 99999 !important;
+}
+
+/* Force all overlay content to respect z-index hierarchy */
+.dx-overlay-content {
+  position: relative;
+}
+
+/* Ensure chart tooltips always appear on top of everything */
+[class*="dx-chart-tooltip"],
+[class*="dx-tooltip"] {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* DevExtreme popup specific overrides */
+.dx-popup {
+  z-index: 1500;
+}
+
+.dx-popup-content {
+  position: relative;
+  z-index: 1501;
+}
+
+/* Chart tooltip container fixes */
+body > div[class*="tooltip"],
+body > .dx-overlay-wrapper > div[class*="tooltip"] {
+  z-index: 99999 !important;
+}
+
+/* Ultimate tooltip z-index override - this should work for all cases */
+div[class*="tooltip"],
+div[id*="tooltip"],
+.dx-chart-tooltip,
+.dx-tooltip,
+.dx-tooltip-wrapper {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Specific DevExtreme chart tooltip fixes */
+.dx-chart .dx-tooltip,
+.dx-chart-tooltip-content,
+.dx-widget .dx-tooltip {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Force tooltip to be above everything when in popup */
+.dx-popup-wrapper * .dx-chart-tooltip,
+.dx-popup-content * .dx-chart-tooltip {
+  z-index: 99999 !important;
+  position: fixed !important;
+}

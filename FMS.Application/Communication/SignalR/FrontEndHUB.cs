@@ -13,28 +13,6 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Communication.SignalR {
 
-    public class ConnectionMonitor {
-        private readonly ConcurrentDictionary<string, DateTime> _connections = new ();
-        private readonly ILogger<ConnectionMonitor> _logger;
-
-        public ConnectionMonitor (ILogger<ConnectionMonitor> logger) {
-            _logger = logger;
-        }
-
-        public void AddConnection (string connectionId) {
-            _connections.TryAdd (connectionId, DateTime.UtcNow);
-            _logger.LogInformation ("Added connection {ConnectionId}. Total connections: {Count}",
-                connectionId, _connections.Count);
-        }
-
-        public void RemoveConnection (string connectionId) {
-            if (_connections.TryRemove (connectionId, out var connectedAt)) {
-                _logger.LogInformation ("Removed connection {ConnectionId}. Duration: {Duration}",
-                    connectionId, DateTime.UtcNow - connectedAt);
-            }
-        }
-    }
-
     public class FrontEndHub : Hub {
         private readonly DeviceConnectionTracker _deviceConnectionTracker;
         private readonly IMediator _mediator;
@@ -333,6 +311,78 @@ namespace FMS.Application.Communication.SignalR {
                 });
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error processing tank data refresh request");
+            }
+        }
+
+        // Method to broadcast active alarm creation
+        public async Task BroadcastActiveAlarmCreated (object alarmData) {
+            try {
+                await Clients.All.SendAsync ("ActiveAlarmCreated", alarmData);
+                _logger.LogInformation ("Broadcasted active alarm creation: {AlarmId}",
+                    alarmData.GetType ().GetProperty ("Id")?.GetValue (alarmData));
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting active alarm creation");
+            }
+        }
+
+        // Method to broadcast active alarm updates
+        public async Task BroadcastActiveAlarmUpdated (object alarmData) {
+            try {
+                await Clients.All.SendAsync ("ActiveAlarmUpdated", alarmData);
+                _logger.LogInformation ("Broadcasted active alarm update: {AlarmId}",
+                    alarmData.GetType ().GetProperty ("Id")?.GetValue (alarmData));
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting active alarm update");
+            }
+        }
+
+        // Method to broadcast alarm state changes
+        public async Task BroadcastActiveAlarmStateChanged (int alarmId, string newState) {
+            try {
+                await Clients.All.SendAsync ("ActiveAlarmStateChanged", new { alarmId, newState });
+                _logger.LogInformation ("Broadcasted alarm state change: Alarm {AlarmId} -> {NewState}", alarmId, newState);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting alarm state change");
+            }
+        }
+
+        // Method to broadcast notification creation
+        public async Task BroadcastNotificationCreated (object notificationData) {
+            try {
+                await Clients.All.SendAsync ("NotificationCreated", notificationData);
+                _logger.LogDebug ("Broadcasted notification creation");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting notification");
+            }
+        }
+
+        // Method for testing alarm broadcasts
+        public async Task BroadcastAlarmTest (object testData) {
+            try {
+                await Clients.All.SendAsync ("AlarmTestBroadcast", testData);
+                _logger.LogInformation ("Broadcasted alarm test: {Message}",
+                    testData.GetType ().GetProperty ("message")?.GetValue (testData));
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting alarm test");
+            }
+        }
+
+        // Method to get alarm statistics (for testing)
+        public async Task RequestAlarmStatistics () {
+            try {
+                // This would typically call a service to get statistics
+                var mockStats = new {
+                    totalActive = 15,
+                    critical = 3,
+                    unacknowledged = 7,
+                    resolvedToday = 5,
+                    timestamp = DateTime.UtcNow
+                };
+
+                await Clients.Caller.SendAsync ("AlarmStatisticsUpdate", mockStats);
+                _logger.LogDebug ("Sent alarm statistics to client");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error sending alarm statistics");
             }
         }
     }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { vehicleRoutes, isActiveRoute, navigationGroups } from '../utils/navigationHelper';
+import VehicleSearchBar from '../components/VehicleSearchBar';
 import './VehicleLayout.scss';
 
 const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
@@ -164,22 +165,10 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
                 )}
               </div>
               <div className="tw-flex tw-items-center tw-space-x-4">
-
-                {/* Quick Action Buttons */}
-                <button
-                  onClick={() => handleNavigation('/vehicles/fleet#vehicleaction')}
-                  className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-text-sm tw-font-medium tw-flex tw-items-center tw-gap-2 hover:tw-bg-blue-700 tw-transition-colors"
-                >
-                  <i className="fa-light fa-plus"></i>
-                  Add Vehicle
-                </button>
-                <button
-                  onClick={() => handleNavigation('/vehicles/reports')}
-                  className="tw-bg-gray-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-text-sm tw-font-medium tw-flex tw-items-center tw-gap-2 hover:tw-bg-gray-700 tw-transition-colors"
-                >
-                  <i className="fa-light fa-download"></i>
-                  Report
-                </button>
+                {/* Vehicle Search Bar */}
+                <div className="tw-min-w-0 tw-flex-1 tw-max-w-md">
+                  <VehicleSearchBar placeholder="Search vehicles by name, plate, or ID..." />
+                </div>
               </div>
             </div>
           </div>

@@ -16,6 +16,8 @@ import DeviceDashboard from '../PTSDevice/DeviceDashboard';
 import PTSAutomationConfigPage from '../PTSAutomationConfig/PTSAutomationConfigPage';
 import ConfigurationPage from './configuration';
 import SystemConfiguration from './systemConfig/SystemConfigPage';
+import PTSServiceControl from './ptsService/PTSServiceControl';
+import NotificationSettings from './notification-settings/NotificationSettings';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -36,6 +38,8 @@ const AdminMain = () => {
         <Route path="permissions/*" element={<PermissionTreeList />} />
         <Route path="navigation" element={<NavigationPage />} />
         <Route path="navigation/*" element={<NavigationPage />} />
+        <Route path="notifications" element={<NotificationSettings />} />
+        <Route path="notifications/*" element={<NotificationSettings />} />
 
         {/* System Configuration Routes */}
         <Route path="tags" element={<Tagpage />} />
@@ -52,6 +56,10 @@ const AdminMain = () => {
         <Route path="systemconfig/*" element={<SystemConfiguration />} />
         <Route path="configuration" element={<ConfigurationPage />} />
         <Route path="configuration/*" element={<ConfigurationPage />} />
+
+        {/* PTS Service Control Route */}
+        <Route path="pts-service" element={<PTSServiceControl />} />
+        <Route path="pts-service/*" element={<PTSServiceControl />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

@@ -21,7 +21,7 @@ namespace FMS.Persistence.EntityConfigurations {
 
                 // Indexes
                 builder.HasIndex (e => e.Name, "IX_NotificationPolicy_Name");
-                builder.HasIndex (e => e.Category, "IX_NotificationPolicy_Category");
+                builder.HasIndex (e => e.NotificationCategoryId, "IX_NotificationPolicy_Category");
                 builder.HasIndex (e => e.NotificationType, "IX_NotificationPolicy_NotificationType");
                 builder.HasIndex (e => e.IsActive, "IX_NotificationPolicy_IsActive");
                 builder.HasIndex (e => e.SiteId, "IX_NotificationPolicy_SiteId");
@@ -34,7 +34,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.Name).HasMaxLength (100).IsRequired ();
                 builder.Property (e => e.Description).HasMaxLength (500);
                 builder.Property (e => e.IsActive).HasDefaultValue (true);
-                builder.Property (e => e.Category).HasMaxLength (50).IsRequired ();
+                builder.Property (e => e.NotificationCategoryId).IsRequired ().HasColumnType ("int(11)");
                 builder.Property (e => e.NotificationType).HasMaxLength (50).IsRequired ();
                 builder.Property (e => e.Priority).HasMaxLength (20).HasDefaultValue ("Medium");
                 builder.Property (e => e.MaxNotificationsPerHour).HasDefaultValue (0);
@@ -81,6 +81,12 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasPrincipalKey (p => p.Ptsid)
                     .OnDelete (DeleteBehavior.SetNull)
                     .HasConstraintName ("FK_NotificationPolicy_PtsDevice");
+
+                builder.HasOne (d => d.NotificationCategory)
+                    .WithMany (c => c.NotificationPolicies)
+                    .HasForeignKey (d => d.NotificationCategoryId)
+                    .OnDelete (DeleteBehavior.Cascade)
+                    .HasConstraintName ("FK_NotificationPolicy_Category");
 
                 builder.HasOne (d => d.CreatedByNavigation)
                     .WithMany ()

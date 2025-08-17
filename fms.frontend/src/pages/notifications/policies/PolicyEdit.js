@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   TextBox,
   TextArea,
@@ -16,101 +16,39 @@ import { RequiredRule, StringLengthRule } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
 import { notificationRoutes } from '../utils/navigationHelper';
 import '../layout/NotificationLayout.scss';
-
-// Mock policy data for demonstration
-const mockPolicies = {
-  '1': {
-    id: '1',
-    name: 'Low Fuel Alert',
-    description: 'Alert when fuel level is critically low',
-    category: 'Tank Monitoring',
-    priority: 'Critical',
-    notificationType: 'Alert',
-    enableEmail: true,
-    enableSms: true,
-    enableSystem: true,
-    maxNotificationsPerHour: 5,
-    maxNotificationsPerDay: 25,
-    cooldownMinutes: 15,
-    titleTemplate: 'Critical: Low Fuel Level at {{siteName}}',
-    messageTemplate: 'Tank {{tankName}} at {{siteName}} has reached a critically low fuel level of {{currentLevel}}%. Immediate attention required.',
-    requireAcknowledgment: true,
-    escalationEnabled: true,
-    escalationMinutes: 30,
-    recipients: ['admin@company.com', 'ops@company.com'],
-    isActive: true,
-    createdAt: '2024-01-15T10:30:00Z',
-    createdBy: 'System Administrator',
-    lastModified: '2024-02-10T14:22:00Z',
-    lastModifiedBy: 'Operations Manager'
-  },
-  '2': {
-    id: '2',
-    name: 'Daily Operations Report',
-    description: 'Daily summary of system operations',
-    category: 'System Reports',
-    priority: 'Low',
-    notificationType: 'Report',
-    enableEmail: true,
-    enableSms: false,
-    enableSystem: false,
-    maxNotificationsPerHour: 1,
-    maxNotificationsPerDay: 1,
-    cooldownMinutes: 1440, // 24 hours
-    titleTemplate: 'Daily Operations Report - {{date}}',
-    messageTemplate: 'Daily operations summary for {{date}}:\n\nTotal transactions: {{totalTransactions}}\nFuel dispensed: {{fuelDispensed}} gallons\nSystem uptime: {{uptime}}%',
-    requireAcknowledgment: false,
-    escalationEnabled: false,
-    escalationMinutes: 0,
-    recipients: ['manager@company.com', 'ops@company.com'],
-    isActive: true,
-    createdAt: '2024-01-20T09:15:00Z',
-    createdBy: 'System Administrator',
-    lastModified: '2024-02-05T11:45:00Z',
-    lastModifiedBy: 'Site Manager'
-  }
-};
-
-const mockConditions = {
-  '1': [
-    {
-      id: 1,
-      field: 'tankLevel',
-      operator: 'lessThan',
-      value: '10',
-      unit: 'percent'
-    },
-    {
-      id: 2,
-      field: 'pumpStatus',
-      operator: 'equals',
-      value: 'offline',
-      unit: ''
-    }
-  ],
-  '2': [
-    {
-      id: 1,
-      field: 'time',
-      operator: 'equals',
-      value: '08:00',
-      unit: 'daily'
-    }
-  ]
-};
+import notificationGroupsApi from '../../../dataservice/notificationGroupsApi';
+import notificationsApi from '../../../dataservice/notificationsApi';
+import notificationPreferencesApi from '../../../dataservice/notificationPreferencesApi';
+import alarmHandlerApi from '../../../dataservice/alarmHandlerApi';
+import { notificationPriorityOptions as priorityOptions, notificationTypeOptions } from '../constants/notificationEnums';
+import TriggerCreate from './TriggerCreate';
 
 const PolicyEdit = () => {
-  const { id } = useParams();
+  // Try to get id from react-router params (will be undefined with current custom routing)
+  const params = useParams();
+  const location = useLocation();
+  let derivedId = params.id;
+  if (!derivedId) {
+    // Fallback: parse pathname e.g. /notifications/policies/5/edit
+    const parts = location.pathname.split('/').filter(Boolean);
+    const pIndex = parts.indexOf('policies');
+    if (pIndex !== -1 && parts.length > pIndex + 1) {
+      const candidate = parts[pIndex + 1];
+      if (/^\d+$/.test(candidate)) derivedId = candidate;
+    }
+  }
+  const id = derivedId; // keep previous variable name usage
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [loadingPolicy, setLoadingPolicy] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+  const [notFound, setNotFound] = useState(false);
 
   const [policy, setPolicy] = useState({
     id: '',
     name: '',
     description: '',
-    category: '',
+    notificationCategoryId: '',
     priority: 'Medium',
     notificationType: 'Alert',
     enableEmail: true,
@@ -125,34 +63,32 @@ const PolicyEdit = () => {
     escalationEnabled: false,
     escalationMinutes: 60,
     recipients: [],
-    conditions: [],
-    isActive: true
+    isActive: true,
+    createdAt: null,
+    createdBy: '',
+    modifiedAt: null,
+    modifiedBy: ''
   });
 
   const [conditions, setConditions] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [mappingLoading, setMappingLoading] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
 
-  const categoryOptions = [
-    { value: 'Tank Monitoring', text: 'Tank Monitoring' },
-    { value: 'Maintenance', text: 'Maintenance' },
-    { value: 'Device Monitoring', text: 'Device Monitoring' },
-    { value: 'System Reports', text: 'System Reports' },
-    { value: 'Emergency', text: 'Emergency' },
-    { value: 'Custom', text: 'Custom' }
-  ];
+  // Categories from API (same approach as create)
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const res = await notificationPreferencesApi.getNotificationCategories();
+      if (mounted && res.isSuccess) setCategories(res.data || []);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-  const priorityOptions = [
-    { value: 'Critical', text: 'Critical' },
-    { value: 'High', text: 'High' },
-    { value: 'Medium', text: 'Medium' },
-    { value: 'Low', text: 'Low' }
-  ];
+  const categoryOptions = useMemo(() => (categories || []).map(c => ({ value: c.id ?? c.Id, text: c.name ?? c.Name })), [categories]);
 
-  const notificationTypeOptions = [
-    { value: 'Alert', text: 'Alert' },
-    { value: 'Warning', text: 'Warning' },
-    { value: 'Information', text: 'Information' },
-    { value: 'Report', text: 'Report' }
-  ];
+  // Using shared enums (priorityOptions, notificationTypeOptions imported)
 
   const recipientOptions = [
     { value: 'admin@company.com', text: 'System Administrator' },
@@ -185,38 +121,104 @@ const PolicyEdit = () => {
 
   const tabs = [
     { id: 0, title: 'Basic Information', icon: 'info' },
-    { id: 1, title: 'Notification Settings', icon: 'bell' },
-    { id: 2, title: 'Conditions & Rules', icon: 'list' },
-    { id: 3, title: 'Recipients', icon: 'group' },
-    { id: 4, title: 'Templates', icon: 'edit' }
+    { id: 1, title: 'Triggers', icon: 'bolt' },
+    { id: 2, title: 'Notification Settings', icon: 'bell' },
+    { id: 3, title: 'Condition', icon: 'list' },
+    { id: 4, title: 'Recipients', icon: 'users' },
+    { id: 5, title: 'Templates', icon: 'edit' }
   ];
+
+  // Triggers state
+  const [triggers, setTriggers] = useState([]);
+
+  // Refresh triggers after creation/delete
+  const refreshTriggers = async (policyIdToUse) => {
+    if (!policyIdToUse) return;
+    try {
+      const res = await alarmHandlerApi.getAlarmHandlers(policyIdToUse);
+      const trigData = Array.isArray(res) ? res : (res?.data || []);
+      setTriggers(trigData);
+    } catch {
+      setTriggers([]);
+    }
+  };
+
+  const handleTriggerCreated = async () => {
+    await refreshTriggers(policy.id || id);
+  };
+
+  const handleDeleteTrigger = async (triggerId) => {
+    if (!triggerId) return;
+    try {
+      await alarmHandlerApi.deleteAlarmHandler(triggerId);
+      await refreshTriggers(policy.id || id);
+      notify('Trigger deleted', 'success', 2000);
+    } catch (e) {
+      notify('Failed to delete trigger', 'error', 3000);
+    }
+  };
 
   useEffect(() => {
     const loadPolicy = async () => {
+      if (!id) return; // wait until we have an id
       setLoadingPolicy(true);
       try {
-        // Simulate API call - replace with actual API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const policyData = mockPolicies[id];
-        const conditionsData = mockConditions[id] || [];
-
-        if (policyData) {
-          setPolicy(policyData);
-          setConditions(conditionsData);
-        } else {
-          notify('Policy not found', 'error', 3000);
-          navigate('..');
+        const res = await notificationsApi.getPolicy(id);
+        if (!res.isSuccess || !res.data) {
+          setNotFound(true);
+          return;
         }
+        const p = res.data;
+        setPolicy(prev => ({
+          ...prev,
+          id: p.id || p.policyId || id,
+            name: p.name || '',
+            description: p.description || '',
+            notificationCategoryId: p.notificationCategoryId || p.categoryId || '',
+            priority: p.priority || p.severity || 'Medium',
+            notificationType: p.notificationType || 'Alert',
+            enableEmail: p.enableEmail ?? true,
+            enableSms: p.enableSms ?? false,
+            enableSystem: p.enableSystem ?? true,
+            maxNotificationsPerHour: p.maxNotificationsPerHour ?? 10,
+            maxNotificationsPerDay: p.maxNotificationsPerDay ?? 50,
+            cooldownMinutes: p.cooldownMinutes ?? 30,
+            titleTemplate: p.titleTemplate || '',
+            messageTemplate: p.messageTemplate || '',
+            requireAcknowledgment: p.requireAcknowledgment ?? false,
+            escalationEnabled: p.escalationEnabled ?? false,
+            escalationMinutes: p.escalationMinutes ?? 60,
+            recipients: p.recipients || [],
+            isActive: p.isActive !== false,
+            createdAt: p.createdAt || p.CreatedAt || null,
+            createdBy: p.createdBy || p.CreatedBy || '',
+            modifiedAt: p.modifiedAt || p.ModifiedAt || null,
+            modifiedBy: p.modifiedBy || p.ModifiedBy || ''
+        }));
+        setConditions(Array.isArray(p.conditions) ? p.conditions : []);
+        setNotFound(false);
+        try {
+          const trigRes = await alarmHandlerApi.getAlarmHandlers(p.id || p.policyId);
+          const trigData = Array.isArray(trigRes) ? trigRes : (trigRes?.data || []);
+          setTriggers(trigData);
+        } catch { setTriggers([]); }
       } catch (error) {
         console.error('Error loading policy:', error);
-        notify('Error loading policy', 'error', 3000);
+        setNotFound(true);
       } finally {
         setLoadingPolicy(false);
       }
     };
 
     loadPolicy();
+    (async () => {
+      try {
+        const res = await notificationGroupsApi.getGroups();
+        if (res.isSuccess) {
+          setAllGroups((res.data || []).map(g => ({ id: g.id, name: g.name })));
+        }
+      } catch {}
+    })();
   }, [id, navigate]);
 
   const handlePolicyChange = (field, value) => {
@@ -240,11 +242,7 @@ const PolicyEdit = () => {
     setConditions([...conditions, newCondition]);
   };
 
-  const updateCondition = (id, field, value) => {
-    setConditions(prev => prev.map(c =>
-      c.id === id ? { ...c, [field]: value } : c
-    ));
-  };
+  // removed unused updateCondition
 
   const removeCondition = (id) => {
     setConditions(prev => prev.filter(c => c.id !== id));
@@ -255,7 +253,7 @@ const PolicyEdit = () => {
       notify('Policy name is required', 'error', 3000);
       return false;
     }
-    if (!policy.category) {
+    if (!policy.notificationCategoryId) {
       notify('Category is required', 'error', 3000);
       return false;
     }
@@ -283,28 +281,8 @@ const PolicyEdit = () => {
 
     setLoading(true);
     try {
-      const policyData = {
-        ...policy,
-        conditions,
-        lastModified: new Date(),
-        lastModifiedBy: 'Current User'
-      };
-
-      // Simulate API call - replace with actual API call
-      const response = await fetch(`/api/notifications/policies/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(policyData),
-      });
-
-      if (response.ok) {
-        notify('Policy updated successfully', 'success', 3000);
-        navigate('..');
-      } else {
-        throw new Error('Failed to update policy');
-      }
+  // Placeholder until backend update endpoint exists
+  notify('Update endpoint not implemented yet', 'warning', 3000);
     } catch (error) {
       console.error('Error updating policy:', error);
       notify('Error updating policy', 'error', 3000);
@@ -314,89 +292,51 @@ const PolicyEdit = () => {
   };
 
   const renderBasicInfoTab = () => (
-    <div className="tw-p-6">
+    <div className="tw-p-6 policy-create-form notification-form">
       <ValidationGroup>
         <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
-          <div>
-            <TextBox
-              label="Policy Name"
-              value={policy.name}
-              onValueChanged={(e) => handlePolicyChange('name', e.value)}
-              placeholder="Enter policy name"
-            >
+          <div className="tw-space-y-1">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Policy Name *</label>
+            <TextBox value={policy.name} onValueChanged={(e) => handlePolicyChange('name', e.value)} height={40} stylingMode="outlined">
               <Validator>
                 <RequiredRule message="Policy name is required" />
                 <StringLengthRule min={3} max={100} message="Name must be 3-100 characters" />
               </Validator>
             </TextBox>
           </div>
-
-          <div>
-            <SelectBox
-              label="Category"
-              value={policy.category}
-              dataSource={categoryOptions}
-              valueExpr="value"
-              displayExpr="text"
-              onValueChanged={(e) => handlePolicyChange('category', e.value)}
-              placeholder="Select category"
-            >
+          <div className="tw-space-y-1">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Category *</label>
+            <SelectBox value={policy.notificationCategoryId} dataSource={categoryOptions} valueExpr="value" displayExpr="text" onValueChanged={(e) => handlePolicyChange('notificationCategoryId', e.value)} height={40} stylingMode="outlined">
               <Validator>
                 <RequiredRule message="Category is required" />
               </Validator>
             </SelectBox>
           </div>
-
-          <div>
-            <SelectBox
-              label="Priority"
-              value={policy.priority}
-              dataSource={priorityOptions}
-              valueExpr="value"
-              displayExpr="text"
-              onValueChanged={(e) => handlePolicyChange('priority', e.value)}
-            />
+          <div className="tw-space-y-1">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Priority</label>
+            <SelectBox value={policy.priority} dataSource={priorityOptions} valueExpr="value" displayExpr="text" onValueChanged={(e) => handlePolicyChange('priority', e.value)} height={40} stylingMode="outlined" />
           </div>
-
-          <div>
-            <SelectBox
-              label="Notification Type"
-              value={policy.notificationType}
-              dataSource={notificationTypeOptions}
-              valueExpr="value"
-              displayExpr="text"
-              onValueChanged={(e) => handlePolicyChange('notificationType', e.value)}
-            />
-          </div>
-
-          <div className="md:tw-col-span-2">
-            <TextArea
-              label="Description"
-              value={policy.description}
-              onValueChanged={(e) => handlePolicyChange('description', e.value)}
-              placeholder="Describe this policy's purpose and conditions"
-              height={100}
-            />
-          </div>
-
-          <div className="md:tw-col-span-2">
-            <CheckBox
-              text="Active"
-              value={policy.isActive}
-              onValueChanged={(e) => handlePolicyChange('isActive', e.value)}
-            />
-          </div>
+            <div className="tw-space-y-1">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Notification Type</label>
+              <SelectBox value={policy.notificationType} dataSource={notificationTypeOptions} valueExpr="value" displayExpr="text" onValueChanged={(e) => handlePolicyChange('notificationType', e.value)} height={40} stylingMode="outlined" />
+            </div>
+            <div className="md:tw-col-span-2 tw-space-y-1">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Description</label>
+              <TextArea value={policy.description} onValueChanged={(e) => handlePolicyChange('description', e.value)} height={100} stylingMode="outlined" />
+            </div>
+        </div>
+        <div className="tw-mt-6">
+          <CheckBox text="Activate policy" value={policy.isActive} onValueChanged={(e) => handlePolicyChange('isActive', e.value)} />
         </div>
       </ValidationGroup>
     </div>
   );
 
   const renderNotificationSettingsTab = () => (
-    <div className="tw-p-6">
-      <div className="tw-space-y-6">
-        <div>
-          <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-4">Delivery Channels</h3>
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4">
+    <div className="tw-p-6 tw-space-y-6 policy-create-form notification-form">
+      <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg">
+        <h3 className="tw-text-lg tw-font-semibold tw-mb-4">Delivery Methods</h3>
+        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4">
             <CheckBox
               text="Email Notifications"
               value={policy.enableEmail}
@@ -413,11 +353,8 @@ const PolicyEdit = () => {
               onValueChanged={(e) => handlePolicyChange('enableSystem', e.value)}
             />
           </div>
-        </div>
-
-        <div>
-          <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-4">Rate Limiting</h3>
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-6">
+      </div>
+      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-6">
             <NumberBox
               label="Max Notifications per Hour"
               value={policy.maxNotificationsPerHour}
@@ -439,12 +376,8 @@ const PolicyEdit = () => {
               min={0}
               max={1440}
             />
-          </div>
-        </div>
-
-        <div>
-          <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-4">Response Requirements</h3>
-          <div className="tw-space-y-4">
+      </div>
+      <div className="tw-space-y-4">
             <CheckBox
               text="Require Acknowledgment"
               value={policy.requireAcknowledgment}
@@ -468,16 +401,14 @@ const PolicyEdit = () => {
                 />
               )}
             </div>
-          </div>
-        </div>
-      </div>
     </div>
+  </div>
   );
 
   const renderConditionsTab = () => (
-    <div className="tw-p-6">
+    <div className="tw-p-6 policy-create-form notification-form">
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
-        <h3 className="tw-text-lg tw-font-medium tw-text-gray-900">Conditions & Rules</h3>
+        <h3 className="tw-text-lg tw-font-medium tw-text-gray-900">Condition</h3>
         <Button
           text="Add Condition"
           icon="plus"
@@ -546,7 +477,7 @@ const PolicyEdit = () => {
   );
 
   const renderRecipientsTab = () => (
-    <div className="tw-p-6">
+    <div className="tw-p-6 policy-create-form notification-form">
       <div className="tw-space-y-6">
         <div>
           <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-4">Notification Recipients</h3>
@@ -593,6 +524,44 @@ const PolicyEdit = () => {
             </div>
           )}
         </div>
+
+        {/* Map Policy to Group */}
+        <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
+          <h4 className="tw-font-medium tw-text-gray-900 tw-mb-3">Map Policy to Group</h4>
+          <div className="tw-flex tw-items-end tw-space-x-3">
+            <SelectBox
+              label="Select Group"
+              dataSource={allGroups}
+              valueExpr="id"
+              displayExpr="name"
+              value={selectedGroupId}
+              onValueChanged={(e) => setSelectedGroupId(e.value)}
+              width={300}
+            />
+            <Button
+              text="Map"
+              type="default"
+              disabled={!selectedGroupId || mappingLoading}
+              onClick={async () => {
+                if (!selectedGroupId) return;
+                setMappingLoading(true);
+                try {
+                  const res = await notificationGroupsApi.mapPolicyGroup(Number(id), { groupId: selectedGroupId });
+                  if (res.isSuccess) {
+                    notify('Policy mapped to group', 'success', 2500);
+                  } else {
+                    notify(res.message || 'Failed to map policy', 'error', 3000);
+                  }
+                } catch (e) {
+                  notify('Failed to map policy', 'error', 3000);
+                } finally {
+                  setMappingLoading(false);
+                }
+              }}
+            />
+          </div>
+          <p className="tw-text-xs tw-text-gray-500 tw-mt-2">This links the policy to a notification group; recipients are resolved dynamically.</p>
+        </div>
       </div>
     </div>
   );
@@ -609,7 +578,7 @@ const PolicyEdit = () => {
     };
 
     return (
-      <div className="tw-p-6">
+  <div className="tw-p-6 policy-create-form notification-form">
         <div className="tw-space-y-6">
           <div>
             <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-4">Message Templates</h3>
@@ -674,17 +643,57 @@ const PolicyEdit = () => {
     );
   };
 
+  const renderTriggersTab = () => (
+    <div className="tw-p-6 policy-create-form notification-form">
+      <h3 className="tw-text-lg tw-font-semibold tw-mb-4">Triggers for this Policy {policy.id && <span className="tw-text-xs tw-text-gray-500">(ID: {policy.id})</span>}</h3>
+      <div className="tw-space-y-2 tw-mb-6">
+        {triggers.length === 0 && <div className="tw-text-sm tw-text-gray-500">{policy.id ? 'No triggers yet.' : 'Policy not loaded.'}</div>}
+        {triggers.map(t => {
+          const cfg = typeof t.config === 'string' ? t.config : (t.config ? JSON.stringify(t.config) : (t.triggerConfig ? JSON.stringify(t.triggerConfig) : ''));
+          return (
+            <div key={t.id} className="tw-border tw-border-gray-200 tw-rounded tw-p-3 tw-flex tw-items-start tw-justify-between tw-gap-4">
+              <div className="tw-space-y-1 tw-text-xs">
+                <div className="tw-font-medium tw-text-gray-900 tw-text-sm">{t.type || t.alarmType}</div>
+                <div className="tw-text-gray-600 break-all">{cfg}</div>
+                <div className="tw-text-gray-500">Priority: {t.priority} | Cooldown: {t.cooldownMinutes}m | Max/Day: {t.maxNotificationsPerDay || '∞'}</div>
+                {(t.siteId || t.tankId || t.deviceId) && (
+                  <div className="tw-text-gray-500">Scope: {t.siteId && `Site:${t.siteId} `}{t.tankId && `Tank:${t.tankId} `}{t.deviceId && `Device:${t.deviceId}`}</div>
+                )}
+              </div>
+              <button
+                className="tw-text-red-500 tw-text-xs"
+                onClick={() => handleDeleteTrigger(t.id)}
+                title="Delete trigger"
+              >
+                <i className="fa-light fa-trash" /> Delete
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {policy.id && (
+        <TriggerCreate
+          policyId={policy.id}
+          categoryId={policy.notificationCategoryId}
+          onCreated={handleTriggerCreated}
+        />
+      )}
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 0:
         return renderBasicInfoTab();
       case 1:
-        return renderNotificationSettingsTab();
+        return renderTriggersTab();
       case 2:
-        return renderConditionsTab();
+        return renderNotificationSettingsTab();
       case 3:
-        return renderRecipientsTab();
+        return renderConditionsTab();
       case 4:
+        return renderRecipientsTab();
+      case 5:
         return renderTemplatesTab();
       default:
         return renderBasicInfoTab();
@@ -700,10 +709,23 @@ const PolicyEdit = () => {
     );
   }
 
+  if (notFound) {
+    return (
+      <div className="tw-p-10 tw-text-center tw-space-y-4">
+        <i className="fa-light fa-triangle-exclamation tw-text-red-500 tw-text-5xl" />
+        <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">Policy Not Found</h2>
+        <p className="tw-text-gray-600 tw-max-w-md tw-mx-auto">The policy with ID {id} could not be located. It may have been deleted or the link is incorrect.</p>
+        <Link to={notificationRoutes.policies} className="tw-inline-flex tw-items-center tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-blue-600 tw-rounded hover:tw-bg-blue-700">
+          <i className="fa-light fa-arrow-left tw-mr-2" /> Back to Policies
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Header */}
-      <div className="tw-flex tw-items-center tw-justify-between tw-mb-8">
+  <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
         <div className="tw-flex tw-items-center tw-space-x-4">
           <Link
             to={notificationRoutes.policies}
@@ -712,8 +734,15 @@ const PolicyEdit = () => {
             <i className="fa-light fa-arrow-left tw-text-xl"></i>
           </Link>
           <div>
-            <h2 className="tw-text-2xl tw-font-bold tw-text-gray-900">Edit Policy</h2>
-            <p className="tw-text-gray-600 tw-mt-1">{policy.name}</p>
+    <h2 className="tw-text-2xl tw-font-bold tw-text-gray-900">Edit Policy</h2>
+    <p className="tw-text-gray-600 tw-mt-1">{policy.name || 'Unnamed Policy'}</p>
+    <div className="tw-flex tw-flex-wrap tw-gap-x-4 tw-gap-y-1 tw-mt-2 tw-text-xs tw-text-gray-500">
+      <span>ID: <strong>{policy.id}</strong></span>
+      <span>Category: {categoryOptions.find(c => String(c.value) === String(policy.notificationCategoryId))?.text || '—'}</span>
+      <span>Status: <span className={`tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-medium ${policy.isActive ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-red-100 tw-text-red-800'}`}>{policy.isActive ? 'Active' : 'Inactive'}</span></span>
+      <span>Created: {policy.createdAt ? new Date(policy.createdAt).toLocaleDateString() : '—'}{policy.createdBy && ` by ${policy.createdBy}`}</span>
+      <span>Modified: {policy.modifiedAt ? new Date(policy.modifiedAt).toLocaleDateString() : '—'}{policy.modifiedBy && ` by ${policy.modifiedBy}`}</span>
+    </div>
           </div>
         </div>
         <div className="tw-flex tw-items-center tw-space-x-3">
@@ -735,57 +764,28 @@ const PolicyEdit = () => {
 
       {/* Form Content */}
       <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm">
-        {/* Tab Navigation */}
-        <div className="tw-border-b tw-border-gray-200">
-          <div className="tw-flex tw-space-x-8 tw-px-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`tw-py-4 tw-px-1 tw-border-b-2 tw-font-medium tw-text-sm tw-flex tw-items-center tw-space-x-2 ${
-                  activeTab === tab.id
-                    ? 'tw-border-blue-500 tw-text-blue-600'
-                    : 'tw-border-transparent tw-text-gray-500 hover:tw-text-gray-700 hover:tw-border-gray-300'
-                }`}
-              >
-                <i className={`fa-light fa-${tab.icon}`}></i>
-                <span>{tab.title}</span>
-              </button>
-            ))}
+        <div className="policy-create-tabs">
+          <div className="tab-nav-container">
+            <div className="tab-nav-wrapper tw-px-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`tab-nav-button ${activeTab === tab.id ? 'active' : ''}`}
+                >
+                  <i className={`tab-icon fa-light fa-${tab.icon}`}></i>
+                  <span className="tab-title">{tab.title}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-
-        {/* Tab Content */}
-        <div className="tw-min-h-[600px]">
+        <div className="policy-form-container">
           {renderTabContent()}
         </div>
       </div>
 
-      {/* Policy Information Footer */}
-      <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-mt-6">
-        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-4 tw-gap-4 tw-text-sm tw-text-gray-600">
-          <div>
-            <span className="tw-font-medium">Created:</span><br />
-            {new Date(policy.createdAt).toLocaleDateString()} by {policy.createdBy}
-          </div>
-          <div>
-            <span className="tw-font-medium">Last Modified:</span><br />
-            {new Date(policy.lastModified).toLocaleDateString()} by {policy.lastModifiedBy}
-          </div>
-          <div>
-            <span className="tw-font-medium">Policy ID:</span><br />
-            {policy.id}
-          </div>
-          <div>
-            <span className="tw-font-medium">Status:</span><br />
-            <span className={`tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${
-              policy.isActive ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-red-100 tw-text-red-800'
-            }`}>
-              {policy.isActive ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-        </div>
-      </div>
+  {/* Footer removed; info moved to header */}
     </div>
   );
 };

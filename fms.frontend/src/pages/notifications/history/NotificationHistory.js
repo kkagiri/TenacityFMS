@@ -6,115 +6,9 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
 import { Chart, Series, ArgumentAxis, ValueAxis, Legend, Tooltip } from 'devextreme-react/chart';
 import notify from 'devextreme/ui/notify';
+import notificationsApi from '../../../dataservice/notificationsApi';
 
-// Mock data for notification history
-// eslint-disable-next-line no-unused-vars
-const mockNotifications = [
-  {
-    id: 1,
-    type: 'email',
-    subject: 'Low Fuel Alert - Tank A1',
-    recipient: 'john.smith@company.com',
-    status: 'sent',
-    sentAt: '2024-01-25T10:30:00',
-    deliveredAt: '2024-01-25T10:30:15',
-    template: 'Low Fuel Alert',
-    policy: 'Critical Fuel Alerts',
-    priority: 'high',
-    retryCount: 0,
-    errorMessage: null,
-    metadata: {
-      tankName: 'Tank A1',
-      currentLevel: '15%',
-      threshold: '20%'
-    }
-  },
-  {
-    id: 2,
-    type: 'sms',
-    subject: 'Temperature Warning',
-    recipient: '+1-555-0124',
-    status: 'delivered',
-    sentAt: '2024-01-25T09:15:00',
-    deliveredAt: '2024-01-25T09:15:05',
-    template: 'High Temperature Warning',
-    policy: 'Temperature Monitoring',
-    priority: 'medium',
-    retryCount: 0,
-    errorMessage: null,
-    metadata: {
-      tankName: 'Tank B2',
-      temperature: '85°C',
-      maxTemperature: '80°C'
-    }
-  },
-  {
-    id: 3,
-    type: 'email',
-    subject: 'Maintenance Reminder',
-    recipient: 'sarah.johnson@company.com',
-    status: 'failed',
-    sentAt: '2024-01-25T08:00:00',
-    deliveredAt: null,
-    template: 'Maintenance Reminder',
-    policy: 'Scheduled Maintenance',
-    priority: 'low',
-    retryCount: 3,
-    errorMessage: 'SMTP connection timeout',
-    metadata: {
-      equipmentName: 'Pump Unit 3',
-      maintenanceDate: '2024-01-30'
-    }
-  },
-  {
-    id: 4,
-    type: 'push',
-    subject: 'System Status Update',
-    recipient: 'mobile_device_001',
-    status: 'pending',
-    sentAt: '2024-01-25T11:45:00',
-    deliveredAt: null,
-    template: 'System Status',
-    policy: 'System Updates',
-    priority: 'low',
-    retryCount: 1,
-    errorMessage: null,
-    metadata: {
-      systemStatus: 'Online',
-      uptime: '99.5%'
-    }
-  },
-  {
-    id: 5,
-    type: 'email',
-    subject: 'Daily Report',
-    recipient: 'manager@company.com',
-    status: 'sent',
-    sentAt: '2024-01-24T17:00:00',
-    deliveredAt: '2024-01-24T17:00:12',
-    template: 'Daily Summary Report',
-    policy: 'Daily Reports',
-    priority: 'low',
-    retryCount: 0,
-    errorMessage: null,
-    metadata: {
-      reportDate: '2024-01-24',
-      totalAlerts: '3',
-      fuelLevel: 'Normal'
-    }
-  }
-];
-
-// Mock chart data for notification statistics
-// eslint-disable-next-line no-unused-vars
-const mockChartData = [
-  { date: '2024-01-20', sent: 45, delivered: 42, failed: 3 },
-  { date: '2024-01-21', sent: 52, delivered: 48, failed: 4 },
-  { date: '2024-01-22', sent: 38, delivered: 35, failed: 3 },
-  { date: '2024-01-23', sent: 61, delivered: 57, failed: 4 },
-  { date: '2024-01-24', sent: 49, delivered: 46, failed: 3 },
-  { date: '2024-01-25', sent: 33, delivered: 30, failed: 3 }
-];
+// No mocks: data loads from controller via notificationsApi
 
 const NotificationHistory = () => {
   const [notifications, setNotifications] = useState([]);
@@ -129,112 +23,7 @@ const NotificationHistory = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Mock data for notification history
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'email',
-      subject: 'Low Fuel Alert - Tank A1',
-      recipient: 'john.smith@company.com',
-      status: 'sent',
-      sentAt: '2024-01-25T10:30:00',
-      deliveredAt: '2024-01-25T10:30:15',
-      template: 'Low Fuel Alert',
-      policy: 'Critical Fuel Alerts',
-      priority: 'high',
-      retryCount: 0,
-      errorMessage: null,
-      metadata: {
-        tankName: 'Tank A1',
-        currentLevel: '15%',
-        threshold: '20%'
-      }
-    },
-    {
-      id: 2,
-      type: 'sms',
-      subject: 'Temperature Warning',
-      recipient: '+1-555-0124',
-      status: 'delivered',
-      sentAt: '2024-01-25T09:15:00',
-      deliveredAt: '2024-01-25T09:15:05',
-      template: 'High Temperature Warning',
-      policy: 'Temperature Monitoring',
-      priority: 'medium',
-      retryCount: 0,
-      errorMessage: null,
-      metadata: {
-        tankName: 'Tank B2',
-        temperature: '85°C',
-        maxTemperature: '80°C'
-      }
-    },
-    {
-      id: 3,
-      type: 'email',
-      subject: 'Maintenance Reminder',
-      recipient: 'sarah.johnson@company.com',
-      status: 'failed',
-      sentAt: '2024-01-25T08:00:00',
-      deliveredAt: null,
-      template: 'Maintenance Reminder',
-      policy: 'Scheduled Maintenance',
-      priority: 'low',
-      retryCount: 3,
-      errorMessage: 'SMTP connection timeout',
-      metadata: {
-        equipmentName: 'Pump Unit 3',
-        maintenanceDate: '2024-01-30'
-      }
-    },
-    {
-      id: 4,
-      type: 'push',
-      subject: 'System Status Update',
-      recipient: 'mobile_device_001',
-      status: 'pending',
-      sentAt: '2024-01-25T11:45:00',
-      deliveredAt: null,
-      template: 'System Status',
-      policy: 'System Updates',
-      priority: 'low',
-      retryCount: 1,
-      errorMessage: null,
-      metadata: {
-        systemStatus: 'Online',
-        uptime: '99.5%'
-      }
-    },
-    {
-      id: 5,
-      type: 'email',
-      subject: 'Daily Report',
-      recipient: 'manager@company.com',
-      status: 'sent',
-      sentAt: '2024-01-24T17:00:00',
-      deliveredAt: '2024-01-24T17:00:12',
-      template: 'Daily Summary Report',
-      policy: 'Daily Reports',
-      priority: 'low',
-      retryCount: 0,
-      errorMessage: null,
-      metadata: {
-        reportDate: '2024-01-24',
-        totalAlerts: '3',
-        fuelLevel: 'Normal'
-      }
-    }
-  ];
 
-  // Mock chart data for notification statistics
-  const mockChartData = [
-    { date: '2024-01-20', sent: 45, delivered: 42, failed: 3 },
-    { date: '2024-01-21', sent: 52, delivered: 48, failed: 4 },
-    { date: '2024-01-22', sent: 38, delivered: 35, failed: 3 },
-    { date: '2024-01-23', sent: 61, delivered: 57, failed: 4 },
-    { date: '2024-01-24', sent: 49, delivered: 46, failed: 3 },
-    { date: '2024-01-25', sent: 33, delivered: 30, failed: 3 }
-  ];
 
   const statusOptions = [
     { value: 'all', text: 'All Statuses' },
@@ -252,37 +41,86 @@ const NotificationHistory = () => {
   ];
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadAll = async () => {
       setLoading(true);
-      // Simulate API call with filters
-      setTimeout(() => {
-        let filteredData = [...mockNotifications];
+      // 1) Fetch notifications from controller
+      const notifResult = await notificationsApi.getNotifications({
+        type: filters.type,
+        status: filters.status,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+      });
 
-        if (filters.status !== 'all') {
-          filteredData = filteredData.filter(n => n.status === filters.status);
+      const items = (notifResult.isSuccess ? notifResult.data : []);
+      const mappedItems = (items || []).map((n) => ({
+        id: n.id ?? n.notificationId ?? n.Id,
+        type: (n.type || n.channel || 'system').toString().toLowerCase(),
+        subject: n.subject || n.title || 'Notification',
+        recipient: n.recipient || n.to || n.userEmail || '-',
+        status: (n.status || 'pending').toString().toLowerCase(),
+        sentAt: n.sentAt || n.createdAt || n.timestamp,
+        deliveredAt: n.deliveredAt || null,
+        template: n.templateName || n.template || '-',
+        policy: n.policyName || n.policy || '-',
+        priority: (n.priority || 'medium').toString().toLowerCase(),
+        retryCount: n.retryCount ?? 0,
+        errorMessage: n.errorMessage || n.error || null,
+        metadata: n.metadata || n.meta || null,
+      }));
+
+      if (!notifResult.isSuccess) {
+        notify(notifResult.message || 'Failed to load notifications', 'error', 3000);
+      }
+      setNotifications(mappedItems);
+
+      // 2) Try fetching stats; fallback to local aggregation from mappedItems
+      const statsResult = await notificationsApi.getStatistics({
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+      });
+      if (statsResult.isSuccess) {
+        const stats = (statsResult.data || []).map((s) => ({
+          date: s.date || s.day || s.bucket || new Date().toISOString(),
+          sent: s.sent ?? s.totalSent ?? 0,
+          delivered: s.delivered ?? s.totalDelivered ?? 0,
+          failed: s.failed ?? s.totalFailed ?? 0,
+        }));
+        setChartData(stats);
+      } else {
+        const now = new Date();
+        const days = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(now.getDate() - i);
+          days.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
         }
 
-        if (filters.type !== 'all') {
-          filteredData = filteredData.filter(n => n.type === filters.type);
-        }
+        const buckets = days.map((d) => ({
+          key: d.toISOString(),
+          date: d,
+          sent: 0,
+          delivered: 0,
+          failed: 0,
+        }));
 
-        // Date filtering would be implemented here
+        mappedItems.forEach((n) => {
+          const ts = n.sentAt ? new Date(n.sentAt) : null;
+          if (!ts) return;
+          const dayKey = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate()).toISOString();
+          const bucket = buckets.find((b) => b.key === dayKey);
+          if (!bucket) return;
+          bucket.sent += 1;
+          if (n.status === 'delivered') bucket.delivered += 1;
+          if (n.status === 'failed') bucket.failed += 1;
+        });
 
-        setNotifications(filteredData);
-        setLoading(false);
-      }, 500);
+        setChartData(buckets.map(({ date, sent, delivered, failed }) => ({ date, sent, delivered, failed })));
+      }
+
+      setLoading(false);
     };
 
-    const loadChart = async () => {
-      // Simulate API call
-      setTimeout(() => {
-        setChartData(mockChartData);
-      }, 300);
-    };
-
-    loadData();
-    loadChart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadAll();
   }, [filters]);
 
   const handleViewDetails = (notification) => {
@@ -291,19 +129,15 @@ const NotificationHistory = () => {
   };
 
   const handleRetry = async (notification) => {
-    if (notification.status === 'failed') {
+    if (notification.status === 'failed' || notification.status === 'pending') {
       setLoading(true);
-
-      // Simulate retry API call
-      setTimeout(() => {
-        setNotifications(prev => prev.map(n =>
-          n.id === notification.id
-            ? { ...n, status: 'pending', retryCount: n.retryCount + 1, errorMessage: null }
-            : n
-        ));
-        notify('Notification retry initiated!', 'success', 3000);
-        setLoading(false);
-      }, 1000);
+      const result = await notificationsApi.sendNotification(notification.id);
+      if (result.isSuccess) {
+        notify('Notification resend queued', 'success', 3000);
+      } else {
+        notify(result.message || 'Failed to resend', 'error', 3000);
+      }
+      setLoading(false);
     }
   };
 
@@ -522,6 +356,7 @@ const NotificationHistory = () => {
         title="Notification Details"
         width={700}
         height={600}
+        showCloseButton={true}
       >
         {selectedNotification && (
           <div className="tw-p-4">

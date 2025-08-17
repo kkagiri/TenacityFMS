@@ -33,8 +33,7 @@ namespace FMS.Domain.Entities {
         /// Category this policy applies to (Tank, Pump, Vehicle, System, etc.)
         /// </summary>
         [Required]
-        [MaxLength (50)]
-        public string Category { get; set; } = null!;
+        public int NotificationCategoryId { get; set; }
 
         /// <summary>
         /// Type of notification this policy applies to (Alert, Warning, Info, etc.)
@@ -215,8 +214,11 @@ namespace FMS.Domain.Entities {
         public virtual Issuecategory? IssueCategoryNavigation { get; set; }
         public virtual Issuepriority? IssuePriorityNavigation { get; set; }
 
+        public virtual NotificationCategory NotificationCategory { get; set; } = null!;
+
         // Collections
         public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification> ();
         public virtual ICollection<NotificationPolicyRecipient> PolicyRecipients { get; set; } = new List<NotificationPolicyRecipient> ();
+        public virtual ICollection<NotificationPolicyGroup> PolicyGroups { get; set; } = new List<NotificationPolicyGroup> ();
     }
 }

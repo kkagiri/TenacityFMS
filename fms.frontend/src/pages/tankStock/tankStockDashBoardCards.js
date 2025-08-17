@@ -1,3 +1,5 @@
+//Not being used in the current codebase, but kept for reference
+
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { TickerCard } from '../../components/TickerCard/tickerCard';

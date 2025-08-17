@@ -22,7 +22,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 // Indexes
                 builder.HasIndex (e => e.NotificationId, "IX_Notification_NotificationId").IsUnique ();
                 builder.HasIndex (e => e.Type, "IX_Notification_Type");
-                builder.HasIndex (e => e.Category, "IX_Notification_Category");
+                builder.HasIndex (e => e.NotificationCategoryId, "IX_Notification_Category");
                 builder.HasIndex (e => e.Priority, "IX_Notification_Priority");
                 builder.HasIndex (e => e.Status, "IX_Notification_Status");
                 builder.HasIndex (e => e.CreatedAt, "IX_Notification_CreatedAt");
@@ -32,19 +32,25 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasIndex (e => e.TankId, "IX_Notification_TankId");
                 builder.HasIndex (e => e.VehicleId, "IX_Notification_VehicleId");
                 builder.HasIndex (e => e.PtsDeviceId, "IX_Notification_PtsDeviceId");
-                builder.HasIndex (e => e.AlarmId, "IX_Notification_AlarmId");
                 builder.HasIndex (e => e.NotificationPolicyId, "IX_Notification_NotificationPolicyId");
                 builder.HasIndex (e => e.TriggeredBy, "IX_Notification_TriggeredBy");
+                builder.HasIndex (e => e.ActiveAlarmId, "IX_Notification_AlarmId");
 
-                // Properties
+                // Properties - Configure ALL properties explicitly
                 builder.Property (e => e.Id).HasColumnType ("int(11)");
                 builder.Property (e => e.NotificationId).HasMaxLength (100).IsRequired ();
                 builder.Property (e => e.Type).HasMaxLength (50).IsRequired ();
-                builder.Property (e => e.Category).HasMaxLength (50).IsRequired ();
+                builder.Property (e => e.Category)
+                    .HasMaxLength (100)
+                    .HasColumnName ("category");
+                builder.Property (e => e.NotificationCategoryId)
+                    .HasColumnType ("int(11)")
+                    .HasDefaultValue (0)
+                    .HasColumnName ("NotificationCategoryId");
                 builder.Property (e => e.Priority).HasMaxLength (20).HasDefaultValue ("Medium");
                 builder.Property (e => e.Title).HasMaxLength (255).IsRequired ();
                 builder.Property (e => e.Message).HasColumnType ("text").IsRequired ();
-                builder.Property (e => e.Data).HasColumnType ("json");
+                builder.Property (e => e.Data).HasColumnType ("text"); // Changed from json to text to match DB
                 builder.Property (e => e.TriggerSource).HasMaxLength (50).IsRequired ();
                 builder.Property (e => e.TriggeredBy).HasMaxLength (100);
                 builder.Property (e => e.CreatedAt).HasDefaultValueSql ("CURRENT_TIMESTAMP");
@@ -54,14 +60,30 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.IsRead).HasDefaultValue (false);
                 builder.Property (e => e.IsArchived).HasDefaultValue (false);
 
-                //Cursor: Configure PtsDeviceId to match Ptsdevice.Ptsid exactly
+                // CRITICAL: Explicitly configure ActiveAlarmId to prevent shadow properties
+                builder.Property (e => e.ActiveAlarmId)
+                    .HasColumnType ("int(11)")
+                    .HasColumnName ("ActiveAlarmId")
+                    .IsRequired (false); // Make it nullable to match DB
+
+                // Configure other nullable FKs explicitly
+                builder.Property (e => e.SiteId).HasColumnType ("int(11)").IsRequired (false);
+                builder.Property (e => e.TankId).HasColumnType ("int(11)").IsRequired (false);
+                builder.Property (e => e.VehicleId).HasColumnType ("int(11)").IsRequired (false);
+                builder.Property (e => e.IssueTrackerId).HasColumnType ("int(11)").IsRequired (false);
+                builder.Property (e => e.NotificationPolicyId).HasColumnType ("int(11)").IsRequired (false);
+
                 builder.Property (e => e.PtsDeviceId)
                     .HasMaxLength (100)
-                    .HasColumnName ("PtsDeviceId"); // Explicit column name
+                    .HasColumnName ("PtsDeviceId")
+                    .IsRequired (false);
+                // Configure timestamp properties explicitly
+                builder.Property (e => e.ScheduledAt).HasColumnType ("timestamp").IsRequired (false);
+                builder.Property (e => e.SentAt).HasColumnType ("timestamp").IsRequired (false);
+                builder.Property (e => e.ReadAt).HasColumnType ("timestamp").IsRequired (false);
+                builder.Property (e => e.ArchivedAt).HasColumnType ("timestamp").IsRequired (false);
 
-                //Cursor: Ignore auto-generated shadow properties
-
-                // Foreign key relationships
+                // Foreign key relationships - Configure AFTER properties
                 builder.HasOne (d => d.Site)
                     .WithMany ()
                     .HasForeignKey (d => d.SiteId)
@@ -80,7 +102,6 @@ namespace FMS.Persistence.EntityConfigurations {
                     .OnDelete (DeleteBehavior.SetNull)
                     .HasConstraintName ("FK_Notification_Vehicle");
 
-                //Cursor: Configure PtsDevice relationship properly to avoid shadow properties
                 builder.HasOne (d => d.PtsDevice)
                     .WithMany (p => p.Notifications)
                     .HasForeignKey (d => d.PtsDeviceId)
@@ -94,11 +115,18 @@ namespace FMS.Persistence.EntityConfigurations {
                     .OnDelete (DeleteBehavior.SetNull)
                     .HasConstraintName ("FK_Notification_IssueTracker");
 
-                builder.HasOne (d => d.Alarm)
-                    .WithMany ()
-                    .HasForeignKey (d => d.AlarmId)
+                // CRITICAL: Configure ActiveAlarm relationship explicitly to prevent shadow properties
+                builder.HasOne (d => d.ActiveAlarm)
+                    .WithMany (a => a.Notifications) // This is key - specify the inverse navigation
+                    .HasForeignKey (d => d.ActiveAlarmId)
                     .OnDelete (DeleteBehavior.SetNull)
-                    .HasConstraintName ("FK_Notification_Alarm");
+                    .HasConstraintName ("FK_notification_activealarms");
+
+                builder.HasOne (d => d.NotificationCategory)
+                    .WithMany ()
+                    .HasForeignKey (d => d.NotificationCategoryId)
+                    .OnDelete (DeleteBehavior.Cascade)
+                    .HasConstraintName ("FK_Notification_NotificationCategories");
 
                 builder.HasOne (d => d.NotificationPolicy)
                     .WithMany (p => p.Notifications)
@@ -111,6 +139,7 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasForeignKey (d => d.TriggeredBy)
                     .OnDelete (DeleteBehavior.SetNull)
                     .HasConstraintName ("FK_Notification_TriggeredBy");
+
             } catch (Exception ex) {
                 Console.WriteLine ($"Error configuring NotificationConfiguration: {ex.Message}");
                 throw new Exception ($"Error configuring NotificationConfiguration: {ex.Message}", ex);

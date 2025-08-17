@@ -25,6 +25,8 @@ export const FETCH_USER_ROLES_SUCCESS = 'FETCH_USER_ROLES_SUCCESS';
 export const FETCH_USER_ROLES_FAILURE = 'FETCH_USER_ROLES_FAILURE';
 export const FETCH_USER_PERMISSIONS_SUCCESS = 'FETCH_USER_PERMISSIONS_SUCCESS';
 export const FETCH_USER_PERMISSIONS_FAILURE = 'FETCH_USER_PERMISSIONS_FAILURE';
+export const FETCH_USERS_FOR_FILTER_SUCCESS = 'FETCH_USERS_FOR_FILTER_SUCCESS';
+export const FETCH_USERS_FOR_FILTER_FAILURE = 'FETCH_USERS_FOR_FILTER_FAILURE';
 
 // Action Creators
 export const fetchUsers = () => async (dispatch) => {
@@ -57,11 +59,48 @@ export const setSelectedUser = (user) => ({
 export const createUser = (userData) => async (dispatch) => {
     try {
         const response = await axiosInstance.post('/user', userData);
-        dispatch({ type: CREATE_USER_SUCCESS, payload: response.data });
-        return response.data;
+        const respData = response.data;
+
+        // If backend wrapped response in FMSResponse shape
+        if (respData && typeof respData === 'object' && 'isSuccess' in respData && 'errorType' in respData) {
+            if (!respData.isSuccess) {
+                const errors = (respData.validationErrors && respData.validationErrors.length)
+                    ? respData.validationErrors.join('; ')
+                    : (respData.message || 'User creation failed');
+                dispatch({ type: CREATE_USER_FAILURE, payload: errors });
+                throw new Error(errors);
+            }
+            // Success: respData.data is userId. Fetch full user for state list.
+            const userId = respData.data;
+            let userObject = null;
+            try {
+                const userDetailResp = await axiosInstance.get(`/user/${userId}`);
+                userObject = userDetailResp.data;
+            } catch {
+                userObject = { id: userId };
+            }
+            dispatch({ type: CREATE_USER_SUCCESS, payload: userObject });
+            return respData; // return full FMSResponse to caller
+        }
+
+        // Legacy direct object path
+        dispatch({ type: CREATE_USER_SUCCESS, payload: respData });
+        return respData;
     } catch (error) {
+        // Attempt to extract FMSResponse error payload
+        if (error.response && error.response.data) {
+            const resp = error.response.data;
+            if (resp && resp.validationErrors) {
+                const errorsText = resp.validationErrors.join('; ');
+                dispatch({ type: CREATE_USER_FAILURE, payload: errorsText });
+                throw new Error(errorsText);
+            }
+            const message = resp.message || 'Error creating user';
+            dispatch({ type: CREATE_USER_FAILURE, payload: message });
+            throw new Error(message);
+        }
         dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
-        throw new Error('Error creating user');
+        throw new Error(error.message || 'Error creating user');
     }
 };
 
@@ -134,7 +173,7 @@ export const fetchAllUserActivities = (filters = {}) => async (dispatch) => {
 
 export const fetchAllSites = () => async (dispatch) => {
     try {
-        const response = await axiosInstance.get('/site/getlist');
+        const response = await axiosInstance.get('/site');
         dispatch({ type: FETCH_ALL_SITES_SUCCESS, payload: response.data });
         return response.data;
     } catch (error) {
@@ -212,5 +251,17 @@ export const fetchUserPermissions = (userId) => async (dispatch) => {
     } catch (error) {
         dispatch({ type: FETCH_USER_PERMISSIONS_FAILURE, payload: error.message });
         throw new Error('Error loading user permissions');
+    }
+};
+
+// Fetch users for filter dropdown
+export const fetchUsersForFilter = () => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get('/tankvolumehistory/users');
+        dispatch({ type: FETCH_USERS_FOR_FILTER_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_USERS_FOR_FILTER_FAILURE, payload: error.message });
+        throw new Error('Error loading users for filter');
     }
 };

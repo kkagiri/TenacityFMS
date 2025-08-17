@@ -12,7 +12,9 @@ export const adminRoutes = {
   ptsdevice: '/admin/ptsdevice',
   ptsconfig: '/admin/ptsconfig',
   configuration: '/admin/configuration',
-  systemconfig: '/admin/systemconfig'
+  systemconfig: '/admin/systemconfig',
+  ptsService: '/admin/pts-service',
+  notifications: '/admin/notifications'
 };
 
 export const getAdminRoute = (subPath = '') => {
@@ -28,3 +30,5 @@ export const isActiveRoute = (currentPath, targetPath) => {
   }
   return currentPath.startsWith(targetPath);
 };
+
+

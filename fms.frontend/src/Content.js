@@ -119,6 +119,17 @@ export default function Content() {
           element={React.createElement(resolvedComponents("vehicles"))}
         />
 
+        {/* Issue Tracker System Routes - Handle all issue-tracker sub-routes internally */}
+        <Route
+          path="/issue-tracker"
+          element={React.createElement(resolvedComponents("issue tracker"))}
+        />
+        <Route
+          path="/issue-tracker/*"
+          element={React.createElement(resolvedComponents("issue tracker"))}
+        />
+<Route path="/active-alarms" element={React.createElement(resolvedComponents("active-alarms"))} />
+<Route path="/active-alarms/*" element={React.createElement(resolvedComponents("active-alarms"))} />
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>

@@ -1,5 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { thunk } from "redux-thunk";
 import { cloneDeep } from "lodash";
 import rootReducer from "./redux/reducers";
 
@@ -22,7 +21,7 @@ const checkMutations = (store) => (next) => (action) => {
 const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(thunk, checkMutations),
+    getDefaultMiddleware().concat(checkMutations),
   devTools: process.env.NODE_ENV !== "production",
 });
 

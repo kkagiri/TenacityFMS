@@ -5,10 +5,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace FMS.Domain.Entities;
 
 /// <summary>
-/// 		
+///
 /// </summary>
-public partial class Issuetracker
-{
+public partial class Issuetracker {
     public int Id { get; set; }
 
     public int IssueCategoryId { get; set; }
@@ -42,6 +41,12 @@ public partial class Issuetracker
     public int? DeviceType { get; set; }
 
     public string AssignTo { get; set; } = null!;
+
+    /// <summary>
+    /// Active alarm ID if this issue was created from an active alarm
+    /// </summary>
+    public int? ActiveAlarmId { get; set; }
+
     [NotMapped]
     public virtual User AssignToNavigation { get; set; } = null!;
 
@@ -49,7 +54,9 @@ public partial class Issuetracker
 
     public virtual Issuecategory IssueCategory { get; set; } = null!;
 
-    public virtual ICollection<Issueassignmenttracker> Issueassignmenttrackers { get; set; } = new List<Issueassignmenttracker>();
+    public virtual ActiveAlarm? ActiveAlarm { get; set; }
+
+    public virtual ICollection<Issueassignmenttracker> Issueassignmenttrackers { get; set; } = new List<Issueassignmenttracker> ();
     [NotMapped]
 
     public virtual User OpenbyNavigation { get; set; } = null!;

@@ -1,15 +1,13 @@
-﻿using AutoMapper.Configuration.Annotations;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper.Configuration.Annotations;
+using Newtonsoft.Json;
 
-namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs
-{
-    public class DeliveryDTO
-    {
+namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs {
+    public class DeliveryDTO {
         public int Id { get; set; }
         public int TankId { get; set; }
 
@@ -30,5 +28,21 @@ namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs
         public int SupplierId { get; set; }
         public string? Lponumber { get; set; }
         public string? Product { get; set; }
+
+        // Correction tracking properties
+        /// <summary>
+        /// Indicates if this record is a correction entry
+        /// </summary>
+        public bool IsCorrection { get; set; } = false;
+
+        /// <summary>
+        /// Reference to the original record ID that this entry corrects (if this is a correction)
+        /// </summary>
+        public int? CorrectsRecordId { get; set; }
+
+        /// <summary>
+        /// Reason for the correction
+        /// </summary>
+        public string? CorrectionReason { get; set; }
     }
 }

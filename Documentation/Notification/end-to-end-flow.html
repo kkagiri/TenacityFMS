@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End-to-End Notification Flow - FMS Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        h3 { color: #e74c3c; }
+        h4 { color: #27ae60; }
+        .sequence-step {
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .payload-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+        }
+        .flow-diagram {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .object-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .object-table th, .object-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .object-table th {
+            background: #3498db;
+            color: white;
+        }
+        .object-table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        .step-number {
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .endpoint {
+            background: #2ecc71;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .recurring-object {
+            background: #f39c12;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+            display: inline-block;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .json-example {
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #f39c12;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Complete End-to-End Notification Flow</h1>
+        <p><strong>From NotificationPolicy Creation → Trigger Detection → Alarm Processing → Notification Delivery</strong></p>
+
+        <div class="flow-diagram">
+            <h2>🎯 High-Level Flow Overview</h2>
+            <p><strong>Policy Creation</strong> → <strong>AlarmHandler Setup</strong> → <strong>Trigger Detection</strong> → <strong>ActiveAlarm Creation</strong> → <strong>Alarm Processing</strong> → <strong>Notification Creation</strong> → <strong>Recipient Resolution</strong> → <strong>Delivery & Tracking</strong></p>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h2>🚨 ActiveAlarm Integration Flow</h2>
+            <p><strong>PTS Hardware Alert</strong> → <strong>UploadAlertRecordHandler</strong> → <strong>ActiveAlarm Entity</strong> → <strong>AlarmHandlerActiveAlarmIntegration</strong> → <strong>Notification System</strong> → <strong>Dashboard Display</strong></p>
+        </div>
+
+        <!-- PHASE 1: POLICY CREATION -->
+        <h2>📋 Phase 1: NotificationPolicy Creation</h2>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">1</span>Frontend: Policy Creation Form</h3>
+            <p><strong>Location:</strong> <code>/notifications/policies/create</code></p>
+            <p><strong>Component:</strong> <code>PolicyCreate.js</code> + <code>PolicyJsonFieldsEditor.js</code></p>
+            <p><strong>User Action:</strong> Admin fills policy form with basic info + JSON rules</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 1: CreateNotificationPolicyRequestDTO</h4>
+            <pre>{
+  "name": "Tank Low Level Critical Alert",
+  "notificationCategoryId": 1,
+  "notificationType": "Alert",
+  "priority": "High",
+  "enableEmail": true,
+  "enableSms": true,
+  "enableSystem": true,
+  "maxNotificationsPerHour": 5,
+  "maxNotificationsPerDay": 50,
+  "cooldownMinutes": 30,
+  "titleTemplate": "🚨 CRITICAL: Tank {TankName} Low Level",
+  "messageTemplate": "Tank {TankName} at {SiteName} is at {CurrentLevel}% capacity",
+  "requireAcknowledgment": true,
+  "triggerConditions": "{\"timeConditions\":{\"businessHoursOnly\":false},\"frequencyLimit\":{\"maxPerHour\":2}}",
+  "recipientRules": "{\"rules\":[{\"condition\":\"priority=='Critical'\",\"recipients\":[\"manager@station.com\"]}]}",
+  "escalationRules": "{\"escalationLevels\":[{\"level\":1,\"delayMinutes\":15,\"recipients\":[\"supervisor@station.com\"]}]}",
+  "createdBy": "admin@system.com"
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">2</span>API: POST /api/notifications/policies</h3>
+            <p><strong>Controller:</strong> <code>NotificationController.CreateNotificationPolicy()</code></p>
+            <p><strong>Service:</strong> <code>NotificationService.CreateNotificationPolicyAsync()</code></p>
+            <p><strong>Result:</strong> NotificationPolicy entity created in database</p>
+        </div>
+
+        <!-- PHASE 2: TRIGGER SETUP -->
+        <h2>⚙️ Phase 2: AlarmHandler/Trigger Setup</h2>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">3</span>Frontend: Trigger Creation</h3>
+            <p><strong>Component:</strong> <code>TriggerCreate.js</code></p>
+            <p><strong>User Action:</strong> Admin configures specific alarm triggers for the policy</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 2: CreateAlarmHandlerRequestDto</h4>
+            <pre>{
+  "notificationPolicyId": 123,
+  "alarmType": "TankLevelBelowThreshold",
+  "name": "Tank 1 Low Level Trigger",
+  "description": "Triggers when Tank 1 goes below 10%",
+  "triggerConfig": {
+    "threshold": 10,
+    "sustainedForMinutes": 5,
+    "hysteresis": 2
+  },
+  "isActive": true,
+  "priority": "High",
+  "cooldownMinutes": 30,
+  "maxNotificationsPerDay": 10,
+  "siteId": 1,
+  "tankId": 1,
+  "deviceId": null
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">4</span>API: POST /api/notifications/alarm-handlers</h3>
+            <p><strong>Controller:</strong> <code>NotificationController.CreateAlarmHandler()</code></p>
+            <p><strong>Service:</strong> <code>AlarmHandlerService.CreateAlarmHandlerAsync()</code></p>
+            <p><strong>Result:</strong> AlarmHandler entity created, linked to NotificationPolicy</p>
+        </div>
+
+        <!-- PHASE 3: TRIGGER DETECTION -->
+        <h2>🚨 Phase 3: Alarm Trigger Detection & ActiveAlarm Creation</h2>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">5A</span>PTS Hardware Alert Detection</h3>
+            <p><strong>Service:</strong> <code>UploadAlertRecordHandler</code></p>
+            <p><strong>Process:</strong> Receives real-time PTS device alerts and processes through ActiveAlarm system</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 3A: PTS Alert Data</h4>
+            <pre>{
+  "deviceId": "PTS001",
+  "alertType": "LowTankLevel",
+  "state": "Started",
+  "timestamp": "2025-08-13T10:30:00Z",
+  "data": {
+    "tankId": 1,
+    "currentLevel": 8.5,
+    "threshold": 10.0,
+    "severity": "Critical"
+  }
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">5B</span>ActiveAlarm Creation/Update</h3>
+            <p><strong>Service:</strong> <code>AlarmHandlerActiveAlarmIntegration</code></p>
+            <p><strong>Process:</strong> Creates or updates ActiveAlarm with deduplication logic</p>
+            <div class="success">
+                <strong>Deduplication Features:</strong>
+                <ul>
+                    <li>✅ Redis cooldown (5-minute periods)</li>
+                    <li>✅ Alarm identifier uniqueness</li>
+                    <li>✅ State-based processing ("Started", "Detected", "Finished")</li>
+                    <li>✅ Auto-resolution on "Finished" state</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">5C</span>Background: Tank Monitoring</h3>
+            <p><strong>Service:</strong> <code>TankMonitoringService</code> (Background Service)</p>
+            <p><strong>Process:</strong> Continuously monitors tank measurements and detects alarm conditions</p>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">6</span>Service: Alarm Detection</h3>
+            <p><strong>Service:</strong> <code>AlarmHandlerService.EvaluateHandlersAsync()</code></p>
+            <p><strong>Process:</strong> Evaluates AlarmHandler TriggerConditions against current tank data</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 3: AlarmEvaluationEvent</h4>
+            <pre>{
+  "alarmType": "TankLevelBelowThreshold",
+  "occurredAtUtc": "2025-08-13T10:30:00Z",
+  "siteId": 1,
+  "tankId": 1,
+  "deviceId": null,
+  "ptsDeviceId": "PTS001",
+  "data": {
+    "percentageFull": 8.5,
+    "currentVolume": 850,
+    "tankCapacity": 10000,
+    "waterHeight": 0,
+    "temperature": 25.4,
+    "ptsAlertState": "Started"
+  }
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">6A</span>ActiveAlarm State Management</h3>
+            <p><strong>Service:</strong> <code>ActiveAlarmService</code></p>
+            <p><strong>Process:</strong> Manages alarm lifecycle states and escalation logic</p>
+            <div class="warning">
+                <strong>ActiveAlarm States:</strong>
+                <ul>
+                    <li>🔴 <strong>Active</strong>: Newly created or ongoing alarm</li>
+                    <li>🟡 <strong>Acknowledged</strong>: User has acknowledged the alarm</li>
+                    <li>🟢 <strong>Resolved</strong>: Alarm condition cleared or manually resolved</li>
+                    <li>⚫ <strong>Suppressed</strong>: Alarm notifications disabled</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PHASE 4: ALARM PROCESSING -->
+        <h2>🔄 Phase 4: ActiveAlarm Processing & Notification Creation</h2>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">7A</span>ActiveAlarm Database Storage</h3>
+            <p><strong>Service:</strong> <code>ActiveAlarmService.CreateActiveAlarmAsync()</code></p>
+            <p><strong>Process:</strong> Stores ActiveAlarm entity with full metadata and relationships</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 4A: ActiveAlarm Entity</h4>
+            <pre>{
+  "id": 456,
+  "alarmType": "TankLevelBelowThreshold",
+  "state": "Active",
+  "triggerSource": "Hardware",
+  "triggeredAt": "2025-08-13T10:30:00Z",
+  "severity": "Critical",
+  "priority": "High",
+  "message": "Tank 1 level critically low at 8.5%",
+  "siteId": 1,
+  "tankId": 1,
+  "ptsDeviceId": "PTS001",
+  "escalationLevel": 0,
+  "autoResolveMinutes": 60,
+  "additionalData": "{\"ptsAlertState\":\"Started\",\"threshold\":10.0}"
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">7B</span>Service: Alarm Notification Creation</h3>
+            <p><strong>Service:</strong> <code>NotificationService.CreateAlarmNotificationAsync()</code></p>
+            <p><strong>Process:</strong> Processes matched AlarmHandlers and creates notifications</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 4: CreateAlarmNotificationRequest</h4>
+            <pre>{
+  "alarmType": "TankLevelBelowThreshold",
+  "alarmId": 456,
+  "category": "Tank",
+  "priority": "High",
+  "message": "Tank 1 at Downtown Station is at 8.5% capacity - immediate attention required",
+  "data": {
+    "tankId": 1,
+    "tankName": "Tank 1",
+    "currentLevel": 8.5,
+    "siteName": "Downtown Station",
+    "threshold": 10,
+    "measurementTime": "2025-08-13T10:30:00Z",
+    "activeAlarmId": 456,
+    "ptsDeviceId": "PTS001"
+  },
+  "triggeredBy": "System",
+  "siteId": 1,
+  "tankId": 1,
+  "vehicleId": null,
+  "ptsDeviceId": "PTS001"
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">8</span>Processing: JSON Rules Evaluation</h3>
+            <p><strong>Service:</strong> <code>PolicyRulesProcessor</code></p>
+            <p><strong>Process:</strong> Evaluates NotificationPolicy JSON fields (TriggerConditions, RecipientRules, EscalationRules)</p>
+            <div class="warning">
+                <strong>Key Decision Points:</strong>
+                <ul>
+                    <li>✅ AlarmHandler.TriggerConditions: "Tank < 10%" → PASS</li>
+                    <li>✅ NotificationPolicy.TriggerConditions: "Business hours check" → PASS</li>
+                    <li>✅ NotificationPolicy.RecipientRules: "Resolve dynamic recipients" → PASS</li>
+                    <li>✅ ActiveAlarm.State: "Active" → ALLOW NOTIFICATIONS</li>
+                    <li>✅ ActiveAlarm.SuppressNotifications: false → ALLOW</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PHASE 5: NOTIFICATION CREATION -->
+        <h2>📧 Phase 5: Notification Creation & Recipient Resolution</h2>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">9</span>Service: Final Notification Creation</h3>
+            <p><strong>Service:</strong> <code>NotificationService.CreateNotificationAsync()</code></p>
+            <p><strong>Process:</strong> Creates final notification with resolved recipients</p>
+        </div>
+
+        <div class="payload-box">
+            <h4>Payload 5: CreateNotificationRequest</h4>
+            <pre>{
+  "notificationId": null,
+  "type": "Alert",
+  "categoryId": 1,
+  "priority": "High",
+  "title": "🚨 CRITICAL: Tank 1 Low Level",
+  "message": "Tank 1 at Downtown Station is at 8.5% capacity",
+  "data": {
+    "tankId": 1,
+    "alarmType": "TankLevelBelowThreshold",
+    "currentLevel": 8.5,
+    "threshold": 10
+  },
+  "triggerSource": "Alarm",
+  "triggeredBy": "System",
+  "scheduledAt": null,
+  "siteId": 1,
+  "tankId": 1,
+  "vehicleId": null,
+  "ptsDeviceId": null,
+  "issueTrackerId": null,
+  "alarmId": 456,
+  "notificationPolicyId": 123,
+  "recipients": [
+    {
+      "userId": "manager@station.com",
+      "deliveryMethods": ["email", "sms"],
+      "priorityOverride": null
+    },
+    {
+      "userId": "supervisor@station.com",
+      "deliveryMethods": ["email", "sms", "system"],
+      "priorityOverride": "Critical"
+    }
+  ],
+  "disableFallbackAllUsers": false
+}</pre>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">10</span>Processing: Recipient Resolution</h3>
+            <p><strong>Service:</strong> <code>NotificationRecipientResolver</code></p>
+            <p><strong>Process:</strong> Resolves final recipient list from multiple sources</p>
+            <div class="success">
+                <strong>Resolution Order:</strong>
+                <ol>
+                    <li>Explicit recipients from request</li>
+                    <li>Policy recipients (PolicyRecipients table)</li>
+                    <li>JSON rules-based recipients (RecipientRules)</li>
+                    <li>Site administrators</li>
+                    <li>Subscribed users</li>
+                    <li>Fallback to all users (if enabled)</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- PHASE 6: DELIVERY -->
+        <h2>📤 Phase 6: Notification Delivery & Tracking</h2>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">11</span>Database: Notification Storage</h3>
+            <p><strong>Tables:</strong> Notification, NotificationRecipient, AlarmHandlerExecution</p>
+            <p><strong>Process:</strong> Stores notification and recipient records for tracking</p>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">12</span>Service: Delivery Processing</h3>
+            <p><strong>Service:</strong> <code>NotificationChannelRegistry</code> + Channel implementations</p>
+            <p><strong>Process:</strong> Delivers notifications via configured channels (Email, SMS, System, Push)</p>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">13</span>Escalation: Scheduled Follow-ups</h3>
+            <p><strong>Service:</strong> Background escalation processor</p>
+            <p><strong>Process:</strong> Schedules and executes escalation levels based on EscalationRules JSON</p>
+        </div>
+
+        <div class="sequence-step">
+            <h3><span class="step-number">14</span>ActiveAlarm Management</h3>
+            <p><strong>Service:</strong> <code>ActiveAlarmProcessingService</code> (Background Service)</p>
+            <p><strong>Process:</strong> Handles alarm lifecycle operations every 5 minutes</p>
+            <div class="success">
+                <strong>Background Operations:</strong>
+                <ul>
+                    <li>🔄 <strong>Auto-Resolution</strong>: Time-based and event-based resolution</li>
+                    <li>📈 <strong>Escalation Processing</strong>: Unacknowledged alarm escalation</li>
+                    <li>🧹 <strong>Cleanup</strong>: Archive old resolved alarms</li>
+                    <li>📊 <strong>Statistics Update</strong>: Update dashboard metrics</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- RECURRING OBJECTS -->
+        <h2>🔄 Recurring Objects & Entities</h2>
+
+        <table class="object-table">
+            <thead>
+                <tr>
+                    <th>Object/Entity</th>
+                    <th>Purpose</th>
+                    <th>Key Properties</th>
+                    <th>Used In Phases</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="recurring-object">ActiveAlarm</span></td>
+                    <td>Real-time alarm lifecycle management</td>
+                    <td>State, Severity, TriggerSource, AdditionalData (JSON)</td>
+                    <td>3, 4, 6</td>
+                </tr>
+                <tr>
+                    <td><span class="recurring-object">NotificationPolicy</span></td>
+                    <td>Defines notification rules and behavior</td>
+                    <td>TriggerConditions, RecipientRules, EscalationRules (JSON)</td>
+                    <td>1, 4, 5</td>
+                </tr>
+                <tr>
+                    <td><span class="recurring-object">AlarmHandler</span></td>
+                    <td>Links alarm types to policies with specific conditions</td>
+                    <td>AlarmType, TriggerConditions (JSON), NotificationPolicyId</td>
+                    <td>2, 3, 4</td>
+                </tr>
+                <tr>
+                    <td><span class="recurring-object">Notification</span></td>
+                    <td>Individual notification instance</td>
+                    <td>Title, Message, Priority, Status, Data (JSON)</td>
+                    <td>5, 6</td>
+                </tr>
+                <tr>
+                    <td><span class="recurring-object">NotificationRecipient</span></td>
+                    <td>Tracks delivery to individual recipients</td>
+                    <td>UserId, DeliveryMethod, DeliveryStatus, AcknowledgedAt</td>
+                    <td>5, 6</td>
+                </tr>
+                <tr>
+                    <td><span class="recurring-object">AlarmHandlerExecution</span></td>
+                    <td>Tracks alarm handler invocations</td>
+                    <td>Success, ErrorMessage, TriggerData, ExecutionDetails</td>
+                    <td>4, 6</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- API ENDPOINTS -->
+        <h2>🌐 Key API Endpoints</h2>
+
+        <div class="sequence-step">
+            <h4>Policy Management</h4>
+            <p><span class="endpoint">POST /api/notifications/policies</span> - Create notification policy</p>
+            <p><span class="endpoint">GET /api/notifications/policies</span> - List policies</p>
+            <p><span class="endpoint">PUT /api/notifications/policies/{id}</span> - Update policy</p>
+        </div>
+
+        <div class="sequence-step">
+            <h4>Alarm Handlers</h4>
+            <p><span class="endpoint">POST /api/notifications/alarm-handlers</span> - Create alarm handler</p>
+            <p><span class="endpoint">GET /api/notifications/alarm-handlers</span> - List handlers for policy</p>
+            <p><span class="endpoint">DELETE /api/notifications/alarm-handlers/{id}</span> - Delete handler</p>
+        </div>
+
+        <div class="sequence-step">
+            <h4>ActiveAlarm Management</h4>
+            <p><span class="endpoint">GET /api/active-alarms</span> - List active alarms with filtering</p>
+            <p><span class="endpoint">POST /api/active-alarms/{id}/acknowledge</span> - Acknowledge alarm</p>
+            <p><span class="endpoint">POST /api/active-alarms/{id}/resolve</span> - Resolve alarm</p>
+            <p><span class="endpoint">GET /api/active-alarms/statistics</span> - Dashboard statistics</p>
+        </div>
+
+        <div class="sequence-step">
+            <h4>Notifications</h4>
+            <p><span class="endpoint">POST /api/notifications/alarm</span> - Trigger alarm notification</p>
+            <p><span class="endpoint">GET /api/notifications</span> - List notifications</p>
+            <p><span class="endpoint">POST /api/notifications/{id}/acknowledge</span> - Acknowledge notification</p>
+        </div>
+
+        <!-- REAL WORLD EXAMPLE -->
+        <h2>🌍 Real-World Scenario Example</h2>
+
+        <div class="json-example">
+            <h3>Scenario: Downtown Gas Station Tank Low Alert with ActiveAlarm</h3>
+            <p><strong>Time:</strong> 2:30 PM Tuesday</p>
+            <p><strong>Event:</strong> PTS device detects Tank 1 (Premium fuel) drops to 8.5% capacity</p>
+            <p><strong>Expected Result:</strong> ActiveAlarm creation → Immediate notification to manager → Escalation to supervisor after 15 minutes</p>
+
+            <h4>Flow Execution:</h4>
+            <pre>
+✅ PTS Device Alert: Tank 1 = 8.5% (< 10% threshold) - State: "Started"
+✅ UploadAlertRecordHandler: Processes PTS alert with deduplication check
+✅ ActiveAlarm Created: AlarmType="TankLevelBelowThreshold", State="Active"
+✅ AlarmHandler triggers: "TankLevelBelowThreshold" matches
+✅ Policy TriggerConditions: Business hours (2:30 PM) = ALLOWED
+✅ Policy RecipientRules: "priority=High" → manager@station.com
+✅ Notification created: "🚨 CRITICAL: Tank 1 Low Level" (linked to ActiveAlarm ID 456)
+✅ Delivered via: Email + SMS to manager
+✅ ActiveAlarm Dashboard: Real-time display in tank module
+✅ Escalation scheduled: 15 minutes → supervisor@station.com
+✅ Tracking: NotificationRecipient + ActiveAlarm audit trail
+✅ Auto-Resolution: When PTS sends "Finished" state → ActiveAlarm resolved
+            </pre>
+        </div>
+
+        <!-- TROUBLESHOOTING -->
+        <h2>🔧 Common Issues & Troubleshooting</h2>
+
+        <div class="warning">
+            <h4>❌ No Notifications Sent</h4>
+            <ul>
+                <li>Check AlarmHandler.IsActive = true</li>
+                <li>Verify AlarmHandler.TriggerConditions match incoming data</li>
+                <li>Check NotificationPolicy.TriggerConditions (business hours, frequency limits)</li>
+                <li>Verify cooldown period hasn't blocked the notification</li>
+                <li>Check daily limit hasn't been exceeded</li>
+                <li><strong>ActiveAlarm Issues:</strong> Check if ActiveAlarm.SuppressNotifications = false</li>
+                <li><strong>PTS Integration:</strong> Verify PTS alert states are correctly processed</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <h4>❌ ActiveAlarm Duplication</h4>
+            <ul>
+                <li>Check Redis deduplication cooldown (5-minute periods)</li>
+                <li>Verify alarm identifier uniqueness logic</li>
+                <li>Check PTS alert state processing ("Started", "Detected", "Finished")</li>
+                <li>Monitor UploadAlertRecordHandler error logs</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <h4>❌ Wrong Recipients</h4>
+            <ul>
+                <li>Check NotificationPolicy.RecipientRules JSON syntax</li>
+                <li>Verify PolicyRecipients table has active recipients</li>
+                <li>Check user notification preferences</li>
+                <li>Verify delivery method availability (email, phone, etc.)</li>
+            </ul>
+        </div>
+
+        <div class="success">
+            <h4>✅ Monitoring & Validation</h4>
+            <ul>
+                <li>Use AlarmHandlerExecution table to track trigger attempts</li>
+                <li>Monitor NotificationRecipient.DeliveryStatus for delivery tracking</li>
+                <li>Check PolicyRulesProcessor logs for JSON rule evaluation</li>
+                <li>Use TriggerEvaluationTester frontend component for testing</li>
+                <li><strong>ActiveAlarm Monitoring:</strong> Check ActiveAlarm state transitions in database</li>
+                <li><strong>Dashboard Validation:</strong> Verify alarm display across modules (main, tank, PTS)</li>
+                <li><strong>PTS Integration:</strong> Monitor UploadAlertRecordHandler processing logs</li>
+                <li><strong>Auto-Resolution:</strong> Track automatic resolution on "Finished" PTS states</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 40px 0;">
+        <p><em>Documentation generated for FMS Notification System - Complete end-to-end flow from policy creation to notification delivery</em></p>
+    </div>
+</body>
+</html>

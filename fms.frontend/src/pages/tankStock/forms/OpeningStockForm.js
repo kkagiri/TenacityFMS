@@ -10,6 +10,7 @@ import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
 import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
 import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
+import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
 import './OpeningStockForm.scss';
 
 const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => {
@@ -31,11 +32,14 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
   } = useFutureRecordsValidation();
 
   // Helper function for notifications with consistent positioning
-  const showNotification = (message, type = 'info', duration = 3000) => {
+  const showNotification = useCallback((message, type = 'info', duration = 3000) => {
+    // Use longer duration for errors to give user time to read
+    const notificationDuration = type === 'error' ? Math.max(duration, 6000) : duration;
+
     notify({
       message,
       type,
-      displayTime: duration,
+      displayTime: notificationDuration,
       position: {
         my: 'top center',
         at: 'top center',
@@ -57,19 +61,21 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         }
       }
     });
-  };
+  }, []);
 
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [loading] = useState(false);
   const [formData, setFormData] = useState({
     siteId: null,
     tankId: null,
-    amount: null,
+    amount: null,           // Physical stock measurement
+    bookBalance: null,      // Current book balance (read-only)
     date: new Date()
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [showInfoNotice, setShowInfoNotice] = useState(true);
+  const [backendError, setBackendError] = useState(null);
 
   useEffect(() => {
     if (!sites || sites.length === 0) {
@@ -97,20 +103,28 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     const tanksForSite = tanksFromStore.filter(tank => tank.siteId === siteId);
     setFilteredTanks(tanksForSite);
 
-    // Clear validation errors for this field
+    // Clear validation errors and backend errors for this field
     setValidationErrors(prev => ({ ...prev, siteId: null, tankId: null }));
+    setBackendError(null);
   }, [tanksFromStore, formData]);
 
   const handleTankChange = useCallback(async (e) => {
     const tankId = e.value;
+
+    // Get selected tank to retrieve book balance
+    const selectedTank = tanksFromStore.find(tank => tank.id === tankId);
+    const bookBalance = selectedTank ? selectedTank.currentStock : null;
+
     const updatedData = {
       ...formData,
-      tankId: tankId
+      tankId: tankId,
+      bookBalance: bookBalance  // Set current book balance for comparison
     };
     setFormData(updatedData);
 
-    // Clear validation errors for this field
+    // Clear validation errors and backend errors for this field
     setValidationErrors(prev => ({ ...prev, tankId: null }));
+    setBackendError(null);
 
     // Reset future records validation when tank changes
     resetValidation();
@@ -123,43 +137,24 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         showNotification(validation.error, 'error');
       }
     }
-  }, [formData, resetValidation, validateHistoricalEntry, showNotification]);
+  }, [formData, resetValidation, validateHistoricalEntry, showNotification, tanksFromStore]);
 
-  const handleDateChange = useCallback(async (e) => {
-    const newDate = e.value;
-    const updatedData = {
-      ...formData,
-      date: newDate
-    };
-    setFormData(updatedData);
-
-    // Clear validation errors for this field
+  const handleDateChange = (e) => {
+    // Ensure we have a valid date object or null
+    const dateValue = e && e.value !== undefined ? e.value : e;
+    setFormData(prev => ({ ...prev, date: dateValue }));
+    // Clear validation errors and backend errors for this field
     setValidationErrors(prev => ({ ...prev, date: null }));
+    setBackendError(null);
+  };
 
-    // Reset future records validation when date changes
-    resetValidation();
-
-    // Validate if this is a historical entry and we have tank selected
-    if (newDate && formData.tankId) {
-      const validation = await validateHistoricalEntry(formData.tankId, newDate, 'OpeningStock');
-
-      if (validation.error) {
-        showNotification(validation.error, 'error');
-      }
-    }
-  }, [formData, resetValidation, validateHistoricalEntry, showNotification]);
-
-  const handleAmountChange = useCallback((e) => {
-    const amount = e.value;
-    const updatedData = {
-      ...formData,
-      amount: amount
-    };
-    setFormData(updatedData);
-
-    // Clear validation errors for this field
+    const handleAmountChange = (e) => {
+    const value = e && e.value !== undefined ? e.value : e;
+    setFormData(prev => ({ ...prev, amount: value }));
+    // Clear validation errors and backend errors for this field
     setValidationErrors(prev => ({ ...prev, amount: null }));
-  }, [formData]);
+    setBackendError(null);
+  };
 
   // Validation logic
   const validateForm = useCallback(() => {
@@ -176,16 +171,21 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
+    console.log('Starting form submission...');
+
     if (!validateForm()) {
-      showNotification('Please correct the errors in the form', 'error', 3000);
+      console.log('Form validation failed');
+      showNotification('Please correct the errors in the form', 'error', 4000);
       return;
     }
 
     // Check if we can submit based on future records validation
     if (!canSubmitForm) {
-      showNotification('Please resolve the validation warnings before submitting', 'warning', 3000);
+      showNotification('Please resolve the validation warnings before submitting', 'warning', 4000);
       return;
     }
+
+    console.log('Form data before submission:', formData);
 
     setIsSubmitting(true);
     try {
@@ -198,9 +198,16 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
       const response = await dispatch(createOpeningStock(preparedData));
 
-      if (response.success) {
+      console.log('Opening stock creation response:', response);
+
+      // Check for success - be more explicit about what constitutes success
+      if (response && response.success === true) {
         showNotification(response.message || 'Opening stock created successfully', 'success', 3000);
-        // Close form on success
+
+        // Clear any previous backend errors on success
+        setBackendError(null);
+
+        // Only close form on successful creation
         if (onCancel) {
           onCancel();
         }
@@ -208,15 +215,33 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
           onSubmit(preparedData);
         }
       } else {
-        showNotification(response.message || 'Failed to create opening stock', 'error', 5000);
+        // Handle both explicit failure and undefined success - including backend validation errors
+        const errorMessage = response?.message || 'Failed to create opening stock';
+        console.error('Opening stock creation failed:', errorMessage, response);
+
+        // Set backend error for inline display instead of notification
+        setBackendError({
+          message: errorMessage,
+          type: 'error'
+        });
+
+        // Form stays open so user can retry or make corrections
       }
     } catch (error) {
       console.error('Error creating opening stock:', error);
-      showNotification('An unexpected error occurred', 'error', 3000);
+      const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred';
+
+      // Set backend error for inline display instead of notification
+      setBackendError({
+        message: errorMessage,
+        type: 'error'
+      });
+
+      // Form stays open on error
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, dispatch, onSubmit, onCancel]);
+  }, [formData, validateForm, canSubmitForm, dispatch, onSubmit, onCancel, showNotification]);
 
   return (
     <div className="opening-stock-form tw-h-full tw-flex tw-flex-col">
@@ -241,7 +266,6 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
           <Form
             readOnly={isLoading}
-            formData={formData}
             showColonAfterLabel={true}
             labelLocation="top"
             colCount={2}
@@ -253,12 +277,15 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               editorOptions={{
                 value: formData.date,
                 max: new Date(),
-                displayFormat: "yyyy-MM-dd HH:mm",
+                ...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" }),
                 type: "datetime",
                 onValueChanged: handleDateChange,
                 width: "100%",
                 isValid: !validationErrors.date,
-                validationError: validationErrors.date ? { message: validationErrors.date } : null
+                validationError: validationErrors.date ? { message: validationErrors.date } : null,
+                // Add date validation to prevent invalid date formatting
+                acceptCustomValue: false,
+                openOnFieldClick: true
               }}
             >
               <Label text="Date & Time" />
@@ -301,22 +328,62 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               <Label text="Tank" />
             </SimpleItem>
 
+            {/* Book Balance Display (Read-only) */}
+            {formData.bookBalance !== null && formData.bookBalance !== undefined && (
+              <SimpleItem
+                dataField="bookBalance"
+                editorType="dxTextBox"
+                editorOptions={{
+                  value: formData.bookBalance ? formData.bookBalance.toLocaleString() + ' L' : '0 L',
+                  readOnly: true,
+                  width: "100%",
+                  stylingMode: "filled"
+                }}
+              >
+                <Label text="Current Book Balance (Calculated)" />
+              </SimpleItem>
+            )}
+
             <SimpleItem
               dataField="amount"
               editorType="dxNumberBox"
               editorOptions={{
                 showSpinButtons: true,
-                value: formData.amount,
+                value: formData.amount || null,
                 onValueChanged: handleAmountChange,
-                placeholder: "Enter value ",
+                placeholder: "Enter physical stock measurement",
                 width: "100%",
-                format: "#,##0",
+                ...(formData.amount !== null && formData.amount !== undefined && { format: "#,##0" }),
                 isValid: !validationErrors.amount,
                 validationError: validationErrors.amount ? { message: validationErrors.amount } : null
               }}
             >
-              <Label text="Amount (Liters)" />
+              <Label text="Physical Stock Amount (Liters)" />
             </SimpleItem>
+
+            {/* Discrepancy Indicator */}
+            {formData.amount && formData.bookBalance && (
+              <div className="discrepancy-indicator" style={{
+                padding: '10px',
+                marginTop: '10px',
+                borderRadius: '4px',
+                backgroundColor: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#ffebee' : '#e8f5e8',
+                border: `1px solid ${Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'}`
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                  Stock Comparison:
+                </div>
+                <div>Physical Stock: {formData.amount.toLocaleString()} L</div>
+                <div>Book Balance: {formData.bookBalance.toLocaleString()} L</div>
+                <div style={{
+                  fontWeight: 'bold',
+                  color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
+                }}>
+                  Discrepancy: {(formData.amount - formData.bookBalance).toLocaleString()} L
+                  ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
+                </div>
+              </div>
+            )}
           </Form>
 
           {/* Future Records Validation Warning */}
@@ -328,6 +395,28 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               isVisible={showWarning || !!validationError}
               className="tw-mb-4"
             />
+          )}
+
+          {/* Backend Error Display */}
+          {backendError && (
+            <div className="tw-mb-4 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-3">
+              <div className="tw-flex tw-items-start">
+                <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mt-0.5 tw-mr-3"></i>
+                <div className="tw-flex-1">
+                  <h4 className="tw-font-medium tw-text-red-800 tw-mb-1">Validation Error</h4>
+                  <p className="tw-text-red-700 tw-text-sm">
+                    {backendError?.message || 'An error occurred'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setBackendError(null)}
+                  className="tw-ml-3 tw-text-red-600 hover:tw-text-red-800 tw-transition-colors"
+                  title="Dismiss error"
+                >
+                  <i className="fa-light fa-times"></i>
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Loading indicator for validation */}

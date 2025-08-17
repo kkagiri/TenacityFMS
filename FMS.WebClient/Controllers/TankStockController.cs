@@ -26,6 +26,7 @@ public class TankStockController : ControllerBase {
     private readonly IMediator _mediator;
     private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
     private readonly TankStockFutureRecordsService _futureRecordsService;
+    private readonly OpeningStockValidationService _openingStockValidationService;
     //Cursor - Add SignalR hub context for real-time updates
     private readonly IHubContext<FrontEndHub> _hubContext;
 
@@ -33,11 +34,21 @@ public class TankStockController : ControllerBase {
         IMediator mediator,
         TankVolumeHistoryIntegrationService tankVolumeHistoryService,
         TankStockFutureRecordsService futureRecordsService,
+        OpeningStockValidationService openingStockValidationService,
         IHubContext<FrontEndHub> hubContext) {
         _mediator = mediator;
         _tankVolumeHistoryService = tankVolumeHistoryService;
         _futureRecordsService = futureRecordsService;
+        _openingStockValidationService = openingStockValidationService;
         _hubContext = hubContext;
+    }
+
+    [HttpGet]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetTankStocks () {
+        return User.HasClaim ("permissions", "_Read_tankStock") ?
+            Ok (await _mediator.Send (new GetTankStockListQuery ())) :
+            Forbid ();
     }
 
     /// <summary>
@@ -47,7 +58,6 @@ public class TankStockController : ControllerBase {
     /// <returns>Validation result with policy decision and warning messages</returns>
     [HttpPost ("validate-historical-entry")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [Route ("validate-historical-entry", Order = 1)] // Lower order = higher priority
     public async Task<IActionResult> ValidateHistoricalEntry ([FromBody] HistoricalEntryValidationRequest request) {
         var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
         if (!hasPermission) return Forbid ();
@@ -76,22 +86,12 @@ public class TankStockController : ControllerBase {
             return BadRequest (FMSResponse<TankStockFutureRecordsValidationResult>.Failed ($"Validation failed: {ex.Message}"));
         }
     }
-
-    [HttpGet]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> GetTankStocks () {
-        return User.HasClaim ("permissions", "_Read_tankStock") ?
-            Ok (await _mediator.Send (new GetTankStockListQuery ())) :
-            Forbid ();
-    }
-
     /// <summary>
     /// Gets the current tank stock future records policy configuration
     /// </summary>
     /// <returns>Current policy configuration</returns>
     [HttpGet ("future-records-policy")]
-    [Route ("future-records-policy", Order = 1)] // Lower order = higher priority
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme), ]
     public async Task<IActionResult> GetFutureRecordsPolicy () {
         var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
         if (!hasPermission) return Forbid ();
@@ -113,8 +113,7 @@ public class TankStockController : ControllerBase {
         }
     }
 
-    [HttpGet ("{id:int}")]
-    [Route ("{id:int}", Order = 2)] // Higher order = lower priority
+    [HttpGet ("details/{id:int}")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetTankStockById (int id) {
         var hasPermission = User.HasClaim ("permissions", "_Read_tankStock");
@@ -125,21 +124,6 @@ public class TankStockController : ControllerBase {
         if (result == null) {
             return NotFound ();
         }
-        return Ok (result);
-    }
-
-    [HttpPut ("update/{id}")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> UpdateDelivery (int id, [FromBody] DeliveryDTO deliveryDTO, bool ignoreNegativesValues = false) {
-        var hasPermission = User.HasClaim ("permissions", "_editStock");
-        if (!hasPermission) return Forbid ();
-        if (!ModelState.IsValid) return BadRequest (ModelState);
-
-        if (id != deliveryDTO.Id) return BadRequest ("ID mismatch");
-
-        var result = await _mediator.Send (new UpdateDeliveryCommand (deliveryDTO, ignoreNegativesValues));
-        if (!result.Success) return BadRequest (result);
-
         return Ok (result);
     }
 
@@ -158,36 +142,6 @@ public class TankStockController : ControllerBase {
         var id = await _mediator.Send (new CreateTankStockCommand (tankStockDTO));
 
         return CreatedAtAction (nameof (GetTankStockById), new { id = id }, tankStockDTO);
-    }
-
-    [HttpPut ("{id}")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> UpdateTankStock (int id, [FromBody] TankStockDTO tankStockDTO) {
-        var hasPermission = User.HasClaim ("permissions", "_Update_tankStock");
-        if (!hasPermission) return Forbid (new FMSResponseMessage (false, "Please sign in").ToString ());
-
-        if (!ModelState.IsValid) return BadRequest (ModelState);
-
-        if (id != tankStockDTO.EntryId) {
-            return BadRequest ("ID mismatch");
-        }
-        var result = await _mediator.Send (new UpdateTankStockCommand (tankStockDTO, id));
-        if (!result) {
-            return NotFound ();
-        }
-        return NoContent ();
-    }
-
-    [HttpDelete ("{id}")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> DeleteTankStock (int id) {
-        var hasPermission = User.HasClaim ("permissions", "_Delete_tankStock");
-        if (!hasPermission) return Forbid ();
-        var result = await _mediator.Send (new DeleteTankStockCommand (id));
-        if (!result.Success) {
-            return NotFound ();
-        }
-        return NoContent ();
     }
 
     [HttpPost ("openingstock")]

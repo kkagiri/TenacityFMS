@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import TriggerCreate from './TriggerCreate';
+import PolicyJsonFieldsEditor from './PolicyJsonFieldsEditor';
+import { Link } from 'react-router-dom';
 import {
   TextBox,
   TextArea,
@@ -16,16 +18,23 @@ import notify from 'devextreme/ui/notify';
 import { notificationRoutes } from '../utils/navigationHelper';
 import '../layout/NotificationLayout.scss';
 import './PolicyCreate.scss';
+import notificationsApi from '../../../dataservice/notificationsApi';
+import alarmHandlerApi from '../../../dataservice/alarmHandlerApi';
+import notificationPreferencesApi from '../../../dataservice/notificationPreferencesApi';
+import { notificationPriorityOptions as priorityOptions, notificationTypeOptions } from '../constants/notificationEnums';
+import TriggerEvaluationTester from './TriggerEvaluationTester';
 
 const PolicyCreate = () => {
-  const navigate = useNavigate();
+  // Removed unused navigate hook
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [createdPolicyId, setCreatedPolicyId] = useState(null);
 
+  // Align to CreateNotificationPolicyRequestDTO
   const [policy, setPolicy] = useState({
     name: '',
-    description: '',
-    category: '',
+    description: '', // not sent to backend currently, kept for UI
+    notificationCategoryId: '',
     priority: 'Medium',
     notificationType: 'Alert',
     enableEmail: true,
@@ -37,45 +46,29 @@ const PolicyCreate = () => {
     titleTemplate: '',
     messageTemplate: '',
     requireAcknowledgment: false,
-    escalationEnabled: false,
-    escalationMinutes: 60,
-    recipients: [],
-    conditions: [],
-    isActive: true
+    isActive: true,
+    // ✅ NEW: Add the JSON fields that were previously unused
+    triggerConditions: '',
+    recipientRules: '',
+    escalationRules: ''
   });
 
-  const [conditions, setConditions] = useState([
-    {
-      id: 1,
-      field: 'tankLevel',
-      operator: 'lessThan',
-      value: '10',
-      unit: 'percent'
-    }
-  ]);
+  const [conditions, setConditions] = useState([]);
 
-  const categoryOptions = [
-    { value: 'Tank Monitoring', text: 'Tank Monitoring' },
-    { value: 'Maintenance', text: 'Maintenance' },
-    { value: 'Device Monitoring', text: 'Device Monitoring' },
-    { value: 'System Reports', text: 'System Reports' },
-    { value: 'Emergency', text: 'Emergency' },
-    { value: 'Custom', text: 'Custom' }
-  ];
+  // Load categories from API
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const res = await notificationPreferencesApi.getNotificationCategories();
+      if (mounted && res.isSuccess) setCategories(res.data);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-  const priorityOptions = [
-    { value: 'Critical', text: 'Critical' },
-    { value: 'High', text: 'High' },
-    { value: 'Medium', text: 'Medium' },
-    { value: 'Low', text: 'Low' }
-  ];
+  const categoryOptions = useMemo(() => (categories || []).map(c => ({ value: c.id ?? c.Id, text: c.name ?? c.Name })), [categories]);
 
-  const notificationTypeOptions = [
-    { value: 'Alert', text: 'Alert' },
-    { value: 'Warning', text: 'Warning' },
-    { value: 'Information', text: 'Information' },
-    { value: 'Report', text: 'Report' }
-  ];
+  // Using shared priority/type enum option arrays
 
   const recipientOptions = [
     { value: 'admin@company.com', text: 'System Administrator' },
@@ -135,24 +128,8 @@ const PolicyCreate = () => {
       notify('Policy name is required', 'error', 3000);
       return false;
     }
-    if (!policy.category) {
+    if (!policy.notificationCategoryId) {
       notify('Category is required', 'error', 3000);
-      return false;
-    }
-    if (!policy.titleTemplate) {
-      notify('Title template is required', 'error', 3000);
-      return false;
-    }
-    if (!policy.messageTemplate) {
-      notify('Message template is required', 'error', 3000);
-      return false;
-    }
-    if (policy.recipients.length === 0) {
-      notify('At least one recipient is required', 'error', 3000);
-      return false;
-    }
-    if (conditions.length === 0) {
-      notify('At least one condition is required', 'error', 3000);
       return false;
     }
     return true;
@@ -163,28 +140,30 @@ const PolicyCreate = () => {
 
     setLoading(true);
     try {
-      const policyData = {
-        ...policy,
-        conditions,
-        createdAt: new Date(),
-        createdBy: 'Current User'
+      const payload = {
+        name: policy.name,
+        notificationCategoryId: Number(policy.notificationCategoryId),
+        notificationType: policy.notificationType,
+        priority: policy.priority,
+        enableEmail: !!policy.enableEmail,
+        enableSms: !!policy.enableSms,
+        enableSystem: !!policy.enableSystem,
+        maxNotificationsPerHour: Number(policy.maxNotificationsPerHour) || 0,
+        maxNotificationsPerDay: Number(policy.maxNotificationsPerDay) || 0,
+        cooldownMinutes: Number(policy.cooldownMinutes) || 0,
+        titleTemplate: policy.titleTemplate || null,
+        messageTemplate: policy.messageTemplate || null,
+        requireAcknowledgment: !!policy.requireAcknowledgment,
       };
 
-      // Simulate API call - replace with actual API call
-      const response = await fetch('/api/notifications/policies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(policyData),
-      });
-
-      if (response.ok) {
+      const res = await notificationsApi.createPolicy(payload);
+      if (res.isSuccess && res.data?.id) {
+        setCreatedPolicyId(res.data.id);
         notify('Policy created successfully', 'success', 3000);
-        navigate('..');
-      } else {
-        throw new Error('Failed to create policy');
+        // Stay on page to allow trigger creation instead of navigating away
+        return;
       }
+      throw new Error(res.message || 'Failed to create policy');
     } catch (error) {
       console.error('Error creating policy:', error);
       notify('Error creating policy', 'error', 3000);
@@ -194,44 +173,131 @@ const PolicyCreate = () => {
   };
 
   const tabItems = [
-    {
-      title: 'Basic Information',
-      icon: 'info'
-    },
-    {
-      title: 'Notification Settings',
-      icon: 'bell'
-    },
-    {
-      title: 'Conditions & Rules',
-      icon: 'list'
-    },
-    {
-      title: 'Recipients',
-      icon: 'users'
-    },
-    {
-      title: 'Templates',
-      icon: 'edit'
-    }
+    { title: 'Basic Information', icon: 'info' },
+    { title: 'Triggers', icon: 'bolt' },
+    { title: 'Notification Settings', icon: 'bell' },
+    { title: 'Condition', icon: 'list' },
+    { title: 'Recipients', icon: 'users' },
+    { title: 'Templates', icon: 'edit' },
+    { title: '🎯 JSON Rules', icon: 'code' } // ✅ NEW: Tab for the unused JSON fields
   ];
+
+  // Triggers state
+  const [triggers, setTriggers] = useState([]);
+
+  // Load triggers when a real policy has been created
+  useEffect(() => {
+    if (!createdPolicyId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await alarmHandlerApi.getAlarmHandlers(createdPolicyId);
+        const data = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+        if (mounted) setTriggers(data);
+      } catch {
+        if (mounted) setTriggers([]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [createdPolicyId]);
+
+  const handleTriggerCreated = async () => {
+    if (!createdPolicyId) return;
+    try {
+      const res = await alarmHandlerApi.getAlarmHandlers(createdPolicyId);
+      const data = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+      setTriggers(data);
+    } catch {
+      setTriggers([]);
+    }
+  };
+
+  const handleDeleteTrigger = async (id) => {
+    try {
+      await alarmHandlerApi.deleteAlarmHandler(id);
+      if (!createdPolicyId) return;
+      const res = await alarmHandlerApi.getAlarmHandlers(createdPolicyId);
+      const data = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+      setTriggers(data);
+    } catch (e) {
+      setTriggers(triggers.filter(t => t.id !== id));
+    }
+  };
+
+  const renderTriggersTab = () => (
+    <div className="tw-p-6 policy-create-form notification-form">
+      <h3 className="tw-text-lg tw-font-semibold tw-mb-4">Triggers for this Policy {createdPolicyId && <span className="tw-text-xs tw-text-gray-500">(ID: {createdPolicyId})</span>}</h3>
+      <div className="tw-space-y-2 tw-mb-6">
+        {triggers.length === 0 && <div className="tw-text-sm tw-text-gray-500">{createdPolicyId ? 'No triggers yet.' : 'Save the policy to add triggers.'}</div>}
+        {triggers.map(t => {
+          const cfg = typeof t.config === 'string' ? t.config : JSON.stringify(t.config);
+          return (
+            <div key={t.id} className="tw-border tw-border-gray-200 tw-rounded tw-p-3 tw-flex tw-items-start tw-justify-between tw-gap-4">
+              <div className="tw-space-y-1 tw-text-xs">
+                <div className="tw-font-medium tw-text-gray-900 tw-text-sm">{t.type || t.alarmType}</div>
+                <div className="tw-text-gray-600 break-all">{cfg}</div>
+                <div className="tw-text-gray-500">Priority: {t.priority} | Cooldown: {t.cooldownMinutes}m | Max/Day: {t.maxNotificationsPerDay || '∞'}</div>
+                {(t.siteId || t.tankId || t.deviceId) && (
+                  <div className="tw-text-gray-500">Scope: {t.siteId && `Site:${t.siteId} `}{t.tankId && `Tank:${t.tankId} `}{t.deviceId && `Device:${t.deviceId}`}</div>
+                )}
+              </div>
+              <button className="tw-text-red-500 tw-text-xs" onClick={() => handleDeleteTrigger(t.id)} title="Delete trigger">
+                <i className="fa-light fa-trash" /> Delete
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {createdPolicyId && (
+        <TriggerCreate
+          policyId={createdPolicyId}
+          categoryId={policy.notificationCategoryId}
+          onCreated={handleTriggerCreated}
+        />
+      )}
+      {createdPolicyId && (
+        <TriggerEvaluationTester policyId={createdPolicyId} />
+      )}
+    </div>
+  );
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 0:
         return renderBasicInfoTab();
       case 1:
-        return renderNotificationSettingsTab();
+        return renderTriggersTab();
       case 2:
-        return renderConditionsTab();
+        return renderNotificationSettingsTab();
       case 3:
-        return renderRecipientsTab();
+        return renderConditionsTab();
       case 4:
+        return renderRecipientsTab();
+      case 5:
         return renderTemplatesTab();
+      case 6:
+        return renderJsonRulesTab(); // ✅ NEW: JSON rules tab
       default:
         return renderBasicInfoTab();
     }
   };
+
+  // ✅ NEW: Render function for JSON rules tab
+  const renderJsonRulesTab = () => (
+    <div className="json-rules-tab">
+      <div className="tab-header">
+        <h3>🎯 Advanced JSON Rules</h3>
+        <p className="tab-description">
+          Configure advanced notification behavior using JSON rules for trigger conditions,
+          dynamic recipients, and escalation policies.
+        </p>
+      </div>
+      <PolicyJsonFieldsEditor
+        policyData={policy}
+        onChange={setPolicy}
+      />
+    </div>
+  );
 
   const renderBasicInfoTab = () => (
     <div className="tw-p-6 policy-create-form notification-form">
@@ -260,12 +326,12 @@ const PolicyCreate = () => {
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
               Category *
             </label>
-            <SelectBox
-              value={policy.category}
+              <SelectBox
+                value={policy.notificationCategoryId}
               dataSource={categoryOptions}
               valueExpr="value"
               displayExpr="text"
-              onValueChanged={(e) => handlePolicyChange('category', e.value)}
+                onValueChanged={(e) => handlePolicyChange('notificationCategoryId', e.value)}
               placeholder="Select category"
               height={40}
               stylingMode="outlined"
@@ -366,7 +432,7 @@ const PolicyCreate = () => {
           <NumberBox
             value={policy.maxNotificationsPerHour}
             onValueChanged={(e) => handlePolicyChange('maxNotificationsPerHour', e.value)}
-            min={1}
+            min={0}
             max={100}
             showSpinButtons={true}
             height={40}
@@ -382,7 +448,7 @@ const PolicyCreate = () => {
           <NumberBox
             value={policy.maxNotificationsPerDay}
             onValueChanged={(e) => handlePolicyChange('maxNotificationsPerDay', e.value)}
-            min={1}
+            min={0}
             max={1000}
             showSpinButtons={true}
             height={40}

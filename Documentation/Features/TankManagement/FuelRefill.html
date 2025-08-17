@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Fuel Refill - Tank Management</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { width: 80%; margin: 0 auto; }
+  h1, h2, h3 { color: #333; }
+  pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; }
+  .section { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Fuel Refill</h1>
+  <div class="nav">
+    <a href="../TankManagement.html">Back to Tank Management</a>
+  </div>
+
+  <div class="section">
+    <h2>CreateFuelRrefillCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public FuelRefilDTO FuelRefilDTO { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>FuelRefilDTO cannot be null.</li>
+        <li>Validates historical entries against future records policy using <strong>TankStockFutureRecordsService</strong>.</li>
+        <li>Opening stock for the tank on the entry day must exist.</li>
+        <li>Cannot add a fuel refill after a closing stock for the same day without a new opening stock.</li>
+        <li>Checks for duplicate fuel refill entries.</li>
+        <li>Fuel refill amount must be greater than 0.</li>
+        <li>Vehicle, Site, Tank, and User must exist.</li>
+        <li>If the tank uses book keeping, it must have sufficient fuel.</li>
+        <li>Previous meter reading must be less than the current meter reading.</li>
+    </ul>
+    <h3>Data Calculation</h3>
+    <p>If the tank uses book keeping and the refill date is today, the tank's `CurrentStock` is decreased.</p>
+    <h3>Services Called</h3>
+    <ul>
+      <li><a href="TankStockFutureRecordsService.html">TankStockFutureRecordsService</a>: `ValidateHistoricalEntryAsync` is called to validate historical entries.</li>
+      <li><a href="TankVolumeHistory.html#tankvolumehistoryintegrationservice">TankVolumeHistoryIntegrationService</a>: `ProcessFuelRefillChangeAsync` is called to record the volume change.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>UpdateFuelRefillCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public int FuelRefillId { get; set; }
+    public int TankId { get; set; }
+    public DateTime RefillDate { get; set; }
+    public decimal NewAmount { get; set; }
+    public decimal OldAmount { get; set; }
+    public string UserId { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>NewAmount must be greater than 0.</li>
+        <li>FuelRefill with the given ID must exist.</li>
+    </ul>
+    <h3>Data Calculation</h3>
+    <p>Calculates the volume change based on the difference between the new and old amounts.</p>
+    <h3>Services Called</h3>
+    <ul>
+      <li><a href="TankVolumeHistory.html#tankvolumehistoryintegrationservice">TankVolumeHistoryIntegrationService</a>: `ProcessFuelRefillChangeAsync` is called to update the volume change.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>DeleteFuelRefillCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public int FuelRefillId { get; set; }
+    public int TankId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime RefillDate { get; set; }
+    public string UserId { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>FuelRefill with the given ID must exist.</li>
+    </ul>
+    <h3>Data Calculation</h3>
+    <p>No complex calculations.</p>
+    <h3>Services Called</h3>
+    <ul>
+      <li><a href="TankVolumeHistory.html#tankvolumehistoryintegrationservice">TankVolumeHistoryIntegrationService</a>: `ProcessFuelRefillChangeAsync` is called to reverse the volume change.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

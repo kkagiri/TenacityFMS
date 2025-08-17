@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tank Stock - Tank Management</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .container { width: 80%; margin: 0 auto; }
+  h1, h2, h3 { color: #333; }
+  pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; }
+  .section { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tank Stock</h1>
+  <div class="nav">
+    <a href="../TankManagement.html">Back to Tank Management</a>
+  </div>
+
+  <div class="section">
+    <h2>OpeningStockCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public int TankId { get; set; }
+    public decimal OpeningStock { get; set; }
+    public string RecordedBy { get; set; }
+    public DateTime? EntryDate { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>Tank must exist.</li>
+        <li>OpeningStock must be greater than 0.</li>
+        <li>Validates historical entries using <a href="TankStockFutureRecordsService.html">TankStockFutureRecordsService</a>.</li>
+        <li>An opening stock cannot be created for a date that already has one without a subsequent closing stock.</li>
+    </ul>
+    <h3>Services Called</h3>
+    <ul>
+      <li><strong>TankStockFutureRecordsService:</strong> `ValidateHistoricalEntryAsync`</li>
+      <li><a href="TankVolumeHistory.html#tankvolumehistoryintegrationservice">TankVolumeHistoryIntegrationService</a>: `ProcessTankStockChangeAsync`</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>ClosingStockCommand</h2>
+    <h3>Properties</h3>
+    <pre><code>
+    public int TankId { get; set; }
+    public decimal ClosingStock { get; set; }
+    public string RecordedBy { get; set; }
+    public DateTime? EntryDate { get; set; }
+    </code></pre>
+    <h3>Validation</h3>
+    <ul>
+        <li>Tank must exist.</li>
+        <li>Validates historical entries using <a href="TankStockFutureRecordsService.html">TankStockFutureRecordsService</a>.</li>
+        <li>A closing stock cannot be created for a date that already has one.</li>
+        <li>An opening stock for the same date must exist.</li>
+    </ul>
+    <h3>Services Called</h3>
+    <ul>
+      <li><strong>TankStockFutureRecordsService:</strong> `ValidateHistoricalEntryAsync`</li>
+      <li><a href="TankVolumeHistory.html#tankvolumehistoryintegrationservice">TankVolumeHistoryIntegrationService</a>: `ProcessTankStockChangeAsync`</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

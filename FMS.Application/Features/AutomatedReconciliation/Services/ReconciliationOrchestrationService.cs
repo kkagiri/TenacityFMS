@@ -315,21 +315,17 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         try {
             var tank = await _context.Tanks.FindAsync (new object[] { discrepancy.TankId }, cancellationToken);
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "Medium",
+                Type = Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Notification.Enums.NotificationPriority.Medium,
                 Title = "Reconciliation Failed",
                 Message = $"Tank {tank?.Name} reconciliation failed: {errorMessage}",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 SiteId = tank?.SiteId,
                 TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                DisableFallbackAllUsers = true //Cursor - Disable fallback to all users
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -342,21 +338,16 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         try {
             var tank = await _context.Tanks.FindAsync (new object[] { discrepancy.TankId }, cancellationToken);
             var request = new CreateNotificationRequest {
-                Type = "Info",
-                Category = "Reconciliation",
-                Priority = "Low",
+                Type = Notification.Enums.NotificationType.Info,
+                CategoryId = (int) Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Notification.Enums.NotificationPriority.Low,
                 Title = "Reconciliation Completed",
                 Message = $"Tank {tank?.Name} successfully reconciled: {result.ResolutionDetails}",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -369,26 +360,17 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         try {
             var tank = await _context.Tanks.FindAsync (new object[] { discrepancy.TankId }, cancellationToken);
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "Critical",
+                Type = Notification.Enums.NotificationType.Alert,
+                CategoryId = (int) Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Notification.Enums.NotificationPriority.Critical,
                 Title = "Critical Reconciliation Error",
                 Message = $"Critical error during Tank {tank?.Name} reconciliation: {errorMessage}",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 //RequireAcknowledgment = true, //Cursor: Property doesn't exist on CreateNotificationRequest
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                },
-                new CreateNotificationRecipientRequest {
-                UserId = SystemConstants.SystemAdministrator.UserId,
-                DeliveryMethods = new List<string> { SystemConstants.Notifications.SystemDeliveryMethod, "Email" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -400,22 +382,16 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
     private async Task SendManualReviewRequiredNotificationAsync (Tank tank, ReconciliationDiscrepancy discrepancy, CancellationToken cancellationToken) {
         try {
             var request = new CreateNotificationRequest {
-                Type = "Alert",
-                Category = "Reconciliation",
-                Priority = "High",
+                Type = Notification.Enums.NotificationType.Info,
+                CategoryId = (int) Notification.Enums.WellKnownCategories.Reconciliation,
                 Title = "Manual Review Required",
                 Message = $"Tank {tank.Name} discrepancy requires manual review. Variance: {discrepancy.AbsoluteVariance:F2}L",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                 //RequireAcknowledgment = true, //Cursor: Property doesn't exist on CreateNotificationRequest
                 SiteId = tank.SiteId,
-                TankId = discrepancy.TankId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System", "Email" }
-                }
-                }
+                TankId = discrepancy.TankId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);
@@ -428,20 +404,15 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         try {
             var priority = summary.FailedReconciliations > 0 ? "Medium" : "Low";
             var request = new CreateNotificationRequest {
-                Type = "Info",
-                Category = "Reconciliation",
-                Priority = priority,
+                Type = Notification.Enums.NotificationType.Info,
+                CategoryId = (int) Notification.Enums.WellKnownCategories.Reconciliation,
+                Priority = Notification.Enums.NotificationPriority.Medium,
                 Title = "Reconciliation Summary",
                 Message = $"Policy '{policy.Name}': {summary.TotalDiscrepancies} discrepancies, {summary.SuccessfulReconciliations} resolved, {summary.FailedReconciliations} failed",
                 TriggerSource = "AutomatedReconciliation",
                 TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                SiteId = policy.SiteId,
-                Recipients = new List<CreateNotificationRecipientRequest> {
-                new CreateNotificationRecipientRequest {
-                UserId = "fuel-operations",
-                DeliveryMethods = new List<string> { "System" }
-                }
-                }
+                SiteId = policy.SiteId
+
             };
 
             await _notificationService.CreateNotificationAsync (request, cancellationToken);

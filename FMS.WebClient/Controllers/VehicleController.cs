@@ -1,13 +1,15 @@
 ﻿using System.Text.Json;
 using FMS.Application.Command.DatabaseCommand.VehicleCmd;
+using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.Vehicle.Queries;
+using FMS.Application.Features.Vehicle.Queries.VehicleDashboard;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
-using FMS.Application.Features.Vehicle.Queries.VehicleDashboard;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
@@ -389,6 +391,174 @@ namespace FMS.WebClient.Controllers {
 
             // Note: You'll need to implement pattern-based cache removal or keep track of cache keys
             // This is a simplified example
+        }
+
+        // Vehicle Search Endpoints
+        [HttpGet ("search")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> SearchVehicles (
+            [FromQuery] string searchTerm, [FromQuery] int? limit = 10, [FromQuery] string? vehicleType = null, [FromQuery] string? status = null, [FromQuery] string? manufacturer = null, [FromQuery] string? model = null, [FromQuery] bool? isActive = null) {
+            try {
+                // Validation
+                if (string.IsNullOrWhiteSpace (searchTerm)) {
+                    return BadRequest (FMSResponse.FailedResponse ("Search term is required"));
+                }
+
+                // Use a cache key for search results
+                var cacheKey = $"VehicleSearch_{searchTerm}_{limit}_{vehicleType}_{status}_{manufacturer}_{model}_{isActive}";
+                var cachedData = await _cache.GetStringAsync (cacheKey);
+
+                if (!string.IsNullOrEmpty (cachedData)) {
+                    var cachedResult = JsonSerializer.Deserialize<FMSResponse<List<VehicleDTO>>> (cachedData);
+                    return Ok (cachedResult);
+                }
+
+                var query = new SearchVehicleQuery {
+                    SearchTerm = searchTerm,
+                    Limit = limit,
+                    VehicleType = vehicleType,
+                    Status = status,
+                    Manufacturer = manufacturer,
+                    Model = model,
+                    IsActive = isActive
+                };
+
+                var result = await _mediator.Send (query);
+
+                if (result.IsSuccess) {
+                    // Cache for 5 minutes
+                    var cacheOptions = new DistributedCacheEntryOptions {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (5)
+                    };
+                    await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (result), cacheOptions);
+                }
+
+                if (!result.IsSuccess) {
+                    return BadRequest (result);
+                }
+
+                return Ok (result);
+            } catch (Exception ex) {
+                return StatusCode (500, new { message = "Error searching vehicles", error = ex.Message });
+            }
+        }
+
+        [HttpGet ("quick-search")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> QuickSearchVehicles (
+            [FromQuery] string searchTerm, [FromQuery] int limit = 10) {
+            try {
+                // Validation
+                if (string.IsNullOrWhiteSpace (searchTerm)) {
+                    return BadRequest (FMSResponse.FailedResponse ("Search term is required"));
+                }
+
+                if (searchTerm.Length < 2) {
+                    return BadRequest (FMSResponse.FailedResponse ("Search term must be at least 2 characters long"));
+                }
+
+                // Use a shorter cache timeout for quick searches
+                var cacheKey = $"QuickSearch_{searchTerm}_{limit}";
+                var cachedData = await _cache.GetStringAsync (cacheKey);
+
+                if (!string.IsNullOrEmpty (cachedData)) {
+                    var cachedResult = JsonSerializer.Deserialize<FMSResponse<List<VehicleDTO>>> (cachedData);
+                    return Ok (cachedResult);
+                }
+
+                var query = new SearchVehicleQuery {
+                    SearchTerm = searchTerm,
+                    Limit = limit
+                    // Temporarily remove IsActive filter for debugging
+                    // IsActive = true // Only return active vehicles for quick search
+                };
+
+                var result = await _mediator.Send (query);
+
+                if (result.IsSuccess) {
+                    // Cache for 2 minutes for quick searches
+                    var cacheOptions = new DistributedCacheEntryOptions {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes (2)
+                    };
+                    await _cache.SetStringAsync (cacheKey, JsonSerializer.Serialize (result), cacheOptions);
+                }
+
+                if (!result.IsSuccess) {
+                    return BadRequest (result);
+                }
+
+                return Ok (result);
+            } catch (Exception ex) {
+                return StatusCode (500, new { message = "Error in quick vehicle search", error = ex.Message });
+            }
+        }
+
+        // DEBUG: Temporary debug endpoint
+        [HttpGet ("debug-search")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> DebugSearchVehicles (
+            [FromQuery] string searchTerm, [FromQuery] int limit = 10) {
+            try {
+            var query = new DebugSearchVehicleQuery {
+            SearchTerm = searchTerm,
+            Limit = limit
+                };
+
+                var result = await _mediator.Send (query);
+                return Ok (result);
+            } catch (Exception ex) {
+                return StatusCode (500, new { message = "Debug search error", error = ex.Message });
+            }
+        }
+
+        [HttpGet ("search-by-plate")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> SearchVehiclesByPlate ([FromQuery] string plateNumber) {
+            try {
+                if (string.IsNullOrWhiteSpace (plateNumber)) {
+                    return BadRequest ("Plate number is required");
+                }
+
+                var query = new SearchVehicleQuery {
+                    SearchTerm = plateNumber,
+                    Limit = 5
+                };
+
+                var result = await _mediator.Send (query);
+
+                if (!result.IsSuccess) {
+                    return BadRequest (result);
+                }
+
+                return Ok (result);
+            } catch (Exception ex) {
+                return StatusCode (500, new { message = "Error searching by plate", error = ex.Message });
+            }
+        }
+
+        [HttpGet ("search-by-hyoung")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> SearchVehiclesByHyoungNo ([FromQuery] string hyoungNo) {
+            try {
+                if (string.IsNullOrWhiteSpace (hyoungNo)) {
+                    return BadRequest ("Hyoung number is required");
+                }
+
+                var query = new SearchVehicleQuery {
+                    SearchTerm = hyoungNo,
+                    Limit = 5
+                };
+
+                var result = await _mediator.Send (query);
+
+                if (!result.IsSuccess) {
+                    return BadRequest (result);
+                }
+
+                return Ok (result);
+            } catch (Exception ex) {
+                return StatusCode (500, new { message = "Error searching by Hyoung number", error = ex.Message });
+            }
         }
 
     }

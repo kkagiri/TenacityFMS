@@ -28,15 +28,16 @@ export const SET_TANK_VOLUME_HISTORY_LOADING =
 // Unified Action Creator for filtered tank volume history
 export const fetchTankVolumeHistoryFiltered = (filters = {}) => async (dispatch) => {
   try {
+    // Set loading state immediately
     dispatch({ type: SET_TANK_VOLUME_HISTORY_LOADING, payload: true });
 
     // Default filters
     const defaultFilters = {
       siteId: null,        // null = all sites
       tankId: null,        // null = all tanks
+      recordedBy: null,    // null = all users
       startDate: null,     // null = last 1 day (handled by backend)
       endDate: null,       // null = now (handled by backend)
-      take: 100,           // default record limit
       includeVehicleNames: true
     };
 
@@ -47,23 +48,38 @@ export const fetchTankVolumeHistoryFiltered = (filters = {}) => async (dispatch)
 
     if (queryParams.siteId) params.append('siteId', queryParams.siteId);
     if (queryParams.tankId) params.append('tankId', queryParams.tankId);
+    if (queryParams.recordedBy) params.append('recordedBy', queryParams.recordedBy);
     if (queryParams.startDate) params.append('startDate', queryParams.startDate);
     if (queryParams.endDate) params.append('endDate', queryParams.endDate);
-    if (queryParams.take) params.append('take', queryParams.take);
     if (queryParams.includeVehicleNames !== undefined) params.append('includeVehicleNames', queryParams.includeVehicleNames);
 
+    console.log('Fetching tank volume history with URL:', `/tankvolumehistory/filtered?${params.toString()}`);
+
     const response = await axiosInstance.get(`/tankvolumehistory/filtered?${params.toString()}`);
+
+    console.log('API Response:', response.data);
 
     dispatch({
       type: FETCH_TANK_VOLUME_HISTORY_FILTERED_SUCCESS,
       payload: response.data,
     });
+
+    // Set loading to false after success
+    dispatch({ type: SET_TANK_VOLUME_HISTORY_LOADING, payload: false });
+
+    return response.data;
   } catch (error) {
     console.error("Error fetching filtered tank volume history:", error);
+
     dispatch({
       type: FETCH_TANK_VOLUME_HISTORY_FILTERED_FAILURE,
       payload: error.message,
     });
+
+    // Set loading to false after error
+    dispatch({ type: SET_TANK_VOLUME_HISTORY_LOADING, payload: false });
+
+    throw error;
   }
 };
 
@@ -77,8 +93,7 @@ export const fetchTankVolumeHistoryBySiteId =
     return dispatch(fetchTankVolumeHistoryFiltered({
       siteId: siteId,
       startDate: startDate,
-      endDate: endDate,
-      take: 200
+      endDate: endDate
     }));
   };
 
@@ -91,8 +106,7 @@ export const fetchTankVolumeHistoryByTankId = (tankId) => async (dispatch) => {
   return dispatch(fetchTankVolumeHistoryFiltered({
     tankId: tankId,
     startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    take: 200
+    endDate: endDate.toISOString()
   }));
 };
 
@@ -100,7 +114,6 @@ export const fetchTankVolumeHistoryByDateRange =
   (startDate, endDate) => async (dispatch) => {
     return dispatch(fetchTankVolumeHistoryFiltered({
       startDate: startDate,
-      endDate: endDate,
-      take: 500
+      endDate: endDate
     }));
   };

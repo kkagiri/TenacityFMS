@@ -50,6 +50,13 @@ const AdminDashboard = () => {
       color: 'tw-text-indigo-600'
     },
     {
+      title: 'Notification Settings',
+      description: 'Manage notification categories and policies',
+      icon: 'fa-light fa-bell',
+      route: getAdminRoute('notifications'),
+      color: 'tw-text-teal-600'
+    },
+    {
       title: 'PTS Automation Config',
       description: 'Configure PTS automation settings',
       icon: 'fa-light fa-cog',
@@ -76,7 +83,15 @@ const AdminDashboard = () => {
       icon: 'fa-light fa-key',
       route: getAdminRoute('permissions'),
       color: 'tw-text-pink-600'
+    },
+    {
+      title: 'PTS Service Control',
+      description: 'Monitor and control PTS Windows Service',
+      icon: 'fa-light fa-server',
+      route: getAdminRoute('pts-service'),
+      color: 'tw-text-cyan-600'
     }
+
   ];
 
   return (

@@ -52,6 +52,17 @@ const VehicleDetails = () => {
   const [tabDataLoaded, setTabDataLoaded] = useState({}); // Track which tabs have loaded their data
   const [dataLoaded, setDataLoaded] = useState(false); // Track if vehicle data is loaded
 
+  // Reset component state when vehicle ID changes
+  useEffect(() => {
+    setDataLoaded(false);
+    setVehicle(null);
+    setTabDataLoaded({});
+    setTabLoadingStates({
+      0: true,
+    });
+    setActiveTab(0);
+  }, [id]);
+
   // Load vehicle data - Fixed dependencies and optimized
   useEffect(() => {
     const loadVehicleData = async () => {

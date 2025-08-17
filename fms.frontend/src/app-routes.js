@@ -1,4 +1,4 @@
-import { HomePage, Vehicles } from "./pages";
+import { HomePage } from "./pages";
 import ConsumptionBasedonRefills from "./pages/consumption/consumptionBasedonRefills";
 import FuelReportImporter from "./pages/FuelReportImporter/FuelReportImporter";
 import VehicleManualRefill from "./pages/manualrefill/manualRefilPage";
@@ -27,6 +27,11 @@ import VehicleMain from "./pages/vehicles/VehicleMain";
 import VehicleDashboard from "./pages/vehicles/vehicleDashboard";
 import MaintenanceAlertsPage from "./pages/vehicles/MaintenanceAlertsPage";
 import VehicleEdit from "./pages/vehicles/vehicleEdit";
+// Import Issue Tracker components
+import IssueTrackerPage from "./pages/issueTracker/IssueTrackerPage";
+import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
+// Import Active Alarm components
+import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -82,6 +87,15 @@ const resolvedComponents = (pageName) => {
     case "reconciliation-mission-control":
       return EnhancedAutomatedReconciliationSystem;
 
+    case "issue tracker":
+      return IssueTrackerMain;
+    case "device issues":
+    case "issue-tracker":
+    case "issues":
+      return IssueTrackerPage;
+
+    case "active-alarms":
+      return ActiveAlarmMain;
 
     case "unauthorized":
       return unauthorized;

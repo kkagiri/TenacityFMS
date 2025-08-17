@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Events;
@@ -22,19 +24,22 @@ public class DiscrepancyDetectionService {
     private readonly IMediator _mediator;
     private readonly GpsdataContext _context;
     private readonly InventoryCostingService _costingService;
+    private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
 
     public DiscrepancyDetectionService (
         ILogger<DiscrepancyDetectionService> logger,
         IMediator mediator,
         GpsdataContext context,
-        InventoryCostingService costingService) {
+        InventoryCostingService costingService,
+        AlarmHandlerActiveAlarmIntegration activeAlarmIntegration) {
         _logger = logger;
         _mediator = mediator;
         _context = context;
         _costingService = costingService;
+        _activeAlarmIntegration = activeAlarmIntegration;
     }
 
-    //Cursor - Enhanced discrepancy detection with configurable thresholds
+    // Enhanced discrepancy detection with configurable thresholds
     public async Task<DiscrepancyDetectionResult> DetectDiscrepancies (
         Tank tank,
         ReconciliationPolicy policy,
@@ -47,7 +52,7 @@ public class DiscrepancyDetectionService {
             // Perform discrepancy calculation
             var discrepancyResult = await CalculateDiscrepancy (tank, varianceThresholdLiters, varianceThresholdPercentage, cancellationToken);
 
-            //Cursor - Generate and push domain event when variance is significant
+            //  - Generate and push domain event when variance is significant
             if (discrepancyResult.IsSignificant) {
                 var discrepancyEvent = new DiscrepancyDetectedEvent {
                     TankId = tank.Id,
@@ -62,6 +67,30 @@ public class DiscrepancyDetectionService {
 
                 // Publish domain event for downstream alerting
                 await _mediator.Publish (discrepancyEvent, cancellationToken);
+
+                // Create ActiveAlarm record for discrepancy tracking
+                try {
+                    var alarmType = $"StockDiscrepancy-{DetermineDiscrepancySeverity(discrepancyResult)}";
+                    var message = $"Stock discrepancy detected in Tank {tank.Name}: Expected {discrepancyResult.ExpectedVolume:F1}L, Actual {discrepancyResult.ActualVolume:F1}L, Variance {discrepancyResult.VarianceLiters:F1}L ({discrepancyResult.VariancePercentage:F1}%)";
+
+                    await _activeAlarmIntegration.CreateActiveAlarmFromDiscrepancy (
+                        0, // Discrepancy ID will be set later when record is created
+                        alarmType,
+                        message,
+                        DetermineDiscrepancySeverity (discrepancyResult),
+                        tank.SiteId,
+                        tank.Id,
+                        discrepancyResult.ThresholdLiters,
+                        discrepancyResult.VarianceLiters,
+                        "L",
+                        "Reconciliation-System",
+                        cancellationToken);
+
+                    _logger.LogInformation ("Created ActiveAlarm for discrepancy in Tank {TankId}", tank.Id);
+                } catch (Exception ex) {
+                    _logger.LogError (ex, "Failed to create ActiveAlarm for discrepancy in Tank {TankId}", tank.Id);
+                    // Don't fail the entire discrepancy detection if ActiveAlarm creation fails
+                }
 
                 _logger.LogWarning ("Significant discrepancy detected for Tank {TankId}. Variance: {VarianceLiters}L ({VariancePercentage}%)",
                     tank.Id, discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);
@@ -105,6 +134,72 @@ public class DiscrepancyDetectionService {
         int policyExecutionId,
         ReconciliationPolicy policy) {
         return CreateDiscrepancyRecordAsync (detectionResult, policyExecutionId, policy).GetAwaiter ().GetResult ();
+    }
+
+    //Cursor - New method to detect physical vs book stock discrepancies using new PhysicalStockValue property
+    public async Task<PhysicalStockDiscrepancyResult> DetectPhysicalStockDiscrepancies (
+        Tank tank,
+        decimal? thresholdLiters = null,
+        decimal? thresholdPercentage = null,
+        CancellationToken cancellationToken = default) {
+        try {
+            var varianceThresholdLiters = thresholdLiters ?? _defaultVarianceThresholdLiters;
+            var varianceThresholdPercentage = thresholdPercentage ?? _defaultVarianceThresholdPercentage;
+
+            var physicalStock = tank.PhysicalStockValue ?? 0;
+            var bookStock = tank.CurrentStock ?? 0;
+            var varianceAmount = physicalStock - bookStock;
+            var variancePercentage = bookStock > 0 ? Math.Abs (varianceAmount) / bookStock * 100 : 0;
+
+            var isSignificant = Math.Abs (varianceAmount) > varianceThresholdLiters ||
+                variancePercentage > varianceThresholdPercentage;
+
+            return new PhysicalStockDiscrepancyResult {
+                TankId = tank.Id,
+                    TankName = tank.Name,
+                    PhysicalStock = physicalStock,
+                    BookStock = bookStock,
+                    VarianceAmount = varianceAmount,
+                    VariancePercentage = variancePercentage,
+                    IsSignificant = isSignificant,
+                    PhysicalStockSource = tank.PhysicalStockSource,
+                    LastPhysicalUpdate = tank.LastPhysicalStockUpdate,
+                    LastBookUpdate = tank.LastStockUpdate,
+                    ThresholdLiters = varianceThresholdLiters,
+                    ThresholdPercentage = varianceThresholdPercentage
+            };
+        } catch (Exception ex) {
+            _logger.LogError (ex, "Error detecting physical stock discrepancies for tank {TankId}", tank.Id);
+            throw;
+        }
+    }
+
+    //Cursor - Get all tanks with physical stock discrepancies
+    public async Task<List<PhysicalStockDiscrepancyResult>> GetTanksWithPhysicalStockDiscrepanciesAsync (
+        int? siteId = null,
+        decimal thresholdPercentage = 2.0m,
+        CancellationToken cancellationToken = default) {
+        var tanksQuery = _context.Tanks
+            .Include (t => t.Site)
+            .Where (t => t.PhysicalStockValue.HasValue && t.CurrentStock.HasValue);
+
+        if (siteId.HasValue) {
+            tanksQuery = tanksQuery.Where (t => t.SiteId == siteId.Value);
+        }
+
+        var tanks = await tanksQuery.ToListAsync (cancellationToken);
+        var results = new List<PhysicalStockDiscrepancyResult> ();
+
+        foreach (var tank in tanks) {
+            var discrepancyResult = await DetectPhysicalStockDiscrepancies (
+                tank, null, thresholdPercentage, cancellationToken);
+
+            if (discrepancyResult.IsSignificant) {
+                results.Add (discrepancyResult);
+            }
+        }
+
+        return results.OrderByDescending (r => Math.Abs (r.VariancePercentage)).ToList ();
     }
 
     //Cursor - Complete implementation of discrepancy calculation logic
@@ -263,6 +358,22 @@ public class DiscrepancyDetectionService {
         // Kept for backward compatibility but should use CalculateBusinessImpactAsync
         return CalculateBusinessImpactFallback (result);
     }
+}
+
+//Cursor - Result class for physical stock discrepancy detection
+public class PhysicalStockDiscrepancyResult {
+    public int TankId { get; set; }
+    public string TankName { get; set; } = string.Empty;
+    public decimal PhysicalStock { get; set; }
+    public decimal BookStock { get; set; }
+    public decimal VarianceAmount { get; set; }
+    public decimal VariancePercentage { get; set; }
+    public bool IsSignificant { get; set; }
+    public string? PhysicalStockSource { get; set; }
+    public DateTime? LastPhysicalUpdate { get; set; }
+    public DateTime LastBookUpdate { get; set; }
+    public decimal ThresholdLiters { get; set; }
+    public decimal ThresholdPercentage { get; set; }
 }
 
 //Cursor - Result class for discrepancy detection
