@@ -10,12 +10,33 @@ import { useMenuPatch } from "../../utils/patches";
 
 export default function SideNavOuterToolbar({ title, children }) {
   const scrollViewRef = useRef(null);
+  const drawerRef = useRef(null);
   const navigate = useNavigate();
   const { isLarge } = useScreenSize();
   const [patchCssClass, onMenuReady] = useMenuPatch();
   const [menuStatus, setMenuStatus] = useState(
     isLarge ? MenuStatus.Opened : MenuStatus.Closed
   );
+
+  // Handle outside clicks
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuStatus !== MenuStatus.Closed && drawerRef.current) {
+        const drawerElement = drawerRef.current;
+        const menuElement = drawerElement.querySelector('.dx-drawer-panel-content');
+
+        // If click is outside the menu panel, close the drawer
+        if (menuElement && !menuElement.contains(event.target)) {
+          setMenuStatus(MenuStatus.Closed);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuStatus]);
 
   const toggleMenu = useCallback(({ event }) => {
     setMenuStatus(
@@ -33,15 +54,6 @@ export default function SideNavOuterToolbar({ title, children }) {
         : prevMenuStatus
     );
   }, []);
-
-    const onOutsideClick = useCallback(() => {
-    setMenuStatus(
-      prevMenuStatus => prevMenuStatus !== MenuStatus.Closed && !isLarge
-        ? MenuStatus.Closed
-        : prevMenuStatus
-    );
-    return true; // Always allow outside clicks to be processed
-  }, [isLarge]);
 
   const onNavigationChanged = useCallback(
     ({ itemData, event, node }) => {
@@ -64,6 +76,14 @@ export default function SideNavOuterToolbar({ title, children }) {
 
 
 
+  // Add click handler for main content area
+  const onContentClick = useCallback((event) => {
+    if (menuStatus !== MenuStatus.Closed) {
+      setMenuStatus(MenuStatus.Closed);
+      event.stopPropagation();
+    }
+  }, [menuStatus]);
+
   return (
     <div className={"side-nav-outer-toolbar"}>
       <Header
@@ -72,18 +92,19 @@ export default function SideNavOuterToolbar({ title, children }) {
         title={title}
       />
       <Drawer
+        ref={drawerRef}
         className={["drawer", patchCssClass].join(" ")}
         position={"before"}
-        showCloseButton={onOutsideClick}
+        closeOnOutsideClick={true}
         openedStateMode={isLarge ? 'shrink' : 'overlap'}
         revealMode={'slide'}
         minSize={0}
         maxSize={250}
-        shading={isLarge ? false : true}
+        shading={!isLarge}
         opened={menuStatus === MenuStatus.Closed ? false : true}
         template={"menu"}
       >
-        <div className={"container dx-theme-background-color"}>
+        <div className={"container dx-theme-background-color"} onClick={onContentClick}>
           <ScrollView ref={scrollViewRef} className={"layout-body with-footer"}>
             <div className={"content"}>
               {React.Children.map(children, (item) => {

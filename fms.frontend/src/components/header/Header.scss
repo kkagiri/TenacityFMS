@@ -4,9 +4,10 @@
   flex: 0 0 auto;
   z-index: 1;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 0 4px rgba(0, 0, 0, 0.15);
-  padding: 10px 0;
+  padding: 0 0 10px 0; // Remove top padding completely, keep bottom
   background-color: var(--base-bg);
-
+  width: 100%;
+  overflow: visible; // Ensure content doesn't get cut off
 }
 
 .dx-toolbar.header-toolbar
@@ -32,6 +33,21 @@
       height: 100%;
     }
   }
+
+  // Fix title truncation by ensuring it has enough space
+  .dx-toolbar-item.header-title {
+    flex: 1 1 auto; // Allow it to grow and take available space
+    min-width: 200px; // Minimum width to prevent extreme truncation
+    max-width: none; // Remove any max-width restrictions
+
+    .dx-item-content {
+      white-space: nowrap;
+      overflow: visible; // Don't hide overflow
+      text-overflow: unset; // Remove ellipsis
+      width: auto;
+      max-width: none;
+    }
+  }
 }
 
 
@@ -46,6 +62,13 @@
 .header-title .dx-item-content {
   padding: 0;
   margin: 0;
+  margin-left: 20px; // Add gap on left side similar to user button
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  font-weight: 600; // Make title more prominent
+  font-size: 16px;
+  color: var(--base-text-color, #333);
 }
 
 .notification-item {
@@ -122,7 +145,7 @@
 
 .dx-theme-generic {
   .dx-toolbar {
-    padding: 10px 0;
+    padding: 0 0 10px 0; // Remove top padding, keep bottom
   }
 
   .user-button > .dx-button-content {
@@ -144,6 +167,112 @@
       align-items: center !important;
       justify-content: center !important;
     }
+  }
+}
+
+// App Grid Icon Styles
+.app-grid-button {
+  .dx-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+.app-grid-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+}
+
+.grid-dots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3px;
+  width: 20px;
+  height: 20px;
+
+  span {
+    width: 5px;
+    height: 5px;
+    background-color: #333;
+    border-radius: 50%;
+    display: block;
+    transition: background-color 0.2s ease;
+  }
+}
+
+// Enhanced button styling for better touch/click response
+.grid-icon-button {
+  &.dx-button {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+
+    .dx-button-content {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100% !important;
+      height: 100% !important;
+      padding: 0 !important;
+    }
+
+    &:hover {
+      background-color: rgba(0, 120, 212, 0.1) !important;
+
+      .grid-dots span {
+        background-color: #0078d4;
+      }
+    }
+
+    &:active,
+    &:focus {
+      background-color: rgba(0, 120, 212, 0.2) !important;
+      outline: none !important;
+
+      .grid-dots span {
+        background-color: #106ebe;
+      }
+    }
+  }
+}
+
+// App Button Wrapper
+.app-button-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+
+  // Ensure touch targets are adequate for mobile
+  min-width: 44px;
+  min-height: 44px;
+}
+
+// Responsive header title handling
+@media (max-width: 768px) {
+  .dx-toolbar.header-toolbar .dx-toolbar-item.header-title {
+    min-width: 150px; // Smaller minimum on mobile
+  }
+
+  .header-title .dx-item-content {
+    font-size: 14px; // Slightly smaller on mobile
+    margin-left: 15px; // Reduce margin on mobile
+  }
+}
+
+@media (min-width: 1200px) {
+  .dx-toolbar.header-toolbar .dx-toolbar-item.header-title {
+    min-width: 300px; // Larger minimum on wide screens
   }
 }
 

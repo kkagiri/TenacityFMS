@@ -1,0 +1,175 @@
+/* DevExtreme SearchableSelector Styles - SCOPED TO AVOID GLOBAL CONFLICTS */
+
+/* ONLY target searchable selectors - DO NOT affect other DevExtreme components */
+.searchable-selector .dx-list-item:hover,
+.searchable-selector .dx-list-item.dx-state-hover {
+  background-color: #f5f7fa !important;
+}
+
+/* Scoped loading indicator positioning */
+.searchable-selector .dx-texteditor-buttons-container {
+  right: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Scoped dropdown styling */
+.searchable-selector .dx-selectbox-popup-wrapper {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  margin-top: 2px !important;
+}
+
+/* Scoped scrollable content */
+.searchable-selector .dx-selectbox-popup .dx-scrollable-content {
+  border-radius: 4px;
+}
+
+/* Scoped popup height */
+.searchable-selector .dx-selectbox-popup {
+/*   min-height: 150px !important; */
+}
+
+/* Scoped list item styling */
+.searchable-selector .dx-list-item {
+  min-height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Loading indicator animation - properly centered and SCOPED */
+.searchable-selector .dx-loadindicator-icon {
+  border: 2px solid #e3e8ee;
+  border-top: 2px solid #337ab7;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+  transform-origin: center center !important;
+  display: block !important;
+}
+
+/* Center the loading indicator components - SCOPED */
+.searchable-selector .dx-loadindicator {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.searchable-selector .dx-loadindicator-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.searchable-selector .dx-loadindicator-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.searchable-selector .dx-button-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Input focus styling - SCOPED */
+.searchable-selector .dx-texteditor.dx-state-focused {
+  border-color: #337ab7 !important;
+  box-shadow: 0 0 0 1px rgba(51, 122, 183, 0.2) !important;
+}
+
+/* Invalid state styling - SCOPED */
+.searchable-selector .dx-texteditor.dx-invalid {
+  border-color: #d9534f !important;
+}
+
+/* Invalid message styling - SCOPED */
+.searchable-selector .dx-invalid-message {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.searchable-selector .dx-invalid-message-content {
+  color: #d9534f;
+}
+
+/* Ensure proper text color for list items - SCOPED */
+.searchable-selector .dx-list-item-content {
+  color: inherit !important;
+  width: 100% !important;
+}
+
+/* Dropdown item spacing - SCOPED */
+.searchable-selector .dx-list-item:last-child {
+  border-bottom: none !important;
+}
+
+/* Disabled state - SCOPED */
+.searchable-selector .dx-texteditor.dx-state-disabled {
+  background-color: #f8f9fa !important;
+  opacity: 0.7;
+}
+
+.searchable-selector .dx-texteditor.dx-state-disabled .dx-texteditor-input {
+  background-color: transparent !important;
+  color: #666 !important;
+}
+
+/* Ensure consistent height with other DevExtreme controls - SCOPED */
+.searchable-selector .dx-texteditor {
+  min-height: 36px;
+}
+
+.searchable-selector .dx-texteditor-input {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* Placeholder styling for searchable selectors - SCOPED */
+.searchable-selector .dx-texteditor-input::placeholder {
+  color: #999 !important;
+  opacity: 0.9 !important;
+}
+
+/* Button container positioning - SCOPED */
+.searchable-selector .dx-texteditor-buttons-container .dx-button {
+  min-width: auto !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Improve scrollbar styling - SCOPED */
+.searchable-selector .dx-scrollable-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.searchable-selector .dx-scrollable-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.searchable-selector .dx-scrollable-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.searchable-selector .dx-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

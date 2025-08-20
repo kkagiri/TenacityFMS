@@ -3,6 +3,7 @@
   display: flex;
   min-height: 100vh;
   background-color: #f8fafc;
+  position: relative; // allow overlay positioning
 }
 
 .vehicle-sidebar {
@@ -217,13 +218,14 @@
 // Responsive design - CRITICAL for mobile compatibility
 @media (max-width: 768px) {
   .vehicle-layout {
-    flex-direction: column; // Stack vertically on mobile
+  flex-direction: column; // Stack vertically on mobile
   }
 
   .vehicle-sidebar {
-    width: 100% !important;
-    height: auto;
-    position: static; // Full width, normal flow
+  width: 100% !important;
+  height: auto;
+  position: static; // Full width, normal flow
+  z-index: 1001;
 
     &.collapsed {
       width: 100% !important;
@@ -261,7 +263,7 @@
 
   .vehicle-main {
     .main-header {
-      padding: 1rem;
+  padding: 0.75rem;
 
       .header-content {
         flex-direction: column;
@@ -275,9 +277,23 @@
     }
 
     .main-content {
-      padding: 1rem;
+      padding: 0.25rem; // tighter mobile margin (Task 2)
     }
   }
+}
+
+// Overlay shown on mobile when sidebar is expanded (drawer behavior)
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000; // just below the sidebar
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 // Vehicle specific styling enhancements

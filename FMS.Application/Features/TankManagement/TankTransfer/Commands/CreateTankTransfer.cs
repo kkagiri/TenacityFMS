@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -44,6 +45,51 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand {
 
                 var transferAmount = request.TankTransferDTO.Amount.Value;
                 var transferDate = request.TankTransferDTO.Date ?? DateTime.Now;
+
+                // Check if there is opening stock for both source and destination tanks on the transfer day
+                var sourceOpeningStock = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.TankTransferDTO.SourceTankId &&
+                        x.Timestamp.Date.Date == transferDate.Date.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                    .OrderByDescending (x => x.Timestamp.Date)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                if (sourceOpeningStock == null)
+                    return new FMSResponseMessage<TankTransferDTO> (false, $"Opening stock for the source tank on {transferDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.", null);
+
+                var destinationOpeningStock = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.TankTransferDTO.DestinationTankId &&
+                        x.Timestamp.Date.Date == transferDate.Date.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                    .OrderByDescending (x => x.Timestamp.Date)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                if (destinationOpeningStock == null)
+                    return new FMSResponseMessage<TankTransferDTO> (false, $"Opening stock for the destination tank on {transferDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.", null);
+
+                // Ensure there is a proper sequence: if there's an opening stock, transfers should come after it
+                // but before or after a closing stock if it exists
+                var sourceClosingStockForDay = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.TankTransferDTO.SourceTankId &&
+                        x.Timestamp.Date == transferDate.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                var destinationClosingStockForDay = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.TankTransferDTO.DestinationTankId &&
+                        x.Timestamp.Date == transferDate.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                // If there's already a closing stock for the day, and transfer is after that closing stock,
+                // then we need a new opening stock first
+                if (sourceClosingStockForDay != null && transferDate > sourceClosingStockForDay.Timestamp) {
+                    return new FMSResponseMessage<TankTransferDTO> (false, $"Cannot add transfer after closing stock for source tank on {transferDate.Date:yyyy-MM-dd}. Please create a new opening stock first.", null);
+                }
+
+                if (destinationClosingStockForDay != null && transferDate > destinationClosingStockForDay.Timestamp) {
+                    return new FMSResponseMessage<TankTransferDTO> (false, $"Cannot add transfer after closing stock for destination tank on {transferDate.Date:yyyy-MM-dd}. Please create a new opening stock first.", null);
+                }
 
                 // Validate historical entry against future records policy for both tanks
                 if (transferDate.Date < DateTime.Now.Date) {

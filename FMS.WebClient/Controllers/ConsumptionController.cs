@@ -64,6 +64,42 @@ namespace FMS.WebClient.Controllers {
             return Ok (results);
         }
 
+        [HttpGet ("manualRefillsFiltered")]
+        public async Task<IActionResult> GetManualConsumptionFiltered (
+            [FromQuery] string startDate, [FromQuery] string endDate, [FromQuery] string? vehicleType = null, [FromQuery] string? hyoungNo = null, [FromQuery] int? siteId = null, [FromQuery] int? driverId = null) {
+
+            var _startDate = DateTime.ParseExact (startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact (endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (_startDate == default (DateTime) || _endDate == default (DateTime)) {
+                return BadRequest ("Invalid date");
+            }
+
+            try {
+                // Use the new filtered query handler for better performance
+                var query = new GetVehicleConsumptionManualRefillQueryFiltered (
+                    _startDate,
+                    _endDate,
+                    vehicleType,
+                    hyoungNo,
+                    siteId,
+                    driverId
+                );
+
+                var results = await _mediator.Send (query);
+
+                _logger.LogInformation (
+                    "Filtered consumption data retrieved successfully. " +
+                    "Date range: {StartDate} to {EndDate}, Results: {Count}",
+                    _startDate, _endDate, results?.Count ?? 0);
+
+                return Ok (results);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error retrieving filtered consumption data");
+                return StatusCode (500, new { message = "Error retrieving filtered consumption data", details = ex.Message });
+            }
+        }
+
         [HttpGet ("manualRefillsbySiteId")]
         public async Task<IActionResult> GetManualConsumptionBySiteId ([FromQuery] string startDate, string endDate, int SiteId) {
             var _startDate = DateTime.ParseExact (startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);

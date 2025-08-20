@@ -1,7 +1,7 @@
 // Issue Tracker Layout Styles
 .issue-tracker-layout {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background: #f8fafc;
 
   .issue-tracker-sidebar {
@@ -193,47 +193,65 @@
   }
 }
 
-// Mobile responsiveness
+// Mobile responsiveness - Fixed to follow working pattern
 @media (max-width: 768px) {
   .issue-tracker-layout {
-    .issue-tracker-sidebar {
-      position: fixed;
-      left: 0;
-      top: 0;
-      height: 100vh;
-      z-index: 1000;
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
+    flex-direction: column; // Stack vertically like other working layouts
+  }
 
-      &.mobile-open {
-        transform: translateX(0);
-      }
+  .issue-tracker-sidebar {
+    width: 100% !important;
+    height: auto;
+    position: static; // Normal document flow instead of fixed positioning
+    transform: none; // Remove hidden transform
 
-      &.collapsed {
-        width: 280px;
-        transform: translateX(-100%);
-      }
+    &.collapsed {
+      width: 100% !important;
+      height: 64px;
+      overflow: hidden; // Height-based collapse like other layouts
     }
 
-    .issue-tracker-main {
-      margin-left: 0;
-      width: 100%;
+    .sidebar-header {
+      padding: 1rem;
+      min-height: 60px;
+    }
 
-      .page-header {
-        padding: 1rem;
+    .sidebar-content {
+      padding: 0.5rem 0;
 
-        .header-content {
-          .header-text {
-            .page-title {
-              font-size: 1.25rem;
-            }
+      .nav-group {
+        margin-bottom: 0.5rem;
+
+        .group-label {
+          padding: 0.25rem 1rem;
+        }
+
+        .nav-menu .nav-item {
+          padding: 0.5rem 1rem;
+          margin: 0.125rem 0.5rem;
+        }
+      }
+    }
+  }
+
+  .issue-tracker-main {
+    margin-left: 0;
+    width: 100%;
+
+    .page-header {
+      padding: 1rem;
+
+      .header-content {
+        .header-text {
+          .page-title {
+            font-size: 1.25rem;
           }
         }
       }
+    }
 
-      .page-content {
-        padding: 1rem;
-      }
+    .page-content {
+      padding: 1rem;
     }
   }
 }

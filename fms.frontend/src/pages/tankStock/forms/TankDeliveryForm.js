@@ -60,6 +60,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [showInfoNotice, setShowInfoNotice] = useState(true);
+  const [showTankInfo, setShowTankInfo] = useState(false);
 
   // Future records validation hook
   const {
@@ -81,7 +82,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     stockBeforeDelivery: null,
     stockAfterDelivery: null,
     product: '',
-    deliveryDate: new Date(),
+    deliveryDate: new Date().toISOString(),
     invoiceNumber: '',
     supplierId: null
   });
@@ -114,6 +115,14 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     setFilteredTanks(tanksForSite);
   }, [tanksFromStore, formData]);
 
+  const normalizeTank = (tank) => {
+    if (!tank) return { currentStock: null, physicalStockValue: null };
+    // Support both camelCase and PascalCase from API
+    const currentStock = tank.currentStock ?? tank.CurrentStock ?? null;
+    const physicalStockValue = tank.physicalStockValue ?? tank.PhysicalStockValue ?? null;
+    return { currentStock, physicalStockValue };
+  };
+
   const handleFieldChange = useCallback((field, value) => {
     const updatedData = {
       ...formData,
@@ -123,10 +132,16 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     // If tank is selected, get tank information for display
     if (field === 'tankId' && value) {
       const selectedTank = tanksFromStore.find(tank => tank.id === value);
+      const norm = normalizeTank(selectedTank);
       if (selectedTank) {
-        updatedData.currentBookBalance = selectedTank.currentStock;
-        updatedData.currentPhysicalStock = selectedTank.physicalStockValue;
-        updatedData.tankName = selectedTank.name;
+        updatedData.currentBookBalance = norm.currentStock;
+        updatedData.currentPhysicalStock = norm.physicalStockValue;
+        updatedData.tankName = selectedTank.name ?? selectedTank.Name;
+        setShowTankInfo(true);
+      } else {
+        updatedData.currentBookBalance = null;
+        updatedData.currentPhysicalStock = null;
+        setShowTankInfo(false);
       }
     }
 
@@ -258,20 +273,20 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
   const productOptions = [
     { id: 'petrol', name: 'Petrol' },
     { id: 'diesel', name: 'Diesel' },
-    { id: 'kerosene', name: 'Kerosene' },
-    { id: 'lfo', name: 'Light Fuel Oil' },
-    { id: 'hfo', name: 'Heavy Fuel Oil' }
+    { id: 'kerosene', name: 'Kerosene' }
+
   ];
+
+  const formatLiters = (val, fallback = 'N/A') => {
+    return val != null ? `${Number(val).toLocaleString()} L` : fallback;
+  };
 
   return (
     <div className="tank-delivery-form tw-h-full tw-flex tw-flex-col">
       <ScrollView className="tw-flex-1">
         <div className="tw-p-1">
           <div className="tw-mb-6">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2">
-              <i className="fa-light fa-truck-fast tw-mr-2 tw-text-orange-600"></i>
-              Tank Delivery Entry
-            </h3>
+
             <p className="tw-text-gray-600 tw-text-sm">
               Record fuel delivery details including amounts, driver information, and delivery documentation.
             </p>
@@ -301,6 +316,49 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             </div>
           )}
 
+          {/* Tank Info Panel (Dismissible) */}
+          {formData.tankId && showTankInfo && (
+            <div className="tw-mb-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-3">
+              <div className="tw-flex tw-items-start">
+                <i className="fa-light fa-gas-pump tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                <div className="tw-flex-1">
+                  <h4 className="tw-font-medium tw-text-gray-800 tw-mb-1">Tank Stock Overview</h4>
+                  <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-3 tw-text-sm">
+                    <div>
+                      <span className="tw-text-gray-600">Book Balance:</span>
+                      <span className="tw-ml-2 tw-font-medium">{formatLiters(formData.currentBookBalance, 'N/A')}</span>
+                    </div>
+                    <div>
+                      <span className="tw-text-gray-600">Physical Stock:</span>
+                      <span className="tw-ml-2 tw-font-medium">{formatLiters(formData.currentPhysicalStock, 'Not measured')}</span>
+                    </div>
+                    {formData.currentBookBalance != null && formData.currentPhysicalStock != null && (
+                      <div>
+                        <span className="tw-text-gray-600">Difference:</span>
+                        <span className="tw-ml-2 tw-font-medium">
+                          {Number(formData.currentPhysicalStock - formData.currentBookBalance).toLocaleString()} L
+                          {formData.currentBookBalance > 0 && (
+                            <>
+                              {' '}
+                              ({(((formData.currentPhysicalStock - formData.currentBookBalance) / formData.currentBookBalance) * 100).toFixed(2)}%)
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTankInfo(false)}
+                  className="tw-ml-3 tw-text-gray-500 hover:tw-text-gray-700 tw-transition-colors"
+                  title="Dismiss"
+                >
+                  <i className="fa-light fa-times"></i>
+                </button>
+              </div>
+            </div>
+          )}
+
           <Form
             readOnly={isLoading}
             formData={formData}
@@ -313,13 +371,22 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             <SimpleItem
               dataField="deliveryDate"
               editorType="dxDateBox"
+              cssClass="datebox-full-width"
+              colSpan={2}
               editorOptions={{
                 value: formData.deliveryDate,
                 max: new Date(),
                 displayFormat: "yyyy-MM-dd HH:mm",
                 type: "datetime",
                 onValueChanged: (e) => handleFieldChange('deliveryDate', e.value),
-                width: "100%"
+                width: "100%",
+                dropDownOptions: {
+                  width: 'auto',
+                  minWidth: 380,
+                  maxWidth: 520,
+                  wrapperAttr: { class: 'datebox-wide' },
+                },
+                elementAttr: { class: 'datebox-full-width-popup' },
               }}
             >
               <Label text="Delivery Date & Time" />
@@ -334,6 +401,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 displayExpr: 'name',
                 valueExpr: 'id',
                 onValueChanged: handleSiteChange,
+                 searchEnabled: true,
                 value: formData.siteId,
                 placeholder: "Select a site",
                 width: "100%",
@@ -365,56 +433,7 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               <RequiredRule message="Tank is required"/>
             </SimpleItem>
 
-            {/* Tank Stock Information Display */}
-            {formData.tankId && (formData.currentBookBalance !== null || formData.currentPhysicalStock !== null) && (
-              <>
-                <SimpleItem
-                  dataField="currentBookBalance"
-                  editorType="dxTextBox"
-                  editorOptions={{
-                    value: formData.currentBookBalance !== null ? formData.currentBookBalance.toLocaleString() + ' L' : 'N/A',
-                    readOnly: true,
-                    width: "100%",
-                    stylingMode: "filled"
-                  }}
-                >
-                  <Label text="Current Book Balance" />
-                </SimpleItem>
-
-                <SimpleItem
-                  dataField="currentPhysicalStock"
-                  editorType="dxTextBox"
-                  editorOptions={{
-                    value: formData.currentPhysicalStock !== null ? formData.currentPhysicalStock.toLocaleString() + ' L' : 'Not measured',
-                    readOnly: true,
-                    width: "100%",
-                    stylingMode: "filled"
-                  }}
-                >
-                  <Label text="Current Physical Stock" />
-                </SimpleItem>
-
-                {/* Discrepancy Display */}
-                {formData.currentBookBalance !== null && formData.currentPhysicalStock !== null && (
-                  <div style={{
-                    gridColumn: 'span 2',
-                    padding: '10px',
-                    marginTop: '10px',
-                    borderRadius: '4px',
-                    backgroundColor: Math.abs(formData.currentPhysicalStock - formData.currentBookBalance) > (formData.currentBookBalance * 0.05) ? '#fff3cd' : '#d4edda',
-                    border: `1px solid ${Math.abs(formData.currentPhysicalStock - formData.currentBookBalance) > (formData.currentBookBalance * 0.05) ? '#ffc107' : '#28a745'}`
-                  }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                      Current Stock Discrepancy:
-                    </div>
-                    <div>
-                      Difference: {(formData.currentPhysicalStock - formData.currentBookBalance).toLocaleString()} L
-                      ({formData.currentBookBalance > 0 ? (((formData.currentPhysicalStock - formData.currentBookBalance) / formData.currentBookBalance) * 100).toFixed(2) : '100'}%)
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+            {/* Dismissible info now shown above; we remove duplicated read-only fields here */}
 
             <SimpleItem
               dataField="product"

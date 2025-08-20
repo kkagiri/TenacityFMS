@@ -352,7 +352,7 @@
   }
 }
 
-// Responsive design
+// Responsive design - FIXED VERSION
 @media (max-width: 768px) {
   .active-alarm-layout {
     flex-direction: column;
@@ -365,13 +365,13 @@
 
     &.collapsed {
       width: 100% !important;
-      height: 64px;
+      height: 80px; // FIXED: Use consistent height
       overflow: hidden;
     }
 
     .sidebar-header {
       padding: 1rem;
-      min-height: 60px;
+      min-height: 80px; // FIXED: Use consistent height
     }
 
     .sidebar-quick-stats {

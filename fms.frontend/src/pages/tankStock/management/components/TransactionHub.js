@@ -33,6 +33,7 @@ import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
 import TransactionFilterPopup from './TransactionFilterPopup';
+import QuickActions from '../../components/QuickActions';
 import { usePermissions } from '../../../../hooks/usePermissions';
 import './TransactionHub.scss';
 
@@ -68,6 +69,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   const sites = useSelector((state) => state.site.sites);
   const isLoading = useSelector((state) => state.tankVolumeHistory.isLoading);
   const usersForFilter = useSelector((state) => state.user.usersForFilter);
+  const user = useSelector((state) => state.auth.user);
 
   // Local state
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
@@ -794,21 +796,34 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               Unified view of all tank transactions (Default: Today's data)
             </p>
           </div>
-          <div className="tw-flex tw-space-x-2">
-            <Button
-              text="Filters"
-              icon="fa-light fa-filter"
-              onClick={() => setShowFilterPopup(true)}
-              stylingMode="outlined"
-              className="tw-min-w-24"
-            />
+          <div className="tw-flex tw-space-x-3 tw-items-center">
+            {/* Quick Actions */}
+            <div className="tw-min-w-48">
+              <QuickActions
+                collapsed={false}
+                onRefreshData={handleRefresh}
+                sites={sites}
+                user={user}
+              />
+            </div>
 
-            <Button
-              text="Refresh"
-              icon="fa-light fa-refresh"
-              onClick={handleRefresh}
-              stylingMode="outlined"
-            />
+            {/* Filters and Refresh */}
+            <div className="tw-flex tw-space-x-2">
+              <Button
+                text="Filters"
+                icon="fa-light fa-filter"
+                onClick={() => setShowFilterPopup(true)}
+                stylingMode="outlined"
+                className="tw-min-w-24"
+              />
+
+              <Button
+                text="Refresh"
+                icon="fa-light fa-refresh"
+                onClick={handleRefresh}
+                stylingMode="outlined"
+              />
+            </div>
           </div>
         </div>
 

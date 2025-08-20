@@ -15,6 +15,9 @@ export const UPDATE_EMPLOYEE_FAILURE = 'UPDATE_EMPLOYEE_FAILURE';
 export const DELETE_EMPLOYEE_REQUEST = 'DELETE_EMPLOYEE_REQUEST';
 export const DELETE_EMPLOYEE_SUCCESS = 'DELETE_EMPLOYEE_SUCCESS';
 export const DELETE_EMPLOYEE_FAILURE = 'DELETE_EMPLOYEE_FAILURE';
+export const SEARCH_EMPLOYEES_REQUEST = 'SEARCH_EMPLOYEES_REQUEST';
+export const SEARCH_EMPLOYEES_SUCCESS = 'SEARCH_EMPLOYEES_SUCCESS';
+export const SEARCH_EMPLOYEES_FAILURE = 'SEARCH_EMPLOYEES_FAILURE';
 
 // Action Creators
 export const fetchEmployees = (active = true) => async (dispatch) => {
@@ -91,5 +94,39 @@ export const deleteEmployee = (id) => async (dispatch) => {
     dispatch({ type: DELETE_EMPLOYEE_SUCCESS, payload: id });
   } catch (error) {
     dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: error.message });
+  }
+};
+
+// Quick search for employees (for autocomplete)
+export const quickSearchEmployees = async (searchTerm, limit = 10) => {
+  try {
+    const response = await axiosInstance.get(`/employee/quick-search?searchTerm=${encodeURIComponent(searchTerm)}&limit=${limit}&active=true`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Quick employee search error:', error);
+    return { success: false, message: error.message, data: [] };
+  }
+};
+
+// Search employees with filters
+export const searchEmployees = (searchTerm, filters = {}) => async (dispatch) => {
+  dispatch({ type: SEARCH_EMPLOYEES_REQUEST });
+  try {
+    const params = new URLSearchParams({
+      searchTerm: searchTerm || '',
+      limit: filters.limit || 50,
+      active: filters.active !== undefined ? filters.active : true
+    });
+
+    if (filters.siteId) {
+      params.append('siteId', filters.siteId);
+    }
+
+    const response = await axiosInstance.get(`/employee/search?${params.toString()}`);
+    dispatch({ type: SEARCH_EMPLOYEES_SUCCESS, payload: response.data });
+    return { success: true, data: response.data };
+  } catch (error) {
+    dispatch({ type: SEARCH_EMPLOYEES_FAILURE, payload: error.message });
+    return { success: false, message: error.message };
   }
 };

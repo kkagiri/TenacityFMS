@@ -134,3 +134,52 @@ div[id*="tooltip"],
   z-index: 99999 !important;
   position: fixed !important;
 }
+
+
+
+/* ========================================================================== */
+/* DateBox popup sizing - strictly class-scoped to avoid affecting popups */
+/* ========================================================================== */
+
+/* Applied via dropDownOptions.wrapperAttr: { class: 'datebox-wide' } */
+.datebox-wide .dx-overlay-content {
+  min-width: 380px !important;
+  width: auto !important;
+  max-width: 520px !important;
+}
+
+/* Optional opt-in: applied via elementAttr.class on editor host */
+.datebox-full-width-popup .dx-overlay-content {
+  min-width: 380px !important;
+}
+
+/* Do NOT change positioning; let DevExtreme place the overlay. */
+
+/* Ensure DateBox editor fills the row when using cssClass="datebox-full-width" */
+.dx-form .datebox-full-width.dx-field-item,
+.dx-form .datebox-full-width {
+  flex: 0 0 100% !important; /* occupy full row in flex grid */
+  max-width: 100% !important;
+  width: 100% !important;
+}
+.dx-form .datebox-full-width .dx-field-item-content {
+  width: 100% !important;
+}
+.dx-form .datebox-full-width .dx-texteditor,
+.dx-form .datebox-full-width .dx-texteditor-container,
+.dx-form .datebox-full-width .dx-texteditor-input-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Ensure the direct widget inside the content stretches */
+.dx-form .datebox-full-width .dx-field-item-content > .dx-widget {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block;
+}
+
+/* Explicitly target DateBox widget */
+.dx-form .datebox-full-width .dx-datebox {
+  width: 100% !important;
+}

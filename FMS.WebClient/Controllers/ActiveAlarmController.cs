@@ -5,9 +5,11 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.ActiveAlarm;
+using FMS.Domain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -373,10 +375,10 @@ namespace FMS.WebClient.Controllers {
                     TriggeredBy = userId,
                     SiteId = request.SiteId,
                     TankId = request.TankId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new () {
-                    UserId = userId,
-                    DeliveryMethod = "System"
+                    Recipients = new List<NotificationRecipientDto> {
+                    new NotificationRecipientDto {
+                    UserId = userIdClaim.Value,
+                    DeliveryMethods = new List<string> { "System" }
                     }
                     }
                 };

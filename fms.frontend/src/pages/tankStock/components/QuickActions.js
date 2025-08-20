@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { DropDownButton } from 'devextreme-react/drop-down-button';
 import { Popup } from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
-import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
+// import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
 import './QuickActions.scss';
 
 // Form imports
@@ -14,56 +14,55 @@ import TankTransferForm from '../forms/TankTransferForm';
 import ManualRefillForm from '../forms/ManualRefillForm';
 
 // API actions
-import {
-  createOpeningStock,
-  createClosingStock,
-  createTankTransfer
-
-} from '../../../redux/actions/tankStockAction';
-import { createDelivery } from '../../../redux/actions/DeliveryActions';
-import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
+// Note: Forms handle their own dispatching. QuickActions only coordinates UI.
 
 const POPUP_CONFIG = {
   openingStock: {
     title: "Opening Stock",
     Form: OpeningStockForm,
     width: "90%",
-    maxWidth: "600px",
+  maxWidth: "650px",
+  // Use viewport-relative height to allow internal scrolling
+  maxHeight: "80vh",
     height: "auto",
   },
   closingStock: {
     title: "Closing Stock",
     Form: ClosingStockForm,
     width: "90%",
-    maxWidth: "600px",
-    maxHeight: "500px",
+  maxWidth: "600px",
+  maxHeight: "80vh",
     height: "auto",
   },
   delivery: {
     title: "Delivery",
     Form: TankDeliveryForm,
-    width: "95%",
-    maxWidth: "1000px",
+  width: "95%",
+  maxWidth: "1000px",
+  maxHeight: "80vh",
     height: "auto",
   },
   transfer: {
     title: "Transfer",
     Form: TankTransferForm,
     width: "90%",
-    maxWidth: "800px",
+  maxWidth: "800px",
+  maxHeight: "80vh",
     height: "auto",
   },
   manualRefill: {
     title: "Manual Refill",
     Form: ManualRefillForm,
     width: "90%",
-    maxWidth: "600px",
+  maxWidth: "700px",
+  maxHeight: "85vh",
+
     height: "auto",
   }
 };
 
 const QuickActions = ({ collapsed = false, onRefreshData }) => {
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const sites = useSelector((state) => state.site.sites);
   const user = useSelector((state) => state.auth.user);
 
@@ -76,7 +75,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
   });
 
   const [currentForm, setCurrentForm] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Local submit state handled by forms
 
   const stockManagementItems = [
     {
@@ -127,110 +126,18 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     }
   }, []);
 
-  //Cursor - Handle stock form submissions
-  const handleStockSubmit = useCallback(async (formData, actionType) => {
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-    try {
-      let result;
-
-      switch (actionType) {
-        case 'opening':
-          const openingParams = {
-            tankId: formData.tankId,
-            amount: formData.amount,
-            dateTime: formData.date || new Date()
-          };
-          result = await dispatch(createOpeningStock(openingParams));
-          break;
-
-        case 'closing':
-          const closingParams = {
-            tankId: formData.tankId,
-            amount: formData.amount,
-            dateTime: formData.date || new Date()
-          };
-          result = await dispatch(createClosingStock(closingParams));
-          break;
-
-        case 'delivery':
-          result = await dispatch(createDelivery(formData));
-          break;
-
-        case 'transfer':
-          result = await dispatch(createTankTransfer(formData));
-          break;
-        case 'manualRefill':
-          result = await dispatch(createFuelRefill(formData));
-          break;
-
-        default:
-          throw new Error(`Unknown action type: ${actionType}`);
-      }
-
-      console.log(`${actionType || 'stock'} stock creation result:`, result);
-
-      // Check for success more thoroughly
-      if (result && result.success === true) {
-        // Safely format action type with null/undefined check
-        const actionTypeDisplay = actionType && typeof actionType === 'string'
-          ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
-          : 'Stock';
-
-        notify({
-          message: `${actionTypeDisplay} stock created successfully`,
-          type: 'success',
-          displayTime: 3000
-        });
-
-        // Only close popup on success
-        handlePopupVisibility(currentForm, false);
-
-        // Refresh data if callback provided
-        if (onRefreshData) {
-          onRefreshData();
-        }
-      } else {
-        // Handle both explicit failure and undefined success
-        const actionTypeDisplay = actionType && typeof actionType === 'string' ? actionType : 'stock';
-        const errorMessage = result?.message || `Error creating ${actionTypeDisplay} stock`;
-        console.error(`${actionTypeDisplay} stock creation failed:`, errorMessage);
-
-        // Use the error handler for consistent error messaging
-        const notifyFunction = (message, type, duration) => {
-          notify({
-            message,
-            type,
-            displayTime: duration
-          });
-        };
-
-        TankStockErrorHandler.showErrorNotification(errorMessage, notifyFunction);
-
-        // Keep popup open so user can retry
-      }
-    } catch (error) {
-      const actionTypeDisplay = actionType && typeof actionType === 'string' ? actionType : 'stock';
-      console.error(`Error creating ${actionTypeDisplay} stock:`, error);
-      const errorMessage = error.response?.data?.message || error.message || `Error creating ${actionTypeDisplay} stock`;
-
-      // Use the error handler for consistent error messaging
-      const notifyFunction = (message, type, duration) => {
-        notify({
-          message,
-          type,
-          displayTime: duration
-        });
-      };
-
-      TankStockErrorHandler.showErrorNotification(errorMessage, notifyFunction);
-
-      // Keep popup open on error
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [dispatch, currentForm, isSubmitting, onRefreshData, handlePopupVisibility]);
+  // Forms dispatch themselves; onSubmit here means success -> close & refresh
+  const handleStockSubmit = useCallback((formData, actionType) => {
+    // Close popup on success
+    handlePopupVisibility(currentForm, false);
+    // Optional toast
+    const actionTypeDisplay = actionType && typeof actionType === 'string'
+      ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
+      : 'Stock';
+    notify({ message: `${actionTypeDisplay} saved`, type: 'success', displayTime: 2000 });
+    // Refresh parent data if provided
+    if (onRefreshData) onRefreshData();
+  }, [currentForm, onRefreshData, handlePopupVisibility]);
 
   const handleOpeningStockSubmit = useCallback((formData) =>
     handleStockSubmit(formData, 'opening'), [handleStockSubmit]);
@@ -281,9 +188,10 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         title={config.title}
         width={config.width}
         maxWidth={config.maxWidth}
+  maxHeight={config.maxHeight}
         height={config.height}
         showCloseButton={true}
-        dragEnabled={false}
+        dragEnabled={true}
         resizeEnabled={false}
         position={{ my: 'center', at: 'center', of: window }}
         wrapperAttr={{
@@ -292,7 +200,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
       >
         <FormComponent
           onSubmit={submitHandler}
-          isLoading={isSubmitting}
+          isLoading={false}
           sites={sites}
           user={user}
           onCancel={() => handlePopupVisibility(currentForm, false)}

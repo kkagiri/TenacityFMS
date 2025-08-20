@@ -1,0 +1,19 @@
+/* DevExtreme Dropdown Fix - SAFE VERSION */
+/* IMPORTANT: This file should only contain very specific CSS targeting to avoid global damage */
+
+/* Only target specific SelectBox dropdowns that need height constraints */
+/* DO NOT use broad selectors like .dx-scrollable, .dx-popup-content, .dx-list-item as they affect the entire app */
+
+/* Example of safe, targeted selector (commented out - add only if needed for specific forms) */
+/*
+.specific-form-class .dx-selectbox-popup-wrapper {
+  max-height: 300px !important;
+}
+
+.specific-form-class .dx-selectbox-popup-wrapper .dx-scrollable-content {
+  max-height: 280px !important;
+  overflow-y: auto !important;
+}
+*/
+
+/* Note: For SelectBox height fixes, use form-specific CSS files like ManualRefillForm-fix.css instead */

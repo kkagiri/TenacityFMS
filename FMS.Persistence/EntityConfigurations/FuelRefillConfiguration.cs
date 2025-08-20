@@ -14,7 +14,7 @@ namespace FMS.Persistence.EntityConfigurations {
         public override void Configure (EntityTypeBuilder<FuelRefill> builder) {
             try {
                 builder.HasKey (e => e.Id).HasName ("PRIMARY");
-                builder.ToTable ("fuelrefill");
+                builder.ToTable ("fuelrefil");
 
                 // Indexes
                 builder.HasIndex (e => e.VehicleId, "fuelrefill_vehicle_idx");
@@ -26,7 +26,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 // Column configurations
                 builder.Property (e => e.Id).HasColumnType ("int(11)");
                 builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
-                builder.Property (e => e.ManualFuelrefillAmount).HasPrecision (10, 2);
+                builder.Property (e => e.ManualFuelrefillAmount).HasPrecision (10, 2).HasColumnName ("ManualFuelrefilAmount");
                 builder.Property (e => e.Date).HasColumnType ("datetime");
                 builder.Property (e => e.PreviousMeterReading).HasPrecision (10, 2);
                 builder.Property (e => e.CurrentMeterReading).HasPrecision (10, 2);
@@ -62,6 +62,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.IsCorrection)
                     .HasColumnType ("tinyint(1)")
                     .HasColumnName ("is_correction")
+                    .IsRequired()
                     .HasDefaultValue (false);
 
                 builder.Property (e => e.CorrectsRecordId)
@@ -115,6 +116,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasOne (d => d.TagNavigation)
                     .WithMany (p => p.Fuelrefils)
                     .HasForeignKey (d => d.TagId)
+                    .HasPrincipalKey (p => p.Name)
                     .OnDelete (DeleteBehavior.SetNull)
                     .HasConstraintName ("fuelrefill_tag");
 
@@ -129,7 +131,7 @@ namespace FMS.Persistence.EntityConfigurations {
                     .WithMany (d => d.CorrectionRecords)
                     .HasForeignKey (d => d.CorrectsRecordId)
                     .OnDelete (DeleteBehavior.Restrict)
-                    .HasConstraintName ("fuelrefill_corrects_record");
+                    .HasConstraintName ("fuelrefil_corrects_record");
             } catch (Exception ex) {
                 Console.WriteLine ($"Error configuring FuelRefillConfiguration: {ex.Message}");
                 throw new Exception ($"Error configuring FuelRefillConfiguration: {ex.Message}", ex);

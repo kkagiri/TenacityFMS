@@ -57,14 +57,14 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         sourceTankId: null,
         destinationSiteId: null,
         destinationTankId: null,
-        amount: null,
-        date: new Date(),
-        transferType: 'InterTank', // InterTank, InterSite
-        reason: ''
+    amount: null,
+    date: new Date(),
+    transferType: 'InterTank' // InterTank, InterSite
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
     const [showInfoNotice, setShowInfoNotice] = useState(true);
+    const [showSourceTankInfo, setShowSourceTankInfo] = useState(false);
 
     // Future records validation hook
     const {
@@ -112,9 +112,22 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             destinationTankId: null
         }));
 
-        const tanksForSite = tanksFromStore.filter(tank => tank.siteId === siteId);
+        // Filter tanks for destination site, excluding source tank if same site
+        const tanksForSite = tanksFromStore.filter(tank => {
+            if (tank.siteId !== siteId) return false;
+            // If same site transfer, exclude the source tank
+            if (formData.transferType === 'InterTank' && tank.id === formData.sourceTankId) {
+                return false;
+            }
+            return true;
+        });
         setFilteredDestinationTanks(tanksForSite);
-    }, [tanksFromStore]);
+    }, [tanksFromStore, formData.transferType, formData.sourceTankId]);
+
+    const normalizeTank = (tank) => {
+        if (!tank) return { currentStock: null };
+        return { currentStock: tank.currentStock ?? tank.CurrentStock ?? null };
+    };
 
     const handleSourceTankChange = useCallback((e) => {
         const tankId = e.value;
@@ -131,9 +144,25 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 resetValidation();
             }
 
+            // Load source tank info for panel
+            const selectedTank = tanksFromStore.find(t => t.id === tankId);
+            const norm = normalizeTank(selectedTank);
+            updatedData.sourceTankCurrentStock = norm.currentStock;
+            setShowSourceTankInfo(!!selectedTank);
+
+            // Update destination tanks if InterTank transfer
+            if (updatedData.transferType === 'InterTank' && updatedData.sourceSiteId) {
+                const tanksForSite = tanksFromStore.filter(tank =>
+                    tank.siteId === updatedData.sourceSiteId && tank.id !== tankId
+                );
+                setFilteredDestinationTanks(tanksForSite);
+                // Reset destination tank selection
+                updatedData.destinationTankId = null;
+            }
+
             return updatedData;
         });
-    }, [validateHistoricalEntry, resetValidation]);
+    }, [validateHistoricalEntry, resetValidation, tanksFromStore]);
 
     const handleDestinationTankChange = useCallback((e) => {
         const tankId = e.value;
@@ -180,11 +209,13 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
             // Update destination tanks based on transfer type
             if (transferType === 'InterTank' && prevData.sourceSiteId) {
+                // For InterTank, filter tanks from same site excluding source tank
                 const tanksForSite = tanksFromStore.filter(tank =>
                     tank.siteId === prevData.sourceSiteId && tank.id !== prevData.sourceTankId
                 );
                 setFilteredDestinationTanks(tanksForSite);
-            } else {
+            } else if (transferType === 'InterSite') {
+                // For InterSite, clear destination tanks until site is selected
                 setFilteredDestinationTanks([]);
             }
 
@@ -192,13 +223,7 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         });
     }, [tanksFromStore]);
 
-    const handleReasonChange = useCallback((e) => {
-        const reason = e.value;
-        setFormData(prevData => ({
-            ...prevData,
-            reason: reason
-        }));
-    }, []);
+    // reason removed
 
     const transferTypeOptions = [
         { id: 'InterTank', name: 'Between Tanks (Same Site)' },
@@ -282,6 +307,29 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                         </div>
                     )}
 
+                    {/* Source Tank Info Panel */}
+                    {formData.sourceTankId && showSourceTankInfo && (
+                        <div className="tw-mb-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-3">
+                            <div className="tw-flex tw-items-start">
+                                <i className="fa-light fa-gas-pump tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                                <div className="tw-flex-1">
+                                    <h4 className="tw-font-medium tw-text-gray-800 tw-mb-1">Source Tank Overview</h4>
+                                    <div className="tw-text-sm">
+                                        <span className="tw-text-gray-600">Book Balance: </span>
+                                        <span className="tw-ml-1 tw-font-medium">{formData.sourceTankCurrentStock != null ? `${Number(formData.sourceTankCurrentStock).toLocaleString()} L` : 'N/A'}</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowSourceTankInfo(false)}
+                                    className="tw-ml-3 tw-text-gray-500 hover:tw-text-gray-700 tw-transition-colors"
+                                    title="Dismiss"
+                                >
+                                    <i className="fa-light fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <Form
                         readOnly={isLoading}
                         formData={formData}
@@ -293,6 +341,8 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                         <SimpleItem
                             dataField="date"
                             editorType="dxDateBox"
+                            cssClass="datebox-full-width"
+                            colSpan={2}
                             editorOptions={{
                                 value: formData.date,
                                 max: new Date(),
@@ -300,6 +350,13 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                 type: "datetime",
                                 onValueChanged: handleDateChange,
                                 width: "100%",
+                                dropDownOptions: {
+                                    width: 'auto',
+                                    minWidth: 380,
+                                    maxWidth: 520,
+                                    wrapperAttr: { class: 'datebox-wide' },
+                                },
+                                elementAttr: { class: 'datebox-full-width-popup' },
                                 isValid: !validationErrors.date,
                                 validationError: validationErrors.date ? { message: validationErrors.date } : null
                             }}
@@ -335,6 +392,7 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                 onValueChanged: handleSourceSiteChange,
                                 value: formData.sourceSiteId,
                                 placeholder: "Select source site",
+                                 searchEnabled: true,
                                 width: "100%",
                                 isValid: !validationErrors.sourceSiteId,
                                 validationError: validationErrors.sourceSiteId ? { message: validationErrors.sourceSiteId } : null
@@ -373,6 +431,7 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                 valueExpr: 'id',
                                 onValueChanged: handleDestinationSiteChange,
                                 value: formData.destinationSiteId,
+                                 searchEnabled: true,
                                 disabled: formData.transferType === 'InterTank',
                                 placeholder: "Select destination site",
                                 width: "100%",
@@ -393,8 +452,8 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                                 valueExpr: 'id',
                                 onValueChanged: handleDestinationTankChange,
                                 value: formData.destinationTankId,
-                                disabled: !formData.destinationSiteId,
-                                placeholder: "Select destination tank",
+                                disabled: !formData.destinationSiteId || filteredDestinationTanks.length === 0,
+                                placeholder: filteredDestinationTanks.length === 0 ? "No tanks available" : "Select destination tank",
                                 width: "100%",
                                 isValid: !validationErrors.destinationTankId,
                                 validationError: validationErrors.destinationTankId ? { message: validationErrors.destinationTankId } : null
@@ -423,19 +482,7 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             <NumericRule message="Must be a valid number" />
                         </SimpleItem>
 
-                        <SimpleItem
-                            dataField="reason"
-                            editorType="dxTextArea"
-                            editorOptions={{
-                                value: formData.reason,
-                                onValueChanged: handleReasonChange,
-                                placeholder: "Enter reason for transfer (optional)",
-                                width: "100%",
-                                height: 80
-                            }}
-                        >
-                            <Label text="Reason (Optional)" />
-                        </SimpleItem>
+                        {/* Reason removed as not required */}
                     </Form>
 
                     {/* Future Records Warning */}
@@ -462,7 +509,6 @@ const TankTransferForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             <div className="tw-flex tw-items-start">
                                 <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
                                 <div className="tw-flex-1">
-                                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">Transfer Information</h4>
                                     <p className="tw-text-blue-700 tw-text-sm">
                                         Transfer fuel between tanks. Amount will be deducted from source tank and added to destination tank.
                                         Choose 'Between Tanks' for same site transfers or 'Between Sites' for cross-site transfers.

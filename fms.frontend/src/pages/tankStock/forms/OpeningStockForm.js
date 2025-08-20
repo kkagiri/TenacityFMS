@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Form, SimpleItem, Label } from 'devextreme-react/form';
+import { Form, SimpleItem, Label, GroupItem } from 'devextreme-react/form';
 import { Button } from 'devextreme-react';
 import { fetchSitebyUserId } from '../../../redux/actions/siteActions';
 import { fetchTanks } from '../../../redux/actions/tankActions';
@@ -33,32 +33,14 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
   // Helper function for notifications with consistent positioning
   const showNotification = useCallback((message, type = 'info', duration = 3000) => {
-    // Use longer duration for errors to give user time to read
-    const notificationDuration = type === 'error' ? Math.max(duration, 6000) : duration;
-
+    const displayTime = type === 'error' ? Math.max(duration, 6000) : duration;
     notify({
       message,
       type,
-      displayTime: notificationDuration,
-      position: {
-        my: 'top center',
-        at: 'top center',
-        of: window,
-        offset: '0 20'
-      },
+      displayTime,
+      position: { my: 'top center', at: 'top center', of: window, offset: '0 20' },
       animation: {
-        show: {
-          type: 'slide',
-          duration: 300,
-          from: { top: -100, opacity: 0 },
-          to: { top: 0, opacity: 1 }
-        },
-        hide: {
-          type: 'slide',
-          duration: 300,
-          from: { top: 0, opacity: 1 },
-          to: { top: -100, opacity: 0 }
-        }
+        show: { type: 'slide', duration: 300, from: { top: 0, opacity: 1 }, to: { top: -100, opacity: 0 } }
       }
     });
   }, []);
@@ -193,7 +175,8 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
       const preparedData = {
         tankId: formData.tankId,
         amount: formData.amount,
-        dateTime: formData.date
+  // Send ISO UTC to avoid server-side future-date rejections due to timezone
+  dateTime: formData.date ? new Date(formData.date).toISOString() : null
       };
 
       const response = await dispatch(createOpeningStock(preparedData));
@@ -249,10 +232,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         <div className="tw-p-1">
           {/* Header */}
           <div className="tw-mb">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-1 tw-flex tw-items-center">
-              <i className="fa-light fa-lock-open tw-mr-2 tw-text-blue-600"></i>
-              Opening Stock Entry
-            </h3>
+
             <p className="tw-text-gray-600 tw-text-sm">
               Record the opening stock amount for the selected tank and date.
             </p>
@@ -271,25 +251,40 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             colCount={2}
             className="tw-mb-6"
           >
-            <SimpleItem
-              dataField="date"
-              editorType="dxDateBox"
-              editorOptions={{
-                value: formData.date,
-                max: new Date(),
-                ...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" }),
-                type: "datetime",
-                onValueChanged: handleDateChange,
-                width: "100%",
-                isValid: !validationErrors.date,
-                validationError: validationErrors.date ? { message: validationErrors.date } : null,
-                // Add date validation to prevent invalid date formatting
-                acceptCustomValue: false,
-                openOnFieldClick: true
-              }}
-            >
-              <Label text="Date & Time" />
-            </SimpleItem>
+            <GroupItem colCount={1} colSpan={2}>
+              <SimpleItem
+                dataField="date"
+                editorType="dxDateBox"
+                cssClass="datebox-full-width"
+                editorOptions={{
+                  value: formData.date,
+                  max: new Date(),
+                  ...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" }),
+                  type: "datetime",
+                  onValueChanged: handleDateChange,
+                  width: "100%",
+                  className: "datebox-full-width",
+                  // Ensure the dropdown/popup is wide enough and not constrained
+                  dropDownOptions: {
+                    width: 'auto',
+                    minWidth: 380,
+                    maxWidth: 520,
+                    wrapperAttr: { class: 'datebox-wide' },
+                  },
+                  isValid: !validationErrors.date,
+                  validationError: validationErrors.date ? { message: validationErrors.date } : null,
+                  // Add date validation to prevent invalid date formatting
+                  acceptCustomValue: false,
+                  openOnFieldClick: true,
+                  // Add custom CSS class for enhanced datetime picker styling
+                  elementAttr: {
+                    class: "datebox-full-width-popup"
+                  }
+                }}
+              >
+                <Label text="Date & Time" />
+              </SimpleItem>
+            </GroupItem>
 
             <SimpleItem
               dataField="siteId"
@@ -302,6 +297,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 value: formData.siteId,
                 placeholder: "Select a site",
                 width: "100%",
+                searchEnabled: true,
                 isValid: !validationErrors.siteId,
                 validationError: validationErrors.siteId ? { message: validationErrors.siteId } : null
               }}
@@ -330,11 +326,11 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
             {/* Book Balance Display (Read-only) */}
             {formData.bookBalance !== null && formData.bookBalance !== undefined && (
-              <SimpleItem
+        <SimpleItem
                 dataField="bookBalance"
                 editorType="dxTextBox"
                 editorOptions={{
-                  value: formData.bookBalance ? formData.bookBalance.toLocaleString() + ' L' : '0 L',
+          value: formData.bookBalance != null ? Number(formData.bookBalance).toLocaleString() + ' L' : '0 L',
                   readOnly: true,
                   width: "100%",
                   stylingMode: "filled"
@@ -362,7 +358,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             </SimpleItem>
 
             {/* Discrepancy Indicator */}
-            {formData.amount && formData.bookBalance && (
+            {formData.amount != null && formData.bookBalance != null && (
               <div className="discrepancy-indicator" style={{
                 padding: '10px',
                 marginTop: '10px',
@@ -373,13 +369,13 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
                   Stock Comparison:
                 </div>
-                <div>Physical Stock: {formData.amount.toLocaleString()} L</div>
-                <div>Book Balance: {formData.bookBalance.toLocaleString()} L</div>
+                <div>Physical Stock: {Number(formData.amount).toLocaleString()} L</div>
+                <div>Book Balance: {Number(formData.bookBalance).toLocaleString()} L</div>
                 <div style={{
                   fontWeight: 'bold',
                   color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
                 }}>
-                  Discrepancy: {(formData.amount - formData.bookBalance).toLocaleString()} L
+                  Discrepancy: {Number(formData.amount - formData.bookBalance).toLocaleString()} L
                   ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
                 </div>
               </div>

@@ -150,10 +150,35 @@
   }
 }
 
+/* Overrides: Button styling (light blue) and white icons; keep chart background white */
+.chart-popup .dx-chart {
+  background: #ffffff !important; /* keep default white for chart */
+}
+
+.chart-popup .dx-chart .dxc-background {
+  fill: #ffffff !important; /* white plot area */
+}
+
+/* Chart View button: light blue background + white icon */
+.dx-datagrid .dx-toolbar .dx-button.chart-view-button {
+  background: #479dff !important; /* light blue */
+  border: none !important;
+  color: #ffffff !important;
+}
+
+.dx-datagrid .dx-toolbar .dx-button.chart-view-button:hover {
+  background: #60a5fa !important; /* a bit darker on hover */
+}
+
+.dx-datagrid .dx-toolbar .dx-button.chart-view-button .dx-icon,
+.dx-datagrid .dx-toolbar .dx-button.chart-view-button .dx-button-content i {
+  color: #ffffff !important; /* white icon */
+}
+
 /* Chart button styling in toolbar */
 .dx-datagrid .dx-toolbar .dx-button {
   &.chart-view-button {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #3a6bf5 100%);
     border: none;
     color: white;
 

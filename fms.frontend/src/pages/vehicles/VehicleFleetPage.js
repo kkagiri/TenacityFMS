@@ -46,7 +46,7 @@ const VehicleFleetPage = () => {
   };
 
   return (
-    <div className="tw-p-6">
+    <div className="tw-px-1 tw-pt-2 tw-pb-4 md:tw-p-6">
       <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
         <div className="fleet-header tw-flex tw-justify-between tw-items-center tw-mb-6">
           <div className="header-content">

@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useMemo } from "react";
 import appInfo from "./app-info";
-import { SideNavOuterToolbar as SideNavBarLayout } from "./layouts";
+import { AppDrawerLayout } from "./layouts";
 import { Footer } from "./components";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -38,7 +38,7 @@ export default function Content() {
   }, [navigationItems]);
 
   return (
-    <SideNavBarLayout title={appInfo.title}>
+    <AppDrawerLayout title={appInfo.title}>
       <Routes>
         {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
@@ -139,6 +139,6 @@ export default function Content() {
         Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
         trademarks are property of Hyoung EA Co. Ltd.
       </Footer>
-    </SideNavBarLayout>
+    </AppDrawerLayout>
   );
 }

@@ -21,6 +21,7 @@ import { createClosingStock } from '../../../redux/actions/ClosingStockActions';
 import { prepareOpeningClosingStockParams } from '../../../utils/stockDataPreparation';
 import { VolumeChangeReasonEnum } from '../../../utils/enums';
 import LoadIndicator from 'devextreme-react/load-indicator';
+import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
 import './ClosingStockForm.scss';
 
@@ -72,7 +73,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         tankId: null,
         amount: null,           // Physical stock measurement
         bookBalance: null,      // Current book balance (read-only)
-        date: new Date()
+        dateTime: new Date().toISOString()
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
@@ -244,14 +245,11 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     }, [formData, validateForm, dispatch, onSubmit, onCancel, canSubmit, resetValidation]);
 
     return (
-        <div className="closing-stock-form tw-h-full tw-max-h-screen tw-flex tw-flex-col">
-            {/* Main Form Area */}
-            <div className="tw-flex-1 tw-p-4 tw-overflow-auto tw-max-h-[calc(100vh-2rem)]">
+        <div className="closing-stock-form tw-h-full tw-flex tw-flex-col">
+            <ScrollView className="tw-flex-1">
+                <div className="tw-p-4">
                 <div className="tw-mb-6">
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2">
-                        <i className="fa-light fa-lock tw-mr-2 tw-text-blue-600"></i>
-                        Closing Stock Entry
-                    </h3>
+
                     <p className="tw-text-gray-600 tw-text-sm">
                         Record the closing stock amount for the selected tank and date.
                     </p>
@@ -297,6 +295,8 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                     <SimpleItem
                         dataField="date"
                         editorType="dxDateBox"
+                        cssClass="datebox-full-width"
+                        colSpan={2}
                         editorOptions={{
                             value: formData.date,
                             max: new Date(),
@@ -304,6 +304,13 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             type: "datetime",
                             onValueChanged: handleDateChange,
                             width: "100%",
+                            dropDownOptions: {
+                                width: 'auto',
+                                minWidth: 380,
+                                maxWidth: 520,
+                                wrapperAttr: { class: 'datebox-wide' },
+                            },
+                            elementAttr: { class: 'datebox-full-width-popup' },
                             isValid: !validationErrors.date,
                             validationError: validationErrors.date ? { message: validationErrors.date } : null
                         }}
@@ -322,6 +329,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             value: formData.siteId,
                             placeholder: "Select a site",
                             width: "100%",
+                            searchEnabled: true,
                             isValid: !validationErrors.siteId,
                             validationError: validationErrors.siteId ? { message: validationErrors.siteId } : null
                         }}
@@ -354,7 +362,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             dataField="bookBalance"
                             editorType="dxTextBox"
                             editorOptions={{
-                                value: formData.bookBalance ? formData.bookBalance.toLocaleString() + ' L' : '0 L',
+                                value: formData.bookBalance != null ? Number(formData.bookBalance).toLocaleString() + ' L' : '0 L',
                                 readOnly: true,
                                 width: "100%",
                                 stylingMode: "filled"
@@ -382,7 +390,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                     </SimpleItem>
 
                     {/* Discrepancy Indicator */}
-                    {formData.amount && formData.bookBalance && (
+                    {formData.amount != null && formData.bookBalance != null && (
                         <div className="discrepancy-indicator" style={{
                             padding: '10px',
                             marginTop: '10px',
@@ -393,13 +401,13 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
                                 Stock Comparison:
                             </div>
-                            <div>Physical Stock: {formData.amount.toLocaleString()} L</div>
-                            <div>Book Balance: {formData.bookBalance.toLocaleString()} L</div>
+                            <div>Physical Stock: {Number(formData.amount).toLocaleString()} L</div>
+                            <div>Book Balance: {Number(formData.bookBalance).toLocaleString()} L</div>
                             <div style={{
                                 fontWeight: 'bold',
                                 color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
                             }}>
-                                Discrepancy: {(formData.amount - formData.bookBalance).toLocaleString()} L
+                                Discrepancy: {Number(formData.amount - formData.bookBalance).toLocaleString()} L
                                 ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
                             </div>
                         </div>
@@ -599,7 +607,8 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                         Save
                     </Button>
                 </div>
-            </div>
+                </div>
+            </ScrollView>
         </div>
     );
 };

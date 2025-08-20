@@ -47,6 +47,10 @@ const resolvedComponents = (pageName) => {
       return TankStockMain;
     case "admin":
       return AdminMain;
+    case "active-alarms":
+      return ActiveAlarmMain;
+    case "issue-tracker":
+      return IssueTrackerMain;
 
     case "consumption":
       return ConsumptionBasedonRefills;

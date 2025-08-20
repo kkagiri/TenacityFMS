@@ -1,7 +1,9 @@
 import {
+    FETCH_CONSUMPTION_REQUEST,
     FETCH_CONSUMPTION_SUCCESS,
     FETCH_CONSUMPTION_FAILURE,
     FETCH_VEHICLE_REFILLS_REQUEST,
+    FETCH_VEHICLE_REFILLS_SUCCESS,
     FETCH_VEHICLE_REFILLS_FAILURE,
     FETCH_HISTORY_CONSUMPTION_REQUEST,
     FETCH_HISTORY_CONSUMPTION_SUCCESS,
@@ -28,7 +30,7 @@ import {
 
 const initialState = {
     // General consumption data
-    consumptionData: [],
+    consumption: [], // Changed from consumptionData to consumption
     loading: false,
     error: null,
 
@@ -75,10 +77,17 @@ const initialState = {
 const consumptionReducer = (state = initialState, action) => {
     switch (action.type) {
         // General consumption fetch operations
+        case FETCH_CONSUMPTION_REQUEST:
+            return {
+                ...state,
+                loading: true,
+                error: null
+            };
+
         case FETCH_CONSUMPTION_SUCCESS:
             return {
                 ...state,
-                consumptionData: action.payload,
+                consumption: action.payload, // Changed from consumptionData to consumption
                 loading: false,
                 error: null
             };
@@ -86,13 +95,20 @@ const consumptionReducer = (state = initialState, action) => {
         case FETCH_CONSUMPTION_FAILURE:
             return {
                 ...state,
-                consumptionData: [],
+                consumption: [], // Changed from consumptionData to consumption
                 loading: false,
                 error: action.payload
             };
 
         // Vehicle refills operations
         case FETCH_VEHICLE_REFILLS_REQUEST:
+            return {
+                ...state,
+                vehicleRefillsLoading: true,
+                vehicleRefillsError: null
+            };
+
+        case FETCH_VEHICLE_REFILLS_SUCCESS:
             return {
                 ...state,
                 vehicleRefills: action.payload,

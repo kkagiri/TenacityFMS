@@ -1,43 +1,48 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import Toolbar, { Item } from "devextreme-react/toolbar";
 import Button from "devextreme-react/button";
 
 import DeviceStatusIndicator from "../deviceStatus/deviceStatusIndicator";
 import UserPanel from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
+import { AppDrawer } from "../app-drawer";
 import "./Header.scss";
-import { Template } from "devextreme-react/core/template";
 
-export default function Header({ menuToggleEnabled, title, toggleMenu }) {
+export default function Header({ menuToggleEnabled, title }) {
+  const [isAppDrawerOpen, setIsAppDrawerOpen] = useState(false);
+  const appButtonRef = useRef(null);
+
+  const toggleAppDrawer = () => {
+    setIsAppDrawerOpen(!isAppDrawerOpen);
+  };
+
+  const closeAppDrawer = () => {
+    setIsAppDrawerOpen(false);
+  };
   return (
     <header className={"header-component"}>
       <Toolbar  height className={"header-toolbar"}>
         <Item
           visible={true}
-          location={"before"}
+          location={"center"}
           widget={"dxButton"}
-          // cssClass={"menu-button"}
+          cssClass={"app-grid-button"}
         >
-          <Button
-            icon="menu"
-            stylingMode="text"
-            onClick={(e) => {
-              // Create a proper event object for toggleMenu
-              const syntheticEvent = {
-                stopPropagation: () => {
-                  if (e && e.stopPropagation) {
-                    e.stopPropagation();
-                  }
-                },
-                preventDefault: () => {
-                  if (e && e.preventDefault) {
-                    e.preventDefault();
-                  }
-                }
-              };
-              toggleMenu({ event: syntheticEvent });
-            }}
-          />
+          <div ref={appButtonRef} className="app-button-wrapper">
+            <Button
+              stylingMode="text"
+              onClick={toggleAppDrawer}
+              className="grid-icon-button"
+            >
+              <div className="app-grid-icon">
+                <div className="grid-dots">
+                  <span></span><span></span><span></span>
+                  <span></span><span></span><span></span>
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </Button>
+          </div>
         </Item>
 
 
@@ -82,6 +87,13 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
           <UserPanel menuMode={"list"} />
         </Template> */}
       </Toolbar>
+
+      {/* App Drawer Component */}
+      <AppDrawer
+        isOpen={isAppDrawerOpen}
+        onClose={closeAppDrawer}
+        buttonRef={appButtonRef}
+      />
     </header>
   );
 }
