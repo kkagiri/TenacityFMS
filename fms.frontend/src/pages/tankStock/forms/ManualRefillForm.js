@@ -175,8 +175,27 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
-  // Handle form submission
-  const handleSubmit = useCallback(async () => {
+  // Clear form data for new entry
+  const clearFormData = useCallback(() => {
+    setFormData({
+      vehicleId: null,
+      manualFuelrefillAmount: null,
+      previousMeterReading: null,
+      currentMeterReading: null,
+      date: new Date().toISOString(),
+      siteId: null,
+      comment: '',
+      driverId: null,
+      fuelBy: user?.userName || '',
+      tankId: null
+    });
+    setFilteredTanks([]);
+    setValidationErrors({});
+    resetValidation();
+  }, [user?.userName, resetValidation]);
+
+  // Handle form submission and close
+  const handleSaveAndClose = useCallback(async () => {
     if (!validateForm()) {
       showNotification('Please correct the validation errors', 'error');
       return;
@@ -203,6 +222,32 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
       setIsSubmitting(false);
     }
   }, [formData, validateForm, canSubmitForm, dispatch, onSuccess, showNotification]);
+
+  // Handle save and new entry
+  const handleSaveAndNew = useCallback(async () => {
+    if (!validateForm()) {
+      showNotification('Please correct the validation errors', 'error');
+      return;
+    }
+
+    if (!canSubmitForm) {
+      showNotification('Please resolve validation warnings before submitting', 'warning');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await dispatch(createFuelRefill(formData));
+      showNotification('Manual refill recorded successfully. Form cleared for new entry.', 'success');
+      clearFormData();
+    } catch (error) {
+      console.error('Error creating manual refill:', error);
+      showNotification('Failed to record manual refill', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, validateForm, canSubmitForm, dispatch, showNotification, clearFormData]);
 
   return (
     <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
@@ -447,15 +492,26 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
               Cancel
             </Button>
             <Button
-              text="Save"
-              onClick={handleSubmit}
+              text="Save and New"
+              onClick={handleSaveAndNew}
+              disabled={isSubmitting || !canSubmitForm || isValidating}
+              loading={isSubmitting}
+              className="tw-min-w-32"
+              stylingMode="outlined"
+            >
+              <i className="fa-light fa-plus tw-mr-2"></i>
+              Save and New
+            </Button>
+            <Button
+              text="Save and Close"
+              onClick={handleSaveAndClose}
               disabled={isSubmitting || !canSubmitForm || isValidating}
               loading={isSubmitting}
               className="tw-min-w-32"
               type="default"
             >
               <i className="fa-light fa-save tw-mr-2"></i>
-              Save
+              Save and Close
             </Button>
           </div>
         </div>

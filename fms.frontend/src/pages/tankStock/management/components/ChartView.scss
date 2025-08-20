@@ -1,0 +1,235 @@
+/* ChartView Component Styles */
+.chart-popup {
+  z-index: 1500 !important; /* Ensure popup is above other elements */
+
+  .dx-popup-content {
+    padding: 0;
+    position: relative;
+    z-index: 1501;
+    background: #f8fafc;
+    border-radius: 8px;
+  }
+
+  // ScrollView styling
+  .dx-scrollview {
+    height: 100% !important;
+
+    .dx-scrollview-content {
+      padding: 0;
+    }
+
+    .dx-scrollable-scrollbar {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      width: 8px;
+
+      .dx-scrollable-scroll {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.5);
+        }
+      }
+    }
+  }
+
+  // Chart controls styling
+  .chart-controls {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    select {
+      transition: all 0.2s ease;
+      border-color: #d1d5db;
+
+      &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  // Chart info panel styling
+  .chart-info-panel {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    padding: 16px;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    i {
+      filter: brightness(1.2);
+    }
+  }
+
+  .dx-chart {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    position: relative;
+    z-index: 1502;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .dx-chart-series {
+      .dx-chart-series-point {
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          transform: scale(1.2);
+          filter: brightness(1.1);
+        }
+      }
+    }
+
+    .dx-chart-tooltip {
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      border: none;
+      z-index: 99999 !important; /* Much higher z-index for tooltips */
+      position: fixed !important; /* Ensure tooltip is positioned relative to viewport */
+    }
+  }
+
+  /* Force all tooltip-related elements to highest z-index */
+  .dx-tooltip,
+  .dx-tooltip-wrapper,
+  div[class*="tooltip"] {
+    z-index: 99999 !important;
+    position: fixed !important;
+  }
+
+  .chart-info-panel {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .chart-guide {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 16px;
+    border-left: 4px solid #3b82f6;
+    margin-top: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    ul {
+      margin: 0;
+      padding-left: 16px;
+
+      li {
+        padding: 8px 0;
+        border-bottom: 1px solid #e5e7eb;
+        transition: background 0.2s ease;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:hover {
+          background: rgba(59, 130, 246, 0.05);
+          border-radius: 4px;
+          margin: 0 -8px;
+          padding: 8px;
+        }
+
+        i {
+          transition: transform 0.2s ease;
+        }
+
+        &:hover i {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+}
+
+/* Chart background and styling overrides */
+.chart-popup .dx-chart {
+  background: #ffffff !important; /* keep default white for chart */
+}
+
+.chart-popup .dx-chart .dxc-background {
+  fill: #ffffff !important; /* white plot area */
+}
+
+/* Responsive chart */
+@media (max-width: 768px) {
+  .chart-popup {
+    .dx-popup-content {
+      padding: 8px;
+    }
+
+    .dx-chart {
+      height: 300px !important;
+    }
+  }
+}
+
+/* Global DevExtreme Chart Tooltip Z-Index Fix */
+/* This fixes the tooltip z-index issue for all charts in popups */
+.dx-chart-tooltip {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Specific fix for tooltips in popups */
+.dx-popup .dx-chart-tooltip,
+.dx-popup-content .dx-chart-tooltip {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Fix for TankHistory and other chart components */
+.dx-chart-tooltip-wrapper {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Ensure tooltip container has proper stacking */
+body > .dx-chart-tooltip {
+  z-index: 9999 !important;
+}
+
+/* Enhanced chart series styling for single line chart */
+.chart-popup .dx-chart {
+  background: #ffffff !important;
+
+  .dx-chart-series {
+    stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    &:hover {
+      stroke-width: 4px !important;
+    }
+
+    path {
+      stroke-width: 3px !important;
+      stroke-opacity: 1 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  }
+
+  .dx-chart-series-point {
+    fill-opacity: 1 !important;
+    stroke-opacity: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    &:hover {
+      transform: scale(1.3);
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+  }
+}

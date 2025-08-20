@@ -18,10 +18,8 @@ import DataGrid, {
   TotalItem
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
-import { ScrollView } from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
 import Popup from 'devextreme-react/popup';
-import { Chart, Series, CommonSeriesSettings, Legend, ValueAxis, ArgumentAxis, Label, Tooltip } from 'devextreme-react/chart';
 import  notify  from 'devextreme/ui/notify';
 import { Workbook } from 'exceljs';
 import { exportDataGrid } from 'devextreme/excel_exporter';
@@ -29,6 +27,7 @@ import { fetchTankVolumeHistoryFiltered } from '../../../../redux/actions/tankVo
 import { fetchTanks } from '../../../../redux/actions/tankActions';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
 import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
+import ChartView from './ChartView';
 import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
@@ -117,159 +116,6 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     { id: 6, name: 'Dispensing' },
     { id: 7, name: 'ManualRefill' }
   ], []);
-
-  // TODO: Future implementation - Chart data processing with grouping functions
-  // This will be enhanced to support grouping by site/tank with color-coded lines
-  const getChartData = useMemo(() => {
-    if (!tankVolumeHistory || tankVolumeHistory.length === 0) return [];
-
-    console.log('🔍 Chart Data Debug - Raw data:', tankVolumeHistory);
-
-    // Sort data by timestamp for simple line chart
-    const sortedData = [...tankVolumeHistory].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-    console.log('🔍 Chart Data Debug - Sorted data:', sortedData);
-    return sortedData;
-  }, [tankVolumeHistory]);
-
-  // TODO: Future implementation - Generate colors for chart series when grouping is implemented
-
-  // Chart tooltip customization function
-  const customizeTooltip = useCallback((pointInfo) => {
-    console.log('🔍 Chart Tooltip Debug - pointInfo:', pointInfo);
-
-    const { argument, value, point } = pointInfo;
-    console.log('🔍 Chart Tooltip Debug - point.data:', point?.data);
-
-    if (!point || !point.data) {
-      console.warn('⚠️ Chart Tooltip Warning: No point data available');
-      return {
-        html: `<div style="padding: 10px; background: #ffffff; border: 1px solid #d1d5db;">
-          <strong>Tank Volume:</strong> ${value?.toLocaleString() || 'N/A'} L<br/>
-          <strong>Date:</strong> ${new Date(argument).toLocaleDateString()}
-        </div>`
-      };
-    }
-
-    const { changeReason, vehicleName, volumeChange, recordedByUserName, site, referenceType, referenceId, tankId } = point.data;
-    const date = new Date(argument);
-    const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    const formattedTime = date.toLocaleTimeString();
-
-    // Reason names mapping
-    const reasonNames = {
-      0: 'Opening Stock',
-      1: 'Closing Stock',
-      2: 'Delivery',
-      3: 'Transfer In',
-      4: 'Transfer Out',
-      5: 'Adjustment',
-      6: 'Dispensing',
-      7: 'Manual Refill'
-    };
-
-    const changeReasonText = reasonNames[changeReason] || 'Unknown';
-    const volumeChangeValue = volumeChange || 0;
-    const changeSymbol = volumeChangeValue > 0 ? '+' : '';
-
-    // Get tank name
-    const tankName = tanks?.find(t => t.id === tankId)?.name || `Tank ${tankId}`;
-
-    let tooltipHtml = `
-      <div style="
-        padding: 12px;
-        background: #ffffff;
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        font-family: Arial, sans-serif;
-        font-size: 13px;
-        line-height: 1.5;
-        text-align: left;
-        min-width: 220px;
-        max-width: 300px;
-        color: #000000;
-      ">
-        <div style="font-weight: bold; color: #1f2937; margin-bottom: 10px; text-align: center; font-size: 14px;">
-          Transaction Details
-        </div>
-
-        <div style="margin-bottom: 8px;">
-          <span style="color: #000000;"><strong>Date:</strong></span> <span style="color: #000000;">${formattedDate}</span><br/>
-          <span style="color: #000000;"><strong>Time:</strong></span> <span style="color: #000000;">${formattedTime}</span>
-        </div>
-
-        <div style="margin-bottom: 8px;">
-          <span style="color: #000000;"><strong>Tank:</strong></span> <span style="color: #000000;">${tankName}</span><br/>
-          <span style="color: #000000;"><strong>Volume:</strong></span> <span style="color: #059669; font-weight: 600;">${value.toLocaleString()} L</span>
-        </div>
-
-        <div style="margin-bottom: 8px;">
-          <span style="color: #000000;"><strong>Change:</strong></span>
-          <span style="color: ${volumeChangeValue >= 0 ? '#059669' : '#dc2626'}; font-weight: 600;">
-            ${changeSymbol}${volumeChangeValue.toFixed(2)} L
-          </span><br/>
-          <span style="color: #000000;"><strong>Type:</strong></span>
-          <span style="background: #f3f4f6; color: #000000; padding: 2px 6px; border-radius: 4px; font-weight: 500;">
-            ${changeReasonText}
-          </span>
-        </div>
-    `;
-
-    // Add vehicle name for all transactions, especially dispensing
-    if (vehicleName && vehicleName !== 'N/A' && vehicleName.trim() !== '') {
-      tooltipHtml += `
-        <div style="margin-bottom: 6px;">
-          <span style="color: #000000;"><strong>Vehicle:</strong></span>
-          <span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-weight: 500;">
-            ${vehicleName}
-          </span>
-        </div>`;
-    } else if (changeReason === 6) {
-      // Show "No Vehicle" for dispensing transactions without vehicle name
-      tooltipHtml += `
-        <div style="margin-bottom: 6px;">
-          <span style="color: #000000;"><strong>Vehicle:</strong></span>
-          <span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-style: italic;">
-            No Vehicle Assigned
-          </span>
-        </div>`;
-    }
-
-    // Add site information
-    if (site && site.trim() !== '') {
-      tooltipHtml += `
-        <div style="margin-bottom: 6px;">
-          <span style="color: #000000;"><strong>Site:</strong></span> <span style="color: #000000;">${site}</span>
-        </div>`;
-    }
-
-    // Add user information
-    let userName = '';
-    if (recordedByUserName && recordedByUserName.trim() !== '') {
-      userName = recordedByUserName;
-    }
-
-    if (userName) {
-      tooltipHtml += `
-        <div style="margin-bottom: 6px;">
-          <span style="color: #000000;"><strong>Recorded By:</strong></span> <span style="color: #000000;">${userName}</span>
-        </div>`;
-    }
-
-    // Add reference information if available
-    if (referenceType && referenceId) {
-      tooltipHtml += `
-        <div style="margin-bottom: 6px;">
-          <span style="color: #000000;"><strong>Reference:</strong></span> <span style="color: #000000;">${referenceType} #${referenceId}</span>
-        </div>`;
-    }
-
-    tooltipHtml += '</div>';
-
-    console.log('✅ Chart Tooltip HTML generated successfully');
-    return { html: tooltipHtml };
-  }, [tanks]);
 
   // Load transaction data with filters
   const loadTransactionData = useCallback(async (filters) => {
@@ -420,6 +266,102 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
     handleApplyFilters(defaultFilters);
   }, [handleApplyFilters]);
+
+  // Date navigation functions - Enhanced to work with any date range
+  // This allows cycling through single days even when a custom date range was previously selected
+  const handlePreviousDay = useCallback(() => {
+    if (!currentFilters.startDate || !currentFilters.endDate) return;
+
+    // Get the current start date and move it back by 1 day
+    const currentStart = new Date(currentFilters.startDate);
+    const newStart = new Date(currentStart);
+    newStart.setDate(newStart.getDate() - 1);
+    newStart.setHours(0, 0, 0, 0);
+
+    // Set end date to end of the same day
+    const newEnd = new Date(newStart);
+    newEnd.setHours(23, 59, 59, 999);
+
+    const updatedFilters = {
+      ...currentFilters,
+      startDate: newStart.toISOString(),
+      endDate: newEnd.toISOString()
+    };
+
+    handleApplyFilters(updatedFilters);
+
+    // Show feedback notification
+    const dateStr = newStart.toLocaleDateString();
+    notify({
+      message: `Viewing transactions for ${dateStr}`,
+      type: 'info',
+      displayTime: 1500
+    });
+  }, [currentFilters, handleApplyFilters]);
+
+  const handleNextDay = useCallback(() => {
+    if (!currentFilters.startDate || !currentFilters.endDate) return;
+
+    // Get the current start date and move it forward by 1 day
+    const currentStart = new Date(currentFilters.startDate);
+    const today = new Date();
+
+    // Don't allow going beyond today
+    const nextDay = new Date(currentStart);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    if (nextDay.toDateString() > today.toDateString()) {
+      notify({
+        message: 'Cannot navigate beyond today',
+        type: 'warning',
+        displayTime: 2000
+      });
+      return;
+    }
+
+    const newStart = new Date(nextDay);
+    newStart.setHours(0, 0, 0, 0);
+
+    // Set end date to end of the same day, but don't go beyond today
+    const newEnd = new Date(newStart);
+    newEnd.setHours(23, 59, 59, 999);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    if (newEnd > todayEnd) {
+      newEnd.setTime(todayEnd.getTime());
+    }
+
+    const updatedFilters = {
+      ...currentFilters,
+      startDate: newStart.toISOString(),
+      endDate: newEnd.toISOString()
+    };
+
+    handleApplyFilters(updatedFilters);
+
+    // Show feedback notification
+    const dateStr = newStart.toLocaleDateString();
+    const isToday = newStart.toDateString() === new Date().toDateString();
+    notify({
+      message: `Viewing transactions for ${isToday ? 'Today' : dateStr}`,
+      type: 'info',
+      displayTime: 1500
+    });
+  }, [currentFilters, handleApplyFilters]);
+
+  const isNextDayDisabled = useCallback(() => {
+    if (!currentFilters.startDate) return true;
+
+    const currentStart = new Date(currentFilters.startDate);
+    const nextDay = new Date(currentStart);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const today = new Date();
+
+    // Disable if next day would be beyond today
+    return nextDay.toDateString() > today.toDateString();
+  }, [currentFilters.startDate]);
 
   // Delete transaction handlers - FIXED VERSION with stable state management
   const handleDeleteTransaction = useCallback(async (transaction) => {
@@ -786,8 +728,10 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     <div className="transaction-hub tw-h-full tw-flex tw-flex-col">
       {/* Header with actions */}
       <div className="tw-bg-white tw-p-4 tw-border-b tw-border-gray-200">
-        <div className="tw-flex tw-justify-between tw-items-center">
-          <div>
+        {/* Header content - responsive layout */}
+        <div className="tw-flex tw-flex-col lg:tw-flex-row lg:tw-justify-between lg:tw-items-center tw-gap-4">
+          {/* Title section */}
+          <div className="tw-flex-shrink-0">
             <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
               <i className="fa-light fa-exchange-alt tw-mr-2 tw-text-blue-600"></i>
               Transaction Hub
@@ -796,9 +740,11 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               Unified view of all tank transactions (Default: Today's data)
             </p>
           </div>
-          <div className="tw-flex tw-space-x-3 tw-items-center">
+
+          {/* Actions section - responsive */}
+          <div className="tw-flex tw-flex-col sm:tw-flex-row tw-gap-3 tw-items-stretch sm:tw-items-center">
             {/* Quick Actions */}
-            <div className="tw-min-w-48">
+            <div className="tw-flex-shrink-0 tw-w-full sm:tw-w-auto sm:tw-min-w-48">
               <QuickActions
                 collapsed={false}
                 onRefreshData={handleRefresh}
@@ -807,14 +753,16 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               />
             </div>
 
+
+
             {/* Filters and Refresh */}
-            <div className="tw-flex tw-space-x-2">
+            <div className="tw-flex tw-gap-2 tw-flex-shrink-0">
               <Button
                 text="Filters"
                 icon="fa-light fa-filter"
                 onClick={() => setShowFilterPopup(true)}
                 stylingMode="outlined"
-                className="tw-min-w-24"
+                className="tw-flex-1 sm:tw-flex-initial tw-min-w-24"
               />
 
               <Button
@@ -822,58 +770,82 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 icon="fa-light fa-refresh"
                 onClick={handleRefresh}
                 stylingMode="outlined"
+                className="tw-flex-1 sm:tw-flex-initial"
               />
             </div>
           </div>
         </div>
 
-        {/* Current Filters Display */}
+        {/* Current Filters Display - Mobile Responsive */}
         <div className="tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
-          <div className="tw-flex tw-items-center tw-justify-between">
-            <div className="tw-flex tw-items-center tw-text-sm tw-text-blue-800">
-              <i className="fa-light fa-info-circle tw-mr-2"></i>
-              <span className="tw-font-medium">Active Filters:</span>
-              <div className="tw-ml-2 tw-flex tw-flex-wrap tw-gap-2">
+          <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center sm:tw-justify-between tw-gap-3">
+            {/* Active filters info */}
+            <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-text-sm tw-text-blue-800 tw-gap-2">
+              <div className="tw-flex tw-items-center tw-flex-shrink-0">
+                <i className="fa-light fa-info-circle tw-mr-2"></i>
+                <span className="tw-font-medium">Active Filters:</span>
+              </div>
+
+              {/* Filter tags - responsive wrapping */}
+              <div className="tw-flex tw-flex-wrap tw-gap-2">
                 {currentFilters.siteId ? (
-                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                     Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
                   </span>
                 ) : (
-                  <span className="tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                  <span className="tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                     All Sites
                   </span>
                 )}
                 {currentFilters.tankId && (
-                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                     Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
                   </span>
                 )}
                 {currentFilters.recordedBy && (
-                  <span className="tw-bg-purple-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                  <span className="tw-bg-purple-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                     User: {usersForFilter?.find(u => u.id === currentFilters.recordedBy)?.userName || 'Unknown'}
                   </span>
                 )}
-                <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
+                <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                   {currentFilters.startDate && currentFilters.endDate ? (
-                    `${new Date(currentFilters.startDate).toLocaleDateString()} - ${new Date(currentFilters.endDate).toLocaleDateString()}`
+                    (() => {
+                      const startDate = new Date(currentFilters.startDate);
+                      const endDate = new Date(currentFilters.endDate);
+                      const startDay = startDate.toLocaleDateString();
+                      const endDay = endDate.toLocaleDateString();
+
+                      // Check if it's the same day (single day filter)
+                      if (startDay === endDay) {
+                        const today = new Date().toLocaleDateString();
+                        const isToday = startDay === today;
+                        return `📅 ${startDay}${isToday ? ' (Today)' : ''}`;
+                      } else {
+                        return `📅 ${startDay} - ${endDay}`;
+                      }
+                    })()
                   ) : (
-                    'Today'
+                    '📅 Today'
                   )}
                 </span>
               </div>
             </div>
-            <Button
-              text="Reset to All Sites"
-              onClick={handleClearFilters}
-              stylingMode="text"
-              className="tw-text-xs tw-text-blue-600"
-            />
+
+            {/* Reset button */}
+            <div className="tw-flex-shrink-0">
+              <Button
+                text="Reset to All Sites"
+                onClick={handleClearFilters}
+                stylingMode="text"
+                className="tw-text-xs tw-text-blue-600 tw-w-full sm:tw-w-auto"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="tw-flex-1 tw-p-4">
+      {/* Main content - Responsive padding */}
+      <div className="tw-flex-1 tw-p-2 sm:tw-p-4">
         <DataGrid
           dataSource={tankVolumeHistory}
           keyExpr="id"
@@ -904,10 +876,36 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
           <Toolbar>
             <TBItem
+              location="before"
+              widget="dxButton"
+              options={{
+                text: '← Previous Day',
+                onClick: handlePreviousDay,
+                stylingMode: 'outlined',
+                hint: 'Go to previous day',
+                elementAttr: {
+                  class: 'date-nav-btn date-nav-prev'
+                }
+              }}
+            />
+            <TBItem
+              location="before"
+              widget="dxButton"
+              options={{
+                text: 'Next Day →',
+                onClick: handleNextDay,
+                stylingMode: 'outlined',
+                hint: 'Go to next day',
+                disabled: isNextDayDisabled(),
+                elementAttr: {
+                  class: 'date-nav-btn date-nav-next'
+                }
+              }}
+            />
+            <TBItem
               location="after"
               widget="dxButton"
               options={{
-                icon: 'fa-light fa-chart-line',
                 text: 'Chart View',
                 onClick: () => setShowChartPopup(true),
                 elementAttr: {
@@ -919,7 +917,6 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
               location="after"
               widget="dxButton"
               options={{
-                icon: 'fa-light fa-file-export',
                 text: 'Export',
                 onClick: onExporting
               }}
@@ -1055,266 +1052,15 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         </div>
       </Popup>
 
-      {/* Chart View Popup */}
-      <Popup
+      {/* Chart View Component */}
+      <ChartView
         visible={showChartPopup}
-        onHiding={() => setShowChartPopup(false)}
-        showTitle={true}
-        title="Transaction Volume Chart"
-        width="95%"
-        height="85%"
-        showCloseButton={true}
-        dragEnabled={true}
-        resizeEnabled={false}
-        className="chart-popup"
-      >
-        <ScrollView
-          height="100%"
-          showScrollbar="always"
-          bounceEnabled={false}
-        >
-          <div className="tw-p-4">
-            {/* Chart Controls */}
-            <div className="chart-controls tw-mb-4 tw-flex tw-items-center tw-gap-4 tw-p-3 tw-bg-gray-50 tw-rounded-lg">
-              {/* Data summary */}
-              <div className="tw-flex tw-items-center tw-gap-4 tw-text-xs tw-text-gray-600">
-                <span className="tw-font-medium">Data:</span>
-                <span className="tw-px-2 tw-py-1 tw-rounded tw-bg-white tw-border tw-border-gray-200">
-                  {getChartData.length} transactions
-                </span>
-              </div>
-
-              {/* Instructions */}
-              <div className="tw-text-xs tw-text-blue-600 tw-italic">
-                💡 Hover over points to see transaction details
-              </div>
-            </div>
-
-            <div className="chart-info-panel tw-mb-4">
-              <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-4 tw-text-sm">
-                <span className="tw-flex tw-items-center tw-font-medium tw-text-gray-700">
-                  <i className="fa-light fa-chart-bar tw-mr-2 tw-text-blue-600"></i>
-                  <strong>{tankVolumeHistory?.length || 0}</strong> transactions
-                </span>
-
-                {/* Show data range info */}
-                {currentFilters.startDate && currentFilters.endDate && (
-                  <span className="tw-flex tw-items-center tw-text-gray-600">
-                    <i className="fa-light fa-calendar tw-mr-2 tw-text-green-600"></i>
-                    {new Date(currentFilters.startDate).toLocaleDateString()} - {new Date(currentFilters.endDate).toLocaleDateString()}
-                  </span>
-                )}
-
-                {currentFilters.siteId ? (
-                  <span className="tw-flex tw-items-center tw-text-gray-600">
-                    <i className="fa-light fa-map-marker tw-mr-2 tw-text-purple-600"></i>
-                    Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
-                  </span>
-                ) : (
-                  <span className="tw-flex tw-items-center tw-text-gray-600">
-                    <i className="fa-light fa-globe tw-mr-2 tw-text-purple-600"></i>
-                    All Sites
-                  </span>
-                )}
-                {currentFilters.tankId && (
-                  <span className="tw-flex tw-items-center tw-text-gray-600">
-                    <i className="fa-light fa-oil-can tw-mr-2 tw-text-orange-600"></i>
-                    Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
-                  </span>
-                )}
-              </div>
-            </div>            <Chart
-              height={500}
-              dataSource={getChartData}
-              title={{
-                text: "Tank Volume Changes Over Time",
-                font: {
-                  size: 18,
-                  weight: 600
-                }
-              }}
-              tooltip={{
-                enabled: true,
-                format: "fixedPoint",
-                precision: 2,
-                container: "body"
-              }}
-              crosshair={{
-                enabled: true,
-                color: '#949494',
-                width: 1,
-                dashStyle: 'dash'
-              }}
-              adaptiveLayout={{
-                width: 80,
-                height: 80,
-                keepLabels: true
-              }}
-              onInitialized={(e) => {
-                console.log('🎨 Chart initialized:', e);
-                console.log('🎨 Chart data:', getChartData);
-                console.log('🎨 Total data points:', getChartData.length);
-
-                // Log sample data for debugging
-                if (getChartData.length > 0) {
-                  console.log('🎨 Sample data point:', getChartData[0]);
-                  console.log('🎨 Timestamp:', getChartData[0]?.timestamp);
-                  console.log('🎨 NewVolume:', getChartData[0]?.newVolume);
-                }
-
-                // Debug series rendering
-                setTimeout(() => {
-                  const chartElement = e.element;
-                  const seriesElements = chartElement.querySelectorAll('.dx-chart-series, path[class*="dx-chart-series"], .dx-chart-series-line');
-                  console.log('🎨 Found series elements:', seriesElements.length);
-
-                  seriesElements.forEach((element, index) => {
-                    console.log(`🎨 Series ${index}:`, element);
-                    // Force visibility
-                    element.style.strokeWidth = '4px';
-                    element.style.strokeOpacity = '1';
-                    element.style.opacity = '1';
-                    element.style.visibility = 'visible';
-                    element.style.display = 'block';
-                    element.style.stroke = '#3b82f6';
-                  });
-                }, 500);
-
-                // Fix tooltip z-index after chart initialization
-                setTimeout(() => {
-                  const tooltips = document.querySelectorAll('.dx-chart-tooltip, .dx-tooltip, .dx-tooltip-wrapper, div[class*="tooltip"]');
-                  tooltips.forEach(tooltip => {
-                    tooltip.style.zIndex = '99999';
-                    tooltip.style.position = 'fixed';
-                  });
-                }, 100);
-
-                // Set up mutation observer to catch dynamically created tooltips
-                const observer = new MutationObserver((mutations) => {
-                  mutations.forEach((mutation) => {
-                    mutation.addedNodes.forEach((node) => {
-                      if (node.nodeType === 1) { // Element node
-                        const tooltips = node.querySelectorAll?.('.dx-chart-tooltip, .dx-tooltip, .dx-tooltip-wrapper') || [];
-                        tooltips.forEach(tooltip => {
-                          tooltip.style.zIndex = '99999';
-                          tooltip.style.position = 'fixed';
-                        });
-
-                        // Check if the node itself is a tooltip
-                        if (node.classList && (node.classList.contains('dx-chart-tooltip') || node.classList.contains('dx-tooltip'))) {
-                          node.style.zIndex = '99999';
-                          node.style.position = 'fixed';
-                        }
-                      }
-                    });
-                  });
-                });
-
-                observer.observe(document.body, { childList: true, subtree: true });
-              }}
-            >
-              <CommonSeriesSettings argumentField="timestamp" type="line" />
-              <Series
-                valueField="newVolume"
-                name="Tank Volume"
-                color="#3b82f6"
-                point={{
-                  visible: true,
-                  size: 8,
-                  symbol: 'circle',
-                  color: '#1d4ed8',
-                  border: {
-                    visible: true,
-                    width: 2,
-                    color: '#ffffff'
-                  }
-                }}
-                width={3}
-              />
-              <ValueAxis>
-                <Label format="#,##0 L" />
-              </ValueAxis>
-              <ArgumentAxis>
-                <Label
-                  customizeText={(e) => {
-                    const date = new Date(e.value);
-                    return date.toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    }) + '\n' + date.toLocaleTimeString('en-GB', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    });
-                  }}
-                  rotationAngle={45}
-                />
-              </ArgumentAxis>
-              <Legend visible={true} />
-              <Tooltip
-                enabled={true}
-                customizeTooltip={customizeTooltip}
-                onTooltipShown={(e) => {
-                  // Ensure tooltip has the highest z-index when shown
-                  console.log('Tooltip shown event:', e);
-                  if (e.element) {
-                    e.element.style.zIndex = '99999';
-                    e.element.style.position = 'fixed';
-                  }
-
-                  // Also check for parent elements that might be tooltip containers
-                  let parent = e.element?.parentElement;
-                  while (parent && parent !== document.body) {
-                    if (parent.classList && (parent.classList.contains('dx-tooltip') || parent.classList.contains('dx-chart-tooltip'))) {
-                      parent.style.zIndex = '99999';
-                      parent.style.position = 'fixed';
-                    }
-                    parent = parent.parentElement;
-                  }
-
-                  // Force immediate DOM update
-                  setTimeout(() => {
-                    const allTooltips = document.querySelectorAll('.dx-chart-tooltip, .dx-tooltip, div[class*="tooltip"]');
-                    allTooltips.forEach(tooltip => {
-                      tooltip.style.zIndex = '99999';
-                      tooltip.style.position = 'fixed';
-                    });
-                  }, 0);
-                }}
-              />
-            </Chart>
-
-            <div className="chart-guide tw-mt-4">
-              <div className="tw-flex tw-items-center tw-mb-3">
-                <i className="fa-light fa-lightbulb tw-mr-2 tw-text-blue-600"></i>
-                <strong className="tw-text-gray-800">Chart Guide:</strong>
-              </div>
-              <ul className="tw-space-y-2 tw-text-sm tw-text-gray-600">
-                <li className="tw-flex tw-items-start">
-                  <i className="fa-light fa-mouse tw-mr-2 tw-mt-1 tw-text-blue-500"></i>
-                  <span>Hover over data points to see detailed transaction information</span>
-                </li>
-                <li className="tw-flex tw-items-start">
-                  <i className="fa-light fa-search-plus tw-mr-2 tw-mt-1 tw-text-green-500"></i>
-                  <span>Use mouse wheel to zoom in/out on the chart</span>
-                </li>
-                <li className="tw-flex tw-items-start">
-                  <i className="fa-light fa-arrows tw-mr-2 tw-mt-1 tw-text-purple-500"></i>
-                  <span>Click and drag to pan around the chart when zoomed</span>
-                </li>
-                <li className="tw-flex tw-items-start">
-                  <i className="fa-light fa-chart-line tw-mr-2 tw-mt-1 tw-text-orange-500"></i>
-                  <span>Volume increases show as upward trends, decreases as downward trends</span>
-                </li>
-                <li className="tw-flex tw-items-start">
-                  <i className="fa-light fa-layer-group tw-mr-2 tw-mt-1 tw-text-indigo-500"></i>
-                  <span>Single line shows all tank volume changes chronologically</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </ScrollView>
-      </Popup>
+        onClose={() => setShowChartPopup(false)}
+        tankVolumeHistory={tankVolumeHistory}
+        tanks={tanks}
+        sites={sites}
+        currentFilters={currentFilters}
+      />
 
       {/* Page-level LoadPanel */}
       <LoadPanel

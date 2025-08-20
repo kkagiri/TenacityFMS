@@ -37,12 +37,12 @@ const VehicleSearchableSelector = ({
         setShowDropdown(true);
       } else {
         setVehicles([]);
-        setShowDropdown(false);
+        setShowDropdown(true); // Show dropdown even if no results to display "No vehicles found"
       }
     } catch (err) {
       console.error('Error searching vehicles:', err);
       setVehicles([]);
-      setShowDropdown(false);
+      setShowDropdown(true); // Show dropdown with error message
     } finally {
       setIsLoading(false);
     }
@@ -71,15 +71,39 @@ const VehicleSearchableSelector = ({
     }
   }, [onValueChanged]);
 
+  const handleClearSelection = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Clear all local state immediately
+    setSelectedVehicle(null);
+    setSearchTerm('');
+    setVehicles([]);
+    setShowDropdown(false);
+
+    // Clear any pending search timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Notify parent component
+    if (onValueChanged) {
+      onValueChanged({ value: null });
+    }
+  }, [onValueChanged]);
+
   const handleInputChange = useCallback((e) => {
     const inputValue = e.target.value;
     handleSearchTermChange(inputValue);
 
-    // Clear selection if user is typing
-    if (selectedVehicle && inputValue !== (selectedVehicle.hyoungNo + (selectedVehicle.vehicleName ? ' - ' + selectedVehicle.vehicleName : ''))) {
-      setSelectedVehicle(null);
-      if (onValueChanged) {
-        onValueChanged({ value: null });
+    // Clear selection if user is typing and input doesn't match selected vehicle
+    if (selectedVehicle) {
+      const expectedValue = selectedVehicle.hyoungNo + (selectedVehicle.vehicleName ? ' - ' + selectedVehicle.vehicleName : '');
+      if (inputValue !== expectedValue) {
+        setSelectedVehicle(null);
+        if (onValueChanged) {
+          onValueChanged({ value: null });
+        }
       }
     }
   }, [selectedVehicle, onValueChanged, handleSearchTermChange]);
@@ -130,11 +154,13 @@ const VehicleSearchableSelector = ({
     loadSelected();
   }, [value, selectedVehicle]);
 
-  // Clear when value is null
+  // Clear when value is null - but avoid infinite loops
   useEffect(() => {
     if (!value) {
       setSelectedVehicle(null);
       setSearchTerm('');
+      setVehicles([]);
+      setShowDropdown(false);
     }
   }, [value]);
 
@@ -165,6 +191,18 @@ const VehicleSearchableSelector = ({
             }}
           />
           <div className="dx-texteditor-buttons-container">
+            {selectedVehicle && (
+              <div
+                className="dx-button dx-button-normal dx-button-mode-text dx-widget"
+                style={{ backgroundColor: 'transparent', marginRight: '4px', cursor: 'pointer' }}
+                onClick={handleClearSelection}
+                title="Clear selection"
+              >
+                <div className="dx-button-content">
+                  <i className="fa-light fa-times" style={{ color: '#666', fontSize: '12px' }}></i>
+                </div>
+              </div>
+            )}
             {isLoading ? (
               <div className="dx-button dx-button-normal dx-button-mode-text dx-widget" style={{ backgroundColor: 'transparent' }}>
                 <div className="dx-button-content">
@@ -205,7 +243,7 @@ const VehicleSearchableSelector = ({
             <div className="dx-scrollable dx-scrollable-vertical dx-scrollable-simulated">
               <div className="dx-scrollable-wrapper">
                 <div className="dx-scrollable-container">
-                  <div className="dx-scrollable-content" style={{ maxHeight: '300px', minHeight: '150px', overflowY: 'auto' }}>
+                  <div className="dx-scrollable-content" style={{ maxHeight: '250px', minHeight: '150px', overflowY: 'auto' }}>
                     <div className="dx-list dx-list-select-decorator-enabled dx-widget">
                       {vehicles.length > 0 ? (
                         vehicles.map((vehicle, index) => (

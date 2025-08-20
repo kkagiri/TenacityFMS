@@ -60,6 +60,14 @@ const FixedHeightSelector = ({
     }
   };
 
+  const handleClear = (e) => {
+    e.stopPropagation();
+    setSelectedItem(null);
+    if (onChange) {
+      onChange({ value: null });
+    }
+  };
+
   return (
     <div ref={containerRef} className="fixed-height-selector">
       <div
@@ -70,8 +78,20 @@ const FixedHeightSelector = ({
           {selectedItem ? selectedItem[displayExpr] :
             <span className="selector-placeholder">{placeholder}</span>}
         </div>
-        <div className="selector-arrow">
-          <i className={`fa-light ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+        <div className="selector-buttons">
+          {selectedItem && (
+            <button
+              type="button"
+              className="selector-clear-button"
+              onClick={handleClear}
+              title="Clear selection"
+            >
+              <i className="fa-light fa-times"></i>
+            </button>
+          )}
+          <div className="selector-arrow">
+            <i className={`fa-light ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+          </div>
         </div>
       </div>
 

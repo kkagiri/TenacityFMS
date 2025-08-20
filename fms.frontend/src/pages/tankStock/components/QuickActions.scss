@@ -45,16 +45,80 @@
   }
 }
 
+// Ensure QuickActions button takes full width on mobile
+.quick-actions-container {
+  .dx-dropdownbutton {
+    width: 100% !important;
+
+    .dx-button {
+      width: 100% !important;
+      justify-content: center;
+      height: auto; // Let height be determined by content and padding
+      min-height: auto; // Remove any forced minimum height
+
+      // Match the height of other buttons (Filters, Refresh)
+      padding: 8px 16px; // Standard DevExtreme button padding
+      line-height: 1.4; // Standard line height
+    }
+  }
+}
+
 // Mobile responsive adjustments
 @media (max-width: 768px) {
   .stock-management-popup {
     .dx-popup-content {
       padding: 0 !important;
+      margin: 8px;
     }
 
     .dx-popup-title {
       padding: 12px 16px;
       font-size: 16px;
+    }
+
+    // Adjust popup dimensions for mobile
+    .dx-popup-wrapper {
+      margin: 8px !important;
+    }
+  }
+
+  // Keep consistent button height on tablets/larger mobile
+  .dx-dropdownbutton {
+    width: 100% !important;
+
+    .dx-button {
+      width: 100% !important;
+      height: auto;
+      min-height: auto;
+    }
+
+    .dx-button-content {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+}
+
+// Only apply larger touch-friendly sizing on very small screens
+@media (max-width: 480px) {
+  .stock-management-popup {
+    .dx-popup-content {
+      margin: 4px;
+    }
+
+    .dx-popup-title {
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+  }
+
+  // Only on very small screens, add touch-friendly padding
+  .quick-actions-container {
+    .dx-dropdownbutton {
+      .dx-button {
+        padding: 8px 12px; // Smaller padding than before
+        min-height: 36px; // Smaller minimum height for touch
+      }
     }
   }
 }

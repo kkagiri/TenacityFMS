@@ -49,12 +49,12 @@ const EmployeeSearchableSelector = ({
         setShowDropdown(true);
       } else {
         setEmployees([]);
-        setShowDropdown(false);
+        setShowDropdown(true); // Show dropdown even if no results to display "No employees found"
       }
     } catch (err) {
       console.error('Error searching employees:', err);
       setEmployees([]);
-      setShowDropdown(false);
+      setShowDropdown(true); // Show dropdown with error message
     } finally {
       setIsLoading(false);
     }
@@ -85,11 +85,32 @@ const EmployeeSearchableSelector = ({
     }
   }, [onValueChanged]);
 
+  const handleClearSelection = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Clear all local state immediately
+    setSelectedEmployee(null);
+    setSearchTerm('');
+    setEmployees([]);
+    setShowDropdown(false);
+
+    // Clear any pending search timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Notify parent component
+    if (onValueChanged) {
+      onValueChanged({ value: null });
+    }
+  }, [onValueChanged]);
+
   const handleInputChange = useCallback((e) => {
     const inputValue = e.target.value;
     handleSearchTermChange(inputValue);
 
-    // Clear selection if user is typing
+    // Clear selection if user is typing and input doesn't match selected employee
     if (selectedEmployee) {
       const expectedValue = selectedEmployee.fullName + (selectedEmployee.employeeWorkNo ? ` (${selectedEmployee.employeeWorkNo})` : '');
       if (inputValue !== expectedValue) {
@@ -148,11 +169,13 @@ const EmployeeSearchableSelector = ({
     loadSelected();
   }, [value, selectedEmployee]);
 
-  // Clear when value is null
+  // Clear when value is null - but avoid infinite loops
   useEffect(() => {
     if (!value) {
       setSelectedEmployee(null);
       setSearchTerm('');
+      setEmployees([]);
+      setShowDropdown(false);
     }
   }, [value]);
 
@@ -183,6 +206,18 @@ const EmployeeSearchableSelector = ({
             }}
           />
           <div className="dx-texteditor-buttons-container">
+            {selectedEmployee && (
+              <div
+                className="dx-button dx-button-normal dx-button-mode-text dx-widget"
+                style={{ backgroundColor: 'transparent', marginRight: '4px', cursor: 'pointer' }}
+                onClick={handleClearSelection}
+                title="Clear selection"
+              >
+                <div className="dx-button-content">
+                  <i className="fa-light fa-times" style={{ color: '#666', fontSize: '12px' }}></i>
+                </div>
+              </div>
+            )}
             {isLoading ? (
               <div className="dx-button dx-button-normal dx-button-mode-text dx-widget" style={{ backgroundColor: 'transparent' }}>
                 <div className="dx-button-content">
@@ -223,7 +258,7 @@ const EmployeeSearchableSelector = ({
             <div className="dx-scrollable dx-scrollable-vertical dx-scrollable-simulated">
               <div className="dx-scrollable-wrapper">
                 <div className="dx-scrollable-container">
-                  <div className="dx-scrollable-content" style={{ maxHeight: '300px', minHeight: '150px', overflowY: 'auto' }}>
+                  <div className="dx-scrollable-content" style={{ maxHeight: '250px', minHeight: '150px', overflowY: 'auto' }}>
                     <div className="dx-list dx-list-select-decorator-enabled dx-widget">
                       {employees.length > 0 ? (
                         employees.map((employee, index) => (

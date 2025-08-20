@@ -29,7 +29,7 @@
 
 /* Scoped popup height */
 .searchable-selector .dx-selectbox-popup {
-/*   min-height: 150px !important; */
+  min-height: 250px !important; /* Ensure minimum height to show ~5 items */
 }
 
 /* Scoped list item styling */
@@ -148,11 +148,12 @@
 /* Button container positioning - SCOPED */
 .searchable-selector .dx-texteditor-buttons-container .dx-button {
   min-width: auto !important;
-  width: 32px !important;
-  height: 32px !important;
+  width: 28px !important; /* Slightly smaller to accommodate clear button */
+  height: 28px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  margin-left: 2px !important;
 }
 
 /* Improve scrollbar styling - SCOPED */

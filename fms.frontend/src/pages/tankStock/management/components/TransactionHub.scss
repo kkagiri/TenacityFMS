@@ -150,7 +150,211 @@
   }
 }
 
-/* Overrides: Button styling (light blue) and white icons; keep chart background white */
+/* Mobile Responsive Styles for Transaction Hub */
+.transaction-hub {
+  /* Ensure no horizontal overflow on mobile */
+  @media (max-width: 768px) {
+    .dx-datagrid {
+      /* Remove any fixed widths that cause horizontal overflow */
+      min-width: auto !important;
+
+      .dx-datagrid-content {
+        overflow-x: auto;
+      }
+
+      /* Make toolbar responsive */
+      .dx-toolbar {
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .dx-toolbar-item {
+          margin: 2px !important;
+        }
+      }
+
+      /* Adjust DataGrid header for mobile */
+      .dx-header-filter,
+      .dx-datagrid-header-panel {
+        flex-wrap: wrap;
+      }
+    }
+
+    /* Reduce padding on mobile */
+    .tw-p-4 {
+      padding: 0.75rem !important;
+    }
+
+    /* Ensure buttons stack properly on mobile */
+    .dx-button {
+      min-width: auto !important;
+      white-space: nowrap;
+    }
+  }
+
+  /* Small mobile devices */
+  @media (max-width: 480px) {
+    .dx-datagrid {
+      .dx-toolbar {
+        .dx-toolbar-item {
+          .dx-button {
+            font-size: 12px;
+            padding: 6px 12px;
+          }
+        }
+      }
+    }
+
+    /* Stack filter tags vertically on very small screens */
+    .tw-flex-wrap {
+      flex-direction: column;
+      align-items: flex-start !important;
+    }
+
+    /* Adjust filter display for very small screens */
+    .tw-bg-blue-50 {
+      .tw-flex-wrap {
+        flex-direction: row; /* Keep filter tags horizontal */
+      }
+    }
+  }
+}
+
+/* Date Navigation Button Styling - Toolbar Style */
+.date-nav-btn {
+  .dx-button {
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    min-height: 32px;
+
+    &:hover:not(.dx-state-disabled) {
+      background-color: #f8fafc;
+      border-color: #3b82f6;
+      color: #3b82f6;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active:not(.dx-state-disabled) {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    &.dx-state-disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: #f9fafb;
+      color: #9ca3af;
+      border-color: #e5e7eb;
+    }
+
+    .dx-button-content {
+      font-size: 13px;
+      white-space: nowrap;
+    }
+  }
+}
+
+/* DataGrid Toolbar Date Navigation Styling */
+.dx-datagrid .dx-toolbar {
+  .date-nav-btn {
+    .dx-button {
+      margin-right: 8px;
+      font-size: 12px;
+      padding: 4px 12px;
+      min-height: 28px;
+
+      .dx-button-content {
+        font-size: 12px;
+      }
+
+      &:hover:not(.dx-state-disabled) {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-color: #3b82f6;
+        color: #1d4ed8;
+      }
+    }
+
+    &.date-nav-prev .dx-button {
+      background: #fefefe;
+      border-color: #e5e7eb;
+    }
+
+    &.date-nav-next .dx-button {
+      background: #fefefe;
+      border-color: #e5e7eb;
+      margin-right: 16px; /* Extra space after last date nav button */
+      position: relative;
+
+      /* Add separator line after next day button */
+      &::after {
+        content: '';
+        position: absolute;
+        right: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1px;
+        height: 20px;
+        background: #e5e7eb;
+      }
+    }
+  }
+}
+
+/* Specific styling for previous/next buttons */
+.date-nav-prev .dx-button:hover:not(.dx-state-disabled) {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+}
+
+.date-nav-next .dx-button:hover:not(.dx-state-disabled) {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+}
+
+/* Mobile responsive styling for toolbar date buttons */
+@media (max-width: 768px) {
+  .dx-datagrid .dx-toolbar {
+    .date-nav-btn {
+      .dx-button {
+        font-size: 10px;
+        padding: 2px 8px;
+        min-height: 24px;
+
+        .dx-button-content {
+          font-size: 10px;
+        }
+      }
+    }
+  }
+}
+
+/* Mobile responsive styling for toolbar date buttons */
+@media (max-width: 768px) {
+  .dx-datagrid .dx-toolbar {
+    .date-nav-btn {
+      .dx-button {
+        font-size: 10px;
+        padding: 2px 8px;
+        min-height: 24px;
+
+        .dx-button-content {
+          font-size: 10px;
+        }
+      }
+    }
+  }
+
+  .transaction-hub {
+    /* Remove any leftover separator rules */
+    .date-separator {
+      display: none;
+    }
+  }
+}/* Overrides: Button styling (light blue) and white icons; keep chart background white */
 .chart-popup .dx-chart {
   background: #ffffff !important; /* keep default white for chart */
 }
@@ -164,32 +368,40 @@
   background: #479dff !important; /* light blue */
   border: none !important;
   color: #ffffff !important;
+
+  .dx-button-content::before {
+    font-family: "Font Awesome 6 Pro";
+    content: "\f201"; /* chart-line icon */
+    margin-right: 6px;
+    font-weight: 300; /* light */
+  }
 }
 
 .dx-datagrid .dx-toolbar .dx-button.chart-view-button:hover {
   background: #60a5fa !important; /* a bit darker on hover */
 }
 
-.dx-datagrid .dx-toolbar .dx-button.chart-view-button .dx-icon,
-.dx-datagrid .dx-toolbar .dx-button.chart-view-button .dx-button-content i {
-  color: #ffffff !important; /* white icon */
+/* Export button styling */
+.dx-datagrid .dx-toolbar .dx-button:has(.dx-button-content:contains("Export")) {
+  .dx-button-content::before {
+    font-family: "Font Awesome 6 Pro";
+    content: "\f56e"; /* file-export icon */
+    margin-right: 6px;
+    font-weight: 300; /* light */
+  }
 }
 
 /* Chart button styling in toolbar */
 .dx-datagrid .dx-toolbar .dx-button {
   &.chart-view-button {
-    background: linear-gradient(135deg, #3b82f6 0%, #3a6bf5 100%);
-    border: none;
-    color: white;
+    background: linear-gradient(135deg, #3b82f6 0%, #3a6bf5 100%) !important;
+    border: none !important;
+    color: white !important;
 
     &:hover {
-      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
-
-    .dx-icon {
-      margin-right: 6px;
     }
   }
 }

@@ -105,7 +105,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     {
       key: "manualRefill",
       text: "Manual Refill",
-      icon: "fa-light fa-fuel-pump",
+      icon: "fa-light fa-book",
       type: "normal",
     }
   ];
@@ -211,7 +211,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
 
   if (collapsed) {
     return (
-      <div className="tw-flex tw-justify-center">
+      <div className="quick-actions-container tw-flex tw-justify-center">
         <DropDownButton
           icon="fa-light fa-plus"
           dropDownOptions={{
@@ -232,7 +232,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
   }
 
   return (
-    <div className="tw-w-full">
+    <div className="quick-actions-container tw-w-full">
       <DropDownButton
         text="Stock Management"
         icon="fa-light fa-plus"
@@ -245,7 +245,10 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         useSelectMode={false}
         stylingMode="contained"
         type="default"
-        width="100%"
+        className="tw-w-full"
+        elementAttr={{
+          style: { width: '100%' }
+        }}
       />
       {renderPopup()}
     </div>
