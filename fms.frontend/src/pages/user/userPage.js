@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import DataGrid, {
@@ -16,8 +16,10 @@ import DataGrid, {
 import Tabs, { Item as TabItem } from 'devextreme-react/tabs';
 import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
+import { SelectBox } from 'devextreme-react/select-box';
 import Popup from 'devextreme-react/popup';
 import ScrollView from 'devextreme-react/scroll-view';
+import LoadPanel from 'devextreme-react/load-panel';
 import Form, {
     SimpleItem,
     GroupItem,
@@ -32,7 +34,8 @@ import {
     restoreUser,
     fetchAllUserActivities,
     fetchAllSites,
-    fetchUserSiteCounts //Cursor
+    fetchUserSiteCounts, //Cursor
+    fetchAllRoles
 } from '../../redux/actions/userActions';
 import './userPage.scss';
 
@@ -54,26 +57,51 @@ const UserPage = () => {
     const users = useSelector((state) => state.user.users);
     const allActivities = useSelector((state) => state.user.allActivities);
     const allSites = useSelector((state) => state.user.allSites); //Cursor
+    const allRoles = useSelector((state) => state.user.allRoles);
 
     const [selectedTab, setSelectedTab] = useState(0);
     const [searchText, setSearchText] = useState('');
     const [isCreatePopupVisible, setCreatePopupVisible] = useState(false);
     const [loadingVisible, setLoadingVisible] = useState(false);
+    const [createUserLoading, setCreateUserLoading] = useState(false);
     const [activeUsers, setActiveUsers] = useState([]);
     const [userSiteCounts, setUserSiteCounts] = useState({}); //Cursor
+    const [formDataState, setFormDataState] = useState({
+        userName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        roleName: ''
+    });
 
     const formData = useRef({
         userName: '',
         email: '',
-        password: ''
+        password: '',
+        confirmPassword: '',
+        roleName: ''
     });
 
     const gridRef = useRef(null);
     const activeGridRef = useRef(null); //Cursor
 
+    const loadData = useCallback(async () => {
+        setLoadingVisible(true);
+        try {
+            await dispatch(fetchUsers());
+            await dispatch(fetchAllUserActivities());
+            await dispatch(fetchAllSites()); //Cursor
+            await dispatch(fetchAllRoles());
+        } catch (error) {
+            notify(error.message, 'error', 3000);
+        } finally {
+            setLoadingVisible(false);
+        }
+    }, [dispatch]);
+
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     useEffect(() => {
         // Filter active users
@@ -89,8 +117,11 @@ const UserPage = () => {
         const calculateSiteCounts = async () => {
             if (users && users.length > 0) {
                 try {
+                    console.log('userPage: Starting to fetch user site counts...');
                     const counts = await dispatch(fetchUserSiteCounts());
+                    console.log('userPage: Received site counts:', counts);
                     setUserSiteCounts(counts);
+                    console.log('userPage: Set userSiteCounts state');
                 } catch (error) {
                     console.error('Error fetching user site counts:', error);
                     // Fallback to empty counts
@@ -99,25 +130,13 @@ const UserPage = () => {
                         emptyCounts[user.id] = 0;
                     });
                     setUserSiteCounts(emptyCounts);
+                    console.log('userPage: Set empty site counts as fallback');
                 }
             }
         };
 
         calculateSiteCounts();
     }, [users, dispatch]);
-
-    const loadData = async () => {
-        setLoadingVisible(true);
-        try {
-            await dispatch(fetchUsers());
-            await dispatch(fetchAllUserActivities());
-            await dispatch(fetchAllSites()); //Cursor
-        } catch (error) {
-            notify(error.message, 'error', 3000);
-        } finally {
-            setLoadingVisible(false);
-        }
-    };
 
     // Tab data
     const tabData = [
@@ -154,27 +173,77 @@ const UserPage = () => {
         }
     };
 
-    const handleCreateUser = async (e) => {
-        e.preventDefault();
-        try {
-            const result = e.validationGroup.validate();
-            if (result.isValid) {
-                await dispatch(createUser(formData.current));
-                setCreatePopupVisible(false);
-                notify('User created successfully', 'success', 3000);
-                // Reset form data
-                formData.current = {
-                    userName: '',
-                    email: '',
-                    password: ''
-                };
+    const handleOpenCreatePopup = async () => {
+        // Reset form data to ensure empty form
+        const initialFormData = {
+            userName: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            roleName: ''
+        };
+        formData.current = initialFormData;
+        setFormDataState(initialFormData);
+
+        // Ensure roles are loaded before opening popup
+        if (!allRoles || allRoles.length === 0) {
+            try {
+                await dispatch(fetchAllRoles());
+            } catch (error) {
+                notify('Error loading roles', 'error', 3000);
             }
-        } catch (error) {
-            notify(error.message, 'error', 3000);
         }
+        setCreatePopupVisible(true);
     };
 
-    const handleViewDetails = (userId) => {
+    const handleCreateUser = async () => {
+        try {
+            setCreateUserLoading(true);
+
+            // Check if passwords match
+            if (formDataState.password !== formDataState.confirmPassword) {
+                notify('Passwords do not match', 'error', 3000);
+                return;
+            }
+
+            // Check required fields
+            if (!formDataState.userName || !formDataState.email || !formDataState.password || !formDataState.roleName) {
+                notify('Please fill in all required fields', 'error', 3000);
+                return;
+            }
+
+            // Map frontend field names to backend expected names
+            const userData = {
+                Email: formDataState.email,
+                Username: formDataState.userName,
+                Password: formDataState.password,
+                RoleName: formDataState.roleName
+            };
+
+            await dispatch(createUser(userData));
+
+            // Reset form data
+            const resetData = {
+                userName: '',
+                email: '',
+                password: '',
+                confirmPassword: '',
+                roleName: ''
+            };
+            formData.current = resetData;
+            setFormDataState(resetData);
+
+            // Close popup
+            setCreatePopupVisible(false);
+
+            // Show success message
+            notify('User created successfully', 'success', 3000);
+        } catch (error) {
+            notify(error.message, 'error', 3000);
+        } finally {
+            setCreateUserLoading(false);
+        }
+    };    const handleViewDetails = (userId) => {
         navigate(`/admin/users/${userId}`);
     };
 
@@ -265,7 +334,9 @@ const UserPage = () => {
     };
 
     const renderSiteCountCell = (data) => {
-        const count = userSiteCounts[data.data.id] || 0; //Cursor
+        const userId = data.data.id;
+        const count = userSiteCounts[userId] || 0; //Cursor
+        console.log(`renderSiteCountCell: userId=${userId}, count=${count}, userSiteCounts:`, userSiteCounts);
         return <div className="site-badge">{count} sites</div>;
     };
 
@@ -280,7 +351,7 @@ const UserPage = () => {
                         text="Add User"
                         type="default"
                         icon="user"
-                        onClick={() => setCreatePopupVisible(true)}
+                        onClick={handleOpenCreatePopup}
                     />
                     <Button
                         icon="refresh"
@@ -463,17 +534,42 @@ const UserPage = () => {
                 onHiding={() => setCreatePopupVisible(false)}
                 title="Create New User"
                 showCloseButton={true}
-                width={400}
+                width="90%"
+                maxWidth={450}
+                minWidth={320}
                 height="auto"
-            >
-                <ScrollView>
-                    <Form
-                        formData={formData.current}
-                        onFieldDataChanged={e => {
-                            formData.current[e.dataField] = e.value;
-                        }}
-                        labelMode="floating"
-                    >
+                dragEnabled={false}
+                resizeEnabled={false}
+                contentComponent={() => (
+                    <div style={{
+                        position: 'relative',
+                        padding: '24px 20px 16px 20px',
+                        minHeight: '420px',
+                        maxHeight: '80vh',
+                        overflow: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <LoadPanel
+                            visible={createUserLoading}
+                            showIndicator={true}
+                            showPane={true}
+                            text="Creating user..."
+                            position={{ my: 'center', at: 'center', of: '.dx-popup-content' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                            <Form
+                                formData={formDataState}
+                                onFieldDataChanged={e => {
+                                    const newData = { ...formDataState, [e.dataField]: e.value };
+                                    setFormDataState(newData);
+                                    formData.current = newData;
+                                }}
+                                labelMode="floating"
+                                disabled={createUserLoading}
+                                colCount={1}
+                                width="100%"
+                            >
                         <GroupItem>
                             <SimpleItem
                                 dataField="userName"
@@ -508,20 +604,59 @@ const UserPage = () => {
                             >
                                 <RequiredRule message="Password is required" />
                             </SimpleItem>
-                        </GroupItem>
 
-                        <ButtonItem
-                            horizontalAlignment="right"
-                            buttonOptions={{
-                                text: "Create User",
-                                type: "default",
-                                useSubmitBehavior: true,
-                                onClick: handleCreateUser
-                            }}
+                            <SimpleItem
+                                dataField="confirmPassword"
+                                editorType="dxTextBox"
+                                editorOptions={{
+                                    stylingMode: "filled",
+                                    mode: "password"
+                                }}
+                                label={{ text: "Confirm Password" }}
+                            >
+                                <RequiredRule message="Password confirmation is required" />
+                            </SimpleItem>
+
+                            <SimpleItem
+                                dataField="roleName"
+                                editorType="dxSelectBox"
+                                editorOptions={{
+                                    stylingMode: "filled",
+                                    dataSource: allRoles || [],
+                                    displayExpr: "name",
+                                    valueExpr: "name",
+                                    searchEnabled: true,
+                                    placeholder: "Select a role",
+                                    width: "100%"
+                                }}
+                                label={{ text: "Role" }}
+                            >
+                                <RequiredRule message="Role is required" />
+                            </SimpleItem>
+                        </GroupItem>
+                            </Form>
+                        </div>
+
+                        <div className="create-user-form-buttons">
+                        <Button
+                            text="Cancel"
+                            stylingMode="outlined"
+                            onClick={() => setCreatePopupVisible(false)}
+                            disabled={createUserLoading}
+                            elementAttr={{ class: 'cancel-button' }}
                         />
-                    </Form>
-                </ScrollView>
-            </Popup>
+                        <Button
+                            text={createUserLoading ? "Creating..." : "Create User"}
+                            type="default"
+                            icon={createUserLoading ? "loading" : "user"}
+                            onClick={handleCreateUser}
+                            disabled={createUserLoading}
+                            elementAttr={{ class: 'create-button' }}
+                        />
+                    </div>
+                    </div>
+                )}
+            />
         </div>
     );
 };

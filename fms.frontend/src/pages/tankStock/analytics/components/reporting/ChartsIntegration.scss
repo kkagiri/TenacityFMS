@@ -1,0 +1,116 @@
+// Charts Integration Styles
+.charts-integration {
+  .dx-chart {
+    border-radius: 6px;
+
+    .dx-chart-title {
+      font-weight: 600;
+      color: #374151;
+    }
+
+    // Bar chart customization
+    .dx-chart-series-bar {
+      .dx-chart-series-point {
+        stroke-width: 0;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+
+    // Line chart customization
+    .dx-chart-series-line {
+      .dx-chart-series-point {
+        stroke-width: 2;
+
+        &:hover {
+          stroke-width: 3;
+        }
+      }
+    }
+
+    // Pie chart customization
+    .dx-chart-series-pie {
+      .dx-chart-series-point {
+        stroke: #ffffff;
+        stroke-width: 2;
+
+        &:hover {
+          opacity: 0.9;
+        }
+      }
+    }
+
+    // Tooltip styling
+    .dx-tooltip {
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    // Legend styling
+    .dx-chart-legend {
+      .dx-chart-legend-item {
+        margin: 4px 8px;
+
+        .dx-chart-legend-marker {
+          border-radius: 2px;
+        }
+      }
+    }
+  }
+
+  // Chart controls
+  .chart-controls {
+    .dx-selectbox {
+      .dx-texteditor-input {
+        border-radius: 6px;
+      }
+
+      &.dx-state-focused {
+        .dx-texteditor-input {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+      }
+    }
+  }
+}
+
+// Chart summary section
+.chart-summary {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+
+  .summary-item {
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .charts-integration {
+    .chart-controls {
+      flex-direction: column;
+      gap: 8px;
+
+      .dx-selectbox {
+        width: 100% !important;
+      }
+    }
+
+    .dx-chart {
+      height: 300px !important;
+    }
+
+    .tw-grid-cols-3 {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+  }
+}

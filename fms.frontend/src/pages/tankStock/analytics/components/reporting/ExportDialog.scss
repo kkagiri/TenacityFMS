@@ -1,0 +1,50 @@
+// Export Dialog Styles
+.export-dialog {
+  .dx-textbox,
+  .dx-selectbox {
+    .dx-texteditor-input {
+      border-radius: 6px;
+    }
+
+    &.dx-state-focused {
+      .dx-texteditor-input {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  .dx-checkbox {
+    .dx-checkbox-icon {
+      border-radius: 4px;
+    }
+
+    &.dx-checkbox-checked {
+      .dx-checkbox-icon {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+      }
+    }
+  }
+
+  // Preview section styling
+  .export-preview {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #f9fafb;
+
+    .preview-header {
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+  }
+
+  // Form layout
+  label {
+    font-weight: 500;
+    color: #374151;
+  }
+}

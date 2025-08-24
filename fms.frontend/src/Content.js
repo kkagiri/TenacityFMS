@@ -53,11 +53,11 @@ export default function Content() {
           }
         />
 
-        {/* User routes - now under admin */}
-        <Route path="/admin/users/:id" element={React.createElement(resolvedComponents("user-details"))} />
-        <Route path="/admin/users/:id/edit" element={React.createElement(resolvedComponents("user-edit"))} />
-        <Route path="/admin/users/:id/activities" element={React.createElement(resolvedComponents("user-activities"))} />
-        <Route path="/admin/users/:id/sites" element={React.createElement(resolvedComponents("user-sites"))} />
+        {/* User routes - now under admin - ADMIN ONLY */}
+        <Route path="/admin/users/:id" element={React.createElement(withRoleProtection(resolvedComponents("user-details"), ["admin"]))} />
+        <Route path="/admin/users/:id/edit" element={React.createElement(withRoleProtection(resolvedComponents("user-edit"), ["admin"]))} />
+        <Route path="/admin/users/:id/activities" element={React.createElement(withRoleProtection(resolvedComponents("user-activities"), ["admin"]))} />
+        <Route path="/admin/users/:id/sites" element={React.createElement(withRoleProtection(resolvedComponents("user-sites"), ["admin"]))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
 
         {/* Tank routes */}
@@ -99,14 +99,14 @@ export default function Content() {
           element={React.createElement(resolvedComponents("notifications"))}
         />
 
-        {/* Admin System Routes - Handle all admin sub-routes internally */}
+        {/* Admin System Routes - Handle all admin sub-routes internally - ADMIN ONLY */}
         <Route
           path="/admin"
-          element={React.createElement(resolvedComponents("admin"))}
+          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["admin"]))}
         />
         <Route
           path="/admin/*"
-          element={React.createElement(resolvedComponents("admin"))}
+          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["admin"]))}
         />
 
         {/* Vehicle Management System Routes - Handle all vehicle sub-routes internally */}
@@ -128,8 +128,12 @@ export default function Content() {
           path="/issue-tracker/*"
           element={React.createElement(resolvedComponents("issue tracker"))}
         />
-<Route path="/active-alarms" element={React.createElement(resolvedComponents("active-alarms"))} />
-<Route path="/active-alarms/*" element={React.createElement(resolvedComponents("active-alarms"))} />
+        <Route path="/active-alarms" element={React.createElement(resolvedComponents("active-alarms"))} />
+        <Route path="/active-alarms/*" element={React.createElement(resolvedComponents("active-alarms"))} />
+
+        {/* Home/Dashboard route - maps to the dashboard component */}
+        <Route path="/home" element={React.createElement(resolvedComponents("dashboard"))} />
+
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>

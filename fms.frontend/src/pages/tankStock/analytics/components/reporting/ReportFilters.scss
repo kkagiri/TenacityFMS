@@ -1,0 +1,62 @@
+// Report Filters Styles
+.report-filters {
+  .dx-texteditor {
+    border-radius: 6px;
+
+    &.dx-state-focused {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+
+  .dx-selectbox,
+  .dx-tagbox,
+  .dx-datebox {
+    .dx-texteditor-input {
+      border-radius: 6px;
+    }
+
+    &.dx-state-focused {
+      .dx-texteditor-input {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  .dx-tagbox {
+    .dx-tag {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+
+      .dx-tag-remove-button {
+        color: #1d4ed8;
+
+        &:hover {
+          background-color: #dbeafe;
+        }
+      }
+    }
+  }
+
+  .dx-checkbox {
+    .dx-checkbox-icon {
+      border-radius: 4px;
+    }
+
+    &.dx-checkbox-checked {
+      .dx-checkbox-icon {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+      }
+    }
+  }
+
+  // Form layout improvements
+  label {
+    font-weight: 500;
+    color: #374151;
+  }
+}

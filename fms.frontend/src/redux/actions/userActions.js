@@ -27,6 +27,8 @@ export const FETCH_USER_PERMISSIONS_SUCCESS = 'FETCH_USER_PERMISSIONS_SUCCESS';
 export const FETCH_USER_PERMISSIONS_FAILURE = 'FETCH_USER_PERMISSIONS_FAILURE';
 export const FETCH_USERS_FOR_FILTER_SUCCESS = 'FETCH_USERS_FOR_FILTER_SUCCESS';
 export const FETCH_USERS_FOR_FILTER_FAILURE = 'FETCH_USERS_FOR_FILTER_FAILURE';
+export const FETCH_ALL_ROLES_SUCCESS = 'FETCH_ALL_ROLES_SUCCESS';
+export const FETCH_ALL_ROLES_FAILURE = 'FETCH_ALL_ROLES_FAILURE';
 
 // Action Creators
 export const fetchUsers = () => async (dispatch) => {
@@ -184,7 +186,7 @@ export const fetchAllSites = () => async (dispatch) => {
 
 export const fetchUserSites = (userId) => async (dispatch) => {
     try {
-        const response = await axiosInstance.get(`/site/getsitebyuserid/${userId}`);
+        const response = await axiosInstance.get(`/user/${userId}/sites`);
         dispatch({ type: FETCH_USER_SITES_SUCCESS, payload: response.data });
         return response.data;
     } catch (error) {
@@ -195,7 +197,7 @@ export const fetchUserSites = (userId) => async (dispatch) => {
 
 export const updateUserSites = (userId, siteIds) => async (dispatch) => {
     try {
-        const response = await axiosInstance.put(`/site/assignSitestoUser`, {
+        const response = await axiosInstance.post(`/user/${userId}/sites`, {
             UserId: userId,
             SiteIds: siteIds
         });
@@ -211,20 +213,25 @@ export const fetchUserSiteCounts = () => async (dispatch) => {
     try {
         const usersResponse = await axiosInstance.get('/user/getlist');
         const users = usersResponse.data;
+        console.log('fetchUserSiteCounts: Retrieved users:', users.length);
 
         const siteCounts = {};
 
         // Fetch site count for each user
         for (const user of users) {
             try {
+                console.log(`fetchUserSiteCounts: Fetching sites for user ${user.id} (${user.username})`);
                 const sitesResponse = await axiosInstance.get(`/site/getsitebyuserid/${user.id}`);
+                console.log(`fetchUserSiteCounts: Sites response for user ${user.id}:`, sitesResponse.data);
                 siteCounts[user.id] = sitesResponse.data ? sitesResponse.data.length : 0;
+                console.log(`fetchUserSiteCounts: Site count for user ${user.id}: ${siteCounts[user.id]}`);
             } catch (error) {
                 console.error(`Error fetching sites for user ${user.id}:`, error);
                 siteCounts[user.id] = 0;
             }
         }
 
+        console.log('fetchUserSiteCounts: Final site counts:', siteCounts);
         return siteCounts;
     } catch (error) {
         console.error('Error fetching user site counts:', error);
@@ -263,5 +270,17 @@ export const fetchUsersForFilter = () => async (dispatch) => {
     } catch (error) {
         dispatch({ type: FETCH_USERS_FOR_FILTER_FAILURE, payload: error.message });
         throw new Error('Error loading users for filter');
+    }
+};
+
+// Fetch all roles for dropdown
+export const fetchAllRoles = () => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get('/role/getlist');
+        dispatch({ type: FETCH_ALL_ROLES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_ALL_ROLES_FAILURE, payload: error.message });
+        throw new Error('Error loading roles');
     }
 };

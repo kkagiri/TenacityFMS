@@ -1,0 +1,57 @@
+1. TANK STATISTICS:
+   ├── Current stock levels (TankFilterPanel.js calculations)
+   ├── Fill percentages & capacity utilization
+   ├── Low stock alerts (< 30% capacity)
+   ├── Negative/above capacity warnings
+   └── Site-level aggregations
+
+2. VEHICLE STATISTICS:
+   ├── Fleet metrics (VehicleDashboardMetricsDTO)
+   ├── Status distribution (Active/Offline/Issues)
+   ├── Utilization rates & health scores
+   ├── GPS-enabled vs unassigned vehicles
+   └── Maintenance alerts & scheduling
+
+3. OPERATIONAL STATISTICS:
+   ├── Daily tank reconciliation data
+   ├── Pump transaction summaries
+   ├── Stock adjustment tracking
+   └── Discrepancy reporting
+
+4. ALARM STATISTICS:
+   ├── Active alarm counts by priority
+   ├── Resolution time metrics
+   ├── Escalation tracking
+   └── Site/device breakdown
+
+   ADMIN ROLE - Full Statistics:
+├── Fleet Overview (Total/Active/Issues)
+├── Tank Capacity Utilization
+├── Critical Alarms Count
+├── System Health Metrics
+└── Financial/Operational KPIs
+
+USER ROLE - Operational Focus:
+├── Vehicle Status (their assigned vehicles)
+├── Tank Levels (their site/area)
+├── Recent Transactions
+└── Basic Alerts
+
+MANAGEMENT ROLE - Strategic View:
+├── Fleet Utilization Trends
+├── Fuel Efficiency Metrics
+├── Cost Analysis
+├── Performance Benchmarks
+└── Predictive Analytics
+
+GUEST ROLE - Summary Only:
+├── System Status Overview
+├── Basic Metrics (totals)
+└── Public Information
+
+
+📍 ConsumptionController API:
+├── Fuel consumption reports
+├── Vehicle efficiency calculations
+├── Consumption trend analysis
+└── Fuel efficiency metrics

@@ -559,3 +559,96 @@ body > .dx-chart-tooltip {
     stroke-width: 2px !important;
   }
 }
+
+/* Chart Dropdown Button Styles */
+.chart-dropdown-button {
+  .dx-dropdownbutton {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 8px 16px !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+    transition: all 0.3s ease !important;
+
+    &:hover {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    &:active {
+      transform: translateY(0) !important;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4) !important;
+    }
+
+    .dx-button-text {
+      color: white !important;
+      font-weight: 600 !important;
+    }
+
+    .dx-dropdownbutton-action .dx-button-content {
+      color: white !important;
+    }
+
+    .dx-dropdownbutton-toggle .dx-button-content {
+      color: white !important;
+    }
+  }
+
+  // Dropdown popup styling
+  .dx-popup-content {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .dx-list {
+    background: #ffffff !important;
+    border: none !important;
+  }
+
+  .dx-list-item {
+    background: #ffffff !important;
+    border: none !important;
+
+    &:hover {
+      background: #f8fafc !important;
+    }
+  }
+}
+
+/* Chart Option Item Hover Effects */
+.chart-option-item {
+  transition: all 0.2s ease !important;
+  background: #ffffff !important;
+
+  &:hover {
+    background-color: #f8fafc !important;
+    transform: translateX(4px) !important;
+    border-left: 4px solid #3b82f6 !important;
+
+    i {
+      color: #2563eb !important;
+      transform: scale(1.1) !important;
+    }
+  }
+
+  &:active {
+    background-color: #e2e8f0 !important;
+    transform: translateX(2px) !important;
+  }
+
+  i {
+    transition: color 0.2s ease, transform 0.2s ease !important;
+  }
+
+  // Ensure text visibility
+  span, div {
+    color: #1f2937 !important;
+  }
+}

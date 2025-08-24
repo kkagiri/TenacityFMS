@@ -114,4 +114,60 @@
         justify-content: center;
         gap: 5px;
     }
+
+    // Create User Form Styles
+    .create-user-form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 24px; // Increased gap between buttons for better separation
+        margin-top: 32px; // Increased space from role selector
+        margin-bottom: 16px; // Add space from bottom
+        padding-top: 20px;
+        padding-bottom: 8px;
+        border-top: 1px solid #e0e0e0;
+        flex-wrap: wrap;
+        flex-shrink: 0; // Prevent shrinking
+
+        .cancel-button {
+            min-width: 120px;
+            margin-right: 16px; // Additional space between buttons
+        }
+
+        .create-button {
+            min-width: 140px;
+        }
+
+        // Mobile responsiveness
+        @media (max-width: 480px) {
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 24px;
+
+            .cancel-button,
+            .create-button {
+                width: 100%;
+                min-width: auto;
+                margin-right: 0;
+            }
+
+            .cancel-button {
+                order: 2; // Put cancel button second on mobile
+            }
+
+            .create-button {
+                order: 1; // Put create button first on mobile
+            }
+        }
+    }
+
+    // Additional spacing for form fields
+    .dx-popup-content {
+        .dx-form-group {
+            margin-bottom: 20px;
+
+            &:last-child {
+                margin-bottom: 24px; // Extra space after last field (role selector)
+            }
+        }
+    }
 }

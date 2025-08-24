@@ -17,13 +17,9 @@ const StockAnalytics = () => {
   const sites = useSelector((state) => state.site.sites);
   const user = useSelector((state) => state.auth.user);
 
-  const [selectedSite] = useState(() => {
-    const storedSite = localStorage.getItem('selectedSite');
-    return storedSite && storedSite !== 'null' ? storedSite : 'all';
-  });
+
 
   // Use stable date range hook
-  const { dateRange, updateDateRange } = useDateRange(7); // 7 days by default
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
@@ -35,7 +31,7 @@ const StockAnalytics = () => {
     reports,
     forecasts,
     kpiMetrics
-  } = useStockData(selectedSite, dateRange);
+  } = useStockData();
 
   //Cursor - Tab data with icons
   const tabData = [
@@ -55,11 +51,7 @@ const StockAnalytics = () => {
     );
   };
 
-  const handleDateRangeChange = useCallback((newDateRange) => {
-    if (Array.isArray(newDateRange) && newDateRange.length === 2) {
-      updateDateRange(newDateRange[0], newDateRange[1]);
-    }
-  }, [updateDateRange]);
+
 
   const handleFilterClick = useCallback(() => {
     // TODO: Open filter popup
@@ -67,8 +59,6 @@ const StockAnalytics = () => {
   }, []);
 
   // Ensure arrays are available for FilterInfoBar
-  const safeSites = Array.isArray(sites) ? sites : [];
-  const safeDateRange = Array.isArray(dateRange) && dateRange.length >= 2 ? dateRange : [new Date(), new Date()];
 
   const handleTabSelectionChange = useCallback((e) => {
     const newIndex = e.itemIndex;
@@ -83,33 +73,28 @@ const StockAnalytics = () => {
         return loadedTabs.has(0) && (
           <InteractiveDashboard
             analyticsData={analyticsData}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
-            onDateRangeChange={handleDateRangeChange}
+
           />
         );
       case 1:
         return loadedTabs.has(1) && (
           <ReportingEngine
             reports={reports}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
+
           />
         );
       case 2:
         return loadedTabs.has(2) && (
           <PredictiveAnalytics
             forecasts={forecasts}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
+
           />
         );
       case 3:
         return loadedTabs.has(3) && (
           <KPIDashboard
             kpiMetrics={kpiMetrics}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
+
           />
         );
       default:
@@ -120,13 +105,7 @@ const StockAnalytics = () => {
   return (
     <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
       {/* Render filter info in header */}
-      <FilterInfoBar
-        dateRange={safeDateRange}
-        selectedSite={selectedSite}
-        sites={safeSites}
-        user={user}
-        onFilterClick={handleFilterClick}
-      />
+
 
       {/* Cursor - Loading overlay instead of blocking entire screen */}
       {isLoading && (

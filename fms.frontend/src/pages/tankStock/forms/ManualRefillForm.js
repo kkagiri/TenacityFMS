@@ -175,21 +175,21 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
-  // Clear form data for new entry
+  // Clear form data for new entry (preserve site and tank selections)
   const clearFormData = useCallback(() => {
-    setFormData({
+    setFormData(prevData => ({
       vehicleId: null,
       manualFuelrefillAmount: null,
       previousMeterReading: null,
       currentMeterReading: null,
       date: new Date().toISOString(),
-      siteId: null,
+      siteId: prevData.siteId, // Preserve site selection
       comment: '',
       driverId: null,
       fuelBy: user?.userName || '',
-      tankId: null
-    });
-    setFilteredTanks([]);
+      tankId: prevData.tankId // Preserve tank selection
+    }));
+    // Don't clear filteredTanks since we're keeping the site/tank selection
     setValidationErrors({});
     resetValidation();
   }, [user?.userName, resetValidation]);
@@ -335,6 +335,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                     isValid={!validationErrors.siteId}
                     validationError={validationErrors.siteId ? { message: validationErrors.siteId } : null}
                     maxHeight={250}
+                    searchEnabled={true}
                   />
                 </div>
               )}
@@ -356,6 +357,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                     isValid={!validationErrors.tankId}
                     validationError={validationErrors.tankId ? { message: validationErrors.tankId } : null}
                     maxHeight={250}
+                    searchEnabled={true}
                   />
                 </div>
               )}

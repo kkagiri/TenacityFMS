@@ -50,18 +50,36 @@ namespace FMS.WebClient.Controllers {
 
         [HttpGet]
         [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetVehicleList () {
+        public async Task<IActionResult> GetVehicleList ([FromQuery] string? siteIds = null) {
             // Try to get from cache first
             var cacheKey = "VehicleList";
             var cachedData = await _cache.GetStringAsync (cacheKey);
 
             if (!string.IsNullOrEmpty (cachedData)) {
                 var cachedVehicles = JsonSerializer.Deserialize<List<VehicleDTO>> (cachedData);
+                if (!string.IsNullOrWhiteSpace (siteIds) && cachedVehicles != null) {
+                    var set = siteIds.Split (',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select (s => int.TryParse (s, out var id) ? id : (int?) null)
+                        .Where (id => id.HasValue)
+                        .Select (id => id!.Value)
+                        .ToHashSet ();
+                    if (set.Count > 0)
+                        cachedVehicles = cachedVehicles.Where (v => v.WorkingSiteId.HasValue && set.Contains (v.WorkingSiteId.Value)).ToList ();
+                }
                 return Ok (cachedVehicles);
             }
 
             var query = new GetVehicleQuery ();
             var vehicles = await _mediator.Send (query);
+            if (!string.IsNullOrWhiteSpace (siteIds) && vehicles != null) {
+                var set = siteIds.Split (',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select (s => int.TryParse (s, out var id) ? id : (int?) null)
+                    .Where (id => id.HasValue)
+                    .Select (id => id!.Value)
+                    .ToHashSet ();
+                if (set.Count > 0)
+                    vehicles = vehicles.Where (v => v.WorkingSiteId.HasValue && set.Contains (v.WorkingSiteId.Value)).ToList ();
+            }
 
             // Store in cache
             var cacheOptions = new DistributedCacheEntryOptions {

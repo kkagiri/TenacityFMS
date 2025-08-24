@@ -12,7 +12,7 @@ export const StatsCards = ({ pdTotals, stats }) => {
       <div className="dashboard-card">
         <div className="flex-between">
           <div>
-            <p className="stat-label">Previous Day Consumption</p>
+            <p className="stat-label">Previous Day Fuel dispensed</p>
             <h3 className="stat-value">
               {formatNumber(pdTotals.consumption)} L
             </h3>

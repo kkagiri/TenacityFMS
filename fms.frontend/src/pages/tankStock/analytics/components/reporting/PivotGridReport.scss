@@ -1,0 +1,82 @@
+// Pivot Grid Report Styles
+.pivot-grid-report {
+  .pivot-grid-container {
+    .dx-pivotgrid {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+
+      .dx-pivotgrid-area {
+        border-color: #e5e7eb;
+      }
+
+      .dx-pivotgrid-horizontal-headers {
+        background-color: #f8fafc;
+      }
+
+      .dx-pivotgrid-vertical-headers {
+        background-color: #f8fafc;
+      }
+
+      .dx-pivotgrid-data-area {
+        .dx-pivotgrid-cell {
+          &:hover {
+            background-color: #eff6ff;
+          }
+        }
+      }
+
+      // Negative values styling
+      .dx-pivotgrid-cell[data-negative="true"] {
+        color: #dc2626 !important;
+        font-weight: 600;
+      }
+
+      // Grand totals styling
+      .dx-pivotgrid-grand-total-row,
+      .dx-pivotgrid-grand-total-column {
+        background-color: #f1f5f9;
+        font-weight: 600;
+      }
+    }
+  }
+
+  // Field chooser customization
+  .dx-fieldchooser {
+    .dx-fieldchooser-container {
+      padding: 16px;
+    }
+  }
+}
+
+// Loading state
+.pivot-grid-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+// No data state
+.pivot-grid-no-data {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .pivot-grid-report {
+    .pivot-grid-container {
+      height: 400px !important;
+      overflow: auto;
+    }
+
+    .tw-grid-cols-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}

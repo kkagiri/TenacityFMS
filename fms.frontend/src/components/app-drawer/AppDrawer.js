@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import "./AppDrawer.scss";
 
 const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
@@ -7,78 +8,100 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
   const drawerRef = useRef(null);
   const [position, setPosition] = useState({ top: 70, left: 12 });
 
+  // Get current user from Redux store
+  const currentUser = useSelector(state => state.auth.user);
+
+  // Get user roles, handle both 'roles' and 'Roles' properties
+  const userRoles = currentUser?.roles || currentUser?.Roles || [];
+  const primaryRole = userRoles.length > 0 ? userRoles[0].toLowerCase() : 'guest';
+
   const modules = [
     {
       id: 1,
       name: "Dashboard",
       icon: "fa-light fa-chart-line",
       route: "/home",
-      color: "#0078d4"
+      color: "#0078d4",
+      roles: ["admin", "management", "user", "guest"] // Available to all roles
     },
     {
       id: 2,
       name: "Vehicles",
       icon: "fa-light fa-car",
       route: "/vehicles",
-      color: "#107c10"
+      color: "#107c10",
+      roles: ["admin", "management", "user"] // Not available to guests
     },
     {
       id: 3,
       name: "Employees",
       icon: "fa-light fa-users",
       route: "/employees",
-      color: "#ff8c00"
+      color: "#ff8c00",
+      roles: ["admin", "management"] // Only admin and management
     },
     {
       id: 4,
       name: "Automatic Fueling",
       icon: "fa-light fa-gas-pump",
       route: "/atg",
-      color: "#d13438"
+      color: "#d13438",
+      roles: ["admin", "management", "user"] // Operators need access to fueling
     },
     {
       id: 5,
       name: "Device Issues",
       icon: "fa-light fa-exclamation-triangle",
       route: "/issue-tracker",
-      color: "#881798"
+      color: "#881798",
+      roles: ["admin", "management", "user"] // Users can report issues
     },
     {
       id: 6,
       name: "Reports",
       icon: "fa-light fa-chart-bar",
       route: "/consumption",
-      color: "#00bcf2"
+      color: "#00bcf2",
+      roles: ["admin", "management", "user"] // Users can view basic reports
     },
     {
       id: 7,
       name: "Tank Stock",
       icon: "fa-light fa-oil-can",
       route: "/tankstock",
-      color: "#498205"
+      color: "#498205",
+      roles: ["admin", "management", "user"] // Users need tank stock access
     },
     {
       id: 8,
       name: "Admin",
       icon: "fa-light fa-cog",
       route: "/admin",
-      color: "#005a70"
+      color: "#005a70",
+      roles: ["admin"] // ADMIN ONLY
     },
     {
       id: 9,
       name: "Task Management",
       icon: "fa-light fa-tasks",
       route: "/task-management",
-      color: "#8764b8"
+      color: "#8764b8",
+      roles: ["admin", "management", "user"] // All roles can manage tasks
     },
     {
       id: 10,
       name: "Alarms",
       icon: "fa-light fa-bell",
       route: "/active-alarms",
-      color: "#e74856"
+      color: "#e74856",
+      roles: ["admin", "management", "user"] // All roles should see alarms
     }
   ];
+
+  // Filter modules based on user role
+  const filteredModules = modules.filter(module =>
+    module.roles.includes(primaryRole)
+  );
 
   // Calculate position relative to the button
   useEffect(() => {
@@ -88,10 +111,10 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
         const rect = buttonWrapper.getBoundingClientRect();
         const drawerWidth = window.innerWidth <= 768 ? Math.min(280, window.innerWidth * 0.9) : 320;
         const viewportWidth = window.innerWidth;
-        
+
         // Position below the button, centered horizontally relative to button
         let leftPosition = rect.left + (rect.width / 2) - (drawerWidth / 2);
-        
+
         // Enhanced mobile positioning
         if (window.innerWidth <= 768) {
           // On mobile, ensure drawer is always visible and well-positioned
@@ -167,7 +190,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
     >
       <div className="app-drawer" ref={drawerRef}>
         <div className="modules-grid">
-          {modules.map((module) => (
+          {filteredModules.map((module) => (
             <div
               key={module.id}
               className="module-item"

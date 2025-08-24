@@ -1,17 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import VolumeHistoryReports from './reporting/VolumeHistoryReports';
 
-//Cursor - Reporting Engine component placeholder for Phase 1
+//Cursor - Reporting Engine component with Volume History Reports
 const ReportingEngine = ({ reports, selectedSite, dateRange }) => {
   return (
-    <div className="tw-p-6">
-      <div className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-8 tw-text-center">
-        <i className="fa-light fa-file-chart-line tw-text-4xl tw-text-green-600 tw-mb-4"></i>
-        <h3 className="tw-text-xl tw-font-semibold tw-text-green-800 tw-mb-2">
-          Advanced Reporting Engine
-        </h3>
-        <p className="tw-text-green-600">
-          Comprehensive reporting capabilities will be implemented in Phase 2.
+    <div className="tw-p-4">
+      {/* Volume History Reports - Main reporting functionality */}
+      <VolumeHistoryReports />
+
+      {/* Placeholder for additional reporting modules */}
+      <div className="tw-mt-8 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-6 tw-text-center">
+        <i className="fa-light fa-chart-mixed tw-text-3xl tw-text-blue-600 tw-mb-3"></i>
+        <h4 className="tw-text-lg tw-font-semibold tw-text-blue-800 tw-mb-2">
+          Additional Reports Coming Soon
+        </h4>
+        <p className="tw-text-blue-600 tw-text-sm">
+          Stock reconciliation reports, delivery analysis, and fuel consumption analytics will be added in future updates.
         </p>
       </div>
     </div>

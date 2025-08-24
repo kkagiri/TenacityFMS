@@ -19,6 +19,7 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
 import Button from 'devextreme-react/button';
+import { DropDownButton } from 'devextreme-react/drop-down-button';
 import Popup from 'devextreme-react/popup';
 import  notify  from 'devextreme/ui/notify';
 import { Workbook } from 'exceljs';
@@ -33,6 +34,7 @@ import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
 import TransactionFilterPopup from './TransactionFilterPopup';
 import QuickActions from '../../components/QuickActions';
+import VolumeTotalsTickers from './VolumeTotalsTickers';
 import { usePermissions } from '../../../../hooks/usePermissions';
 import './TransactionHub.scss';
 
@@ -74,6 +76,36 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [showChartPopup, setShowChartPopup] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState('candlestick');
+
+  // Chart type options for dropdown - simplified like stock management
+  const chartTypeOptions = [
+    {
+      key: 'candlestick',
+      text: '📈 Candlestick Chart',
+      icon: 'fa-light fa-chart-line'
+    },
+    {
+      key: 'volume',
+      text: '📊 Volume Chart',
+      icon: 'fa-light fa-chart-bar'
+    },
+    {
+      key: 'multi-series',
+      text: '🎯 Multi-Series Line',
+      icon: 'fa-light fa-chart-area'
+    },
+    {
+      key: 'ohlc',
+      text: '📉 OHLC Bars',
+      icon: 'fa-light fa-chart-column'
+    }
+  ];  // Function to handle chart type selection
+  const handleChartTypeSelection = useCallback((chartType) => {
+    setSelectedChartType(chartType);
+    setShowChartPopup(true);
+  }, []);
+
   // TODO: Future implementation - Add chart grouping by site/tank with color-coded lines
   // const [chartGroupBy, setChartGroupBy] = useState('site'); // 'site' or 'tank'
   const [deleteConfirmation, setDeleteConfirmation] = useState({
@@ -845,18 +877,20 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       </div>
 
       {/* Main content - Responsive padding */}
-      <div className="tw-flex-1 tw-p-2 sm:tw-p-4">
-        <DataGrid
-          dataSource={tankVolumeHistory}
-          keyExpr="id"
-          showBorders={true}
-          ref={dataGridRef}
-          showColumnLines={true}
-          showRowLines={true}
-          allowColumnResizing={true}
-          showColumnHeaders={true}
-          className="tw-h-full"
-        >
+      <div className="tw-flex-1 tw-p-2 sm:tw-p-4 tw-overflow-hidden tw-flex tw-flex-col">
+        {/* DataGrid Container */}
+        <div className="tw-flex-1 tw-min-h-0">
+          <DataGrid
+            dataSource={tankVolumeHistory}
+            keyExpr="id"
+            showBorders={true}
+            ref={dataGridRef}
+            showColumnLines={true}
+            showRowLines={true}
+            allowColumnResizing={true}
+            showColumnHeaders={true}
+            className="tw-h-full"
+          >
           <FilterPanel visible={true} />
           <GroupPanel visible={true} />
           <Grouping visible={true} autoExpandAll={false} />
@@ -902,16 +936,29 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 }
               }}
             />
-            <TBItem
+                        <TBItem
               location="after"
-              widget="dxButton"
-              options={{
-                text: 'Chart View',
-                onClick: () => setShowChartPopup(true),
-                elementAttr: {
-                  class: 'chart-view-button'
-                }
-              }}
+              render={() => (
+                <DropDownButton
+                  text="📊 Chart Views"
+                  icon="fa-light fa-chart-line"
+                  dropDownOptions={{
+                    width: 250,
+                  }}
+                  items={chartTypeOptions}
+                  keyExpr="key"
+                  displayExpr="text"
+                  onItemClick={(e) => handleChartTypeSelection(e.itemData.key)}
+                  splitButton={false}
+                  useSelectMode={false}
+                  stylingMode="contained"
+                  type="default"
+                  elementAttr={{
+                    class: 'chart-dropdown-button',
+                    style: { marginRight: '8px' }
+                  }}
+                />
+              )}
             />
             <TBItem
               location="after"
@@ -1006,6 +1053,13 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             />
           </Summary>
         </DataGrid>
+        </div>
+
+        {/* Volume Totals Tickers */}
+        <VolumeTotalsTickers
+          data={tankVolumeHistory}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Manual Refill Popup */}
@@ -1060,6 +1114,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         tanks={tanks}
         sites={sites}
         currentFilters={currentFilters}
+        selectedChartType={selectedChartType}
       />
 
       {/* Page-level LoadPanel */}
