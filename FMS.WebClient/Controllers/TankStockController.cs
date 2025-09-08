@@ -154,12 +154,6 @@ public class TankStockController : ControllerBase {
         if (amount <= 0) return BadRequest (new FMSResponseMessage (false, "Opening stock should be greater than 0"));
         // Normalize the provided date to UTC before comparison to avoid false positives when clients send local time
         DateTime dateTimeUtc = dateTime.UtcDateTime;
-        if (dateTimeUtc > DateTime.UtcNow) {
-            return BadRequest (new FMSResponseMessage (false, "Date cannot be in the future"));
-        }
-        if (dateTime == default (DateTimeOffset)) {
-            return BadRequest (new FMSResponseMessage (false, "Invalid Date"));
-        }
 
         Claim? userIdClaim = User.Claims.FirstOrDefault (c =>
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
@@ -192,10 +186,6 @@ public class TankStockController : ControllerBase {
         if (amount <= 0) return BadRequest (new FMSResponseMessage (false, "Closing stock should be greater than 0"));
         // Normalize to UTC for consistent comparison
         DateTime dateTimeUtc = dateTime.UtcDateTime;
-        if (dateTimeUtc > DateTime.UtcNow) {
-            return BadRequest (new FMSResponseMessage (false, "Date cannot be in the future"));
-        }
-        if (dateTime == default (DateTimeOffset)) return BadRequest (new FMSResponseMessage (false, "Invalid Date"));
 
         Claim? userIdClaim = User.Claims.FirstOrDefault (c =>
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&

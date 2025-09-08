@@ -26,7 +26,7 @@ import ProtectedRoute from "./components/ProtectedRoute/protectedRoute";
 import UnauthenticatedContent from "./UnauthenticatedContent";
 import { fetchNavigationItems } from "./redux/actions/navigationActions";
 import { loadUser } from "./redux/actions/AuthActions";
-import { initializeAxiosInstance } from "./api/axiosInstance"; // Import the initialization function
+import { initializeAxiosInstance } from "./api/axiosInstance";
 import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
 
 function App() {

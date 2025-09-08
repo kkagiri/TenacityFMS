@@ -1,0 +1,439 @@
+/* Ticker Widget Styles */
+.ticker-widget {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: 200px;
+}
+
+.ticker-widget .widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.ticker-widget .widget-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.ticker-widget .widget-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ticker-widget .widget-action-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ticker-widget .widget-action-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #333;
+}
+
+.ticker-widget .widget-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Widget content */
+.ticker-widget .widget-content {
+  padding: 1rem;
+  position: relative;
+}
+
+/* Ticker container */
+.ticker-widget .ticker-container {
+  position: relative;
+  min-height: 60px;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.ticker-widget .ticker-container.horizontal {
+  display: flex;
+  align-items: center;
+}
+
+.ticker-widget .ticker-container.vertical {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ticker-widget .ticker-container.pause-on-hover {
+  cursor: pointer;
+}
+
+/* Ticker track */
+.ticker-widget .ticker-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.ticker-widget .ticker-container.vertical .ticker-track {
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Ticker items */
+.ticker-widget .ticker-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.5s ease-in-out;
+  cursor: pointer;
+}
+
+.ticker-widget .ticker-item.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Animation styles */
+.ticker-widget .ticker-item.scroll {
+  animation: scrollTicker 0.5s ease-in-out;
+}
+
+.ticker-widget .ticker-item.fade {
+  transform: translateX(0);
+  transition: opacity 0.5s ease-in-out;
+}
+
+.ticker-widget .ticker-item.fade.active {
+  opacity: 1;
+}
+
+.ticker-widget .ticker-item.slide {
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+/* Ticker text */
+.ticker-widget .ticker-text {
+  font-weight: inherit;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ticker-widget .ticker-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #666;
+  opacity: 0.8;
+}
+
+.ticker-widget .ticker-time {
+  font-weight: 500;
+}
+
+.ticker-widget .ticker-source {
+  opacity: 0.7;
+}
+
+/* Ticker controls */
+.ticker-widget .ticker-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.ticker-widget .control-btn {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.ticker-widget .control-btn:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #333;
+  transform: scale(1.05);
+}
+
+.ticker-widget .control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ticker-widget .control-btn.play-pause {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+  width: 44px;
+  height: 44px;
+  font-size: 1rem;
+}
+
+.ticker-widget .control-btn.play-pause:hover:not(:disabled) {
+  background: #0056b3;
+  border-color: #0056b3;
+  transform: scale(1.1);
+}
+
+/* Ticker indicators */
+.ticker-widget .ticker-indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+.ticker-widget .indicator {
+  background: #ddd;
+  border: none;
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ticker-widget .indicator:hover {
+  background: #adb5bd;
+  transform: scale(1.2);
+}
+
+.ticker-widget .indicator.active {
+  background: #007bff;
+  transform: scale(1.3);
+}
+
+/* Loading and error states */
+.ticker-widget .loading-state,
+.ticker-widget .no-data-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 120px;
+  color: #666;
+}
+
+.ticker-widget .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 120px;
+  color: #dc3545;
+}
+
+.ticker-widget .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e9ecef;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Widget meta */
+.ticker-widget .widget-meta {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* Widget config preview */
+.ticker-widget .widget-config-preview {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Vertical ticker specific styles */
+.ticker-widget .ticker-container.vertical .ticker-item {
+  transform: translateY(100%);
+}
+
+.ticker-widget .ticker-container.vertical .ticker-item.active {
+  transform: translateY(0);
+}
+
+.ticker-widget .ticker-container.vertical .ticker-item.scroll {
+  animation: scrollTickerVertical 0.5s ease-in-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .ticker-widget .widget-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .ticker-widget .widget-content {
+    padding: 0.75rem;
+  }
+
+  .ticker-widget .ticker-item {
+    padding: 0.75rem;
+  }
+
+  .ticker-widget .ticker-controls {
+    gap: 0.375rem;
+  }
+
+  .ticker-widget .control-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ticker-widget .control-btn.play-pause {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ticker-widget .widget-header h3 {
+    font-size: 1rem;
+  }
+
+  .ticker-widget .widget-actions {
+    gap: 0.25rem;
+  }
+
+  .ticker-widget .widget-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ticker-widget .ticker-text {
+    font-size: 0.875rem;
+  }
+
+  .ticker-widget .ticker-meta {
+    font-size: 0.6875rem;
+  }
+
+  .ticker-widget .ticker-indicators {
+    gap: 0.25rem;
+  }
+
+  .ticker-widget .indicator {
+    width: 6px;
+    height: 6px;
+  }
+
+  .ticker-widget .widget-config-preview {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+/* Animation keyframes */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes scrollTicker {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scrollTickerVertical {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Print styles */
+@media print {
+  .ticker-widget .widget-actions,
+  .ticker-widget .ticker-controls,
+  .ticker-widget .ticker-indicators,
+  .ticker-widget .widget-config-preview {
+    display: none;
+  }
+
+  .ticker-widget {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+
+  .ticker-widget .ticker-item {
+    position: static;
+    opacity: 1;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+}

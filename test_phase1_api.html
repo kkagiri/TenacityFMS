@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Phase 1 Enhanced Data Fetch Engine Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .widget-test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+</head>
+<body>
+    <h1>Phase 1 Enhanced Data Fetch Engine Test</h1>
+
+    <div class="test-section">
+        <h2>1. Test IDataSourceManager API Endpoints</h2>
+        <button onclick="testGetInitialData()">Test GetInitialWidgetData</button>
+        <button onclick="testGetLiveData()">Test GetLiveData</button>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test SignalR Live Data Broadcasting</h2>
+        <button onclick="connectSignalR()">Connect to SignalR Hub</button>
+        <button onclick="disconnectSignalR()">Disconnect</button>
+        <div id="signalr-status"></div>
+        <div id="signalr-messages"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Widget Type Transformations Test</h2>
+        <div class="widget-test">
+            <h4>Fuel Dispense Widget (ID: 8)</h4>
+            <button onclick="testWidgetData('fuel_dispense', 8)">Test Fuel Dispense Data</button>
+            <div id="widget-8-results"></div>
+        </div>
+        <div class="widget-test">
+            <h4>Tank Level Widget (ID: 1)</h4>
+            <button onclick="testWidgetData('tank_level', 1)">Test Tank Level Data</button>
+            <div id="widget-1-results"></div>
+        </div>
+        <div class="widget-test">
+            <h4>Sales Summary Widget (ID: 5)</h4>
+            <button onclick="testWidgetData('sales_summary', 5)">Test Sales Summary Data</button>
+            <div id="widget-5-results"></div>
+        </div>
+    </div>
+
+    <script>
+        let connection = null;
+        const baseUrl = 'https://localhost:7009'; // Adjust if needed
+
+        // Test API endpoints
+        async function testGetInitialData() {
+            setStatus('api-results', 'loading', 'Testing GetInitialWidgetData...');
+            try {
+                const response = await fetch(`${baseUrl}/api/dashboard/initial-widget-data?widgetId=8`);
+                const data = await response.json();
+                setStatus('api-results', 'success', `✅ GetInitialWidgetData Success:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                setStatus('api-results', 'error', `❌ GetInitialWidgetData Error: ${error.message}`);
+            }
+        }
+
+        async function testGetLiveData() {
+            setStatus('api-results', 'loading', 'Testing GetLiveData...');
+            try {
+                const response = await fetch(`${baseUrl}/api/datasource/live/fuel_dispense`);
+                const data = await response.json();
+                setStatus('api-results', 'success', `✅ GetLiveData Success:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                setStatus('api-results', 'error', `❌ GetLiveData Error: ${error.message}`);
+            }
+        }
+
+        async function testWidgetData(dataSourceType, widgetId) {
+            const resultDiv = `widget-${widgetId}-results`;
+            setStatus(resultDiv, 'loading', `Testing ${dataSourceType} widget transformation...`);
+            try {
+                const response = await fetch(`${baseUrl}/api/dashboard/initial-widget-data?widgetId=${widgetId}`);
+                const data = await response.json();
+                setStatus(resultDiv, 'success', `✅ Widget ${widgetId} Data:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                setStatus(resultDiv, 'error', `❌ Widget ${widgetId} Error: ${error.message}`);
+            }
+        }
+
+        // SignalR testing
+        async function connectSignalR() {
+            try {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl(`${baseUrl}/dashboardHub`)
+                    .build();
+
+                // Set up event handlers
+                connection.on("WidgetDataUpdate", function (widgetId, data) {
+                    addMessage(`📊 Widget ${widgetId} Update: ${JSON.stringify(data)}`);
+                });
+
+                connection.on("LiveDataBroadcast", function (dataSourceType, data) {
+                    addMessage(`📡 Live Data Broadcast (${dataSourceType}): ${JSON.stringify(data)}`);
+                });
+
+                connection.on("DataSourceUpdate", function (dataSourceType, widgetIds, data) {
+                    addMessage(`🔄 Data Source Update (${dataSourceType}) for widgets [${widgetIds.join(', ')}]: ${JSON.stringify(data)}`);
+                });
+
+                await connection.start();
+                setStatus('signalr-status', 'success', '✅ SignalR Connected Successfully');
+
+                // Join dashboard group to receive broadcasts
+                await connection.invoke("JoinDashboard");
+                addMessage('✅ Joined dashboard group for live updates');
+
+            } catch (error) {
+                setStatus('signalr-status', 'error', `❌ SignalR Connection Error: ${error.message}`);
+            }
+        }
+
+        async function disconnectSignalR() {
+            if (connection) {
+                await connection.stop();
+                connection = null;
+                setStatus('signalr-status', '', 'SignalR Disconnected');
+                document.getElementById('signalr-messages').innerHTML = '';
+            }
+        }
+
+        function setStatus(elementId, className, message) {
+            const element = document.getElementById(elementId);
+            element.className = `test-section ${className}`;
+            element.innerHTML = `<pre>${message}</pre>`;
+        }
+
+        function addMessage(message) {
+            const messagesDiv = document.getElementById('signalr-messages');
+            const timestamp = new Date().toLocaleTimeString();
+            messagesDiv.innerHTML += `<div style="margin: 5px 0; padding: 5px; background: #f0f0f0;">[${timestamp}] ${message}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Auto-refresh live data every 30 seconds if SignalR is connected
+        setInterval(() => {
+            if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                addMessage('🔄 Waiting for next live data broadcast...');
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

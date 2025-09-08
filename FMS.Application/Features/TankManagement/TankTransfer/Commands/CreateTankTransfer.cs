@@ -23,13 +23,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand {
         private readonly IMapper _mapper;
         private readonly IMediator _mediator;
         private readonly TankStockFutureRecordsService _futureRecordsService;
+        private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
 
-        public CreateTankTransferHandler (GpsdataContext context, ILogger<CreateTankTransferHandler> logger, IMapper mapper, IMediator mediator, TankStockFutureRecordsService futureRecordsService) {
+        public CreateTankTransferHandler (GpsdataContext context, ILogger<CreateTankTransferHandler> logger, IMapper mapper, IMediator mediator, TankStockFutureRecordsService futureRecordsService, TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
             _context = context;
             _logger = logger;
             _mapper = mapper;
             _mediator = mediator;
             _futureRecordsService = futureRecordsService;
+            _tankVolumeHistoryService = tankVolumeHistoryService;
         }
 
         public async Task<FMSResponseMessage<TankTransferDTO>> Handle (CreateTankTransfer request, CancellationToken cancellationToken) {
@@ -125,57 +127,60 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand {
                 tankTransfer.TransferDate = transferDate;
                 _context.TankTransfers.Add (tankTransfer);
 
+                await _context.SaveChangesAsync (cancellationToken);
+
+                // Calculate physical stock values for current day operations
+                decimal? sourcePhysicalStockValue = null;
+                decimal? destinationPhysicalStockValue = null;
+                string? physicalStockSource = null;
+
                 if (transferDate.Date == DateTime.Now.Date) {
-                    sourceTank.CurrentStock -= transferAmount;
-                    destinationTank.CurrentStock += transferAmount;
+                    if (sourceTank.PhysicalStockValue.HasValue) {
+                        sourcePhysicalStockValue = sourceTank.PhysicalStockValue.Value - transferAmount;
+                    }
+                    if (destinationTank.PhysicalStockValue.HasValue) {
+                        destinationPhysicalStockValue = destinationTank.PhysicalStockValue.Value + transferAmount;
+                    }
+                    physicalStockSource = "Transfer";
                 }
 
-                var sourceTankStock = CreateTankStock (sourceTank, -transferAmount, VolumeChangeReasonEnum.TransferOut, request.TankTransferDTO.RecordedBy);
-                var destinationTankStock = CreateTankStock (destinationTank, transferAmount, VolumeChangeReasonEnum.TransferIn, request.TankTransferDTO.RecordedBy);
+                // Process source tank volume change (outgoing)
+                var sourceVolumeResult = await _tankVolumeHistoryService.ProcessTankTransferOutChangeAsync (
+                    sourceTankId: sourceTank.Id,
+                    timestamp: transferDate,
+                    volumeChange: transferAmount, // Pass positive amount, service will make it negative
+                    transferId : tankTransfer.Id,
+                    actionType : ActionType.Create,
+                    recordedBy : request.TankTransferDTO.RecordedBy ?? "Unknown",
+                    newPhysicalStockValue : sourcePhysicalStockValue,
+                    physicalStockSource : physicalStockSource,
+                    cancellationToken : cancellationToken);
 
-                _context.Tankstocks.Add (sourceTankStock);
-                _context.Tankstocks.Add (destinationTankStock);
+                if (!sourceVolumeResult.Success) {
+                    _logger.LogWarning ("Failed to update source tank volume history: {Message}", sourceVolumeResult.Message);
+                }
 
-                await _context.SaveChangesAsync (cancellationToken);
+                // Process destination tank volume change (incoming)
+                var destinationVolumeResult = await _tankVolumeHistoryService.ProcessTankTransferInChangeAsync (
+                    destinationTankId: destinationTank.Id,
+                    timestamp: transferDate,
+                    volumeChange: transferAmount, // Pass positive amount
+                    transferId : tankTransfer.Id,
+                    actionType : ActionType.Create,
+                    recordedBy : request.TankTransferDTO.RecordedBy ?? "Unknown",
+                    newPhysicalStockValue : destinationPhysicalStockValue,
+                    physicalStockSource : physicalStockSource,
+                    cancellationToken : cancellationToken);
 
-                var tankVolumeHistorySource = CreateTankVolumeHistory (sourceTank, -transferAmount, VolumeChangeReasonEnum.TransferOut, request.TankTransferDTO.RecordedBy, sourceTankStock.EntryId, "TransferOut");
-                var tankVolumeHistoryDestination = CreateTankVolumeHistory (destinationTank, transferAmount, VolumeChangeReasonEnum.TransferIn, request.TankTransferDTO.RecordedBy, destinationTankStock.EntryId, "TransferIn");
-
-                _context.TankVolumeHistories.Add (tankVolumeHistorySource);
-                _context.TankVolumeHistories.Add (tankVolumeHistoryDestination);
-
-                await _context.SaveChangesAsync (cancellationToken);
+                if (!destinationVolumeResult.Success) {
+                    _logger.LogWarning ("Failed to update destination tank volume history: {Message}", destinationVolumeResult.Message);
+                }
 
                 return new FMSResponseMessage<TankTransferDTO> (true, "Tank Transfer successful", request.TankTransferDTO);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error creating tank transfer");
-                return new FMSResponseMessage<TankTransferDTO> (false, "Error creating tank transfer", null);
+                return new FMSResponseMessage<TankTransferDTO> (false, "Error creating tank transfer", request.TankTransferDTO);
             }
-        }
-
-        private Tankstock CreateTankStock (Tank tank, decimal amount, VolumeChangeReasonEnum entryType, string recordedBy) {
-            return new Tankstock {
-                TankId = tank.Id,
-                    EntryDate = DateTime.UtcNow,
-                    EntryType = entryType,
-                    RecordedBy = recordedBy,
-                    SiteId = tank.SiteId,
-                    ManualClosingLevel = tank.CurrentStock,
-                    ManualAmount = amount
-            };
-        }
-
-        private TankVolumeHistory CreateTankVolumeHistory (Tank tank, decimal amount, VolumeChangeReasonEnum changeReason, string recordedBy, int referenceId, string referenceType) {
-            return new TankVolumeHistory {
-                TankId = tank.Id,
-                    Timestamp = DateTime.Now,
-                    VolumeChange = amount,
-                    NewVolume = tank.CurrentStock,
-                    ChangeReason = changeReason,
-                    RecordedBy = recordedBy,
-                    ReferenceId = referenceId,
-                    ReferenceType = referenceType
-            };
         }
     }
 }

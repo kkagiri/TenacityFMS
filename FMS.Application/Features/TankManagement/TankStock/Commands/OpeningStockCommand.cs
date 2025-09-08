@@ -74,29 +74,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
 
                 var stockTaking = new Tankstock {
                     TankId = request.TankId,
-                    EntryDate = request.EntryDate ?? DateTime.Now,
+                    EntryDate = request.EntryDate ?? DateTime.UtcNow,
                     EntryType = VolumeChangeReasonEnum.OpeningStock,
                     ManualOpeningLevel = request.OpeningStock,
                     RecordedBy = request.RecordedBy,
                     SiteId = tank.SiteId
                 };
                 _context.Tankstocks.Add (stockTaking);
-
-                if (entryDate.Date == DateTime.Now.Date) {
-
-                    if (tank.UseBookKeeping == 1) {
-                        tank.CurrentStock = request.OpeningStock;
-                        tank.LastStockUpdate = DateTime.Now;
-                    }
-                }
-
-                //Cursor: Update physical stock value and timestamp
-                tank.PhysicalStockValue = request.OpeningStock;
-                tank.LastPhysicalStockUpdate = entryDate;
-                tank.PhysicalStockSource = "Manual"; // Set source for manual entry
-
-                _context.Tanks.Update (tank);
-
+                
+                // Save only the Tankstock entry first to get the ID
                 await _context.SaveChangesAsync (cancellationToken);
 
                 //Cursor - Calculate volume change: if no previous closing stock, use 0 as baseline (will show large negative or positive)
@@ -109,7 +95,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     volumeChange = request.OpeningStock - 0; // This will be the full opening stock amount
                 }
 
-                //Cursor - Replaced manual TankVolumeHistory creation with TankVolumeHistoryIntegrationService
+                // Determine physical stock source based on entry date
+                var physicalStockSource = entryDate.Date == DateTime.Now.Date 
+                    ? "Manual Opening Stock" 
+                    : "Manual Opening Stock (Historical)";
+
+                //Cursor - Use TankVolumeHistoryIntegrationService which will handle tank updates atomically
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync (
                     tankId: request.TankId,
                     timestamp: stockTaking.EntryDate,
@@ -118,6 +109,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     isOpening: true, // This is an opening stock
                     actionType : ActionType.Create, // This is a new opening stock
                     recordedBy : request.RecordedBy,
+                    newPhysicalStockValue: request.OpeningStock, // Pass the physical stock value
+                    physicalStockSource: physicalStockSource, // Pass the physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

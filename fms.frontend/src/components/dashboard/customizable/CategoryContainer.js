@@ -3,6 +3,12 @@ import { useSelector } from 'react-redux';
 import { usePreferencesContext } from './PreferencesProvider';
 import { getUserPrimaryRole } from './dashboardCategories';
 import BaseTicker from './BaseTicker';
+import { WeeklyPerformance } from '../widget/WeeklyPerformance';
+import { FuelEfficiency } from '../widget/FuelEfficiency';
+import { FuelManagement } from '../widget/FuelManagement';
+import { TankLevels } from '../widget/TankLevels';
+import { PumpStatus } from '../widget/PumpStatus';
+import './TickerWidgets.scss';
 
 // Dashboard Categories Definition (shared with ConfigurationModal)
 const DASHBOARD_CATEGORIES = {
@@ -20,7 +26,7 @@ const DASHBOARD_CATEGORIES = {
     icon: '📊',
     color: '#007bff',
     allowedRoles: ['admin', 'management', 'user'],
-    tickers: ['daily_fuel_consumed', 'active_vehicles', 'tank_capacity_utilization', 'pump_efficiency', 'transaction_count']
+    tickers: ['daily_fuel_consumed', 'active_vehicles', 'tank_capacity_utilization', 'pump_efficiency', 'transaction_count', 'tank_levels_widget', 'pump_status_widget']
   },
   'performance_metrics': {
     name: 'Performance Metrics',
@@ -28,7 +34,7 @@ const DASHBOARD_CATEGORIES = {
     icon: '📈',
     color: '#28a745',
     allowedRoles: ['admin', 'management'],
-    tickers: ['fuel_efficiency_trends', 'cost_analysis', 'usage_patterns', 'maintenance_schedules', 'predictive_analytics']
+    tickers: ['fuel_efficiency_trends', 'cost_analysis', 'usage_patterns', 'maintenance_schedules', 'predictive_analytics', 'weekly_performance', 'engine_hours_analysis']
   },
   'fuel_management': {
     name: 'Fuel Management',
@@ -36,7 +42,7 @@ const DASHBOARD_CATEGORIES = {
     icon: '⛽',
     color: '#ffc107',
     allowedRoles: ['admin', 'management', 'user'],
-    tickers: ['inventory_levels', 'reconciliation_status', 'delivery_schedules', 'stock_movements', 'variance_reports']
+    tickers: ['inventory_levels', 'reconciliation_status', 'delivery_schedules', 'stock_movements', 'variance_reports', 'fuel_management_widget', 'fuel_efficiency_widget']
   }
 };
 
@@ -52,16 +58,22 @@ const DEFAULT_TICKER_SIZES = {
   'tank_capacity_utilization': 'quarter',
   'pump_efficiency': 'quarter',
   'transaction_count': 'quarter',
+  'tank_levels_widget': 'half',
+  'pump_status_widget': 'half',
   'fuel_efficiency_trends': 'half',
   'cost_analysis': 'half',
   'usage_patterns': 'full',
   'maintenance_schedules': 'half',
   'predictive_analytics': 'full',
+  'weekly_performance': 'full',
+  'engine_hours_analysis': 'half',
+  'fuel_efficiency_widget': 'full',
   'inventory_levels': 'quarter',
   'reconciliation_status': 'half',
   'delivery_schedules': 'quarter',
   'stock_movements': 'quarter',
-  'variance_reports': 'half'
+  'variance_reports': 'half',
+  'fuel_management_widget': 'full'
 };
 
 // Expanded ticker registry with categorized placeholders
@@ -79,6 +91,25 @@ const TICKER_RENDERERS = {
   tank_capacity_utilization: (t) => <BaseTicker title="Tank Capacity" color="#007bff">⛽ 78% capacity utilized</BaseTicker>,
   pump_efficiency: (t) => <BaseTicker title="Pump Efficiency" color="#007bff">⚡ 94% efficiency rate</BaseTicker>,
   transaction_count: (t) => <BaseTicker title="Transaction Count" color="#007bff">💳 324 transactions today</BaseTicker>,
+  tank_levels_widget: (t) => (
+    <div className="tank-levels-ticker">
+      <TankLevels tankLevels={[
+        { id: 1, name: "Regular Unleaded", level: 77, volume: 15420 },
+        { id: 2, name: "Premium Unleaded", level: 65, volume: 12980 },
+        { id: 3, name: "Diesel", level: 42, volume: 8450 },
+      ]} />
+    </div>
+  ),
+  pump_status_widget: (t) => (
+    <div className="pump-status-ticker">
+      <PumpStatus pumpStatus={[
+        { id: 1, status: "Idle" },
+        { id: 2, status: "Filling" },
+        { id: 3, status: "Idle" },
+        { id: 4, status: "Offline" },
+      ]} />
+    </div>
+  ),
 
   // Performance Metrics Category
   fuel_efficiency_trends: (t) => <BaseTicker title="Fuel Efficiency Trends" color="#28a745">📈 +3.2% efficiency this month</BaseTicker>,
@@ -86,6 +117,25 @@ const TICKER_RENDERERS = {
   usage_patterns: (t) => <BaseTicker title="Usage Patterns" color="#28a745">📊 Peak usage: 2-4 PM</BaseTicker>,
   maintenance_schedules: (t) => <BaseTicker title="Maintenance Schedule" color="#28a745">🔧 3 items due this week</BaseTicker>,
   predictive_analytics: (t) => <BaseTicker title="Predictive Analytics" color="#28a745">🔮 Predictive insights available</BaseTicker>,
+  weekly_performance: (t) => (
+    <div className="weekly-performance-ticker">
+      <WeeklyPerformance
+        engineHoursData={[
+          { vehicleType: "CRANE", hours: 85.5, distance: 1240 },
+          { vehicleType: "DRILL", hours: 92.3, distance: 1580 },
+          { vehicleType: "LIFT", hours: 78.1, distance: 950 },
+          { vehicleType: "DOZER", hours: 105.7, distance: 2100 }
+        ]}
+        distanceData={[
+          { vehicleType: "CRANE", hours: 85.5, distance: 1240 },
+          { vehicleType: "DRILL", hours: 92.3, distance: 1580 },
+          { vehicleType: "LIFT", hours: 78.1, distance: 950 },
+          { vehicleType: "DOZER", hours: 105.7, distance: 2100 }
+        ]}
+      />
+    </div>
+  ),
+  engine_hours_analysis: (t) => <BaseTicker title="Engine Hours Analysis" color="#28a745">⏱️ Weekly engine hours breakdown</BaseTicker>,
 
   // Fuel Management Category
   inventory_levels: (t) => <BaseTicker title="Inventory Levels" color="#ffc107">⛽ Inventory status overview</BaseTicker>,
@@ -93,6 +143,29 @@ const TICKER_RENDERERS = {
   delivery_schedules: (t) => <BaseTicker title="Delivery Schedules" color="#ffc107">🚚 Next delivery: Tomorrow 2PM</BaseTicker>,
   stock_movements: (t) => <BaseTicker title="Stock Movements" color="#ffc107">📦 Recent stock movements</BaseTicker>,
   variance_reports: (t) => <BaseTicker title="Variance Reports" color="#ffc107">📋 Variance analysis available</BaseTicker>,
+  fuel_management_widget: (t) => (
+    <div className="fuel-management-ticker">
+      <FuelManagement
+        fuelIssueData={[]}
+        fuelSiteData={[]}
+        formatNumber={(num) => num.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+        formatCurrency={(amount) => new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount)}
+      />
+    </div>
+  ),
+  fuel_efficiency_widget: (t) => (
+    <div className="fuel-efficiency-ticker">
+      <FuelEfficiency
+        efficiencyAvgs={{ avgKmPerLiter: 8.5, avgLiterPerHour: 13.7 }}
+        filteredEfficiencyData={[]}
+      />
+    </div>
+  ),
 
   // Legacy tickers (for backward compatibility)
   tank_levels: (t) => <BaseTicker title="Tank Levels" color="#007bff">Legacy: Tank levels placeholder</BaseTicker>,

@@ -29,7 +29,7 @@ import './ClosingStockForm.scss';
 import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
 import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
 
-const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => {
+const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefilledData }) => {
     const dispatch = useDispatch();
     const tanksFromStore = useSelector((state) => state.tank.tanks);
     const sites = useSelector((state) => state.site.sites);
@@ -69,11 +69,12 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     const [filteredTanks, setFilteredTanks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        siteId: null,
-        tankId: null,
+        siteId: prefilledData?.siteId || null,
+        tankId: prefilledData?.tankId || null,
         amount: null,           // Physical stock measurement
         bookBalance: null,      // Current book balance (read-only)
-        dateTime: new Date().toISOString()
+        physicalStockValue: null, // Current physical stock value (read-only)
+        date: prefilledData?.suggestedDate || new Date()
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
@@ -97,6 +98,40 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         }
         dispatch(fetchTanks());
     }, [dispatch, sites]);
+
+    // Handle prefilled data
+    useEffect(() => {
+        if (prefilledData?.siteId && tanksFromStore.length > 0) {
+            const tanksForSite = tanksFromStore.filter(tank => tank.siteId === prefilledData.siteId);
+            setFilteredTanks(tanksForSite);
+
+            // If we have a specific tank, get its data
+            if (prefilledData.tankId) {
+                const selectedTank = tanksFromStore.find(tank => tank.id === prefilledData.tankId);
+                if (selectedTank) {
+                    const bookBalance = selectedTank.currentStock;
+                    const physicalStockValue = selectedTank.physicalStockValue;
+
+                    setFormData(prev => ({
+                        ...prev,
+                        bookBalance: bookBalance,
+                        physicalStockValue: physicalStockValue
+                    }));
+
+                    // Load tank volume history for the prefilled tank
+                    setLoading(true);
+                    dispatch(fetchTankVolumeHistoryByTankId(prefilledData.tankId))
+                        .catch((error) => {
+                            console.error('Error loading tank volume history:', error);
+                            showNotification('Failed to load tank volume history', 'error');
+                        })
+                        .finally(() => {
+                            setLoading(false);
+                        });
+                }
+            }
+        }
+    }, [prefilledData, tanksFromStore, dispatch]);
 
     // Notify parent component of form data changes
     useEffect(() => {
@@ -124,14 +159,16 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     const handleTankChange = useCallback((e) => {
         const tankId = e.value;
 
-        // Get selected tank to retrieve book balance
+        // Get selected tank to retrieve book balance and physical stock value
         const selectedTank = tanksFromStore.find(tank => tank.id === tankId);
         const bookBalance = selectedTank ? selectedTank.currentStock : null;
+        const physicalStockValue = selectedTank ? selectedTank.physicalStockValue : null;
 
         const updatedData = {
             ...formData,
             tankId: tankId,
-            bookBalance: bookBalance  // Set current book balance for comparison
+            bookBalance: bookBalance,  // Set current book balance for comparison
+            physicalStockValue: physicalStockValue  // Set current physical stock value for comparison
         };
         setFormData(updatedData);
 
@@ -255,6 +292,24 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                     </p>
                 </div>
 
+                {/* Special notice for prefilled closing stock */}
+                {prefilledData?.reason && (
+                    <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                        <div className="tw-flex tw-items-start">
+                            <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                            <div className="tw-flex-1">
+                                <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">Required Closing Stock</h4>
+                                <p className="tw-text-blue-700 tw-text-sm">
+                                    {prefilledData.reason}
+                                </p>
+                                <p className="tw-text-blue-600 tw-text-xs tw-mt-2">
+                                    The tank and date have been pre-selected to match the existing opening stock. Please enter the appropriate closing stock amount for this date.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Dismissible Information Notice */}
                 {showInfoNotice && (
                     <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
@@ -372,6 +427,22 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                         </SimpleItem>
                     )}
 
+                    {/* Physical Stock Value Display (Read-only) */}
+                    {formData.tankId && (
+                        <SimpleItem
+                            dataField="physicalStockValue"
+                            editorType="dxTextBox"
+                            editorOptions={{
+                                value: formData.physicalStockValue != null ? Number(formData.physicalStockValue).toLocaleString() + ' L' : 'No physical reading available',
+                                readOnly: true,
+                                width: "100%",
+                                stylingMode: "filled"
+                            }}
+                        >
+                            <Label text="Current Physical Stock Value (Last Recorded)" />
+                        </SimpleItem>
+                    )}
+
                     <SimpleItem
                         dataField="amount"
                         editorType="dxNumberBox"
@@ -390,26 +461,44 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                     </SimpleItem>
 
                     {/* Discrepancy Indicator */}
-                    {formData.amount != null && formData.bookBalance != null && (
+                    {formData.amount != null && (formData.bookBalance != null || formData.physicalStockValue != null) && (
                         <div className="discrepancy-indicator" style={{
                             padding: '10px',
                             marginTop: '10px',
                             borderRadius: '4px',
-                            backgroundColor: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#ffebee' : '#e8f5e8',
-                            border: `1px solid ${Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'}`
+                            backgroundColor: '#f8f9fa',
+                            border: '1px solid #dee2e6'
                         }}>
                             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
                                 Stock Comparison:
                             </div>
-                            <div>Physical Stock: {Number(formData.amount).toLocaleString()} L</div>
-                            <div>Book Balance: {Number(formData.bookBalance).toLocaleString()} L</div>
-                            <div style={{
-                                fontWeight: 'bold',
-                                color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
-                            }}>
-                                Discrepancy: {Number(formData.amount - formData.bookBalance).toLocaleString()} L
-                                ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
-                            </div>
+                            <div>New Physical Stock: {Number(formData.amount).toLocaleString()} L</div>
+
+                            {formData.bookBalance != null && (
+                                <>
+                                    <div>Current Book Balance: {Number(formData.bookBalance).toLocaleString()} L</div>
+                                    <div style={{
+                                        fontWeight: 'bold',
+                                        color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
+                                    }}>
+                                        Book Balance Discrepancy: {Number(formData.amount - formData.bookBalance).toLocaleString()} L
+                                        ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
+                                    </div>
+                                </>
+                            )}
+
+                            {formData.physicalStockValue != null && (
+                                <>
+                                    <div>Current Physical Stock: {Number(formData.physicalStockValue).toLocaleString()} L</div>
+                                    <div style={{
+                                        fontWeight: 'bold',
+                                        color: Math.abs(formData.amount - formData.physicalStockValue) > (formData.physicalStockValue * 0.05) ? '#ff9800' : '#4caf50'
+                                    }}>
+                                        Physical Stock Change: {Number(formData.amount - formData.physicalStockValue).toLocaleString()} L
+                                        ({formData.physicalStockValue > 0 ? (((formData.amount - formData.physicalStockValue) / formData.physicalStockValue) * 100).toFixed(2) : '100'}%)
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </Form>

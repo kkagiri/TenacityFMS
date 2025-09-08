@@ -116,6 +116,16 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
                 await _context.SaveChangesAsync (cancellationToken);
 
                 //Cursor - Replaced manual TankVolumeHistory creation with TankVolumeHistoryIntegrationService
+                // Calculate new physical stock value based on current operation
+                decimal? newPhysicalStockValue = null;
+                string? physicalStockSource = null;
+
+                // For current day operations, calculate the new physical stock
+                if (deliveryDate.Date == DateTime.Now.Date && tank.PhysicalStockValue.HasValue) {
+                    newPhysicalStockValue = tank.PhysicalStockValue.Value + request.DeliveryDTO.ManualDeliveryAmount;
+                    physicalStockSource = "Delivery";
+                }
+
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessDeliveryChangeAsync (
                     tankId: request.DeliveryDTO.TankId,
                     timestamp: deliveryDate,
@@ -123,6 +133,8 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
                     deliveryId : delivery.Id,
                     actionType : ActionType.Create, // This is a new delivery
                     recordedBy : request.DeliveryDTO.RecordedBy,
+                    newPhysicalStockValue: newPhysicalStockValue, // Pass calculated physical stock
+                    physicalStockSource: physicalStockSource, // Pass physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

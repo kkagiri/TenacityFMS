@@ -1,5 +1,5 @@
 // src/signalR/SignalRService.js
-
+//for pts
 import * as signalR from "@microsoft/signalr";
 import { debounce } from "lodash";
 import store from "../store";
@@ -123,7 +123,7 @@ class SignalRService {
 
     try {
       const baseURL = process.env.REACT_APP_SIGNALR_URL || "http://localhost:7009";
-      const signalRUrl = `${baseURL}/signalHub`;
+      const signalRUrl = `${baseURL}/frontendHub`;
 
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl(signalRUrl, {

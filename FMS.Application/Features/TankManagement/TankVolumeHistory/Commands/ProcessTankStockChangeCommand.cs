@@ -20,7 +20,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         string RecordedBy,
         int ReferenceId,
         string ReferenceType,
-        ActionType ActionType) : IRequest<FMSResponseMessage>;
+        ActionType ActionType,
+        decimal? NewPhysicalStockValue = null, // For opening/closing stock operations
+        string? PhysicalStockSource = null) : IRequest<FMSResponseMessage>;
 
     public enum ActionType {
         Create,
@@ -73,6 +75,39 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                         };
 
                         _context.TankVolumeHistories.Add (newRecord);
+
+                        // Update tank properties for all operations when physical stock value is provided
+                        if (request.NewPhysicalStockValue.HasValue) {
+                            var isCurrentDay = request.Timestamp.Date == DateTime.Now.Date;
+
+                            // Update physical stock value for any operation type
+                            tank.PhysicalStockValue = request.NewPhysicalStockValue.Value;
+                            tank.LastPhysicalStockUpdate = request.Timestamp;
+                            tank.PhysicalStockSource = request.PhysicalStockSource ?? GetDefaultPhysicalStockSource (request.ChangeReason);
+
+                            // Update book balance only for current day and if bookkeeping is enabled
+                            if (isCurrentDay && tank.UseBookKeeping == 1) {
+                                // For opening/closing stock, use the exact physical stock value
+                                if (request.ChangeReason == VolumeChangeReasonEnum.OpeningStock ||
+                                    request.ChangeReason == VolumeChangeReasonEnum.ClosingStock) {
+                                    tank.CurrentStock = request.NewPhysicalStockValue.Value;
+                                } else {
+                                    // For other operations (delivery, fuel refill, transfer), apply the change to current stock
+                                    tank.CurrentStock = (tank.CurrentStock ?? 0) + request.VolumeChange;
+                                }
+                                tank.LastStockUpdate = DateTime.Now;
+                            }
+
+                            _context.Tanks.Update (tank);
+                        }
+                        // Handle cases where no physical stock is provided but we still need to update book balance
+                        else if (request.Timestamp.Date == DateTime.Now.Date && tank.UseBookKeeping == 1) {
+                            // Only update book balance for current day operations when no physical stock is specified
+                            tank.CurrentStock = (tank.CurrentStock ?? 0) + request.VolumeChange;
+                            tank.LastStockUpdate = DateTime.Now;
+                            _context.Tanks.Update (tank);
+                        }
+
                         await _context.SaveChangesAsync (cancellationToken);
                         break;
 
@@ -171,6 +206,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             }
 
             return previousVolume.Value;
+        }
+
+        private static string GetDefaultPhysicalStockSource (VolumeChangeReasonEnum changeReason) {
+            return changeReason
+            switch {
+                VolumeChangeReasonEnum.OpeningStock => "Manual",
+                    VolumeChangeReasonEnum.ClosingStock => "Manual",
+                    VolumeChangeReasonEnum.Delivery => "Delivery",
+                    VolumeChangeReasonEnum.Dispensing => "FuelRefill",
+                    VolumeChangeReasonEnum.TransferIn => "Transfer",
+                    VolumeChangeReasonEnum.TransferOut => "Transfer",
+                    VolumeChangeReasonEnum.Adjustment => "Adjustment",
+                    VolumeChangeReasonEnum.AutomatedDispensing => "PumpTransaction",
+                    _ => "System"
+            };
         }
 
     }

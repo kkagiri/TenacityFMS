@@ -1,9 +1,9 @@
-# Customizable Dashboard Ticker System - Product Requirements Document (PRD)
+# Customizable Dashboard widget System - Product Requirements Document (PRD)
 
 ## 📋 Executive Summary
 
 ### Product Overview
-The Customizable Dashboard Ticker System empowers users to personalize their FMS dashboard by selecting, configuring, and organizing data widgets (tickers) according to their specific workflow needs. This feature enhances user productivity by displaying only relevant information while maintaining role-based security.
+The Customizable Dashboard widget System empowers users to personalize their FMS dashboard by selecting, configuring, and organizing data widgets (widgets) according to their specific workflow needs. This feature enhances user productivity by displaying only relevant information while maintaining role-based security.
 
 ### Business Objectives
 - **Improve User Experience**: Reduce information overload by showing personalized, relevant data
@@ -12,7 +12,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - **Reduce Support Load**: Self-service customization reduces configuration requests
 
 ### Success Metrics
-- **User Engagement**: 80% of active users customize at least one ticker within 30 days
+- **User Engagement**: 80% of active users customize at least one widget within 30 days
 - **Session Duration**: 25% increase in average dashboard session time
 - **User Satisfaction**: 4.5+ star rating on dashboard experience surveys
 - **Performance**: Sub-2 second load times for customized dashboards
@@ -46,25 +46,25 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 
 ### Core Features (MVP)
 
-#### 1. Ticker Selection & Enablement
-**Description**: Users can enable/disable tickers based on their role and permissions
+#### 1. widget Selection & Enablement
+**Description**: Users can enable/disable widgets based on their role and permissions
 
 **User Stories**:
-- As a user, I want to enable only the tickers relevant to my job function
-- As an admin, I want to see all available tickers for my role
-- As a user, I want to hide tickers I don't need to reduce clutter
+- As a user, I want to enable only the widgets relevant to my job function
+- As an admin, I want to see all available widgets for my role
+- As a user, I want to hide widgets I don't need to reduce clutter
 
 **Acceptance Criteria**:
-- Role-based ticker availability (Admin sees all, User sees subset)
-- Toggle switches for enabling/disabling tickers
+- Role-based widget availability (Admin sees all, User sees subset)
+- Toggle switches for enabling/disabling widgets
 - Immediate visual feedback when changes are made
 - Persist selections across browser sessions
 
-#### 2. Ticker Ordering & Layout
-**Description**: Users can reorder tickers using drag-and-drop functionality
+#### 2. widget Ordering & Layout
+**Description**: Users can reorder widgets using drag-and-drop functionality
 
 **User Stories**:
-- As a user, I want to arrange tickers in order of importance to me
+- As a user, I want to arrange widgets in order of importance to me
 - As a user, I want my most critical information to appear first
 - As a user, I want the system to remember my preferred order
 
@@ -75,7 +75,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - Responsive layout on mobile devices
 
 #### 3. Filter Configuration
-**Description**: Users can configure filters for each ticker to show relevant data
+**Description**: Users can configure filters for each widget to show relevant data
 
 **User Stories**:
 - As a site operator, I want to see only tanks from my assigned site
@@ -83,13 +83,13 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - As a user, I want to set alert thresholds that matter to my operation
 
 **Acceptance Criteria**:
-- Dynamic filter options based on ticker type
+- Dynamic filter options based on widget type
 - Validation of filter selections
 - Real-time preview of filtered data
 - Save and apply filters automatically
 
 #### 4. Display Options
-**Description**: Users can customize how data is presented in each ticker
+**Description**: Users can customize how data is presented in each widget
 
 **User Stories**:
 - As a user, I want to choose between compact and detailed views
@@ -105,7 +105,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 ### Advanced Features (Phase 2)
 
 #### 5. Time Range Customization
-**Description**: Users can set custom time ranges for historical data tickers
+**Description**: Users can set custom time ranges for historical data widgets
 
 **User Stories**:
 - As a manager, I want to see last week's consumption data every Monday
@@ -113,7 +113,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - As an admin, I want to set default time ranges for my team
 
 #### 6. Threshold Alerts
-**Description**: Users can set custom thresholds for alerts within tickers
+**Description**: Users can set custom thresholds for alerts within widgets
 
 **User Stories**:
 - As a site operator, I want alerts when tank levels drop below 25%
@@ -121,10 +121,10 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - As a user, I want to customize alert severity levels
 
 #### 7. Export & Sharing
-**Description**: Users can export ticker data and share configurations
+**Description**: Users can export widget data and share configurations
 
 **User Stories**:
-- As a manager, I want to export ticker data to Excel for reporting
+- As a manager, I want to export widget data to Excel for reporting
 - As an admin, I want to share optimal configurations with my team
 - As a user, I want to backup my configuration settings
 
@@ -132,7 +132,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 
 ### Performance Requirements
 - **Load Time**: Initial dashboard load < 2 seconds
-- **Refresh Performance**: Ticker updates < 500ms
+- **Refresh Performance**: widget updates < 500ms
 - **Concurrent Users**: Support 200+ simultaneous users
 - **Data Freshness**: Real-time data updates within 30 seconds
 
@@ -173,7 +173,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - Preview pane showing configuration results
 ```
 
-#### Ticker Components
+#### widget Components
 ```
 - Consistent header with title and settings icon
 - Loading states with skeleton screens
@@ -183,7 +183,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 ```
 
 ### Interaction Patterns
-- **Configuration Access**: Settings icon on each ticker + global settings
+- **Configuration Access**: Settings icon on each widget + global settings
 - **Drag & Drop**: Visual feedback with drop zones and ghost elements
 - **Filter Selection**: Multi-select dropdowns with search capability
 - **Save Actions**: Auto-save with manual save confirmation
@@ -199,13 +199,13 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 
 ### Data Volume
 - **User Preferences**: ~2KB per user configuration
-- **Ticker Data**: 10-100KB per ticker depending on type
+- **widget Data**: 10-100KB per widget depending on type
 - **Real-time Updates**: 1-5KB per update message
 - **Historical Data**: 100KB-1MB for trend analysis
 
 ### Data Retention
 - **Preferences**: Indefinite (until user deletion)
-- **Ticker Cache**: 5-30 minutes depending on refresh rate
+- **widget Cache**: 5-30 minutes depending on refresh rate
 - **Audit Logs**: 90 days for configuration changes
 - **Performance Metrics**: 30 days for optimization analysis
 
@@ -217,7 +217,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 **Week 5-6**: Integration, testing, and polish
 
 **Deliverables**:
-- Basic ticker enable/disable functionality
+- Basic widget enable/disable functionality
 - Simple ordering via up/down buttons
 - Essential filter configuration
 - Role-based access control
@@ -227,7 +227,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 **Week 9-10**: Display options and performance optimization
 
 **Deliverables**:
-- Drag-and-drop ticker reordering
+- Drag-and-drop widget reordering
 - Advanced filter options
 - Display customization options
 - Performance monitoring and optimization
@@ -252,8 +252,8 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 5. **Security Testing**: Permission and data access validation
 
 ### Test Cases
-- **Role-based access**: Verify users see only authorized tickers
-- **Data filtering**: Confirm filters work correctly for each ticker type
+- **Role-based access**: Verify users see only authorized widgets
+- **Data filtering**: Confirm filters work correctly for each widget type
 - **Performance**: Validate load times under various conditions
 - **Cross-browser**: Test functionality across supported browsers
 - **Mobile**: Verify responsive behavior on different screen sizes
@@ -272,7 +272,7 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 - **Engagement**: 50%+ of users save custom configurations
 - **Performance**: 95%+ of page loads under 2 seconds
 - **Error Rate**: < 1% of configuration saves fail
-- **Support Tickets**: < 5 tickets related to ticker customization
+- **Support Tickets**: < 5 tickets related to widget customization
 
 ### Long-term Success (90 days)
 - **User Retention**: 80%+ of users who customize continue using feature
@@ -284,12 +284,12 @@ The Customizable Dashboard Ticker System empowers users to personalize their FMS
 
 ### Short-term Enhancements (3-6 months)
 - Mobile app integration with preference sync
-- Advanced charting options within tickers
+- Advanced charting options within widgets
 - Collaborative dashboard configurations for teams
-- AI-powered ticker recommendations
+- AI-powered widget recommendations
 
 ### Long-term Vision (6-12 months)
-- Custom ticker development framework
+- Custom widget development framework
 - Third-party data source integration
 - Advanced analytics and trend prediction
 - Multi-tenant configuration management

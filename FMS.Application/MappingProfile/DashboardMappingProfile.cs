@@ -5,8 +5,12 @@ using FMS.Domain.Entities.Dashboard;
 namespace FMS.Application.MappingProfile {
     public class DashboardMappingProfile : Profile {
         public DashboardMappingProfile () {
-            CreateMap<DashboardTickerTemplate, DashboardTickerTemplateDto> ();
-            CreateMap<UserDashboardPreference, UserDashboardPreferenceDto> ();
+
+            // New widget mappings
+            CreateMap<DashboardWidgetTemplate, DashboardWidgetTemplateDto> ();
+            CreateMap<DashboardWidgetInstance, DashboardWidgetInstanceDto> ()
+                .ForMember (dest => dest.Template, opt => opt.MapFrom (src => src.Template));
+            CreateMap<UserDashboardLayout, UserDashboardLayoutDto> ();
         }
     }
 }

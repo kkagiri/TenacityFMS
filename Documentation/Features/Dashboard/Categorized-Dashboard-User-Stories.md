@@ -56,47 +56,47 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 
 ---
 
-## 🎯 Epic 2: Ticker Management Within Categories
+## 🎯 Epic 2: widget Management Within Categories
 
-### Story 2.1: Enable/Disable Tickers Within Categories
+### Story 2.1: Enable/Disable widgets Within Categories
 
 **As a** user
-**I want to** enable and disable individual tickers within each category
+**I want to** enable and disable individual widgets within each category
 **So that** I can customize what specific widgets show in each section
 
 **Acceptance Criteria:**
 
-- [ ] I can see a list of all available tickers for each enabled category
-- [ ] I can toggle tickers on/off with a clear visual indicator within each category
+- [ ] I can see a list of all available widgets for each enabled category
+- [ ] I can toggle widgets on/off with a clear visual indicator within each category
 - [ ] Changes are saved automatically with category context
-- [ ] Disabled tickers are hidden from the category immediately
-- [ ] I cannot enable tickers I don't have permission to view
+- [ ] Disabled widgets are hidden from the category immediately
+- [ ] I cannot enable widgets I don't have permission to view
 
 **Business Value:** High - Fine-grained control over dashboard content
 
 **Story Points:** 8
 
 **Technical Notes:**
-- Category-scoped ticker management
+- Category-scoped widget management
 - Hierarchical permission validation
 - Context-aware state management
 
 ---
 
-### Story 2.2: Reorder Tickers Within Categories
+### Story 2.2: Reorder widgets Within Categories
 
 **As a** user
-**I want to** reorder tickers within each category
+**I want to** reorder widgets within each category
 **So that** the most important widgets appear first in each section
 
 **Acceptance Criteria:**
 
-- [ ] I can drag and drop tickers to reorder them within their category
+- [ ] I can drag and drop widgets to reorder them within their category
 - [ ] Visual feedback shows valid drop zones during dragging
 - [ ] New order is saved automatically per category
 - [ ] Reordering works on both desktop and tablet
 - [ ] Order persists across browser sessions
-- [ ] Tickers cannot be dragged between categories (only within)
+- [ ] widgets cannot be dragged between categories (only within)
 
 **Business Value:** Medium - Improves workflow within categories
 
@@ -109,18 +109,18 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 
 ---
 
-### Story 2.3: Configure Ticker Sizes
+### Story 2.3: Configure widget Sizes
 
 **As a** user
-**I want to** set different sizes for tickers within categories
-**So that** I can optimize screen space based on ticker importance
+**I want to** set different sizes for widgets within categories
+**So that** I can optimize screen space based on widget importance
 
 **Acceptance Criteria:**
 
 - [ ] I can choose from predefined sizes (full, half, quarter, third width)
-- [ ] Size changes apply immediately to the ticker layout
+- [ ] Size changes apply immediately to the widget layout
 - [ ] Grid automatically adjusts to accommodate different sizes
-- [ ] Size preferences are saved per ticker
+- [ ] Size preferences are saved per widget
 - [ ] Responsive design maintains usability on smaller screens
 
 **Business Value:** Medium - Flexible layout optimization
@@ -172,7 +172,7 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 - [ ] I can select specific sites from a dropdown
 - [ ] I can choose time ranges (Today, Yesterday, Last 7 days, Last 30 days)
 - [ ] I can set custom date ranges
-- [ ] Filter changes update all tickers in the category
+- [ ] Filter changes update all widgets in the category
 - [ ] Filter selections are saved per category
 
 **Business Value:** High - Essential for operational focus
@@ -301,7 +301,7 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 - [ ] I can access all four categories (Active Alarms, Key Statistics, Performance Metrics, Fuel Management)
 - [ ] I can view system-wide data across all sites
 - [ ] I can configure advanced settings and thresholds
-- [ ] I can access admin-specific tickers (System Health, User Activity)
+- [ ] I can access admin-specific widgets (System Health, User Activity)
 - [ ] I can manage default configurations for other roles
 
 **Business Value:** High - Complete system oversight
@@ -378,7 +378,7 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 - [ ] I can save my current category configuration as a template
 - [ ] I can name and describe templates for easy identification
 - [ ] I can apply saved templates to quickly reconfigure my dashboard
-- [ ] Templates include category selection, ticker configuration, and filters
+- [ ] Templates include category selection, widget configuration, and filters
 - [ ] I can share templates with other users (if permissions allow)
 
 **Business Value:** Medium - Workflow efficiency improvement
@@ -421,10 +421,10 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 
 ### Phase 1: Core Category Management (Weeks 1-4)
 - Epic 1: Category Management (Stories 1.1-1.2)
-- Epic 2: Basic Ticker Management (Stories 2.1-2.2)
+- Epic 2: Basic widget Management (Stories 2.1-2.2)
 
 ### Phase 2: Advanced Configuration (Weeks 5-8)
-- Epic 2: Ticker Sizing (Story 2.3)
+- Epic 2: widget Sizing (Story 2.3)
 - Epic 3: Category-Specific Filtering (Stories 3.1-3.2)
 
 ### Phase 3: Display & Performance (Weeks 9-12)
@@ -438,7 +438,7 @@ This document contains detailed user stories for the Categorized Dashboard Syste
 ## 🎯 Success Criteria
 
 - All categories can be independently enabled/disabled and configured
-- Drag-and-drop functionality works smoothly for both categories and tickers
+- Drag-and-drop functionality works smoothly for both categories and widgets
 - Role-based permissions properly restrict access to appropriate categories
 - Performance remains optimal with real-time updates across multiple categories
 - User preferences persist and sync across browser sessions

@@ -16,7 +16,7 @@ export const DASHBOARD_CATEGORIES = {
     icon: '📊',
     color: '#007bff',
     allowedRoles: ['admin', 'management', 'user'], // Basic operational data for all
-    tickers: ['daily_fuel_consumed', 'active_vehicles', 'tank_capacity_utilization', 'pump_efficiency', 'transaction_count']
+    tickers: ['daily_fuel_consumed', 'active_vehicles', 'tank_capacity_utilization', 'pump_efficiency', 'transaction_count', 'tank_levels_widget', 'pump_status_widget']
   },
   'performance_metrics': {
     name: 'Performance Metrics',
@@ -24,7 +24,7 @@ export const DASHBOARD_CATEGORIES = {
     icon: '📈',
     color: '#28a745',
     allowedRoles: ['admin', 'management'], // Analytics restricted to management+
-    tickers: ['fuel_efficiency_trends', 'cost_analysis', 'usage_patterns', 'maintenance_schedules', 'predictive_analytics']
+    tickers: ['fuel_efficiency_trends', 'cost_analysis', 'usage_patterns', 'maintenance_schedules', 'predictive_analytics', 'weekly_performance', 'engine_hours_analysis']
   },
   'fuel_management': {
     name: 'Fuel Management',
@@ -32,7 +32,7 @@ export const DASHBOARD_CATEGORIES = {
     icon: '⛽',
     color: '#ffc107',
     allowedRoles: ['admin', 'management', 'user'], // Fuel data for operational roles
-    tickers: ['inventory_levels', 'reconciliation_status', 'delivery_schedules', 'stock_movements', 'variance_reports']
+    tickers: ['inventory_levels', 'reconciliation_status', 'delivery_schedules', 'stock_movements', 'variance_reports', 'fuel_management_widget', 'fuel_efficiency_widget']
   }
 };
 

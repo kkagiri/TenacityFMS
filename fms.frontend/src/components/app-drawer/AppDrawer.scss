@@ -4,6 +4,25 @@
   margin: 0;
   padding: 0;
   // top and left will be set dynamically via inline styles
+
+  // Browser compatibility fixes
+  -webkit-transform: translateZ(0); // Force hardware acceleration
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+
+  // Ensure visibility in all browsers
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+
+  // Firefox-specific positioning fixes
+  @-moz-document url-prefix() {
+    // Firefox-specific styles
+    position: fixed !important;
+    display: block !important;
+    z-index: 9999999 !important;
+  }
 }
 
 .app-drawer {
@@ -11,52 +30,119 @@
   border-radius: 8px; // Standard border radius for dropdown style
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1); // Standard dropdown shadow
   width: 320px; // Fixed smaller width
-  max-height: 400px;
+  // Remove fixed max-height to allow dynamic sizing
   overflow: hidden;
   animation: slideInFromTop 0.25s ease-out;
   border: 1px solid #e1e1e1;
   position: relative; // Ensure proper positioning context
 
   // Ensure high visibility on all devices
-  transform: translateZ(0); // Force hardware acceleration
+  -webkit-transform: translateZ(0); // Force hardware acceleration
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
   will-change: transform, opacity; // Optimize for animations
+
+  // Browser compatibility fixes
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  backface-visibility: hidden;
+
+  // Ensure proper display in all browsers
+  display: block;
+  visibility: visible;
 }
 
 @keyframes slideInFromTop {
   from {
     opacity: 0;
+    -webkit-transform: translateY(-10px) scale(0.98);
+    -moz-transform: translateY(-10px) scale(0.98);
+    -ms-transform: translateY(-10px) scale(0.98);
     transform: translateY(-10px) scale(0.98);
   }
   to {
     opacity: 1;
+    -webkit-transform: translateY(0) scale(1);
+    -moz-transform: translateY(0) scale(1);
+    -ms-transform: translateY(0) scale(1);
     transform: translateY(0) scale(1);
+  }
+}
+
+/* Browser-specific keyframes for better compatibility */
+@-webkit-keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    -webkit-transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translateY(0) scale(1);
+  }
+}
+
+@-moz-keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    -moz-transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    -moz-transform: translateY(0) scale(1);
   }
 }
 
 .modules-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0; // Remove gaps between items
-  padding: 8px;
+  gap: 4px; // Add small gap for better spacing
+  padding: 12px; // Increase padding for better spacing
+
+  // Fallback for browsers that don't support CSS Grid
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+
+  // Re-enable grid for supporting browsers
+  display: grid;
 }
 
 .module-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px 8px; // Reduced padding
+  padding: 12px 6px; // Balanced padding
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.1s ease;
   background: transparent;
   border: none; // Remove borders
   border-radius: 6px;
-  min-height: 70px; // Reduced height
+  min-height: 80px; // Slightly increased height for better proportions
   justify-content: center;
+
+  // Ensure equal spacing in grid
+  box-sizing: border-box;
+  width: 100%;
 
   // Better touch feedback
   -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
   touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+
+  // For grid fallback (only applies when CSS Grid is not supported)
+  @supports not (display: grid) {
+    width: 50%;
+    box-sizing: border-box;
+  }
 }
 
 .module-item:hover {
@@ -65,7 +151,10 @@
 
 .module-item:active {
   background-color: rgba(0, 120, 212, 0.1);
-  transform: scale(0.98); // Slight scale on tap
+  -webkit-transform: scale(0.98); // Slight scale on tap
+  -moz-transform: scale(0.98);
+  -ms-transform: scale(0.98);
+  transform: scale(0.98);
 }
 
 .module-icon {
@@ -76,7 +165,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 6px; // Reduced margin
-  background-color: var(--module-color);
+  background-color: var(--module-color, #0078d4); // Fallback color for browsers without CSS custom properties
   color: white;
   font-size: 18px; // Slightly larger icon for readability
 }
@@ -159,5 +248,46 @@
   .module-name {
   font-size: 12px; /* Maintain readability on very small screens */
   line-height: 1.3;
+  }
+}
+
+/* Firefox-specific fixes for positioning issues */
+@-moz-document url-prefix() {
+  .app-drawer-container {
+    // Force specific positioning values for Firefox using CSS variables
+    position: fixed !important;
+    top: var(--drawer-top, auto) !important;
+    left: var(--drawer-left, auto) !important;
+    transform: none !important;
+
+    // Ensure container behavior is consistent
+    display: block !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .app-drawer {
+    // Firefox-specific drawer fixes
+    position: relative !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  // Fix for Firefox toolbar positioning
+  .header-component {
+    position: relative !important;
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .dx-toolbar.header-toolbar {
+    position: relative !important;
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .notification-item {
+    position: relative !important;
+    display: flex !important;
   }
 }

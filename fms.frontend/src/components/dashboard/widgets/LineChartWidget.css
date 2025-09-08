@@ -1,0 +1,228 @@
+/* Line Chart Widget Styles */
+.line-chart-widget {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: 350px;
+}
+
+.line-chart-widget .widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.line-chart-widget .widget-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.line-chart-widget .widget-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.line-chart-widget .widget-action-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.line-chart-widget .widget-action-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #333;
+}
+
+.line-chart-widget .widget-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Widget content */
+.line-chart-widget .widget-content {
+  padding: 1rem;
+}
+
+.line-chart-widget .chart-container {
+  position: relative;
+}
+
+/* Loading state */
+.line-chart-widget .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 200px;
+  color: #666;
+}
+
+.line-chart-widget .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e9ecef;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* No data state */
+.line-chart-widget .no-data-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 200px;
+  color: #666;
+  text-align: center;
+}
+
+/* Error state */
+.line-chart-widget .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 200px;
+  color: #dc3545;
+}
+
+.line-chart-widget .error-state svg {
+  font-size: 2rem;
+}
+
+/* Chart summary */
+.line-chart-widget .chart-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.line-chart-widget .summary-stats {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.line-chart-widget .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 80px;
+}
+
+.line-chart-widget .stat-item .label {
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.line-chart-widget .stat-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.line-chart-widget .stat-item.trend.up .value {
+  color: #28a745;
+}
+
+.line-chart-widget .stat-item.trend.down .value {
+  color: #dc3545;
+}
+
+/* Widget meta */
+.line-chart-widget .widget-meta {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+  color: #666;
+}
+
+/* Widget config preview */
+.line-chart-widget .widget-config-preview {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 0 0 8px 8px;
+}
+
+/* DevExtreme chart customizations */
+.line-chart-widget .dx-chart {
+  font-family: inherit;
+}
+
+.line-chart-widget .dx-chart-legend {
+  font-size: 0.875rem;
+}
+
+.line-chart-widget .dx-tooltip {
+  font-size: 0.875rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .line-chart-widget .widget-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .line-chart-widget .widget-content {
+    padding: 0.75rem;
+  }
+
+  .line-chart-widget .summary-stats {
+    justify-content: center;
+  }
+
+  .line-chart-widget .stat-item {
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .line-chart-widget .widget-header h3 {
+    font-size: 1rem;
+  }
+
+  .line-chart-widget .widget-actions {
+    gap: 0.25rem;
+  }
+
+  .line-chart-widget .widget-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Animation keyframes */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

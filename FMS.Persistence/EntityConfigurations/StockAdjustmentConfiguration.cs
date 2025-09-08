@@ -73,7 +73,7 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasColumnName ("notes");
 
                 builder.Property (e => e.CreatedBy)
-                    .HasMaxLength (450)
+                    .HasMaxLength (100)
                     .HasColumnName ("created_by")
                     .IsRequired ();
 
@@ -83,7 +83,7 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasDefaultValueSql ("CURRENT_TIMESTAMP");
 
                 builder.Property (e => e.ApprovedBy)
-                    .HasMaxLength (450)
+                    .HasMaxLength (100)
                     .HasColumnName ("approved_by");
 
                 builder.Property (e => e.ApprovedOn)

@@ -75,6 +75,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
   });
 
   const [currentForm, setCurrentForm] = useState(null);
+  const [prefilledFormData, setPrefilledFormData] = useState(null);
   // Local submit state handled by forms
 
   const stockManagementItems = [
@@ -123,6 +124,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     setPopupVisibility(prev => ({ ...prev, [popupName]: isVisible }));
     if (!isVisible) {
       setCurrentForm(null);
+      setPrefilledFormData(null); // Clear prefilled data when closing
     }
   }, []);
 
@@ -134,10 +136,17 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     const actionTypeDisplay = actionType && typeof actionType === 'string'
       ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
       : 'Stock';
-    notify({ message: `${actionTypeDisplay} saved`, type: 'success', displayTime: 2000 });
+
+    // Special message for closing stock created from opening stock validation
+    let message = `${actionTypeDisplay} saved`;
+    if (prefilledFormData?.reason && actionType === 'closing') {
+      message = 'Required closing stock created successfully. You can now create your opening stock.';
+    }
+
+    notify({ message, type: 'success', displayTime: 3000 });
     // Refresh parent data if provided
     if (onRefreshData) onRefreshData();
-  }, [currentForm, onRefreshData, handlePopupVisibility]);
+  }, [currentForm, onRefreshData, handlePopupVisibility, prefilledFormData]);
 
   const handleOpeningStockSubmit = useCallback((formData) =>
     handleStockSubmit(formData, 'opening'), [handleStockSubmit]);
@@ -153,6 +162,32 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
 
   const handleManualRefillSubmit = useCallback((formData) =>
     handleStockSubmit(formData, 'manualRefill'), [handleStockSubmit]);
+
+  // Enhanced cancel handler to support form navigation
+  const handleFormCancel = useCallback((action, actionData) => {
+    if (action === 'create-closing-stock' && actionData) {
+      // Close current form and open closing stock form with pre-filled data
+      handlePopupVisibility(currentForm, false);
+
+      // Set form data for closing stock
+      setPrefilledFormData(actionData);
+      setCurrentForm('closingStock');
+      setPopupVisibility(prev => ({ ...prev, closingStock: true }));
+
+      // Show notification about the transition
+      if (actionData.reason) {
+        notify({
+          message: 'Opening closing stock form with required information.',
+          type: 'info',
+          displayTime: 3000
+        });
+      }
+    } else {
+      // Normal cancel - just close the popup
+      setPrefilledFormData(null);
+      handlePopupVisibility(currentForm, false);
+    }
+  }, [currentForm, handlePopupVisibility]);
 
   const renderPopup = () => {
     if (!currentForm) return null;
@@ -203,7 +238,8 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
           isLoading={false}
           sites={sites}
           user={user}
-          onCancel={() => handlePopupVisibility(currentForm, false)}
+          onCancel={handleFormCancel}
+          prefilledData={currentForm === 'closingStock' ? prefilledFormData : undefined}
         />
       </Popup>
     );

@@ -1,8 +1,9 @@
 import React from "react";
-import RoleBasedDashboard from "./RoleBasedDashboard";
+import "./Dashboard.scss"; // Import core dashboard styles
+import RealtimeDashboard from "./RealtimeDashboard";
 
-// Main Dashboard component that uses the role-based dashboard
+// Main Dashboard component that uses the real-time dashboard
 // This component can be used to integrate with authentication context
 export default function Dashboard() {
-  return <RoleBasedDashboard />;
+  return <RealtimeDashboard />;
 }

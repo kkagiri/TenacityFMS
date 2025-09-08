@@ -8,11 +8,30 @@
   background-color: var(--base-bg);
   width: 100%;
   overflow: visible; // Ensure content doesn't get cut off
+
+  // Firefox-specific positioning fixes
+  position: relative;
+  display: flex;
+
+  // Force hardware acceleration for better positioning
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .dx-toolbar.header-toolbar
 {
   padding-right: var(--content-padding);
+
+  // Firefox-specific toolbar fixes
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: auto;
+
+  // Ensure proper layout in Firefox
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
 
   .global-search-box {
     padding-right: 11px;
@@ -81,6 +100,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    // Firefox-specific positioning fixes
+    position: relative;
+    width: auto;
+    min-width: 40px;
   }
 
   .notification-wrapper {
@@ -89,6 +113,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    // Firefox-specific fixes
+    position: relative;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
   }
 
   .notification-center {
@@ -97,6 +126,9 @@
     justify-content: center;
     height: 100%;
     width: 100%;
+
+    // Firefox positioning fixes
+    position: relative;
   }
 }
 
@@ -244,6 +276,25 @@
   }
 }
 
+// Browser-specific button fixes
+.grid-icon-button.dx-button {
+  // Force visibility in Chrome and Firefox
+  visibility: visible !important;
+  display: block !important;
+
+  // Webkit-specific fixes
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
+
+  // Firefox-specific fixes
+  -moz-appearance: none;
+
+  // Ensure button is clickable
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
 // App Button Wrapper
 .app-button-wrapper {
   display: flex;
@@ -256,6 +307,58 @@
   // Ensure touch targets are adequate for mobile
   min-width: 44px;
   min-height: 44px;
+
+  // Native button styling for Firefox compatibility
+  .native-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+    padding: 0;
+    transition: background-color 0.2s ease;
+
+    // Force visibility and clickability in all browsers
+    visibility: visible !important;
+    pointer-events: auto !important;
+
+    // Browser-specific appearance resets
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    // Touch feedback
+    -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
+
+    &:hover {
+      background-color: rgba(0, 120, 212, 0.1);
+
+      .grid-dots span {
+        background-color: #0078d4;
+      }
+    }
+
+    &:active,
+    &:focus {
+      background-color: rgba(0, 120, 212, 0.2);
+      outline: none;
+
+      .grid-dots span {
+        background-color: #106ebe;
+      }
+    }
+
+    // Firefox-specific fixes
+    &::-moz-focus-inner {
+      border: 0;
+      padding: 0;
+    }
+  }
 }
 
 // Responsive header title handling

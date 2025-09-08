@@ -105,20 +105,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                 };
 
                 _context.Tankstocks.Add (newClosingStock);
-
-                if (entryDate.Date == DateTime.Now.Date) {
-
-                    if (tank.UseBookKeeping == 1) {
-                        tank.CurrentStock = request.ClosingStock;
-                        tank.LastStockUpdate = DateTime.Now;
-                    }
-                }
-
-                //Cursor: Update physical stock value and timestamp
-                tank.PhysicalStockValue = request.ClosingStock;
-                tank.LastPhysicalStockUpdate = entryDate;
-                tank.PhysicalStockSource = "Manual";
-
+                
+                // Save only the Tankstock entry first to get the ID
                 await _context.SaveChangesAsync (cancellationToken);
 
                 //Cursor - Calculate volume change for closing stock from the corresponding opening stock
@@ -132,7 +120,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     volumeChange = request.ClosingStock - previousStock;
                 }
 
-                //Cursor - Replaced manual TankVolumeHistory creation with TankVolumeHistoryIntegrationService
+                //Cursor - Use TankVolumeHistoryIntegrationService which will handle tank updates atomically
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync (
                     tankId: request.TankId,
                     timestamp: entryDate,
@@ -141,6 +129,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     isOpening: false, // This is a closing stock
                     actionType : ActionType.Create, // This is a new closing stock
                     recordedBy : request.RecordedBy,
+                    newPhysicalStockValue: request.ClosingStock, // Pass the physical stock value
+                    physicalStockSource: "Manual Closing Stock", // Pass the physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

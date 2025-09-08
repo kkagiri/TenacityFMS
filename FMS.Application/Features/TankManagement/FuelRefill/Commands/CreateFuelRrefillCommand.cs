@@ -188,6 +188,16 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
 
                 // After saving the fuel refill, update tank volume history
                 // Note: fuel refills decrease tank volume (negative volume change)
+                // Calculate new physical stock value based on current operation
+                decimal? newPhysicalStockValue = null;
+                string? physicalStockSource = null;
+
+                // For current day operations, calculate the new physical stock
+                if (entryDate.Date == DateTime.Now.Date && tank.PhysicalStockValue.HasValue) {
+                    newPhysicalStockValue = tank.PhysicalStockValue.Value - (decimal) fuelRefil.ManualFuelrefillAmount;
+                    physicalStockSource = "FuelRefill";
+                }
+
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessFuelRefillChangeAsync (
                     tankId: tank.Id,
                     timestamp: fuelRefilDto.Date.Value,
@@ -195,6 +205,8 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                     refillId : fuelRefil.Id,
                     actionType : ActionType.Create, // This is a new refill
                     recordedBy : fuelRefil.FuelBy,
+                    newPhysicalStockValue: newPhysicalStockValue, // Pass calculated physical stock
+                    physicalStockSource: physicalStockSource, // Pass physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

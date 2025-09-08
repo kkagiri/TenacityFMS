@@ -226,6 +226,10 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             <nav className="nav-menu">
               {navigationItems.map((item) => {
                 const isActive = isActiveRoute(currentPath, item.path);
+                // Temporary debug logging
+                if (item.id === 'dashboard' || item.id === 'roles') {
+                  console.log(`Admin Navigation - ${item.id}: currentPath=${currentPath}, targetPath=${item.path}, isActive=${isActive}`);
+                }
                 return (
                   <div
                     key={item.id}

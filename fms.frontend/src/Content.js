@@ -11,11 +11,18 @@ import withRoleProtection from "./utils/withRoleProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
 import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
+import { useSignalRRouting } from "./hooks/useSignalRRouting";
 
 export default function Content() {
   const dispatch = useDispatch();
   const { navigationItems } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
+
+  // Initialize route-based SignalR management
+  const signalRState = useSignalRRouting({
+    enabled: true,
+    debounceMs: 300
+  });
 
   useEffect(() => {
     if (user) {
@@ -54,10 +61,10 @@ export default function Content() {
         />
 
         {/* User routes - now under admin - ADMIN ONLY */}
-        <Route path="/admin/users/:id" element={React.createElement(withRoleProtection(resolvedComponents("user-details"), ["admin"]))} />
-        <Route path="/admin/users/:id/edit" element={React.createElement(withRoleProtection(resolvedComponents("user-edit"), ["admin"]))} />
-        <Route path="/admin/users/:id/activities" element={React.createElement(withRoleProtection(resolvedComponents("user-activities"), ["admin"]))} />
-        <Route path="/admin/users/:id/sites" element={React.createElement(withRoleProtection(resolvedComponents("user-sites"), ["admin"]))} />
+        <Route path="/admin/users/:id" element={React.createElement(withRoleProtection(resolvedComponents("user-details"), ["Admin"]))} />
+        <Route path="/admin/users/:id/edit" element={React.createElement(withRoleProtection(resolvedComponents("user-edit"), ["Admin"]))} />
+        <Route path="/admin/users/:id/activities" element={React.createElement(withRoleProtection(resolvedComponents("user-activities"), ["Admin"]))} />
+        <Route path="/admin/users/:id/sites" element={React.createElement(withRoleProtection(resolvedComponents("user-sites"), ["Admin"]))} />
         <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
 
         {/* Tank routes */}
@@ -102,11 +109,11 @@ export default function Content() {
         {/* Admin System Routes - Handle all admin sub-routes internally - ADMIN ONLY */}
         <Route
           path="/admin"
-          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["admin"]))}
+          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["Admin"]))}
         />
         <Route
           path="/admin/*"
-          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["admin"]))}
+          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["Admin"]))}
         />
 
         {/* Vehicle Management System Routes - Handle all vehicle sub-routes internally */}
@@ -117,6 +124,16 @@ export default function Content() {
         <Route
           path="/vehicles/*"
           element={React.createElement(resolvedComponents("vehicles"))}
+        />
+
+        {/* Reports System Routes - Handle all reports sub-routes internally */}
+        <Route
+          path="/reports"
+          element={React.createElement(resolvedComponents("reports"))}
+        />
+        <Route
+          path="/reports/*"
+          element={React.createElement(resolvedComponents("reports"))}
         />
 
         {/* Issue Tracker System Routes - Handle all issue-tracker sub-routes internally */}
@@ -134,14 +151,32 @@ export default function Content() {
         {/* Home/Dashboard route - maps to the dashboard component */}
         <Route path="/home" element={React.createElement(resolvedComponents("dashboard"))} />
 
+        {/* Widget Testing route - for testing dashboard widgets with mock data */}
+
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>
-        Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
-        Version:1.1.0
-        <br />
-        Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
-        trademarks are property of Hyoung EA Co. Ltd.
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
+            Version:1.1.0
+            <br />
+            Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
+            trademarks are property of Hyoung EA Co. Ltd.
+          </div>
+          {/* SignalR Connection Status Indicator */}
+          <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
+            {signalRState.isDashboardConnected && (
+              <span style={{ color: '#4caf50', marginRight: '10px' }}>● Dashboard Connected</span>
+            )}
+            {signalRState.isPtsConnected && (
+              <span style={{ color: '#4caf50' }}>● PTS Connected</span>
+            )}
+            {!signalRState.isDashboardConnected && !signalRState.isPtsConnected && (
+              <span style={{ color: '#ff9800' }}>● Offline</span>
+            )}
+          </div>
+        </div>
       </Footer>
     </AppDrawerLayout>
   );

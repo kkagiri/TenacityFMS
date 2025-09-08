@@ -77,6 +77,7 @@ using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Services.TankStock;
+using FMS.BackgroundServices;
 using FMS.BackgroundServices.ActiveAlarmProcessing;
 using FMS.BackgroundServices.FMS;
 //using FMS.Application.Extensions;
@@ -84,7 +85,7 @@ using FMS.BackgroundServices.FMS;
 namespace FMS.WebClient;
 
 public class Program {
-    public static void Main (string[] args) {
+    public static async Task Main (string[] args) {
         // Configure a bootstrap Serilog logger for early logging (e.g. during startup)
         Log.Logger = new LoggerConfiguration ()
             .MinimumLevel.Debug ()
@@ -143,7 +144,7 @@ public class Program {
         // Don't configure Kestrel endpoints - let the default configuration from appsettings handle binding
         Log.Information ("Using default URL configuration - should bind to http://10.0.11.90:7009 and http://localhost:7009"); //Cursor
         var app = builder.Build ();
-        ConfigureApp (app, builder.Environment);
+        await ConfigureApp (app, builder.Environment);
 
         try {
             Console.WriteLine ("App running...." + app);
@@ -319,10 +320,14 @@ public class Program {
                 //         options.Configuration.ChannelPrefix = "FMS";
                 //     });
                 Console.WriteLine ("Using in-memory SignalR instead of Redis due to dependency issues");
-                services.AddSignalR ();
+                services.AddSignalR (hubOptions => {
+                    hubOptions.EnableDetailedErrors = true;
+                });
             } else {
                 Console.WriteLine ("Redis connection string is missing, using in-memory for SignalR");
-                services.AddSignalR ();
+                services.AddSignalR (hubOptions => {
+                    hubOptions.EnableDetailedErrors = true;
+                });
             }
         } catch (Exception ex) {
             Console.WriteLine (ex);
@@ -491,9 +496,6 @@ public class Program {
         services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> (); //Cursor
         services.AddSingleton<DeviceConnectionTracker> (); //Cursor
 
-        // services.AddScoped<IWebDocumentViewerMvcControllerService, WebDocumentViewerMvcControllerService>();
-        // services.AddScoped<IReportDesignerMvcControllerService, ReportDesignerMvcControllerService>();
-
         services.AddScoped<ICommandExecutor, CommandExecutor> ();
         // services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
         services.AddHttpClient<DeviceHttpCommandPusher> ().SetHandlerLifetime (TimeSpan.FromMinutes (5));
@@ -502,6 +504,30 @@ public class Program {
 
         // Register the missing AutomatedFuelingConfigurationService
         services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService> ();
+
+        // Register Dashboard Metrics Service
+        services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
+
+        // Register Widget Data Service (original service - user/widget ID based)
+        services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
+
+        // Register Widget Factory Service - Enhanced Widget Processing
+        services.AddScoped<FMS.Application.Services.Dashboard.IWidgetFactoryService, FMS.Application.Services.Dashboard.WidgetFactoryService> ();
+
+        // Register Widget Template Seeder
+        services.AddScoped<FMS.Application.Services.Dashboard.IWidgetTemplateSeeder, FMS.Application.Services.Dashboard.WidgetTemplateSeeder> ();
+
+        // Register Key Statistics Service
+
+        // Register Phase 1 Enhanced Data Fetch Engine Services
+        services.AddScoped<FMS.Application.Services.Dashboard.IDataSourceManager, FMS.Application.Services.Dashboard.DataSourceManager> ();
+        services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService> ();
+
+        // Register Widget Factory System - Enhanced Widget Processing
+        services.AddScoped<FMS.Application.Services.Dashboard.WidgetFactories.ChartWidgetFactory> ();
+        services.AddScoped<FMS.Application.Services.Dashboard.WidgetFactories.StatCardWidgetFactory> ();
+        services.AddScoped<FMS.Application.Services.Dashboard.WidgetFactories.TableWidgetFactory> ();
+        services.AddScoped<FMS.Application.Services.Dashboard.WidgetFactories.WidgetFactoryCoordinator> ();
 
         services.Scan (scan =>
             scan.FromAssemblyOf<UploadStatusHandler> ()
@@ -609,6 +635,22 @@ public class Program {
                             await context.Response.WriteAsync ("Unauthorized");
                             context.HandleResponse ();
                         },
+                        // Add SignalR specific token handling
+                        OnMessageReceived = context => {
+                            // Check if this is a SignalR request
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+
+                            // If the request is for our SignalR hubs and we have an access token
+                            if (!string.IsNullOrEmpty (accessToken) &&
+                                (path.StartsWithSegments ("/dashboardHub") ||
+                                    path.StartsWithSegments ("/ptsHub") ||
+                                    path.StartsWithSegments ("/frontendHub"))) {
+                                // Read the token out of the query string
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        }
                 };
             });
         // Temporarily commenting out the JWT Generator registration
@@ -758,7 +800,7 @@ public class Program {
         }
     }
 
-    static void ConfigureApp (WebApplication app, IWebHostEnvironment env) {
+    static async Task ConfigureApp (WebApplication app, IWebHostEnvironment env) {
         // Register development exception page first
         if (env.IsDevelopment ()) {
             app.UseDeveloperExceptionPage ();
@@ -790,14 +832,16 @@ public class Program {
             // Process the request
             await next ();
 
-            // Add CORS headers for error responses
-            if (context.Response.StatusCode >= 400) {
+            // Add CORS headers for error responses only if response hasn't started
+            if (context.Response.StatusCode >= 400 && !context.Response.HasStarted) {
                 if (!context.Response.Headers.ContainsKey ("Access-Control-Allow-Origin")) {
-                    context.Response.Headers.Append ("Access-Control-Allow-Origin",
-                        context.Request.Headers["Origin"].ToString ());
-                    context.Response.Headers.Append ("Access-Control-Allow-Credentials", "true");
-                    context.Response.Headers.Append ("Access-Control-Allow-Headers", "*");
-                    context.Response.Headers.Append ("Access-Control-Allow-Methods", "*");
+                    var origin = context.Request.Headers["Origin"].ToString ();
+                    if (!string.IsNullOrEmpty (origin)) {
+                        context.Response.Headers.Append ("Access-Control-Allow-Origin", origin);
+                        context.Response.Headers.Append ("Access-Control-Allow-Credentials", "true");
+                        context.Response.Headers.Append ("Access-Control-Allow-Headers", "*");
+                        context.Response.Headers.Append ("Access-Control-Allow-Methods", "*");
+                    }
                 }
             }
         });
@@ -814,7 +858,23 @@ public class Program {
         // 6. Finally set up endpoints
         app.UseEndpoints (endpoints => {
             endpoints.MapControllers ();
-            endpoints.MapHub<FrontEndHub> ("/signalHub");
+            endpoints.MapHub<DashboardHub> ("/dashboardHub").RequireAuthorization ();
+            endpoints.MapHub<PTSHub> ("/ptsHub").RequireAuthorization ();
+            endpoints.MapHub<FrontEndHub> ("/frontendHub").RequireAuthorization ();
         });
+
+        // Seed widget templates on startup
+        await SeedWidgetTemplatesAsync (app.Services);
+    }
+
+    static async Task SeedWidgetTemplatesAsync (IServiceProvider serviceProvider) {
+        using var scope = serviceProvider.CreateScope ();
+        var seeder = scope.ServiceProvider.GetRequiredService<FMS.Application.Services.Dashboard.IWidgetTemplateSeeder> ();
+        try {
+            await seeder.SeedWidgetTemplatesAsync ();
+        } catch (Exception ex) {
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>> ();
+            logger.LogError (ex, "Error seeding widget templates during startup");
+        }
     }
 }

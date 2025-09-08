@@ -40,6 +40,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             int refillId,
             ActionType actionType,
             string recordedBy,
+            decimal? newPhysicalStockValue = null,
+            string? physicalStockSource = null,
             CancellationToken cancellationToken = default) {
             return await ProcessChangeAsync (
                 tankId,
@@ -50,6 +52,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 refillId,
                 "FuelRefill",
                 actionType,
+                newPhysicalStockValue, // Pass physical stock value for fuel refills
+                physicalStockSource, // Pass physical stock source for fuel refills
                 cancellationToken);
         }
 
@@ -63,6 +67,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             int deliveryId,
             ActionType actionType,
             string recordedBy,
+            decimal? newPhysicalStockValue = null,
+            string? physicalStockSource = null,
             CancellationToken cancellationToken = default) {
             return await ProcessChangeAsync (
                 tankId,
@@ -73,6 +79,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 deliveryId,
                 "Delivery",
                 actionType,
+                newPhysicalStockValue, // Pass physical stock value for deliveries
+                physicalStockSource, // Pass physical stock source for deliveries
                 cancellationToken);
         }
 
@@ -87,6 +95,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             bool isOpening,
             ActionType actionType,
             string recordedBy,
+            decimal? newPhysicalStockValue = null, // Add physical stock value parameter
+            string? physicalStockSource = null, // Add physical stock source parameter
             CancellationToken cancellationToken = default) {
             var reason = isOpening ? VolumeChangeReasonEnum.OpeningStock : VolumeChangeReasonEnum.ClosingStock;
             var referenceType = isOpening ? "OpeningStock" : "ClosingStock"; //Cursor - Use distinct reference types
@@ -100,6 +110,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 stockId,
                 referenceType,
                 actionType,
+                newPhysicalStockValue, // Pass physical stock value
+                physicalStockSource, // Pass physical stock source
                 cancellationToken);
         }
 
@@ -113,6 +125,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             int transferId,
             ActionType actionType,
             string recordedBy,
+            decimal? newPhysicalStockValue = null,
+            string? physicalStockSource = null,
             CancellationToken cancellationToken = default) {
             // For outgoing transfers, volume change is negative
             return await ProcessChangeAsync (
@@ -123,6 +137,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 transferId,
                 "TankTransfer",
                 actionType,
+                newPhysicalStockValue, // Pass physical stock value for transfers
+                physicalStockSource, // Pass physical stock source for transfers
                 cancellationToken);
         }
 
@@ -136,6 +152,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             int transferId,
             ActionType actionType,
             string recordedBy,
+            decimal? newPhysicalStockValue = null,
+            string? physicalStockSource = null,
             CancellationToken cancellationToken = default) {
             // For incoming transfers, volume change is positive
             return await ProcessChangeAsync (
@@ -147,6 +165,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 transferId,
                 "TankTransfer",
                 actionType,
+                newPhysicalStockValue, // Pass physical stock value for transfers
+                physicalStockSource, // Pass physical stock source for transfers
                 cancellationToken);
         }
 
@@ -170,6 +190,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 adjustmentId,
                 "Adjustment",
                 actionType,
+                null, // No physical stock value for adjustments
+                null, // No physical stock source for adjustments
                 cancellationToken);
         }
 
@@ -193,6 +215,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                 transactionId,
                 "PumpTransaction",
                 actionType,
+                null, // No physical stock value for pump transactions
+                null, // No physical stock source for pump transactions
                 cancellationToken);
         }
 
@@ -309,6 +333,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             int referenceId,
             string referenceType,
             ActionType actionType,
+            decimal? newPhysicalStockValue = null, // Add physical stock value parameter
+            string? physicalStockSource = null, // Add physical stock source parameter
             CancellationToken cancellationToken = default) {
             try {
                 // Send the command to process the tank stock change
@@ -320,7 +346,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                     recordedBy,
                     referenceId,
                     referenceType,
-                    actionType);
+                    actionType,
+                    newPhysicalStockValue, // Pass physical stock value
+                    physicalStockSource); // Pass physical stock source
 
                 return await _mediator.Send (command, cancellationToken);
             } catch (Exception ex) {

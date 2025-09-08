@@ -1,5 +1,5 @@
 import { HomePage } from "./pages";
-import ConsumptionBasedonRefills from "./pages/consumption/consumptionBasedonRefills";
+import ConsumptionBasedonRefills from "./pages/reports/consumption/consumptionBasedonRefills";
 import FuelReportImporter from "./pages/FuelReportImporter/FuelReportImporter";
 import VehicleManualRefill from "./pages/manualrefill/manualRefilPage";
 import unauthorized from "./pages/unauthorized";
@@ -32,6 +32,8 @@ import IssueTrackerPage from "./pages/issueTracker/IssueTrackerPage";
 import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
 // Import Active Alarm components
 import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
+// Import Reports main entry point
+import ReportsMain from "./pages/reports/ReportsMain";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -47,6 +49,8 @@ const resolvedComponents = (pageName) => {
       return TankStockMain;
     case "admin":
       return AdminMain;
+    case "reports":
+      return ReportsMain;
     case "active-alarms":
       return ActiveAlarmMain;
     case "issue-tracker":

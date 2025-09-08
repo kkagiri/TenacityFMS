@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import "./AppDrawer.scss";
@@ -6,7 +6,9 @@ import "./AppDrawer.scss";
 const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
   const navigate = useNavigate();
   const drawerRef = useRef(null);
+  const containerRef = useRef(null); // Add ref for the container
   const [position, setPosition] = useState({ top: 70, left: 12 });
+  const [drawerHeight, setDrawerHeight] = useState(100); // State for dynamic height
 
   // Get current user from Redux store
   const currentUser = useSelector(state => state.auth.user);
@@ -59,9 +61,9 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
     {
       id: 6,
       name: "Reports",
-      icon: "fa-light fa-chart-bar",
-      route: "/consumption",
-      color: "#00bcf2",
+      icon: "fa-light fa-chart-pie",
+      route: "/reports",
+      color: "#7c3aed",
       roles: ["admin", "management", "user"] // Users can view basic reports
     },
     {
@@ -103,50 +105,129 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
     module.roles.includes(primaryRole)
   );
 
+  // Calculate dynamic height based on number of modules
+  const calculateDrawerHeight = useCallback(() => {
+    const moduleCount = filteredModules.length;
+    const rowCount = Math.ceil(moduleCount / 2); // 2 columns in grid
+
+    // Responsive module heights based on screen size
+    let moduleHeight, padding, gap;
+
+    if (window.innerWidth <= 480) {
+      // Very small screens
+      moduleHeight = 68;
+      padding = 12;
+      gap = 4;
+    } else if (window.innerWidth <= 768) {
+      // Mobile screens
+      moduleHeight = 72;
+      padding = 12;
+      gap = 4;
+    } else {
+      // Desktop screens
+      moduleHeight = 80;
+      padding = 12;
+      gap = 4;
+    }
+
+    // Calculate total height: padding + (rows * module height) + (gaps between rows)
+    const totalHeight = (padding * 2) + (rowCount * moduleHeight) + ((rowCount - 1) * gap);
+
+    return Math.max(totalHeight, 100); // Minimum height of 100px
+  }, [filteredModules.length]);
+
+  // Update drawer height when modules change or window resizes
+  useEffect(() => {
+    const updateHeight = () => {
+      setDrawerHeight(calculateDrawerHeight());
+    };
+
+    updateHeight(); // Initial calculation
+
+    // Recalculate on window resize for responsive behavior
+    const handleResize = () => updateHeight();
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [filteredModules.length, calculateDrawerHeight]); // Recalculate when number of modules changes
+
   // Calculate position relative to the button
   useEffect(() => {
     if (isOpen && buttonRef?.current) {
-      try {
-        const buttonWrapper = buttonRef.current;
-        const rect = buttonWrapper.getBoundingClientRect();
-        const drawerWidth = window.innerWidth <= 768 ? Math.min(280, window.innerWidth * 0.9) : 320;
-        const viewportWidth = window.innerWidth;
+      const calculatePosition = () => {
+        try {
+          const buttonWrapper = buttonRef.current;
+          const rect = buttonWrapper.getBoundingClientRect();
+          const drawerWidth = window.innerWidth <= 768 ? Math.min(280, window.innerWidth * 0.9) : 320;
+          const viewportWidth = window.innerWidth;
+          const isFirefox = navigator.userAgent.includes('Firefox');
 
-        // Position below the button, centered horizontally relative to button
-        let leftPosition = rect.left + (rect.width / 2) - (drawerWidth / 2);
+          // Firefox-specific positioning adjustments
+          let topPosition, leftPosition;
 
-        // Enhanced mobile positioning
-        if (window.innerWidth <= 768) {
-          // On mobile, ensure drawer is always visible and well-positioned
-          const margin = 10;
-          if (leftPosition < margin) {
-            leftPosition = margin;
-          } else if (leftPosition + drawerWidth > viewportWidth - margin) {
-            leftPosition = viewportWidth - drawerWidth - margin;
+          if (isFirefox) {
+            // Firefox getBoundingClientRect() returns correct values
+            // Use the button rect directly for more accurate positioning
+            topPosition = rect.bottom + 8; // 8px below the button
+            leftPosition = rect.left + (rect.width / 2) - (drawerWidth / 2);
+          } else {
+            // Standard positioning for other browsers
+            topPosition = rect.bottom + 8;
+            leftPosition = rect.left + (rect.width / 2) - (drawerWidth / 2);
           }
-        } else {
-          // Desktop positioning
-          if (leftPosition < 10) {
-            leftPosition = 10;
-          } else if (leftPosition + drawerWidth > viewportWidth - 10) {
-            leftPosition = viewportWidth - drawerWidth - 10;
+
+          // Enhanced mobile and boundary positioning
+          if (window.innerWidth <= 768) {
+            // On mobile, ensure drawer is always visible and well-positioned
+            const margin = 10;
+            if (leftPosition < margin) {
+              leftPosition = margin;
+            } else if (leftPosition + drawerWidth > viewportWidth - margin) {
+              leftPosition = viewportWidth - drawerWidth - margin;
+            }
+          } else {
+            // Desktop positioning with boundary checks
+            if (leftPosition < 10) {
+              leftPosition = 10;
+            } else if (leftPosition + drawerWidth > viewportWidth - 10) {
+              leftPosition = viewportWidth - drawerWidth - 10;
+            }
           }
+
+          const newPosition = {
+            top: topPosition,
+            left: leftPosition
+          };
+
+          setPosition(newPosition);
+
+          // Firefox positioning enforcement
+          if (isFirefox) {
+            setTimeout(() => {
+              const drawerElement = containerRef.current || document.querySelector('.app-drawer-container');
+              if (drawerElement) {
+                drawerElement.style.setProperty('top', `${topPosition}px`, 'important');
+                drawerElement.style.setProperty('left', `${leftPosition}px`, 'important');
+                drawerElement.style.setProperty('position', 'fixed', 'important');
+              }
+            }, 50);
+          }
+        } catch (error) {
+          console.warn('Could not calculate button position, using fallback', error);
+          // Enhanced fallback positioning
+          const viewportWidth = window.innerWidth;
+          const drawerWidth = window.innerWidth <= 768 ? Math.min(280, viewportWidth * 0.9) : 320;
+
+          const fallbackPosition = {
+            top: 60, // Standard fallback top position
+            left: (viewportWidth - drawerWidth) / 2 // Center horizontally
+          };
+          setPosition(fallbackPosition);
         }
+      };
 
-        setPosition({
-          top: rect.bottom + 8, // 8px below the button
-          left: leftPosition
-        });
-      } catch (error) {
-        console.warn('Could not calculate button position, using fallback');
-        // Fallback positioning based on screen size
-        const viewportWidth = window.innerWidth;
-        const drawerWidth = window.innerWidth <= 768 ? Math.min(280, viewportWidth * 0.9) : 320;
-        setPosition({
-          top: 70, // Fallback top position
-          left: (viewportWidth - drawerWidth) / 2
-        });
-      }
+      // Calculate position immediately for both browsers
+      calculatePosition();
     }
   }, [isOpen, buttonRef]);  // Handle outside clicks
   useEffect(() => {
@@ -172,23 +253,64 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
     };
   }, [isOpen, onClose, buttonRef]);
 
+  // Additional useEffect for Firefox positioning enforcement
+  useEffect(() => {
+    if (isOpen && navigator.userAgent.includes('Firefox')) {
+      const drawerElement = containerRef.current || document.querySelector('.app-drawer-container');
+      if (drawerElement && position.top && position.left) {
+        // Force apply positioning for Firefox
+        drawerElement.style.setProperty('top', `${position.top}px`, 'important');
+        drawerElement.style.setProperty('left', `${position.left}px`, 'important');
+        drawerElement.style.setProperty('position', 'fixed', 'important');
+      }
+    }
+  }, [isOpen, position]);
+
   const handleModuleClick = (route) => {
-    console.log('Navigating to:', route); // Debug log
     navigate(route);
     onClose();
   };
 
-  if (!isOpen) return null;
-
-  return (
+  if (!isOpen) {
+    return null;
+  }  return (
     <div
+      ref={containerRef}
       className="app-drawer-container"
       style={{
+        '--drawer-top': `${position.top}px`,
+        '--drawer-left': `${position.left}px`,
         top: `${position.top}px`,
-        left: `${position.left}px`
+        left: `${position.left}px`,
+        // Force visibility in problematic browsers
+        display: 'block',
+        visibility: 'visible',
+        opacity: 1,
+        pointerEvents: 'auto',
+        zIndex: 999999,
+        // Firefox-specific positioning overrides
+        position: 'fixed',
+        transform: 'none',
+        // Ensure proper rendering
+        willChange: 'auto'
       }}
     >
-      <div className="app-drawer" ref={drawerRef}>
+      <div
+        className="app-drawer"
+        ref={drawerRef}
+        style={{
+          // Additional inline styles for browser compatibility
+          display: 'block',
+          visibility: 'visible',
+          transform: 'translateZ(0)',
+          // Firefox-specific fixes
+          position: 'relative',
+          zIndex: 'auto',
+          // Dynamic height based on number of modules
+          height: `${drawerHeight}px`,
+          minHeight: `${drawerHeight}px`
+        }}
+      >
         <div className="modules-grid">
           {filteredModules.map((module) => (
             <div

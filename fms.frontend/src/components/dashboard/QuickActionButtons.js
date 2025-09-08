@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { StockManagementActions } from "./StockManagementActions";
+import { StockManagementActions } from "./widget/StockManagementActions";
 
 export const QuickActionButtons = ({ role, userPermissions }) => {
   const navigate = useNavigate();

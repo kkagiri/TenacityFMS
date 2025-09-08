@@ -12,13 +12,24 @@ export default function Header({ menuToggleEnabled, title }) {
   const [isAppDrawerOpen, setIsAppDrawerOpen] = useState(false);
   const appButtonRef = useRef(null);
 
-  const toggleAppDrawer = () => {
+  const toggleAppDrawer = (e) => {
     setIsAppDrawerOpen(!isAppDrawerOpen);
   };
 
   const closeAppDrawer = () => {
     setIsAppDrawerOpen(false);
   };
+
+  // Firefox-specific click handler to prevent double firing
+  const handleButtonClick = (e) => {
+    // Only handle if this is a mousedown event to prevent double firing
+    if (e.type === 'mousedown') {
+      e.preventDefault();
+      e.stopPropagation();
+      // Don't call toggleAppDrawer here, let the onClick handle it
+    }
+  };
+
   return (
     <header className={"header-component"}>
       <Toolbar  height className={"header-toolbar"}>
@@ -29,10 +40,13 @@ export default function Header({ menuToggleEnabled, title }) {
           cssClass={"app-grid-button"}
         >
           <div ref={appButtonRef} className="app-button-wrapper">
-            <Button
-              stylingMode="text"
+            {/* Use native button for better Firefox compatibility */}
+            <button
+              type="button"
               onClick={toggleAppDrawer}
-              className="grid-icon-button"
+              onMouseDown={handleButtonClick}
+              className="grid-icon-button native-button"
+              aria-label="Open App Menu"
             >
               <div className="app-grid-icon">
                 <div className="grid-dots">
@@ -41,7 +55,7 @@ export default function Header({ menuToggleEnabled, title }) {
                   <span></span><span></span><span></span>
                 </div>
               </div>
-            </Button>
+            </button>
           </div>
         </Item>
 
