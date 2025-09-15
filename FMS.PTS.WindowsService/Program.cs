@@ -44,11 +44,18 @@ using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
 using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Features.Notification.Services.Businessfunction;
+using FMS.Application.Features.Notification.Services.Channels;
+using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
+using FMS.Application.Features.PTSService.Services;
+using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Services.Dashboard;
+using FMS.Application.Services.Dashboard.WidgetFactories;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Services.TankStock;
 using FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandling;
@@ -432,6 +439,38 @@ namespace FMS.PTS.WindowsService {
 
             //Cursor: Register system user service
             services.AddScoped<ISystemUserService, SystemUserService> ();
+
+            // Register the missing services from the exception
+            services.AddScoped<IServiceControlService, ServiceControlService> ();
+            services.AddScoped<IWidgetFactoryService, WidgetFactoryService> ();
+            services.AddScoped<AlarmHandlerActiveAlarmIntegration> ();
+            services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService> ();
+
+            // Register widget factory dependencies
+            services.AddScoped<WidgetFactoryCoordinator> ();
+            services.AddScoped<ChartWidgetFactory> ();
+            services.AddScoped<StatCardWidgetFactory> ();
+            services.AddScoped<TableWidgetFactory> ();
+            services.AddScoped<IDataSourceManager, DataSourceManager> ();
+
+            // Register additional missing services from WebClient
+            services.AddScoped<IActiveAlarmService, ActiveAlarmService> ();
+            services.AddScoped<INotificationCategoryService, NotificationCategoryService> ();
+            services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService> ();
+            services.AddSingleton<ICategoryMetadataProvider, InMemoryCategoryMetadataProvider> ();
+
+            // Dynamic notification channels and registry
+            services.AddScoped<INotificationChannelRegistry, NotificationChannelRegistry> ();
+            services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SystemNotificationChannel> ();
+            services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.EmailNotificationChannel> ();
+            services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SmsNotificationChannel> ();
+            services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SlackNotificationChannel> ();
+            services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.PushNotificationChannel> ();
+
+            // Register Dashboard Services
+            services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
+            services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
+            services.AddScoped<FMS.Application.Services.Dashboard.IWidgetTemplateSeeder, FMS.Application.Services.Dashboard.WidgetTemplateSeeder> ();
 
             // Register background service
             //services.AddHostedService<NotificationBackgroundService> ();
