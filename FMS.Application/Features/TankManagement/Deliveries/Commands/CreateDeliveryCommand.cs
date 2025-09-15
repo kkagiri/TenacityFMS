@@ -1,15 +1,18 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
+using FMS.Application.Services.TankStock;
 using FMS.Application.Util;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
@@ -22,13 +25,15 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
         private readonly IMediator _mediator;
         //Cursor - Added TankVolumeHistoryIntegrationService dependency
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+        private readonly TankStockFutureRecordsService _futureRecordsService;
 
-        public CreateDeliveryCommandHandler (GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService) {
+        public CreateDeliveryCommandHandler (GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService) {
             _context = context;
             _logger = logger;
             _mapper = mapper;
             _mediator = mediator;
             _tankVolumeHistoryService = tankVolumeHistoryService;
+            _futureRecordsService = futureRecordsService;
         }
 
         public async Task<FMSResponseMessage> Handle (CreateDeliveryCommand request, CancellationToken cancellationToken) {
@@ -45,6 +50,47 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
                 if (request.DeliveryDTO.ManualDeliveryAmount <= 0) return new FMSResponseMessage (false, "Delivery amount should be greater than 0");
 
                 var deliveryDate = request.DeliveryDTO.DeliveryDate ?? DateTime.Now;
+
+                // Validate historical entry against future records policy
+                if (deliveryDate.Date < DateTime.Now.Date) {
+                    var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync (
+                        request.DeliveryDTO.TankId, deliveryDate, VolumeChangeReasonEnum.Delivery, cancellationToken);
+
+                    if (!futureRecordsValidation.IsAllowed) {
+                        return new FMSResponseMessage (false, futureRecordsValidation.Message);
+                    }
+
+                    // Log warning for future reference
+                    if (futureRecordsValidation.RequiresUserConfirmation) {
+                        _logger.LogWarning ("Historical delivery entry with future records: Tank {TankId}, Date {DeliveryDate}, Policy {Policy}, Future Records {Count}",
+                            request.DeliveryDTO.TankId, deliveryDate, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
+                    }
+                }
+
+                // Check if there is opening stock for the tank on the delivery day
+                var existingOpeningStock = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.DeliveryDTO.TankId &&
+                        x.Timestamp.Date.Date == deliveryDate.Date.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                    .OrderByDescending (x => x.Timestamp.Date)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                if (existingOpeningStock == null)
+                    return new FMSResponseMessage (false, $"Opening stock for the tank on {deliveryDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.");
+
+                // Ensure there is a proper sequence: if there's an opening stock, deliveries should come after it
+                // but before or after a closing stock if it exists
+                var closingStockForDay = await _context.TankVolumeHistories
+                    .Where (x => x.TankId == request.DeliveryDTO.TankId &&
+                        x.Timestamp.Date == deliveryDate.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                    .FirstOrDefaultAsync (cancellationToken);
+
+                // If there's already a closing stock for the day, and delivery is after that closing stock,
+                // then we need a new opening stock first
+                if (closingStockForDay != null && deliveryDate > closingStockForDay.Timestamp) {
+                    return new FMSResponseMessage (false, $"Cannot add delivery after closing stock for {deliveryDate.Date:yyyy-MM-dd}. Please create a new opening stock first.");
+                }
 
                 // Validate if the tank has enough space for the delivery
                 if (deliveryDate.Date == DateTime.Now.Date) {
@@ -70,6 +116,16 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
                 await _context.SaveChangesAsync (cancellationToken);
 
                 //Cursor - Replaced manual TankVolumeHistory creation with TankVolumeHistoryIntegrationService
+                // Calculate new physical stock value based on current operation
+                decimal? newPhysicalStockValue = null;
+                string? physicalStockSource = null;
+
+                // For current day operations, calculate the new physical stock
+                if (deliveryDate.Date == DateTime.Now.Date && tank.PhysicalStockValue.HasValue) {
+                    newPhysicalStockValue = tank.PhysicalStockValue.Value + request.DeliveryDTO.ManualDeliveryAmount;
+                    physicalStockSource = "Delivery";
+                }
+
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessDeliveryChangeAsync (
                     tankId: request.DeliveryDTO.TankId,
                     timestamp: deliveryDate,
@@ -77,6 +133,8 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
                     deliveryId : delivery.Id,
                     actionType : ActionType.Create, // This is a new delivery
                     recordedBy : request.DeliveryDTO.RecordedBy,
+                    newPhysicalStockValue: newPhysicalStockValue, // Pass calculated physical stock
+                    physicalStockSource: physicalStockSource, // Pass physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

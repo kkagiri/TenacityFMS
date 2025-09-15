@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 //Cursor - Interactive Dashboard component placeholder for Phase 1
-const InteractiveDashboard = ({ analyticsData, selectedSite, dateRange, onDateRangeChange }) => {
+const InteractiveDashboard = ({  dateRange }) => {
   return (
     <div className="tw-p-6">
       <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-8 tw-text-center">
@@ -14,9 +14,7 @@ const InteractiveDashboard = ({ analyticsData, selectedSite, dateRange, onDateRa
         <p className="tw-text-blue-600">
           Advanced analytics charts and interactive visualizations will be implemented in Phase 2.
         </p>
-        <div className="tw-mt-4 tw-text-sm tw-text-blue-500">
-          Data Range: {dateRange[0]} to {dateRange[1]}
-        </div>
+
       </div>
     </div>
   );

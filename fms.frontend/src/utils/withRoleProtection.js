@@ -17,7 +17,10 @@ const withRoleProtection = (Component, requiredRoles) => {
         const rolesArray = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
 
         // Ensure userRoles is an array before calling includes
-        const hasAccess = Array.isArray(userRoles) && rolesArray.some(role => userRoles.includes(role));
+        // Make role comparison case-insensitive
+        const hasAccess = Array.isArray(userRoles) && rolesArray.some(role =>
+            userRoles.some(userRole => userRole.toLowerCase() === role.toLowerCase())
+        );
 
         if (!hasAccess) {
             return <Navigate to="/unauthorized" />;

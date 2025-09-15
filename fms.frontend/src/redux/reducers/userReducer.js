@@ -21,7 +21,9 @@ import {
     FETCH_USER_PERMISSIONS_SUCCESS,
     FETCH_USER_PERMISSIONS_FAILURE,
     FETCH_USERS_FOR_FILTER_SUCCESS,
-    FETCH_USERS_FOR_FILTER_FAILURE
+    FETCH_USERS_FOR_FILTER_FAILURE,
+    FETCH_ALL_ROLES_SUCCESS,
+    FETCH_ALL_ROLES_FAILURE
 } from '../actions/userActions';
 
 const initialState = {
@@ -36,6 +38,7 @@ const initialState = {
     allSites: [],
     userRoles: [],
     userPermissions: [],
+    allRoles: [],
     loading: false,
     error: null,
 };
@@ -102,11 +105,29 @@ const userReducer = (state = initialState, action) => {
         case FETCH_USER_ACTIVITIES_FAILURE:
             return { ...state, loading: false, error: action.payload };
         case FETCH_USER_SITES_SUCCESS:
-            return { ...state, userSites: action.payload, loading: false };
+            return {
+                ...state,
+                userSites: action.payload,
+                loading: false,
+                // Update the selected user details to reflect site count
+                selectedUserDetails: state.selectedUserDetails ? {
+                    ...state.selectedUserDetails,
+                    assignedSitesCount: action.payload ? action.payload.length : 0
+                } : null
+            };
         case FETCH_USER_SITES_FAILURE:
             return { ...state, loading: false, error: action.payload };
         case UPDATE_USER_SITES_SUCCESS:
-            return { ...state, userSites: action.payload, loading: false };
+            return {
+                ...state,
+                userSites: action.payload,
+                loading: false,
+                // Update the selected user details to reflect new site count
+                selectedUserDetails: state.selectedUserDetails ? {
+                    ...state.selectedUserDetails,
+                    assignedSitesCount: action.payload ? action.payload.length : 0
+                } : null
+            };
         case FETCH_ALL_SITES_SUCCESS:
             return { ...state, allSites: action.payload, loading: false };
         case FETCH_ALL_ACTIVITIES_SUCCESS:
@@ -122,6 +143,10 @@ const userReducer = (state = initialState, action) => {
         case FETCH_USERS_FOR_FILTER_SUCCESS:
             return { ...state, usersForFilter: action.payload, loading: false };
         case FETCH_USERS_FOR_FILTER_FAILURE:
+            return { ...state, loading: false, error: action.payload };
+        case FETCH_ALL_ROLES_SUCCESS:
+            return { ...state, allRoles: action.payload, loading: false };
+        case FETCH_ALL_ROLES_FAILURE:
             return { ...state, loading: false, error: action.payload };
         default:
             return state;

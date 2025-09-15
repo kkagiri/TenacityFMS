@@ -1,0 +1,47 @@
+.app-drawer-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+
+  // Override any global content spacing
+  .content {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  // Ensure child pages don't have gaps
+  & > * {
+    margin: 0;
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.layout-body {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+}
+
+.content {
+  padding: 0; // Remove padding to eliminate gaps
+  margin: 0; // Remove margin to eliminate gaps
+  min-height: calc(100vh - 80px); /* Adjust based on header height only */
+  width: 100%;
+}
+
+.content-block {
+  margin-top: auto;
+  padding: 20px; // Add padding only to footer area
+}

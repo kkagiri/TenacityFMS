@@ -41,6 +41,7 @@ import QuickActionsMenu from './components/QuickActionsMenu';
 import { useFutureRecordsValidation } from '../../hooks/useFutureRecordsValidation';
 import FutureRecordsWarning from '../../components/tank-stock/FutureRecordsWarning';
 import './manualRefilPage.scss';
+import { search } from 'superagent';
 
 export default function FuelRefill() {
     //Cursor - Updated state management for filtering
@@ -566,7 +567,8 @@ const handleTankChange = (e) => {
                                     valueExpr: 'id',
                                      displayExpr: 'name',
                                     onValueChanged: handleSiteChange,
-                                    value: formData.siteId
+                                    value: formData.siteId,
+                                    searchEnabled: true
                                 }}>
                                 </FItem>
                                 <FItem dataField="tankId"
@@ -579,7 +581,8 @@ const handleTankChange = (e) => {
                                         placeholder: noTanksAvailable ? "No tank. Inquire from Admin" : "Select a tank",
                                         noDataText: "No tank. Inquire from Admin",
                                        // onValueChanged: handleTankChange, // chatgptcomment
-                                        value: formData.tankId // chatgptcomment
+                                        value: formData.tankId, // chatgptcomment
+                                        searchEnabled: true
                                     }}>
                                     <RequiredRule />
                                     </FItem>

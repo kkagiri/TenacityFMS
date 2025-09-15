@@ -106,7 +106,7 @@ const ActiveAlarmDashboard = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .dashboard-section {
           @apply tw-mb-8;
         }

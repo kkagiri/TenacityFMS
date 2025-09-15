@@ -1,7 +1,10 @@
 .active-alarm-layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  /* Use min-height to allow content to grow and avoid clipping on mobile */
+  min-height: 100vh;
+  /* Let children control overflow; avoid globally hiding overflow which can hide sidebar/content on small screens */
+  overflow: initial;
+  position: relative; /* for overlay */
 
   .sidebar {
     width: 280px;
@@ -151,25 +154,55 @@
   }
 }
 
-// Responsive design
+/* Overlay for mobile drawer */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+// Responsive design - MOBILE FIX (height-based collapsing, no off-canvas)
 @media (max-width: 768px) {
+  /* Stack layout vertically */
   .active-alarm-layout {
-    .sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100vh;
-      z-index: 1000;
-      transform: translateX(-100%);
+    flex-direction: column;
+  }
 
-      &.collapsed {
-        transform: translateX(0);
-        width: 100vw;
-      }
-    }
+  /* Sidebar takes full width on mobile */
+  .active-alarm-layout .sidebar {
+    width: 100% !important; /* Ensure full width */
+    height: auto;
+    position: static; /* Avoid fixed positioning that can hide content */
+    min-width: 0; /* Allow shrinking to viewport width */
+    transform: none; /* Remove any transforms that move it off-screen */
+  }
 
-    .main-content {
-      margin-left: 0;
-    }
+  /* Collapsed state uses height-based collapsing instead of width/transform */
+  .active-alarm-layout .sidebar.collapsed {
+    width: 100% !important;
+    height: 80px; /* Consistent collapsed height */
+    overflow: hidden;
+  }
+
+  /* Header spacing adjustments */
+  .active-alarm-layout .sidebar .sidebar-header {
+    padding: 1rem;
+    min-height: 80px;
+  }
+
+  /* Content area spacing on mobile */
+  .active-alarm-layout .main-content .content-header {
+    padding: 0.75rem;
+  }
+
+  .active-alarm-layout .main-content .content-area {
+    padding: 0.5rem;
   }
 }

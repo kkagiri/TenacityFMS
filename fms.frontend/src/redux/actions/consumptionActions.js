@@ -1,9 +1,11 @@
 import axiosInstance from './../../api/axiosInstance';
 
 // Action Types
+export const FETCH_CONSUMPTION_REQUEST = 'FETCH_CONSUMPTION_REQUEST';
 export const FETCH_CONSUMPTION_SUCCESS = 'FETCH_CONSUMPTION_SUCCESS';
 export const FETCH_CONSUMPTION_FAILURE = 'FETCH_CONSUMPTION_FAILURE';
 export const FETCH_VEHICLE_REFILLS_REQUEST = 'FETCH_VEHICLE_REFILLS_REQUEST';
+export const FETCH_VEHICLE_REFILLS_SUCCESS = 'FETCH_VEHICLE_REFILLS_SUCCESS';
 export const FETCH_VEHICLE_REFILLS_FAILURE = 'FETCH_VEHICLE_REFILLS_FAILURE';
 export const FETCH_HISTORY_CONSUMPTION_REQUEST = 'FETCH_HISTORY_CONSUMPTION_REQUEST';
 export const FETCH_HISTORY_CONSUMPTION_SUCCESS = 'FETCH_HISTORY_CONSUMPTION_SUCCESS';
@@ -34,11 +36,57 @@ const formatDate = (date) => {
 
 // Existing actions
 export const fetchConsumptionByDateRange = (startDate, endDate) => async (dispatch) => {
+    dispatch({ type: FETCH_CONSUMPTION_REQUEST });
+
     try {
         const formattedStartDate = formatDate(startDate);
         const formattedEndDate = formatDate(endDate);
 
-        const response = await axiosInstance.get(`/consumption/manualRefills?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+        // Create instance with longer timeout for consumption data
+        const response = await axiosInstance.get(`/consumption/manualRefills?startDate=${formattedStartDate}&endDate=${formattedEndDate}`, {
+            timeout: 120000, // 2 minutes timeout for large data
+        });
+        dispatch({ type: FETCH_CONSUMPTION_SUCCESS, payload: response.data });
+    } catch (error) {
+        dispatch({ type: FETCH_CONSUMPTION_FAILURE, payload: error.message });
+    }
+}
+
+// New filtered consumption action
+export const fetchConsumptionByDateRangeFiltered = (startDate, endDate, filters = {}) => async (dispatch) => {
+    dispatch({ type: FETCH_CONSUMPTION_REQUEST });
+
+    try {
+        const formattedStartDate = formatDate(startDate);
+        const formattedEndDate = formatDate(endDate);
+
+        // Build query parameters
+        const params = new URLSearchParams({
+            startDate: formattedStartDate,
+            endDate: formattedEndDate
+        });
+
+        // Add filter parameters if they have values
+        if (filters.vehicleType) {
+            params.append('vehicleType', filters.vehicleType);
+        }
+        if (filters.hyoungNo) {
+            params.append('hyoungNo', filters.hyoungNo);
+        }
+        if (filters.vehicleNumber) {
+            params.append('vehicleNumber', filters.vehicleNumber);
+        }
+        if (filters.siteId) {
+            params.append('siteId', filters.siteId.toString());
+        }
+        if (filters.driverId) {
+            params.append('driverId', filters.driverId.toString());
+        }
+
+        // Create instance with longer timeout for consumption data
+        const response = await axiosInstance.get(`/consumption/manualRefillsFiltered?${params.toString()}`, {
+            timeout: 120000, // 2 minutes timeout for large data
+        });
         dispatch({ type: FETCH_CONSUMPTION_SUCCESS, payload: response.data });
     } catch (error) {
         dispatch({ type: FETCH_CONSUMPTION_FAILURE, payload: error.message });
@@ -46,11 +94,16 @@ export const fetchConsumptionByDateRange = (startDate, endDate) => async (dispat
 }
 
 export const fetchConsumptionByDateRangebySitId = (startDate, endDate, siteId) => async (dispatch) => {
+    dispatch({ type: FETCH_CONSUMPTION_REQUEST });
+
     try {
         const formattedStartDate = formatDate(startDate);
         const formattedEndDate = formatDate(endDate);
 
-        const response = await axiosInstance.get(`/consumption/manualRefillsbySiteId?startDate=${formattedStartDate}&endDate=${formattedEndDate}&siteId=${siteId}`);
+        // Create instance with longer timeout for consumption data
+        const response = await axiosInstance.get(`/consumption/manualRefillsbySiteId?startDate=${formattedStartDate}&endDate=${formattedEndDate}&siteId=${siteId}`, {
+            timeout: 120000, // 2 minutes timeout for large data
+        });
         dispatch({ type: FETCH_CONSUMPTION_SUCCESS, payload: response.data });
     } catch (error) {
         dispatch({ type: FETCH_CONSUMPTION_FAILURE, payload: error.message });
@@ -58,18 +111,21 @@ export const fetchConsumptionByDateRangebySitId = (startDate, endDate, siteId) =
 }
 
 export const fetchConsumptionByDateRangeByVehicleID = (startDate, endDate, vehicleId) => async (dispatch) => {
+    dispatch({ type: FETCH_VEHICLE_REFILLS_REQUEST });
+
     try {
         const formattedStartDate = formatDate(startDate);
         const formattedEndDate = formatDate(endDate);
 
-        const response = await axiosInstance.get(`/consumption/vehicleRefills?startDate=${formattedStartDate}&endDate=${formattedEndDate}&vehicleId=${vehicleId}`);
-        dispatch({ type: FETCH_VEHICLE_REFILLS_REQUEST, payload: response.data });
+        // Create instance with longer timeout for vehicle refill data
+        const response = await axiosInstance.get(`/consumption/vehicleRefills?startDate=${formattedStartDate}&endDate=${formattedEndDate}&vehicleId=${vehicleId}`, {
+            timeout: 120000, // 2 minutes timeout for large data
+        });
+        dispatch({ type: FETCH_VEHICLE_REFILLS_SUCCESS, payload: response.data });
     } catch (error) {
         dispatch({ type: FETCH_VEHICLE_REFILLS_FAILURE, payload: error.message });
     }
-}
-
-// New actions based on ConsumptionController endpoints
+}// New actions based on ConsumptionController endpoints
 
 /**
  * Fetch historical consumption data by vehicle

@@ -1,16 +1,33 @@
 import axios from "axios";
-// Simplified URL determination - no async needed
+// Resolve API URL from multiple env vars with sensible fallbacks
 const getApiUrl = () => {
-  const apiUrl = process.env.NODE_ENV === "development"
-    ? process.env.REACT_APP_API_URL
-    : process.env.REACT_APP_API_URL;
+  const candidates = [
+    process.env.REACT_APP_API_URL,
+    process.env.REACT_APP_FMS_API_URL,
+    process.env.REACT_APP_PUBLIC_FMS_API_URL,
+    process.env.REACT_APP_FMS_API_URL_DEV,
+    process.env.REACT_APP_FMS_API_URL_PROD,
+  ].filter(Boolean);
 
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('API URL being used:', apiUrl);
-  console.log('All env vars:', {
-    NODE_ENV: process.env.NODE_ENV,
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL
-  });
+  let apiUrl = candidates[0];
+
+  if (!apiUrl) {
+    const fallback = `${window.location.origin}/api`;
+    console.warn(
+      `API base URL not configured via env. Falling back to ${fallback}. Set REACT_APP_API_URL in .env.`
+    );
+    return fallback;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("Environment:", process.env.NODE_ENV);
+    console.log("Resolved API URL:", apiUrl);
+  }
+
+  // Ensure trailing slash so relative URLs join as /api/route
+  if (apiUrl && !apiUrl.endsWith('/')) {
+    apiUrl = apiUrl + '/';
+  }
 
   return apiUrl;
 };
@@ -29,7 +46,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     // Set baseURL for each request (no async needed)
-    config.baseURL = getApiUrl();
+  config.baseURL = getApiUrl();
 
     // Add auth token if available
     const token = localStorage.getItem("token");

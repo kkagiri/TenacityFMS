@@ -1,32 +1,36 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import  notify from 'devextreme/ui/notify';
+import ScrollView from 'devextreme-react/scroll-view';
 import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
-import { fetchVehicleList } from '../../../redux/actions/vehicleActions';
-import { fetchEmployees } from '../../../redux/actions/employeeActions';
+// Switch to search-based selectors instead of bulk loading
+import VehicleSearchableSelector from '../../../components/selectors/VehicleSearchableSelector';
+import EmployeeSearchableSelector from '../../../components/selectors/EmployeeSearchableSelector';
 import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
 import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
+import FixedHeightSelector from '../../../components/selectors/FixedHeightSelector';
+import './ManualRefillForm.css';
 
 const ManualRefillForm = ({ onCancel, onSuccess }) => {
   const dispatch = useDispatch();
   const sites = useSelector((state) => state.site.sites);
   const tanks = useSelector((state) => state.tank.tanks);
-  const vehicles = useSelector((state) => state.vehicle.vehicles);
-  const employees = useSelector((state) => state.employee.employees);
+  // Remove bulk vehicle/employee lists; we'll search on demand
   const user = useSelector((state) => state.auth.user);
 
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [formData, setFormData] = useState({
     vehicleId: null,
     manualFuelrefillAmount: null,
     previousMeterReading: null,
     currentMeterReading: null,
-    date: new Date(),
+    date: new Date().toISOString(),
     siteId: null,
     comment: '',
     driverId: null,
@@ -35,7 +39,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
   });
 
   // Track if data has been loaded to prevent multiple API calls
-  const dataLoadedRef = useRef(false);
+  // No local data loading ref needed now that lists are searched on-demand
 
   // Future records validation hook
   const {
@@ -65,32 +69,7 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     });
   }, []);
 
-  // Load vehicles and employees on component mount if not already loaded
-  useEffect(() => {
-    const loadData = async () => {
-      if (dataLoadedRef.current) return; // Prevent multiple loads
-
-      try {
-        // Only load if data is empty or not available
-        if (!vehicles || vehicles.length === 0) {
-          console.log('Loading vehicles...');
-          await dispatch(fetchVehicleList());
-        }
-
-        if (!employees || employees.length === 0) {
-          console.log('Loading employees...');
-          await dispatch(fetchEmployees());
-        }
-
-        dataLoadedRef.current = true;
-      } catch (error) {
-        console.error('Error loading data:', error);
-        showNotification('Error loading form data', 'error');
-      }
-    };
-
-    loadData();
-  }, [dispatch, showNotification, vehicles, employees]);
+  // No bulk loading for vehicles/employees; selectors will fetch as user types
 
   const handleSiteChange = useCallback((e) => {
     const siteId = e.value;
@@ -157,15 +136,17 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
   }, [formData, resetValidation, validateHistoricalEntry, showNotification]);
 
   const handleFieldChange = useCallback((field) => (e) => {
-    const updatedData = {
-      ...formData,
-      [field]: e.value
-    };
-    setFormData(updatedData);
+    setFormData(prevData => {
+      const updatedData = {
+        ...prevData,
+        [field]: e.value
+      };
+      return updatedData;
+    });
 
     // Clear validation errors for this field
     setValidationErrors(prev => ({ ...prev, [field]: null }));
-  }, [formData]);
+  }, []); // Remove formData dependency
 
   // Validation logic
   const validateForm = useCallback(() => {
@@ -194,8 +175,27 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     return Object.keys(errors).length === 0;
   }, [formData]);
 
-  // Handle form submission
-  const handleSubmit = useCallback(async () => {
+  // Clear form data for new entry (preserve site and tank selections)
+  const clearFormData = useCallback(() => {
+    setFormData(prevData => ({
+      vehicleId: null,
+      manualFuelrefillAmount: null,
+      previousMeterReading: null,
+      currentMeterReading: null,
+      date: new Date().toISOString(),
+      siteId: prevData.siteId, // Preserve site selection
+      comment: '',
+      driverId: null,
+      fuelBy: user?.userName || '',
+      tankId: prevData.tankId // Preserve tank selection
+    }));
+    // Don't clear filteredTanks since we're keeping the site/tank selection
+    setValidationErrors({});
+    resetValidation();
+  }, [user?.userName, resetValidation]);
+
+  // Handle form submission and close
+  const handleSaveAndClose = useCallback(async () => {
     if (!validateForm()) {
       showNotification('Please correct the validation errors', 'error');
       return;
@@ -223,35 +223,67 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     }
   }, [formData, validateForm, canSubmitForm, dispatch, onSuccess, showNotification]);
 
+  // Handle save and new entry
+  const handleSaveAndNew = useCallback(async () => {
+    if (!validateForm()) {
+      showNotification('Please correct the validation errors', 'error');
+      return;
+    }
+
+    if (!canSubmitForm) {
+      showNotification('Please resolve validation warnings before submitting', 'warning');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await dispatch(createFuelRefill(formData));
+      showNotification('Manual refill recorded successfully. Form cleared for new entry.', 'success');
+      clearFormData();
+    } catch (error) {
+      console.error('Error creating manual refill:', error);
+      showNotification('Failed to record manual refill', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, validateForm, canSubmitForm, dispatch, showNotification, clearFormData]);
+
   return (
-    <div className="manual-refill-form tw-max-w-4xl tw-mx-auto">
-      <div className="tw-p-6">
+    <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
+      <ScrollView className="tw-flex-1">
+        <div className="tw-p-6 tw-max-w-4xl tw-mx-auto">
           {/* Header */}
           <div className="tw-mb-6">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2 tw-flex tw-items-center">
-              <i className="fa-light fa-gas-pump tw-mr-2 tw-text-blue-600"></i>
-              Manual Fuel Refill
-            </h3>
+
             <p className="tw-text-gray-600 tw-text-sm tw-mb-3">
               Record manual fuel refill for vehicles.
             </p>
 
             {/* Information Panel */}
-            <div className="tw-bg-blue-50 tw-border-l-4 tw-border-blue-400 tw-p-3 tw-mb-4">
-              <div className="tw-flex">
-                <div className="tw-flex-shrink-0">
-                  <i className="fa-light fa-info-circle tw-text-blue-400"></i>
-                </div>
-                <div className="tw-ml-3">
-                  <p className="tw-text-sm tw-text-blue-700">
-                    <strong>Important:</strong> Opening stock must be done on the tank before inserting entry.
-                  </p>
-                  <p className="tw-text-sm tw-text-blue-700 tw-mt-1">
-                    Back-dated entry will force Auto-Correlation on Tank current stock. (Limit is 30 days)
-                  </p>
+            {showInfoNotice && (
+              <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                  <div className="tw-flex-1">
+                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">Manual Refill Information</h4>
+                    <p className="tw-text-blue-700 tw-text-sm">
+                      <strong>Important:</strong> Opening stock must be done on the tank before inserting entry.
+                    </p>
+                    <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                      Back-dated entry will force Auto-Correlation on Tank current stock. (Limit is 30 days)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowInfoNotice(false)}
+                    className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
+                    title="Close information"
+                  >
+                    <i className="fa-light fa-times"></i>
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <Form
@@ -265,6 +297,8 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
             <SimpleItem
               dataField="date"
               editorType="dxDateBox"
+              cssClass="datebox-full-width"
+              colSpan={2}
               editorOptions={{
                 value: formData.date,
                 max: new Date(),
@@ -272,6 +306,13 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 type: "datetime",
                 onValueChanged: handleDateChange,
                 width: "100%",
+                dropDownOptions: {
+                  width: 'auto',
+                  minWidth: 380,
+                  maxWidth: 520,
+                  wrapperAttr: { class: 'datebox-wide' },
+                },
+                elementAttr: { class: 'datebox-full-width-popup' },
                 isValid: !validationErrors.date,
                 validationError: validationErrors.date ? { message: validationErrors.date } : null
               }}
@@ -281,76 +322,82 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
 
             <SimpleItem
               dataField="siteId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: sites || [],
-                displayExpr: 'name',
-                valueExpr: 'id',
-                onValueChanged: handleSiteChange,
-                value: formData.siteId,
-                placeholder: "Select a site",
-                width: "100%",
-                isValid: !validationErrors.siteId,
-                validationError: validationErrors.siteId ? { message: validationErrors.siteId } : null
-              }}
-            >
-              <Label text="Site" />
-            </SimpleItem>
+              render={() => (
+                <div>
+                  <Label text="Site" />
+                  <FixedHeightSelector
+                    items={sites || []}
+                    displayExpr="name"
+                    valueExpr="id"
+                    value={formData.siteId}
+                    onChange={handleSiteChange}
+                    placeholder="Select a site"
+                    isValid={!validationErrors.siteId}
+                    validationError={validationErrors.siteId ? { message: validationErrors.siteId } : null}
+                    maxHeight={250}
+                    searchEnabled={true}
+                  />
+                </div>
+              )}
+            />
 
             <SimpleItem
               dataField="tankId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: filteredTanks,
-                displayExpr: 'name',
-                valueExpr: 'id',
-                onValueChanged: handleTankChange,
-                value: formData.tankId,
-                disabled: !formData.siteId,
-                placeholder: "Select a tank",
-                width: "100%",
-                isValid: !validationErrors.tankId,
-                validationError: validationErrors.tankId ? { message: validationErrors.tankId } : null
-              }}
-            >
-              <Label text="Tank" />
-            </SimpleItem>
+              render={() => (
+                <div>
+                  <Label text="Tank" />
+                  <FixedHeightSelector
+                    items={filteredTanks}
+                    displayExpr="name"
+                    valueExpr="id"
+                    value={formData.tankId}
+                    onChange={handleTankChange}
+                    placeholder="Select a tank"
+                    disabled={!formData.siteId}
+                    isValid={!validationErrors.tankId}
+                    validationError={validationErrors.tankId ? { message: validationErrors.tankId } : null}
+                    maxHeight={250}
+                    searchEnabled={true}
+                  />
+                </div>
+              )}
+            />
 
             <SimpleItem
               dataField="vehicleId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: vehicles || [],
-                displayExpr: 'vehicleName',
-                valueExpr: 'id',
-                onValueChanged: handleFieldChange('vehicleId'),
-                value: formData.vehicleId,
-                placeholder: "Select a vehicle",
-                width: "100%",
-                isValid: !validationErrors.vehicleId,
-                validationError: validationErrors.vehicleId ? { message: validationErrors.vehicleId } : null
-              }}
-            >
-              <Label text="Vehicle" />
-            </SimpleItem>
+              render={() => (
+                <div>
+                  <Label text="Vehicle" />
+                  <VehicleSearchableSelector
+                    value={formData.vehicleId}
+                    onValueChanged={(e) => handleFieldChange('vehicleId')(e)}
+                    placeholder="Type to search vehicle"
+                    width="100%"
+                    isValid={!validationErrors.vehicleId}
+                    validationError={validationErrors.vehicleId ? { message: validationErrors.vehicleId } : null}
+                  />
+                </div>
+              )}
+            />
 
             <SimpleItem
               dataField="driverId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: employees || [],
-                displayExpr: 'fullName',
-                valueExpr: 'id',
-                onValueChanged: handleFieldChange('driverId'),
-                value: formData.driverId,
-                placeholder: "Select a driver",
-                width: "100%",
-                isValid: !validationErrors.driverId,
-                validationError: validationErrors.driverId ? { message: validationErrors.driverId } : null
-              }}
-            >
-              <Label text="Driver" />
-            </SimpleItem>
+              render={() => (
+                <div>
+                  <Label text="Driver" />
+                  <EmployeeSearchableSelector
+                    value={formData.driverId}
+                    onValueChanged={(e) => handleFieldChange('driverId')(e)}
+                    placeholder="Type to search driver"
+                    width="100%"
+                    isValid={!validationErrors.driverId}
+                    validationError={validationErrors.driverId ? { message: validationErrors.driverId } : null}
+                    activeOnly={true}
+                    siteId={formData.siteId}
+                  />
+                </div>
+              )}
+            />
 
             <SimpleItem
               dataField="manualFuelrefillAmount"
@@ -359,8 +406,8 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 showSpinButtons: true,
                 value: formData.manualFuelrefillAmount,
                 onValueChanged: handleFieldChange('manualFuelrefillAmount'),
-                placeholder: "Enter fuel amount",
                 width: "100%",
+                showClearButton: false,
                 ...(formData.manualFuelrefillAmount !== null && formData.manualFuelrefillAmount !== undefined && { format: "#,##0.00" }),
                 isValid: !validationErrors.manualFuelrefillAmount,
                 validationError: validationErrors.manualFuelrefillAmount ? { message: validationErrors.manualFuelrefillAmount } : null
@@ -376,8 +423,8 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 showSpinButtons: true,
                 value: formData.previousMeterReading,
                 onValueChanged: handleFieldChange('previousMeterReading'),
-                placeholder: "Previous reading",
                 width: "100%",
+                showClearButton: false,
                 ...(formData.previousMeterReading !== null && formData.previousMeterReading !== undefined && { format: "#,##0" })
               }}
             >
@@ -391,8 +438,8 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 showSpinButtons: true,
                 value: formData.currentMeterReading,
                 onValueChanged: handleFieldChange('currentMeterReading'),
-                placeholder: "Current reading",
                 width: "100%",
+                showClearButton: false,
                 ...(formData.currentMeterReading !== null && formData.currentMeterReading !== undefined && { format: "#,##0" })
               }}
             >
@@ -406,9 +453,9 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
               editorOptions={{
                 value: formData.comment,
                 onValueChanged: handleFieldChange('comment'),
-                placeholder: "Optional comments",
                 width: "100%",
-                height: 80
+                height: 80,
+                showClearButton: false
               }}
             >
               <Label text="Comments" />
@@ -447,18 +494,30 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
               Cancel
             </Button>
             <Button
-              text="Save"
-              onClick={handleSubmit}
+              text="Save and New"
+              onClick={handleSaveAndNew}
+              disabled={isSubmitting || !canSubmitForm || isValidating}
+              loading={isSubmitting}
+              className="tw-min-w-32"
+              stylingMode="outlined"
+            >
+              <i className="fa-light fa-plus tw-mr-2"></i>
+              Save and New
+            </Button>
+            <Button
+              text="Save and Close"
+              onClick={handleSaveAndClose}
               disabled={isSubmitting || !canSubmitForm || isValidating}
               loading={isSubmitting}
               className="tw-min-w-32"
               type="default"
             >
               <i className="fa-light fa-save tw-mr-2"></i>
-              Save
+              Save and Close
             </Button>
           </div>
         </div>
+      </ScrollView>
     </div>
   );
 };

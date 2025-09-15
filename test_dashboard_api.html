@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard API Test</title>
+</head>
+<body>
+    <h1>Dashboard Metrics API Test</h1>
+    <div id="results"></div>
+
+    <script>
+        async function testDashboardAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing Dashboard API endpoints...</p>';
+
+            const baseUrl = window.location.origin + '/api/dashboardmetrics';
+
+            // Test health endpoint
+            try {
+                const response = await fetch(baseUrl + '/health');
+                const data = await response.json();
+                resultsDiv.innerHTML += `<h3>Health Check: ✅</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>Health Check: ❌</h3><pre>Error: ${error.message}</pre>`;
+            }
+
+            // Test fuel dispensed endpoint
+            try {
+                const response = await fetch(baseUrl + '/fuel-dispensed?mode=cumulative&datePreset=yesterday');
+                const data = await response.json();
+                resultsDiv.innerHTML += `<h3>Fuel Dispensed (Yesterday): ✅</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>Fuel Dispensed (Yesterday): ❌</h3><pre>Error: ${error.message}</pre>`;
+            }
+
+            // Test fuel dispensed today
+            try {
+                const response = await fetch(baseUrl + '/fuel-dispensed?mode=live&datePreset=today');
+                const data = await response.json();
+                resultsDiv.innerHTML += `<h3>Fuel Dispensed (Today Live): ✅</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>Fuel Dispensed (Today Live): ❌</h3><pre>Error: ${error.message}</pre>`;
+            }
+        }
+
+        // Run test when page loads
+        testDashboardAPI();
+    </script>
+</body>
+</html>

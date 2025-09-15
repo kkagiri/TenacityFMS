@@ -1,0 +1,66 @@
+// Volume History Reports Styles
+.volume-history-reports {
+  .report-type-tabs {
+    .dx-tabs-wrapper {
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .dx-tab {
+      padding: 12px 24px;
+      border-radius: 8px 8px 0 0;
+      margin-right: 4px;
+
+      &.dx-tab-selected {
+        background-color: #3b82f6;
+        color: white;
+
+        .dx-tab-content {
+          color: white;
+        }
+      }
+
+      &:hover:not(.dx-tab-selected) {
+        background-color: #f3f4f6;
+      }
+    }
+  }
+
+  .statistics-summary {
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+// Loading states
+.volume-history-reports-loading {
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .volume-history-reports {
+    .tw-grid-cols-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .report-type-tabs .dx-tab {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+  }
+}

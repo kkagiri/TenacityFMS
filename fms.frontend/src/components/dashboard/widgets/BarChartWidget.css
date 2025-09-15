@@ -1,0 +1,315 @@
+/* Bar Chart Widget Styles */
+.bar-chart-widget {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: 400px;
+}
+
+.bar-chart-widget .widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.bar-chart-widget .widget-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.bar-chart-widget .widget-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bar-chart-widget .widget-action-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bar-chart-widget .widget-action-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #333;
+}
+
+.bar-chart-widget .widget-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Widget content */
+.bar-chart-widget .widget-content {
+  padding: 1rem;
+}
+
+.bar-chart-widget .chart-container {
+  position: relative;
+  min-height: 300px;
+}
+
+/* Loading state */
+.bar-chart-widget .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 250px;
+  color: #666;
+}
+
+.bar-chart-widget .loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e9ecef;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* No data state */
+.bar-chart-widget .no-data-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 250px;
+  color: #666;
+  text-align: center;
+}
+
+/* Error state */
+.bar-chart-widget .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 250px;
+  color: #dc3545;
+}
+
+.bar-chart-widget .error-state svg {
+  font-size: 2rem;
+}
+
+/* Chart summary */
+.bar-chart-widget .chart-summary {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.bar-chart-widget .chart-summary h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bar-chart-widget .summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bar-chart-widget .summary-series {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  background: white;
+}
+
+.bar-chart-widget .series-name {
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.bar-chart-widget .series-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.bar-chart-widget .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bar-chart-widget .stat-item .label {
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bar-chart-widget .stat-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Widget meta */
+.bar-chart-widget .widget-meta {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* Widget config preview */
+.bar-chart-widget .widget-config-preview {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 0 0 8px 8px;
+}
+
+/* DevExtreme chart customizations */
+.bar-chart-widget .dx-chart {
+  font-family: inherit;
+}
+
+.bar-chart-widget .dx-chart-legend {
+  font-size: 0.875rem;
+}
+
+.bar-chart-widget .dx-tooltip {
+  font-size: 0.875rem;
+}
+
+.bar-chart-widget .dx-chart-series-group .dx-chart-series {
+  stroke-width: 1;
+}
+
+/* Chart color themes */
+.bar-chart-widget.theme-gradient .dx-chart-series-group .dx-chart-series {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.bar-chart-widget.theme-gradient .dx-chart-series rect {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .bar-chart-widget .widget-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .bar-chart-widget .widget-content {
+    padding: 0.75rem;
+  }
+
+  .bar-chart-widget .chart-container {
+    min-height: 250px;
+  }
+
+  .bar-chart-widget .summary-grid {
+    gap: 0.75rem;
+  }
+
+  .bar-chart-widget .series-stats {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .bar-chart-widget .widget-header h3 {
+    font-size: 1rem;
+  }
+
+  .bar-chart-widget .widget-actions {
+    gap: 0.25rem;
+  }
+
+  .bar-chart-widget .widget-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .bar-chart-widget .chart-container {
+    min-height: 200px;
+  }
+
+  .bar-chart-widget .series-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bar-chart-widget .stat-item .value {
+    font-size: 0.875rem;
+  }
+
+  .bar-chart-widget .widget-config-preview {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+/* Animation keyframes */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Special responsive chart handling */
+@media (max-width: 600px) {
+  .bar-chart-widget .dx-chart {
+    font-size: 12px;
+  }
+
+  .bar-chart-widget .dx-chart-legend {
+    font-size: 11px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .bar-chart-widget .widget-actions {
+    display: none;
+  }
+
+  .bar-chart-widget .widget-config-preview {
+    display: none;
+  }
+
+  .bar-chart-widget {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}

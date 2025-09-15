@@ -43,10 +43,11 @@ import { useLocation } from 'react-router-dom';
 import [ModuleName]Layout from './layout/[ModuleName]Layout';
 import [ModuleName]Dashboard from './[ModuleName]Dashboard';
 
-// Import your module's feature pages
+// Import your module's feature pages - Use existing pages or create new ones
 import FeaturePage1 from './feature1/FeaturePage1';
 import FeaturePage2 from './feature2/FeaturePage2';
-// Add more imports as needed
+// For existing pages, import from their current locations:
+// import ExistingPage from '../existingModule/ExistingPage';
 
 const [ModuleName]Main = () => {
   const location = useLocation();
@@ -58,13 +59,13 @@ const [ModuleName]Main = () => {
         <Route index element={<[ModuleName]Dashboard />} />
         <Route path="dashboard" element={<[ModuleName]Dashboard />} />
 
-        {/* Feature Routes */}
+        {/* Feature Routes - Each with wildcard for sub-routes */}
         <Route path="feature1" element={<FeaturePage1 />} />
         <Route path="feature1/*" element={<FeaturePage1 />} />
         <Route path="feature2" element={<FeaturePage2 />} />
         <Route path="feature2/*" element={<FeaturePage2 />} />
 
-        {/* Add more routes as needed */}
+        {/* Add more grouped routes as needed */}
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/[module-base-route]/dashboard" replace />} />
@@ -87,7 +88,7 @@ export const [module]Routes = {
   dashboard: '/[module-base-route]',
   feature1: '/[module-base-route]/feature1',
   feature2: '/[module-base-route]/feature2',
-  // Add more routes as needed
+  // Add all your module routes here
 };
 
 export const get[ModuleName]Route = (subPath = '') => {
@@ -96,36 +97,31 @@ export const get[ModuleName]Route = (subPath = '') => {
   return `${basePath}/${subPath}`;
 };
 
-// Helper to check if current path matches a route
+// Helper to check if current path matches a route - CRITICAL for proper active state
 export const isActiveRoute = (currentPath, targetPath) => {
-  if (targetPath === '/[module-base-route]/dashboard') {
-    return currentPath === '/[module-base-route]' ||
-           currentPath === '/[module-base-route]/' ||
-           currentPath === '/[module-base-route]/dashboard';
-  }
-  return currentPath.startsWith(targetPath);
-};
+  // Remove trailing slashes for consistent comparison
+  const normalizedCurrentPath = currentPath.replace(/\/+$/, '') || '/';
+  const normalizedTargetPath = targetPath.replace(/\/+$/, '') || '/';
 
-// Optional: Define navigation groups for organized sidebar
-export const navigationGroups = {
-  main: [
-    {
-      id: 'dashboard',
-      title: 'Dashboard',
-      icon: 'fa-light fa-chart-line',
-      path: [module]Routes.dashboard,
-    },
-    // Add main navigation items
-  ],
-  features: [
-    {
-      id: 'feature1',
-      title: 'Feature 1',
-      icon: 'fa-light fa-icon-name',
-      path: [module]Routes.feature1,
-    },
-    // Add feature navigation items
-  ]
+  // Special handling for dashboard route
+  if (normalizedTargetPath === '/[module-base-route]') {
+    return normalizedCurrentPath === '/[module-base-route]' || normalizedCurrentPath === '/[module-base-route]/dashboard';
+  }
+
+  // For other routes, ensure exact path matching to avoid conflicts
+  // Check if the current path starts with the target path and either:
+  // 1. They are exactly the same, or
+  // 2. The next character after target path is a '/' or query parameter
+  if (normalizedCurrentPath === normalizedTargetPath) {
+    return true;
+  }
+
+  if (normalizedCurrentPath.startsWith(normalizedTargetPath)) {
+    const remainingPath = normalizedCurrentPath.substring(normalizedTargetPath.length);
+    return remainingPath.startsWith('/') || remainingPath.startsWith('?');
+  }
+
+  return false;
 };
 ```
 
@@ -144,7 +140,7 @@ const [ModuleName]Layout = ({ children, currentPath, pageTitle, pageSubtitle }) 
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Define page information based on routes
+  // Determine page title and subtitle based on current route
   const getPageInfo = () => {
     const pathname = location.pathname;
 
@@ -159,7 +155,7 @@ const [ModuleName]Layout = ({ children, currentPath, pageTitle, pageSubtitle }) 
         subtitle: 'Configure feature 2 settings'
       };
     }
-    // Add more route handlers
+    // Add more route handlers for each feature
     else {
       return {
         title: '[Module Name] Dashboard',
@@ -172,7 +168,7 @@ const [ModuleName]Layout = ({ children, currentPath, pageTitle, pageSubtitle }) 
   const finalTitle = pageTitle || autoTitle;
   const finalSubtitle = pageSubtitle || autoSubtitle;
 
-  // Define navigation items
+  // Define navigation groups - Organize your menu items logically
   const mainNavigationItems = [
     {
       id: 'dashboard',
@@ -181,17 +177,27 @@ const [ModuleName]Layout = ({ children, currentPath, pageTitle, pageSubtitle }) 
       path: [module]Routes.dashboard,
       badge: null,
     },
-    // Add your main navigation items
+    // Add your primary navigation items
   ];
 
-  const featureItems = [
+  const primaryFeatureItems = [
     {
       id: 'feature1',
       title: 'Feature 1',
       icon: 'fa-light fa-icon-name',
       path: [module]Routes.feature1,
     },
-    // Add your feature items
+    // Add your primary feature items
+  ];
+
+  const secondaryFeatureItems = [
+    {
+      id: 'feature2',
+      title: 'Feature 2',
+      icon: 'fa-light fa-icon-name',
+      path: [module]Routes.feature2,
+    },
+    // Add your secondary feature items
   ];
 
   const handleNavigation = (path) => {
@@ -249,11 +255,36 @@ const [ModuleName]Layout = ({ children, currentPath, pageTitle, pageSubtitle }) 
 
           <div className="nav-separator"></div>
 
-          {/* Feature Navigation Group */}
+          {/* Primary Features Group */}
           <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Features</div>}
+            {!sidebarCollapsed && <div className="group-label">Primary Features</div>}
             <nav className="nav-menu">
-              {featureItems.map((item) => {
+              {primaryFeatureItems.map((item) => {
+                const isActive = isActiveRoute(currentPath, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="nav-separator"></div>
+
+          {/* Secondary Features Group */}
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Configuration</div>}
+            <nav className="nav-menu">
+              {secondaryFeatureItems.map((item) => {
                 const isActive = isActiveRoute(currentPath, item.path);
                 return (
                   <div
@@ -572,10 +603,11 @@ export default [ModuleName]Layout;
 
 ### Step 5: Integrate with Main Application Routing
 
+#### A. Update Content.js Routes
+
 **File**: `src/Content.js` (Add to existing routes)
 
 ```javascript
-// Add your module routes to the main Content.js routing
 {/* [Module Name] System Routes - Handle all [module] sub-routes internally */}
 <Route
   path="/[module-base-route]"
@@ -585,17 +617,73 @@ export default [ModuleName]Layout;
   path="/[module-base-route]/*"
   element={React.createElement(resolvedComponents("[module-display-name]"))}
 />
+
+{/* For role-protected modules, use withRoleProtection: */}
+<Route
+  path="/[module-base-route]"
+  element={React.createElement(withRoleProtection(resolvedComponents("[module-display-name]"), ["RequiredRole"]))}
+/>
+<Route
+  path="/[module-base-route]/*"
+  element={React.createElement(withRoleProtection(resolvedComponents("[module-display-name]"), ["RequiredRole"]))}
+/>
 ```
 
-**File**: `src/app-routes.js` (Add component mapping)
+#### B. Update Component Mapping
+
+The component mapping is handled by the `resolvedComponents` function. Ensure your module component is properly mapped in the application's routing system.
+
+#### C. Add Module to AppDrawer Navigation
+
+**File**: `src/components/app-drawer/AppDrawer.js`
+
+Add your module to the modules array with appropriate role-based access:
 
 ```javascript
-// Import your module main component
-import [ModuleName]Main from "./pages/[moduleName]/[ModuleName]Main";
+const modules = [
+  // ... existing modules
+  {
+    id: 11, // Use next available ID
+    name: "[Module Display Name]",
+    icon: "fa-light fa-[module-icon]", // Choose from FontAwesome Light icons
+    route: "/[module-base-route]",
+    color: "#[module-color]", // Choose from color themes below
+    roles: ["admin", "management", "user"] // Define who can access this module
+  }
+];
+```
 
-// Add to the switch statement in resolvedComponents function
-case "[module-display-name]":
-  return [ModuleName]Main;
+**Role-based Access Examples:**
+
+```javascript
+// Admin only module
+{
+  name: "System Configuration",
+  route: "/system-config",
+  roles: ["Admin"] // Only Admin role (exact case match)
+}
+
+// Management and Admin module
+{
+  name: "Task Management",
+  route: "/task-management",
+  roles: ["admin", "management"] // Admin and Management roles
+}
+
+// All users module
+{
+  name: "Reports",
+  route: "/reports",
+  roles: ["admin", "management", "user"] // All authenticated users
+}
+
+// Public module (available to guests)
+{
+  name: "Dashboard",
+  route: "/dashboard",
+  roles: ["admin", "management", "user", "guest"] // Everyone including guests
+}
+```
 ```
 
 ## Color Themes for Different Modules
@@ -650,6 +738,210 @@ Common icons to use for different module types:
 - **Inventory**: `fa-light fa-boxes`, `fa-light fa-warehouse`, `fa-light fa-oil-drum`
 - **Vehicles**: `fa-light fa-truck`, `fa-light fa-car`, `fa-light fa-gas-pump`
 
+## AppDrawer Integration Colors and Icons
+
+When adding your module to the AppDrawer, use these proven color combinations that match the existing modules:
+
+### Current AppDrawer Module Colors (Reference from Working System)
+
+```javascript
+// Dashboard
+color: "#0078d4", // Microsoft Blue
+icon: "fa-light fa-chart-line"
+
+// Vehicles
+color: "#107c10", // Green
+icon: "fa-light fa-car"
+
+// Employees
+color: "#ff8c00", // Orange
+icon: "fa-light fa-users"
+
+// Automatic Fueling
+color: "#d13438", // Red
+icon: "fa-light fa-gas-pump"
+
+// Device Issues
+color: "#881798", // Purple
+icon: "fa-light fa-exclamation-triangle"
+
+// Reports
+color: "#00bcf2", // Light Blue
+icon: "fa-light fa-chart-bar"
+
+// Tank Stock
+color: "#498205", // Dark Green
+icon: "fa-light fa-oil-can"
+
+// Admin
+color: "#005a70", // Dark Teal
+icon: "fa-light fa-cog"
+
+// Task Management
+color: "#8764b8", // Light Purple
+icon: "fa-light fa-tasks"
+
+// Alarms
+color: "#e74856", // Alert Red
+icon: "fa-light fa-bell"
+```
+
+### Recommended Colors for New Modules
+
+Choose colors that complement the existing palette:
+
+```javascript
+// Additional color options
+"#6264a7", // Teams Purple
+"#16537e", // Dark Blue
+"#ca5010", // Pumpkin Orange
+"#8378de", // Light Purple
+"#038387", // Teal
+"#8764b8", // Medium Purple
+"#744da9", // Deep Purple
+"#b146c2", // Magenta
+"#0078d4", // Primary Blue
+"#106ebe"  // Secondary Blue
+```
+
+### AppDrawer Icon Guidelines
+
+- **Always use FontAwesome Light** (`fa-light`) for consistency
+- **Choose meaningful icons** that clearly represent the module function
+- **Test icon visibility** on different background colors
+- **Keep icons simple** - they display at small sizes (16-18px)
+
+### Example AppDrawer Module Entries
+
+```javascript
+// Operations Module Example
+{
+  id: 11,
+  name: "Operations",
+  icon: "fa-light fa-clipboard-check",
+  route: "/operations",
+  color: "#038387",
+  roles: ["admin", "management", "user"]
+}
+
+// Analytics Module Example
+{
+  id: 12,
+  name: "Analytics",
+  icon: "fa-light fa-chart-pie",
+  route: "/analytics",
+  color: "#8378de",
+  roles: ["admin", "management"]
+}
+
+// Maintenance Module Example
+{
+  id: 13,
+  name: "Maintenance",
+  icon: "fa-light fa-wrench",
+  route: "/maintenance",
+  color: "#ca5010",
+  roles: ["admin", "management", "user"]
+}
+```
+
+## Critical Implementation Notes (Updated from Working Admin)
+
+### 1. Route Handling Pattern - TESTED AND WORKING
+
+The admin module uses this exact pattern for handling routes. **Follow this precisely:**
+
+```javascript
+// In [ModuleName]Main.js - Each route MUST have both base and wildcard
+<Route path="feature1" element={<FeaturePage1 />} />
+<Route path="feature1/*" element={<FeaturePage1 />} />
+```
+
+This pattern ensures:
+- Direct navigation to `/admin/feature1` works
+- Sub-routes like `/admin/feature1/edit/123` are handled by the feature component
+- No route conflicts or missed navigations
+
+### 2. Active Route Detection - CRITICAL FIX
+
+The working `isActiveRoute` function from admin module fixes route conflicts:
+
+```javascript
+export const isActiveRoute = (currentPath, targetPath) => {
+  const normalizedCurrentPath = currentPath.replace(/\/+$/, '') || '/';
+  const normalizedTargetPath = targetPath.replace(/\/+$/, '') || '/';
+
+  // Special handling for dashboard route
+  if (normalizedTargetPath === '/admin') {
+    return normalizedCurrentPath === '/admin' || normalizedCurrentPath === '/admin/dashboard';
+  }
+
+  // Exact matching to prevent conflicts
+  if (normalizedCurrentPath === normalizedTargetPath) {
+    return true;
+  }
+
+  if (normalizedCurrentPath.startsWith(normalizedTargetPath)) {
+    const remainingPath = normalizedCurrentPath.substring(normalizedTargetPath.length);
+    return remainingPath.startsWith('/') || remainingPath.startsWith('?');
+  }
+
+  return false;
+};
+```
+
+### 3. Mobile Responsiveness - TESTED PATTERN
+
+The admin module uses **height-based collapsing** for mobile, not width-based:
+
+```scss
+@media (max-width: 768px) {
+  .admin-sidebar {
+    width: 100%;        // Always full width on mobile
+    height: auto;       // Normal height when expanded
+
+    &.collapsed {
+      width: 100%;      // Still full width
+      height: 80px;     // Fixed height when collapsed
+      overflow: hidden; // Hide content
+    }
+  }
+}
+```
+
+**Why this works:**
+- Prevents layout jumping
+- Maintains navigation accessibility
+- Consistent with mobile UX patterns
+
+### 4. Navigation Grouping - PROVEN STRUCTURE
+
+The admin module successfully organizes 13+ features into logical groups:
+
+1. **Access Control** (Users, Roles, Permissions, Navigation, Notifications)
+2. **PTS Management** (Service Control, Devices, Configuration)
+3. **System Configuration** (Tags, Sites, Tanks, Config, System Config)
+
+**Apply this pattern:**
+- Group related features together
+- Use descriptive group labels
+- Keep groups balanced (3-6 items max)
+- Separate with visual dividers
+
+### 5. Role Protection Integration - WORKING EXAMPLE
+
+```javascript
+// In Content.js - Role protection wrapper
+<Route
+  path="/admin"
+  element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["Admin"]))}
+/>
+<Route
+  path="/admin/*"
+  element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["Admin"]))}
+/>
+```
+
 ## Best Practices
 
 ### 1. Naming Conventions
@@ -701,12 +993,158 @@ Common icons to use for different module types:
 - **Issue**: Active state not updating correctly
 - **Solution**: Verify `isActiveRoute` function logic, check path matching
 
+## Working Examples in Current System
+
+The following modules already implement this navigation pattern successfully:
+
+### Admin System - Complete Reference Implementation
+- **Path**: `/admin/*` routes
+- **Files**:
+  - `src/pages/admin/AdminMain.js` - Main routing component
+  - `src/pages/admin/layout/AdminLayout.js` - Layout with sidebar
+  - `src/pages/admin/utils/navigationHelper.js` - Route definitions
+  - `src/pages/admin/layout/AdminLayout.scss` - Styling
+- **Features**:
+  - Three navigation groups: Access Control, PTS Management, System Configuration
+  - Role-based protection with `withRoleProtection`
+  - 13+ sub-routes with wildcard handling
+  - Mobile responsive design
+  - Dynamic page titles based on routes
+
+### Tank Stock System - Operational Module Example
+- **Path**: `/tankstock/*` routes
+- **Pattern**: Inventory management with real-time data
+- **Reference**: Good example for data-heavy modules
+
+### Vehicle Management - Multi-Feature Module
+- **Path**: `/vehicles/*` routes
+- **Pattern**: Multiple related features under one module
+- **Reference**: Good example for complex feature grouping
+
+### Implementation Tips from Working Examples
+
+#### Route Organization Pattern (from Admin)
+```javascript
+// Group related features logically
+const accessControlItems = [
+  { path: '/admin/users', title: 'Users' },
+  { path: '/admin/roles', title: 'Roles' },
+  { path: '/admin/permissions', title: 'Permissions' }
+];
+
+const ptsManagementItems = [
+  { path: '/admin/pts-service', title: 'PTS Service Control' },
+  { path: '/admin/ptsdevice', title: 'PTS Devices' },
+  { path: '/admin/ptsconfig', title: 'PTS Configuration' }
+];
+```
+
+#### Dynamic Page Titles Pattern (from Admin)
+```javascript
+const getPageInfo = () => {
+  const pathname = location.pathname;
+
+  if (pathname.includes('/users')) {
+    return {
+      title: 'User Management',
+      subtitle: 'Manage system users and their access'
+    };
+  }
+  // Continue pattern for all routes...
+};
+```
+
+#### Mobile-First Responsive Pattern (from Admin)
+```scss
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column; // Stack vertically
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+
+    &.collapsed {
+      width: 100%;
+      height: 80px; // Height-based, not width-based
+      overflow: hidden;
+    }
+  }
+}
+```
+
 ## Examples in Current System
 
 Reference these existing implementations:
 - **Admin System**: `/admin/*` routes - Full featured example
 - **Tank Stock**: `/tankstock/*` routes - Operational module example
 - **Notifications**: `/notifications/*` routes - Alert system example
+
+## Quick Implementation Checklist
+
+Based on the working admin module, follow this checklist for any new module:
+
+### Pre-Implementation
+- [ ] Define module name and base route (e.g., 'task-management', '/task-management')
+- [ ] List all features that will be under this module
+- [ ] Group features logically (max 3-4 groups, 3-6 items each)
+- [ ] Choose module colors from the provided theme options
+- [ ] Select appropriate FontAwesome icons
+
+### File Creation Checklist
+- [ ] Create `src/pages/[moduleName]/[ModuleName]Main.js`
+- [ ] Create `src/pages/[moduleName]/[ModuleName]Dashboard.js`
+- [ ] Create `src/pages/[moduleName]/layout/[ModuleName]Layout.js`
+- [ ] Create `src/pages/[moduleName]/layout/[ModuleName]Layout.scss`
+- [ ] Create `src/pages/[moduleName]/utils/navigationHelper.js`
+
+### Route Setup Checklist
+- [ ] Each feature has both base and wildcard route (`feature1` AND `feature1/*`)
+- [ ] Dashboard route handles both `/module` and `/module/dashboard`
+- [ ] Fallback route redirects to dashboard
+- [ ] Routes added to `src/Content.js` with both base and wildcard
+- [ ] Component mapping properly configured in routing system
+
+### Navigation Setup Checklist
+- [ ] Routes defined in `navigationHelper.js`
+- [ ] `isActiveRoute` function copied exactly from admin implementation
+- [ ] Navigation items grouped logically in layout component
+- [ ] Page titles defined for each route in `getPageInfo()`
+- [ ] Icons chosen from FontAwesome Light set
+
+### AppDrawer Integration Checklist
+- [ ] Module added to `AppDrawer.js` modules array with unique ID
+- [ ] Appropriate color selected from AppDrawer color palette
+- [ ] FontAwesome Light icon chosen and tested
+- [ ] Role-based access properly configured
+- [ ] Module name is clear and concise (fits in drawer grid)
+- [ ] Route matches Content.js route exactly
+
+### Styling Checklist
+- [ ] Module SCSS file created with unique class prefix
+- [ ] Color theme selected and applied
+- [ ] Mobile responsiveness implemented (height-based collapsing)
+- [ ] All nav groups have separators
+- [ ] Active states properly styled
+
+### Testing Checklist
+- [ ] Direct navigation works (e.g., `/admin/users`)
+- [ ] Sub-routes work (e.g., `/admin/users/edit/123`)
+- [ ] Active states highlight correctly
+- [ ] Mobile sidebar collapses properly (height-based)
+- [ ] All navigation items are clickable
+- [ ] Page titles update correctly
+- [ ] No route conflicts with other modules
+- [ ] AppDrawer module appears for correct user roles
+- [ ] AppDrawer module navigation works correctly
+
+### Integration Checklist
+- [ ] Role protection added if needed (`withRoleProtection`)
+- [ ] AppDrawer module accessible to intended user roles
+- [ ] Module appears in main AppDrawer menu
+- [ ] Module route is consistent across all integration points
+- [ ] Breadcrumbs work correctly (if implemented)
 
 ## Conclusion
 

@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 //Cursor - Add SignalR for real-time updates
+using System.Security.Claims;
 using FMS.Application.Communication.SignalR;
 using Microsoft.AspNetCore.SignalR;
 
@@ -146,28 +147,31 @@ public class TankStockController : ControllerBase {
 
     [HttpPost ("openingstock")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> CreateOpeningStock ([FromQuery] int tankId, decimal amount, DateTime dateTime) {
+    public async Task<IActionResult> CreateOpeningStock ([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime) {
         // var hasPermission = User.HasClaim("permissions", "_openingStock");
         // if (!hasPermission) return Forbid();
         if (tankId <= 0) return BadRequest (new FMSResponseMessage (false, "Invalid Tank ID"));
         if (amount <= 0) return BadRequest (new FMSResponseMessage (false, "Opening stock should be greater than 0"));
+        // Normalize the provided date to UTC before comparison to avoid false positives when clients send local time
+        DateTime dateTimeUtc = dateTime.UtcDateTime;
 
-        if (dateTime > DateTime.Now) return BadRequest (new FMSResponseMessage (false, "Date cannot be in the future"));
-        if (dateTime == default (DateTime)) return BadRequest (new FMSResponseMessage (false, "Invalid Date"));
-
-        var userIdClaim = User.Claims.FirstOrDefault (c =>
+        Claim? userIdClaim = User.Claims.FirstOrDefault (c =>
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
             Guid.TryParse (c.Value, out _));
 
-        if (userIdClaim == null) return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+        if (userIdClaim == null) {
+            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+        }
 
-        var result = await _mediator.Send (new OpeningStockCommand (tankId, amount, userIdClaim.Value, dateTime));
+        FMSResponseMessage result = await _mediator.Send (new OpeningStockCommand (tankId, amount, userIdClaim.Value, dateTimeUtc));
 
         if (result.Success) {
             await _hubContext.Clients.All.SendAsync ("TankStockUpdate", result);
         }
 
-        if (!result.Success) return BadRequest (result);
+        if (!result.Success) {
+            return BadRequest (result);
+        }
 
         return Ok (result);
 
@@ -175,22 +179,26 @@ public class TankStockController : ControllerBase {
 
     [HttpPost ("closingstock")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> CreateClosingStock ([FromQuery] int tankId, decimal amount, DateTime dateTime) {
+    public async Task<IActionResult> CreateClosingStock ([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime) {
         // var hasPermission = User.HasClaim("permissions", "_closingStock");
         // if (!hasPermission) return Forbid();
         if (tankId <= 0) return BadRequest (new FMSResponseMessage (false, "Invalid Tank ID"));
         if (amount <= 0) return BadRequest (new FMSResponseMessage (false, "Closing stock should be greater than 0"));
-        if (dateTime > DateTime.Now) return BadRequest (new FMSResponseMessage (false, "Date cannot be in the future"));
-        if (dateTime == default (DateTime)) return BadRequest (new FMSResponseMessage (false, "Invalid Date"));
+        // Normalize to UTC for consistent comparison
+        DateTime dateTimeUtc = dateTime.UtcDateTime;
 
-        var userIdClaim = User.Claims.FirstOrDefault (c =>
+        Claim? userIdClaim = User.Claims.FirstOrDefault (c =>
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
             Guid.TryParse (c.Value, out _));
 
-        if (userIdClaim == null) return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
-        var result = await _mediator.Send (new ClosingStockCommand (tankId, amount, userIdClaim.Value, dateTime));
+        if (userIdClaim == null) {
+            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+        }
+        FMSResponseMessage result = await _mediator.Send (new ClosingStockCommand (tankId, amount, userIdClaim.Value, dateTimeUtc));
 
-        if (!result.Success) return BadRequest (result);
+        if (!result.Success) {
+            return BadRequest (result);
+        }
 
         return Ok (result);
 

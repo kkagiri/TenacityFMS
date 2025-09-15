@@ -9,6 +9,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.Notification.Commands;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.Groups;
+using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Queries;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
@@ -669,9 +670,12 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("test")]
         public async Task<IActionResult> TestNotification ([FromBody] TestNotificationRequest request, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty (userId)) {
-                    return Unauthorized (new { success = false, message = "User not authenticated" });
+                var userIdClaim = User.Claims.FirstOrDefault (c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse (c.Value, out _));
+
+                if (userIdClaim == null) {
+                    return BadRequest ("Invalid User ID");
                 }
 
                 var notificationRequest = new CreateNotificationRequest {
@@ -681,10 +685,10 @@ namespace FMS.WebClient.Controllers {
                     Title = request.Title ?? "Test Notification",
                     Message = request.Message ?? "This is a test notification from the API",
                     TriggerSource = "API",
-                    TriggeredBy = userId,
-                    Recipients = new List<CreateNotificationRecipientRequest> {
-                    new CreateNotificationRecipientRequest {
-                    UserId = userId,
+                    TriggeredBy = userIdClaim.Value,
+                    Recipients = new List<NotificationRecipientDto> {
+                    new NotificationRecipientDto {
+                    UserId = userIdClaim.Value,
                     DeliveryMethods = new List<string> { "System" }
                     }
                     }

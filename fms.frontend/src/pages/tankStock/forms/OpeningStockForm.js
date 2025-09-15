@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Form, SimpleItem, Label } from 'devextreme-react/form';
+import { Form, SimpleItem, Label, GroupItem } from 'devextreme-react/form';
 import { Button } from 'devextreme-react';
 import { fetchSitebyUserId } from '../../../redux/actions/siteActions';
 import { fetchTanks } from '../../../redux/actions/tankActions';
@@ -33,32 +33,14 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
   // Helper function for notifications with consistent positioning
   const showNotification = useCallback((message, type = 'info', duration = 3000) => {
-    // Use longer duration for errors to give user time to read
-    const notificationDuration = type === 'error' ? Math.max(duration, 6000) : duration;
-
+    const displayTime = type === 'error' ? Math.max(duration, 6000) : duration;
     notify({
       message,
       type,
-      displayTime: notificationDuration,
-      position: {
-        my: 'top center',
-        at: 'top center',
-        of: window,
-        offset: '0 20'
-      },
+      displayTime,
+      position: { my: 'top center', at: 'top center', of: window, offset: '0 20' },
       animation: {
-        show: {
-          type: 'slide',
-          duration: 300,
-          from: { top: -100, opacity: 0 },
-          to: { top: 0, opacity: 1 }
-        },
-        hide: {
-          type: 'slide',
-          duration: 300,
-          from: { top: 0, opacity: 1 },
-          to: { top: -100, opacity: 0 }
-        }
+        show: { type: 'slide', duration: 300, from: { top: 0, opacity: 1 }, to: { top: -100, opacity: 0 } }
       }
     });
   }, []);
@@ -70,6 +52,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     tankId: null,
     amount: null,           // Physical stock measurement
     bookBalance: null,      // Current book balance (read-only)
+    physicalStockValue: null, // Current physical stock value (read-only)
     date: new Date()
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,14 +94,16 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
   const handleTankChange = useCallback(async (e) => {
     const tankId = e.value;
 
-    // Get selected tank to retrieve book balance
+    // Get selected tank to retrieve book balance and physical stock value
     const selectedTank = tanksFromStore.find(tank => tank.id === tankId);
     const bookBalance = selectedTank ? selectedTank.currentStock : null;
+    const physicalStockValue = selectedTank ? selectedTank.physicalStockValue : null;
 
     const updatedData = {
       ...formData,
       tankId: tankId,
-      bookBalance: bookBalance  // Set current book balance for comparison
+      bookBalance: bookBalance,  // Set current book balance for comparison
+      physicalStockValue: physicalStockValue  // Set current physical stock value for comparison
     };
     setFormData(updatedData);
 
@@ -193,7 +178,8 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
       const preparedData = {
         tankId: formData.tankId,
         amount: formData.amount,
-        dateTime: formData.date
+  // Send ISO UTC to avoid server-side future-date rejections due to timezone
+  dateTime: formData.date ? new Date(formData.date).toISOString() : null
       };
 
       const response = await dispatch(createOpeningStock(preparedData));
@@ -249,10 +235,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
         <div className="tw-p-1">
           {/* Header */}
           <div className="tw-mb">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-1 tw-flex tw-items-center">
-              <i className="fa-light fa-lock-open tw-mr-2 tw-text-blue-600"></i>
-              Opening Stock Entry
-            </h3>
+
             <p className="tw-text-gray-600 tw-text-sm">
               Record the opening stock amount for the selected tank and date.
             </p>
@@ -271,25 +254,40 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             colCount={2}
             className="tw-mb-6"
           >
-            <SimpleItem
-              dataField="date"
-              editorType="dxDateBox"
-              editorOptions={{
-                value: formData.date,
-                max: new Date(),
-                ...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" }),
-                type: "datetime",
-                onValueChanged: handleDateChange,
-                width: "100%",
-                isValid: !validationErrors.date,
-                validationError: validationErrors.date ? { message: validationErrors.date } : null,
-                // Add date validation to prevent invalid date formatting
-                acceptCustomValue: false,
-                openOnFieldClick: true
-              }}
-            >
-              <Label text="Date & Time" />
-            </SimpleItem>
+            <GroupItem colCount={1} colSpan={2}>
+              <SimpleItem
+                dataField="date"
+                editorType="dxDateBox"
+                cssClass="datebox-full-width"
+                editorOptions={{
+                  value: formData.date,
+                  max: new Date(),
+                  ...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" }),
+                  type: "datetime",
+                  onValueChanged: handleDateChange,
+                  width: "100%",
+                  className: "datebox-full-width",
+                  // Ensure the dropdown/popup is wide enough and not constrained
+                  dropDownOptions: {
+                    width: 'auto',
+                    minWidth: 380,
+                    maxWidth: 520,
+                    wrapperAttr: { class: 'datebox-wide' },
+                  },
+                  isValid: !validationErrors.date,
+                  validationError: validationErrors.date ? { message: validationErrors.date } : null,
+                  // Add date validation to prevent invalid date formatting
+                  acceptCustomValue: false,
+                  openOnFieldClick: true,
+                  // Add custom CSS class for enhanced datetime picker styling
+                  elementAttr: {
+                    class: "datebox-full-width-popup"
+                  }
+                }}
+              >
+                <Label text="Date & Time" />
+              </SimpleItem>
+            </GroupItem>
 
             <SimpleItem
               dataField="siteId"
@@ -302,6 +300,7 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
                 value: formData.siteId,
                 placeholder: "Select a site",
                 width: "100%",
+                searchEnabled: true,
                 isValid: !validationErrors.siteId,
                 validationError: validationErrors.siteId ? { message: validationErrors.siteId } : null
               }}
@@ -330,17 +329,33 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
 
             {/* Book Balance Display (Read-only) */}
             {formData.bookBalance !== null && formData.bookBalance !== undefined && (
-              <SimpleItem
+        <SimpleItem
                 dataField="bookBalance"
                 editorType="dxTextBox"
                 editorOptions={{
-                  value: formData.bookBalance ? formData.bookBalance.toLocaleString() + ' L' : '0 L',
+          value: formData.bookBalance != null ? Number(formData.bookBalance).toLocaleString() + ' L' : '0 L',
                   readOnly: true,
                   width: "100%",
                   stylingMode: "filled"
                 }}
               >
                 <Label text="Current Book Balance (Calculated)" />
+              </SimpleItem>
+            )}
+
+            {/* Physical Stock Value Display (Read-only) */}
+            {formData.tankId && (
+              <SimpleItem
+                dataField="physicalStockValue"
+                editorType="dxTextBox"
+                editorOptions={{
+                  value: formData.physicalStockValue != null ? Number(formData.physicalStockValue).toLocaleString() + ' L' : 'No physical reading available',
+                  readOnly: true,
+                  width: "100%",
+                  stylingMode: "filled"
+                }}
+              >
+                <Label text="Current Physical Stock Value (Last Recorded)" />
               </SimpleItem>
             )}
 
@@ -362,26 +377,44 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             </SimpleItem>
 
             {/* Discrepancy Indicator */}
-            {formData.amount && formData.bookBalance && (
+            {formData.amount != null && (formData.bookBalance != null || formData.physicalStockValue != null) && (
               <div className="discrepancy-indicator" style={{
                 padding: '10px',
                 marginTop: '10px',
                 borderRadius: '4px',
-                backgroundColor: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#ffebee' : '#e8f5e8',
-                border: `1px solid ${Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'}`
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #dee2e6'
               }}>
                 <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
                   Stock Comparison:
                 </div>
-                <div>Physical Stock: {formData.amount.toLocaleString()} L</div>
-                <div>Book Balance: {formData.bookBalance.toLocaleString()} L</div>
-                <div style={{
-                  fontWeight: 'bold',
-                  color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
-                }}>
-                  Discrepancy: {(formData.amount - formData.bookBalance).toLocaleString()} L
-                  ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
-                </div>
+                <div>New Physical Stock: {Number(formData.amount).toLocaleString()} L</div>
+
+                {formData.bookBalance != null && (
+                  <>
+                    <div>Current Book Balance: {Number(formData.bookBalance).toLocaleString()} L</div>
+                    <div style={{
+                      fontWeight: 'bold',
+                      color: Math.abs(formData.amount - formData.bookBalance) > (formData.bookBalance * 0.05) ? '#f44336' : '#4caf50'
+                    }}>
+                      Book Balance Discrepancy: {Number(formData.amount - formData.bookBalance).toLocaleString()} L
+                      ({formData.bookBalance > 0 ? (((formData.amount - formData.bookBalance) / formData.bookBalance) * 100).toFixed(2) : '100'}%)
+                    </div>
+                  </>
+                )}
+
+                {formData.physicalStockValue != null && (
+                  <>
+                    <div>Current Physical Stock: {Number(formData.physicalStockValue).toLocaleString()} L</div>
+                    <div style={{
+                      fontWeight: 'bold',
+                      color: Math.abs(formData.amount - formData.physicalStockValue) > (formData.physicalStockValue * 0.05) ? '#ff9800' : '#4caf50'
+                    }}>
+                      Physical Stock Change: {Number(formData.amount - formData.physicalStockValue).toLocaleString()} L
+                      ({formData.physicalStockValue > 0 ? (((formData.amount - formData.physicalStockValue) / formData.physicalStockValue) * 100).toFixed(2) : '100'}%)
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </Form>
@@ -397,16 +430,63 @@ const OpeningStockForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             />
           )}
 
-          {/* Backend Error Display */}
+          {/* Backend Error Display with Enhanced Closing Stock Guidance */}
           {backendError && (
             <div className="tw-mb-4 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-3">
               <div className="tw-flex tw-items-start">
                 <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mt-0.5 tw-mr-3"></i>
                 <div className="tw-flex-1">
                   <h4 className="tw-font-medium tw-text-red-800 tw-mb-1">Validation Error</h4>
-                  <p className="tw-text-red-700 tw-text-sm">
+                  <p className="tw-text-red-700 tw-text-sm tw-mb-3">
                     {backendError?.message || 'An error occurred'}
                   </p>
+
+                  {/* Enhanced guidance for unclosed opening stock */}
+                  {backendError?.message?.includes('opening stock already exists') &&
+                   backendError?.message?.includes('without a subsequent closing stock') && (
+                    <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded tw-p-3 tw-mt-3">
+                      <h5 className="tw-font-medium tw-text-yellow-800 tw-mb-2">
+                        <i className="fa-light fa-lightbulb tw-mr-2"></i>
+                        Solution Required
+                      </h5>
+                      <p className="tw-text-yellow-700 tw-text-sm tw-mb-3">
+                        You need to create a closing stock for the same date as the existing opening stock before you can add a new opening stock.
+                      </p>
+                      <div className="tw-flex tw-flex-col tw-space-y-2">
+                        <button
+                          onClick={() => {
+                            // Extract date from error message if possible
+                            const dateMatch = backendError.message.match(/(\d{4}-\d{2}-\d{2})/);
+                            const suggestedDate = dateMatch ? new Date(dateMatch[1]) : new Date();
+
+                            // Use the SAME date as the opening stock, not the next day
+                            // Closing stock must be on the same date as opening stock per backend validation
+
+                            // Call the parent component to open closing stock form
+                            if (onCancel) {
+                              onCancel('create-closing-stock', {
+                                tankId: formData.tankId,
+                                siteId: formData.siteId,
+                                suggestedDate: suggestedDate, // Same date as opening stock
+                                reason: 'Required to close existing opening stock before creating new opening stock'
+                              });
+                            }
+                          }}
+                          className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded tw-text-sm hover:tw-bg-blue-700 tw-transition-colors tw-flex tw-items-center tw-justify-center tw-space-x-2"
+                          disabled={!formData.tankId}
+                        >
+                          <i className="fa-light fa-plus tw-mr-2"></i>
+                          Create Required Closing Stock
+                        </button>
+
+
+                        <p className="tw-text-yellow-600 tw-text-xs">
+                          This will open the closing stock form with the same tank and date as the existing opening stock.
+                          After creating the closing stock, you can return to create your new opening stock.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => setBackendError(null)}

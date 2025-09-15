@@ -1,0 +1,118 @@
+import React from 'react';
+import './ReportsDashboard.scss';
+
+const ReportsDashboard = () => {
+  return (
+    <div className="reports-dashboard">
+      <div className="dashboard-header">
+        <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">Reports Overview</h2>
+        <p className="tw-text-gray-600">Access and generate various fuel management reports</p>
+      </div>
+
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <div className="stat-icon">
+            <i className="fa-light fa-chart-bar tw-text-blue-500"></i>
+          </div>
+          <div className="stat-content">
+            <h3 className="stat-title">Consumption Reports</h3>
+            <p className="stat-description">Vehicle fuel consumption analysis</p>
+            <div className="stat-actions">
+              <button className="btn btn-primary" onClick={() => window.location.href = '/reports/consumption-refills'}>
+                View Reports
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <i className="fa-light fa-upload tw-text-green-500"></i>
+          </div>
+          <div className="stat-content">
+            <h3 className="stat-title">Data Import</h3>
+            <p className="stat-description">Import fuel report data from external sources</p>
+            <div className="stat-actions">
+              <button className="btn btn-secondary" onClick={() => window.location.href = '/reports/fuel-importer'}>
+                Import Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <i className="fa-light fa-chart-line tw-text-purple-500"></i>
+          </div>
+          <div className="stat-content">
+            <h3 className="stat-title">Analytics</h3>
+            <p className="stat-description">Advanced fuel usage analytics and trends</p>
+            <div className="stat-actions">
+              <button className="btn btn-outline" disabled>
+                Coming Soon
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">
+            <i className="fa-light fa-file-export tw-text-orange-500"></i>
+          </div>
+          <div className="stat-content">
+            <h3 className="stat-title">Export Reports</h3>
+            <p className="stat-description">Export reports to PDF, Excel, or CSV formats</p>
+            <div className="stat-actions">
+              <button className="btn btn-outline" disabled>
+                Coming Soon
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="recent-activity">
+        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Quick Access</h3>
+        <div className="activity-list">
+          <div className="activity-item">
+            <div className="activity-icon">
+              <i className="fa-light fa-gas-pump tw-text-blue-400"></i>
+            </div>
+            <div className="activity-content">
+              <h4>Fuel Consumption by Vehicle</h4>
+              <p className="tw-text-sm tw-text-gray-600">View detailed consumption patterns for each vehicle</p>
+            </div>
+            <div className="activity-actions">
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => window.location.href = '/reports/consumption-refills'}
+              >
+                View Report
+              </button>
+            </div>
+          </div>
+
+          <div className="activity-item">
+            <div className="activity-icon">
+              <i className="fa-light fa-upload tw-text-green-400"></i>
+            </div>
+            <div className="activity-content">
+              <h4>Import Fuel Data</h4>
+              <p className="tw-text-sm tw-text-gray-600">Upload and process fuel report files</p>
+            </div>
+            <div className="activity-actions">
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => window.location.href = '/reports/fuel-importer'}
+              >
+                Import Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ReportsDashboard;

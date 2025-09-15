@@ -78,7 +78,7 @@ export const deleteSiteFailure = (error) => ({
 export const fetchSiteList = () => async (dispatch) => {
   try {
     dispatch(fetchSitesRequest());
-    const response = await axiosInstance.get(`/site`);
+  const response = await axiosInstance.get(`/site`); // NEW: GET /api/site
     dispatch(fetchSitesSuccess(response.data));
     return { success: true, data: response.data };
   } catch (error) {
@@ -90,7 +90,14 @@ export const fetchSiteList = () => async (dispatch) => {
 export const fetchSitebyUserId = () => async (dispatch) => {
   try {
     dispatch(fetchSitesRequest());
-    const response = await axiosInstance.get(`/site/getsitebyuserid`);
+    // NEW: GET /api/site/me (falls back to legacy if needed)
+    let response;
+    try {
+      response = await axiosInstance.get(`/site/me`);
+    } catch (e) {
+      // fallback legacy route during transition
+      response = await axiosInstance.get(`/site/getsitebyuserid`);
+    }
     dispatch(fetchSitesSuccess(response.data));
   } catch (error) {
     dispatch(fetchSitesFailure(error.response?.data?.message || error.message));
@@ -100,7 +107,12 @@ export const fetchSitebyUserId = () => async (dispatch) => {
 export const fetchSiteById = (siteId) => async (dispatch) => {
   try {
     dispatch(fetchSitesRequest());
-    const response = await axiosInstance.get(`/site/get/${siteId}`);
+    let response;
+    try {
+      response = await axiosInstance.get(`/site/${siteId}`); // NEW route
+    } catch (e) {
+      response = await axiosInstance.get(`/site/get/${siteId}`); // legacy fallback
+    }
     return { success: true, data: response.data };
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message;
@@ -112,7 +124,12 @@ export const fetchSiteById = (siteId) => async (dispatch) => {
 export const createSite = (siteData) => async (dispatch) => {
   try {
     dispatch(createSiteRequest());
-    const response = await axiosInstance.post(`/site/create`, siteData);
+    let response;
+    try {
+      response = await axiosInstance.post(`/site`, siteData); // NEW route
+    } catch (e) {
+      response = await axiosInstance.post(`/site/create`, siteData); // legacy fallback
+    }
     dispatch(createSiteSuccess(response.data));
     // Refresh the site list after creation
     dispatch(fetchSiteList());
@@ -132,7 +149,12 @@ export const createSite = (siteData) => async (dispatch) => {
 export const updateSite = (siteId, siteData) => async (dispatch) => {
   try {
     dispatch(updateSiteRequest());
-    const response = await axiosInstance.put(`/site/update/${siteId}`, siteData);
+    let response;
+    try {
+      response = await axiosInstance.put(`/site/${siteId}`, siteData); // NEW route
+    } catch (e) {
+      response = await axiosInstance.put(`/site/update/${siteId}`, siteData); // legacy fallback
+    }
     dispatch(updateSiteSuccess({ id: siteId, ...siteData }));
     // Refresh the site list after update
     dispatch(fetchSiteList());
@@ -152,7 +174,11 @@ export const updateSite = (siteId, siteData) => async (dispatch) => {
 export const deleteSite = (siteId) => async (dispatch) => {
   try {
     dispatch(deleteSiteRequest());
-    await axiosInstance.delete(`/site/delete/${siteId}`);
+    try {
+      await axiosInstance.delete(`/site/${siteId}`); // NEW route
+    } catch (e) {
+      await axiosInstance.delete(`/site/delete/${siteId}`); // legacy fallback
+    }
     dispatch(deleteSiteSuccess(siteId));
     // Refresh the site list after deletion
     dispatch(fetchSiteList());

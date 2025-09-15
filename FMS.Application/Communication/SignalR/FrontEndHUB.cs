@@ -8,6 +8,7 @@ using FMS.Application.Communication.Tracker;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Domain.Entities;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
@@ -90,6 +91,147 @@ namespace FMS.Application.Communication.SignalR {
 
         public async Task BroadcastDashboardMetrics (object metrics) {
             await Clients.All.SendAsync ("DashboardMetricsUpdate", metrics);
+        }
+
+        // Enhanced method to broadcast key statistics widget updates
+        public async Task BroadcastKeyStatisticsUpdate (object statisticsData) {
+            try {
+                await Clients.All.SendAsync ("KeyStatisticsUpdate", new {
+                    timestamp = DateTime.UtcNow,
+                        statistics = statisticsData
+                });
+                _logger.LogDebug ("Broadcasted key statistics update");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting key statistics update");
+            }
+        }
+
+        // Method to broadcast specific widget data updates
+        public async Task BroadcastWidgetDataUpdate (int widgetId, string widgetType, object data) {
+            try {
+                await Clients.All.SendAsync ("WidgetDataUpdate", new {
+                    widgetId = widgetId,
+                        widgetType = widgetType,
+                        data = data,
+                        timestamp = DateTime.UtcNow
+                });
+                _logger.LogDebug ("Broadcasted widget data update for widget {WidgetId} ({WidgetType})", widgetId, widgetType);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting widget data update for widget {WidgetId}", widgetId);
+            }
+        }
+
+        // Method to broadcast ticker value updates (for real-time counters)
+        public async Task BroadcastTickerUpdate (string metricType, decimal value, string unit, DateTime timestamp) {
+            try {
+                await Clients.All.SendAsync ("TickerUpdate", new {
+                    metricType = metricType,
+                        value = value,
+                        unit = unit,
+                        timestamp = timestamp,
+                        formattedValue = FormatTickerValue (value, unit)
+                });
+                _logger.LogTrace ("Broadcasted ticker update: {MetricType} = {Value} {Unit}", metricType, value, unit);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting ticker update for {MetricType}", metricType);
+            }
+        }
+
+        // Method to broadcast graph data updates
+        public async Task BroadcastGraphUpdate (string graphId, string graphType, object dataPoints) {
+            try {
+                await Clients.All.SendAsync ("GraphUpdate", new {
+                    graphId = graphId,
+                        graphType = graphType,
+                        dataPoints = dataPoints,
+                        timestamp = DateTime.UtcNow
+                });
+                _logger.LogDebug ("Broadcasted graph update for {GraphId} ({GraphType})", graphId, graphType);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting graph update for {GraphId}", graphId);
+            }
+        }
+
+        // Method to broadcast dashboard layout changes
+        public async Task BroadcastDashboardLayoutUpdate (string userId, object layoutData) {
+            try {
+                await Clients.All.SendAsync ("DashboardLayoutUpdate", new {
+                    userId = userId,
+                        layout = layoutData,
+                        timestamp = DateTime.UtcNow
+                });
+                _logger.LogDebug ("Broadcasted dashboard layout update for user {UserId}", userId);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error broadcasting dashboard layout update");
+            }
+        }
+
+        // Method for clients to subscribe to specific widget updates
+        public async Task SubscribeToWidgetUpdates (int widgetId) {
+            try {
+                await Groups.AddToGroupAsync (Context.ConnectionId, $"widget_{widgetId}");
+                _logger.LogInformation ("Client {ConnectionId} subscribed to widget {WidgetId} updates",
+                    Context.ConnectionId, widgetId);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error subscribing client to widget updates");
+            }
+        }
+
+        // Method for clients to unsubscribe from specific widget updates
+        public async Task UnsubscribeFromWidgetUpdates (int widgetId) {
+            try {
+                await Groups.RemoveFromGroupAsync (Context.ConnectionId, $"widget_{widgetId}");
+                _logger.LogInformation ("Client {ConnectionId} unsubscribed from widget {WidgetId} updates",
+                    Context.ConnectionId, widgetId);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error unsubscribing client from widget updates");
+            }
+        }
+
+        // Method for clients to subscribe to specific metric updates
+        public async Task SubscribeToMetricUpdates (string metricType) {
+            try {
+                await Groups.AddToGroupAsync (Context.ConnectionId, $"metric_{metricType}");
+                _logger.LogInformation ("Client {ConnectionId} subscribed to {MetricType} updates",
+                    Context.ConnectionId, metricType);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error subscribing client to metric updates");
+            }
+        }
+
+        // Method for clients to unsubscribe from specific metric updates
+        public async Task UnsubscribeFromMetricUpdates (string metricType) {
+            try {
+                await Groups.RemoveFromGroupAsync (Context.ConnectionId, $"metric_{metricType}");
+                _logger.LogInformation ("Client {ConnectionId} unsubscribed from {MetricType} updates",
+                    Context.ConnectionId, metricType);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error unsubscribing client from metric updates");
+            }
+        }
+
+        // Helper method to format ticker values for display
+        private string FormatTickerValue (decimal value, string unit) {
+            return unit.ToLower () switch {
+                "liters"
+                or "l" => $"{value:N0} L",
+                    "gallons"
+                    or "gal" => $"{value:N0} gal",
+                    "hours"
+                    or "hrs" => $"{value:N1} hrs",
+                    "kilometers"
+                    or "km" => $"{value:N0} km",
+                    "miles"
+                    or "mi" => $"{value:N0} mi",
+                    "currency"
+                    or "$"
+                    or "usd" => $"${value:N2}",
+                    "percentage"
+                    or "%" => $"{value:N1}%",
+                    "count"
+                    or "units" => $"{value:N0}",
+                    _ => $"{value:N2} {unit}"
+            };
         }
 
         // Method to broadcast upload status updates (likely called from UploadStatusCommand handler)

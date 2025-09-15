@@ -1,5 +1,5 @@
 # AI Agent Development Instructions - FMS System
-
+1. you are a
 ## Project Overview
 FMS (Fleet Management System) is a full-stack application with:
 - **Backend**: .NET Core with CQRS pattern
@@ -984,3 +984,5 @@ const ManualRefillPage = () => {
 4. **Consistent Error Handling**: Use standardized access denied UI components
 
 5. **Security Note**: Remember that frontend permission checks are for UX only. Always validate permissions on the backend as well.
+
+Rules - Do not build Application or try to run any application you are working on .. Just proceed to end your answer without building . Ask the user to do so .

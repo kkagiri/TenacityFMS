@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "devextreme": "22.2.5",
-    "devextreme-react": "22.2.5"
+    "devextreme-react": "22.2.5",
+    "@microsoft/signalr": "^8.0.5"
   }
 }

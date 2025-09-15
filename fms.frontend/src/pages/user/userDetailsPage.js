@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchUserById, fetchUserActivities, fetchAllSites, fetchUserSites, updateUserSites } from '../../redux/actions/userActions';
+import { fetchUserById, fetchUserActivities, fetchAllSites, fetchUserSites, updateUserSites, updateUser, fetchAllRoles } from '../../redux/actions/userActions';
 import { Button } from 'devextreme-react/button';
 import DataGrid, {
     Column,
@@ -19,6 +19,7 @@ import Popup from 'devextreme-react/popup';
 import TextBox from 'devextreme-react/text-box';
 import SelectBox from 'devextreme-react/select-box';
 import LoadPanel from 'devextreme-react/load-panel';
+import Form, { SimpleItem, GroupItem, ButtonItem, RequiredRule } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
 import './userDetailsPage.scss';
 
@@ -31,6 +32,7 @@ const UserDetailsPage = () => {
     const activities = useSelector(state => state.user.userActivities);
     const userSites = useSelector(state => state.user.userSites);
     const allSites = useSelector(state => state.user.allSites);
+    const allRoles = useSelector(state => state.user.allRoles);
 
     const [loading, setLoading] = useState(true);
     const [showEditPopup, setShowEditPopup] = useState(false);
@@ -38,7 +40,8 @@ const UserDetailsPage = () => {
     const [showActivitiesPopup, setShowActivitiesPopup] = useState(false);
     const [sitesLoading, setSitesLoading] = useState(false);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
-    const [searchText, setSearchText] = useState('');
+    const [sitesSearchText, setSitesSearchText] = useState('');
+    const [activitiesSearchText, setActivitiesSearchText] = useState('');
     const [selectedSiteIds, setSelectedSiteIds] = useState([]);
     const [filteredSites, setFilteredSites] = useState([]);
     const [filteredActivities, setFilteredActivities] = useState([]);
@@ -46,29 +49,42 @@ const UserDetailsPage = () => {
     const [controllerFilter, setControllerFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('all');
     const [saving, setSaving] = useState(false);
+    const [editFormData, setEditFormData] = useState({
+        userName: '',
+        email: '',
+        roleName: ''
+    });
 
     useEffect(() => {
         const loadData = async () => {
-            const userInStore = user && user.id === id;
-
-            if (userInStore) {
-                console.log(`Data for user ${id} already in store. Skipping fetch.`);
+            setLoading(true);
+            try {
+                // Always fetch user details fresh
+                await dispatch(fetchUserById(id));
+                // Load user sites after loading user data
+                await dispatch(fetchUserSites(id));
+            } catch (error) {
+                notify(error.message, 'error', 3000);
+            } finally {
                 setLoading(false);
-            } else {
-                console.log(`Data for user ${id} not in store or incomplete. Fetching...`);
-                setLoading(true);
-                try {
-                    await dispatch(fetchUserById(id));
-                } catch (error) {
-                    notify(error.message, 'error', 3000);
-                } finally {
-                    setLoading(false);
-                }
             }
         };
 
-        loadData();
-    }, [dispatch, id]);
+        if (id) {
+            loadData();
+        }
+    }, [dispatch, id]); // Removed 'user' from dependencies to prevent endless loop
+
+    // Update edit form when user data changes
+    useEffect(() => {
+        if (user) {
+            setEditFormData({
+                userName: user.userName || '',
+                email: user.email || '',
+                roleName: user.roles && user.roles.length > 0 ? user.roles[0] : ''
+            });
+        }
+    }, [user]);
 
     useEffect(() => {
         if (!allSites || allSites.length === 0) {
@@ -76,18 +92,18 @@ const UserDetailsPage = () => {
             return;
         }
 
-        if (searchText) {
+        if (sitesSearchText) {
             setFilteredSites(
                 allSites.filter(
                     site =>
-                        site.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                        (site.location && site.location.toLowerCase().includes(searchText.toLowerCase()))
+                        site.name.toLowerCase().includes(sitesSearchText.toLowerCase()) ||
+                        (site.location && site.location.toLowerCase().includes(sitesSearchText.toLowerCase()))
                 )
             );
         } else {
             setFilteredSites(allSites);
         }
-    }, [allSites, searchText]);
+    }, [allSites, sitesSearchText]);
 
     useEffect(() => {
         if (!activities || activities.length === 0) {
@@ -132,19 +148,55 @@ const UserDetailsPage = () => {
         navigate('/admin/users');
     };
 
-    const handleEditUser = () => {
+    const handleEditUser = async () => {
+        // Reset form data to current user values
+        if (user) {
+            setEditFormData({
+                userName: user.userName || '',
+                email: user.email || '',
+                roleName: user.roles && user.roles.length > 0 ? user.roles[0] : ''
+            });
+        }
+
+        // Fetch roles if not already loaded
+        if (!allRoles || allRoles.length === 0) {
+            try {
+                await dispatch(fetchAllRoles());
+            } catch (error) {
+                console.error('Error loading roles:', error);
+            }
+        }
+
         setShowEditPopup(true);
+    };
+
+    const handleSaveUser = async () => {
+        setSaving(true);
+        try {
+            await dispatch(updateUser(id, editFormData));
+            notify('User updated successfully', 'success', 3000);
+            setShowEditPopup(false);
+        } catch (error) {
+            notify(error.message, 'error', 3000);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleManageSites = async () => {
         setSitesLoading(true);
+        setSitesSearchText(''); // Clear search text when opening popup
         try {
+            // Fetch all sites first
             await dispatch(fetchAllSites());
-            const userSitesData = await dispatch(fetchUserSites(id)) || [];
 
+            // Get current user sites to pre-select them
+            const userSitesData = userSites || [];
             if (userSitesData && userSitesData.length > 0) {
                 const siteIds = userSitesData.map(site => site.id);
                 setSelectedSiteIds(siteIds);
+            } else {
+                setSelectedSiteIds([]);
             }
             setShowSitesPopup(true);
         } catch (error) {
@@ -170,6 +222,8 @@ const UserDetailsPage = () => {
         setSaving(true);
         try {
             await dispatch(updateUserSites(id, selectedSiteIds));
+            // Refresh user sites after successful update
+            await dispatch(fetchUserSites(id));
             notify('Site assignments updated successfully', 'success', 3000);
             setShowSitesPopup(false);
         } catch (error) {
@@ -285,12 +339,30 @@ const UserDetailsPage = () => {
                             <div className="value">{user.phoneNumber || 'N/A'}</div>
                         </div>
                         <div className="info-item">
+                            <div className="label">User Roles</div>
+                            <div className="value">
+                                {user.roles && user.roles.length > 0
+                                    ? user.roles.join(', ')
+                                    : 'No roles assigned'
+                                }
+                            </div>
+                        </div>
+                        <div className="info-item">
                             <div className="label">Status</div>
                             <div className="value">{renderStatusBadge()}</div>
                         </div>
                         <div className="info-item">
                             <div className="label">Assigned Sites</div>
-                            <div className="value">{userSites && Array.isArray(userSites) ? userSites.length : 0}</div>
+                            <div className="value">
+                                {userSites && Array.isArray(userSites) ? userSites.length : 0}
+                                {userSites && Array.isArray(userSites) && userSites.length > 0 && (
+                                    <span className="sites-preview">
+                                        {' - '}
+                                        {userSites.slice(0, 2).map(site => site.name).join(', ')}
+                                        {userSites.length > 2 && ` and ${userSites.length - 2} more`}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -332,15 +404,69 @@ const UserDetailsPage = () => {
                 title="Edit User"
                 showCloseButton={true}
                 width={600}
-                height={400}
+                height={500}
             >
                 <div className="tw-p-4">
-                    <p>Edit user functionality will be implemented here.</p>
-                    <Button
-                        text="Close"
-                        onClick={() => setShowEditPopup(false)}
-                        stylingMode="contained"
-                    />
+                    <Form
+                        formData={editFormData}
+                        labelMode="floating"
+                        onFieldDataChanged={(e) => {
+                            setEditFormData(prev => ({
+                                ...prev,
+                                [e.dataField]: e.value
+                            }));
+                        }}
+                        colCount={1}
+                        width="100%"
+                    >
+                        <GroupItem>
+                            <SimpleItem
+                                dataField="userName"
+                                editorType="dxTextBox"
+                                editorOptions={{
+                                    stylingMode: "filled"
+                                }}
+                                label={{ text: "Username" }}
+                            >
+                                <RequiredRule message="Username is required" />
+                            </SimpleItem>
+
+                            <SimpleItem
+                                dataField="email"
+                                editorType="dxTextBox"
+                                editorOptions={{
+                                    stylingMode: "filled"
+                                }}
+                                label={{ text: "Email" }}
+                            >
+                                <RequiredRule message="Email is required" />
+                            </SimpleItem>
+
+                            <SimpleItem
+                                dataField="roleName"
+                                editorType="dxSelectBox"
+                                editorOptions={{
+                                    stylingMode: "filled",
+                                    dataSource: allRoles || [],
+                                    displayExpr: "name",
+                                    valueExpr: "name",
+                                    searchEnabled: true,
+                                    placeholder: "Select a role"
+                                }}
+                                label={{ text: "Role" }}
+                            />
+                        </GroupItem>
+
+                        <ButtonItem
+                            horizontalAlignment="right"
+                            buttonOptions={{
+                                text: "Save Changes",
+                                type: "default",
+                                onClick: handleSaveUser,
+                                disabled: saving
+                            }}
+                        />
+                    </Form>
                 </div>
             </Popup>
 
@@ -358,14 +484,14 @@ const UserDetailsPage = () => {
                         <TextBox
                             placeholder="Search sites..."
                             mode="search"
-                            value={searchText}
-                            onValueChanged={(e) => setSearchText(e.value)}
+                            value={sitesSearchText}
+                            onValueChanged={(e) => setSitesSearchText(e.value)}
                             stylingMode="filled"
                             width="100%"
                         />
                     </div>
 
-                    <div className="tw-flex-1 tw-p-4">
+                    <div className="tw-flex-1 tw-p-4" style={{ overflowY: 'auto', maxHeight: '400px' }}>
                         <DataGrid
                             dataSource={filteredSites}
                             showBorders={true}
@@ -375,6 +501,7 @@ const UserDetailsPage = () => {
                             noDataText="No sites found matching the search criteria"
                             height="100%"
                             keyExpr="id"
+                            selectedRowKeys={selectedSiteIds}
                             onSelectionChanged={handleSiteSelectionChanged}
                             loadPanel={{ enabled: sitesLoading }}
                         >
@@ -433,8 +560,8 @@ const UserDetailsPage = () => {
                                 <TextBox
                                     placeholder="Search activities..."
                                     mode="search"
-                                    value={searchText}
-                                    onValueChanged={e => setSearchText(e.value)}
+                                    value={activitiesSearchText}
+                                    onValueChanged={e => setActivitiesSearchText(e.value)}
                                     stylingMode="filled"
                                     width="100%"
                                 />

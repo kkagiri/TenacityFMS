@@ -1,0 +1,293 @@
+.app-drawer-container {
+  position: fixed;
+  z-index: 999999; // Maximum z-index to ensure it appears above everything
+  margin: 0;
+  padding: 0;
+  // top and left will be set dynamically via inline styles
+
+  // Browser compatibility fixes
+  -webkit-transform: translateZ(0); // Force hardware acceleration
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+
+  // Ensure visibility in all browsers
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+
+  // Firefox-specific positioning fixes
+  @-moz-document url-prefix() {
+    // Firefox-specific styles
+    position: fixed !important;
+    display: block !important;
+    z-index: 9999999 !important;
+  }
+}
+
+.app-drawer {
+  background: white;
+  border-radius: 8px; // Standard border radius for dropdown style
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1); // Standard dropdown shadow
+  width: 320px; // Fixed smaller width
+  // Remove fixed max-height to allow dynamic sizing
+  overflow: hidden;
+  animation: slideInFromTop 0.25s ease-out;
+  border: 1px solid #e1e1e1;
+  position: relative; // Ensure proper positioning context
+
+  // Ensure high visibility on all devices
+  -webkit-transform: translateZ(0); // Force hardware acceleration
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity; // Optimize for animations
+
+  // Browser compatibility fixes
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  backface-visibility: hidden;
+
+  // Ensure proper display in all browsers
+  display: block;
+  visibility: visible;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    -webkit-transform: translateY(-10px) scale(0.98);
+    -moz-transform: translateY(-10px) scale(0.98);
+    -ms-transform: translateY(-10px) scale(0.98);
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translateY(0) scale(1);
+    -moz-transform: translateY(0) scale(1);
+    -ms-transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Browser-specific keyframes for better compatibility */
+@-webkit-keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    -webkit-transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translateY(0) scale(1);
+  }
+}
+
+@-moz-keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    -moz-transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    -moz-transform: translateY(0) scale(1);
+  }
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px; // Add small gap for better spacing
+  padding: 12px; // Increase padding for better spacing
+
+  // Fallback for browsers that don't support CSS Grid
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+
+  // Re-enable grid for supporting browsers
+  display: grid;
+}
+
+.module-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 6px; // Balanced padding
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  background: transparent;
+  border: none; // Remove borders
+  border-radius: 6px;
+  min-height: 80px; // Slightly increased height for better proportions
+  justify-content: center;
+
+  // Ensure equal spacing in grid
+  box-sizing: border-box;
+  width: 100%;
+
+  // Better touch feedback
+  -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+
+  // For grid fallback (only applies when CSS Grid is not supported)
+  @supports not (display: grid) {
+    width: 50%;
+    box-sizing: border-box;
+  }
+}
+
+.module-item:hover {
+  background-color: #f3f2f1; // Subtle highlight only
+}
+
+.module-item:active {
+  background-color: rgba(0, 120, 212, 0.1);
+  -webkit-transform: scale(0.98); // Slight scale on tap
+  -moz-transform: scale(0.98);
+  -ms-transform: scale(0.98);
+  transform: scale(0.98);
+}
+
+.module-icon {
+  width: 32px; // Smaller icons
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px; // Reduced margin
+  background-color: var(--module-color, #0078d4); // Fallback color for browsers without CSS custom properties
+  color: white;
+  font-size: 18px; // Slightly larger icon for readability
+}
+
+.module-name {
+  text-align: center;
+  /* Larger, responsive label size with a safe minimum */
+  font-size: clamp(12px, 1.7vw, 14px);
+  font-weight: 500;
+  color: #323130;
+  line-height: 1.35;
+  max-width: 100%;
+  /* Allow up to two lines; clamp overflow for long names */
+  display: -webkit-box;
+  line-clamp: 2; /* standard property */
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive design for mobile drawer */
+@media (max-width: 768px) {
+  .app-drawer-container {
+    // Ensure container takes proper space on mobile
+    min-width: 280px;
+    max-width: 90vw;
+  }
+
+  .app-drawer {
+    width: 280px;
+    max-width: 90vw; // Ensure it fits on small screens
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(0, 0, 0, 0.15); // More prominent shadow on mobile
+  }
+
+  .module-item {
+  padding: 10px 6px;
+  min-height: 72px; /* Increase to accommodate larger text */
+    // Improve touch targets for mobile
+    min-width: 44px;
+  }
+
+  .module-icon {
+    width: 28px;
+    height: 28px;
+  font-size: 16px;
+  }
+
+  .module-name {
+  font-size: 12px; /* Ensure minimum readable size */
+  }
+}
+
+@media (max-width: 480px) {
+  .app-drawer-container {
+    min-width: 260px;
+    max-width: 95vw;
+  }
+
+  .app-drawer {
+    width: 260px;
+    max-width: 95vw; // Ensure it fits on very small screens
+    // Ensure drawer is always above other elements on small screens
+    z-index: 9999999;
+  }
+
+  .module-item {
+  padding: 8px 4px;
+  min-height: 68px; /* Ensure two lines fit comfortably */
+    // Larger touch targets for very small screens
+    min-width: 48px;
+  }
+
+  .module-icon {
+    width: 26px;
+    height: 26px;
+  font-size: 15px;
+  }
+
+  .module-name {
+  font-size: 12px; /* Maintain readability on very small screens */
+  line-height: 1.3;
+  }
+}
+
+/* Firefox-specific fixes for positioning issues */
+@-moz-document url-prefix() {
+  .app-drawer-container {
+    // Force specific positioning values for Firefox using CSS variables
+    position: fixed !important;
+    top: var(--drawer-top, auto) !important;
+    left: var(--drawer-left, auto) !important;
+    transform: none !important;
+
+    // Ensure container behavior is consistent
+    display: block !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .app-drawer {
+    // Firefox-specific drawer fixes
+    position: relative !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  // Fix for Firefox toolbar positioning
+  .header-component {
+    position: relative !important;
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .dx-toolbar.header-toolbar {
+    position: relative !important;
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .notification-item {
+    position: relative !important;
+    display: flex !important;
+  }
+}

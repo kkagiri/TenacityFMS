@@ -4,7 +4,10 @@ import axiosInstance from '../api/axiosInstance';
  * Service for Tank Volume History API operations
  * Specifically for the /api/tankvolumehistory/filtered endpoint
  */
-export class TankVolumeHistoryService {
+class TankVolumeHistoryService {
+  constructor() {
+    this.baseUrl = '/tankvolumehistory';
+  }
 
   /**
    * Fetch filtered tank volume history
@@ -17,7 +20,7 @@ export class TankVolumeHistoryService {
    * @param {number} filters.take - Maximum number of records to return
    * @returns {Promise<Object>} API response data
    */
-  static async fetchFiltered(filters = {}) {
+  async fetchFiltered(filters = {}) {
     try {
       const defaultFilters = {
         siteId: null,
@@ -41,7 +44,7 @@ export class TankVolumeHistoryService {
       }
       if (queryParams.take) params.append('take', queryParams.take);
 
-      const url = `/tankvolumehistory/filtered?${params.toString()}`;
+      const url = `${this.baseUrl}/filtered?${params.toString()}`;
       console.log('🔄 TankVolumeHistoryService: Fetching from', url);
 
       const response = await axiosInstance.get(url);
@@ -73,7 +76,7 @@ export class TankVolumeHistoryService {
    * Fetch tank volume history for a specific site and date range
    * Example: fetchForSiteAndDateRange(22, '2025-07-31', '2025-07-31', true)
    */
-  static async fetchForSiteAndDateRange(siteId, startDate, endDate, includeVehicleNames = true) {
+  async fetchForSiteAndDateRange(siteId, startDate, endDate, includeVehicleNames = true) {
     return await this.fetchFiltered({
       siteId: siteId === 'all' ? null : siteId,
       startDate,
@@ -86,7 +89,7 @@ export class TankVolumeHistoryService {
   /**
    * Fetch tank volume history for a specific tank
    */
-  static async fetchForTank(tankId, startDate = null, endDate = null, includeVehicleNames = true) {
+  async fetchForTank(tankId, startDate = null, endDate = null, includeVehicleNames = true) {
     return await this.fetchFiltered({
       tankId,
       startDate,
@@ -99,7 +102,7 @@ export class TankVolumeHistoryService {
   /**
    * Fetch recent vehicle dispensing transactions
    */
-  static async fetchRecentVehicleTransactions(siteId = null, hours = 24) {
+  async fetchRecentVehicleTransactions(siteId = null, hours = 24) {
     const endDate = new Date();
     const startDate = new Date(Date.now() - (hours * 60 * 60 * 1000));
 
@@ -116,7 +119,7 @@ export class TankVolumeHistoryService {
    * Fetch today's transactions for a site (your specific use case)
    * Example: fetchTodayForSite(22) - matches your URL parameters
    */
-  static async fetchTodayForSite(siteId) {
+  async fetchTodayForSite(siteId) {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
     console.log(`📊 Fetching today's transactions for site ${siteId} (${today})`);
@@ -127,7 +130,7 @@ export class TankVolumeHistoryService {
   /**
    * Process and normalize response data
    */
-  static normalizeData(rawData) {
+  normalizeData(rawData) {
     if (!Array.isArray(rawData)) return [];
 
     return rawData.map((record, index) => ({
@@ -152,7 +155,7 @@ export class TankVolumeHistoryService {
   /**
    * Get statistics from volume history data
    */
-  static getStatistics(data) {
+  getStatistics(data) {
     const normalizedData = this.normalizeData(data);
 
     if (!normalizedData.length) {
@@ -185,4 +188,6 @@ export class TankVolumeHistoryService {
   }
 }
 
-export default TankVolumeHistoryService;
+const tankVolumeHistoryService = new TankVolumeHistoryService();
+export default tankVolumeHistoryService;
+

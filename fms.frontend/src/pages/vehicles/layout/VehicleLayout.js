@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { vehicleRoutes, isActiveRoute, navigationGroups } from '../utils/navigationHelper';
+import { isActiveRoute, navigationGroups } from '../utils/navigationHelper';
 import VehicleSearchBar from '../components/VehicleSearchBar';
 import './VehicleLayout.scss';
 
@@ -8,6 +8,40 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track viewport to switch to drawer-like behavior on mobile
+  useEffect(() => {
+    const updateIsMobile = () => setIsMobile(window.innerWidth <= 768);
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
+  // Close sidebar on outside click when in mobile (drawer) mode
+  useEffect(() => {
+    if (sidebarCollapsed || !isMobile) return;
+
+    const handleClickOutside = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        setSidebarCollapsed(true);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sidebarCollapsed, isMobile]);
+
+  // Close sidebar with Escape key on mobile
+  useEffect(() => {
+    if (!isMobile || sidebarCollapsed) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setSidebarCollapsed(true);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMobile, sidebarCollapsed]);
 
   // Define page information based on routes
   const getPageInfo = () => {
@@ -67,6 +101,8 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
 
   const handleNavigation = (path) => {
     navigate(path);
+    // Auto-close drawer on mobile after navigation
+    if (isMobile) setSidebarCollapsed(true);
   };
 
   const renderNavigationGroup = (items, groupKey) => {
@@ -94,7 +130,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   return (
     <div className="vehicle-layout">
       {/* Sidebar */}
-      <aside className={`vehicle-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+  <aside ref={sidebarRef} className={`vehicle-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         {/* Header */}
         <div className="sidebar-header">
           <div className="sidebar-brand">
@@ -151,6 +187,11 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
           )}
         </div>
       </aside>
+
+      {/* Mobile overlay when drawer is open */}
+      {!sidebarCollapsed && isMobile && (
+        <div className="sidebar-overlay" onClick={() => setSidebarCollapsed(true)} aria-hidden="true"></div>
+      )}
 
       {/* Main Content */}
       <main className="vehicle-main">

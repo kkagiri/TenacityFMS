@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { activeAlarmRoutes, isActiveRoute } from '../utils/navigationHelper';
 import './ActiveAlarmLayoutSimple.scss';
@@ -7,6 +7,38 @@ const ActiveAlarmLayout = ({ children, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track viewport for mobile behavior
+  useEffect(() => {
+    const updateIsMobile = () => setIsMobile(window.innerWidth <= 768);
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
+  // Close on outside click (mobile only when expanded)
+  useEffect(() => {
+    if (sidebarCollapsed || !isMobile) return;
+    const handleClickOutside = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        setSidebarCollapsed(true);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sidebarCollapsed, isMobile]);
+
+  // Close with Escape key on mobile
+  useEffect(() => {
+    if (!isMobile || sidebarCollapsed) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setSidebarCollapsed(true);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMobile, sidebarCollapsed]);
 
   const navigationItems = [
     {
@@ -76,6 +108,7 @@ const ActiveAlarmLayout = ({ children, pageTitle, pageSubtitle }) => {
 
   const handleNavigation = (path) => {
     navigate(path);
+    if (isMobile) setSidebarCollapsed(true);
   };
 
   const toggleSidebar = () => {
@@ -85,7 +118,7 @@ const ActiveAlarmLayout = ({ children, pageTitle, pageSubtitle }) => {
   return (
     <div className="active-alarm-layout">
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+  <aside ref={sidebarRef} className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-title">
             <i className="fa-light fa-bell-exclamation"></i>
@@ -115,6 +148,11 @@ const ActiveAlarmLayout = ({ children, pageTitle, pageSubtitle }) => {
           ))}
         </nav>
       </aside>
+
+      {/* Mobile overlay when drawer is open */}
+      {!sidebarCollapsed && isMobile && (
+        <div className="sidebar-overlay" onClick={() => setSidebarCollapsed(true)} aria-hidden="true"></div>
+      )}
 
       {/* Main Content */}
       <main className="main-content">

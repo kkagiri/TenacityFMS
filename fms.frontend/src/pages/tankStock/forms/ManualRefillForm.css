@@ -1,0 +1,105 @@
+/* ManualRefillForm DevExtreme Control Fixes */
+
+/* Clean form styling */
+.manual-refill-form .dx-form {
+  background: transparent;
+}
+
+/* Ensure clean label positioning */
+.manual-refill-form .dx-field-item-label {
+  padding-bottom: 4px !important;
+  font-weight: 500 !important;
+  color: #333 !important;
+  font-size: 14px !important;
+}
+
+/* Fix NumberBox appearance - minimal styling to preserve DevExtreme look */
+.manual-refill-form .dx-numberbox .dx-texteditor-input {
+  padding: 8px 12px !important;
+}
+
+/* Fix SelectBox appearance - minimal styling to preserve DevExtreme look */
+.manual-refill-form .dx-selectbox .dx-texteditor-input {
+  padding: 8px 12px !important;
+}
+
+/* Fix SelectBox dropdown height and scrolling
+.manual-refill-form .dx-selectbox-popup {
+  max-height: 300px !important;
+}
+
+.manual-refill-form .dx-selectbox-popup .dx-scrollable-content {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.manual-refill-form .dx-selectbox-popup .dx-list {
+  max-height: 280px !important;
+  overflow-y: auto !important;
+}*/
+
+/* Fix TextArea appearance - minimal styling */
+.manual-refill-form .dx-textarea .dx-texteditor-input {
+  padding: 8px 12px !important;
+  resize: vertical !important;
+  min-height: 60px !important;
+}
+
+/* DateBox fixes - minimal styling */
+.manual-refill-form .dx-datebox .dx-texteditor-input {
+  padding: 8px 12px !important;
+}
+
+/* Ensure consistent input height across all controls */
+.manual-refill-form .dx-texteditor {
+  min-height: 36px !important;
+}
+
+.manual-refill-form .dx-texteditor-container {
+  min-height: 36px !important;
+}
+
+/* Fix validation message positioning */
+.manual-refill-form .dx-invalid-message {
+  margin-top: 2px !important;
+  margin-bottom: 0 !important;
+}
+
+/* Clean up form item spacing */
+.manual-refill-form .dx-field-item {
+  padding-bottom: 16px !important;
+}
+
+/* Fix spin buttons for NumberBox */
+.manual-refill-form .dx-numberbox .dx-texteditor-buttons-container {
+  right: 4px !important;
+}
+
+.manual-refill-form .dx-numberbox .dx-number-box-spin-button {
+  width: 16px !important;
+  min-width: 16px !important;
+}
+
+/* Ensure dropdown buttons are properly styled */
+.manual-refill-form .dx-dropdowneditor-button {
+  width: 24px !important;
+  min-width: 24px !important;
+}
+
+/* Fix focus states */
+.manual-refill-form .dx-texteditor.dx-state-focused {
+  border-color: #337ab7 !important;
+  box-shadow: 0 0 0 1px rgba(51, 122, 183, 0.2) !important;
+}
+
+/* Minimal texteditor input styling */
+.manual-refill-form .dx-texteditor-input {
+  font-family: inherit !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* Clean up form item spacing */
+.manual-refill-form .dx-field-item {
+  padding-bottom: 16px !important;
+}
