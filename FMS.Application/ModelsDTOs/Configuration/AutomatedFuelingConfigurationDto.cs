@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.Configuration {
+namespace FMS.Application.Features.Configuration {
     public class AutomatedFuelingConfigurationDto {
         public int Id { get; set; }
 

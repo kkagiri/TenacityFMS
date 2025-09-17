@@ -10,6 +10,7 @@ using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

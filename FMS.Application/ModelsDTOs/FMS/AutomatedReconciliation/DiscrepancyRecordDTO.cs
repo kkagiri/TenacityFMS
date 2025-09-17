@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.AutomatedReconciliation {
+namespace FMS.Application.Features.FMS.AutomatedReconciliation {
     /// <summary>
     /// Data Transfer Object for DiscrepancyRecord
     /// </summary>

@@ -1,5 +1,5 @@
 using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS.AutomatedReconciliation;
+using FMS.Application.Features.FMS.AutomatedReconciliation;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.AutomaticReconciliation;
 

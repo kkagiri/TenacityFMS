@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FMS.Application.ModelsDTOs.FMS.Task;
+using FMS.Application.Features.FMS.Task;
 using FMS.Domain.Entities;
 
 namespace FMS.Application.Features.TaskManagement.Helpers {

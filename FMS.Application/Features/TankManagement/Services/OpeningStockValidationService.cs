@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.FMS.TankStock;
+using FMS.Application.Features.FMS.TankStock;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;

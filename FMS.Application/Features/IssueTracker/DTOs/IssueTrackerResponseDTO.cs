@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.Issuetracker {
+namespace FMS.Application.Features.FMS.Issuetracker {
     public class IssueTrackerResponseDTO {
         public int Id { get; set; }
         public string ProblemTitle { get; set; } = string.Empty;

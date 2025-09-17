@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.FMS.Issuetracker;
+using FMS.Application.Features.FMS.Issuetracker;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -34,7 +34,7 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
                 .Include (i => i.IssueCategory)
                 .Include (i => i.Site)
                 .Include (i => i.Vehicle)
-                .Include (i => i.DeviceTypeNavigation)
+                //.Include (i => i.DeviceTypeNavigation)
                 .Where (i => i.Id == request.Id)
                 .Select (issue => new IssueTrackerResponseDTO {
                     Id = issue.Id,
@@ -77,9 +77,9 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
                         AssignToEmail = issue.AssignToNavigation != null ? issue.AssignToNavigation.Email : "",
 
                         // Device information (optional)
-                        DeviceId = issue.DeviceId,
-                        DeviceType = issue.DeviceType,
-                        DeviceTypeName = issue.DeviceTypeNavigation != null ? issue.DeviceTypeNavigation.Name : ""
+                        //DeviceId = issue.DeviceId,
+                        //DeviceType = issue.DeviceType,
+                        //DeviceTypeName = issue.DeviceTypeNavigation != null ? issue.DeviceTypeNavigation.Name : ""
                 })
                 .FirstOrDefaultAsync (cancellationToken);
 

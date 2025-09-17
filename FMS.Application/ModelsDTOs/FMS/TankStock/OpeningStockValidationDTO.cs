@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankStock {
+namespace FMS.Application.Features.FMS.TankStock {
     /// <summary>
     /// Result of opening stock validation with detailed information for better user guidance
     /// </summary>

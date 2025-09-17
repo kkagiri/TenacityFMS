@@ -1,56 +1,50 @@
-﻿using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS.Employee;
-using FMS.Persistence.DataAccess;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
+using FMS.Application.Features.FMS.Employee;
+using FMS.Persistence.DataAccess;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
-namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery
-{
+namespace FMS.Application.Queries.Database.FMSQuery.EmployeeQuery {
     public class GetEmployeeByIdQuery : IRequest<EmployeeDto>
 
-    {
-        public int Id { get; set; }
-    }
+        {
+            public int Id { get; set; }
+        }
 
-    public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery, EmployeeDto>
-    {
+    public class GetEmployeeByIdQueryHandler : IRequestHandler<GetEmployeeByIdQuery, EmployeeDto> {
         private readonly IMapper _mapper;
         private readonly GpsdataContext _context;
 
-        public GetEmployeeByIdQueryHandler(IMapper mapper, GpsdataContext context)
-        {
+        public GetEmployeeByIdQueryHandler (IMapper mapper, GpsdataContext context) {
             _mapper = mapper;
             _context = context;
         }
 
-        public async Task<EmployeeDto> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
-        {
+        public async Task<EmployeeDto> Handle (GetEmployeeByIdQuery request, CancellationToken cancellationToken) {
             if (request == null) { return null; }
 
             var result = await _context.Employees
-                .Include(e => e.EmployeeVehicles)
-                .ThenInclude(ev => ev.Vehicle)
-                .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+                .Include (e => e.EmployeeVehicles)
+                .ThenInclude (ev => ev.Vehicle)
+                .FirstOrDefaultAsync (e => e.Id == request.Id, cancellationToken);
 
-            if (result != null)
-            {
+            if (result != null) {
                 // Manually populate the Vehicles collection from EmployeeVehicles
                 result.Vehicles = result.EmployeeVehicles
-                    .Select(ev => ev.Vehicle)
-                    .ToList();
+                    .Select (ev => ev.Vehicle)
+                    .ToList ();
 
-                return _mapper.Map<EmployeeDto>(result);
+                return _mapper.Map<EmployeeDto> (result);
             }
 
             return null;
         }
-
 
     }
 

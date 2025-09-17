@@ -1,7 +1,7 @@
 using System;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Application.ModelsDTOs.FMS.AutomatedReconciliation {
+namespace FMS.Application.Features.FMS.AutomatedReconciliation {
     /// <summary>
     /// Data Transfer Object for ReconciliationPolicy
     /// </summary>

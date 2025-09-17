@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankStock;
+namespace FMS.Application.Features.FMS.TankStock;
 
 //Cursor - Stock Reconciliation DTO for discrepancy tracking
 public class StockDiscrepancyDTO {

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.Dashboard;
+using FMS.Application.Features.Dashboard;
 using FMS.Domain.Entities.Dashboard;
 
 namespace FMS.Application.Services.Dashboard {

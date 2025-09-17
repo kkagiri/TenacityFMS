@@ -1,11 +1,10 @@
-using FMS.Application.ModelsDTOs.PTS.Enum;
+using FMS.Application.Features.PTS.Enum;
 
-namespace FMS.Application.ModelsDTOs.PTS.Common;
+namespace FMS.Application.Features.PTS.Common;
 
-public class DeviceInfoDTO
-{
+public class DeviceInfoDTO {
     public string PtsId { get; set; }
-    public string DeviceId => PtsId.ToString();
+    public string DeviceId => PtsId.ToString ();
     public string? IpAddress { get; set; }
     public int? PortNumber { get; set; }
     public bool IsAuthenticated { get; set; }
@@ -21,6 +20,5 @@ public class DeviceInfoDTO
     public bool CanReceivePushCommands => WebSocketCapable && AllowedForDirectCommands;
 
     public CommunicationMode PreferredCommunicationMode =>
-           CanReceivePushCommands ? CommunicationMode.WebSocket : CommunicationMode.Http;
+        CanReceivePushCommands ? CommunicationMode.WebSocket : CommunicationMode.Http;
 }
-

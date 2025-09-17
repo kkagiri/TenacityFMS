@@ -268,7 +268,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
   }
 
   return (
-    <div className="quick-actions-container tw-w-full">
+    <div className="quick-actions-container">
       <DropDownButton
         text="Stock Management"
         icon="fa-light fa-plus"
@@ -281,9 +281,8 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         useSelectMode={false}
         stylingMode="contained"
         type="default"
-        className="tw-w-full"
         elementAttr={{
-          style: { width: '100%' }
+          title: 'Stock Management Actions'
         }}
       />
       {renderPopup()}

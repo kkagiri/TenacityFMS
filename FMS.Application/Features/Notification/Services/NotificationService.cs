@@ -1,25 +1,28 @@
- using System.Collections.Generic;
- using System.Linq;
- using System.Threading.Tasks;
- using System.Threading;
- using System;
- using FMS.Application.Common.Constants;
- using FMS.Application.Common;
- using FMS.Application.Features.Notification.DTOs;
- using FMS.Application.Features.Notification.Enums;
- using FMS.Application.Features.Notification.Services;
- using FMS.Application.Infrastructure.Communication.SignalR; // Category metadata provider
- using AutoMapper;
- using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
- using FMS.Application.Features.Notification.Services.RecipientResolver;
- using FMS.Application.Services;
- using FMS.Domain.Entities;
- using FMS.Persistence.DataAccess;
- using Microsoft.EntityFrameworkCore;
- using Microsoft.Extensions.Logging;
- using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
+using System;
+using FMS.Application.Common.Constants;
+using FMS.Application.Common;
+using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.Enums;
+using FMS.Application.Features.Notification.Services;
+using FMS.Application.Infrastructure.Communication.SignalR; // Category metadata provider
+using AutoMapper;
+using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
+using FMS.Application.Features.Notification.Services.RecipientResolver;
+using FMS.Application.Services;
+using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using FMS.Domain.Entities.Features.Notifications;
+using Noti = FMS.Domain.Entities.Features.Notifications;
 
- namespace FMS.Application.Features.Notification.Services {
+
+namespace FMS.Application.Features.Notification.Services {
      public class NotificationService : INotificationService {
          private readonly GpsdataContext _context;
          private readonly ILogger<NotificationService> _logger;
@@ -135,8 +138,8 @@
                      }
                  }
 
-                 // Create notification
-                 Domain.Entities.Notification notification = new Domain.Entities.Notification {
+                // Create notification
+                Domain.Entities.Features.Notifications.Notification notification = new Domain.Entities.Features.Notifications.Notification {
                      NotificationId = request.NotificationId ?? Guid.NewGuid ().ToString (),
                      Type = request.Type.ToString (),
                      Category = categoryName,
@@ -316,8 +319,8 @@
                      .Where (h => h.IsActive &&
                          (h.AlarmType == request.AlarmType || h.AlarmId == request.AlarmId) &&
                          (!h.SiteId.HasValue || h.SiteId == request.SiteId) &&
-                         (!h.TankId.HasValue || h.TankId == request.TankId) &&
-                         (!h.DeviceId.HasValue || h.DeviceId.ToString () == request.PtsDeviceId)) //Cursor: Add PTS device filtering
+                         (!h.TankId.HasValue || h.TankId == request.TankId))
+                         //(!h.DeviceId.HasValue || h.DeviceId.ToString () == request.PtsDeviceId)) //Cursor: Add PTS device filtering
                      .ToListAsync (cancellationToken);
 
                  var notificationsCreated = 0;
@@ -614,7 +617,7 @@
              }
          }
 
-         private async Task<bool> SendToRecipientAsync (Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
+         private async Task<bool> SendToRecipientAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
              try {
                  // Try dynamic channel first if available
                  if (_channelRegistry != null && _channelRegistry.TryGet (recipient.DeliveryMethod?.ToLower (), out var channel) && channel != null) {
@@ -639,7 +642,7 @@
              }
          }
 
-         private async Task<bool> SendSystemNotificationAsync (Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
+         private async Task<bool> SendSystemNotificationAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
              try {
                  await _signalRService.SendUserNotificationAsync (
                      recipient.UserId,
@@ -662,7 +665,7 @@
              }
          }
 
-         private async Task<bool> SendEmailNotificationAsync (Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
+         private async Task<bool> SendEmailNotificationAsync  (Noti.Notification  notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
              try {
                  var policy = notification.NotificationPolicy;
                  var emailTemplate = policy?.EmailTemplate ?? GetDefaultEmailTemplate ();
@@ -691,7 +694,7 @@
              }
          }
 
-         private async Task<bool> SendSmsNotificationAsync (Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
+         private async Task<bool> SendSmsNotificationAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken) {
              try {
                  var policy = notification.NotificationPolicy;
                  var smsTemplate = policy?.SmsTemplate ?? "{Title}: {Message}";
@@ -701,7 +704,7 @@
 
                  var smsContent = FormatTemplate (smsTemplate, new {
                      Title = notification.Title,
-                         Message = notification.Message,
+                     Message = notification.Message,
                          Priority = notification.Priority,
                          Category = categoryDisplayName
                  });

@@ -7,12 +7,10 @@ using System.Threading.Tasks;
 using FMS.Domain.Entities;
 using Newtonsoft.Json;
 
-namespace FMS.Application.ModelsDTOs.ATG
-{
-    public class TankMeasurementDto
-    {
+namespace FMS.Application.Features.ATG {
+    public class TankMeasurementDto {
 
-        [JsonProperty("DateTime")]
+        [JsonProperty ("DateTime")]
         public DateTime DateTime { get; set; }
 
         public int Tank { get; set; }
@@ -39,7 +37,7 @@ namespace FMS.Application.ModelsDTOs.ATG
 
         public string ConfigurationId { get; set; }
 
-        public List<string> Alarms { get; set; } = new List<string>();
+        public List<string> Alarms { get; set; } = new List<string> ();
 
         public string? PtsId { get; set; }
         public int PacketId { get; set; }

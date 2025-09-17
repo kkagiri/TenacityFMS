@@ -19,7 +19,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.ToTable ("vehicle");
 
                 builder.HasIndex (e => e.HyoungNo, "HyoungNo_UNIQUE").IsUnique ();
-                builder.HasIndex (e => e.DeviceId, "Vehicle_Device_idx");
+                //builder.HasIndex (e => e.DeviceId, "Vehicle_Device_idx");
                 builder.HasIndex (e => e.DefaultEmployeeId, "Vehicle_employee_idx");
                 builder.HasIndex (e => e.DefaultExptdAvgid, "vehicle_expectedAvg_idx");
                 builder.HasIndex (e => e.VehicleManufacturerId, "vehicle_manufacturer_idx");
@@ -42,9 +42,9 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.DefaultExptdAvgid)
                     .HasColumnType ("int(11)")
                     .HasColumnName ("DefaultExptdAVGId");
-                builder.Property (e => e.DeviceId)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("DeviceID");
+                //builder.Property (e => e.DeviceId)
+                //    .HasColumnType ("int(11)")
+                //    .HasColumnName ("DeviceID");
                 builder.Property (e => e.ExcessWorkingHrCost).HasPrecision (10);
                 builder.Property (e => e.GpsgategeneratedId)
                     .HasColumnType ("tinyint(4)")
@@ -106,9 +106,9 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasForeignKey (d => d.DefaultExptdAvgid)
                     .HasConstraintName ("vehicle_expectedAvg");
 
-                builder.HasOne (d => d.Device).WithMany (p => p.Vehicles)
-                    .HasForeignKey (d => d.DeviceId)
-                    .HasConstraintName ("Vehicle_Device");
+                //builder.HasOne (d => d.Device).WithMany (p => p.Vehicles)
+                //    .HasForeignKey (d => d.DeviceId)
+                //    .HasConstraintName ("Vehicle_Device");
 
                 builder.HasOne (d => d.ModifiedByNavigation).WithMany (p => p.Vehicles)
                     .HasForeignKey (d => d.ModifiedBy)

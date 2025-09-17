@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankStock;
+namespace FMS.Application.Features.FMS.TankStock;
 
 //Cursor - DTO for stock report summary
 public class StockReportSummaryDTO {

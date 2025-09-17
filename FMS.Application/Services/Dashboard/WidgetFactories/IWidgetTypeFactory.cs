@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.Dashboard;
+using FMS.Application.Features.Dashboard;
 
 namespace FMS.Application.Services.Dashboard.WidgetFactories {
     // Widget type factory interface for processing different widget types

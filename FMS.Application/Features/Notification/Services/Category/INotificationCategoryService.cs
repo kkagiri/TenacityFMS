@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Notification.Enums;
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.Features.Notification.Services {
     public interface INotificationCategoryService {

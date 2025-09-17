@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace FMS.Application.ModelsDTOs.Dashboard {
+namespace FMS.Application.Features.Dashboard {
     // Widget Template DTOs
     public class DashboardWidgetTemplateDto {
         public int Id { get; set; }

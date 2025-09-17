@@ -122,7 +122,10 @@ export const useFutureRecordsValidation = () => {
    * Checks if the form can be submitted based on validation state
    */
   const canSubmit = useCallback(() => {
-    const { validationResult, userConfirmed, error } = validationState;
+    const { validationResult, userConfirmed, error, isValidating } = validationState;
+
+    // Don't allow submission while validating
+    if (isValidating) return false;
 
     // If there's an error, don't allow submission
     if (error) return false;
@@ -130,13 +133,13 @@ export const useFutureRecordsValidation = () => {
     // If no validation result, allow submission (for current date entries)
     if (!validationResult) return true;
 
-    // If entry is blocked, don't allow submission
+    // If entry is blocked by policy, don't allow submission
     if (validationResult.config.blockSubmission) return false;
 
     // If user confirmation is required and not yet confirmed, don't allow submission
-    if (validationResult.needsUserConfirmation && !userConfirmed) return false;
+    if (validationResult.config.requiresConfirmation && !userConfirmed) return false;
 
-    // Otherwise, allow submission
+    // For all other cases (including INFO messages), allow submission
     return true;
   }, [validationState]);
 

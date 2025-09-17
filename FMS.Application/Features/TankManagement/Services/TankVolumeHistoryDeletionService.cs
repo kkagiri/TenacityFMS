@@ -3,10 +3,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
+using Toni = FMS.Domain.Entities.Features.TankStockManagement;
+
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-
 namespace FMS.Application.Features.TankManagement.Services {
     /// <summary>
     /// Service for validating tank volume history deletions with audit impact checking
@@ -86,7 +87,7 @@ namespace FMS.Application.Features.TankManagement.Services {
         /// <summary>
         /// Validates a single record for deletion impact
         /// </summary>
-        private async Task<DeletionValidationResult> ValidateRecordDeletionAsync (FMS.Domain.Entities.TankVolumeHistory record, CancellationToken cancellationToken) {
+        private async Task<DeletionValidationResult> ValidateRecordDeletionAsync (Toni.TankVolumeHistory record, CancellationToken cancellationToken) {
             // ✅ Check if this record has been used in subsequent adjustments
             var hasSubsequentAdjustments = await _context.TankVolumeAdjustmentAudits
                 .AnyAsync (x => x.TankId == record.TankId &&

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.Employee;
+using FMS.Application.Features.FMS.Employee;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +38,14 @@ public class SearchEmployeeQueryHandler (GpsdataContext context, IMapper mapper)
 
             string searchTerm = request.SearchTerm.Trim ().ToLower ();
 
+            // First, let's get a count of all employees matching the search term (before any filters)
+            int totalMatchingEmployees = await context.Employees
+                .AsNoTracking ()
+                .Where (e =>
+                    e.FullName.ToLower ().Contains (searchTerm) ||
+                    (e.EmployeeWorkNo != null && e.EmployeeWorkNo.ToLower ().Contains (searchTerm)))
+                .CountAsync (cancellationToken);
+
             IQueryable<Domain.Entities.Employee> query = context.Employees
                 .Include (e => e.EmployeeVehicles)
                 .ThenInclude (ev => ev.Vehicle)
@@ -49,16 +57,25 @@ public class SearchEmployeeQueryHandler (GpsdataContext context, IMapper mapper)
                 e.FullName.ToLower ().Contains (searchTerm) ||
                 (e.EmployeeWorkNo != null && e.EmployeeWorkNo.ToLower ().Contains (searchTerm)));
 
+            // Count after search term filter
+            int afterSearchFilter = await query.CountAsync (cancellationToken);
+
             // Active filter
             if (request.Active.HasValue) {
                 string status = request.Active.Value ? "Active" : "Terminated";
                 query = query.Where (e => e.Employeestatus == status);
             }
 
+            // Count after active filter
+            int afterActiveFilter = await query.CountAsync (cancellationToken);
+
             // Site filter
             if (request.SiteId.HasValue) {
                 query = query.Where (e => e.SiteId == request.SiteId.Value);
             }
+
+            // Count after site filter
+            int afterSiteFilter = await query.CountAsync (cancellationToken);
 
             int limit = request.Limit ?? 50;
 
@@ -75,7 +92,16 @@ public class SearchEmployeeQueryHandler (GpsdataContext context, IMapper mapper)
             }
 
             List<EmployeeDto> dtos = mapper.Map<List<EmployeeDto>> (employees);
-            return FMSResponse<List<EmployeeDto>>.Success (dtos, $"Found {dtos.Count} employee(s)");
+
+            // Enhanced message with debugging information
+            string debugMessage = $"Found {dtos.Count} employee(s). Debug info: " +
+                $"Total matching '{searchTerm}': {totalMatchingEmployees}, " +
+                $"After search filter: {afterSearchFilter}, " +
+                $"After active filter ({request.Active}): {afterActiveFilter}, " +
+                $"After site filter ({request.SiteId}): {afterSiteFilter}, " +
+                $"Limit applied: {limit}";
+
+            return FMSResponse<List<EmployeeDto>>.Success (dtos, debugMessage);
         } catch (Exception ex) {
             return FMSResponse<List<EmployeeDto>>.SystemError ($"Error searching employees: {ex.Message}");
         }

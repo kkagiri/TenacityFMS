@@ -23,6 +23,27 @@
   padding: 4px 12px;
 }
 
+/* Scroll view styles for detailed warnings */
+.future-records-warning .dx-scrollview {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.future-records-warning .dx-scrollview-content {
+  padding: 0;
+}
+
+.future-records-warning .dx-scrollable-scrollbar-horizontal,
+.future-records-warning .dx-scrollable-scrollbar-vertical {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.future-records-warning .dx-scrollable-scroll {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .future-records-warning {
@@ -31,5 +52,10 @@
 
   .future-records-warning .tw-flex.tw-space-x-2 {
     @apply tw-flex-col tw-space-x-0 tw-space-y-2;
+  }
+
+  /* Adjust scroll view height on mobile */
+  .future-records-warning .tw-max-h-32 {
+    max-height: 6rem !important;
   }
 }

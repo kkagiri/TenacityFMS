@@ -33,7 +33,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries {
                     throw new Exception ("User not found");
                 }
 
-                var masterTag = await _context.Tags.FirstOrDefaultAsync (t => t.Id == user.MasterRFIDTag, cancellationToken);
+                var masterTag = await _context.FuelTags.FirstOrDefaultAsync (t => t.Id == user.MasterRFIDTag, cancellationToken);
 
                 var roles = await _userManager.GetRolesAsync (user);
                 return new UserDto {

@@ -38,7 +38,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.Property (e => e.OperationType).HasMaxLength (20);
 
                 // Foreign key relationships
-                builder.HasOne (d => d.AffectedRecord)
+                builder.HasOne (d => d.AffectedRecordTankVolumeHistoryRecords)
                     .WithMany ()
                     .HasForeignKey (d => d.AffectedRecordId)
                     .HasConstraintName ("FK_TankVolumeAdjustmentAudit_TankVolumeHistory");

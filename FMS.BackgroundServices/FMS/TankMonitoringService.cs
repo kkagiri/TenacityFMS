@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

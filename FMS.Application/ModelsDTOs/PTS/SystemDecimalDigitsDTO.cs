@@ -1,7 +1,5 @@
-namespace FMS.Application.ModelsDTOs.PTS
-{
-    public class SystemDecimalDigitsDTO
-    {
+namespace FMS.Application.Features.PTS {
+    public class SystemDecimalDigitsDTO {
         public int Price { get; set; }
         public int Amount { get; set; }
         public int Volume { get; set; }

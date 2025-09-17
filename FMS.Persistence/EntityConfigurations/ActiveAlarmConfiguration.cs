@@ -91,8 +91,8 @@ namespace FMS.Persistence.EntityConfigurations {
             builder.Property (e => e.TankId)
                 .IsRequired (false);
 
-            builder.Property (e => e.DeviceId)
-                .IsRequired (false);
+            //builder.Property (e => e.DeviceId)
+            //    .IsRequired (false);
 
             builder.Property (e => e.PtsDeviceId)
                 .HasMaxLength (50)
@@ -168,12 +168,12 @@ namespace FMS.Persistence.EntityConfigurations {
                 .IsRequired (false)
                 .HasConstraintName ("FK_ActiveAlarms_Tanks");
 
-            builder.HasOne (e => e.Device)
-                .WithMany ()
-                .HasForeignKey (e => e.DeviceId)
-                .OnDelete (DeleteBehavior.SetNull)
-                .IsRequired (false)
-                .HasConstraintName ("FK_ActiveAlarms_Devices");
+            //builder.HasOne (e => e.Device)
+            //    .WithMany ()
+            //    .HasForeignKey (e => e.DeviceId)
+            //    .OnDelete (DeleteBehavior.SetNull)
+            //    .IsRequired (false)
+            //    .HasConstraintName ("FK_ActiveAlarms_Devices");
 
             builder.HasOne (e => e.AlarmHandler)
                 .WithMany ()
@@ -230,8 +230,8 @@ namespace FMS.Persistence.EntityConfigurations {
             builder.HasIndex (e => e.TankId)
                 .HasDatabaseName ("IX_ActiveAlarms_TankId");
 
-            builder.HasIndex (e => e.DeviceId)
-                .HasDatabaseName ("IX_ActiveAlarms_DeviceId");
+            //builder.HasIndex (e => e.DeviceId)
+            //    .HasDatabaseName ("IX_ActiveAlarms_DeviceId");
 
             builder.HasIndex (e => e.PtsDeviceId)
                 .HasDatabaseName ("IX_ActiveAlarms_PtsDeviceId");
@@ -269,8 +269,8 @@ namespace FMS.Persistence.EntityConfigurations {
 
             // Unique constraints for preventing duplicate active alarms
             // Note: MySQL 5.6 may not support filtered indexes, so we use a composite unique index
-            builder.HasIndex (e => new { e.AlarmType, e.TriggerSource, e.SiteId, e.TankId, e.DeviceId, e.State })
-                .HasDatabaseName ("IX_ActiveAlarms_Unique_Source");
+            //builder.HasIndex (e => new { e.AlarmType, e.TriggerSource, e.SiteId, e.TankId, e.DeviceId, e.State })
+            //    .HasDatabaseName ("IX_ActiveAlarms_Unique_Source");
         }
     }
 }

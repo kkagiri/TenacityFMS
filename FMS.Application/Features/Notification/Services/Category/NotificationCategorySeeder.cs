@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 

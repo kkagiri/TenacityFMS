@@ -1,11 +1,9 @@
-using FMS.Domain.Entities.enums;
 using System;
 using System.ComponentModel;
-namespace FMS.Application.ModelsDTOs.FMS.TankStock;
+using FMS.Domain.Entities.enums;
+namespace FMS.Application.Features.FMS.TankStock;
 
-
-public class TankStockDTO
-{
+public class TankStockDTO {
     public int EntryId { get; set; }
 
     public int TankId { get; set; }
@@ -38,6 +36,5 @@ public class TankStockDTO
     public string EntryType { get; set; }
 
     public decimal? SensorDiscrepancy { get; set; }
-
 
 }

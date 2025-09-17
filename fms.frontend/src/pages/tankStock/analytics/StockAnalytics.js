@@ -35,10 +35,10 @@ const StockAnalytics = () => {
 
   //Cursor - Tab data with icons
   const tabData = [
-    { text: "Interactive Dashboard", icon: "fa-light fa-chart-line" },
-    { text: "Reports", icon: "fa-light fa-file-chart-line" },
-    { text: "Predictive Analytics", icon: "fa-light fa-chart-mixed" },
-    { text: "KPI Dashboard", icon: "fa-light fa-gauge-high" }
+    // { text: "Interactive Dashboard", icon: "fa-light fa-chart-line" },
+    { text: "Reports", icon: "fa-light fa-file-chart-line" }
+    // { text: "Predictive Analytics", icon: "fa-light fa-chart-mixed" },
+    // { text: "KPI Dashboard", icon: "fa-light fa-gauge-high" }
   ];
 
   //Cursor - Custom tab item renderer

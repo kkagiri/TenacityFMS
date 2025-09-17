@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 
 namespace FMS.Application.Features.Notification.DTOs {
@@ -212,7 +213,7 @@ namespace FMS.Application.Features.Notification.DTOs {
         /// <summary>
         /// The active alarm (if applicable)
         /// </summary>
-        public FMS.Domain.Entities.ActiveAlarm? ActiveAlarm { get; set; }
+        public ActiveAlarm? ActiveAlarm { get; set; }
 
         /// <summary>
         /// Additional data

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.Dashboard;
+using FMS.Application.Features.Dashboard;
 using FMS.Application.Services.Dashboard;
 using FMS.Domain.Entities.Dashboard;
 using FMS.Persistence.DataAccess;

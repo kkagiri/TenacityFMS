@@ -1,6 +1,6 @@
 //Cursor
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.PTS;
+using FMS.Application.Features.PTS;
 using FMS.Domain.PTSCommon.Responses; // Assuming a namespace for response DTOs
 using System.Threading.Tasks;
 

@@ -15,7 +15,7 @@ namespace FMS.Testing.TagQueries {
 
         private readonly List<Pumptransaction> _pumpTransactions;
         private readonly List<FuelRefill> _fuelRefills;
-        private readonly List<Tag> _tags;
+        private readonly List<FuelTag> _tags;
         private readonly List<Vehicle> _vehicles;
 
         public GetFuelIssuedForTagQueryTests () {
@@ -38,14 +38,14 @@ namespace FMS.Testing.TagQueries {
                 }
             };
 
-            _tags = new List<Tag> {
-                new Tag {
+            _tags = new List<FuelTag> {
+                new FuelTag {
                 Id = 1,
                 Name = "TAG001",
                 IsEnabled = true,
                 VehicleId = 1
                 },
-                new Tag {
+                new FuelTag {
                 Id = 2,
                 Name = "TAG002",
                 IsEnabled = true,

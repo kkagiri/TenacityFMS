@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from 'devextreme-react';
+import ScrollView from 'devextreme-react/scroll-view';
 import './FutureRecordsWarning.scss';
 
 /**
@@ -16,7 +17,116 @@ const FutureRecordsWarning = ({
     return null;
   }
 
-  const { config, formattedMessage, detailedWarning, policy, futureRecordsCount } = validationResult;
+  const { config, formattedMessage, detailedWarning, policy } = validationResult;
+
+  const parseDetailedWarning = (detailedWarning) => {
+    if (!detailedWarning) return null;
+
+    try {
+      // Check if it's already formatted with line breaks and sections
+      const lines = detailedWarning.split('\n').filter(line => line.trim());
+
+      const sections = [];
+      let currentSection = null;
+
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+
+        // Check for section headers (like "Affected future records:")
+        if (trimmedLine.endsWith(':') && !trimmedLine.includes('record(s)')) {
+          if (currentSection) {
+            sections.push(currentSection);
+          }
+          currentSection = {
+            title: trimmedLine,
+            items: []
+          };
+        }
+        // Check for bullet points or numbered items
+        else if (trimmedLine.match(/^[•·*-]|\d+\s/)) {
+          if (currentSection) {
+            currentSection.items.push(trimmedLine);
+          } else {
+            sections.push({ title: null, items: [trimmedLine] });
+          }
+        }
+        // Check for impact line
+        else if (trimmedLine.toLowerCase().includes('impact:')) {
+          sections.push({
+            title: 'Impact:',
+            items: [trimmedLine.replace(/^impact:\s*/i, '')]
+          });
+        }
+        // Regular lines
+        else if (trimmedLine) {
+          if (currentSection) {
+            currentSection.items.push(trimmedLine);
+          } else {
+            sections.push({ title: null, items: [trimmedLine] });
+          }
+        }
+      });
+
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+
+      return sections.length > 0 ? sections : null;
+    } catch (error) {
+      console.warn('Error parsing detailed warning:', error);
+      return null;
+    }
+  };
+
+  const renderFormattedDetails = (detailedWarning) => {
+    const sections = parseDetailedWarning(detailedWarning);
+
+    if (!sections) {
+      // Fallback to original display if parsing fails
+      return (
+        <pre className="tw-whitespace-pre-wrap tw-font-mono tw-text-xs tw-leading-relaxed">
+          {detailedWarning}
+        </pre>
+      );
+    }
+
+    return (
+      <div className="tw-space-y-3">
+        {sections.map((section, index) => (
+          <div key={index} className="tw-space-y-1">
+            {section.title && (
+              <h6 className="tw-font-semibold tw-text-xs tw-text-current tw-mb-1">
+                {section.title}
+              </h6>
+            )}
+            <div className="tw-space-y-1">
+              {section.items.map((item, itemIndex) => (
+                <div
+                  key={itemIndex}
+                  className="tw-text-xs tw-leading-relaxed tw-flex tw-items-start"
+                >
+                  {item.match(/^[•·*-]|\d+\s/) ? (
+                    // Bullet point or numbered item
+                    <div className="tw-flex tw-items-start tw-gap-2">
+                      <span className="tw-text-current tw-opacity-60 tw-font-bold tw-mt-0.5">
+                        {item.match(/^[•·*-]/) ? '•' : item.match(/^\d+/)?.[0] + '.'}
+                      </span>
+                      <span className="tw-flex-1">
+                        {item.replace(/^[•·*-]\s*|\d+\s*/, '')}
+                      </span>
+                    </div>
+                  ) : (
+                    // Regular text
+                    <span className="tw-block">{item}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const getAlertClassName = () => {
     const baseClass = 'future-records-warning tw-rounded tw-p-4 tw-mb-4 tw-border tw-border-solid';
@@ -55,13 +165,21 @@ const FutureRecordsWarning = ({
             {formattedMessage}
           </p>
 
-          {/* Detailed warning if available */}
+          {/* Detailed warning with scroll view if available */}
           {detailedWarning && (
-            <div className="tw-bg-white tw-bg-opacity-50 tw-rounded tw-p-3 tw-text-xs tw-mb-3">
-              <div className="tw-font-medium tw-mb-1">Details:</div>
-              <pre className="tw-whitespace-pre-wrap tw-font-mono tw-text-xs">
-                {detailedWarning}
-              </pre>
+            <div className="tw-bg-white tw-bg-opacity-50 tw-rounded tw-mb-3">
+              <div className="tw-font-medium tw-mb-1 tw-text-xs tw-px-3 tw-pt-2">Details:</div>
+              <ScrollView
+                className="tw-max-h-32"
+                showScrollbar="onHover"
+                scrollByContent={true}
+                scrollByThumb={true}
+                direction="vertical"
+              >
+                <div className="tw-px-3 tw-pb-2">
+                  {renderFormattedDetails(detailedWarning)}
+                </div>
+              </ScrollView>
             </div>
           )}
 

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.Task;
+using FMS.Application.Features.FMS.Task;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;

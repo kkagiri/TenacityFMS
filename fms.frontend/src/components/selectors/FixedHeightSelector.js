@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import './FixedHeightSelector.css';
 
 const FixedHeightSelector = ({
@@ -17,17 +17,20 @@ const FixedHeightSelector = ({
   const [selectedItem, setSelectedItem] = useState(null);
   const containerRef = useRef(null);
 
+  // Stabilize items array to prevent unnecessary re-renders
+  const stableItems = useMemo(() => items || [], [items]);
+
   // Set initial selected item if value is provided
   useEffect(() => {
-    if (value && items?.length > 0) {
-      const foundItem = items.find(item => item[valueExpr] === value);
+    if (value && stableItems.length > 0) {
+      const foundItem = stableItems.find(item => item[valueExpr] === value);
       if (foundItem) {
         setSelectedItem(foundItem);
       }
-    } else {
+    } else if (!value) {
       setSelectedItem(null);
     }
-  }, [value, items, valueExpr]);
+  }, [value, stableItems, valueExpr]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -103,9 +106,9 @@ const FixedHeightSelector = ({
 
       {isOpen && (
         <div className="selector-dropdown" style={{ maxHeight }}>
-          {items?.length > 0 ? (
+          {stableItems?.length > 0 ? (
             <ul className="selector-list">
-              {items.map((item, index) => (
+              {stableItems.map((item, index) => (
                 <li
                   key={`${item[valueExpr]}-${index}`}
                   className={`selector-item ${selectedItem && selectedItem[valueExpr] === item[valueExpr] ? 'selected' : ''}`}
@@ -124,4 +127,4 @@ const FixedHeightSelector = ({
   );
 };
 
-export default FixedHeightSelector;
+export default React.memo(FixedHeightSelector);

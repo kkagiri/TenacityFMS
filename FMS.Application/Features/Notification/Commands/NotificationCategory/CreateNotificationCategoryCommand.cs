@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using FMS.Persistence;
 using FMS.Persistence.DataAccess;
 using MediatR;

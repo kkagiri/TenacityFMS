@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FMS.Persistence.EntityConfigurations {
-    public class TagChangeLogConfiguration : EntityTypeConfiguration<TagChangeLog> {
-        public override void Configure (EntityTypeBuilder<TagChangeLog> builder) {
+    public class TagChangeLogConfiguration : EntityTypeConfiguration<VehicleTagChangeLog> {
+        public override void Configure (EntityTypeBuilder<VehicleTagChangeLog> builder) {
             builder.HasKey (e => e.Id).HasName ("PRIMARY");
             builder.ToTable ("tag_change_log");
 

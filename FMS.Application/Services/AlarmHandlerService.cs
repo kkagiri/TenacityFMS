@@ -5,12 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.ATG;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.AlarmHandlers;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Integration;
-using FMS.Application.ModelsDTOs.ATG;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -769,7 +770,7 @@ namespace FMS.Application.Services {
                     Priority = string.IsNullOrWhiteSpace (request.Priority) ? policy.Priority : request.Priority!,
                     SiteId = request.SiteId,
                     TankId = request.TankId,
-                    DeviceId = request.DeviceId,
+                    //DeviceId = request.DeviceId,
                     CooldownMinutes = request.CooldownMinutes,
                     MaxNotificationsPerDay = request.MaxNotificationsPerDay,
                     CreatedBy = createdBy
@@ -869,7 +870,7 @@ namespace FMS.Application.Services {
                     .Where (h => h.IsActive && h.NotificationPolicy.IsActive && h.AlarmType == evt.AlarmType);
                 if (evt.SiteId.HasValue) { handlersQuery = handlersQuery.Where (h => h.SiteId == null || h.SiteId == evt.SiteId); }
                 if (evt.TankId.HasValue) { handlersQuery = handlersQuery.Where (h => h.TankId == null || h.TankId == evt.TankId); }
-                if (evt.DeviceId.HasValue) { handlersQuery = handlersQuery.Where (h => h.DeviceId == null || h.DeviceId == evt.DeviceId); }
+                //if (evt.DeviceId.HasValue) { handlersQuery = handlersQuery.Where (h => h.DeviceId == null || h.DeviceId == evt.DeviceId); }
 
                 var handlers = await handlersQuery.ToListAsync (cancellationToken);
                 if (handlers.Count == 0) { return FMSResponse<int>.Success (0, "No matching handlers"); }

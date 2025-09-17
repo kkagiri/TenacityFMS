@@ -1,9 +1,7 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.UserActivities
-{
-    public class UserActivityDTO
-    {
+namespace FMS.Application.Features.FMS.UserActivities {
+    public class UserActivityDTO {
         public int Id { get; set; }
         public string UserId { get; set; }
         public string UserName { get; set; } // Include the username for display purposes

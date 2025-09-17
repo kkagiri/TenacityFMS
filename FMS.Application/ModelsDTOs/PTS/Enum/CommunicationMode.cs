@@ -1,6 +1,5 @@
-namespace FMS.Application.ModelsDTOs.PTS.Enum;
-public enum CommunicationMode
-{
+namespace FMS.Application.Features.PTS.Enum;
+public enum CommunicationMode {
     Http,
     WebSocket
 }

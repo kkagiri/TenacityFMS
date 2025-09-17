@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.Dashboard;
+using FMS.Application.Features.Dashboard;
 
 namespace FMS.Application.Services.Dashboard {
     public interface IDashboardMetricsService {

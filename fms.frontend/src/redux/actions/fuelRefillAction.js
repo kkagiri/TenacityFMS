@@ -50,16 +50,46 @@ export const fetchFuelRefillsbyDateRange = (startDate, endDate) => async (dispat
 export const createFuelRefill = (fuelRefill) => async (dispatch) => {
     try {
         const response = await axiosInstance.post('/fuelrefill', fuelRefill);
-        if (response.data.success) {
+
+        // Check if the response indicates success
+        if (response.data && response.data.success === true) {
             dispatch({ type: CREATE_FUEL_REFILL_SUCCESS, payload: response.data.message });
             return { success: true, message: response.data.message };
         } else {
-            dispatch({ type: CREATE_FUEL_REFILL_FAILURE, payload: response.data.message });
-            return { success: false, message: response.data.message };
+            // Handle case where response is received but indicates failure
+            const errorMessage = response.data?.message || 'Failed to create fuel refill';
+            dispatch({ type: CREATE_FUEL_REFILL_FAILURE, payload: errorMessage });
+            return { success: false, message: errorMessage };
         }
     } catch (error) {
-        // If the error is from the API, it will be in error.response.data
-        const errorMessage = error.response?.data?.message || error.message;
+        // Handle HTTP errors (4xx, 5xx status codes)
+        let errorMessage;
+
+        if (error.response) {
+            // Server responded with error status
+            if (error.response.data) {
+                if (typeof error.response.data === 'string') {
+                    errorMessage = error.response.data;
+                } else if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.response.data.errors) {
+                    // Handle validation errors
+                    const errors = error.response.data.errors;
+                    errorMessage = Object.values(errors).flat().join(', ');
+                } else {
+                    errorMessage = `Server error: ${error.response.status}`;
+                }
+            } else {
+                errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+            }
+        } else if (error.request) {
+            // Network error
+            errorMessage = 'Network error: Unable to connect to server';
+        } else {
+            // Other errors
+            errorMessage = error.message || 'An unexpected error occurred';
+        }
+
         dispatch({ type: CREATE_FUEL_REFILL_FAILURE, payload: errorMessage });
         return { success: false, message: errorMessage };
     }

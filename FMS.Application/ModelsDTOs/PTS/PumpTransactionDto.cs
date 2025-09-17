@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.ATG {
+namespace FMS.Application.Features.ATG {
     public class PumpTransactionDto {
         public string PtsId { get; set; }
         public int PacketId { get; set; }

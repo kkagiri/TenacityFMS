@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.Dashboard;
+using FMS.Application.Features.Dashboard;
 using FMS.Domain.Entities.Dashboard;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;

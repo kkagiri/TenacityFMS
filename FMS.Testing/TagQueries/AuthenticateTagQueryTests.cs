@@ -62,7 +62,7 @@ namespace FMS.Testing.TagQueries {
         public async Task Handle_ValidTagWithNoRules_ReturnsAuthenticated () {
             // Arrange
             var tagName = "123456789";
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = 1,
                 Name = tagName,
                 IsEnabled = true,
@@ -75,14 +75,14 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Use explicit setup for the Tag lookup by name
-            var mockTagDbSet = SetupMockTagDbSet (new List<Tag> { tag });
-            _mockContext.Setup (c => c.Tags).Returns (mockTagDbSet);
+            var mockTagDbSet = SetupMockTagDbSet (new List<FuelTag> { tag });
+            _mockContext.Setup (c => c.FuelTags).Returns (mockTagDbSet);
 
             SetupRefillCount (0, tagName);
             SetupFuelIssuedMocks (0m, 0m);
 
             // Act
-            var result = await _handler.Handle (new AuthenticateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new AuthenticateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.True (result.IsAuthenticated);
@@ -99,7 +99,7 @@ namespace FMS.Testing.TagQueries {
         public async Task Handle_ValidMasterTag_ReturnsAuthenticatedWithMasterFlag () {
             // Arrange
             var tagName = "123456789";
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = 1,
                 Name = tagName,
                 IsEnabled = true,
@@ -113,14 +113,14 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Use explicit setup for the Tag lookup by name
-            var mockTagDbSet = SetupMockTagDbSet (new List<Tag> { tag });
-            _mockContext.Setup (c => c.Tags).Returns (mockTagDbSet);
+            var mockTagDbSet = SetupMockTagDbSet (new List<FuelTag> { tag });
+            _mockContext.Setup (c => c.FuelTags).Returns (mockTagDbSet);
 
             SetupRefillCount (0, tagName);
             SetupFuelIssuedMocks (0m, 0m);
 
             // Act
-            var result = await _handler.Handle (new AuthenticateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new AuthenticateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.True (result.IsAuthenticated);
@@ -189,7 +189,7 @@ namespace FMS.Testing.TagQueries {
                     Rules = new List<FuelingRule> { rule }
                 };
 
-                var tag = new Tag {
+                var tag = new FuelTag {
                     Id = 1,
                     Name = tagName,
                     IsEnabled = true,
@@ -285,7 +285,7 @@ namespace FMS.Testing.TagQueries {
                     Rules = new List<FuelingRule> { dailyMonthlyRule, refillRule }
                 };
 
-                var tag = new Tag {
+                var tag = new FuelTag {
                     Id = 1,
                     Name = tagName,
                     IsEnabled = true,
@@ -323,14 +323,14 @@ namespace FMS.Testing.TagQueries {
             var tagName = "NONEXISTENTTAG";
 
             // Setup empty mock DbSet
-            var mockTagDbSet = SetupMockTagDbSet (new List<Tag> ());
-            _mockContext.Setup (c => c.Tags).Returns (mockTagDbSet);
+            var mockTagDbSet = SetupMockTagDbSet (new List<FuelTag> ());
+            _mockContext.Setup (c => c.FuelTags).Returns (mockTagDbSet);
 
             SetupRefillCount (0, tagName);
             SetupFuelIssuedMocks (0m, 0m);
 
             // Act
-            var result = await _handler.Handle (new AuthenticateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new AuthenticateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsAuthenticated);
@@ -346,7 +346,7 @@ namespace FMS.Testing.TagQueries {
         public async Task Handle_DisabledTag_ReturnsNotAuthenticated () {
             // Arrange
             var tagName = "DISABLEDTAG";
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = 1,
                 Name = tagName,
                 IsEnabled = false, // Disabled tag
@@ -359,14 +359,14 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Setup mock DbSet
-            var mockTagDbSet = SetupMockTagDbSet (new List<Tag> { tag });
-            _mockContext.Setup (c => c.Tags).Returns (mockTagDbSet);
+            var mockTagDbSet = SetupMockTagDbSet (new List<FuelTag> { tag });
+            _mockContext.Setup (c => c.FuelTags).Returns (mockTagDbSet);
 
             SetupRefillCount (0, tagName);
             SetupFuelIssuedMocks (0m, 0m);
 
             // Act
-            var result = await _handler.Handle (new AuthenticateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new AuthenticateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsAuthenticated);
@@ -437,7 +437,7 @@ namespace FMS.Testing.TagQueries {
                     Rules = new List<FuelingRule> { dailyMonthlyRule }
                 };
 
-                var tag = new Tag {
+                var tag = new FuelTag {
                     Id = 1,
                     Name = tagName,
                     IsEnabled = true,
@@ -547,7 +547,7 @@ namespace FMS.Testing.TagQueries {
                     Rules = new List<FuelingRule> { refillRule }
                 };
 
-                var tag = new Tag {
+                var tag = new FuelTag {
                     Id = 1,
                     Name = tagName,
                     IsEnabled = true,
@@ -648,7 +648,7 @@ namespace FMS.Testing.TagQueries {
                     Rules = new List<FuelingRule> { dailyLimitRule, refillRule }
                 };
 
-                var tag = new Tag {
+                var tag = new FuelTag {
                     Id = 1,
                     Name = tagName,
                     IsEnabled = true,
@@ -692,7 +692,7 @@ namespace FMS.Testing.TagQueries {
         /// <summary>
         /// Sets up a mock DbSet for Tags with test data
         /// </summary>
-        private DbSet<Tag> SetupMockTagDbSet (List<Tag> tags) {
+        private DbSet<FuelTag> SetupMockTagDbSet (List<FuelTag> tags) {
             // Create in-memory DB context options
             var options = new DbContextOptionsBuilder<TestDbContext> ()
                 .UseInMemoryDatabase (databaseName: Guid.NewGuid ().ToString ())
@@ -744,7 +744,7 @@ namespace FMS.Testing.TagQueries {
                     }
 
                     // Finally add the tag
-                    var tagToAdd = new Tag {
+                    var tagToAdd = new FuelTag {
                         Id = tag.Id,
                         Name = tag.Name,
                         IsEnabled = tag.IsEnabled,

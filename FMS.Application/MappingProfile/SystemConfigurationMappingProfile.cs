@@ -1,5 +1,5 @@
 using AutoMapper;
-using FMS.Application.ModelsDTOs.SystemConfiguration;
+using FMS.Application.Features.SystemConfiguration;
 using FMS.Domain.Entities;
 
 namespace FMS.Application.MappingProfile {

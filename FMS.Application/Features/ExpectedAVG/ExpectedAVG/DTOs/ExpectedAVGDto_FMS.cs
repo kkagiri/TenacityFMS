@@ -1,42 +1,38 @@
-﻿using FMS.Domain.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using FMS.Domain.Entities;
 
-namespace FMS.Application.ModelsDTOs.FMS.ExpectedAVG
-{
-    public class ExpectedAVGDto
-    {
+namespace FMS.Application.Features.FMS.ExpectedAVG {
+    public class ExpectedAVGDto {
 
-        [JsonPropertyName("id")]
+        [JsonPropertyName ("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("ExpectedAverageValue")]
+        [JsonPropertyName ("ExpectedAverageValue")]
         public decimal ExpectedAverageValue { get; set; }
 
-        [JsonPropertyName("ExpectedAverageclassificationName")]
+        [JsonPropertyName ("ExpectedAverageclassificationName")]
         public string ExpectedAverageclassificationName { get; set; }
 
-        [JsonPropertyName("combinedExpectedAverage")]
+        [JsonPropertyName ("combinedExpectedAverage")]
 
         public string CombinedExpectedAverage => $"{ExpectedAverageclassificationName} {ExpectedAverageValue}";
 
-        [JsonPropertyName("SiteName")]
+        [JsonPropertyName ("SiteName")]
         public string SiteName { get; set; }
 
-        [JsonPropertyName("expectedAverageClassificationId")]
+        [JsonPropertyName ("expectedAverageClassificationId")]
         public int ExpectedAverageClassificationId { get; set; }
 
-        [JsonPropertyName("vehicleId")]
+        [JsonPropertyName ("vehicleId")]
         public int VehicleId { get; set; }
 
-        [JsonPropertyName("site")]
+        [JsonPropertyName ("site")]
         public int? SiteId { get; set; }
-
-
 
     }
 }

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS.ExpectedAVG;
+using FMS.Application.Features.FMS.ExpectedAVG;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

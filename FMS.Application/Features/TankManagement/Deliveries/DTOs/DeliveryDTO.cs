@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper.Configuration.Annotations;
 using Newtonsoft.Json;
 
-namespace FMS.Application.ModelsDTOs.FMS.Delivery.cs {
+namespace FMS.Application.Features.FMS.Delivery.cs {
     public class DeliveryDTO {
         public int Id { get; set; }
         public int TankId { get; set; }

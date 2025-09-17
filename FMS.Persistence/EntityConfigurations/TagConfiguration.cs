@@ -6,12 +6,12 @@ namespace FMS.Persistence.EntityConfigurations {
     /// <summary>
     /// Configuration for the Tag entity
     /// </summary>
-    public class TagConfiguration : EntityTypeConfiguration<Tag> {
+    public class TagConfiguration : EntityTypeConfiguration<FuelTag> {
         /// <summary>
         /// Configures the entity
         /// </summary>
         /// <param name="builder">The entity type builder</param>
-        public override void Configure (EntityTypeBuilder<Tag> builder) {
+        public override void Configure (EntityTypeBuilder<FuelTag> builder) {
             try {
                 builder.HasKey (e => e.Id).HasName ("PRIMARY");
 

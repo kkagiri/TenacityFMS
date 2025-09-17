@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
+using Noti = FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.Features.Notification.Services.Businessfunction {
     /// <summary>
@@ -14,7 +15,7 @@ namespace FMS.Application.Features.Notification.Services.Businessfunction {
         /// <summary>
         /// Get notification groups for a specific business function trigger source
         /// </summary>
-        Task<List<Domain.Entities.NotificationGroup>> GetGroupsForTriggerSourceAsync (
+        Task<List<Noti.NotificationGroup>> GetGroupsForTriggerSourceAsync (
             string triggerSource,
             int? siteId = null,
             CancellationToken cancellationToken = default);

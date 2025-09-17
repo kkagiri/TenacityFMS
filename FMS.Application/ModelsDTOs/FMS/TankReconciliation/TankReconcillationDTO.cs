@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankReconciliation
-{
-    public class TankReconcillationDTO
-    {
+namespace FMS.Application.Features.FMS.TankReconciliation {
+    public class TankReconcillationDTO {
         public int Id { get; set; }
 
         public int TankId { get; set; }
@@ -29,8 +27,6 @@ namespace FMS.Application.ModelsDTOs.FMS.TankReconciliation
         public decimal? TotalTransfersIn { get; set; }
 
         public decimal? TotalTransfersOut { get; set; }
-
-
 
     }
 }

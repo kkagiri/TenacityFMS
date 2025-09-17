@@ -1,4 +1,5 @@
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

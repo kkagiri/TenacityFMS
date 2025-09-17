@@ -1,7 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using Noti = FMS.Domain.Entities.Features.Notifications;
+
 
 namespace FMS.Application.Features.Notification.Services.Channels {
     public class SmsNotificationChannel : INotificationChannel {
@@ -14,7 +15,7 @@ namespace FMS.Application.Features.Notification.Services.Channels {
             _logger = logger;
         }
 
-        public async Task<bool> SendAsync (FMS.Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
+        public async Task<bool> SendAsync (Noti.Notification notification, Noti.NotificationRecipient recipient, CancellationToken cancellationToken = default) {
             try {
                 var content = $"{notification.Title}: {notification.Message}";
                 return await _smsService.SendSmsAsync (recipient.RecipientAddress, content, cancellationToken);

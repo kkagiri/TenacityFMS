@@ -1,6 +1,6 @@
 //Cursor: Create System Configuration Command
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.SystemConfiguration;
+using FMS.Application.Features.SystemConfiguration;
 using MediatR;
 
 namespace FMS.Application.Command.DatabaseCommand.SystemConfigurationCommands {

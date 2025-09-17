@@ -22,12 +22,12 @@ namespace FMS.Testing.TagQueries {
     public class GetTagDetailsQueryTests {
         private readonly Mock<IMediator> _mockMediator;
         private readonly Mock<GpsdataContext> _mockContext;
-        private readonly GetTagDetailsQueryHandler _handler;
+        private readonly GetFuelTagDetailsQueryHandler _handler;
 
         public GetTagDetailsQueryTests () {
             _mockMediator = new Mock<IMediator> ();
             _mockContext = new Mock<GpsdataContext> ();
-            _handler = new GetTagDetailsQueryHandler (_mockMediator.Object, _mockContext.Object);
+            _handler = new GetFuelTagDetailsQueryHandler (_mockMediator.Object, _mockContext.Object);
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace FMS.Testing.TagQueries {
             var vehicleTypeName = "Truck";
 
             // Create tag with rule set
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = tagId,
                 Name = tagName,
                 IsEnabled = true,
@@ -82,7 +82,7 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Setup mediator mocks
-            _mockMediator.Setup (m => m.Send (It.IsAny<GetTagByNameQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (m => m.Send (It.IsAny<GetFuelTagByNameQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (tag);
 
             _mockMediator.Setup (m => m.Send (It.IsAny<GetDailyFuelIssuedForTagQuery> (), It.IsAny<CancellationToken> ()))
@@ -102,7 +102,7 @@ namespace FMS.Testing.TagQueries {
                 .ReturnsAsync (vehicleType);
 
             // Act
-            var result = await _handler.Handle (new GetTagDetailsQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new GetFuelTagDetailsQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.NotNull (result);
@@ -126,12 +126,12 @@ namespace FMS.Testing.TagQueries {
             var tagName = "NONEXISTENTTAG";
 
             // Setup mediator to return null for the tag
-            _mockMediator.Setup (m => m.Send (It.IsAny<GetTagByNameQuery> (), It.IsAny<CancellationToken> ()))
-                .ReturnsAsync ((Tag) null);
+            _mockMediator.Setup (m => m.Send (It.IsAny<GetFuelTagByNameQuery> (), It.IsAny<CancellationToken> ()))
+                .ReturnsAsync ((FuelTag) null);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<KeyNotFoundException> (() =>
-                _handler.Handle (new GetTagDetailsQuery (tagName), CancellationToken.None));
+                _handler.Handle (new GetFuelTagDetailsQuery (tagName), CancellationToken.None));
 
             Assert.Contains ("Tag not found", exception.Message);
         }
@@ -149,7 +149,7 @@ namespace FMS.Testing.TagQueries {
             var monthlyUsed = 200m;
 
             // Create tag with no rule set
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = tagId,
                 Name = tagName,
                 IsEnabled = true,
@@ -171,7 +171,7 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Setup mediator mocks
-            _mockMediator.Setup (m => m.Send (It.IsAny<GetTagByNameQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (m => m.Send (It.IsAny<GetFuelTagByNameQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (tag);
 
             _mockMediator.Setup (m => m.Send (It.IsAny<GetDailyFuelIssuedForTagQuery> (), It.IsAny<CancellationToken> ()))
@@ -188,7 +188,7 @@ namespace FMS.Testing.TagQueries {
                 .ReturnsAsync (vehicleType);
 
             // Act
-            var result = await _handler.Handle (new GetTagDetailsQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new GetFuelTagDetailsQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.NotNull (result);
@@ -211,7 +211,7 @@ namespace FMS.Testing.TagQueries {
             var monthlyUsed = 200m;
 
             // Create tag with rule set
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = tagId,
                 Name = tagName,
                 IsEnabled = true,
@@ -232,7 +232,7 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Setup mediator mocks
-            _mockMediator.Setup (m => m.Send (It.IsAny<GetTagByNameQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (m => m.Send (It.IsAny<GetFuelTagByNameQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (tag);
 
             _mockMediator.Setup (m => m.Send (It.IsAny<GetDailyFuelIssuedForTagQuery> (), It.IsAny<CancellationToken> ()))
@@ -250,7 +250,7 @@ namespace FMS.Testing.TagQueries {
                 .Throws (new InvalidOperationException ("This should not be called when vehicle is null"));
 
             // Act
-            var result = await _handler.Handle (new GetTagDetailsQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new GetFuelTagDetailsQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.NotNull (result);
@@ -274,7 +274,7 @@ namespace FMS.Testing.TagQueries {
             var hyoungNo = "HYG123";
 
             // Create tag with rule set
-            var tag = new Tag {
+            var tag = new FuelTag {
                 Id = tagId,
                 Name = tagName,
                 IsEnabled = true,
@@ -302,7 +302,7 @@ namespace FMS.Testing.TagQueries {
             };
 
             // Setup mediator mocks
-            _mockMediator.Setup (m => m.Send (It.IsAny<GetTagByNameQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (m => m.Send (It.IsAny<GetFuelTagByNameQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (tag);
 
             _mockMediator.Setup (m => m.Send (It.IsAny<GetDailyFuelIssuedForTagQuery> (), It.IsAny<CancellationToken> ()))
@@ -320,7 +320,7 @@ namespace FMS.Testing.TagQueries {
                 .Throws (new InvalidOperationException ("This should not be called when VehicleTypeId is null"));
 
             // Act
-            var result = await _handler.Handle (new GetTagDetailsQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new GetFuelTagDetailsQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.NotNull (result);

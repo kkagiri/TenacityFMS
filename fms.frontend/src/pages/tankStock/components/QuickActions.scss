@@ -45,20 +45,19 @@
   }
 }
 
-// Ensure QuickActions button takes full width on mobile
+// Desktop: do NOT force full width so it aligns inline with other buttons
 .quick-actions-container {
   .dx-dropdownbutton {
-    width: 100% !important;
+    width: auto !important;
 
     .dx-button {
-      width: 100% !important;
+      width: auto !important;
       justify-content: center;
-      height: auto; // Let height be determined by content and padding
-      min-height: auto; // Remove any forced minimum height
-
-      // Match the height of other buttons (Filters, Refresh)
-      padding: 8px 16px; // Standard DevExtreme button padding
-      line-height: 1.4; // Standard line height
+      height: 32px !important; // match DevExtreme outlined button height
+      min-height: 32px !important;
+      padding: 6px 12px !important;
+      line-height: 1.2;
+      font-size: 14px; // match other buttons
     }
   }
 }
@@ -82,19 +81,23 @@
     }
   }
 
-  // Keep consistent button height on tablets/larger mobile
-  .dx-dropdownbutton {
-    width: 100% !important;
-
-    .dx-button {
+  // On mobile/tablet, make the button full width for better UX
+  .quick-actions-container {
+    .dx-dropdownbutton {
       width: 100% !important;
-      height: auto;
-      min-height: auto;
-    }
 
-    .dx-button-content {
-      justify-content: center;
-      width: 100%;
+      .dx-button {
+        width: 100% !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        padding: 6px 12px !important;
+        font-size: 14px;
+      }
+
+      .dx-button-content {
+        justify-content: center;
+        width: 100%;
+      }
     }
   }
 }
@@ -116,8 +119,9 @@
   .quick-actions-container {
     .dx-dropdownbutton {
       .dx-button {
-        padding: 8px 12px; // Smaller padding than before
-        min-height: 36px; // Smaller minimum height for touch
+        padding: 6px 12px !important; // consistent with desktop
+        min-height: 32px !important;
+        font-size: 14px;
       }
     }
   }

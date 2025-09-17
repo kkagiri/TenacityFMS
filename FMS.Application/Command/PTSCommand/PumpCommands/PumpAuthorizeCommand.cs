@@ -15,11 +15,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Communication; //Cursor: Add for DeviceConnectionTracker
+using FMS.Application.Features.FuelTagManagement.FuelingTags.FuelingTags.Queries;
+using FMS.Application.Features.FuelTagManagement.FuelingTags.Queries;
 using FMS.Application.Helpers;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
-using FMS.Application.Queries.Database.FMSQuery.TagQueries;
 using FMS.Application.Services; //Cursor: Add for ITransactionMonitoringService
 using FMS.Domain.Entities; //Cursor: Add for Ptsdevice entity
 using FMS.Domain.Entities.PTS;
@@ -140,7 +141,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
 
                 if (!string.IsNullOrEmpty (request.Tag)) {
 
-                    tagAuthentication = await _mediator.Send (new AuthenticateTagQuery (request.Tag), cancellationToken);
+                    tagAuthentication = await _mediator.Send (new AuthenticateFuelTagQuery (request.Tag), cancellationToken);
 
                     if (tagAuthentication == null || !tagAuthentication.IsAuthenticated) {
                         _logger.LogInformation ("Tag read ignored - tag not authenticated for device {DeviceId}, pump {PumpId}", request.DeviceId, request.PumpId);
@@ -174,7 +175,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                             .FirstOrDefaultAsync (u => u.Id == request.UserId, cancellationToken);
 
                         if (user?.MasterRFIDTag.HasValue == true) {
-                            var masterTag = await _context.Tags
+                            var masterTag = await _context.FuelTags
                                 .FirstOrDefaultAsync (t => t.Id == user.MasterRFIDTag.Value, cancellationToken);
 
                             if (masterTag != null && masterTag.IsMaster == 1) {
@@ -183,7 +184,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                                     masterTag.Name, request.UserId, request.DeviceId);
 
                                 //Cursor: Re-authenticate the auto-assigned master tag to get dose limits
-                                tagAuthentication = await _mediator.Send (new AuthenticateTagQuery (masterTag.Name), cancellationToken);
+                                tagAuthentication = await _mediator.Send (new AuthenticateFuelTagQuery (masterTag.Name), cancellationToken);
 
                                 if (tagAuthentication == null || !tagAuthentication.IsAuthenticated) {
                                     _logger.LogWarning ("Auto-assigned master tag {TagName} authentication failed for user {UserId} on device {DeviceId}",
@@ -313,19 +314,19 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
                     //Cursor: Get site ID from tank for configuration lookup
                     int? siteId = null;
                     if (request.TankId.HasValue) {
-                        var tank = await _context.Tanks.FindAsync(request.TankId.Value);
+                        var tank = await _context.Tanks.FindAsync (request.TankId.Value);
                         siteId = tank?.SiteId;
                     }
 
                     //Cursor: Get configuration for automated fueling settings
-                    var config = await _configurationService.GetConfigurationAsync(siteId, cancellationToken);
+                    var config = await _configurationService.GetConfigurationAsync (siteId, cancellationToken);
 
                     //Cursor: Apply configuration-based auto-close behavior
                     var configuredAutoClose = request.AutoCloseTransaction;
                     if (config.AutoCreateLedgerEntries && connectionType != "HTTPPolling") {
                         // Enable auto-close for connections that support it when ledger creation is enabled
                         configuredAutoClose = true;
-                        _logger.LogInformation("[PumpAuth] Auto-close enabled based on configuration for device {DeviceId}, transaction {TransactionId}",
+                        _logger.LogInformation ("[PumpAuth] Auto-close enabled based on configuration for device {DeviceId}, transaction {TransactionId}",
                             request.DeviceId, confirmation.Transaction);
                     }
 
@@ -361,17 +362,17 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
         //Cursor: Enhanced method to store transaction context in Redis with complete data
         private async Task StoreTransactionContextInRedis (string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction, int? siteId = null) {
             try {
-                var transactionContext = new {
-                    DeviceId = deviceId,
-                    TransactionId = transactionId,
-                    PumpId = pumpId, //Cursor: Add missing PumpId for proper correlation
-                    TankId = tankId,
-                    VehicleId = vehicleId,
-                    SiteId = siteId, //Cursor: Add site ID for configuration lookup
-                    AuthorizedAt = DateTime.UtcNow,
-                    ConnectionType = connectionType,
-                    AutoCloseTransaction = autoCloseTransaction,
-                    StartTime = DateTime.UtcNow //Cursor: Add start time for timeout detection
+            var transactionContext = new {
+            DeviceId = deviceId,
+            TransactionId = transactionId,
+            PumpId = pumpId, //Cursor: Add missing PumpId for proper correlation
+            TankId = tankId,
+            VehicleId = vehicleId,
+            SiteId = siteId, //Cursor: Add site ID for configuration lookup
+            AuthorizedAt = DateTime.UtcNow,
+            ConnectionType = connectionType,
+            AutoCloseTransaction = autoCloseTransaction,
+            StartTime = DateTime.UtcNow //Cursor: Add start time for timeout detection
                 };
 
                 var redisKey = $"device:{deviceId}:transaction:{transactionId}";
@@ -479,7 +480,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands {
             // Consolidated tag validation logic
             if (hasTag) {
                 try {
-                    var tag = await _context.Tags.FirstOrDefaultAsync (t => t.Name == request.Tag);
+                    var tag = await _context.FuelTags.FirstOrDefaultAsync (t => t.Name == request.Tag);
                     if (tag == null) {
                         validationErrors.Add ("Tag not found in database");
                     } else {

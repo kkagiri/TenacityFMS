@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace FMS.Application.ModelsDTOs.SystemConfiguration {
+namespace FMS.Application.Features.SystemConfiguration {
     /// <summary>
     /// DTO for System Configuration display and transfer
     /// </summary>

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.PTS.Common;
+using FMS.Application.Features.PTS.Common;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;

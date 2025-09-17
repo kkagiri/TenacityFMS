@@ -1,6 +1,7 @@
+using FMS.Domain.Entities.Features.Notifications;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Domain.Entities;
+using Noti = FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.Features.Notification.Services {
     /// <summary>
@@ -15,6 +16,6 @@ namespace FMS.Application.Features.Notification.Services {
         /// <summary>
         /// Send the notification to a single recipient.
         /// </summary>
-        Task<bool> SendAsync (FMS.Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default);
+        Task<bool> SendAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default);
     }
 }

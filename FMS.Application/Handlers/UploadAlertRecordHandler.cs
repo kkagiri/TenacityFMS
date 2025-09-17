@@ -7,8 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.ATG;
 using FMS.Application.Handlers.Interface;
-using FMS.Application.ModelsDTOs.ATG;
 using FMS.Application.Services; //Cursor - Add FMSResponse import
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Services.Integration;

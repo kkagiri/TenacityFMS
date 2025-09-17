@@ -1,7 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Domain.Entities;
+using Noti = FMS.Domain.Entities.Features.Notifications;
 using Microsoft.Extensions.Logging;
+using FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.Features.Notification.Services.Channels {
     /// <summary>
@@ -15,7 +16,7 @@ namespace FMS.Application.Features.Notification.Services.Channels {
             _logger = logger;
         }
 
-        public Task<bool> SendAsync (FMS.Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
+        public Task<bool> SendAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
             try {
                 // TODO: Implement Slack posting via webhook URL or Slack API
                 _logger.LogInformation ("[Slack] {UserOrChannel}: {Title} - {Message}", recipient.RecipientAddress, notification.Title, notification.Message);

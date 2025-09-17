@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace FMS.Application.ModelsDTOs.FMS.Tank {
+namespace FMS.Application.Features.FMS.Tank {
     public class TankDTO {
         public int Id { get; set; }
 

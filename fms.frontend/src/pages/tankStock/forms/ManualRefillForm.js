@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
-import LoadIndicator from 'devextreme-react/load-indicator';
+import { LoadPanel } from 'devextreme-react/load-panel';
 import  notify from 'devextreme/ui/notify';
 import ScrollView from 'devextreme-react/scroll-view';
 import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
@@ -10,8 +10,7 @@ import { createFuelRefill } from '../../../redux/actions/fuelRefillAction';
 import VehicleSearchableSelector from '../../../components/selectors/VehicleSearchableSelector';
 import EmployeeSearchableSelector from '../../../components/selectors/EmployeeSearchableSelector';
 import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
-import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
-import FixedHeightSelector from '../../../components/selectors/FixedHeightSelector';
+import FutureRecordsConfirmationPopup from '../../../components/tank-stock/FutureRecordsConfirmationPopup';
 import './ManualRefillForm.css';
 
 const ManualRefillForm = ({ onCancel, onSuccess }) => {
@@ -21,10 +20,20 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
   // Remove bulk vehicle/employee lists; we'll search on demand
   const user = useSelector((state) => state.auth.user);
 
+  // Memoize sites and tanks to prevent unnecessary re-renders from SignalR updates
+  const memoizedSites = useMemo(() => sites || [], [sites]);
+  const memoizedTanks = useMemo(() => tanks || [], [tanks]);
+
+  // Scroll position preservation
+  const scrollViewRef = useRef(null);
+  const lastScrollPositionRef = useRef(0);
+  const preserveScrollTimeoutRef = useRef(null);
+
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [showInfoNotice, setShowInfoNotice] = useState(true);
+  const [showInfoNotice, setShowInfoNotice] = useState(false); // Changed to false by default
+  const [autoHideTimeout, setAutoHideTimeout] = useState(null);
   const [formData, setFormData] = useState({
     vehicleId: null,
     manualFuelrefillAmount: null,
@@ -69,9 +78,88 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     });
   }, []);
 
+  // Handle info panel display with auto-hide
+  const handleInfoToggle = useCallback(() => {
+    if (showInfoNotice) {
+      // If already showing, hide it
+      setShowInfoNotice(false);
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+        setAutoHideTimeout(null);
+      }
+    } else {
+      // Show the panel
+      setShowInfoNotice(true);
+
+      // Clear any existing timeout
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+      }
+
+      // Set up auto-hide after 3 seconds
+      const timeout = setTimeout(() => {
+        setShowInfoNotice(false);
+        setAutoHideTimeout(null);
+      }, 3000);
+
+      setAutoHideTimeout(timeout);
+    }
+  }, [showInfoNotice, autoHideTimeout]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+      }
+    };
+  }, [autoHideTimeout]);
+
+  // Scroll position preservation functions
+  const preserveScrollPosition = useCallback(() => {
+    if (scrollViewRef.current) {
+      const scrollView = scrollViewRef.current.instance;
+      if (scrollView) {
+        lastScrollPositionRef.current = scrollView.scrollTop();
+      }
+    }
+  }, []);
+
+  const restoreScrollPosition = useCallback(() => {
+    if (preserveScrollTimeoutRef.current) {
+      clearTimeout(preserveScrollTimeoutRef.current);
+    }
+
+    preserveScrollTimeoutRef.current = setTimeout(() => {
+      if (scrollViewRef.current && lastScrollPositionRef.current > 0) {
+        const scrollView = scrollViewRef.current.instance;
+        if (scrollView) {
+          scrollView.scrollTo(lastScrollPositionRef.current);
+        }
+      }
+    }, 50); // Small delay to ensure DOM is updated
+  }, []);
+
+  // Save scroll position before potential re-renders
+  useEffect(() => {
+    const interval = setInterval(preserveScrollPosition, 1000); // Reduce frequency
+    return () => {
+      clearInterval(interval);
+      if (preserveScrollTimeoutRef.current) {
+        clearTimeout(preserveScrollTimeoutRef.current);
+      }
+    };
+  }, [preserveScrollPosition]);
+
+  // Remove the automatic scroll restoration on sites/tanks update to reduce flickering
+  // The scroll position will be preserved through the interval and manual calls
+
   // No bulk loading for vehicles/employees; selectors will fetch as user types
 
   const handleSiteChange = useCallback((e) => {
+    // Preserve scroll position before state change
+    preserveScrollPosition();
+
     const siteId = e.value;
     const updatedData = {
       ...formData,
@@ -80,14 +168,20 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     };
     setFormData(updatedData);
 
-    const tanksForSite = tanks.filter(tank => tank.siteId === siteId);
+    const tanksForSite = memoizedTanks.filter(tank => tank.siteId === siteId);
     setFilteredTanks(tanksForSite);
 
     // Clear validation errors for this field
     setValidationErrors(prev => ({ ...prev, siteId: null, tankId: null }));
-  }, [tanks, formData]);
+
+    // Restore scroll position after state change
+    restoreScrollPosition();
+  }, [memoizedTanks, formData, preserveScrollPosition, restoreScrollPosition]);
 
   const handleTankChange = useCallback(async (e) => {
+    // Preserve scroll position before state change
+    preserveScrollPosition();
+
     const tankId = e.value;
     const updatedData = {
       ...formData,
@@ -104,14 +198,20 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     // Validate if this is a historical entry and we have date selected
     if (tankId && formData.date) {
       try {
-        await validateHistoricalEntry(tankId, formData.date);
+        await validateHistoricalEntry(tankId, formData.date, 'Dispensing');
       } catch (error) {
         showNotification(error.message, 'error');
       }
     }
-  }, [formData, resetValidation, validateHistoricalEntry, showNotification]);
+
+    // Restore scroll position after validation
+    restoreScrollPosition();
+  }, [formData, resetValidation, validateHistoricalEntry, showNotification, preserveScrollPosition, restoreScrollPosition]);
 
   const handleDateChange = useCallback(async (e) => {
+    // Preserve scroll position before state change
+    preserveScrollPosition();
+
     const newDate = e.value;
     const updatedData = {
       ...formData,
@@ -128,14 +228,20 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     // Validate if this is a historical entry and we have tank selected
     if (newDate && formData.tankId) {
       try {
-        await validateHistoricalEntry(formData.tankId, newDate);
+        await validateHistoricalEntry(formData.tankId, newDate, 'Dispensing');
       } catch (error) {
         showNotification(error.message, 'error');
       }
     }
-  }, [formData, resetValidation, validateHistoricalEntry, showNotification]);
+
+    // Restore scroll position after validation
+    restoreScrollPosition();
+  }, [formData, resetValidation, validateHistoricalEntry, showNotification, preserveScrollPosition, restoreScrollPosition]);
 
   const handleFieldChange = useCallback((field) => (e) => {
+    // Preserve scroll position before state change
+    preserveScrollPosition();
+
     setFormData(prevData => {
       const updatedData = {
         ...prevData,
@@ -146,7 +252,10 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
 
     // Clear validation errors for this field
     setValidationErrors(prev => ({ ...prev, [field]: null }));
-  }, []); // Remove formData dependency
+
+    // Restore scroll position after state change
+    restoreScrollPosition();
+  }, [preserveScrollPosition, restoreScrollPosition]);
 
   // Validation logic
   const validateForm = useCallback(() => {
@@ -209,11 +318,16 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      await dispatch(createFuelRefill(formData));
-      showNotification('Manual refill recorded successfully', 'success');
+      const result = await dispatch(createFuelRefill(formData));
 
-      if (onSuccess) {
-        onSuccess();
+      if (result && result.success) {
+        showNotification('Manual refill recorded successfully', 'success');
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        const errorMessage = result?.message || 'Failed to record manual refill';
+        showNotification(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Error creating manual refill:', error);
@@ -238,9 +352,15 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      await dispatch(createFuelRefill(formData));
-      showNotification('Manual refill recorded successfully. Form cleared for new entry.', 'success');
-      clearFormData();
+      const result = await dispatch(createFuelRefill(formData));
+
+      if (result && result.success) {
+        showNotification('Manual refill recorded successfully. Form cleared for new entry.', 'success');
+        clearFormData();
+      } else {
+        const errorMessage = result?.message || 'Failed to record manual refill';
+        showNotification(errorMessage, 'error');
+      }
     } catch (error) {
       console.error('Error creating manual refill:', error);
       showNotification('Failed to record manual refill', 'error');
@@ -251,10 +371,30 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
 
   return (
     <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView className="tw-flex-1">
+      <ScrollView
+        key="manual-refill-scroll"
+        ref={scrollViewRef}
+        className="tw-flex-1"
+        onScroll={preserveScrollPosition}
+        showScrollbar="onHover"
+        scrollByContent={true}
+        scrollByThumb={true}
+        direction="vertical"
+      >
         <div className="tw-p-6 tw-max-w-4xl tw-mx-auto">
-          {/* Header */}
+          {/* Header with Info Toggle */}
           <div className="tw-mb-6">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+              <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-m-0">Manual Refill Entry</h2>
+              <button
+                onClick={handleInfoToggle}
+                className="tw-text-blue-500 hover:tw-text-blue-700 tw-transition-colors tw-p-1 hover:tw-bg-blue-50 tw-rounded-full tw-border-0 tw-bg-transparent"
+                title="Show information"
+                type="button"
+              >
+                <i className="fa-light fa-question tw-text-sm"></i>
+              </button>
+            </div>
 
             <p className="tw-text-gray-600 tw-text-sm tw-mb-3">
               Record manual fuel refill for vehicles.
@@ -262,31 +402,20 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
 
             {/* Information Panel */}
             {showInfoNotice && (
-              <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                <div className="tw-flex tw-items-start">
-                  <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                  <div className="tw-flex-1">
-                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">Manual Refill Information</h4>
-                    <p className="tw-text-blue-700 tw-text-sm">
-                      <strong>Important:</strong> Opening stock must be done on the tank before inserting entry.
-                    </p>
-                    <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                      Back-dated entry will force Auto-Correlation on Tank current stock. (Limit is 30 days)
-                    </p>
+              <div className="tw-mb-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-md tw-p-2 tw-transition-all tw-duration-300 tw-ease-in-out">
+                <div className="tw-flex tw-items-center">
+                  <i className="fa-light fa-info-circle tw-text-blue-500 tw-mr-2 tw-text-sm"></i>
+                  <div className="tw-text-blue-700 tw-text-xs">
+                    <span className="tw-font-medium">Important:</span> Opening stock must be done before entry.
+                    <span className="tw-text-blue-600"> • Back-dated entries auto-correlate tank stock (30 day limit)</span>
                   </div>
-                  <button
-                    onClick={() => setShowInfoNotice(false)}
-                    className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
-                    title="Close information"
-                  >
-                    <i className="fa-light fa-times"></i>
-                  </button>
                 </div>
               </div>
             )}
           </div>
 
           <Form
+            key="manual-refill-form" // Prevent unnecessary re-renders
             readOnly={isSubmitting}
             formData={formData}
             showColonAfterLabel={true}
@@ -297,7 +426,6 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
             <SimpleItem
               dataField="date"
               editorType="dxDateBox"
-              cssClass="datebox-full-width"
               colSpan={2}
               editorOptions={{
                 value: formData.date,
@@ -306,13 +434,6 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
                 type: "datetime",
                 onValueChanged: handleDateChange,
                 width: "100%",
-                dropDownOptions: {
-                  width: 'auto',
-                  minWidth: 380,
-                  maxWidth: 520,
-                  wrapperAttr: { class: 'datebox-wide' },
-                },
-                elementAttr: { class: 'datebox-full-width-popup' },
                 isValid: !validationErrors.date,
                 validationError: validationErrors.date ? { message: validationErrors.date } : null
               }}
@@ -322,46 +443,42 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
 
             <SimpleItem
               dataField="siteId"
-              render={() => (
-                <div>
-                  <Label text="Site" />
-                  <FixedHeightSelector
-                    items={sites || []}
-                    displayExpr="name"
-                    valueExpr="id"
-                    value={formData.siteId}
-                    onChange={handleSiteChange}
-                    placeholder="Select a site"
-                    isValid={!validationErrors.siteId}
-                    validationError={validationErrors.siteId ? { message: validationErrors.siteId } : null}
-                    maxHeight={250}
-                    searchEnabled={true}
-                  />
-                </div>
-              )}
-            />
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: memoizedSites || [],
+                displayExpr: 'name',
+                valueExpr: 'id',
+                onValueChanged: handleSiteChange,
+                value: formData.siteId,
+                placeholder: "Select a site",
+                width: "100%",
+                searchEnabled: true,
+                isValid: !validationErrors.siteId,
+                validationError: validationErrors.siteId ? { message: validationErrors.siteId } : null
+              }}
+            >
+              <Label text="Site" />
+            </SimpleItem>
 
             <SimpleItem
               dataField="tankId"
-              render={() => (
-                <div>
-                  <Label text="Tank" />
-                  <FixedHeightSelector
-                    items={filteredTanks}
-                    displayExpr="name"
-                    valueExpr="id"
-                    value={formData.tankId}
-                    onChange={handleTankChange}
-                    placeholder="Select a tank"
-                    disabled={!formData.siteId}
-                    isValid={!validationErrors.tankId}
-                    validationError={validationErrors.tankId ? { message: validationErrors.tankId } : null}
-                    maxHeight={250}
-                    searchEnabled={true}
-                  />
-                </div>
-              )}
-            />
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: filteredTanks || [],
+                displayExpr: 'name',
+                valueExpr: 'id',
+                onValueChanged: handleTankChange,
+                value: formData.tankId,
+                placeholder: "Select a tank",
+                disabled: !formData.siteId,
+                width: "100%",
+                searchEnabled: true,
+                isValid: !validationErrors.tankId,
+                validationError: validationErrors.tankId ? { message: validationErrors.tankId } : null
+              }}
+            >
+              <Label text="Tank" />
+            </SimpleItem>
 
             <SimpleItem
               dataField="vehicleId"
@@ -462,24 +579,27 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
             </SimpleItem>
           </Form>
 
-          {/* Future Records Warning */}
-          {(showWarning || validationError) && (
-            <FutureRecordsWarning
-              validationResult={validationResult}
-              onConfirm={confirmProceed}
-              onCancel={cancelProceed}
-              isVisible={showWarning || !!validationError}
-              className="tw-mb-4"
-            />
-          )}
+          {/* Future Records Validation Loading Panel */}
+          <LoadPanel
+            visible={isValidating}
+            message="Validating historical entry..."
+            showIndicator={true}
+            showPane={true}
+            shading={true}
+            position={{ my: 'center', at: 'center', of: window }}
+            shadingColor="rgba(0, 0, 0, 0.4)"
+            width={300}
+            height={120}
+          />
 
-          {/* Validating indicator */}
-          {isValidating && (
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-space-x-3">
-              <LoadIndicator height={20} width={20} />
-              <span className="tw-text-blue-700 tw-text-sm">Validating historical entry...</span>
-            </div>
-          )}
+          {/* Future Records Confirmation Popup */}
+          <FutureRecordsConfirmationPopup
+            validationResult={validationResult}
+            onConfirm={confirmProceed}
+            onCancel={cancelProceed}
+            isVisible={showWarning || !!validationError}
+            isLoading={false}
+          />
 
           {/* Action buttons */}
           <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
@@ -522,4 +642,4 @@ const ManualRefillForm = ({ onCancel, onSuccess }) => {
   );
 };
 
-export default ManualRefillForm;
+export default React.memo(ManualRefillForm);

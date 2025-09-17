@@ -65,7 +65,7 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm {
                     Priority = request.Priority,
                     SiteId = request.SiteId,
                     TankId = request.TankId,
-                    DeviceId = request.DeviceId,
+                    //DeviceId = request.DeviceId,
                     PtsDeviceId = request.PtsDeviceId,
                     ThresholdValue = request.ThresholdValue,
                     ActualValue = request.ActualValue,
@@ -314,7 +314,7 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm {
                 .Take (take)
                 .Include (a => a.Site)
                 .Include (a => a.Tank)
-                .Include (a => a.Device)
+                //.Include (a => a.Device)
                 .ToListAsync (cancellationToken);
         }
 
@@ -325,7 +325,7 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm {
             return await _context.ActiveAlarms
                 .Include (a => a.Site)
                 .Include (a => a.Tank)
-                .Include (a => a.Device)
+                //.Include (a => a.Device)
                 .Include (a => a.AlarmHandler)
                 .Include (a => a.PTSAlertRecord)
                 .Include (a => a.ReconciliationDiscrepancy)
@@ -363,11 +363,11 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm {
                 query = query.Where (a => a.TankId == null);
             }
 
-            if (deviceId.HasValue) {
-                query = query.Where (a => a.DeviceId == deviceId.Value);
-            } else {
-                query = query.Where (a => a.DeviceId == null);
-            }
+            //if (deviceId.HasValue) {
+            //    query = query.Where (a => a.DeviceId == deviceId.Value);
+            //} else {
+            //    query = query.Where (a => a.DeviceId == null);
+            //}
 
             return await query.FirstOrDefaultAsync (cancellationToken);
         }

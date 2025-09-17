@@ -1,8 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.Extensions.Logging;
-
+using Noti = FMS.Domain.Entities.Features.Notifications;
 namespace FMS.Application.Features.Notification.Services.Channels {
     public class EmailNotificationChannel : INotificationChannel {
         private readonly IEmailService _emailService;
@@ -14,7 +14,7 @@ namespace FMS.Application.Features.Notification.Services.Channels {
             _logger = logger;
         }
 
-        public async Task<bool> SendAsync (FMS.Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
+        public async Task<bool> SendAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
             try {
                 var subject = notification.Title;
                 var body = $"{notification.Title}: {notification.Message}";

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Application.ModelsDTOs.FMS.AutomatedReconciliation {
+namespace FMS.Application.Features.FMS.AutomatedReconciliation {
     /// <summary>
     /// Data Transfer Object for ReconciliationDiscrepancy
     /// </summary>

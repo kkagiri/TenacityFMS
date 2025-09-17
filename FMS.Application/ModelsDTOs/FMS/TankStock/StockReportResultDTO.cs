@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankStock;
+namespace FMS.Application.Features.FMS.TankStock;
 
 //Cursor - DTO for stock report generation results
 public class StockReportResultDTO {

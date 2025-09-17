@@ -775,35 +775,36 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
           {/* Actions section - responsive */}
           <div className="tw-flex tw-flex-col sm:tw-flex-row tw-gap-3 tw-items-stretch sm:tw-items-center">
-            {/* Quick Actions */}
-            <div className="tw-flex-shrink-0 tw-w-full sm:tw-w-auto sm:tw-min-w-48">
-              <QuickActions
-                collapsed={false}
-                onRefreshData={handleRefresh}
-                sites={sites}
-                user={user}
-              />
-            </div>
+            {/* All buttons in same container for proper alignment */}
+            <div className="tw-flex tw-flex-col sm:tw-flex-row tw-gap-2 tw-w-full sm:tw-w-auto">
+              {/* Stock Management - full width on mobile, auto on desktop */}
+              <div className="tw-w-full sm:tw-w-auto">
+                <QuickActions
+                  collapsed={false}
+                  onRefreshData={handleRefresh}
+                  sites={sites}
+                  user={user}
+                />
+              </div>
 
+              {/* Filters and Refresh */}
+              <div className="tw-flex tw-gap-2 tw-flex-shrink-0">
+                <Button
+                  text="Filters"
+                  icon="fa-light fa-filter"
+                  onClick={() => setShowFilterPopup(true)}
+                  stylingMode="outlined"
+                  className="tw-flex-1 sm:tw-flex-initial tw-min-w-24"
+                />
 
-
-            {/* Filters and Refresh */}
-            <div className="tw-flex tw-gap-2 tw-flex-shrink-0">
-              <Button
-                text="Filters"
-                icon="fa-light fa-filter"
-                onClick={() => setShowFilterPopup(true)}
-                stylingMode="outlined"
-                className="tw-flex-1 sm:tw-flex-initial tw-min-w-24"
-              />
-
-              <Button
-                text="Refresh"
-                icon="fa-light fa-refresh"
-                onClick={handleRefresh}
-                stylingMode="outlined"
-                className="tw-flex-1 sm:tw-flex-initial"
-              />
+                <Button
+                  text="Refresh"
+                  icon="fa-light fa-refresh"
+                  onClick={handleRefresh}
+                  stylingMode="outlined"
+                  className="tw-flex-1 sm:tw-flex-initial"
+                />
+              </div>
             </div>
           </div>
         </div>

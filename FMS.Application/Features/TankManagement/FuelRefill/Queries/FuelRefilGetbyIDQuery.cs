@@ -1,10 +1,10 @@
-using FMS.Persistence.DataAccess;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
