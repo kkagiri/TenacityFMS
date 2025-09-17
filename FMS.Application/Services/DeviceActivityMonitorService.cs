@@ -217,7 +217,7 @@ namespace FMS.Application.Services {
                     }
                 }
 
-                DeviceConnection? activeDbConnection = await context.DeviceConnections
+                PTSDeviceConnection? activeDbConnection = await context.DeviceConnections
                     .Where (dc => dc.PtsdeviceId == deviceIdStr && dc.DisconnectedAt == null)
                     .OrderByDescending (dc => dc.ConnectedAt)
                     .FirstOrDefaultAsync (stoppingToken);
@@ -285,7 +285,7 @@ namespace FMS.Application.Services {
                             }
                         } else {
                             if (activeDbConnection == null) {
-                                var newConnection = new DeviceConnection {
+                                var newConnection = new PTSDeviceConnection {
                                 PtsdeviceId = deviceIdStr,
                                 IpAddress = currentIp,
                                 ConnectedAt = now,
@@ -330,7 +330,7 @@ namespace FMS.Application.Services {
                                 activeDbConnection.Status = determinedStatus;
                             } else {
                                 _logger.LogWarning ("[{DeviceId}] Device activity updated while Connected, but NO active DeviceConnection record found. Creating one.", deviceIdStr);
-                                var newConnection = new DeviceConnection {
+                                var newConnection = new PTSDeviceConnection {
                                     PtsdeviceId = deviceIdStr,
                                     IpAddress = currentIp,
                                     ConnectedAt = originalLastActivity ?? now,

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.TankStock;
+using FMS.Application.Features.FMS.TankStock;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

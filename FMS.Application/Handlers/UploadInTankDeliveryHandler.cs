@@ -1,51 +1,45 @@
 using System;
 using System.Threading.Tasks;
-using FMS.Application.Handlers.Interface;
-using FMS.Application.ModelsDTOs.PTS;
-using FMS.Domain.PTSCommon;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.InTankDeliveryCommand;
+using FMS.Application.Features.PTS;
+using FMS.Application.Handlers.Interface;
+using FMS.Domain.PTSCommon;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Handlers
-{
-    [PacketType("UploadInTankDelivery")]
-    public class UploadInTankDeliveryHandler : IPacketHandler
-    {
+namespace FMS.Application.Handlers {
+    [PacketType ("UploadInTankDelivery")]
+    public class UploadInTankDeliveryHandler : IPacketHandler {
         private readonly ILogger<UploadInTankDeliveryHandler> _logger;
         private readonly IMediator _mediator;
 
-        public UploadInTankDeliveryHandler(
+        public UploadInTankDeliveryHandler (
             ILogger<UploadInTankDeliveryHandler> logger,
-            IMediator mediator)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            IMediator mediator) {
+            _logger = logger ??
+                throw new ArgumentNullException (nameof (logger));
+            _mediator = mediator ??
+                throw new ArgumentNullException (nameof (mediator));
         }
 
         public string PacketType => "UploadInTankDelivery";
 
-        public async Task<Packet> HandlePacketAsync(string deviceId, Packet packet)
-        {
-            var responsePacket = new Packet
-            {
+        public async Task<Packet> HandlePacketAsync (string deviceId, Packet packet) {
+            var responsePacket = new Packet {
                 Id = packet.Id,
                 Type = packet.Type
             };
 
-            try
-            {
-                if (packet.Data == null)
-                {
+            try {
+                if (packet.Data == null) {
                     responsePacket.Error = true;
                     responsePacket.Code = 400;
                     responsePacket.Message = "Missing in-tank delivery data";
                     return responsePacket;
                 }
 
-                var inTankDeliveryDto = packet.Data.ToObject<InTankDeliveryDto>();
-                if (inTankDeliveryDto == null)
-                {
+                var inTankDeliveryDto = packet.Data.ToObject<InTankDeliveryDto> ();
+                if (inTankDeliveryDto == null) {
                     responsePacket.Error = true;
                     responsePacket.Code = 400;
                     responsePacket.Message = "Invalid in-tank delivery data format";
@@ -53,31 +47,26 @@ namespace FMS.Application.Handlers
                 }
 
                 //Cursor: Enrich in-tank delivery with device context
-                await EnrichInTankDeliveryWithContext(deviceId, inTankDeliveryDto, packet.Id);
+                await EnrichInTankDeliveryWithContext (deviceId, inTankDeliveryDto, packet.Id);
 
-                var command = new CreateInTankDeliveryCommand(inTankDeliveryDto, deviceId);
-                var result = await _mediator.Send(command);
+                var command = new CreateInTankDeliveryCommand (inTankDeliveryDto, deviceId);
+                var result = await _mediator.Send (command);
 
                 responsePacket.Error = !result.IsSuccess;
                 responsePacket.Message = result.Message;
                 responsePacket.Code = result.IsSuccess ? 200 : 500;
 
-                if (result.IsSuccess)
-                {
-                    _logger.LogInformation("Successfully processed in-tank delivery for device {DeviceId}, tank {TankId}, start {StartTime}, end {EndTime}",
+                if (result.IsSuccess) {
+                    _logger.LogInformation ("Successfully processed in-tank delivery for device {DeviceId}, tank {TankId}, start {StartTime}, end {EndTime}",
                         deviceId, inTankDeliveryDto.Tank, inTankDeliveryDto.StartValues?.DateTime, inTankDeliveryDto.EndValues?.DateTime);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to process in-tank delivery for device {DeviceId}, tank {TankId}: {Message}",
+                } else {
+                    _logger.LogWarning ("Failed to process in-tank delivery for device {DeviceId}, tank {TankId}: {Message}",
                         deviceId, inTankDeliveryDto.Tank, result.Message);
                 }
 
                 return responsePacket;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing in-tank delivery packet for device {DeviceId}", deviceId);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error processing in-tank delivery packet for device {DeviceId}", deviceId);
                 responsePacket.Error = true;
                 responsePacket.Code = 500;
                 responsePacket.Message = "Error processing in-tank delivery packet";
@@ -86,28 +75,22 @@ namespace FMS.Application.Handlers
         }
 
         //Cursor: Enrich in-tank delivery with device and context information
-        private async Task EnrichInTankDeliveryWithContext(string deviceId, InTankDeliveryDto delivery, int packetId)
-        {
-            try
-            {
+        private async Task EnrichInTankDeliveryWithContext (string deviceId, InTankDeliveryDto delivery, int packetId) {
+            try {
                 //Cursor: Set device context
-                if (string.IsNullOrEmpty(delivery.PtsId))
-                {
+                if (string.IsNullOrEmpty (delivery.PtsId)) {
                     delivery.PtsId = deviceId;
                 }
 
-                if (delivery.PacketId <= 0)
-                {
+                if (delivery.PacketId <= 0) {
                     delivery.PacketId = packetId;
                 }
 
                 //Cursor: Log in-tank delivery context
-                _logger.LogInformation("Enriched in-tank delivery: DeviceId={DeviceId}, Tank={Tank}, FuelGrade={FuelGradeId}, StartVolume={StartVolume}, EndVolume={EndVolume}",
+                _logger.LogInformation ("Enriched in-tank delivery: DeviceId={DeviceId}, Tank={Tank}, FuelGrade={FuelGradeId}, StartVolume={StartVolume}, EndVolume={EndVolume}",
                     deviceId, delivery.Tank, delivery.FuelGradeId, delivery.StartValues?.ProductVolume, delivery.EndValues?.ProductVolume);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error enriching in-tank delivery context for device {DeviceId}, tank {Tank}",
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error enriching in-tank delivery context for device {DeviceId}, tank {Tank}",
                     deviceId, delivery.Tank);
             }
         }

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankVolumeHistory {
+namespace FMS.Application.Features.FMS.TankVolumeHistory {
     public class TankVolumeHistoryDTO {
         public int Id { get; set; }
         public int? TankId { get; set; }

@@ -379,7 +379,7 @@ namespace FMS.Testing {
             _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
                 .ReturnsAsync (false);
 
-            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateFuelTagQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 30, false));
 
             _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
@@ -389,7 +389,7 @@ namespace FMS.Testing {
             var result = await _handler.Handle (request, CancellationToken.None);
 
             // Assert
-            _mockMediator.Verify (x => x.Send (It.Is<AuthenticateTagQuery> (q => q.TagName == "TAG123"), It.IsAny<CancellationToken> ()), Times.Once);
+            _mockMediator.Verify (x => x.Send (It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == "TAG123"), It.IsAny<CancellationToken> ()), Times.Once);
             Assert.True (result.Success);
         }
 
@@ -412,7 +412,7 @@ namespace FMS.Testing {
             _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
                 .ReturnsAsync (false);
 
-            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateFuelTagQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (false, null, 0, false));
 
             // Act
@@ -444,7 +444,7 @@ namespace FMS.Testing {
                 .ReturnsAsync (false);
 
             decimal tagDoseLimit = 25;
-            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateFuelTagQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, tagDoseLimit, false));
 
             _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
@@ -483,7 +483,7 @@ namespace FMS.Testing {
             _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
                 .ReturnsAsync (false);
 
-            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateFuelTagQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 30, false));
 
             _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
@@ -622,7 +622,7 @@ namespace FMS.Testing {
             _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
                 .ReturnsAsync (false);
 
-            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateFuelTagQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, tagDoseLimit, false));
 
             _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))
@@ -685,7 +685,7 @@ namespace FMS.Testing {
         public async Task Handle_PassesTagIdToAuthData_WhenTagIsAuthenticated () {
             // Arrange
             string tagId = "TAG123";
-            var tag = new FMS.Domain.Entities.Tag {
+            var tag = new FMS.Domain.Entities.FuelTag {
                 Id = 1,
                 Name = tagId,
                 IsEnabled = true
@@ -703,7 +703,7 @@ namespace FMS.Testing {
             _mockAuthTracker.Setup (x => x.IsAuthorized (It.IsAny<string> (), It.IsAny<int> ()))
                 .ReturnsAsync (false);
 
-            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateTagQuery> (), It.IsAny<CancellationToken> ()))
+            _mockMediator.Setup (x => x.Send (It.IsAny<AuthenticateFuelTagQuery> (), It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, tag, 30, false));
 
             _mockPumpService.Setup (x => x.PumpAuthorizeAsync (It.IsAny<string> (), It.IsAny<PumpAuthorizeData> ()))

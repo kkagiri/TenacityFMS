@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, Label, RequiredRule, NumericRule } from 'devextreme-react/form';
 import { Button, Popup } from 'devextreme-react';
+import { LoadPanel } from 'devextreme-react/load-panel';
 
 import { fetchSitebyUserId } from '../../../redux/actions/siteActions';
 import { fetchTanks } from '../../../redux/actions/tankActions';
@@ -14,7 +15,7 @@ import notify from 'devextreme/ui/notify';
 
 // Future records validation imports
 import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
-import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
+import FutureRecordsConfirmationPopup from '../../../components/tank-stock/FutureRecordsConfirmationPopup';
 
 import './TankDeliveryForm.scss';
 
@@ -53,16 +54,53 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     });
   };
 
+  // State declarations - moved before useEffect hooks
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [loading] = useState(false);
   const [showAddSupplierPopup, setShowAddSupplierPopup] = useState(false);
   const [newSupplierData, setNewSupplierData] = useState({ name: '', contacts: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [showInfoNotice, setShowInfoNotice] = useState(true);
+  const [showInfoNotice, setShowInfoNotice] = useState(false); // Changed to false by default
+  const [autoHideTimeout, setAutoHideTimeout] = useState(null);
   const [showTankInfo, setShowTankInfo] = useState(false);
 
-  // Future records validation hook
+  // Handle info panel display with auto-hide
+  const handleInfoToggle = () => {
+    if (showInfoNotice) {
+      // If already showing, hide it
+      setShowInfoNotice(false);
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+        setAutoHideTimeout(null);
+      }
+    } else {
+      // Show the panel
+      setShowInfoNotice(true);
+
+      // Clear any existing timeout
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+      }
+
+      // Set up auto-hide after 3 seconds
+      const timeout = setTimeout(() => {
+        setShowInfoNotice(false);
+        setAutoHideTimeout(null);
+      }, 3000);
+
+      setAutoHideTimeout(timeout);
+    }
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+      }
+    };
+  }, [autoHideTimeout]);  // Future records validation hook
   const {
     isValidating,
     validationResult,
@@ -285,11 +323,36 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
     <div className="tank-delivery-form tw-h-full tw-flex tw-flex-col">
       <ScrollView className="tw-flex-1">
         <div className="tw-p-1">
+          {/* Header with Info Toggle */}
           <div className="tw-mb-6">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+              <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-m-0">Tank Delivery Entry</h2>
+              <button
+                onClick={handleInfoToggle}
+                className="tw-text-blue-500 hover:tw-text-blue-700 tw-transition-colors tw-p-1 hover:tw-bg-blue-50 tw-rounded-full tw-border-0 tw-bg-transparent"
+                title="Show information"
+                type="button"
+              >
+                <i className="fa-light fa-question tw-text-sm"></i>
+              </button>
+            </div>
 
             <p className="tw-text-gray-600 tw-text-sm">
               Record fuel delivery details including amounts, driver information, and delivery documentation.
             </p>
+
+            {/* Information Panel */}
+            {showInfoNotice && (
+              <div className="tw-mb-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-md tw-p-2 tw-transition-all tw-duration-300 tw-ease-in-out tw-mt-3">
+                <div className="tw-flex tw-items-center">
+                  <i className="fa-light fa-info-circle tw-text-blue-500 tw-mr-2 tw-text-sm"></i>
+                  <div className="tw-text-blue-700 tw-text-xs">
+                    <span className="tw-font-medium">Delivery Information:</span> Record fuel delivery to update tank inventory.
+                    <span className="tw-text-blue-600"> • Stock before delivery auto-calculated from current volume</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {loading && (
@@ -298,23 +361,27 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
             </div>
           )}
 
-          {/* Future Records Warning */}
-          {(showWarning || validationError) && (
-            <div className="tw-mb-4">
-              <FutureRecordsWarning
-                validationResult={validationResult}
-                onConfirm={confirmProceed}
-                onCancel={cancelProceed}
-                isVisible={showWarning}
-              />
-              {validationError && (
-                <div className="tw-mt-2 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded tw-text-red-700">
-                  <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
-                  {validationError}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Future Records Validation Loading Panel */}
+          <LoadPanel
+            visible={isValidating}
+            message="Validating historical entry..."
+            showIndicator={true}
+            showPane={true}
+            shading={true}
+            position={{ my: 'center', at: 'center', of: window }}
+            shadingColor="rgba(0, 0, 0, 0.4)"
+            width={300}
+            height={120}
+          />
+
+          {/* Future Records Confirmation Popup */}
+          <FutureRecordsConfirmationPopup
+            validationResult={validationResult}
+            onConfirm={confirmProceed}
+            onCancel={cancelProceed}
+            isVisible={showWarning || !!validationError}
+            isLoading={false}
+          />
 
           {/* Tank Info Panel (Dismissible) */}
           {formData.tankId && showTankInfo && (
@@ -541,29 +608,6 @@ const TankDeliveryForm = ({ updateFormData, isLoading, onSubmit, onCancel }) => 
               <Label text="Invoice Number" />
             </SimpleItem>
           </Form>
-
-          {/* Information Notice - Moved to bottom */}
-          {showInfoNotice && (
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                <div className="tw-flex-1">
-                  <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">Delivery Information</h4>
-                  <p className="tw-text-blue-700 tw-text-sm">
-                    Record fuel delivery details to update tank inventory levels. The delivery amount will increase the tank's current volume.
-                    Stock before delivery is automatically calculated based on current tank volume.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowInfoNotice(false)}
-                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
-                  title="Close information"
-                >
-                  <i className="fa-light fa-times"></i>
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Form Actions */}
           <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-6 tw-pt-6 tw-border-t tw-border-gray-200">

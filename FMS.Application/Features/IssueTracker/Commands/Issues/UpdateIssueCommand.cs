@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS.Issuetracker;
+using FMS.Application.Features.FMS.Issuetracker;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -70,7 +70,7 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
             entity.ClosingDate = request.IssueTracker.ClosingDate;
             entity.LastModfield = DateTime.UtcNow;
             entity.VehicleId = request.IssueTracker.Vehicle;
-            entity.DeviceId = request.IssueTracker.Device;
+            //entity.DeviceId = request.IssueTracker.Device;
             entity.DeviceType = request.IssueTracker.DeviceType;
             entity.AssignTo = assignToUserId ?? entity.AssignTo;
 

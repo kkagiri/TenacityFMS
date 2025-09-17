@@ -1,9 +1,9 @@
  //Cursor - Create TaskController in FMS.WebClient/Controllers/
  using System.Security.Claims;
  using FMS.Application.Common;
+ using FMS.Application.Features.FMS.Task;
  using FMS.Application.Features.TaskManagement.Commands;
  using FMS.Application.Features.TaskManagement.Queries;
- using FMS.Application.ModelsDTOs.FMS.Task;
  using MediatR;
  using Microsoft.AspNetCore.Authentication.JwtBearer;
  using Microsoft.AspNetCore.Authorization;

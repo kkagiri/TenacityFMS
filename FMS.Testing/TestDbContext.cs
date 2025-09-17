@@ -13,7 +13,7 @@ namespace FMS.Testing {
         public TestDbContext (DbContextOptions options) : base (options) { }
 
         // Add DbSet properties for entities used in tests
-        public virtual DbSet<Tag> Tags { get; set; }
+        public virtual DbSet<FuelTag> Tags { get; set; }
         public virtual DbSet<FuelingRuleSet> FuelingRuleSets { get; set; }
         public virtual DbSet<FuelingRule> FuelingRules { get; set; }
         public virtual DbSet<Employee> Employees { get; set; }
@@ -30,7 +30,7 @@ namespace FMS.Testing {
             base.OnModelCreating (modelBuilder);
 
             // Configure Tag entity
-            modelBuilder.Entity<Tag> (entity => {
+            modelBuilder.Entity<FuelTag> (entity => {
                 entity.HasKey (e => e.Id);
                 entity.Property (e => e.IsEnabled).HasDefaultValue (true);
                 entity.HasOne (e => e.FuelRuleSet)

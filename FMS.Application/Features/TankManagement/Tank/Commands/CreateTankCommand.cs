@@ -1,41 +1,35 @@
-﻿using AutoMapper;
-using FMS.Application.ModelsDTOs.FMS.Tank;
-using FMS.Domain.Entities;
-using FMS.Persistence.DataAccess;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
+using FMS.Application.Features.FMS.Tank;
+using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Command.DatabaseCommand.TankCommands
-{
-    public record CreateTankCommand(TankDTO TankDto) : IRequest<int>;
+namespace FMS.Application.Command.DatabaseCommand.TankCommands {
+    public record CreateTankCommand (TankDTO TankDto) : IRequest<int>;
 
-    public class CreateTankCommandHandler : IRequestHandler<CreateTankCommand, int>
-    {
+    public class CreateTankCommandHandler : IRequestHandler<CreateTankCommand, int> {
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<CreateTankCommandHandler> _logger;
 
-        public CreateTankCommandHandler(GpsdataContext context, IMapper mapper, ILogger<CreateTankCommandHandler> logger)
-        {
+        public CreateTankCommandHandler (GpsdataContext context, IMapper mapper, ILogger<CreateTankCommandHandler> logger) {
             _context = context;
             _mapper = mapper;
             _logger = logger;
         }
 
-        public async Task<int> Handle(CreateTankCommand request, CancellationToken cancellationToken)
-        {
-            try
-            {
+        public async Task<int> Handle (CreateTankCommand request, CancellationToken cancellationToken) {
+            try {
                 // Direct property assignment instead of AutoMapper
-                var tank = new Tank
-                {
+                var tank = new Tank {
                     Name = request.TankDto.Name,
                     TankVolume = request.TankDto.TankVolume,
                     TankHeight = request.TankDto.TankHeight,
@@ -44,41 +38,35 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     SiteId = request.TankDto.SiteId,
                     DiscrepancyThreshold = request.TankDto.DiscrepancyThreshold,
                     CurrentStock = request.TankDto.CurrentStock,
-                    UseBookKeeping = request.TankDto.UseBookKeeping ? (sbyte)1 : (sbyte)0,
+                    UseBookKeeping = request.TankDto.UseBookKeeping ? (sbyte) 1 : (sbyte) 0,
                     LastStockUpdate = request.TankDto.LastStockUpdate
                 };
 
                 // Validate the tank name
-                if (string.IsNullOrEmpty(tank.Name))
-                {
-                    throw new ArgumentException("Tank name is required");
+                if (string.IsNullOrEmpty (tank.Name)) {
+                    throw new ArgumentException ("Tank name is required");
                 }
 
-                if (tank.SiteId == 0) throw new ArgumentException("SiteId is required");
+                if (tank.SiteId == 0) throw new ArgumentException ("SiteId is required");
 
-                var siteExists = await _context.Sites.AnyAsync(s => s.Id == tank.SiteId, cancellationToken);
-                if (!siteExists)
-                {
-                    throw new ArgumentException("Invalid SiteId");
+                var siteExists = await _context.Sites.AnyAsync (s => s.Id == tank.SiteId, cancellationToken);
+                if (!siteExists) {
+                    throw new ArgumentException ("Invalid SiteId");
                 }
 
-                if (tank.PtsId != null)
-                {
-                    var ptsExists = await _context.Ptsdevices.AnyAsync(p => p.Ptsid == tank.PtsId, cancellationToken);
-                    if (!ptsExists)
-                    {
-                        throw new ArgumentException("Invalid PtsId");
+                if (tank.PtsId != null) {
+                    var ptsExists = await _context.Ptsdevices.AnyAsync (p => p.Ptsid == tank.PtsId, cancellationToken);
+                    if (!ptsExists) {
+                        throw new ArgumentException ("Invalid PtsId");
                     }
                 }
 
-                _context.Tanks.Add(tank);
-                await _context.SaveChangesAsync(cancellationToken);
+                _context.Tanks.Add (tank);
+                await _context.SaveChangesAsync (cancellationToken);
 
                 return tank.Id;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating tank");
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error creating tank");
                 throw;
             }
         }

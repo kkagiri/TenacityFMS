@@ -1,8 +1,7 @@
 using System;
-namespace FMS.Application.ModelsDTOs.FMS.FuelRefil;
+namespace FMS.Application.Features.FMS.FuelRefil;
 
-public class RefillSummaryDTO
-{
+public class RefillSummaryDTO {
     public string VehicleName { get; set; }
     public string SiteName { get; set; }
     public int RefillCount { get; set; }

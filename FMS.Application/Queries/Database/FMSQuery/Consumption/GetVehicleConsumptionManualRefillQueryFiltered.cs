@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.FMS.Consumption;
+using FMS.Application.Features.FMS.Consumption;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;

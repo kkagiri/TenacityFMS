@@ -1,7 +1,5 @@
-namespace FMS.Application.ModelsDTOs.PTS
-{
-    public class ParameterDTO
-    {
+namespace FMS.Application.Features.PTS {
+    public class ParameterDTO {
         // Identifier of parameter object: "PTS", "Pump", or "Probe"
         public string Device { get; set; }
 

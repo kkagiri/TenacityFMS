@@ -16,7 +16,7 @@ const ROUTE_PATTERNS = {
     /^\/notifications/,  // Notifications typically show on dashboard
     /^\/issue-tracker/,  // Issue tracking often needs dashboard updates
     /^\/active-alarms/,  // Active alarms are dashboard-centric
-    /^\/tankstock/       // Tank stock monitoring uses dashboard features
+    // /^\/tankstock/       // Tank stock monitoring uses dashboard features
   ],
   PTS: [
     /^\/pts/,

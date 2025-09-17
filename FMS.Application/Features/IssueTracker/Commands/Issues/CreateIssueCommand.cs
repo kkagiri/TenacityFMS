@@ -2,7 +2,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.ModelsDTOs.FMS.Issuetracker;
+using FMS.Application.Features.FMS.Issuetracker;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -72,7 +72,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                     ClosingDate = request.IssueTrackerDto.ClosingDate,
                     LastModfield = DateTime.UtcNow,
                     VehicleId = request.IssueTrackerDto.Vehicle,
-                    DeviceId = request.IssueTrackerDto.Device,
+                    //DeviceId = request.IssueTrackerDto.Device,
                     DeviceType = request.IssueTrackerDto.DeviceType,
                     AssignTo = assignToUserId
                 };

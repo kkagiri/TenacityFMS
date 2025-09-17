@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Application.ModelsDTOs.FMS.Task {
+namespace FMS.Application.Features.FMS.Task {
     public class TaskDTO {
         public int Id { get; set; }
         public string Title { get; set; } = null!;

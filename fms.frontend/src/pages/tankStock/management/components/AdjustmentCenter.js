@@ -21,8 +21,8 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
   // Tab data similar to StockManagement pattern
   const tabData = [
     { text: "Stock Adjustments", icon: "fa-light fa-list", badge: adjustments?.length },
-    { text: "Quick Actions", icon: "fa-light fa-bolt" },
-    { text: "Reconciliation", icon: "fa-light fa-balance-scale" }
+    // { text: "Quick Actions", icon: "fa-light fa-bolt" },
+    // { text: "Reconciliation", icon: "fa-light fa-balance-scale" }
   ];
 
   // Custom tab item renderer similar to StockManagement
@@ -221,25 +221,25 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
             </div>
           </div>
         );
-      case 2:
-        return (
-          <div className="tw-p-6">
-            <div className="tw-bg-orange-50 tw-border tw-border-orange-200 tw-rounded-lg tw-p-8 tw-text-center">
-              <i className="fa-light fa-balance-scale tw-text-4xl tw-text-orange-600 tw-mb-4"></i>
-              <h3 className="tw-text-xl tw-font-semibold tw-text-orange-800 tw-mb-2">
-                Stock Reconciliation
-              </h3>
-              <p className="tw-text-orange-600 tw-mb-4">
-                Reconciliation workflows will be implemented next.
-              </p>
-              <Button
-                text="Coming Soon"
-                stylingMode="outlined"
-                disabled={true}
-              />
-            </div>
-          </div>
-        );
+      // case 2:
+      //   return (
+      //     <div className="tw-p-6">
+      //       <div className="tw-bg-orange-50 tw-border tw-border-orange-200 tw-rounded-lg tw-p-8 tw-text-center">
+      //         <i className="fa-light fa-balance-scale tw-text-4xl tw-text-orange-600 tw-mb-4"></i>
+      //         <h3 className="tw-text-xl tw-font-semibold tw-text-orange-800 tw-mb-2">
+      //           Stock Reconciliation
+      //         </h3>
+      //         <p className="tw-text-orange-600 tw-mb-4">
+      //           Reconciliation workflows will be implemented next.
+      //         </p>
+      //         <Button
+      //           text="Coming Soon"
+      //           stylingMode="outlined"
+      //           disabled={true}
+      //         />
+      //       </div>
+      //     </div>
+      //   );
       default:
         return null;
     }

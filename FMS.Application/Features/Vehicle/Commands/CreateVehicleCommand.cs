@@ -111,11 +111,11 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
             if (site == null) errors.Add($"Site with id {vehicleDTO.WorkingSiteId} not found");
         }
 
-        if (vehicleDTO.DeviceId.HasValue)
-        {
-            var device = await _context.Devices.FindAsync(vehicleDTO.DeviceId);
-            if (device == null) errors.Add($"Device with id {vehicleDTO.DeviceId} not found");
-        }
+        //if (vehicleDTO.DeviceId.HasValue)
+        //{
+        //    var device = await _context.Devices.FindAsync(vehicleDTO.DeviceId);
+        //    if (device == null) errors.Add($"Device with id {vehicleDTO.DeviceId} not found");
+        //}
 
         if (vehicleDTO.DefaultExptdAvgid.HasValue)
         {

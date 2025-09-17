@@ -5,10 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace FMS.Application.ModelsDTOs.PTS
-{
-    public class InTankDeliveryDto
-    {
+namespace FMS.Application.Features.PTS {
+    public class InTankDeliveryDto {
         public int Tank { get; set; }
         public int FuelGradeId { get; set; }
         public string? FuelGradeName { get; set; }
@@ -27,9 +25,8 @@ namespace FMS.Application.ModelsDTOs.PTS
         public int? TankId { get; set; }
     }
 
-    public class InTankDeliveryValuesDto
-    {
-        [JsonProperty("DateTime")]
+    public class InTankDeliveryValuesDto {
+        [JsonProperty ("DateTime")]
         public DateTime DateTime { get; set; }
         public float? ProductHeight { get; set; }
         public float? WaterHeight { get; set; }
@@ -40,8 +37,7 @@ namespace FMS.Application.ModelsDTOs.PTS
         public float? ProductMass { get; set; }
     }
 
-    public class InTankDeliveryAbsoluteValuesDto
-    {
+    public class InTankDeliveryAbsoluteValuesDto {
         public float? ProductHeight { get; set; }
         public float? WaterHeight { get; set; }
         public float? Temperature { get; set; }
@@ -52,4 +48,3 @@ namespace FMS.Application.ModelsDTOs.PTS
         public float? PumpsDispensedVolume { get; set; }
     }
 }
-

@@ -2,9 +2,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common.Constants;
 using FMS.Application.Infrastructure.Communication.SignalR;
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Noti = FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.Features.Notification.Services.Channels {
     public class SystemNotificationChannel : INotificationChannel {
@@ -17,7 +18,7 @@ namespace FMS.Application.Features.Notification.Services.Channels {
             _logger = logger;
         }
 
-        public async Task<bool> SendAsync (FMS.Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
+        public async Task<bool> SendAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
             try {
                 await _signalR.SendUserNotificationAsync (
                     recipient.UserId,

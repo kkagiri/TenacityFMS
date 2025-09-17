@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Notification.DTOs;
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.Notification.Services {

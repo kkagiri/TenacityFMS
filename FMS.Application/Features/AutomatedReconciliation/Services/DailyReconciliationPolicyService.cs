@@ -316,7 +316,7 @@ public class DailyReconciliationPolicyService {
 
     //Cursor - Check if policy is configured for daily reconciliation
     public bool IsDailyReconciliationPolicy (ReconciliationPolicy policy) {
-        return policy.ExecutionType == FMS.Domain.Entities.enums.ReconciliationPolicyType.Scheduled ||
+        return policy.ExecutionType == ReconciliationPolicyType.Scheduled ||
             policy.Name?.ToLower ().Contains ("daily") == true ||
             policy.Description?.ToLower ().Contains ("daily reconciliation") == true;
     }

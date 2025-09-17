@@ -32,9 +32,9 @@ namespace FMS.Persistence.EntityConfigurations
                     .UseCollation("utf8mb4_general_ci")
                     .HasCharSet("utf8mb4");
                 builder.Property(e => e.ClosingDate).HasColumnName("closingDate");
-                builder.Property(e => e.DeviceId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DeviceID");
+                //builder.Property(e => e.DeviceId)
+                //    .HasColumnType("int(11)")
+                //    .HasColumnName("DeviceID");
                 builder.Property(e => e.DeviceType).HasColumnType("int(11)");
                 builder.Property(e => e.DueDate).HasColumnName("dueDate");
                 builder.Property(e => e.IssueCategoryId)
@@ -74,10 +74,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("Issue_user");
 
-                builder.HasOne(d => d.DeviceTypeNavigation)
-                    .WithMany(p => p.Issuetrackers)
-                    .HasForeignKey(d => d.DeviceType)
-                    .HasConstraintName("Isuse_deviceType");
+                //builder.HasOne(d => d.DeviceTypeNavigation)
+                //    .WithMany(p => p.Issuetrackers)
+                //    .HasForeignKey(d => d.DeviceType)
+                //    .HasConstraintName("Isuse_deviceType");
 
                 builder.HasOne(d => d.IssueCategory)
                     .WithMany(p => p.Issuetrackers)

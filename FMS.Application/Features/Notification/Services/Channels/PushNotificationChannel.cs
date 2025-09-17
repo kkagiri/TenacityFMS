@@ -1,7 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.Extensions.Logging;
+using Noti = FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.Features.Notification.Services.Channels {
     /// <summary>
@@ -15,7 +16,7 @@ namespace FMS.Application.Features.Notification.Services.Channels {
             _logger = logger;
         }
 
-        public Task<bool> SendAsync (FMS.Domain.Entities.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
+        public Task<bool> SendAsync (Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken = default) {
             try {
                 // TODO: Implement push send via provider
                 _logger.LogInformation ("[Push] {DeviceOrUser}: {Title} - {Message}", recipient.RecipientAddress, notification.Title, notification.Message);

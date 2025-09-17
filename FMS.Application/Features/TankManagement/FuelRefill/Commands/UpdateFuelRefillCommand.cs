@@ -65,7 +65,7 @@ public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCo
             }
 
             // 4. Create new correction entry using existing create command
-            var createResult = await _mediator.Send (new CreateFuelRrefillCommand (new ModelsDTOs.FMS.FuelRefil.FuelRefilDTO {
+            var createResult = await _mediator.Send (new CreateFuelRrefillCommand (new Features.FMS.FuelRefil.FuelRefilDTO {
                 VehicleId = request.CorrectionData.VehicleId,
                     TankId = request.CorrectionData.TankId,
                     SiteId = request.CorrectionData.SiteId,

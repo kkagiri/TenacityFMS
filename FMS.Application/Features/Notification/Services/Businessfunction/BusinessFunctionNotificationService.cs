@@ -7,6 +7,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using FMS.Persistence.DataAccess;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

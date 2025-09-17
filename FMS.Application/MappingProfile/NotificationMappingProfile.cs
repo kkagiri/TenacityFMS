@@ -4,6 +4,7 @@ using AutoMapper;
 using FMS.Application.Features.Notification.Commands;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 
 namespace FMS.Application.MappingProfile {
     public class NotificationMappingProfile : Profile {

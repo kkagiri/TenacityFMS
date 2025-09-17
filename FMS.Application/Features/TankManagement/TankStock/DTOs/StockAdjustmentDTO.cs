@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace FMS.Application.ModelsDTOs.FMS.TankStock;
+namespace FMS.Application.Features.FMS.TankStock;
 
 //Cursor - Stock Adjustment DTO for tank stock adjustments
 public class StockAdjustmentDTO {

@@ -1,5 +1,5 @@
 using AutoMapper;
-using FMS.Application.ModelsDTOs.Dashboard;
+using FMS.Application.Features.Dashboard;
 using FMS.Domain.Entities.Dashboard;
 
 namespace FMS.Application.MappingProfile {

@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.SystemConfiguration;
+using FMS.Application.Features.SystemConfiguration;
 using FMS.Application.Queries.Database.SystemConfigurationQueries;
 using FMS.Persistence.DataAccess;
 using MediatR;

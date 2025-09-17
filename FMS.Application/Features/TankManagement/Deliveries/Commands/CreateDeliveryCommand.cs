@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.Delivery.cs;
+using FMS.Application.Features.FMS.Delivery.cs;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Util;
 using FMS.Domain.Entities;
@@ -133,8 +133,8 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands {
                     deliveryId : delivery.Id,
                     actionType : ActionType.Create, // This is a new delivery
                     recordedBy : request.DeliveryDTO.RecordedBy,
-                    newPhysicalStockValue: newPhysicalStockValue, // Pass calculated physical stock
-                    physicalStockSource: physicalStockSource, // Pass physical stock source
+                    newPhysicalStockValue : newPhysicalStockValue, // Pass calculated physical stock
+                    physicalStockSource : physicalStockSource, // Pass physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

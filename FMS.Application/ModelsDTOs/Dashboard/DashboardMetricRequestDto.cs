@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace FMS.Application.ModelsDTOs.Dashboard {
+namespace FMS.Application.Features.Dashboard {
     public class DashboardMetricRequestDto {
         [Required]
         public string MetricType { get; set; } = string.Empty; // fuel_dispense, engine_hours, km_travel, etc.

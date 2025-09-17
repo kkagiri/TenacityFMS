@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.NaftaATG
-{
-    public class SalesTranscationDTO
-    {
+namespace FMS.Application.Features.NaftaATG {
+    public class SalesTranscationDTO {
 
         public int ID { get; set; }
 

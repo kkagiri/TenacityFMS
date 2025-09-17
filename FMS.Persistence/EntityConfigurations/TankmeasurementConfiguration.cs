@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

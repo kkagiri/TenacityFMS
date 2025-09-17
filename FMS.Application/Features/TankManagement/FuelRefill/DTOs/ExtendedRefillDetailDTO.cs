@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.FMS.FuelRefil
-{
-    public class ExtendedRefillDetailDTO
-    {
+namespace FMS.Application.Features.FMS.FuelRefil {
+    public class ExtendedRefillDetailDTO {
         public int Id { get; set; }
         public int VehicleId { get; set; }
         public string HyoungNO { get; set; } // Add this to store the vehicle number (HyoungNo)

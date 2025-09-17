@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.SystemConfigurationCommands;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.SystemConfiguration;
+using FMS.Application.Features.SystemConfiguration;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

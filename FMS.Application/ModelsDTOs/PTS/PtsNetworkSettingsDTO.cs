@@ -1,7 +1,5 @@
-namespace FMS.Application.ModelsDTOs.PTS
-{
-    public class PtsNetworkSettingsDTO
-    {
+namespace FMS.Application.Features.PTS {
+    public class PtsNetworkSettingsDTO {
         public int[] IpAddress { get; set; }
         public int[] NetMask { get; set; }
         public int[] Gateway { get; set; }

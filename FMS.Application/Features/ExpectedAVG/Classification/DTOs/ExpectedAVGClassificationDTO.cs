@@ -5,19 +5,18 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.FMS
-{
-    public class ExpectedAVGClassficationDTO
-    {
-        [JsonPropertyName("id")]
+namespace FMS.Application.Features.FMS {
+    public class ExpectedAVGClassficationDTO {
+        [JsonPropertyName ("id")]
         public int Id { get; set; }
-        [JsonPropertyName("name")]
+
+        [JsonPropertyName ("name")]
         public string Name { get; set; } = string.Empty;
 
-        [JsonPropertyName("description")]
+        [JsonPropertyName ("description")]
         public string Description { get; set; } = string.Empty;
 
-        [JsonPropertyName("iskmperLiter")]
+        [JsonPropertyName ("iskmperLiter")]
         public bool IskmperLiter { get; set; }
 
     }

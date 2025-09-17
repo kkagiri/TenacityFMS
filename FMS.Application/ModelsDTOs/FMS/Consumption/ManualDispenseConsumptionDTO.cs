@@ -1,17 +1,15 @@
-﻿using FMS.Persistence.DataAccess;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FMS.Persistence.DataAccess;
+using MediatR;
+using Microsoft.Extensions.Logging;
+using NLog;
 
-namespace FMS.Application.ModelsDTOs.FMS.Consumption
-{
-    public class ManualDispenseConsumptionDTO
-    {
+namespace FMS.Application.Features.FMS.Consumption {
+    public class ManualDispenseConsumptionDTO {
         public int Id { get; set; }
         public int VehicleId { get; set; }
         public string HyoungNo { get; set; }
@@ -29,8 +27,7 @@ namespace FMS.Application.ModelsDTOs.FMS.Consumption
         public string Passenger { get; set; }
     }
 
-    public class RefillDetailDTO
-    {
+    public class RefillDetailDTO {
         public DateTime? Date { get; set; }
         public decimal? ManualFuelrefilAmount { get; set; }
         public int? PreviousMeterReading { get; set; }

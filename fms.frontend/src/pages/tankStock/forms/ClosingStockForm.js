@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, Label } from 'devextreme-react/form';
 import { Button } from 'devextreme-react';
+import { LoadPanel } from 'devextreme-react/load-panel';
 import DataGrid, {
     Column,
     GroupPanel,
@@ -27,7 +28,7 @@ import './ClosingStockForm.scss';
 
 // Future records validation imports
 import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
-import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
+import FutureRecordsConfirmationPopup from '../../../components/tank-stock/FutureRecordsConfirmationPopup';
 
 const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefilledData }) => {
     const dispatch = useDispatch();
@@ -66,6 +67,7 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefi
         });
     };
 
+    // State declarations - moved before useEffect hooks
     const [filteredTanks, setFilteredTanks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -78,10 +80,47 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefi
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
-    const [showInfoNotice, setShowInfoNotice] = useState(true);
+    const [showInfoNotice, setShowInfoNotice] = useState(false); // Changed to false by default
+    const [autoHideTimeout, setAutoHideTimeout] = useState(null);
 
-    // Future records validation hook
+    // Handle info panel display with auto-hide
+    const handleInfoToggle = () => {
+        if (showInfoNotice) {
+            // If already showing, hide it
+            setShowInfoNotice(false);
+            if (autoHideTimeout) {
+                clearTimeout(autoHideTimeout);
+                setAutoHideTimeout(null);
+            }
+        } else {
+            // Show the panel
+            setShowInfoNotice(true);
+
+            // Clear any existing timeout
+            if (autoHideTimeout) {
+                clearTimeout(autoHideTimeout);
+            }
+
+            // Set up auto-hide after 3 seconds
+            const timeout = setTimeout(() => {
+                setShowInfoNotice(false);
+                setAutoHideTimeout(null);
+            }, 3000);
+
+            setAutoHideTimeout(timeout);
+        }
+    };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (autoHideTimeout) {
+                clearTimeout(autoHideTimeout);
+            }
+        };
+    }, [autoHideTimeout]);    // Future records validation hook
     const {
+        isValidating,
         validationResult,
         error: validationError,
         showWarning,
@@ -284,12 +323,37 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefi
     return (
         <div className="closing-stock-form tw-h-full tw-flex tw-flex-col">
             <ScrollView className="tw-flex-1">
-                <div className="tw-p-4">
+                                <div className="tw-p-4">
+                {/* Header with Info Toggle */}
                 <div className="tw-mb-6">
+                    <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                        <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-m-0">Closing Stock Entry</h2>
+                        <button
+                            onClick={handleInfoToggle}
+                            className="tw-text-blue-500 hover:tw-text-blue-700 tw-transition-colors tw-p-1 hover:tw-bg-blue-50 tw-rounded-full tw-border-0 tw-bg-transparent"
+                            title="Show information"
+                            type="button"
+                        >
+                            <i className="fa-light fa-question tw-text-sm"></i>
+                        </button>
+                    </div>
 
                     <p className="tw-text-gray-600 tw-text-sm">
-                        Record the closing stock amount for the selected tank and date.
+                        Record the closing stock for fuel tanks at the end of each business day.
                     </p>
+
+                    {/* Information Panel */}
+                    {showInfoNotice && (
+                        <div className="tw-mb-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-md tw-p-2 tw-transition-all tw-duration-300 tw-ease-in-out tw-mt-3">
+                            <div className="tw-flex tw-items-center">
+                                <i className="fa-light fa-info-circle tw-text-blue-500 tw-mr-2 tw-text-sm"></i>
+                                <div className="tw-text-blue-700 tw-text-xs">
+                                    <span className="tw-font-medium">Closing Stock:</span> Record tank fuel quantity at end of specified date.
+                                    <span className="tw-text-blue-600"> • Used for reconciliation and stock calculations</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Special notice for prefilled closing stock */}
@@ -306,29 +370,6 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefi
                                     The tank and date have been pre-selected to match the existing opening stock. Please enter the appropriate closing stock amount for this date.
                                 </p>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Dismissible Information Notice */}
-                {showInfoNotice && (
-                    <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                        <div className="tw-flex tw-items-start">
-                            <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                            <div className="tw-flex-1">
-                                <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">Closing Stock Information</h4>
-                                <p className="tw-text-blue-700 tw-text-sm">
-                                    Closing stock represents the fuel quantity available in the tank at the end of the specified date and time.
-                                    This value will be used for reconciliation and stock calculations.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setShowInfoNotice(false)}
-                                className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
-                                title="Close information"
-                            >
-                                <i className="fa-light fa-times"></i>
-                            </button>
                         </div>
                     </div>
                 )}
@@ -503,23 +544,27 @@ const ClosingStockForm = ({ updateFormData, isLoading, onSubmit, onCancel, prefi
                     )}
                 </Form>
 
-                {/* Future Records Warning */}
-                {(showWarning || validationError) && (
-                    <div className="tw-mb-4">
-                        <FutureRecordsWarning
-                            validationResult={validationResult}
-                            onConfirm={confirmProceed}
-                            onCancel={cancelProceed}
-                            isVisible={showWarning}
-                        />
-                        {validationError && (
-                            <div className="tw-mt-2 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded tw-text-red-700">
-                                <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
-                                {validationError}
-                            </div>
-                        )}
-                    </div>
-                )}
+                {/* Future Records Validation Loading Panel */}
+                <LoadPanel
+                    visible={isValidating}
+                    message="Validating historical entry..."
+                    showIndicator={true}
+                    showPane={true}
+                    shading={true}
+                    position={{ my: 'center', at: 'center', of: window }}
+                    shadingColor="rgba(0, 0, 0, 0.4)"
+                    width={300}
+                    height={120}
+                />
+
+                {/* Future Records Confirmation Popup */}
+                <FutureRecordsConfirmationPopup
+                    validationResult={validationResult}
+                    onConfirm={confirmProceed}
+                    onCancel={cancelProceed}
+                    isVisible={showWarning || !!validationError}
+                    isLoading={false}
+                />
 
                 {/* Tank Volume History Section - Only show if tank is selected */}
                 {formData.siteId && formData.tankId && (

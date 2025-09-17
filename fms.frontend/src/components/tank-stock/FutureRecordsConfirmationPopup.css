@@ -1,0 +1,429 @@
+/* Future Records Confirmation Popup Styles */
+
+.future-records-confirmation-popup .dx-popup-content {
+  padding: 0 !important;
+}
+
+.popup-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.popup-scroll-content {
+  flex: 1;
+  padding: 20px 24px;
+}
+
+.future-records-warning-content {
+  padding: 0;
+}
+
+/* Policy Information Bar - Small indicator at top */
+.policy-info-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #e0f2fe;
+  border-bottom: 1px solid #b3e5fc;
+  font-size: 12px;
+  color: #0277bd;
+  font-weight: 500;
+}
+
+.policy-info-bar i {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+.warning-header {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #fef3cd 0%, #fef8e7 100%);
+}
+
+.warning-icon {
+  font-size: 24px;
+  color: #f59e0b;
+  margin-right: 16px;
+  margin-top: 2px;
+}
+
+.warning-title h3 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.warning-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Creative Info Bar Design */
+.impact-info-bar {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.info-bar-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+
+.info-bar-icon i {
+  font-size: 18px;
+  color: #d97706;
+}
+
+.info-bar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.record-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: #d97706;
+  line-height: 1;
+}
+
+.impact-text {
+  font-size: 16px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.policy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #78716c;
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  max-width: fit-content;
+}
+
+.policy-badge i {
+  font-size: 12px;
+}
+
+/* Impact Details Section */
+.impact-details {
+  background: #f8fafc;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.impact-details h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Record Breakdown Styles */
+.record-breakdown {
+  margin-top: 8px;
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.record-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  background: #dc2626;
+  color: white;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.record-type {
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Impact Note */
+.impact-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1e40af;
+  line-height: 1.4;
+}
+
+.impact-note i {
+  font-size: 16px;
+  color: #3b82f6;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+/* Action Buttons */
+.popup-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.popup-actions .dx-button {
+  min-width: 100px;
+  height: 40px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.popup-actions .dx-button:first-child {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.popup-actions .dx-button:first-child:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.popup-actions .dx-button:last-child {
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: #ffffff;
+}
+
+.popup-actions .dx-button:last-child:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Legacy styles for backwards compatibility */
+.warning-message {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.warning-message p:first-child {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.warning-message p:last-child {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.warning-details {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.warning-details > p:first-child {
+  margin: 0 0 12px 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.popup-scroll-content {
+  max-height: calc(80vh - 120px);
+}
+
+.popup-actions {
+  padding: 16px 24px !important;
+  margin: 0 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  background: #f8fafc;
+}
+
+/* DevExtreme button overrides for popup actions */
+.popup-actions .dx-button {
+  min-height: 36px;
+}
+
+.popup-actions .dx-button-default {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.popup-actions .dx-button-default:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.popup-actions .dx-button-outlined {
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.popup-actions .dx-button-outlined:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .future-records-confirmation-popup .dx-popup {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 10px !important;
+  }
+
+  .impact-info-bar {
+    padding: 12px 16px;
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .info-bar-icon {
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+
+  .impact-summary {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .record-count {
+    font-size: 20px;
+  }
+
+  .impact-text {
+    font-size: 14px;
+  }
+
+  .record-list {
+    gap: 6px;
+  }
+
+  .record-item {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .record-count-badge {
+    min-width: 28px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .warning-header {
+    padding: 16px 20px 12px;
+  }
+
+  .warning-message,
+  .warning-details,
+  .policy-info {
+    padding: 12px 20px;
+  }
+
+  .warning-footer {
+    padding: 12px 20px 0;
+  }
+
+  .popup-actions {
+    padding: 12px 20px !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .popup-actions .dx-button {
+    width: 100%;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .future-records-confirmation-popup .dx-popup {
+    width: 98% !important;
+    max-width: 98% !important;
+    margin: 5px !important;
+  }
+
+  .popup-content {
+    padding: 0 !important;
+  }
+
+  .impact-info-bar {
+    margin: 8px;
+    padding: 10px 14px;
+  }
+
+  .impact-details {
+    margin: 8px;
+    padding: 12px;
+  }
+
+  .record-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    text-align: left;
+  }
+
+  .record-count-badge {
+    align-self: flex-start;
+  }
+}

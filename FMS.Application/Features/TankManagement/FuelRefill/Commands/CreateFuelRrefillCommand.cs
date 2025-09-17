@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.FuelRefil;
+using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -205,8 +205,8 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands {
                     refillId : fuelRefil.Id,
                     actionType : ActionType.Create, // This is a new refill
                     recordedBy : fuelRefil.FuelBy,
-                    newPhysicalStockValue: newPhysicalStockValue, // Pass calculated physical stock
-                    physicalStockSource: physicalStockSource, // Pass physical stock source
+                    newPhysicalStockValue : newPhysicalStockValue, // Pass calculated physical stock
+                    physicalStockSource : physicalStockSource, // Pass physical stock source
                     cancellationToken : cancellationToken);
 
                 if (!volumeUpdateResult.Success) {

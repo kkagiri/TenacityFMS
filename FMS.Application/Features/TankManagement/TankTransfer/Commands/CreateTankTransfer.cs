@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.TankTransfer;
+using FMS.Application.Features.FMS.TankTransfer;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;

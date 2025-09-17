@@ -4,7 +4,7 @@ using AutoMapper.Configuration.Annotations;
 using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
 using FMS.Application.Common;
 using FMS.Application.Features.Employee.Queries;
-using FMS.Application.ModelsDTOs.FMS.Employee;
+using FMS.Application.Features.FMS.Employee;
 using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -221,6 +221,30 @@ namespace FMS.WebClient.Controllers {
                 return Ok (result);
             } catch (Exception ex) {
                 return StatusCode (500, new { message = "Error in quick employee search", error = ex.Message });
+            }
+        }
+
+        [HttpGet ("debug-search")]
+        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> DebugSearchEmployees ([FromQuery] string searchTerm, [FromQuery] int? limit = 50, [FromQuery] bool? active = true, [FromQuery] int? siteId = null) {
+            try {
+                if (string.IsNullOrWhiteSpace (searchTerm)) {
+                    return BadRequest (FMSResponse.FailedResponse ("Search term is required"));
+                }
+
+                // NO CACHING - Direct query to see what's actually happening
+                var query = new SearchEmployeeQuery {
+                    SearchTerm = searchTerm,
+                    Limit = limit,
+                    Active = active,
+                    SiteId = siteId
+                };
+
+                var result = await _mediator.Send (query);
+
+                return Ok (result);
+            } catch (Exception ex) {
+                return StatusCode (500, new { message = "Error in debug search", error = ex.Message });
             }
         }
 

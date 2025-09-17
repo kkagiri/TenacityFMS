@@ -1,7 +1,7 @@
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.Site.DTOs;
-using FMS.Domain.Entities;
+using Sites= FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 
 namespace FMS.Application.Features.Site.Commands
 {
@@ -63,7 +64,7 @@ namespace FMS.Application.Features.Site.Commands
                     return FMSResponse<int>.ValidationFailed(validationErrors);
                 }
 
-                var site = _mapper.Map<FMS.Domain.Entities.Site>(request.SiteDto);
+                var site = _mapper.Map<Sites.Site>(request.SiteDto);
 
                 _context.Sites.Add(site);
                 await _context.SaveChangesAsync(cancellationToken);

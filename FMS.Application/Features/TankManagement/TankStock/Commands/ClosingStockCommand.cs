@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.FMS.TankStock;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Integration;
-using FMS.Application.ModelsDTOs.FMS.TankStock;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
@@ -105,7 +105,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                 };
 
                 _context.Tankstocks.Add (newClosingStock);
-                
+
                 // Save only the Tankstock entry first to get the ID
                 await _context.SaveChangesAsync (cancellationToken);
 
@@ -129,7 +129,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
                     isOpening: false, // This is a closing stock
                     actionType : ActionType.Create, // This is a new closing stock
                     recordedBy : request.RecordedBy,
-                    newPhysicalStockValue: request.ClosingStock, // Pass the physical stock value
+                    newPhysicalStockValue : request.ClosingStock, // Pass the physical stock value
                     physicalStockSource: "Manual Closing Stock", // Pass the physical stock source
                     cancellationToken : cancellationToken);
 

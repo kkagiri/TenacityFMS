@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -17,6 +17,7 @@
     <Folder Include="ATGEntities\Nafta\" />
     <Folder Include="ATGEntities\Pts\" />
     <Folder Include="Entities\Common\Interface\" />
+    <Folder Include="Entities\Features\GPSManagement\" />
   </ItemGroup>
 
   

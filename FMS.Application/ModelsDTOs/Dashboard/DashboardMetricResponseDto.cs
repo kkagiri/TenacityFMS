@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.Dashboard {
+namespace FMS.Application.Features.Dashboard {
     public class DashboardMetricResponseDto {
         public decimal Value { get; set; }
         public string Unit { get; set; } = string.Empty;

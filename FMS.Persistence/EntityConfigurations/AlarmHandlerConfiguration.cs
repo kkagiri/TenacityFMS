@@ -28,7 +28,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.IsActive, "IX_AlarmHandler_IsActive");
                 builder.HasIndex(e => e.SiteId, "IX_AlarmHandler_SiteId");
                 builder.HasIndex(e => e.TankId, "IX_AlarmHandler_TankId");
-                builder.HasIndex(e => e.DeviceId, "IX_AlarmHandler_DeviceId");
+                //builder.HasIndex(e => e.DeviceId, "IX_AlarmHandler_DeviceId");
                 builder.HasIndex(e => e.NotificationPolicyId, "IX_AlarmHandler_NotificationPolicyId");
 
                 // Properties
@@ -59,8 +59,8 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.TankId)
                     .HasColumnType("int(11)");
 
-                builder.Property(e => e.DeviceId)
-                    .HasColumnType("int(11)");
+                //builder.Property(e => e.DeviceId)
+                //    .HasColumnType("int(11)");
 
                 builder.Property(e => e.TriggerConditions)
                     .HasColumnType("json");
@@ -146,11 +146,11 @@ namespace FMS.Persistence.EntityConfigurations
                     .OnDelete(DeleteBehavior.SetNull)
                     .HasConstraintName("FK_AlarmHandler_Tank");
 
-                builder.HasOne(d => d.Device)
-                    .WithMany()
-                    .HasForeignKey(d => d.DeviceId)
-                    .OnDelete(DeleteBehavior.SetNull)
-                    .HasConstraintName("FK_AlarmHandler_Device");
+                //builder.HasOne(d => d.Device)
+                //    .WithMany()
+                //    .HasForeignKey(d => d.DeviceId)
+                //    .OnDelete(DeleteBehavior.SetNull)
+                //    .HasConstraintName("FK_AlarmHandler_Device");
 
                 builder.HasOne(d => d.NotificationPolicy)
                     .WithMany()

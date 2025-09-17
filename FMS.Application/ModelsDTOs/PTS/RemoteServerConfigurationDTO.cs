@@ -1,7 +1,5 @@
-namespace FMS.Application.ModelsDTOs.PTS
-{
-    public class RemoteServerConfigurationDTO
-    {
+namespace FMS.Application.Features.PTS {
+    public class RemoteServerConfigurationDTO {
         public int[] IpAddress { get; set; }
         public string DomainName { get; set; }
         public int UserId { get; set; }

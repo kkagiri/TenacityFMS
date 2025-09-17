@@ -1,6 +1,6 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.FuelRefil {
+namespace FMS.Application.Features.FMS.FuelRefil {
 
     public class FuelRefilDTO {
         public int Id { get; set; }

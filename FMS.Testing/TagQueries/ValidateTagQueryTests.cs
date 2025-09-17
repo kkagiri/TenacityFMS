@@ -34,15 +34,15 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 50, false));
 
             // Setup tag details with limits not exceeded
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (new TagDetailsDto {
+                .ReturnsAsync (new FuelTagDetailsDto {
                     TagId = tagName,
                         DailyUsed = 30,
                         DailyLimit = 100,
@@ -52,7 +52,7 @@ namespace FMS.Testing.TagQueries {
                 });
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.True (result.IsValid);
@@ -71,15 +71,15 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful for master tag
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 50, true)); // IsMasterTag = true
 
             // Setup tag details with limits not exceeded
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (new TagDetailsDto {
+                .ReturnsAsync (new FuelTagDetailsDto {
                     TagId = tagName,
                         DailyUsed = 30,
                         DailyLimit = 100,
@@ -89,7 +89,7 @@ namespace FMS.Testing.TagQueries {
                 });
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.True (result.IsValid);
@@ -112,12 +112,12 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication failed
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (false, null, 0, false));
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsValid);
@@ -136,15 +136,15 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 0, false));
 
             // Setup tag details with daily limit exceeded
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (new TagDetailsDto {
+                .ReturnsAsync (new FuelTagDetailsDto {
                     TagId = tagName,
                         DailyUsed = 100, // Equal to daily limit (maxed out)
                         DailyLimit = 100,
@@ -154,7 +154,7 @@ namespace FMS.Testing.TagQueries {
                 });
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsValid);
@@ -174,15 +174,15 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful for master tag
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 0, true)); // IsMasterTag = true
 
             // Setup tag details with daily limit exceeded
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (new TagDetailsDto {
+                .ReturnsAsync (new FuelTagDetailsDto {
                     TagId = tagName,
                         DailyUsed = 100, // Equal to daily limit (maxed out)
                         DailyLimit = 100,
@@ -192,7 +192,7 @@ namespace FMS.Testing.TagQueries {
                 });
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsValid);
@@ -211,15 +211,15 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 0, false));
 
             // Setup tag details with monthly limit exceeded
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (new TagDetailsDto {
+                .ReturnsAsync (new FuelTagDetailsDto {
                     TagId = tagName,
                         DailyUsed = 50, // Within daily limit
                         DailyLimit = 100,
@@ -229,7 +229,7 @@ namespace FMS.Testing.TagQueries {
                 });
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsValid);
@@ -249,15 +249,15 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful for master tag
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 0, true)); // IsMasterTag = true
 
             // Setup tag details with monthly limit exceeded
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (new TagDetailsDto {
+                .ReturnsAsync (new FuelTagDetailsDto {
                     TagId = tagName,
                         DailyUsed = 50, // Within daily limit
                         DailyLimit = 100,
@@ -267,7 +267,7 @@ namespace FMS.Testing.TagQueries {
                 });
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsValid);
@@ -287,18 +287,18 @@ namespace FMS.Testing.TagQueries {
 
             // Setup tag authentication successful (to get to tag details lookup)
             _mockMediator.Setup (m => m.Send (
-                    It.Is<AuthenticateTagQuery> (q => q.TagName == tagName),
+                    It.Is<AuthenticateFuelTagQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ReturnsAsync (new AuthenticateTagResult (true, null, 50, false));
 
             // Setup tag details throws KeyNotFoundException
             _mockMediator.Setup (m => m.Send (
-                    It.Is<GetTagDetailsQuery> (q => q.TagName == tagName),
+                    It.Is<GetFuelTagDetailsQuery> (q => q.fuelTagName == tagName),
                     It.IsAny<CancellationToken> ()))
                 .ThrowsAsync (new KeyNotFoundException (errorMessage));
 
             // Act
-            var result = await _handler.Handle (new ValidateTagQuery (tagName), CancellationToken.None);
+            var result = await _handler.Handle (new ValidateFuelTagQuery (tagName), CancellationToken.None);
 
             // Assert
             Assert.False (result.IsValid);

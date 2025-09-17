@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
-using FMS.Application.ModelsDTOs.ATG;
-using FMS.Application.ModelsDTOs.FMS;
-using FMS.Application.ModelsDTOs.PTS;
+using FMS.Application.Features.ATG;
+using FMS.Application.Features.FMS;
+using FMS.Application.Features.PTS;
 using FMS.Domain.Entities;
 
 namespace FMS.Application.MappingProfile {

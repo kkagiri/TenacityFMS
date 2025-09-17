@@ -19,10 +19,10 @@ namespace FMS.Application.Queries.Database.PTSQueries.TagQueries {
     /// </summary>
     /// <param name="TagName">TAG ID </param>
     /// <param name="Date"> Date of Issue</param>
-    [Obsolete("Use FMS.Application.Features.Tag.Queries.GetDailyFuelIssuedForTagQuery instead")]
-    public record GetDailyFuelIssuedForTagQuery (Tag Tag, DateTime Date) : IRequest<decimal>;
+    [Obsolete ("Use FMS.Application.Features.Tag.Queries.GetDailyFuelIssuedForTagQuery instead")]
+    public record GetDailyFuelIssuedForTagQuery (FuelTag Tag, DateTime Date) : IRequest<decimal>;
 
-    [Obsolete("Use FMS.Application.Features.Tag.Queries.GetDailyFuelIssuedForTagQueryHandler instead")]
+    [Obsolete ("Use FMS.Application.Features.Tag.Queries.GetDailyFuelIssuedForTagQueryHandler instead")]
     public class GetDailyFuelIssuedForTagQueryHandler : IRequestHandler<GetDailyFuelIssuedForTagQuery, decimal> {
         private readonly GpsdataContext _context;
 
@@ -56,10 +56,10 @@ namespace FMS.Application.Queries.Database.PTSQueries.TagQueries {
     /// <summary>
     /// DEPRECATED: Use FMS.Application.Features.Tag.Queries.GetMonthlyFuelIssuedForTagQuery instead
     /// </summary>
-    [Obsolete("Use FMS.Application.Features.Tag.Queries.GetMonthlyFuelIssuedForTagQuery instead")]
+    [Obsolete ("Use FMS.Application.Features.Tag.Queries.GetMonthlyFuelIssuedForTagQuery instead")]
     public record GetMonthlyFuelIssuedForTagQuery (string TagName, DateTime Date) : IRequest<decimal>;
 
-    [Obsolete("Use FMS.Application.Features.Tag.Queries.GetMonthlyFuelIssuedForTagQueryHandler instead")]
+    [Obsolete ("Use FMS.Application.Features.Tag.Queries.GetMonthlyFuelIssuedForTagQueryHandler instead")]
     public class GetMonthlyFuelIssuedForTagQueryHandler : IRequestHandler<GetMonthlyFuelIssuedForTagQuery, decimal> {
         private readonly GpsdataContext _context;
 

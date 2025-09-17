@@ -65,7 +65,7 @@ public class UpdateDeliveryCommandHandler : IRequestHandler<UpdateDeliveryComman
             }
 
             // 4. Create new correction entry using existing create command
-            var createResult = await _mediator.Send (new CreateDeliveryCommand (new ModelsDTOs.FMS.Delivery.cs.DeliveryDTO {
+            var createResult = await _mediator.Send (new CreateDeliveryCommand (new Features.FMS.Delivery.cs.DeliveryDTO {
                 TankId = request.CorrectionData.TankId,
                     DeliveryDate = request.CorrectionData.DeliveryDate,
                     ManualDeliveryAmount = request.CorrectionData.ManualDeliveryAmount,

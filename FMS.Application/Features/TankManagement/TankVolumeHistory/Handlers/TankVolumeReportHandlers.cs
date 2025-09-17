@@ -7,11 +7,12 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
-using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TankVolumeHistories = FMS.Domain.Entities.Features.TankStockManagement;
+
 
 namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
     public class GetTankVolumeHistoryByMonthQueryHandler : IRequestHandler<GetTankVolumeHistoryByMonthQuery, VolumeHistorySummaryDTO> {
@@ -307,19 +308,13 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
         }
     }
 
-    public class GetTankVolumeHistoryCustomDateQueryHandler : IRequestHandler<GetTankVolumeHistoryCustomDateQuery, VolumeHistorySummaryDTO> {
-        private readonly GpsdataContext _context;
-        private readonly IMapper _mapper;
-        private readonly ILogger<GetTankVolumeHistoryCustomDateQueryHandler> _logger;
-
-        public GetTankVolumeHistoryCustomDateQueryHandler (
-            GpsdataContext context,
-            IMapper mapper,
-            ILogger<GetTankVolumeHistoryCustomDateQueryHandler> logger) {
-            _context = context;
-            _mapper = mapper;
-            _logger = logger;
-        }
+    public class GetTankVolumeHistoryCustomDateQueryHandler(
+        GpsdataContext context,
+        IMapper mapper,
+        ILogger<GetTankVolumeHistoryCustomDateQueryHandler> logger) : IRequestHandler<GetTankVolumeHistoryCustomDateQuery, VolumeHistorySummaryDTO> {
+        private readonly GpsdataContext _context = context;
+        private readonly IMapper _mapper = mapper;
+        private readonly ILogger<GetTankVolumeHistoryCustomDateQueryHandler> _logger = logger;
 
         public async Task<VolumeHistorySummaryDTO> Handle (GetTankVolumeHistoryCustomDateQuery request, CancellationToken cancellationToken) {
             try {
@@ -377,7 +372,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
             }
         }
 
-        private List<TankVolumeReportDTO> GroupByDay (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByDay (List<TankVolumeHistories.TankVolumeHistory> data) {
             return data
                 .GroupBy (tvh => new {
                     Date = tvh.Timestamp.Date,
@@ -408,7 +403,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
                 .ToList ();
         }
 
-        private List<TankVolumeReportDTO> GroupByWeek (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByWeek (List<TankVolumeHistories.TankVolumeHistory> data) {
             var calendar = new GregorianCalendar ();
             return data
                 .GroupBy (tvh => new {
@@ -441,7 +436,8 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
                 .ToList ();
         }
 
-        private List<TankVolumeReportDTO> GroupByMonth (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByMonth(List<TankVolumeHistories.TankVolumeHistory> data)
+        {
             return data
                 .GroupBy (tvh => new {
                     Year = tvh.Timestamp.Year,
@@ -560,7 +556,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
             }
         }
 
-        private List<TankVolumeReportDTO> GroupByMonth (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByMonth (List<TankVolumeHistories.TankVolumeHistory> data) {
             return data
                 .GroupBy (tvh => new {
                     Year = tvh.Timestamp.Year,
@@ -592,7 +588,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
                 .ToList ();
         }
 
-        private List<TankVolumeReportDTO> GroupByQuarter (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByQuarter (List<TankVolumeHistories.TankVolumeHistory> data) {
             return data
                 .GroupBy (tvh => new {
                     Year = tvh.Timestamp.Year,
@@ -624,7 +620,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
                 .ToList ();
         }
 
-        private List<TankVolumeReportDTO> GroupByWeek (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByWeek (List<TankVolumeHistories.TankVolumeHistory> data) {
             var calendar = new GregorianCalendar ();
             return data
                 .GroupBy (tvh => new {
@@ -657,7 +653,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers {
                 .ToList ();
         }
 
-        private List<TankVolumeReportDTO> GroupByDay (List<FMS.Domain.Entities.TankVolumeHistory> data) {
+        private List<TankVolumeReportDTO> GroupByDay (List<TankVolumeHistories.TankVolumeHistory> data) {
             return data
                 .GroupBy (tvh => new {
                     Date = tvh.Timestamp.Date,

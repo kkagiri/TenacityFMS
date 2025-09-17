@@ -66,14 +66,14 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-tank-water',
       path: tankStockRoutes.stockManagement,
       badge: null,
-    },
-    {
-      id: 'reconciliationControl',
-      title: 'Reconciliation Control',
-      icon: 'fa-light fa-balance-scale',
-      path: tankStockRoutes.reconciliationControl,
-      badge: '2',
     }
+    // {
+    //   id: 'reconciliationControl',
+    //   title: 'Reconciliation Control',
+    //   icon: 'fa-light fa-balance-scale',
+    //   path: tankStockRoutes.reconciliationControl,
+    //   badge: '2',
+    // }
   ];
 
   const configurationItems = [

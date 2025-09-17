@@ -1,33 +1,29 @@
-﻿using FMS.Application.Models.Vehicle;
-using FMS.Domain.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using FMS.Application.Models.Vehicle;
+using FMS.Domain.Entities;
 
-namespace FMS.Application.ModelsDTOs.ExpectedAVG
-{
-    public class ExpectedAVGDto
-    {
+namespace FMS.Application.Features.ExpectedAVG {
+    public class ExpectedAVGDto {
 
-        [JsonPropertyName("id")]
+        [JsonPropertyName ("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("ExpectedAverage1")]
+        [JsonPropertyName ("ExpectedAverage1")]
         public decimal ExpectedAverage1 { get; set; }
 
-        [JsonPropertyName("expectedAverageClassificationId")]
+        [JsonPropertyName ("expectedAverageClassificationId")]
         public int ExpectedAverageClassificationId { get; set; }
 
-        [JsonPropertyName("vehicleId")]
+        [JsonPropertyName ("vehicleId")]
         public int VehicleId { get; set; }
 
-        [JsonPropertyName("site")]
+        [JsonPropertyName ("site")]
         public int? SiteId { get; set; }
-
-
 
     }
 }

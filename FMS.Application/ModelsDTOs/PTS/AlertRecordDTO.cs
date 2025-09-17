@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace FMS.Application.ModelsDTOs.ATG;
+namespace FMS.Application.Features.ATG;
 
-public partial class AlertRecordDTO
-{
+public partial class AlertRecordDTO {
     public int AlertId { get; set; }
 
     public DateTime DateTime { get; set; }

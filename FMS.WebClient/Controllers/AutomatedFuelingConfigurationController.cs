@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.ConfigurationCommand;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.Configuration;
+using FMS.Application.Features.Configuration;
 using FMS.Application.Queries.Database.ConfigurationQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

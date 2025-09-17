@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Notification.DTOs.Groups;
-using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Notifications;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

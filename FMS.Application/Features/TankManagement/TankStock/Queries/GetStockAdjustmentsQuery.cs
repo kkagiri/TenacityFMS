@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
-using FMS.Application.ModelsDTOs.FMS.TankStock;
+using FMS.Application.Features.FMS.TankStock;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;

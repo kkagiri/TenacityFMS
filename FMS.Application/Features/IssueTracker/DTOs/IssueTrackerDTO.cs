@@ -1,9 +1,7 @@
 using System;
 
-namespace FMS.Application.ModelsDTOs.FMS.Issuetracker
-{
-    public class IssueTrackerDTO
-    {
+namespace FMS.Application.Features.FMS.Issuetracker {
+    public class IssueTrackerDTO {
         public int Id { get; set; }
         public int IssueCategory { get; set; }
         public int Site { get; set; }

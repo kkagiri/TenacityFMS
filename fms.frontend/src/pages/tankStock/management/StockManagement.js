@@ -44,10 +44,10 @@ const StockManagement = () => {
   //Cursor - Tab data with Transaction Hub as first tab, Stock Adjustment Dashboard as second
   const tabData = [
     { text: "Transaction Hub", icon: "fa-light fa-exchange-alt" },
-    { text: "Stock Adjustment Dashboard", icon: "fa-light fa-adjust" },
+    // { text: "Stock Adjustment Dashboard", icon: "fa-light fa-adjust" },
     { text: "Pump Transactions", icon: "fa-light fa-gas-pump" },
-    { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
-    { text: "Configuration", icon: "fa-light fa-cog" }
+    // { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
+    // { text: "Configuration", icon: "fa-light fa-cog" }
   ];
 
   //Cursor - Custom tab item renderer
@@ -81,39 +81,39 @@ const StockManagement = () => {
             dateRange={dateRange}
           />
         );
+      // case 1:
+      //   return loadedTabs.has(1) && (
+      //     <AdjustmentCenter
+      //       adjustments={adjustments}
+      //       selectedSite={selectedSite}
+      //       dateRange={dateRange}
+      //       onAdjustmentComplete={handleTransactionUpdate}
+      //     />
+      //   );
       case 1:
         return loadedTabs.has(1) && (
-          <AdjustmentCenter
-            adjustments={adjustments}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
-            onAdjustmentComplete={handleTransactionUpdate}
-          />
-        );
-      case 2:
-        return loadedTabs.has(2) && (
           <PumpTransactionManager
             selectedSite={selectedSite}
             dateRange={dateRange}
           />
         );
-      case 3:
-        return loadedTabs.has(3) && (
-          <ReconciliationWorkflow
-            reconciliationData={reconciliationData}
-            selectedSite={selectedSite}
-            dateRange={dateRange}
-            onReconciliationComplete={handleTransactionUpdate}
-          />
-        );
-      case 4:
-        return loadedTabs.has(4) && (
-          <ConfigurationPanel
-            systemConfig={systemConfig}
-            selectedSite={selectedSite}
-            onConfigUpdate={handleTransactionUpdate}
-          />
-        );
+      // case 3:
+      //   return loadedTabs.has(3) && (
+      //     <ReconciliationWorkflow
+      //       reconciliationData={reconciliationData}
+      //       selectedSite={selectedSite}
+      //       dateRange={dateRange}
+      //       onReconciliationComplete={handleTransactionUpdate}
+      //     />
+      //   );
+      // case 4:
+      //   return loadedTabs.has(4) && (
+      //     <ConfigurationPanel
+      //       systemConfig={systemConfig}
+      //       selectedSite={selectedSite}
+      //       onConfigUpdate={handleTransactionUpdate}
+      //     />
+      //   );
       default:
         return null;
     }

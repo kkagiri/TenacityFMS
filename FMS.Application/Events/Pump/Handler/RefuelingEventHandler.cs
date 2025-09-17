@@ -2,7 +2,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.Queries.Database.FMSQuery.TagQueries;
 using FMS.Application.Services; //Cursor: Add for ITransactionMonitoringService
 using FMS.Domain.Entities.PTS.Enums;
 using MediatR;

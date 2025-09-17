@@ -79,6 +79,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Controllers\GPSDeviceManagement\" />
     <Folder Include="Util\" />
   </ItemGroup>
 

@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.ModelsDTOs.FMS.ExpectedAVG
-{
-    public class ExpectedAVGVehicleDetailsDTO
-    {
+namespace FMS.Application.Features.FMS.ExpectedAVG {
+    public class ExpectedAVGVehicleDetailsDTO {
 
         public int id { get; set; }
         public string HyoungNo { get; set; } = null!;

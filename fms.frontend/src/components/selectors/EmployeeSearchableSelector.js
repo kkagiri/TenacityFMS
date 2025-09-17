@@ -74,7 +74,6 @@ const EmployeeSearchableSelector = ({
   }, [performSearch]);
 
   const handleEmployeeSelect = useCallback((employee) => {
-    console.log('Employee selected:', employee);
     setSelectedEmployee(employee);
     const workNo = employee.employeeWorkNo ? ` (${employee.employeeWorkNo})` : '';
     setSearchTerm(employee.fullName + workNo);
@@ -291,9 +290,7 @@ const EmployeeSearchableSelector = ({
                                         ({employee.employeeWorkNo})
                                       </span>
                                     )}
-                                    <span style={{ color: '#888', fontSize: '13px' }}>
-                                      {employee.employeestatus}
-                                    </span>
+
                                   </div>
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginLeft: '16px' }}>
