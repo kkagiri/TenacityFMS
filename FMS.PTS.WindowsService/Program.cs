@@ -382,8 +382,8 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<PolicyEvaluationEngine> ();
             services.AddScoped<DailyReconciliationPolicyService> ();
             services.AddSingleton<IPTSConnectionManager, PTSConnectionManager> ();
-            //services.AddHttpClient<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
-            //services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+            services.AddHttpClient<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
+            services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Application.Features.Vehicle.Services.GPSGateService> ();
             services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService> ();
 
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService> (); //Cursor
