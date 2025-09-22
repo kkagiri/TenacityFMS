@@ -17,7 +17,7 @@ if (-not (Test-Path "C:\Logs\FMS.PTS")) {
 
 # WebSocket Configuration
 [Environment]::SetEnvironmentVariable('PTSService__WebSocket__ListenPort', '54098', 'Machine')
-[Environment]::SetEnvironmentVariable('PTSService__WebSocket__Host', '127.0.0.1', 'Machine')
+[Environment]::SetEnvironmentVariable('PTSService__WebSocket__Host', '10.0.10.153', 'Machine')
 [Environment]::SetEnvironmentVariable('PTSService__WebSocket__MaxConcurrentConnections', '100', 'Machine')
 [Environment]::SetEnvironmentVariable('PTSService__WebSocket__BasePath', '/ptsWebSocket', 'Machine')
 

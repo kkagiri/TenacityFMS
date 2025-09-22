@@ -32,6 +32,16 @@ namespace FMS.PTS.WindowsService
             [Required]
             public string Host { get; set; } = "*";
             public string BasePath { get; set; } = "/ptsWebSocket";
+            /// <summary>
+            /// When true adds a broad prefix http://+:{port}/ so that devices omitting the trailing slash on the WebSocket path (e.g. /PTSWEBSOCKET) are still captured.
+            /// Use only if you cannot adjust device firmware to append the slash, because it widens exposure surface.
+            /// </summary>
+            public bool AddPortWidePrefix { get; set; } = false;
+
+            /// <summary>
+            /// Optional accepted subprotocols (e.g. "chat"). If the client supplies one of these in Sec-WebSocket-Protocol it will be echoed back.
+            /// </summary>
+            public string[] SubProtocols { get; set; } = Array.Empty<string>();
         }
 
         public class DeviceSettings

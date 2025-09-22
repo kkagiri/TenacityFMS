@@ -1,8 +1,10 @@
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Security.Principal;
 using System.Text;
+using System.Linq;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Connection;
 using FMS.Application.Communication.SignalR;
@@ -81,26 +83,46 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket {
 
         private async Task ConfigureListenerAsync (HttpListener listener) {
             var port = _settings.WebSocket.ListenPort;
-            var basePath = "ptswebsocket";
-            var prefixes = new HashSet<string> ();
+            var configuredBasePath = _settings.WebSocket.BasePath ?? "/ptsWebSocket";
+            if (string.IsNullOrWhiteSpace (configuredBasePath)) {
+                configuredBasePath = "/ptsWebSocket";
+            }
+            if (!configuredBasePath.StartsWith ("/")) {
+                configuredBasePath = "/" + configuredBasePath;
+            }
+            var segment = configuredBasePath.Trim ('/');
 
-            // Configure prefixes
-            prefixes.Add ($"http://localhost:{port}/{basePath}/");
+            var prefixes = new HashSet<string> (StringComparer.OrdinalIgnoreCase);
+            // Register both with and without trailing slash to catch devices that omit it
+            prefixes.Add ($"http://localhost:{port}/{segment}/");
+            prefixes.Add ($"http://localhost:{port}/{segment}");
 
-            var configuredHost = _settings.WebSocket.Host?.Trim ();
-            if (!string.IsNullOrEmpty (configuredHost)) {
-                if (configuredHost == "*" || configuredHost == "0.0.0.0") {
-                    prefixes.Add ($"http://+:{port}/{basePath}/");
-                } else if (configuredHost != "localhost") {
-                    prefixes.Add ($"http://{configuredHost}:{port}/{basePath}/");
+            var hostSetting = _settings.WebSocket.Host?.Trim ();
+            if (!string.IsNullOrEmpty (hostSetting)) {
+                if (hostSetting == "*" || hostSetting == "0.0.0.0") {
+                    prefixes.Add ($"http://+:{port}/{segment}/");
+                    prefixes.Add ($"http://+:{port}/{segment}");
+                } else if (!hostSetting.Equals ("localhost", StringComparison.OrdinalIgnoreCase)) {
+                    prefixes.Add ($"http://{hostSetting}:{port}/{segment}/");
+                    prefixes.Add ($"http://{hostSetting}:{port}/{segment}");
                 }
             }
 
-            foreach (var prefix in prefixes) {
-                _logger.LogInformation ("Adding listener prefix: {Prefix}", prefix);
-                await VerifyUrlRegistrationAsync (prefix);
-                listener.Prefixes.Add (prefix);
+            if (_settings.WebSocket.AddPortWidePrefix) {
+                prefixes.Add ($"http://+:{port}/");
             }
+
+            foreach (var prefix in prefixes) {
+                try {
+                    _logger.LogInformation ("Adding listener prefix: {Prefix}", prefix);
+                    await VerifyUrlRegistrationAsync (prefix);
+                    listener.Prefixes.Add (prefix);
+                } catch (Exception ex) {
+                    _logger.LogWarning (ex, "Failed to add prefix {Prefix}. Continuing.", prefix);
+                }
+            }
+
+            _logger.LogInformation ("Listener configured. BasePath={BasePath} Segment={Segment} Port={Port} RegisteredPrefixes={Count} PortWidePrefix={PortWide}", configuredBasePath, segment, port, listener.Prefixes.Count, _settings.WebSocket.AddPortWidePrefix);
         }
 
         public override async Task StopAsync (CancellationToken cancellationToken) {
@@ -174,6 +196,59 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket {
                 _logger.LogDebug ("Beginning WebSocket connection validation sequence...");
                 _logger.LogDebug ("Incoming WebSocket request from {RemoteEndPoint}", context.Request.RemoteEndPoint);
 
+                // Raw handshake header logging (sanitizing Authorization)
+                try {
+                    var headerBuilder = new StringBuilder ();
+                    headerBuilder.AppendLine ($"{context.Request.HttpMethod} {context.Request.Url?.AbsolutePath} HTTP/{context.Request.ProtocolVersion}");
+                    foreach (var key in context.Request.Headers.AllKeys) {
+                        var v = context.Request.Headers[key];
+                        if (key.Equals ("Authorization", StringComparison.OrdinalIgnoreCase)) v = "<redacted>";
+                        headerBuilder.AppendLine ($"{key}: {v}");
+                    }
+                    _logger.LogInformation ("Incoming handshake headers:\n{Headers}", headerBuilder.ToString ());
+                } catch (Exception exLog) {
+                    _logger.LogDebug (exLog, "Failed to log raw headers");
+                }
+
+                // Path validation (accept missing trailing slash if port-wide prefix enabled)
+                var expectedPath = _settings.WebSocket.BasePath ?? "/ptsWebSocket";
+                if (!expectedPath.StartsWith ("/")) expectedPath = "/" + expectedPath;
+                var requestPath = context.Request.Url.AbsolutePath ?? string.Empty;
+                bool pathOk = requestPath.Equals (expectedPath, StringComparison.OrdinalIgnoreCase) ||
+                    requestPath.Equals (expectedPath.TrimEnd ('/'), StringComparison.OrdinalIgnoreCase);
+                if (!pathOk) {
+                    _logger.LogWarning ("Rejecting request with invalid path {Path}. Expected {Expected}", requestPath, expectedPath);
+                    context.Response.StatusCode = 404;
+                    context.Response.ContentType = "application/json";
+                    var json = System.Text.Json.JsonSerializer.Serialize (new { error = "InvalidPath", expected = expectedPath, received = requestPath });
+                    var bytes = Encoding.UTF8.GetBytes (json);
+                    await context.Response.OutputStream.WriteAsync (bytes, 0, bytes.Length, stoppingToken);
+                    context.Response.Close ();
+                    return;
+                }
+
+                // Capacity enforcement BEFORE deeper validation
+                try {
+                    var active = _connectionManager.GetConnectedDevices ()?.Count () ?? 0;
+                    if (active >= _settings.WebSocket.MaxConcurrentConnections) {
+                        _logger.LogWarning ("Rejecting connection - capacity reached ({Active}/{Limit}) from {Remote}", active, _settings.WebSocket.MaxConcurrentConnections, context.Request.RemoteEndPoint);
+                        context.Response.StatusCode = 503; // Service Unavailable
+                        context.Response.Headers.Add ("Retry-After", "30");
+                        context.Response.ContentType = "application/json";
+                        var capJson = System.Text.Json.JsonSerializer.Serialize (new {
+                            error = "MaxConnectionsReached",
+                            activeConnections = active,
+                            limit = _settings.WebSocket.MaxConcurrentConnections
+                        });
+                        var capBytes = Encoding.UTF8.GetBytes (capJson);
+                        await context.Response.OutputStream.WriteAsync (capBytes, 0, capBytes.Length, stoppingToken);
+                        context.Response.Close ();
+                        return;
+                    }
+                } catch (Exception exCap) {
+                    _logger.LogWarning (exCap, "Error evaluating connection capacity; allowing connection to proceed");
+                }
+
                 // 2. Validate WebSocket protocol headers
                 if (!ValidateWebSocketProtocolHeaders (context.Request)) {
 
@@ -194,13 +269,26 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket {
                 //var responseKey = ComputeWebSocketAcceptKey(wsKey);
 
                 //let AcceptWebSocketAsync handle the WebSocket handshake
-                var webSocketContext = await context.AcceptWebSocketAsync (subProtocol: null,
+                // Determine subprotocol support
+                string selectedSubProtocol = null;
+                var clientProtocols = context.Request.Headers["Sec-WebSocket-Protocol"]; // may be comma-separated
+                if (!string.IsNullOrWhiteSpace (clientProtocols) && _settings.WebSocket.SubProtocols?.Length > 0) {
+                    var offered = clientProtocols.Split (',').Select (p => p.Trim ());
+                    selectedSubProtocol = offered.FirstOrDefault (o => _settings.WebSocket.SubProtocols.Contains (o, StringComparer.OrdinalIgnoreCase));
+                    if (selectedSubProtocol != null) {
+                        _logger.LogInformation ("Client offered subprotocols [{Offered}] -> selecting {Selected}", string.Join (",", offered), selectedSubProtocol);
+                    } else {
+                        _logger.LogInformation ("Client offered subprotocols [{Offered}] but none matched configured list [{Configured}]", string.Join (",", offered), string.Join (",", _settings.WebSocket.SubProtocols));
+                    }
+                }
+
+                var webSocketContext = await context.AcceptWebSocketAsync (subProtocol: selectedSubProtocol,
                     keepAliveInterval: TimeSpan.FromSeconds (30),
                     receiveBufferSize: 1024); // Buffer size for receiving frames
 
                 var deviceId = context.Request.Headers["X-Pts-Id"];
                 var ipaddress = context.Request.RemoteEndPoint.Address.ToString ();
-                _logger.LogInformation ("WebSocket handshake accepted for device {DeviceId} from {IPAddress}", deviceId, ipaddress);
+                _logger.LogInformation ("WebSocket handshake accepted for device {DeviceId} from {IPAddress} Path={Path} SubProtocol={SubProtocol}", deviceId, ipaddress, context.Request.Url.AbsolutePath, selectedSubProtocol ?? "<none>");
                 _logger.LogDebug ("Device ID format: '{DeviceId}' (type: {Type}, length: {Length})", deviceId, deviceId.GetType ().Name, deviceId.Length);
 
                 // --- Update Redis State via Tracker ---
