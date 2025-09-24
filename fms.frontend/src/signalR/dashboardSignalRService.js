@@ -1,4 +1,4 @@
-import { HubConnectionBuilder, LogLevel, HubConnectionState } from '@microsoft/signalr';
+import { HubConnectionBuilder, LogLevel, HubConnectionState, HttpTransportType } from '@microsoft/signalr';
 import { debounce } from 'lodash';
 import store from '../store';
 
@@ -144,21 +144,19 @@ class DashboardSignalRService {
       const baseURL = this.getBaseUrl();
       const fullHubUrl = hubUrl ? `${baseURL}${hubUrl}` : `${baseURL}/dashboardHub`;
 
-      console.log('[Dashboard SignalR] Connecting to:', fullHubUrl);
+  const tokenPreview = (this.getAuthToken() || '').slice(0, 12);
+  console.log('[Dashboard SignalR] Connecting to:', fullHubUrl, 'tokenPresent:', !!tokenPreview);
 
       // Build connection with authentication token
       this.connection = new HubConnectionBuilder()
         .withUrl(fullHubUrl, {
-          skipNegotiation: false,
-          transport: 1, // WebSockets
-          headers: {
-            'Access-Control-Allow-Origin': '*'
-          },
+          // Force WebSockets and skip negotiation to avoid transport downgrade / abort loops
+          skipNegotiation: true,
+          transport: HttpTransportType.WebSockets,
           accessTokenFactory: () => {
             const token = this.getAuthToken();
             if (token) {
-              console.log('[Dashboard SignalR] Using authentication token');
-              return token;
+              return token; // don't log full token
             }
             console.warn('[Dashboard SignalR] No authentication token available');
             return null;
@@ -425,6 +423,19 @@ class DashboardSignalRService {
       }
     }, 0); // No debounce for initial data responses
 
+    // Batch initial data response (new)
+    registerEvent('InitialWidgetsDataBatch', (data) => {
+      if (data && data.widgets) {
+        this.notifyListeners('initialWidgetsDataBatch', data);
+        if (store) {
+          store.dispatch({
+            type: 'UPDATE_INITIAL_WIDGETS_DATA_BATCH',
+            payload: data
+          });
+        }
+      }
+    }, 0);
+
     registerEvent('DataSourceUpdate', (data) => {
       if (data) {
         this.notifyListeners('dataSourceUpdate', data);
@@ -677,6 +688,23 @@ class DashboardSignalRService {
       console.log(`[SignalR] Requested initial widget data for: ${widgetInstanceId}`);
     } catch (error) {
       console.error(`[SignalR] Failed to request initial widget data for ${widgetInstanceId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch request of initial widget data for multiple widgets.
+   * @param {number[]} widgetInstanceIds array of widget instance ids
+   */
+  async requestInitialWidgetsData(widgetInstanceIds = []) {
+    if (!Array.isArray(widgetInstanceIds) || widgetInstanceIds.length === 0) return;
+    const isConnected = await this.ensureConnection();
+    if (!isConnected) throw new Error('SignalR connection could not be established');
+    try {
+      await this.connection.invoke('GetInitialWidgetsData', widgetInstanceIds);
+      console.log('[SignalR] Requested batch initial widget data:', widgetInstanceIds);
+    } catch (error) {
+      console.error('[SignalR] Failed batch initial widget data request:', error);
       throw error;
     }
   }
