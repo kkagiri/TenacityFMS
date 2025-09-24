@@ -704,8 +704,21 @@ class DashboardSignalRService {
       await this.connection.invoke('GetInitialWidgetsData', widgetInstanceIds);
       console.log('[SignalR] Requested batch initial widget data:', widgetInstanceIds);
     } catch (error) {
-      console.error('[SignalR] Failed batch initial widget data request:', error);
-      throw error;
+      // Fallback: server version might not yet have batch method deployed
+      if (error?.message?.toLowerCase().includes('does not exist')) {
+        console.warn('[SignalR] Batch method GetInitialWidgetsData unavailable on server. Falling back to per-widget calls.');
+        for (const wid of widgetInstanceIds) {
+          try {
+            await this.connection.invoke('GetInitialWidgetData', wid);
+            console.log(`[SignalR] Fallback initial data request sent for widget ${wid}`);
+          } catch (innerErr) {
+            console.error(`[SignalR] Fallback initial data request failed for widget ${wid}:`, innerErr);
+          }
+        }
+      } else {
+        console.error('[SignalR] Failed batch initial widget data request:', error);
+        throw error;
+      }
     }
   }
 
