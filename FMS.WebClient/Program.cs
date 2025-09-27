@@ -692,6 +692,7 @@ public class Program {
                             .WithOrigins (
 
                                 "http://localhost:3000",
+                                "http://localhost:3001",
                                 "http://127.0.0.1:3000",
                                 "http://10.0.2.2:7009", //Cursor - added for Android emulator
                                 "http://10.0.11.133:7009",

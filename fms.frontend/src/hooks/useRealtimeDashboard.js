@@ -20,7 +20,6 @@ import { usePermissions } from './usePermissions';
 export const useRealtimeDashboard = (options = {}) => {
   const {
     enableRealtime = true,
-    refreshInterval = 30000,
     autoLoad = true
   } = options;
 
@@ -309,19 +308,22 @@ export const useRealtimeDashboard = (options = {}) => {
         const wid = payload.widgetInstanceId;
         if (!wid) return;
         const metadata = payload.metadata || {};
-        const existing = widgetData[wid];
         const incoming = payload.data || {};
-        const mode = existing?.mode || metadata.mode || 'cumulative';
-        setWidgetData(prev => ({
-          ...prev,
-          [wid]: {
-            ...incoming,
-            mode,
-            lastUpdated: metadata.lastUpdated || payload.timestamp || new Date().toISOString(),
-            isRealtime: false,
-            origin: 'initial'
-          }
-        }));
+        setWidgetData(prev => {
+          const existing = prev[wid];
+          const mode = existing?.mode || metadata.mode || 'cumulative';
+          return {
+            ...prev,
+            [wid]: {
+              ...incoming,
+              mode,
+              timeRange: metadata.timeRange || incoming.timeRange || existing?.timeRange,
+              lastUpdated: metadata.lastUpdated || payload.timestamp || new Date().toISOString(),
+              isRealtime: false,
+              origin: 'initial'
+            }
+          };
+        });
         setWidgetLoadingStates(prev => ({ ...prev, [wid]: false }));
         setWidgetErrors(prev => ({ ...prev, [wid]: payload.error || null }));
         setWidgetStaleness(prev => ({ ...prev, [wid]: Date.now() }));
@@ -330,6 +332,96 @@ export const useRealtimeDashboard = (options = {}) => {
       const handleInitialWidgetsBatch = (batchPayload) => {
         if (!batchPayload?.widgets) return;
         batchPayload.widgets.forEach(w => handleInitialWidgetDataResponse(w));
+      };
+
+      // --- Protocol v2 Envelope Handling (Phase 2 Option A) ---
+      const normalizeEnvelope = (envelope) => {
+        if (!envelope || typeof envelope !== 'object') return null;
+        const {
+          widgetInstanceId,
+          widgetType,
+          dataSource,
+          category,
+          mode,
+          timeRange,
+          aggregation,
+          updateType,
+          data,
+          errors,
+          metadata,
+          protocolVersion = 2,
+          timestamp
+        } = envelope;
+
+        if (!widgetInstanceId) return null;
+
+        return {
+          widgetId: widgetInstanceId,
+          widgetInstanceId,
+            widgetType,
+            dataSource,
+            category,
+            mode: mode || metadata?.mode || 'cumulative',
+            timeRange,
+            aggregation,
+            updateType: updateType || 'initial',
+            protocolVersion,
+            timestamp: timestamp || new Date().toISOString(),
+            errors: errors || null,
+            metadata: metadata || {},
+            data: data || null
+        };
+      };
+
+      const applyEnvelope = (normalized) => {
+        if (!normalized) return;
+        const { widgetInstanceId: wid, data, mode, timestamp, errors, updateType, timeRange } = normalized;
+        setWidgetData(prev => {
+          const existing = prev[wid];
+          let merged;
+          if (updateType === 'increment' && existing) {
+            merged = mergeCumulativeData(existing, data || {});
+          } else if (mode === 'cumulative' && existing && updateType === 'merge') {
+            merged = mergeCumulativeData(existing, data || {});
+          } else {
+            merged = { ...(existing || {}), ...(data || {}) };
+          }
+          return {
+            ...prev,
+            [wid]: {
+              ...merged,
+              mode: mode || existing?.mode || 'cumulative',
+              timeRange: timeRange || existing?.timeRange,
+              lastUpdated: timestamp,
+              isRealtime: updateType !== 'initial',
+              origin: `envelope-${updateType || 'initial'}`
+            }
+          };
+        });
+        if (errors) {
+          setWidgetErrors(prev => ({ ...prev, [wid]: errors.join?.('\n') || errors.toString() }));
+        } else {
+          setWidgetErrors(prev => ({ ...prev, [wid]: null }));
+        }
+        // Mark loading state false for initial
+        if (updateType === 'initial') {
+          setWidgetLoadingStates(prev => ({ ...prev, [wid]: false }));
+        }
+        setWidgetStaleness(prev => ({ ...prev, [wid]: Date.now() }));
+      };
+
+      const handleWidgetDataEnvelope = (envelope) => {
+        const normalized = normalizeEnvelope(envelope);
+        applyEnvelope(normalized);
+      };
+
+      const handleWidgetDataEnvelopeBatch = (batch) => {
+        if (!batch) return;
+        const list = batch.widgets || batch.Widgets || [];
+        list.forEach(env => {
+          const normalized = normalizeEnvelope(env);
+          applyEnvelope(normalized);
+        });
       };
 
       const listeners = new Map([
@@ -341,6 +433,11 @@ export const useRealtimeDashboard = (options = {}) => {
         ['InitialWidgetDataResponse', handleInitialWidgetDataResponse],
         ['initialWidgetsDataBatch', handleInitialWidgetsBatch],
         ['InitialWidgetsDataBatch', handleInitialWidgetsBatch],
+        // Protocol v2 unified envelope events
+        ['widgetDataEnvelope', handleWidgetDataEnvelope],
+        ['WidgetDataEnvelope', handleWidgetDataEnvelope],
+        ['widgetDataEnvelopeBatch', handleWidgetDataEnvelopeBatch],
+        ['WidgetDataEnvelopeBatch', handleWidgetDataEnvelopeBatch],
         // Key statistics (legacy; may be removed server-side)
         ['keyStatisticsUpdate', (data) => handleRealtimeDataUpdate({ keyStatistics: data })],
         ['KeyStatisticsUpdate', (data) => handleRealtimeDataUpdate({ keyStatistics: data })],

@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class TankStockReportsController : ControllerBase {
         private readonly IMediator _mediator;

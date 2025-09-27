@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/notifications/groups")]
+    [Route ("api/v1/notifications/groups")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class NotificationGroupsController : ControllerBase {
         private readonly INotificationGroupService _groupService;

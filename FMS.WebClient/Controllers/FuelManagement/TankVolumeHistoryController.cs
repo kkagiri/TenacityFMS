@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.WebClient.Controllers {
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     [ApiController]
     [Authorize]
     public class TankVolumeHistoryController : ControllerBase {

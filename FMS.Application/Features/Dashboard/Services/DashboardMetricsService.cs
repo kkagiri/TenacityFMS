@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Services.Dashboard {
+    //[Deprecated ("Use IDataSourceManager for new implementations and WidgetFactory")]
+    [Obsolete ("Use IDataSourceManager for new implementations and WidgetFactory")]
     public class DashboardMetricsService : IDashboardMetricsService {
         private readonly GpsdataContext _context;
         private readonly ILogger<DashboardMetricsService> _logger;
@@ -302,6 +304,7 @@ namespace FMS.Application.Services.Dashboard {
             return datePreset.ToLower () switch {
                 "today" => (today, today.AddDays (1).AddSeconds (-1)),
                 "yesterday" => (today.AddDays (-1), today.AddSeconds (-1)),
+                "last_7_days" => (today.AddDays (-7), today.AddDays (1).AddSeconds (-1)),
                 "last_week" => GetLastWeekRange (today),
                     "last_month" => GetLastMonthRange (today),
                     "last_year" => GetLastYearRange (today),
@@ -322,6 +325,7 @@ namespace FMS.Application.Services.Dashboard {
             return (lastWeekMonday, lastWeekSunday.AddDays (1).AddSeconds (-1));
         }
 
+        [Obsolete ("Use GetLastWeekRange instead")]
         private (DateTime start, DateTime end) GetLastMonthRange (DateTime referenceDate) {
             // Get previous complete month
             var firstDayThisMonth = new DateTime (referenceDate.Year, referenceDate.Month, 1);

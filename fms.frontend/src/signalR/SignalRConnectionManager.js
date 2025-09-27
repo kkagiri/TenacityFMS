@@ -34,6 +34,13 @@ const ROUTE_PATTERNS = {
   REPORTS: [
     /^\/reports/,
     /^\/analytics/
+  ],
+  ADMIN: [
+    /^\/admin/,
+    /^\/users/,
+    /^\/roles/,
+    /^\/permissions/,
+    /^\/system/
   ]
 };
 
@@ -139,6 +146,10 @@ class SignalRConnectionManager {
    * @returns {boolean}
    */
   matchesPattern(path, patterns) {
+    if (!patterns || !Array.isArray(patterns)) {
+      console.warn('[SignalRManager] Invalid patterns provided to matchesPattern:', patterns);
+      return false;
+    }
     return patterns.some(pattern => pattern.test(path));
   }
 

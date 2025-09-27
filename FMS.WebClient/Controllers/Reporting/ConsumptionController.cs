@@ -34,7 +34,7 @@ namespace FMS.WebClient.Controllers {
     }
 
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     public class ConsumptionController : ControllerBase {
         private readonly IMediator _mediator;
         private readonly IConfiguration _configuration;

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("vehicletracking")]
+    [Route ("api/v1/vehicletracking")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class VehicleTrackingController : ControllerBase {
         private readonly IMediator _mediator;

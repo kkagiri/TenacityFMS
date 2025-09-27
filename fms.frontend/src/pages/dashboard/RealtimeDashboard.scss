@@ -1,0 +1,101 @@
+/* Realtime Dashboard (vanilla CSS version without Tailwind @apply) */
+
+.realtime-dashboard {
+  min-height: 100vh;
+  background: #f9fafb;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding-bottom: 40px;
+}
+
+/* Connection Status (current component uses .connection-status-bar) */
+.connection-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #eef2ff;
+  color: #1e3a8a;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.connection-status-bar i { font-size: 14px; }
+
+/* Quick actions wrapper (light card) */
+.realtime-dashboard .quick-actions-card, .realtime-dashboard .tw-bg-white.tw-border {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+/* Widget grid area */
+.dashboard-main-grid { padding: 1rem 1.25rem; }
+
+.dashboard-main-grid h2 { margin: 0; }
+
+/* React Grid Layout overrides */
+.realtime-dashboard .react-grid-item { transition: all .2s ease; }
+.realtime-dashboard .react-grid-item.react-grid-placeholder { background:#dbeafe; border:2px dashed #60a5fa; border-radius:8px; opacity:.6; }
+.realtime-dashboard .react-grid-item.react-draggable-dragging { z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+.realtime-dashboard .react-resizable-handle { opacity:.35; transition:opacity .2s; }
+.realtime-dashboard .react-resizable-handle:hover { opacity:.9; }
+
+/* Generic widget container (DashboardWidgetInstance outer div .widget-grid-item > .dashboard-widget-container maybe) */
+.dashboard-widget-container, .widget-grid-item > div {
+  background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.06);
+  display:flex; flex-direction:column; height:100%; position:relative; overflow:hidden; transition:box-shadow .2s,border-color .2s;
+}
+.dashboard-widget-container:hover { box-shadow:0 4px 12px rgba(0,0,0,.10); }
+
+/* Widget header (fallback if component uses .widget-header) */
+.widget-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #f0f1f3; background:linear-gradient(90deg,#f9fafb,#ffffff); min-height:48px; }
+.widget-header .widget-title { font-weight:600; font-size:14px; color:#1f2937; display:flex; align-items:center; gap:6px; }
+.widget-header .widget-title .widget-icon { color:#2563eb; }
+.widget-header .widget-controls { display:flex; gap:4px; }
+.widget-header .widget-controls .widget-control-btn { background:none; border:none; width:32px; height:32px; border-radius:6px; cursor:pointer; color:#6b7280; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.widget-header .widget-controls .widget-control-btn:hover { background:#f3f4f6; color:#374151; }
+.widget-header .widget-controls .widget-control-btn.widget-control-btn--remove:hover { background:#fee2e2; color:#dc2626; }
+
+/* Widget content */
+.widget-content { flex:1; padding:12px 14px; overflow:auto; }
+.widget-content--loading { display:flex; align-items:center; justify-content:center; min-height:120px; }
+.widget-content--error { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:120px; color:#dc2626; font-size:13px; text-align:center; }
+.widget-content--empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:120px; color:#9ca3af; font-size:13px; }
+
+/* Simple utility classes (subset) */
+.loading-pulse { animation:pulse-soft 2s ease-in-out infinite; }
+@keyframes pulse-soft { 0%,100%{opacity:1;} 50%{opacity:.55;} }
+
+/* Animation (enter / exit) */
+@keyframes widget-enter { from { opacity:0; transform:scale(.95) translateY(8px);} to { opacity:1; transform:scale(1) translateY(0);} }
+@keyframes widget-exit { from { opacity:1; transform:scale(1) translateY(0);} to { opacity:0; transform:scale(.95) translateY(-4px);} }
+.widget-enter { animation:widget-enter .28s ease-out forwards; }
+.widget-exit { animation:widget-exit .18s ease-in forwards; }
+
+/* Debug panel (your debug test section) */
+.realtime-dashboard .tw-border.tw-bg-gray-50 { background:#f5f6fa !important; border:1px solid #e2e8f0 !important; }
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .widget-header { padding:8px 10px; }
+  .widget-header .widget-title { font-size:13px; }
+}
+@media (max-width: 768px) {
+  .dashboard-main-grid { padding: .75rem; }
+  .widget-header { flex-direction:column; align-items:flex-start; gap:6px; }
+  .widget-header .widget-controls { width:100%; justify-content:flex-end; }
+}
+@media (max-width: 480px) {
+  .widget-header .widget-title { font-size:12px; }
+  .widget-header .widget-controls .widget-control-btn { width:26px; height:26px; }
+}
+
+/* Optional dark mode (manual) */
+.realtime-dashboard.enable-dark { background:#111827; }
+.realtime-dashboard.enable-dark .dashboard-widget-container { background:#1f2937; border-color:#374151; }
+.realtime-dashboard.enable-dark .widget-header { background:linear-gradient(90deg,#1f2937,#374151); border-color:#374151; }
+.realtime-dashboard.enable-dark .widget-header .widget-title { color:#e5e7eb; }
+.realtime-dashboard.enable-dark .widget-content { color:#d1d5db; }
+

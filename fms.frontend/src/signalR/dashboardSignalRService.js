@@ -57,12 +57,60 @@ class DashboardSignalRService {
     this.connectionState = ConnectionState.DISCONNECTED;
     this.listeners = new Map();
     this.handlers = new Map();
+    this._isStarting = false; // guard against concurrent start()
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 5000;
     this.healthCheckInterval = null;
     this.lastSuccessfulHealthCheck = null;
     this.lastMetricsUpdate = null;
+  this.hasReceivedInitialBatch = false; // gate streaming until initial batch arrives
+
+    // Protocol negotiation state (for envelope v2 support)
+    this.protocol = {
+      version: 1,
+      serverVersion: 1,
+      legacySuppressed: false,
+      features: [],
+      negotiated: false,
+      telemetry: null
+    };
+
+    // Optional override flag (QA / fallback) force legacy handling
+    this.forceLegacy = localStorage.getItem('forceLegacy') === 'true';
+  }
+
+  /**
+   * Safely invoke a hub method with lightweight handling for transient closure
+   * Returns true if the invoke succeeded, false if skipped/failed due to connection issues
+   */
+  async invokeSafe(methodName, ...args) {
+    if (!this.connection || this.connection.state !== HubConnectionState.Connected) {
+      return false;
+    }
+    try {
+      await this.connection.invoke(methodName, ...args);
+      return true;
+    } catch (err) {
+      const msg = err?.message || '';
+      // Swallow transient cancellations that happen when the connection is closing
+      if (/invocation canceled/i.test(msg) || /underlying connection.*closed/i.test(msg)) {
+        console.debug(`[Dashboard SignalR] invokeSafe: ${methodName} canceled during close; retrying once...`);
+        // Small delay then one retry if connected again
+        await new Promise(r => setTimeout(r, 500));
+        if (this.connection && this.connection.state === HubConnectionState.Connected) {
+          try {
+            await this.connection.invoke(methodName, ...args);
+            return true;
+          } catch (retryErr) {
+            console.warn(`[Dashboard SignalR] invokeSafe retry failed for ${methodName}:`, retryErr);
+            return false;
+          }
+        }
+        return false;
+      }
+      throw err;
+    }
   }
 
   // Getter for connection state
@@ -129,14 +177,25 @@ class DashboardSignalRService {
     const connectionId = Math.random().toString(36).substring(2, 15);
     console.log(`[Dashboard SignalR] Starting connection attempt (ID: ${connectionId})...`);
 
-    if (this.connection?.state === HubConnectionState.Connected) {
+    // Re-entrancy and state guard to avoid AbortError from overlapping starts
+    if (this._isStarting) {
+      console.log('[Dashboard SignalR] Start already in progress, skipping');
+      return;
+    }
+    const currentState = this.connection?.state;
+    if (currentState === HubConnectionState.Connected) {
       console.log('[Dashboard SignalR] Already connected');
+      return;
+    }
+    if (currentState === HubConnectionState.Connecting || currentState === HubConnectionState.Reconnecting) {
+      console.log('[Dashboard SignalR] Connection is in progress, skipping start');
       return;
     }
 
     this.state = ConnectionState.CONNECTING;
 
     try {
+      this._isStarting = true;
       if (this.connection && this.connection.state !== HubConnectionState.Disconnected) {
         await this.stop();
       }
@@ -167,13 +226,23 @@ class DashboardSignalRService {
         .build();
 
       this.setupConnectionHandlers();
-      this.setupEventHandlers();
 
+      // Start connection first
       await this.connection.start();
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
 
       console.log(`[Dashboard SignalR] Connected successfully (ID: ${connectionId})`);
+
+      // Negotiate protocol (v2 & features) before registering handlers so we can suppress legacy
+      try {
+        await this.negotiateProtocol();
+      } catch (negErr) {
+        console.warn('[Dashboard SignalR] Protocol negotiation failed, continuing with legacy compatibility', negErr);
+      }
+
+      // Now register event handlers based on negotiated protocol
+      this.setupEventHandlers();
 
       // Start health checks after successful connection
       this.startHealthChecks();
@@ -189,6 +258,63 @@ class DashboardSignalRService {
       console.error(`[Dashboard SignalR] Connection error (ID: ${connectionId}):`, error);
       this.handleConnectionError(error);
       throw error;
+    } finally {
+      this._isStarting = false;
+    }
+  }
+
+  /**
+   * Perform protocol negotiation with server (AcceptProtocolAdvanced -> AcceptProtocol fallback)
+   */
+  async negotiateProtocol() {
+    if (!this.connection) return;
+    // Skip if already negotiated (reconnections will re-run though)
+    try {
+      const negotiationPayload = { maxVersion: 2, features: ['initialBatch','streaming'] };
+      let response = null;
+      try {
+        response = await this.connection.invoke('AcceptProtocolAdvanced', negotiationPayload);
+      } catch (advErr) {
+        // Fallback to simple AcceptProtocol
+        try {
+          const v = await this.connection.invoke('AcceptProtocol', 2);
+          response = { acceptedVersion: v, serverVersion: 2, legacySuppressed: v >= 2 };
+        } catch (simpleErr) {
+          console.warn('[Dashboard SignalR] Both advanced & simple protocol negotiation failed; staying legacy.', simpleErr);
+          this.protocol.negotiated = false;
+          return;
+        }
+      }
+      if (response) {
+        this.protocol.version = response.acceptedVersion ?? response.negotiatedVersion ?? 1;
+        this.protocol.serverVersion = response.serverVersion ?? 1;
+        this.protocol.legacySuppressed = !!response.legacySuppressed && !this.forceLegacy;
+        this.protocol.features = response.features || [];
+        this.protocol.negotiated = true;
+        console.log('[Dashboard SignalR] Protocol negotiated', this.protocol);
+        this.notifyListeners('protocolNegotiated', { ...this.protocol });
+        // Optionally fetch telemetry immediately for diagnostics
+        this.requestProtocolTelemetry().catch(()=>{});
+      }
+    } catch (err) {
+      console.warn('[Dashboard SignalR] Unexpected error during protocol negotiation', err);
+    }
+  }
+
+  /**
+   * Request protocol telemetry from server (v2 adoption metrics)
+   */
+  async requestProtocolTelemetry() {
+    if (!this.connection || this.connection.state !== HubConnectionState.Connected) return;
+    try {
+      // Hub method returns via a pushed event 'ProtocolTelemetry'
+      // We invoke then rely on event handler to populate state
+      await this.connection.invoke('GetProtocolTelemetry');
+    } catch (err) {
+      // Silently ignore on older servers
+      if (!/does not exist/i.test(err?.message || '')) {
+        console.debug('[Dashboard SignalR] Protocol telemetry request failed', err);
+      }
     }
   }
 
@@ -245,6 +371,7 @@ class DashboardSignalRService {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
+    this._isStarting = false;
 
     if (this.connection) {
       try {
@@ -328,6 +455,29 @@ class DashboardSignalRService {
       this.connection.on(eventName, debouncedHandler);
     };
 
+    // Always listen for protocol accepted (server push) and telemetry updates
+    this.connection.off('ProtocolAccepted');
+    this.connection.on('ProtocolAccepted', (info) => {
+      if (info) {
+        this.protocol.version = info.acceptedVersion ?? info.negotiatedVersion ?? this.protocol.version;
+        this.protocol.serverVersion = info.serverVersion ?? this.protocol.serverVersion;
+        // Respect forceLegacy override
+        this.protocol.legacySuppressed = !!info.legacySuppressed && !this.forceLegacy;
+        this.protocol.features = info.features || this.protocol.features;
+        this.protocol.negotiated = true;
+        console.log('[Dashboard SignalR] ProtocolAccepted event', this.protocol);
+        this.notifyListeners('protocolNegotiated', { ...this.protocol });
+      }
+    });
+    this.connection.off('ProtocolTelemetry');
+    this.connection.on('ProtocolTelemetry', (telemetry) => {
+      this.protocol.telemetry = telemetry;
+      this.notifyListeners('protocolTelemetry', telemetry);
+    });
+
+    // Decide whether to register legacy events
+    const allowLegacy = !this.protocol.legacySuppressed;
+
     // Dashboard-specific events with debouncing
     registerEvent('KeyStatisticsUpdate', (data) => {
       if (data) {
@@ -398,116 +548,149 @@ class DashboardSignalRService {
       }
     }, 0); // No debounce for validation updates
 
-    registerEvent('WidgetDataUpdate', (data) => {
-      if (data) {
-        this.notifyListeners('widgetDataUpdate', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_WIDGET_DATA',
-            payload: data
-          });
+    if (allowLegacy) {
+      registerEvent('WidgetDataUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('widgetDataUpdate', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_WIDGET_DATA',
+              payload: data
+            });
+          }
         }
-      }
-    });
+      });
+    }
 
     // Additional events for hybrid data loading approach
-    registerEvent('InitialWidgetDataResponse', (data) => {
-      if (data) {
-        this.notifyListeners('initialWidgetDataResponse', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_INITIAL_WIDGET_DATA',
-            payload: data
-          });
+    if (allowLegacy) {
+      registerEvent('InitialWidgetDataResponse', (data) => {
+        if (data) {
+          this.notifyListeners('initialWidgetDataResponse', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_INITIAL_WIDGET_DATA',
+              payload: data
+            });
+          }
         }
-      }
-    }, 0); // No debounce for initial data responses
+      }, 0); // No debounce for initial data responses
+    }
 
     // Batch initial data response (new)
-    registerEvent('InitialWidgetsDataBatch', (data) => {
-      if (data && data.widgets) {
-        this.notifyListeners('initialWidgetsDataBatch', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_INITIAL_WIDGETS_DATA_BATCH',
-            payload: data
-          });
+    if (allowLegacy) {
+      registerEvent('InitialWidgetsDataBatch', (data) => {
+        if (data && data.widgets) {
+          this.notifyListeners('initialWidgetsDataBatch', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_INITIAL_WIDGETS_DATA_BATCH',
+              payload: data
+            });
+          }
         }
-      }
-    }, 0);
+      }, 0);
+    }
 
-    registerEvent('DataSourceUpdate', (data) => {
+    // Protocol v2 unified envelope (single) - light debounce to reduce dispatch pressure
+    registerEvent('WidgetDataEnvelope', (data) => {
       if (data) {
-        this.notifyListeners('dataSourceUpdate', data);
+        // Drop non-initial single frames until initial batch arrives to avoid startup thrash
+        if (!this.hasReceivedInitialBatch && !data.isInitialLoad) {
+          return;
+        }
+        this.notifyListeners('widgetDataEnvelope', data);
         if (store) {
-          store.dispatch({
-            type: 'UPDATE_DATA_SOURCE',
-            payload: data
-          });
+          store.dispatch({ type: 'WIDGET_DATA_ENVELOPE_V2', payload: data });
         }
       }
-    });
+    }, 150);
 
-    registerEvent('MetricDataUpdate', (data) => {
+    // Protocol v2 unified envelope (batch) - debounce to allow batching in Redux too
+    registerEvent('WidgetDataEnvelopeBatch', (data) => {
       if (data) {
-        this.notifyListeners('metricDataUpdate', data);
+        this.notifyListeners('widgetDataEnvelopeBatch', data);
         if (store) {
-          store.dispatch({
-            type: 'UPDATE_METRIC_DATA',
-            payload: data
-          });
+          store.dispatch({ type: 'WIDGET_DATA_ENVELOPE_BATCH_V2', payload: data });
         }
+        this.hasReceivedInitialBatch = true;
       }
-    });
+    }, 250);
 
-    registerEvent('TickerUpdate', (data) => {
-      if (data) {
-        this.notifyListeners('tickerUpdate', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_TICKER_DATA',
-            payload: data
-          });
+    if (allowLegacy) {
+      registerEvent('DataSourceUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('dataSourceUpdate', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_DATA_SOURCE',
+              payload: data
+            });
+          }
         }
-      }
-    }, 2000); // Higher debounce for ticker
+      });
 
-    registerEvent('GraphUpdate', (data) => {
-      if (data) {
-        this.notifyListeners('graphUpdate', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_GRAPH_DATA',
-            payload: data
-          });
+      registerEvent('MetricDataUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('metricDataUpdate', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_METRIC_DATA',
+              payload: data
+            });
+          }
         }
-      }
-    }, 1000);
+      });
 
-    registerEvent('DashboardLayoutUpdate', (data) => {
-      if (data) {
-        this.notifyListeners('dashboardLayoutUpdate', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_DASHBOARD_LAYOUT',
-            payload: data
-          });
+      registerEvent('TickerUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('tickerUpdate', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_TICKER_DATA',
+              payload: data
+            });
+          }
         }
-      }
-    }, 0); // No debounce for layout changes
+      }, 2000); // Higher debounce for ticker
 
-    registerEvent('DashboardMetricsUpdate', (data) => {
-      if (data) {
-        this.notifyListeners('dashboardMetricsUpdate', data);
-        this.lastMetricsUpdate = Date.now();
-        if (store) {
-          store.dispatch({
-            type: 'FETCH_DASHBOARD_METRICS_SUCCESS',
-            payload: data
-          });
+      registerEvent('GraphUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('graphUpdate', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_GRAPH_DATA',
+              payload: data
+            });
+          }
         }
-      }
-    });
+      }, 1000);
+
+      registerEvent('DashboardLayoutUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('dashboardLayoutUpdate', data);
+          if (store) {
+            store.dispatch({
+              type: 'UPDATE_DASHBOARD_LAYOUT',
+              payload: data
+            });
+          }
+        }
+      }, 0); // No debounce for layout changes
+
+      registerEvent('DashboardMetricsUpdate', (data) => {
+        if (data) {
+          this.notifyListeners('dashboardMetricsUpdate', data);
+          this.lastMetricsUpdate = Date.now();
+          if (store) {
+            store.dispatch({
+              type: 'FETCH_DASHBOARD_METRICS_SUCCESS',
+              payload: data
+            });
+          }
+        }
+      });
+    }
 
     // Fuel dispensed increment events
     registerEvent('FuelDispensedIncrement', (data) => {
@@ -684,7 +867,8 @@ class DashboardSignalRService {
     }
 
     try {
-      await this.connection.invoke('GetInitialWidgetData', widgetInstanceId);
+      const ok = await this.invokeSafe('GetInitialWidgetData', widgetInstanceId);
+      if (!ok) return; // Skip noisy errors if connection not ready
       console.log(`[SignalR] Requested initial widget data for: ${widgetInstanceId}`);
     } catch (error) {
       console.error(`[SignalR] Failed to request initial widget data for ${widgetInstanceId}:`, error);
@@ -701,7 +885,8 @@ class DashboardSignalRService {
     const isConnected = await this.ensureConnection();
     if (!isConnected) throw new Error('SignalR connection could not be established');
     try {
-      await this.connection.invoke('GetInitialWidgetsData', widgetInstanceIds);
+      const ok = await this.invokeSafe('GetInitialWidgetsData', widgetInstanceIds);
+      if (!ok) return; // Connection likely closing; skip
       console.log('[SignalR] Requested batch initial widget data:', widgetInstanceIds);
     } catch (error) {
       // Fallback: server version might not yet have batch method deployed
@@ -709,7 +894,8 @@ class DashboardSignalRService {
         console.warn('[SignalR] Batch method GetInitialWidgetsData unavailable on server. Falling back to per-widget calls.');
         for (const wid of widgetInstanceIds) {
           try {
-            await this.connection.invoke('GetInitialWidgetData', wid);
+            const ok2 = await this.invokeSafe('GetInitialWidgetData', wid);
+            if (!ok2) continue;
             console.log(`[SignalR] Fallback initial data request sent for widget ${wid}`);
           } catch (innerErr) {
             console.error(`[SignalR] Fallback initial data request failed for widget ${wid}:`, innerErr);
@@ -734,7 +920,8 @@ class DashboardSignalRService {
     }
 
     try {
-      await this.connection.invoke('RequestDataSourceData', dataSource, params);
+      const ok = await this.invokeSafe('RequestDataSourceData', dataSource, params);
+      if (!ok) return;
       console.log(`[SignalR] Requested data source data for: ${dataSource}`, params);
     } catch (error) {
       console.error(`[SignalR] Failed to request data source data for ${dataSource}:`, error);
@@ -830,7 +1017,8 @@ class DashboardSignalRService {
     }
 
     try {
-      await this.connection.invoke('RequestDashboardMetrics');
+      const ok = await this.invokeSafe('RequestDashboardMetrics');
+      if (!ok) return;
       console.log('[Dashboard SignalR] Requested dashboard metrics');
     } catch (error) {
       // Don't log errors for methods that don't exist on server

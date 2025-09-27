@@ -1,0 +1,411 @@
+/**
+ * DashboardLayout SCSS - Styles for the main dashboard layout
+ *
+ * Includes responsive grid layout, edit mode styles, and widget containers.
+ * Uses Tailwind prefix (tw-) to avoid DevExtreme conflicts.
+ */
+
+// Dashboard Layout Container
+.dashboard-layout {
+  @apply tw-w-full tw-min-h-screen tw-bg-gray-50;
+
+  // Edit mode styles
+  &--edit-mode {
+    .dashboard-widget-item {
+      &:hover {
+        @apply tw-ring-2 tw-ring-blue-300 tw-ring-opacity-50;
+
+        .widget-header {
+          .widget-edit-controls {
+            @apply tw-opacity-100;
+          }
+        }
+      }
+    }
+
+    .react-grid-item {
+      &.react-grid-placeholder {
+        @apply tw-bg-blue-200 tw-border-2 tw-border-dashed tw-border-blue-400 tw-rounded-lg;
+      }
+    }
+  }
+}
+
+// Grid Container
+.dashboard-grid-container {
+  @apply tw-p-4;
+
+  // React Grid Layout overrides
+  .react-grid-layout {
+    @apply tw-relative;
+  }
+
+  .react-grid-item {
+    @apply tw-transition-all tw-duration-200 tw-ease-in-out;
+
+    // Dragging state
+    &.react-draggable-dragging {
+      @apply tw-z-10 tw-shadow-xl;
+
+      .dashboard-widget-container {
+        @apply tw-opacity-90;
+      }
+    }
+
+    // Resizing state
+    &.react-resizable-resizing {
+      @apply tw-z-10;
+    }
+
+    // Resize handle styles
+    .react-resizable-handle {
+      @apply tw-opacity-40 hover:tw-opacity-100 tw-transition-opacity;
+
+      &.react-resizable-handle-se {
+        @apply tw-bg-gray-400;
+        width: 10px;
+        height: 10px;
+        bottom: 3px;
+        right: 3px;
+
+        &::after {
+          content: '';
+          @apply tw-absolute tw-bottom-0 tw-right-0;
+          width: 8px;
+          height: 8px;
+          border-right: 2px solid #374151;
+          border-bottom: 2px solid #374151;
+        }
+      }
+    }
+  }
+}
+
+// Widget Item Container
+.dashboard-widget-item {
+  @apply tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-overflow-hidden;
+  @apply tw-transition-all tw-duration-200 tw-ease-in-out;
+
+  // Hover state
+  &:hover {
+    @apply tw-shadow-md;
+  }
+
+  // Editable state
+  &--editable {
+    @apply tw-cursor-move;
+
+    &:hover {
+      @apply tw-border-blue-300;
+    }
+  }
+
+  // Dragging state
+  &--dragging {
+    @apply tw-shadow-xl tw-ring-2 tw-ring-blue-400 tw-ring-opacity-75;
+    @apply tw-rotate-1 tw-scale-105;
+  }
+
+  // Widget container inside item
+  .dashboard-widget-container {
+    @apply tw-w-full tw-h-full tw-flex tw-flex-col;
+  }
+}
+
+// Widget Header (common for all widgets)
+.widget-header {
+  @apply tw-flex tw-items-center tw-justify-between tw-p-3 tw-border-b tw-border-gray-100;
+  @apply tw-bg-gradient-to-r tw-from-gray-50 tw-to-white;
+
+  .widget-title {
+    @apply tw-font-semibold tw-text-gray-800 tw-flex tw-items-center;
+
+    .widget-icon {
+      @apply tw-mr-2 tw-text-blue-600;
+    }
+  }
+
+  .widget-controls {
+    @apply tw-flex tw-items-center tw-gap-2;
+
+    .widget-control-btn {
+      @apply tw-p-1 tw-rounded tw-text-gray-500 hover:tw-text-gray-700 hover:tw-bg-gray-100;
+      @apply tw-transition-colors tw-duration-150;
+
+      &--refresh {
+        &:hover {
+          @apply tw-text-blue-600;
+        }
+      }
+
+      &--settings {
+        &:hover {
+          @apply tw-text-purple-600;
+        }
+      }
+
+      &--remove {
+        &:hover {
+          @apply tw-text-red-600;
+        }
+      }
+    }
+  }
+
+  .widget-edit-controls {
+    @apply tw-opacity-0 tw-transition-opacity tw-duration-200;
+
+    .edit-control-btn {
+      @apply tw-p-1 tw-rounded tw-text-gray-400 hover:tw-text-gray-600 hover:tw-bg-gray-100;
+      @apply tw-transition-colors tw-duration-150;
+    }
+  }
+}
+
+// Widget Content Area
+.widget-content {
+  @apply tw-flex-1 tw-p-3 tw-overflow-hidden;
+
+  // Loading state
+  &--loading {
+    @apply tw-flex tw-items-center tw-justify-center tw-min-h-32;
+
+    .loading-spinner {
+      @apply tw-text-blue-600;
+    }
+  }
+
+  // Error state
+  &--error {
+    @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-min-h-32 tw-text-red-600;
+
+    .error-icon {
+      @apply tw-text-3xl tw-mb-2;
+    }
+
+    .error-message {
+      @apply tw-text-sm tw-text-center tw-text-gray-600;
+    }
+  }
+
+  // Empty state
+  &--empty {
+    @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-min-h-32 tw-text-gray-400;
+
+    .empty-icon {
+      @apply tw-text-3xl tw-mb-2;
+    }
+
+    .empty-message {
+      @apply tw-text-sm tw-text-center;
+    }
+  }
+}
+
+// Edit Mode Toolbar
+.dashboard-edit-toolbar {
+  backdrop-filter: blur(8px);
+  @apply tw-bg-white tw-bg-opacity-95;
+
+  .toolbar-button {
+    @apply tw-px-3 tw-py-1 tw-rounded tw-text-sm tw-font-medium tw-transition-colors tw-duration-150;
+
+    &--primary {
+      @apply tw-bg-blue-600 tw-text-white hover:tw-bg-blue-700;
+    }
+
+    &--success {
+      @apply tw-bg-green-600 tw-text-white hover:tw-bg-green-700;
+    }
+
+    &--secondary {
+      @apply tw-bg-gray-600 tw-text-white hover:tw-bg-gray-700;
+    }
+  }
+}
+
+// Connection Status Indicator
+.dashboard-connection-status {
+  backdrop-filter: blur(8px);
+
+  &--connected {
+    @apply tw-bg-green-100 tw-bg-opacity-90 tw-text-green-800 tw-border tw-border-green-200;
+  }
+
+  &--connecting {
+    @apply tw-bg-yellow-100 tw-bg-opacity-90 tw-text-yellow-800 tw-border tw-border-yellow-200;
+  }
+
+  &--disconnected {
+    @apply tw-bg-red-100 tw-bg-opacity-90 tw-text-red-800 tw-border tw-border-red-200;
+  }
+}
+
+// Responsive Breakpoints
+@media (max-width: 1200px) {
+  .dashboard-grid-container {
+    @apply tw-p-3;
+  }
+
+  .widget-header {
+    @apply tw-p-2;
+
+    .widget-title {
+      @apply tw-text-sm;
+    }
+  }
+
+  .widget-content {
+    @apply tw-p-2;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid-container {
+    @apply tw-p-2;
+  }
+
+  .dashboard-edit-toolbar {
+    @apply tw-top-2 tw-right-2 tw-p-3;
+
+    .toolbar-button {
+      @apply tw-px-2 tw-py-1 tw-text-xs;
+    }
+  }
+
+  .dashboard-connection-status {
+    @apply tw-bottom-2 tw-right-2 tw-px-2 tw-py-1 tw-text-xs;
+  }
+
+  .widget-header {
+    .widget-controls {
+      .widget-control-btn {
+        @apply tw-text-sm;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-layout {
+    .react-grid-item {
+      // Disable dragging on mobile for better touch experience
+      .react-resizable-handle {
+        @apply tw-hidden;
+      }
+    }
+  }
+
+  .dashboard-edit-toolbar {
+    @apply tw-flex-col tw-gap-2;
+
+    .toolbar-button {
+      @apply tw-w-full tw-text-center;
+    }
+  }
+
+  .widget-header {
+    @apply tw-flex-col tw-items-start tw-gap-2;
+
+    .widget-controls {
+      @apply tw-w-full tw-justify-end;
+    }
+  }
+}
+
+// Animation Classes
+.widget-enter {
+  @apply tw-opacity-0 tw-scale-95;
+}
+
+.widget-enter-active {
+  @apply tw-opacity-100 tw-scale-100;
+  transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
+}
+
+.widget-exit {
+  @apply tw-opacity-100 tw-scale-100;
+}
+
+.widget-exit-active {
+  @apply tw-opacity-0 tw-scale-95;
+  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
+}
+
+// Widget-specific styles
+.widget-quick-actions {
+  .action-grid {
+    @apply tw-grid tw-grid-cols-2 tw-gap-2;
+
+    .action-button {
+      @apply tw-p-3 tw-bg-gradient-to-br tw-from-blue-50 tw-to-blue-100;
+      @apply tw-border tw-border-blue-200 tw-rounded-lg tw-text-center;
+      @apply tw-transition-all tw-duration-200 hover:tw-shadow-md hover:tw-scale-105;
+
+      .action-icon {
+        @apply tw-text-2xl tw-text-blue-600 tw-mb-1;
+      }
+
+      .action-label {
+        @apply tw-text-sm tw-font-medium tw-text-gray-700;
+      }
+    }
+  }
+}
+
+.widget-stats {
+  .stats-grid {
+    @apply tw-grid tw-grid-cols-2 tw-gap-3;
+
+    .stat-item {
+      @apply tw-text-center;
+
+      .stat-value {
+        @apply tw-text-2xl tw-font-bold tw-text-gray-800;
+      }
+
+      .stat-label {
+        @apply tw-text-sm tw-text-gray-600;
+      }
+
+      .stat-change {
+        @apply tw-text-xs tw-font-medium;
+
+        &--positive {
+          @apply tw-text-green-600;
+        }
+
+        &--negative {
+          @apply tw-text-red-600;
+        }
+      }
+    }
+  }
+}
+
+// Dark mode support (if needed)
+@media (prefers-color-scheme: dark) {
+  .dashboard-layout {
+    @apply tw-bg-gray-900;
+
+    .dashboard-widget-item {
+      @apply tw-bg-gray-800 tw-border-gray-700;
+
+      &:hover {
+        @apply tw-border-blue-500;
+      }
+    }
+
+    .widget-header {
+      @apply tw-bg-gradient-to-r tw-from-gray-800 tw-to-gray-750 tw-border-gray-700;
+
+      .widget-title {
+        @apply tw-text-gray-200;
+      }
+    }
+
+    .widget-content {
+      @apply tw-text-gray-300;
+    }
+  }
+}

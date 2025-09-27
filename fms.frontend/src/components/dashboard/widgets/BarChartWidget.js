@@ -18,12 +18,14 @@ import './BarChartWidget.css';
  * Displays comparison data with vertical or horizontal bar charts
  */
 const BarChartWidget = ({
+  widget, // full widget config (optional)
   widgetId,
   config = {},
   data = null,
   onRefresh,
   onConfigure,
-  isEditing = false
+  isEditing = false,
+  units
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -59,25 +61,50 @@ const BarChartWidget = ({
     tooltipFormat: 'decimal'
   };
 
-  const mergedConfig = { ...defaultConfig, ...config };
+  // Infer metadata
+  const displayName = widget?.name || data?.metadata?.displayName || config.title || defaultConfig.title;
+  const unit = units || data?.metadata?.unit || data?.unit || undefined;
+
+  // Treat data as already aggregated by server; determine if categorical or timeseries for labeling only
+  const firstRaw = Array.isArray(data) && data.length > 0 ? data[0] : null;
+  const isTimeSeries = !!(firstRaw && (firstRaw.timestamp || firstRaw.argument instanceof Date || typeof firstRaw.argument === 'string'));
+
+  const mergedConfig = {
+    ...defaultConfig,
+    ...config,
+    title: displayName,
+    argumentAxis: {
+      ...defaultConfig.argumentAxis,
+      ...config.argumentAxis,
+      // Use Date on X axis for time series
+      title: isTimeSeries ? 'Date' : (config.argumentAxis?.title || defaultConfig.argumentAxis.title)
+    },
+    valueAxis: {
+      ...defaultConfig.valueAxis,
+      ...config.valueAxis,
+      title: unit || config.valueAxis?.title || defaultConfig.valueAxis.title
+    }
+  };
 
   // Process chart data
   const chartData = useMemo(() => {
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
-
-    // Handle different data formats
-    if (data.length > 0 && typeof data[0] === 'object') {
-      // Data is already in proper format
-      return data;
-    }
-
-    // Convert simple array to chart format
-    return data.map((value, index) => ({
-      category: `Item ${index + 1}`,
-      value: parseFloat(value) || 0
-    }));
+    if (!data) return [];
+    // Accept either array directly or server-shaped { series: [...] }
+    const arr = Array.isArray(data) ? data : Array.isArray(data.series) ? data.series : [];
+    return arr.map((pt, idx) => {
+      if (pt && typeof pt === 'object') {
+        const ts = pt.argument ?? pt.timestamp ?? pt.date ?? null;
+        const val = pt.value ?? pt.y ?? pt.amount ?? 0;
+        if (ts) {
+          // Do NOT re-bucket; just display as provided
+          const d = ts instanceof Date ? ts : new Date(ts);
+          return { argument: d, value: Number(val) || 0 };
+        }
+        const label = pt.category ?? pt.label ?? pt.key ?? `Item ${idx + 1}`;
+        return { category: String(label), value: Number(val) || 0 };
+      }
+      return { category: `Item ${idx + 1}`, value: Number(pt) || 0 };
+    });
   }, [data]);
 
   // Get chart series configuration
@@ -105,9 +132,9 @@ const BarChartWidget = ({
     // Create series for each numeric field
     return keys.map(key => ({
       valueField: key,
-      argumentField: firstItem.category !== undefined ? 'category' :
-                   firstItem.argument !== undefined ? 'argument' :
-                   Object.keys(firstItem)[0],
+      argumentField: firstItem.argument !== undefined ? 'argument' :
+                     firstItem.category !== undefined ? 'category' :
+                     Object.keys(firstItem)[0],
       name: key.charAt(0).toUpperCase() + key.slice(1),
       type: 'bar'
     }));
@@ -121,25 +148,8 @@ const BarChartWidget = ({
       return null;
     }
 
-    const stats = {};
-
-    seriesConfig.forEach(series => {
-      const values = chartData.map(item => parseFloat(item[series.valueField]) || 0);
-      const sum = values.reduce((acc, val) => acc + val, 0);
-      const max = Math.max(...values);
-      const min = Math.min(...values);
-      const avg = sum / values.length;
-
-      stats[series.name] = {
-        sum: sum.toFixed(2),
-        avg: avg.toFixed(2),
-        max: max.toFixed(2),
-        min: min.toFixed(2),
-        count: values.length
-      };
-    });
-
-    return stats;
+    // Summary is display-only; avoid heavy recomputation
+    return null;
   }, [chartData, seriesConfig]);
 
   const handleRefresh = async () => {
@@ -303,8 +313,10 @@ const BarChartWidget = ({
               />
             )}
 
-            <ArgumentAxis>
+            <ArgumentAxis tickInterval={'day'}>
               <Grid visible={mergedConfig.argumentAxis.gridVisible} />
+              {/* DevExtreme renders Date nicely with format below if needed: */}
+              {/* <Label format="shortDate" /> */}
             </ArgumentAxis>
 
             <ValueAxis
@@ -391,7 +403,8 @@ BarChartWidget.propTypes = {
   data: PropTypes.array,
   onRefresh: PropTypes.func,
   onConfigure: PropTypes.func,
-  isEditing: PropTypes.bool
+  isEditing: PropTypes.bool,
+  units: PropTypes.string
 };
 
 export default BarChartWidget;

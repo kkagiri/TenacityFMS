@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace FMS.WebClient.Controllers;
 
-[Route ("api/[controller]")]
+[Route ("api/v1/[controller]")]
 [ApiController]
 [Authorize]
 public class TankStockController : ControllerBase {
@@ -150,8 +150,8 @@ public class TankStockController : ControllerBase {
     public async Task<IActionResult> CreateOpeningStock ([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime) {
         // var hasPermission = User.HasClaim("permissions", "_openingStock");
         // if (!hasPermission) return Forbid();
-        if (tankId <= 0) return BadRequest (new FMSResponseMessage (false, "Invalid Tank ID"));
-        if (amount <= 0) return BadRequest (new FMSResponseMessage (false, "Opening stock should be greater than 0"));
+        if (tankId <= 0) return BadRequest (FMSResponse.FailedResponse ("Invalid Tank ID"));
+        if (amount <= 0) return BadRequest (FMSResponse.FailedResponse ("Opening stock should be greater than 0"));
         // Normalize the provided date to UTC before comparison to avoid false positives when clients send local time
         DateTime dateTimeUtc = dateTime.UtcDateTime;
 
@@ -160,7 +160,7 @@ public class TankStockController : ControllerBase {
             Guid.TryParse (c.Value, out _));
 
         if (userIdClaim == null) {
-            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+            return BadRequest (FMSResponse.FailedResponse ("Invalid User ID"));
         }
 
         FMSResponseMessage result = await _mediator.Send (new OpeningStockCommand (tankId, amount, userIdClaim.Value, dateTimeUtc));
@@ -182,8 +182,8 @@ public class TankStockController : ControllerBase {
     public async Task<IActionResult> CreateClosingStock ([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime) {
         // var hasPermission = User.HasClaim("permissions", "_closingStock");
         // if (!hasPermission) return Forbid();
-        if (tankId <= 0) return BadRequest (new FMSResponseMessage (false, "Invalid Tank ID"));
-        if (amount <= 0) return BadRequest (new FMSResponseMessage (false, "Closing stock should be greater than 0"));
+        if (tankId <= 0) return BadRequest (FMSResponse.FailedResponse ("Invalid Tank ID"));
+        if (amount <= 0) return BadRequest (FMSResponse.FailedResponse ("Closing stock should be greater than 0"));
         // Normalize to UTC for consistent comparison
         DateTime dateTimeUtc = dateTime.UtcDateTime;
 
@@ -192,7 +192,7 @@ public class TankStockController : ControllerBase {
             Guid.TryParse (c.Value, out _));
 
         if (userIdClaim == null) {
-            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+            return BadRequest (FMSResponse.FailedResponse ("Invalid User ID"));
         }
         FMSResponseMessage result = await _mediator.Send (new ClosingStockCommand (tankId, amount, userIdClaim.Value, dateTimeUtc));
 
@@ -214,7 +214,7 @@ public class TankStockController : ControllerBase {
             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
             Guid.TryParse (c.Value, out _));
 
-        if (userIdClaim == null) return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+        if (userIdClaim == null) return BadRequest (FMSResponse.FailedResponse ("Invalid User ID"));
 
         tankTransferDTO.RecordedBy = userIdClaim.Value;
 
@@ -269,7 +269,7 @@ public class TankStockController : ControllerBase {
             Guid.TryParse (c.Value, out _));
 
         if (userIdClaim == null)
-            return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+            return BadRequest (FMSResponse.FailedResponse ("Invalid User ID"));
 
         adjustmentDTO.CreatedBy = userIdClaim.Value;
 

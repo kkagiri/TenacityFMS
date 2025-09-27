@@ -1,13 +1,13 @@
 import React from "react";
 import "./home.scss";
-import Dashboard from "../../components/dashboard";
+import RealtimeDashboard from "../dashboard/RealtimeDashboard";
 
 export default function Home() {
   return (
     <React.Fragment>
       <div className={"content-block"}>
         <div className={"dx-card"}>
-          <Dashboard />
+          <RealtimeDashboard />
         </div>
       </div>
     </React.Fragment>

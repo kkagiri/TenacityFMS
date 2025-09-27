@@ -38,15 +38,27 @@ const axiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
+    "API-Version": "v1", // Default to v1 for all requests
   },
-  timeout: 30000, // Increased to 30 second timeout
+  timeout: 30000, // 30 second timeout - restored for debugging
 });
 
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
     // Set baseURL for each request (no async needed)
-  config.baseURL = getApiUrl();
+    config.baseURL = getApiUrl();
+
+    // Handle API versioning - auto-prepend v1 if not already in URL
+    if (config.url && !config.url.includes('/api/v')) {
+      // If URL starts with just controller name (e.g., 'tankstock/openingstock')
+      // prepend v1 to make it 'v1/tankstock/openingstock'
+      if (!config.url.startsWith('api/')) {
+        // Remove leading slash if present to avoid double slash
+        const cleanUrl = config.url.startsWith('/') ? config.url.slice(1) : config.url;
+        config.url = `v1/${cleanUrl}`;
+      }
+    }
 
     // Add auth token if available
     const token = localStorage.getItem("token");
@@ -54,8 +66,16 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Ensure API-Version header is set (can be overridden per request)
+    if (!config.headers['API-Version']) {
+      config.headers['API-Version'] = 'v1';
+    }
+
     if (process.env.NODE_ENV === "development") {
       console.log(`Making request to: ${config.baseURL}${config.url}`);
+      console.log('Request headers:', config.headers);
+      console.log('Request method:', config.method);
+      console.log('Request data:', config.data);
     }
 
     return config;
@@ -80,7 +100,7 @@ axiosInstance.interceptors.response.use(
   (error) => {
     // Handle network errors (often CORS related)
     if (error.code === 'ECONNABORTED') {
-      console.error("Request timeout - server may be slow or unreachable:", error);
+      console.error("Request timeout - server may be slow or unreachable. Consider checking server status:", error);
     } else if (error.message === "Network Error") {
       console.error("Network error - check CORS configuration or server connection:", error);
     }

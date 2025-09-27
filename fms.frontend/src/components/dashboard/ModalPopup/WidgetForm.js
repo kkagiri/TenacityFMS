@@ -1,9 +1,103 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import SelectBox from 'devextreme-react/select-box';
 import TagBox from 'devextreme-react/tag-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import TextBox from 'devextreme-react/text-box';
 import Button from 'devextreme-react/button';
+import dataSourceService from '../../../services/dataSourceService';
+import widgetFactoryService from '../../../services/widgetFactoryService';
+
+const WIDGET_TYPE_DEFINITIONS = {
+  BIG_STAT_CARD: {
+    id: 'BIG_STAT_CARD',
+    label: 'Big Statistics Card',
+    description: 'Prominent stat card with primary value and contextual metadata'
+  },
+  CHART_LINE_TREND: {
+    id: 'CHART_LINE_TREND',
+    label: 'Line Chart',
+    description: 'Time-series trend chart for historical and cumulative data'
+  },
+  CHART_BAR_COMPARISON: {
+    id: 'CHART_BAR_COMPARISON',
+    label: 'Bar Comparison',
+    description: 'Compare categories with aggregated bars'
+  },
+  CHART_PIE_DISTRIBUTION: {
+    id: 'CHART_PIE_DISTRIBUTION',
+    label: 'Pie Distribution',
+    description: 'Distribution of values across categories'
+  },
+  DATA_TABLE_DETAILED: {
+    id: 'DATA_TABLE_DETAILED',
+    label: 'Detailed Table',
+    description: 'Tabular breakdown of metrics'
+  },
+  PROGRESS_LIST: {
+    id: 'PROGRESS_LIST',
+    label: 'Progress List',
+    description: 'Ranked list with progress indicators'
+  },
+  ALERT_NOTIFICATION: {
+    id: 'ALERT_NOTIFICATION',
+    label: 'Alerts & Notifications',
+    description: 'Stream of alert notifications with severity'
+  },
+  ticker: {
+    id: 'ticker',
+    label: 'Ticker',
+    description: 'Rolling statistic ticker card'
+  }
+};
+
+const MODE_DEFINITIONS = {
+  live: {
+    value: 'live',
+    label: 'Live',
+    description: 'Stream the most recent telemetry as updates arrive'
+  },
+  historical_snapshot: {
+    value: 'historical_snapshot',
+    label: 'Snapshot',
+    description: 'Single point-in-time value for the chosen preset'
+  },
+  daily_aggregated: {
+    value: 'daily_aggregated',
+    label: 'Daily Aggregated',
+    description: 'One aggregated data point per day for the preset window'
+  },
+  running_cumulative: {
+    value: 'running_cumulative',
+    label: 'Running Cumulative',
+    description: 'Running totals (e.g., MBFU) accumulating across the range'
+  },
+  rolling_window: {
+    value: 'rolling_window',
+    label: 'Rolling Window',
+    description: 'Fixed-size moving window (e.g., last 24h) recomputed over time'
+  },
+  compare_periods: {
+    value: 'compare_periods',
+    label: 'Compare Periods',
+    description: 'Compare current window against a previous period'
+  }
+};
+
+const formatCategoryLabel = (category = '') => category
+  .split('_')
+  .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+  .join(' ');
+
+const LEGACY_CATEGORY_OPTIONS = [
+  { id: 'fuel_management', label: 'Fuel Management' },
+  { id: 'vehicle_performance', label: 'Vehicle Performance' },
+  { id: 'alerts_monitoring', label: 'Alerts & Monitoring' },
+  { id: 'key_statistics', label: 'Key Statistics' },
+  { id: 'performance_metrics', label: 'Performance Metrics' },
+  { id: 'system_status', label: 'System Status' },
+  { id: 'reporting', label: 'Reporting' },
+  { id: 'configuration', label: 'Configuration' }
+];
 
 export default function WidgetForm({
   newWidget,
@@ -26,71 +120,104 @@ export default function WidgetForm({
   onPreviewData
 }) {
   const [isCustomWidget, setIsCustomWidget] = useState(false);
+  const [dataSources, setDataSources] = useState([]);
+  const [dsLoading, setDsLoading] = useState(false);
+  const [dsError, setDsError] = useState('');
+  const [dataSourceMeta, setDataSourceMeta] = useState(null);
+  const [validationState, setValidationState] = useState({ isValid: true, errors: [], suggestions: [], normalizedConfig: null });
+  const [catalog, setCatalog] = useState({ items: [], categories: [], widgetCompatibility: {} });
 
-  // Widget types available for each category
-  const widgetTypesByCategory = useMemo(() => ({
-    key_statistics: [
-      { id: 'ticker', label: 'Ticker', description: 'Simple numeric display with trend' }
-    ],
-    fuel_management: [
-      { id: 'BIG_STAT_CARD', label: 'Big Statistics Card', description: 'Large card with main value and sub-metrics' },
-      { id: 'CHART_LINE_TREND', label: 'Line Chart', description: 'Time series trend chart' },
-      { id: 'CHART_BAR_COMPARISON', label: 'Bar Chart', description: 'Comparative bar chart' },
-      { id: 'CHART_PIE_DISTRIBUTION', label: 'Pie Chart', description: 'Distribution pie chart' },
-      { id: 'DATA_TABLE_DETAILED', label: 'Data Table', description: 'Detailed data table with pagination' },
-      { id: 'PROGRESS_LIST', label: 'Progress List', description: 'Progress bars with percentages' }
-    ],
-    vehicle_performance: [
-      { id: 'BIG_STAT_CARD', label: 'Big Statistics Card', description: 'Large card with main value and sub-metrics' },
-      { id: 'CHART_LINE_TREND', label: 'Line Chart', description: 'Performance trend over time' },
-      { id: 'CHART_BAR_COMPARISON', label: 'Bar Chart', description: 'Vehicle comparison chart' },
-      { id: 'DATA_TABLE_DETAILED', label: 'Data Table', description: 'Vehicle performance data table' },
-      { id: 'PROGRESS_LIST', label: 'Progress List', description: 'Performance metrics by vehicle' }
-    ],
-    alerts_monitoring: [
-      { id: 'ALERT_NOTIFICATION', label: 'Alert Widget', description: 'System alerts and notifications' },
-      { id: 'DATA_TABLE_DETAILED', label: 'Alert Table', description: 'Detailed alert history table' },
-      { id: 'BIG_STAT_CARD', label: 'Alert Summary Card', description: 'Alert count with severity breakdown' }
-    ],
-    performance_metrics: [
-      { id: 'BIG_STAT_CARD', label: 'Metric Card', description: 'Performance metric with trend' },
-      { id: 'CHART_LINE_TREND', label: 'Trend Chart', description: 'Performance trend over time' },
-      { id: 'CHART_BAR_COMPARISON', label: 'Comparison Chart', description: 'Compare performance metrics' },
-      { id: 'DATA_TABLE_DETAILED', label: 'Metrics Table', description: 'Detailed performance data' }
-    ],
-    system_status: [
-      { id: 'BIG_STAT_CARD', label: 'Status Card', description: 'System status overview' },
-      { id: 'ALERT_NOTIFICATION', label: 'Status Alerts', description: 'System status notifications' },
-      { id: 'PROGRESS_LIST', label: 'Component Status', description: 'Individual component status' }
-    ],
-    reporting: [
-      { id: 'DATA_TABLE_DETAILED', label: 'Report Table', description: 'Tabular report data' },
-      { id: 'CHART_BAR_COMPARISON', label: 'Report Chart', description: 'Visual report charts' },
-      { id: 'BIG_STAT_CARD', label: 'Report Summary', description: 'Key report metrics' }
-    ],
-    configuration: [
-      { id: 'DATA_TABLE_DETAILED', label: 'Config Table', description: 'Configuration settings table' },
-      { id: 'BIG_STAT_CARD', label: 'Config Summary', description: 'Configuration status overview' }
-    ]
-  }), []);
+  const categoryOptions = useMemo(() => {
+    if (catalog.categories?.length) {
+      return catalog.categories.map(({ category }) => ({
+        id: category,
+        label: formatCategoryLabel(category)
+      }));
+    }
+    return LEGACY_CATEGORY_OPTIONS;
+  }, [catalog.categories]);
 
-  // Get available widget types for current category
+  const mergeWithMetadataDefaults = useCallback((prevState, partial = {}, metadataOverride = null) => {
+    const draft = { ...prevState, ...partial };
+    const baseConfig = {
+      mode: partial.mode ?? prevState.mode,
+      aggregation: partial.aggregation ?? prevState.aggregation,
+      granularity: partial.granularity ?? prevState.granularity,
+      datePreset: partial.datePreset ?? prevState.datePreset,
+      unit: partial.unit ?? prevState.unit,
+      includeTotal: partial.includeTotal ?? prevState.includeTotal,
+      topK: partial.topK ?? prevState.topK,
+      cumulative: partial.cumulative ?? prevState.cumulative,
+      smoothing: partial.smoothing ?? prevState.smoothing
+    };
+
+    const metadata = metadataOverride || dataSourceMeta;
+
+    const normalized = metadata
+      ? dataSourceService.applyMetadataDefaults(metadata, baseConfig)
+      : baseConfig;
+
+    const next = { ...draft };
+    next.mode = normalized.mode ?? next.mode;
+    next.aggregation = normalized.aggregation ?? next.aggregation;
+    next.granularity = normalized.granularity ?? next.granularity;
+    next.datePreset = normalized.datePreset ?? next.datePreset;
+    if (normalized.unit !== undefined) {
+      next.unit = normalized.unit;
+    }
+    if (normalized.includeTotal !== undefined) {
+      next.includeTotal = normalized.includeTotal;
+    }
+    if (normalized.topK !== undefined) {
+      next.topK = normalized.topK;
+    }
+    if (normalized.cumulative !== undefined) {
+      next.cumulative = normalized.cumulative;
+    }
+    if (normalized.smoothing !== undefined) {
+      next.smoothing = normalized.smoothing;
+    }
+
+    next.settings = {
+      ...(prevState.settings || {}),
+      ...(partial.settings || {}),
+      mode: next.mode,
+      aggregation: next.aggregation,
+      granularity: next.granularity,
+      datePreset: next.datePreset,
+      unit: next.unit,
+      includeTotal: next.includeTotal,
+      topK: next.topK
+    };
+
+    return next;
+  }, [dataSourceMeta]);
+
   const availableWidgetTypes = useMemo(() => {
     if (!newWidget.category) return [];
-    return widgetTypesByCategory[newWidget.category] || [];
-  }, [newWidget.category, widgetTypesByCategory]);
+    const categoryEntry = catalog.categories?.find(cat => cat.category === newWidget.category);
+    const widgetTypeSet = new Set();
 
-  // Category options
-  const categoryOptions = [
-    { id: 'fuel_management', label: 'Fuel Management' },
-    { id: 'vehicle_performance', label: 'Vehicle Performance' },
-    { id: 'alerts_monitoring', label: 'Alerts & Monitoring' },
-    { id: 'key_statistics', label: 'Key Statistics' },
-    { id: 'performance_metrics', label: 'Performance Metrics' },
-    { id: 'system_status', label: 'System Status' },
-    { id: 'reporting', label: 'Reporting' },
-    { id: 'configuration', label: 'Configuration' }
-  ];
+    (categoryEntry?.sources || []).forEach(source => {
+      (source.metadata?.compatibleWidgetTypes || source.metadata?.CompatibleWidgetTypes || []).forEach(type => {
+        if (type) widgetTypeSet.add(type);
+      });
+    });
+
+    if (widgetTypeSet.size === 0 && ['key_statistics', 'performance_metrics'].includes(newWidget.category)) {
+      ['BIG_STAT_CARD', 'ticker'].forEach(type => widgetTypeSet.add(type));
+    }
+
+    return Array.from(widgetTypeSet).map(type => {
+      const definition = WIDGET_TYPE_DEFINITIONS[type];
+      if (definition) return definition;
+      return {
+        id: type,
+        label: formatCategoryLabel(type.toLowerCase()),
+        description: 'Supported widget type'
+      };
+    });
+  }, [catalog.categories, newWidget.category]);
 
   // Vehicle type options - combines loaded vehicle types with "All" option
   const vehicleTypeOptions = useMemo(() => {
@@ -119,229 +246,91 @@ export default function WidgetForm({
     return options;
   }, [vehicleTypes]);
 
+  const availableDataSources = useMemo(() => {
+    if (!Array.isArray(dataSources) || dataSources.length === 0) return [];
+
+    return dataSources.filter(item => {
+      const metadata = item.metadata || {};
+      const categoryMatch = !newWidget.category || metadata.category === newWidget.category || ['key_statistics', 'performance_metrics'].includes(newWidget.category);
+      if (!categoryMatch) return false;
+
+      if (newWidget.visualizationType) {
+        const compatible = (metadata.compatibleWidgetTypes || []).includes(newWidget.visualizationType);
+        if (!compatible && ['key_statistics', 'performance_metrics'].indexOf(newWidget.category) === -1) {
+          return false;
+        }
+      }
+
+      return metadata.isCatalogVisible !== false;
+    }).map(item => ({
+      id: item.id,
+      label: item.displayName || item.id,
+      category: item.metadata?.category,
+      metadata: item.metadata
+    }));
+  }, [dataSources, newWidget.category, newWidget.visualizationType]);
+
   // Smart unit options based on metric type
   const getUnitOptionsForMetric = useMemo(() => {
-    if (!newWidget.metric) {
-      // Return all units if no metric selected
-      return [
-        { value: 'liters', text: 'Liters (L)', category: 'fuel' },
-        { value: 'gallons', text: 'Gallons (gal)', category: 'fuel' },
-        { value: 'kilometers', text: 'Kilometers (km)', category: 'distance' },
-        { value: 'miles', text: 'Miles (mi)', category: 'distance' },
-        { value: 'hours', text: 'Hours (hrs)', category: 'time' },
-        { value: 'minutes', text: 'Minutes (min)', category: 'time' },
-        { value: 'count', text: 'Count (#)', category: 'quantity' },
-        { value: 'percentage', text: 'Percentage (%)', category: 'ratio' },
-        { value: 'currency', text: 'Currency ($)', category: 'financial' },
-        { value: 'kg', text: 'Kilograms (kg)', category: 'weight' },
-        { value: 'tons', text: 'Tons (t)', category: 'weight' },
-        { value: 'kmh', text: 'Kilometers/Hour (km/h)', category: 'speed' },
-        { value: 'mph', text: 'Miles/Hour (mph)', category: 'speed' },
-        { value: 'rpm', text: 'Revolutions/Minute (RPM)', category: 'rotation' }
-      ];
+    if (dataSourceMeta?.supportedUnits?.length) {
+      return dataSourceMeta.supportedUnits.map(unit => ({
+        value: unit,
+        text: formatCategoryLabel(unit.replace(/_/g, ' ').toLowerCase()),
+        default: dataSourceMeta.recommendedUnits?.includes(unit)
+      }));
     }
 
-    const metric = newWidget.metric.toLowerCase();
-
-    // Define unit mappings for different metric types
-    const unitMappings = {
-      // Fuel-related metrics
-      fuel: {
-        keywords: ['fuel_dispensed', 'fuel_consumed', 'fuel_cost', 'fuel_efficiency', 'consumption', 'dispensed', 'refill'],
-        units: [
-          { value: 'liters', text: 'Liters (L)', category: 'fuel', default: true },
-          { value: 'gallons', text: 'Gallons (gal)', category: 'fuel' },
-          { value: 'currency', text: 'Currency ($)', category: 'financial' }
-        ]
-      },
-
-      // Distance-related metrics
-      distance: {
-        keywords: ['distance_traveled', 'distance_travelled', 'mileage', 'odometer', 'trip', 'route'],
-        units: [
-          { value: 'kilometers', text: 'Kilometers (km)', category: 'distance', default: true },
-          { value: 'miles', text: 'Miles (mi)', category: 'distance' }
-        ]
-      },
-
-      // Time-related metrics
-      time: {
-        keywords: ['engine_hours', 'runtime', 'operating_hours', 'idle_time', 'hours', 'duration'],
-        units: [
-          { value: 'hours', text: 'Hours (hrs)', category: 'time', default: true },
-          { value: 'minutes', text: 'Minutes (min)', category: 'time' }
-        ]
-      },
-
-      // Speed-related metrics
-      speed: {
-        keywords: ['speed_average', 'speed_max', 'velocity', 'rate'],
-        units: [
-          { value: 'kmh', text: 'Kilometers/Hour (km/h)', category: 'speed', default: true },
-          { value: 'mph', text: 'Miles/Hour (mph)', category: 'speed' }
-        ]
-      },
-
-      // Count/quantity metrics
-      quantity: {
-        keywords: ['transaction_count', 'trip_count', 'user_activity', 'alerts', 'count', 'number'],
-        units: [
-          { value: 'count', text: 'Count (#)', category: 'quantity', default: true }
-        ]
-      },
-
-      // Financial metrics
-      financial: {
-        keywords: ['cost_analysis', 'revenue', 'total_cost', 'maintenance_cost', 'cost', 'price'],
-        units: [
-          { value: 'currency', text: 'Currency ($)', category: 'financial', default: true }
-        ]
-      },
-
-      // Percentage/ratio metrics
-      ratio: {
-        keywords: ['efficiency', 'utilization', 'performance', 'ratio', 'percent'],
-        units: [
-          { value: 'percentage', text: 'Percentage (%)', category: 'ratio', default: true }
-        ]
-      },
-
-      // Weight/volume metrics
-      weight: {
-        keywords: ['weight', 'mass', 'load', 'cargo'],
-        units: [
-          { value: 'kg', text: 'Kilograms (kg)', category: 'weight', default: true },
-          { value: 'tons', text: 'Tons (t)', category: 'weight' }
-        ]
-      },
-
-      // Tank/volume metrics
-      volume: {
-        keywords: ['tank_level', 'tank_capacity', 'tank_volume', 'volume', 'level'],
-        units: [
-          { value: 'liters', text: 'Liters (L)', category: 'fuel', default: true },
-          { value: 'gallons', text: 'Gallons (gal)', category: 'fuel' },
-          { value: 'percentage', text: 'Percentage (%)', category: 'ratio' }
-        ]
-      }
-    };
-
-    // Find matching unit category
-    for (const [, config] of Object.entries(unitMappings)) {
-      if (config.keywords.some(keyword => metric.includes(keyword))) {
-        return config.units;
-      }
-    }
-
-    // Default fallback units if no specific match found
     return [
-      { value: 'count', text: 'Count (#)', category: 'quantity', default: true },
-      { value: 'liters', text: 'Liters (L)', category: 'fuel' },
-      { value: 'hours', text: 'Hours (hrs)', category: 'time' },
-      { value: 'kilometers', text: 'Kilometers (km)', category: 'distance' },
-      { value: 'percentage', text: 'Percentage (%)', category: 'ratio' },
-      { value: 'currency', text: 'Currency ($)', category: 'financial' }
+      { value: 'count', text: 'Count (#)', default: true },
+      { value: 'liters', text: 'Liters (L)' },
+      { value: 'hours', text: 'Hours (hrs)' },
+      { value: 'kilometers', text: 'Kilometers (km)' },
+      { value: 'percentage', text: 'Percentage (%)' },
+      { value: 'currency', text: 'Currency ($)' }
     ];
-  }, [newWidget.metric]);
+  }, [dataSourceMeta]);
 
-  // Get smart default unit based on metric
   const getDefaultUnitForMetric = useMemo(() => {
+    if (dataSourceMeta?.recommendedUnits?.length) {
+      return dataSourceMeta.recommendedUnits[0];
+    }
+    if (dataSourceMeta?.defaultConfiguration?.unit) {
+      return dataSourceMeta.defaultConfiguration.unit;
+    }
     const availableUnits = getUnitOptionsForMetric;
     const defaultUnit = availableUnits.find(unit => unit.default);
     return defaultUnit ? defaultUnit.value : availableUnits[0]?.value || 'count';
-  }, [getUnitOptionsForMetric]);
+  }, [dataSourceMeta, getUnitOptionsForMetric]);
+
+  const modeOptions = useMemo(() => {
+    const supported = dataSourceMeta?.supportedModes?.length
+      ? dataSourceMeta.supportedModes
+      : Object.keys(MODE_DEFINITIONS);
+
+    return supported.map(mode => {
+      const definition = MODE_DEFINITIONS[mode] || {
+        value: mode,
+        label: formatCategoryLabel(mode.replace(/-/g, ' ')),
+        description: ''
+      };
+      return {
+        value: definition.value,
+        text: definition.label,
+        description: definition.description
+      };
+    });
+  }, [dataSourceMeta]);
 
   // Smart filter configuration based on data source/metric
   const getAvailableFilters = useMemo(() => {
     if (!newWidget.metric) return {};
-
-    const metric = newWidget.metric.toLowerCase();
-
-    // Define filter rules for different data sources
-    const filterRules = {
-      // Fuel-related metrics need aggregation, sites, dates, and vehicle types
-      fuel_dispensed: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      fuel_consumed: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      fuel_efficiency: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      fuel_cost: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-
-      // Tank-related metrics only need sites and dates (no vehicle types)
-      tank_level: ['sites', 'dateRange'],
-      tank_capacity: ['sites', 'dateRange'],
-      tank_volume: ['aggregation', 'sites', 'dateRange'],
-      tank_status: ['sites', 'dateRange'],
-
-      // System alerts only need dates and maybe sites (no aggregation or vehicle types)
-      system_alerts: ['sites', 'dateRange'],
-      maintenance_alerts: ['sites', 'dateRange', 'vehicleTypes'],
-      critical_alerts: ['sites', 'dateRange'],
-
-      // Vehicle performance metrics - all need vehicle types
-      vehicle_performance: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      engine_hours: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      engine_runtime: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      mileage: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      distance_traveled: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      distance_travelled: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'], // Alternative spelling
-      speed_average: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      speed_max: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      idle_time: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      operating_hours: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      runtime: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-
-      // Financial metrics
-      cost_analysis: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      revenue: ['aggregation', 'sites', 'dateRange'],
-      total_cost: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-
-      // Usage statistics
-      transaction_count: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      user_activity: ['aggregation', 'sites', 'dateRange'],
-      trip_count: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-
-      // Maintenance metrics
-      maintenance_cost: ['aggregation', 'sites', 'dateRange', 'vehicleTypes'],
-      maintenance_frequency: ['aggregation', 'sites', 'dateRange', 'vehicleTypes']
-    };    // Find exact match or partial match
-    let availableFilters = filterRules[metric];
-
-    if (!availableFilters) {
-      // Try partial matching for dynamic metrics
-      for (const [key, filters] of Object.entries(filterRules)) {
-        if (metric.includes(key) || key.includes(metric)) {
-          availableFilters = filters;
-          break;
-        }
-      }
-    }
-
-    // Intelligent default filters if no match found
-    if (!availableFilters) {
-      // Check if metric is vehicle-related by pattern matching
-      const vehicleRelatedPatterns = [
-        'vehicle', 'engine', 'motor', 'distance', 'speed', 'trip', 'travel',
-        'runtime', 'hours', 'idle', 'efficiency', 'consumption', 'maintenance',
-        'service', 'odometer', 'mileage', 'driver', 'ignition', 'location'
-      ];
-
-      const isVehicleRelated = vehicleRelatedPatterns.some(pattern =>
-        metric.toLowerCase().includes(pattern)
-      );
-
-      if (isVehicleRelated) {
-        availableFilters = ['aggregation', 'sites', 'dateRange', 'vehicleTypes'];
-      } else {
-        availableFilters = ['aggregation', 'sites', 'dateRange'];
-      }
-    }
-
     return {
-      aggregation: availableFilters.includes('aggregation'),
-      sites: availableFilters.includes('sites'),
-      dateRange: availableFilters.includes('dateRange'),
-      vehicleTypes: availableFilters.includes('vehicleTypes')
+      aggregation: (dataSourceMeta?.supportedAggregations || []).length > 0,
+      sites: dataSourceMeta?.requiresSiteFilter ?? true,
+      dateRange: true,
+      vehicleTypes: dataSourceMeta?.requiresVehicleFilter ?? false
     };
-  }, [newWidget.metric]);
+  }, [newWidget.metric, dataSourceMeta]);
 
   // Widget types available for each category - moved to CustomWidgetDialog  // Widget types available for each category - moved to CustomWidgetDialog
   // const widgetTypesByCategory = useMemo(() => ({
@@ -466,6 +455,113 @@ export default function WidgetForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newWidget.metric, newWidget.visualizationType, getDefaultUnitForMetric]);
+
+  // Load data sources on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setDsLoading(true);
+      try {
+        const catalogResult = await dataSourceService.getDataSourceCatalog({ includeMetadata: true });
+        if (mounted) {
+          setCatalog(catalogResult);
+          setDataSources(catalogResult.items);
+          setDsError('');
+        }
+      } catch (e) {
+        if (mounted) setDsError(e?.message || 'Failed to load data sources');
+      } finally {
+        if (mounted) setDsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Fetch metadata and apply defaults when metric changes
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const metricId = newWidget.metric;
+      if (!metricId) {
+        if (mounted) setDataSourceMeta(null);
+        return;
+      }
+
+      try {
+        const snapshot = {
+          mode: newWidget.mode,
+          aggregation: newWidget.aggregation,
+          granularity: newWidget.granularity,
+          datePreset: newWidget.datePreset,
+          unit: newWidget.unit,
+          includeTotal: newWidget.includeTotal,
+          topK: newWidget.topK
+        };
+
+        const { metadata } = await dataSourceService.normalizeConfigurationForSource(metricId, snapshot);
+        if (!mounted) return;
+        setDataSourceMeta(metadata);
+        setNewWidget(prev => {
+          if (prev.metric !== metricId) return prev;
+          return mergeWithMetadataDefaults(prev, {}, metadata);
+        });
+      } catch (error) {
+        console.warn('[WidgetForm] Failed to normalize configuration', error);
+        if (mounted) setDataSourceMeta(null);
+      }
+    })();
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newWidget.metric]);
+
+  const getWidgetConfig = () => ({
+    widgetType: newWidget.visualizationType,
+    dataSource: newWidget.metric,
+    settings: {
+      mode: newWidget.mode,
+      datePreset: newWidget.datePreset,
+      aggregation: newWidget.aggregation,
+      groupBy: newWidget.groupBy || 'none',
+      granularity: newWidget.granularity,
+      includeTotal: newWidget.includeTotal,
+      topK: newWidget.topK,
+      unit: newWidget.unit
+    },
+    filters: {
+      siteIds: newWidget.siteIds || [],
+      vehicleTypeIds: newWidget.vehicleTypeIds || []
+    }
+  });
+
+  // Debounced validation
+  const debouncedValidate = useCallback((config) => {
+    widgetFactoryService
+      .validateOnChange(config, {
+        cacheKey: `${newWidget.metric || 'default'}:${newWidget.visualizationType || 'widget'}`,
+        debounceMs: 300
+      })
+      .then(result => {
+        setValidationState({
+          isValid: result?.isValid !== false,
+          errors: result?.errors || result?.validationErrors || [],
+          suggestions: result?.suggestions || [],
+          normalizedConfig: result?.normalizedConfig || null
+        });
+      })
+      .catch(() => {
+        setValidationState({ isValid: true, errors: [], suggestions: [], normalizedConfig: null });
+      });
+  }, [newWidget.metric, newWidget.visualizationType]);
+
+  useEffect(() => {
+    if (!newWidget.metric) return;
+    debouncedValidate(getWidgetConfig());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newWidget.metric, newWidget.mode, newWidget.datePreset, newWidget.aggregation, newWidget.groupBy, newWidget.granularity, newWidget.includeTotal, newWidget.topK]);
+
+  useEffect(() => () => {
+    widgetFactoryService.cancelValidation(`${newWidget.metric || 'default'}:${newWidget.visualizationType || 'widget'}`);
+  }, [newWidget.metric, newWidget.visualizationType]);
 
   // Handle widget type selection for custom widgets - moved to CustomWidgetDialog
   // const handleWidgetTypeSelect = (widgetType) => {
@@ -632,13 +728,11 @@ export default function WidgetForm({
             </label>
 
             {/* Data Source SelectBox */}
-            {metricOptions && metricOptions.length > 0 ? (
+            {dsLoading && <LoadIndicator width={16} height={16} />}
+            {dsError && <div className="tw-text-xs tw-text-red-500">{dsError}</div>}
+            {!dsLoading && !dsError && (
               <SelectBox
-                items={metricOptions.filter(metric =>
-                  !newWidget.category ||
-                  metric.category === newWidget.category ||
-                  ['key_statistics', 'performance_metrics'].includes(newWidget.category)
-                )}
+                items={availableDataSources}
                 value={newWidget.metric}
                 displayExpr="label"
                 valueExpr="id"
@@ -647,15 +741,9 @@ export default function WidgetForm({
                 placeholder="Choose the data source for this widget"
                 className="tw-border-gray-300 focus:tw-border-blue-500"
                 onValueChanged={(e) => {
-                  console.log('Data source changed:', e.value);
                   setNewWidget(prev => ({ ...prev, metric: e.value }));
                 }}
               />
-            ) : (
-              <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-text-yellow-700 tw-p-3 tw-rounded-md tw-text-sm">
-                <i className="fa-solid fa-exclamation-triangle tw-mr-2"></i>
-                No metric options available. Please ensure metric options are loaded.
-              </div>
             )}
 
             <div className="tw-text-xs tw-text-gray-500">
@@ -749,18 +837,14 @@ export default function WidgetForm({
             </span>
           </h4>
 
-          {/* Aggregation Filter - Only show for numeric data sources */}
+          {/* Aggregation Filter */}
           {getAvailableFilters.aggregation && (
             <div className="tw-space-y-2">
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
                 Aggregation Method
               </label>
               <SelectBox
-                items={[
-                  { value: 'SUM', text: 'SUM - Total sum of values' },
-                  { value: 'COUNT', text: 'COUNT - Count of records' },
-                  { value: 'AVG', text: 'AVG - Average of values' }
-                ]}
+                items={(dataSourceMeta?.supportedAggregations || ['SUM','COUNT','AVG']).map(a => ({ value: a, text: a }))}
                 value={newWidget.aggregation || 'SUM'}
                 displayExpr="text"
                 valueExpr="value"
@@ -775,6 +859,44 @@ export default function WidgetForm({
               <div className="tw-text-xs tw-text-gray-500">
                 Choose how the data should be aggregated for display
               </div>
+            </div>
+          )}
+
+          {/* Group By */}
+          {newWidget.visualizationType && ['CHART_BAR_COMPARISON','CHART_PIE_DISTRIBUTION','DATA_TABLE_DETAILED','PROGRESS_LIST'].includes(newWidget.visualizationType) && (
+            <div className="tw-space-y-2">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Group By</label>
+              <SelectBox
+                items={(dataSourceMeta?.supportedGroupBy || ['none','site','vehicleType']).map(g => ({ value: g, text: g }))}
+                value={newWidget.groupBy || 'none'}
+                displayExpr="text"
+                valueExpr="value"
+                width="100%"
+                maxWidth="300px"
+                placeholder="Select grouping"
+                className="tw-border-gray-300 focus:tw-border-blue-500"
+                onValueChanged={(e) => setNewWidget(prev => ({ ...prev, groupBy: e.value }))}
+              />
+              <div className="tw-text-xs tw-text-gray-500">Choose categorical grouping for comparisons</div>
+            </div>
+          )}
+
+          {/* Granularity */}
+          {newWidget.visualizationType && ['CHART_LINE_TREND','BIG_STAT_CARD'].includes(newWidget.visualizationType) && (
+            <div className="tw-space-y-2">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Granularity</label>
+              <SelectBox
+                items={(dataSourceMeta?.supportedGranularities || dataSourceMeta?.supportedGranularity || ['minute','hour','day','week']).map(g => ({ value: g, text: g }))}
+                value={newWidget.granularity || (newWidget.mode === 'live' ? 'minute' : 'day')}
+                displayExpr="text"
+                valueExpr="value"
+                width="100%"
+                maxWidth="300px"
+                placeholder="Select time bucket size"
+                className="tw-border-gray-300 focus:tw-border-blue-500"
+                onValueChanged={(e) => setNewWidget(prev => ({ ...prev, granularity: e.value }))}
+              />
+              <div className="tw-text-xs tw-text-gray-500">Server buckets data by this interval for time-series</div>
             </div>
           )}
 
@@ -809,6 +931,36 @@ export default function WidgetForm({
               <div className="tw-text-xs tw-text-gray-500">
                 Leave empty to include all vehicle types
               </div>
+            </div>
+          )}
+
+          {/* Include Total */}
+          {newWidget.visualizationType && ['CHART_BAR_COMPARISON','CHART_PIE_DISTRIBUTION','DATA_TABLE_DETAILED'].includes(newWidget.visualizationType) && (
+            <div className="tw-flex tw-items-center tw-gap-2">
+              <input
+                id="include-total"
+                type="checkbox"
+                className="tw-form-checkbox"
+                checked={!!newWidget.includeTotal}
+                onChange={(e) => setNewWidget(prev => ({ ...prev, includeTotal: e.target.checked }))}
+              />
+              <label htmlFor="include-total" className="tw-text-sm tw-text-gray-700">Include Total</label>
+            </div>
+          )}
+
+          {/* Top K */}
+          {newWidget.visualizationType && ['PROGRESS_LIST','CHART_BAR_COMPARISON','DATA_TABLE_DETAILED'].includes(newWidget.visualizationType) && (
+            <div className="tw-space-y-2">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Top K</label>
+              <SelectBox
+                items={[5,10,15,20].map(n => ({ value: n, text: `${n}` }))}
+                value={newWidget.topK || 10}
+                displayExpr="text"
+                valueExpr="value"
+                width="120px"
+                className="tw-border-gray-300 focus:tw-border-blue-500"
+                onValueChanged={(e) => setNewWidget(prev => ({ ...prev, topK: e.value }))}
+              />
             </div>
           )}
 
@@ -847,17 +999,15 @@ export default function WidgetForm({
             <div className="tw-space-y-2">
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">Data Mode</label>
               <SelectBox
-                items={[{ value: 'live', text: 'Live' }, { value: 'cumulative', text: 'Cumulative' }]}
+                items={modeOptions}
                 value={newWidget.mode}
                 displayExpr="text"
                 valueExpr="value"
                 width="100%"
                 className="tw-border-gray-300 focus:tw-border-blue-500"
-                onValueChanged={(e) => setNewWidget(prev => ({
-                  ...prev,
-                  mode: e.value,
-                  datePreset: e.value === 'live' ? 'today' : 'yesterday'
-                }))}
+                onValueChanged={(e) => setNewWidget(prev => (
+                  mergeWithMetadataDefaults(prev, { mode: e.value })
+                ))}
               />
             </div>
 
@@ -932,6 +1082,48 @@ export default function WidgetForm({
           </h4>
 
           <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-md tw-p-4">
+            {!validationState.isValid && (
+              <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-text-yellow-800 tw-p-2 tw-rounded-md tw-text-xs tw-mb-3">
+                <div className="tw-flex tw-items-start tw-justify-between tw-gap-2">
+                  <div>
+                    Some configuration options aren’t supported; please adjust.
+                    {validationState.errors?.length > 0 && (
+                      <ul className="tw-mt-2 tw-list-disc tw-list-inside">
+                        {validationState.errors.slice(0,3).map((err, idx) => (
+                          <li key={idx}>{err.message}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {validationState.suggestions?.length > 0 && (
+                    <Button
+                      text="Apply suggested fixes"
+                      type="default"
+                      stylingMode="contained"
+                      height={26}
+                      onClick={() => {
+                        const norm = validationState.normalizedConfig || {};
+                        const s = norm.settings || {};
+                        setNewWidget(prev => ({
+                          ...prev,
+                          mode: s.mode ?? prev.mode,
+                          datePreset: s.datePreset ?? prev.datePreset,
+                          aggregation: s.aggregation ?? prev.aggregation,
+                          granularity: s.granularity ?? prev.granularity,
+                          includeTotal: s.includeTotal ?? prev.includeTotal,
+                          topK: s.topK ?? prev.topK,
+                          unit: s.unit ?? prev.unit,
+                          settings: {
+                            ...(prev.settings || {}),
+                            ...s
+                          }
+                        }));
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
             <div className="tw-flex tw-items-center tw-gap-3 tw-mb-3">
               <Button
                 text="Test Configuration"
@@ -939,7 +1131,7 @@ export default function WidgetForm({
                 type="normal"
                 stylingMode="outlined"
                 height={32}
-                onClick={onPreviewData}
+                  onClick={() => onPreviewData && onPreviewData(getWidgetConfig())}
                 disabled={previewLoading || (!newWidget.templateId && !(isCustomWidget && newWidget.visualizationType))}
               />
               {previewLoading && <LoadIndicator width={16} height={16} />}

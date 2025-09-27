@@ -10,11 +10,14 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace FMS.Application.Services.Dashboard {
+    [Obsolete ("Use IDataSourceManager instead")]
     public interface IWidgetDataService {
         Task<WidgetDataResponseDto> GetWidgetDataAsync (string userId, int widgetInstanceId);
         Task<List<WidgetDataResponseDto>> GetAllUserWidgetDataAsync (string userId);
         Task<WidgetDataResponseDto> RefreshWidgetDataAsync (string userId, int widgetInstanceId);
     }
+
+    [Obsolete ("Use IDataSourceManager instead")]
 
     public class WidgetDataService : IWidgetDataService {
         private readonly GpsdataContext _context;
@@ -46,25 +49,68 @@ namespace FMS.Application.Services.Dashboard {
                     };
                 }
 
-                // Parse widget configuration
-                var configuration = JsonConvert.DeserializeObject<Dictionary<string, object>> (
-                        widgetInstance.ConfigurationJson);
+                // Parse widget configuration (tolerant parsing)
+                Dictionary<string, object> configuration;
+                try {
+                    configuration = JsonConvert.DeserializeObject<Dictionary<string, object>> (
+                        widgetInstance.ConfigurationJson) ?? new Dictionary<string, object> ();
+                } catch {
+                    configuration = new Dictionary<string, object> ();
+                }
 
-                // Create metric request based on widget configuration
-                var metricRequest = CreateMetricRequestFromConfiguration (widgetInstance.Template, configuration);
+                // Determine widget type & data source (support custom widgets where TemplateId is null)
+                var widgetType = widgetInstance.Template?.WidgetType ??
+                    configuration.GetValueOrDefault ("widgetType", widgetInstance.WidgetType)?.ToString () ??
+                    "unknown";
 
-                // Get data from metrics service
-                var metricResponse = await _metricsService.GetMetricAsync (metricRequest);
+                var dataSource = widgetInstance.Template?.DataSource ??
+                    configuration.GetValueOrDefault ("dataSource", null)?.ToString ();
+
+                // If still null, attempt nested settings.dataSource
+                if (dataSource == null && configuration.TryGetValue ("settings", out var settingsObj) && settingsObj is Newtonsoft.Json.Linq.JObject settingsJObj) {
+                    dataSource = settingsJObj["dataSource"]?.ToString ();
+                }
+
+                if (dataSource == null && configuration.TryGetValue ("settings", out var settingsDictObj) && settingsDictObj is Dictionary<string, object> settingsDict && settingsDict.TryGetValue ("dataSource", out var dsVal)) {
+                    dataSource = dsVal?.ToString ();
+                }
+
+                if (string.IsNullOrWhiteSpace (dataSource)) {
+                    // Without a datasource we cannot proceed; return graceful error
+                    return new WidgetDataResponseDto {
+                        WidgetInstanceId = widgetInstanceId,
+                            WidgetType = widgetType,
+                            ErrorMessage = "Widget data source not defined",
+                            LastUpdated = DateTime.UtcNow
+                    };
+                }
+
+                // Build metric request (template may be null)
+                var metricRequest = CreateMetricRequestFromConfiguration (widgetInstance.Template, configuration, dataSource);
+
+                // Get data from metrics service (guard exceptions)
+                DashboardMetricResponseDto metricResponse;
+                try {
+                    metricResponse = await _metricsService.GetMetricAsync (metricRequest);
+                } catch (Exception exMetric) {
+                    _logger.LogError (exMetric, "Metric service failed for widget {WidgetId}", widgetInstanceId);
+                    return new WidgetDataResponseDto {
+                        WidgetInstanceId = widgetInstanceId,
+                            WidgetType = widgetType,
+                            ErrorMessage = "Metric retrieval failed",
+                            LastUpdated = DateTime.UtcNow
+                    };
+                }
 
                 // Transform response based on widget type
                 var widgetData = await TransformMetricDataToWidgetData (
-                    widgetInstance.Template.WidgetType,
+                    widgetType,
                     metricResponse,
                     configuration);
 
                 return new WidgetDataResponseDto {
                     WidgetInstanceId = widgetInstanceId,
-                        WidgetType = widgetInstance.Template.WidgetType,
+                        WidgetType = widgetType,
                         Data = widgetData,
                         LastUpdated = DateTime.UtcNow
                 };
@@ -108,11 +154,15 @@ namespace FMS.Application.Services.Dashboard {
         }
 
         private DashboardMetricRequestDto CreateMetricRequestFromConfiguration (
-            DashboardWidgetTemplate template,
-            Dictionary<string, object> configuration) {
+            DashboardWidgetTemplate? template,
+            Dictionary<string, object> configuration,
+            string explicitDataSource) {
+
+            string metricType = template?.DataSource ?? explicitDataSource;
+            if (string.IsNullOrWhiteSpace (metricType)) metricType = "unknown";
 
             var request = new DashboardMetricRequestDto {
-                MetricType = template.DataSource,
+                MetricType = metricType,
                 Mode = configuration.GetValueOrDefault ("mode", "cumulative")?.ToString () ?? "cumulative",
                 DatePreset = configuration.GetValueOrDefault ("datePreset", "yesterday")?.ToString () ?? "yesterday"
             };
@@ -122,7 +172,7 @@ namespace FMS.Application.Services.Dashboard {
                 request.SiteIds = siteIds.Select (s => Convert.ToInt32 (s)).ToList ();
             }
 
-            //TODO:hadle vehicleType filter .
+            // TODO: handle vehicleType filter (currently not implemented)
 
             // Handle vehicle filters
             if (configuration.TryGetValue ("vehicleIds", out var vehicleIdsObj) && vehicleIdsObj is List<object> vehicleIds) {

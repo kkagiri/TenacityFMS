@@ -1,18 +1,18 @@
 using FMS.Application.Common;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.DailyMonthlyRules;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.NoOfRefilRules;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.TimeWIndowLimitRule;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSet.Commands;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSet.Queries;
 using FMS.Application.Queries.Database.FMSQuery;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSet.Commands;
-using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.DailyMonthlyRules;
-using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.NoOfRefilRules;
-using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.TimeWIndowLimitRule;
-using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSet.Queries;
 
 namespace FMS.WebClient.Controllers;
 
 [ApiController]
-[Route ("api/[controller]")]
+[Route ("api/v1/[controller]")]
 
 public class FuelingRuleController : ControllerBase {
     private readonly IMediator _mediator;

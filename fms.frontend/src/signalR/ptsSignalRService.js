@@ -113,6 +113,15 @@ class PTSSignalRService {
           transport: 1, // WebSockets
           headers: {
             'Access-Control-Allow-Origin': '*'
+          },
+          accessTokenFactory: () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+              console.log('[PTS SignalR] Using authentication token');
+              return token;
+            }
+            console.warn('[PTS SignalR] No authentication token available');
+            return null;
           }
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
@@ -121,19 +130,19 @@ class PTSSignalRService {
 
       this.setupConnectionHandlers();
       this.setupEventHandlers();
-      
+
       await this.connection.start();
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
 
       console.log(`[PTS SignalR] Connected successfully (ID: ${connectionId})`);
-      
+
       // Start health checks after successful connection
       this.startHealthChecks();
-      
+
       // Notify listeners
       this.notifyListeners('connectionStatusChanged', true);
-      
+
       // Request initial device status
       await this.requestDeviceStatusSummary();
 
@@ -234,14 +243,14 @@ class PTSSignalRService {
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
       console.log('[PTS SignalR] Reconnected successfully');
-      
+
       try {
         // Request fresh data after reconnection
         await this.requestDeviceStatusSummary();
         await this.requestAllDevicesStatus();
-        
+
         this.notifyListeners('connectionStatusChanged', true);
-        
+
         if (store) {
           store.dispatch({
             type: 'PTS_SIGNALR_STATE_CHANGED',
@@ -257,7 +266,7 @@ class PTSSignalRService {
       this.state = ConnectionState.DISCONNECTED;
       console.log('[PTS SignalR] Connection closed');
       this.notifyListeners('connectionStatusChanged', false);
-      
+
       // Attempt to reconnect if not manually stopped
       if (this.connectionState !== ConnectionState.DISCONNECTED) {
         this.handleConnectionError(new Error('Connection closed'));
@@ -274,7 +283,7 @@ class PTSSignalRService {
     // Helper function to register event with cleanup and debouncing
     const registerEvent = (eventName, handler, debounceMs = 500) => {
       this.connection.off(eventName); // Remove existing handlers
-      const debouncedHandler = debounceMs > 0 
+      const debouncedHandler = debounceMs > 0
         ? createDynamicDebouncedHandler(handler, debounceMs)
         : handler;
       this.connection.on(eventName, debouncedHandler);
@@ -565,7 +574,7 @@ class PTSSignalRService {
         try {
           const result = await this.connection.invoke('HealthCheck');
           this.lastSuccessfulHealthCheck = new Date();
-          
+
           // Request fresh device status if needed
           const timeSinceLastUpdate = Date.now() - (this.lastStatusUpdate || 0);
           if (timeSinceLastUpdate > 30000) { // 30 seconds

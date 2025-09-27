@@ -21,7 +21,7 @@ namespace FMS.WebClient.Controllers {
     /// Provides endpoints for alarm lifecycle operations, statistics, and management
     /// </summary>
     [ApiController]
-    [Route ("api/active-alarms")]
+    [Route ("api/v1/active-alarms")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ActiveAlarmController : ControllerBase {
         private readonly IActiveAlarmService _activeAlarmService;

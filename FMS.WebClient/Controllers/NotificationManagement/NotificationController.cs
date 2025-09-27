@@ -27,7 +27,7 @@ namespace FMS.WebClient.Controllers {
     /// Controller for notification management
     /// </summary>
     [ApiController]
-    [Route ("api/notifications")]
+    [Route ("api/v1/notifications")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
     [Authorize]
