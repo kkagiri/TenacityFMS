@@ -72,6 +72,7 @@ export const useRealtimeDashboard = (options = {}) => {
   // Refs for cleanup
   const activeStreamsRef = useRef(new Map());
   const signalRListenersRef = useRef(new Map());
+  const widgetInstancesRef = useRef([]);
 
   /**
    * Load widget instances from backend
@@ -82,7 +83,8 @@ export const useRealtimeDashboard = (options = {}) => {
       const result = await dashboardService.getWidgetInstances();
 
       if (result.success && result.data) {
-        setWidgetInstances(result.data);
+  setWidgetInstances(result.data);
+  widgetInstancesRef.current = result.data;
 
         // Initialize loading states
         const loadingStates = {};
@@ -309,6 +311,13 @@ export const useRealtimeDashboard = (options = {}) => {
         if (!wid) return;
         const metadata = payload.metadata || {};
         const incoming = payload.data || {};
+        const payloadWidgetType = payload.widgetType || metadata.widgetType || metadata.type;
+        if (payloadWidgetType && payloadWidgetType.toLowerCase() === 'dashboard_overview') {
+          const updated = signalRService.setDashboardOverviewWidgetId?.(wid);
+          if (updated) {
+            signalRService.requestDashboardMetrics?.(wid);
+          }
+        }
         setWidgetData(prev => {
           const existing = prev[wid];
           const mode = existing?.mode || metadata.mode || 'cumulative';
@@ -338,7 +347,7 @@ export const useRealtimeDashboard = (options = {}) => {
       const normalizeEnvelope = (envelope) => {
         if (!envelope || typeof envelope !== 'object') return null;
         const {
-          widgetInstanceId,
+          widgetInstanceId: envelopeWidgetInstanceId,
           widgetType,
           dataSource,
           category,
@@ -353,11 +362,39 @@ export const useRealtimeDashboard = (options = {}) => {
           timestamp
         } = envelope;
 
-        if (!widgetInstanceId) return null;
+        let resolvedWidgetInstanceId = envelopeWidgetInstanceId;
+
+        if (!resolvedWidgetInstanceId || resolvedWidgetInstanceId === 0) {
+          const availableInstances = Array.isArray(widgetInstancesRef.current) ? widgetInstancesRef.current : [];
+          const target = availableInstances.find(instance => {
+            if (!instance) return false;
+            const instanceType = instance.widgetType || instance.templateWidgetType || instance.template?.widgetType;
+            const instanceDataSource = instance.dataSource || instance.templateDataSource || instance.template?.dataSource;
+            const typeMatches = widgetType && instanceType && instanceType.toLowerCase() === widgetType.toLowerCase();
+            const dataSourceMatches = dataSource && instanceDataSource && instanceDataSource.toLowerCase() === dataSource.toLowerCase();
+            return typeMatches || dataSourceMatches;
+          });
+
+          if (target) {
+            resolvedWidgetInstanceId = target.id;
+            if (widgetType && widgetType.toLowerCase() === 'dashboard_overview') {
+              const updated = signalRService.setDashboardOverviewWidgetId?.(target.id);
+              if (updated) {
+                signalRService.requestDashboardMetrics?.(target.id);
+              }
+            }
+          }
+        }
+
+        if (!resolvedWidgetInstanceId) return null;
+
+        if (widgetType && widgetType.toLowerCase() === 'dashboard_overview') {
+          signalRService.setDashboardOverviewWidgetId?.(resolvedWidgetInstanceId);
+        }
 
         return {
-          widgetId: widgetInstanceId,
-          widgetInstanceId,
+          widgetId: resolvedWidgetInstanceId,
+          widgetInstanceId: resolvedWidgetInstanceId,
             widgetType,
             dataSource,
             category,

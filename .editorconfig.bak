@@ -4,3 +4,7 @@
 dotnet_analyzer_diagnostic.category-Style.severity = warning
 dotnet_style_prefer_explicit_type_where_possible = false : warning
 dotnet_style_namespace_declarations = block-scoped : warning
+
+csharp_space_around_binary_operators = before_and_after
+# Keep operators together
+csharp_preserve_single_line_statements = true

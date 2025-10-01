@@ -4,44 +4,62 @@ using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Features.Dashboard;
-using FMS.Application.Services.Dashboard;
 using FMS.Domain.Entities.Dashboard;
-using FMS.Domain.Entities.enums;
-using FMS.Domain.Entities.Features.TankStockManagement;
-using FMS.Persistence.DataAccess;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace FMS.Application.Services.Dashboard {
     /// <summary>
     /// Unified data source manager implementation
+    ///
+    /// This class is split into multiple partial files for better organization:
+    ///
+    /// - DataSourceManager.cs (this file): Core implementation with main API methods for getting initial data,
+    ///   live data, aggregated data, and broadcasting updates. Contains dependency injection setup and public interface methods.
+    ///
+    /// - DataSourceManager.Metadata.cs: Contains all data source metadata definitions including BuildMetadata() which
+    ///   creates the complete catalog of available data sources (fuel dispensed, engine hours, distance traveled, etc.).
+    ///   Each metadata entry defines supported modes, aggregations, units, compatible widget types, and default configurations.
+    ///
+    /// - DataSourceManager.Metrics.cs: Helper methods for metric computation. Currently delegates to IMetricCalculationService
+    ///   for calculating changes and comparing metrics against previous periods.
+    ///
+    /// - DataSourceManager.TimeSeries.cs: Time-series data retrieval helpers. Delegates to ITimeSeriesDataService to fetch
+    ///   historical time-series data points for charting and trend analysis.
+    ///
+    /// - DataSourceManager.Transformers.cs: Widget-specific data transformation methods that convert raw metric data into
+    ///   the format required by different widget types (ticker, big stat card, line chart, bar chart, pie chart, gauge,
+    ///   data table, progress list, etc.). Includes helper methods for extracting current values, time series, and categories.
     /// </summary>
     public partial class DataSourceManager : IDataSourceManager {
         private readonly IHubContext<DashboardHub> _hubContext;
-        private readonly GpsdataContext _context;
         private readonly ILogger<DataSourceManager> _logger;
-        private readonly IDashboardMetricsService _metricsService;
+        private readonly IMetricCalculationService _metricService;
+        private readonly IWidgetDataTransformerService _transformerService;
+        private readonly ITimeSeriesDataService _timeSeriesService;
         private static readonly Dictionary<string, DataSourceMetadata> _dataSourceMetadata = BuildMetadata ();
 
         public DataSourceManager (
             IHubContext<DashboardHub> hubContext,
-            GpsdataContext context,
             ILogger<DataSourceManager> logger,
-            IDashboardMetricsService metricsService) {
+            IMetricCalculationService metricService,
+            IWidgetDataTransformerService transformerService,
+            ITimeSeriesDataService timeSeriesService) {
             _hubContext = hubContext;
-            _context = context;
             _logger = logger;
-            _metricsService = metricsService;
+            _metricService = metricService;
+            _transformerService = transformerService;
+            _timeSeriesService = timeSeriesService;
         }
 
         public async Task<object> GetInitialDataAsync (string dataSource, DashboardMetricRequestDto request) {
             try {
-                _logger.LogInformation ("Getting initial data for data source: {DataSource}, Mode: {Mode}", dataSource, request.Mode);
+                var canonicalSource = IdentifierNormalizer.NormalizeDataSource (dataSource);
+                _logger.LogInformation ("Getting initial data for data source: {DataSource}, Mode: {Mode}", canonicalSource, request.Mode);
 
                 // Get base metric data (computed internally)
-                var metricResponse = await ComputeMetricAsync (request);
+                var metricResponse = await _metricService.ComputeMetricAsync (request);
 
                 if (!string.IsNullOrEmpty (metricResponse.ErrorMessage)) {
                     return new { error = metricResponse.ErrorMessage, timestamp = DateTime.UtcNow };
@@ -49,7 +67,7 @@ namespace FMS.Application.Services.Dashboard {
 
                 // For historical data, also get time series if available
                 if (request.Mode?.ToLower () != "live") {
-                    var timeSeriesData = await GetTimeSeriesDataAsync (dataSource, request);
+                    var timeSeriesData = await GetTimeSeriesDataAsync (canonicalSource, request);
                     return new {
                         current = new {
                                 value = metricResponse.Value,
@@ -58,7 +76,7 @@ namespace FMS.Application.Services.Dashboard {
                                 dateRange = metricResponse.DateRange
                                 },
                                 timeSeries = timeSeriesData,
-                                metadata = GetDataSourceMetadata (dataSource)
+                                metadata = GetDataSourceMetadata (canonicalSource)
                     };
                 }
 
@@ -68,7 +86,7 @@ namespace FMS.Application.Services.Dashboard {
                         unit = metricResponse.Unit,
                         timestamp = metricResponse.LastUpdated,
                         isLive = true,
-                        metadata = GetDataSourceMetadata (dataSource)
+                        metadata = GetDataSourceMetadata (canonicalSource)
                 };
 
             } catch (Exception ex) {
@@ -79,8 +97,9 @@ namespace FMS.Application.Services.Dashboard {
 
         public async Task<object> GetLiveDataAsync (string dataSource, DashboardMetricRequestDto request) {
             try {
-                if (!IsLiveDataSource (dataSource)) {
-                    return new { error = $"Data source {dataSource} does not support live data", timestamp = DateTime.UtcNow };
+                var canonicalSource = IdentifierNormalizer.NormalizeDataSource (dataSource);
+                if (!IsLiveDataSource (canonicalSource)) {
+                    return new { error = $"Data source {canonicalSource} does not support live data", timestamp = DateTime.UtcNow };
                 }
 
                 // Force live mode for this request
@@ -93,13 +112,14 @@ namespace FMS.Application.Services.Dashboard {
                     VehicleType = request.VehicleType,
                 };
 
-                var metricResponse = await ComputeMetricAsync (liveRequest);
+                var metricResponse = await _metricService.ComputeMetricAsync (liveRequest);
+                var change = await CalculateChangeAsync (metricResponse);
 
                 return new {
                     value = metricResponse.Value,
                         unit = metricResponse.Unit,
                         timestamp = DateTime.UtcNow,
-                        change = CalculateChange (metricResponse), // TODO: Implement change calculation
+                        change = change,
                         trend = "stable", // TODO: Implement trend calculation
                         isLive = true
                 };
@@ -112,11 +132,12 @@ namespace FMS.Application.Services.Dashboard {
 
         public async Task<object> GetAggregatedDataAsync (string dataSource, DashboardMetricRequestDto request, string aggregationInterval = "hourly") {
             try {
-                _logger.LogInformation ("Getting aggregated data for data source: {DataSource}, Interval: {Interval}", dataSource, aggregationInterval);
+                var canonicalSource = IdentifierNormalizer.NormalizeDataSource (dataSource);
+                _logger.LogInformation ("Getting aggregated data for data source: {DataSource}, Interval: {Interval}", canonicalSource, aggregationInterval);
 
                 // TODO: Implement time-series aggregation based on aggregationInterval
                 // For now, return sample data structure
-                var timeSeriesData = await GetTimeSeriesDataAsync (dataSource, request);
+                var timeSeriesData = await GetTimeSeriesDataAsync (canonicalSource, request);
 
                 // Compute simple summary from timeSeriesData if possible
                 decimal total = 0m;
@@ -141,7 +162,7 @@ namespace FMS.Application.Services.Dashboard {
                             average,
                             count
                             },
-                            metadata = GetDataSourceMetadata (dataSource)
+                            metadata = GetDataSourceMetadata (canonicalSource)
                 };
 
             } catch (Exception ex) {
@@ -174,26 +195,30 @@ namespace FMS.Application.Services.Dashboard {
         }
 
         public bool IsLiveDataSource (string dataSource) {
-            return _dataSourceMetadata.TryGetValue (dataSource, out var metadata) && metadata.SupportsLiveData;
+            var key = IdentifierNormalizer.NormalizeDataSource (dataSource);
+            return _dataSourceMetadata.TryGetValue (key, out var metadata) && metadata.SupportsLiveData;
         }
 
         public bool IsHistoricalDataSource (string dataSource) {
-            return _dataSourceMetadata.TryGetValue (dataSource, out var metadata) && metadata.SupportsHistoricalData;
+            var key = IdentifierNormalizer.NormalizeDataSource (dataSource);
+            return _dataSourceMetadata.TryGetValue (key, out var metadata) && metadata.SupportsHistoricalData;
         }
 
         public List<string> GetSupportedAggregations (string dataSource) {
-            return _dataSourceMetadata.TryGetValue (dataSource, out var metadata) ?
+            var key = IdentifierNormalizer.NormalizeDataSource (dataSource);
+            return _dataSourceMetadata.TryGetValue (key, out var metadata) ?
                 metadata.SupportedAggregations :
                 new List<string> { "sum" };
         }
 
         public DataSourceMetadata GetDataSourceMetadata (string dataSource) {
-            return _dataSourceMetadata.TryGetValue (dataSource, out var metadata) ?
+            var key = IdentifierNormalizer.NormalizeDataSource (dataSource);
+            return _dataSourceMetadata.TryGetValue (key, out var metadata) ?
                 metadata :
                 new DataSourceMetadata {
-                    DisplayName = dataSource,
+                    DisplayName = key,
                         Unit = "units",
-                        Description = $"Data for {dataSource}",
+                        Description = $"Data for {key}",
                         SupportsLiveData = false,
                         SupportsHistoricalData = true,
                         SupportedModes = new List<string> { "historical_snapshot", "daily_aggregated" },
@@ -232,27 +257,20 @@ namespace FMS.Application.Services.Dashboard {
 
         public async Task<object> TransformDataForWidgetType (string widgetType, object rawData, Dictionary<string, object> configuration) {
             try {
-                var normalizedWidgetType = WidgetTypeDefinitions.MapLegacyType (widgetType.ToLower ());
-
-                return normalizedWidgetType
-                switch {
-                    WidgetTypeDefinitions.KEY_STAT_TICKER => TransformForTicker (rawData, configuration),
-                        WidgetTypeDefinitions.BIG_STAT_CARD => TransformForBigStatCard (rawData, configuration),
-                        WidgetTypeDefinitions.PROGRESS_LIST => await TransformForProgressList (rawData, configuration),
-                        WidgetTypeDefinitions.DATA_TABLE => await TransformForDataTable (rawData, configuration),
-                        WidgetTypeDefinitions.LINE_CHART => TransformForLineChart (rawData, configuration),
-                        WidgetTypeDefinitions.BAR_CHART => TransformForBarChart (rawData, configuration),
-                        WidgetTypeDefinitions.PIE_CHART => TransformForPieChart (rawData, configuration),
-                        WidgetTypeDefinitions.GAUGE_CHART => TransformForGaugeChart (rawData, configuration),
-                        WidgetTypeDefinitions.STAT_CARD_WITH_TREND => TransformForStatCardWithTrend (rawData, configuration),
-                        _ => rawData // Return raw data for unknown widget types
-                };
-
+                return await _transformerService.TransformAsync (widgetType, rawData, configuration);
             } catch (Exception ex) {
                 _logger.LogError (ex, "Error transforming data for widget type: {WidgetType}", widgetType);
                 return new { error = "Error transforming data", originalData = rawData };
             }
         }
+
+        // Static accessors to share metadata without needing an instance
+        public static DataSourceMetadata GetMetadataStatic (string dataSource) =>
+            _dataSourceMetadata.TryGetValue (dataSource, out var meta) ? meta : new DataSourceMetadata ();
+
+        public static IEnumerable<KeyValuePair<string, DataSourceMetadata>> GetAllMetadataStatic () =>
+            _dataSourceMetadata.Where (kvp => kvp.Value?.IsCatalogVisible != false)
+            .Select (kvp => new KeyValuePair<string, DataSourceMetadata> (kvp.Key, kvp.Value));
 
         // ... methods moved to partials: metadata builders, transformers, time series, metrics, and helpers
 

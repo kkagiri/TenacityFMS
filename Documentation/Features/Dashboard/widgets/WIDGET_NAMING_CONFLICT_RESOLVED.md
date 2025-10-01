@@ -1,5 +1,7 @@
 # 🎯 Widget Service Naming Conflict - RESOLVED
 
+> Deprecation note (Sept 2025): The legacy `WidgetDataService` and `IDashboardMetricsService` mentioned below have been decommissioned. Use `IDataSourceManager` with `IMetricCalculationService`, `ITimeSeriesDataService`, and `IWidgetDataTransformerService`.
+
 ## 🔍 Problem Identified
 You discovered there were **two** `WidgetDataService.cs` files with the same class and interface names, causing compilation conflicts:
 

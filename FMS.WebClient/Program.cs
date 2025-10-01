@@ -31,6 +31,7 @@ using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
 using FMS.Application.Services;
+using FMS.Application.Services.Dashboard;
 // using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
@@ -504,11 +505,9 @@ public class Program {
         // Register the missing AutomatedFuelingConfigurationService
         services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService> ();
 
-        // Register Dashboard Metrics Service
-        services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
-
-        // Register Widget Data Service (original service - user/widget ID based)
-        services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
+        // Removed legacy Dashboard services registrations (migrated to IDataSourceManager)
+        // services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
+        // services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
 
         // Register Widget Factory Service - Enhanced Widget Processing
         services.AddScoped<FMS.Application.Services.Dashboard.IWidgetFactoryService, FMS.Application.Services.Dashboard.WidgetFactoryService> ();
@@ -519,7 +518,11 @@ public class Program {
         // Register Key Statistics Service
 
         // Register Phase 1 Enhanced Data Fetch Engine Services
-        services.AddScoped<FMS.Application.Services.Dashboard.IDataSourceManager, FMS.Application.Services.Dashboard.DataSourceManager> ();
+        services.AddScoped<IMetricCalculationService, MetricCalculationService> ();
+        services.AddScoped<IWidgetDataTransformerService, WidgetDataTransformerService> ();
+        services.AddScoped<IDataSourceMetadataService, DataSourceMetadataService> ();
+        services.AddScoped<ITimeSeriesDataService, TimeSeriesDataService> ();
+        services.AddScoped<IDataSourceManager, DataSourceManager> ();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService> ();
 
         // Register Widget Factory System - Enhanced Widget Processing

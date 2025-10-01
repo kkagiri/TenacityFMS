@@ -64,7 +64,8 @@ class DashboardSignalRService {
     this.healthCheckInterval = null;
     this.lastSuccessfulHealthCheck = null;
     this.lastMetricsUpdate = null;
-  this.hasReceivedInitialBatch = false; // gate streaming until initial batch arrives
+    this.hasReceivedInitialBatch = false; // gate streaming until initial batch arrives
+    this.dashboardOverviewWidgetId = null;
 
     // Protocol negotiation state (for envelope v2 support)
     this.protocol = {
@@ -78,6 +79,17 @@ class DashboardSignalRService {
 
     // Optional override flag (QA / fallback) force legacy handling
     this.forceLegacy = localStorage.getItem('forceLegacy') === 'true';
+  }
+
+  setDashboardOverviewWidgetId(widgetInstanceId) {
+    if (typeof widgetInstanceId !== 'number' || widgetInstanceId <= 0) {
+      return false;
+    }
+    if (this.dashboardOverviewWidgetId === widgetInstanceId) {
+      return false;
+    }
+    this.dashboardOverviewWidgetId = widgetInstanceId;
+    return true;
   }
 
   /**
@@ -1011,23 +1023,46 @@ class DashboardSignalRService {
    * Request dashboard metrics
    * @returns {Promise<void>}
    */
-  async requestDashboardMetrics() {
+  async requestDashboardMetrics(widgetInstanceId = null) {
+    const resolvedWidgetId = (() => {
+      if (typeof widgetInstanceId === 'number' && widgetInstanceId > 0) {
+        return widgetInstanceId;
+      }
+      if (widgetInstanceId && typeof widgetInstanceId === 'object' && typeof widgetInstanceId.widgetInstanceId === 'number') {
+        return widgetInstanceId.widgetInstanceId;
+      }
+      if (typeof this.dashboardOverviewWidgetId === 'number' && this.dashboardOverviewWidgetId > 0) {
+        return this.dashboardOverviewWidgetId;
+      }
+      return null;
+    })();
+
     if (!this.connection || !this.isConnected) {
+      if (resolvedWidgetId) {
+        this.dashboardOverviewWidgetId = resolvedWidgetId;
+      }
       return; // Silently return if not connected
     }
 
     try {
-      const ok = await this.invokeSafe('RequestDashboardMetrics');
+      let ok = false;
+      if (resolvedWidgetId) {
+        ok = await this.invokeSafe('RequestDashboardMetrics', { widgetInstanceId: resolvedWidgetId });
+        if (ok) {
+          this.dashboardOverviewWidgetId = resolvedWidgetId;
+        }
+      } else {
+        ok = await this.invokeSafe('RequestDashboardMetrics');
+      }
       if (!ok) return;
-      console.log('[Dashboard SignalR] Requested dashboard metrics');
+      const suffix = resolvedWidgetId ? ` for widget ${resolvedWidgetId}` : '';
+      console.log(`[Dashboard SignalR] Requested dashboard metrics${suffix}`);
     } catch (error) {
-      // Don't log errors for methods that don't exist on server
       if (error.message?.includes('Method does not exist')) {
         console.debug('[Dashboard SignalR] RequestDashboardMetrics method not implemented on server side');
         return;
       }
       console.error('[Dashboard SignalR] Failed to request dashboard metrics:', error);
-      // Don't throw - allow graceful degradation
     }
   }
 

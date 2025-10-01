@@ -17,12 +17,10 @@ namespace FMS.Application.Communication.SignalR {
 
         public DashboardHub (
             IDataSourceManager dataSourceManager,
-            IWidgetDataService widgetDataService,
             IWidgetFactoryService widgetFactoryService,
             GpsdataContext context,
             ILogger<DashboardHub> logger) {
             _dataSourceManager = dataSourceManager;
-            // _widgetDataService = widgetDataService;
             _widgetFactoryService = widgetFactoryService;
             _context = context;
             _logger = logger;

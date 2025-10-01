@@ -28,7 +28,6 @@ namespace FMS.Domain.Entities.Dashboard {
         /// Widget categories for better organization
         /// </summary>
         public static class Categories {
-            public const string KEY_STATISTICS = "key_statistics"; // Only tickers
             public const string FUEL_MANAGEMENT = "fuel_management"; // Fuel-related widgets
             public const string VEHICLE_PERFORMANCE = "vehicle_performance"; // Vehicle metrics
             public const string OPERATIONAL_METRICS = "operational_metrics"; // Operations data
@@ -66,6 +65,8 @@ namespace FMS.Domain.Entities.Dashboard {
             public const string PERFORMANCE_TRENDS = "performance_trends";
             public const string ALERT_SUMMARY = "alert_summary";
             public const string USAGE_PATTERNS = "usage_patterns";
+
+            public const string TANK_LEVEL = "tank_level";
         }
 
         /// <summary>
@@ -119,13 +120,6 @@ namespace FMS.Domain.Entities.Dashboard {
 
                     _ => widgetType
             };
-        }
-
-        /// <summary>
-        /// Check if widget type is supported in key statistics category
-        /// </summary>
-        public static bool IsKeyStatisticType (string widgetType) {
-            return widgetType == KEY_STAT_TICKER || widgetType == TICKER;
         }
 
         /// <summary>

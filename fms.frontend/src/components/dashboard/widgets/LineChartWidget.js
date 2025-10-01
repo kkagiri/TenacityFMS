@@ -288,13 +288,6 @@ const LineChartWidget = ({
             )}
           </div>
         )}
-
-        {/* Meta information */}
-        {data?.lastUpdated && (
-          <div className="widget-meta">
-            <small>Updated: {new Date(data.lastUpdated).toLocaleString()}</small>
-          </div>
-        )}
       </div>
 
       {/* Configuration preview in edit mode */}

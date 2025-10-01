@@ -22,7 +22,7 @@ The current creation flow uses hardcoded catalogs with no backend validation, le
 - Maintain v2 envelope semantics and suppress legacy events for negotiated clients.
 
 ## Non-Goals
-- Full decommission of legacy REST/WidgetDataService (future phase).
+- Legacy REST/WidgetDataService has been decommissioned. Use WidgetFactoryService + IDataSourceManager.
 - New data sources or device protocols.
 - Layout system redesign.
 

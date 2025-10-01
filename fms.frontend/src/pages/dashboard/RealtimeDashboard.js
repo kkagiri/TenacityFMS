@@ -5,7 +5,7 @@
  * while maintaining the new service architecture for data management.
  */
 
-import React, { useEffect, useCallback, useState, useMemo } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import notify from 'devextreme/ui/notify';
 
@@ -18,11 +18,7 @@ import serviceFactory from '../../services/core/ServiceFactory';
 import CustomWidgetDialog from '../../components/dashboard/ModalPopup/CustomWidgetDialog';
 import WidgetConfigModal from '../../components/dashboard/ModalPopup/WidgetConfigModal';
 import Button from 'devextreme-react/button';
-import { QuickActionButtons } from '../../components/dashboard/QuickActionButtons';
 import CategoryGroupedWidgetRenderer from '../../components/dashboard/CategoryGroupedWidgetRenderer';
-
-// Use new header component
-import DashboardHeader from './components/DashboardHeader';
 
 // Styles
 import './RealtimeDashboard.scss';
@@ -35,26 +31,11 @@ const RealtimeDashboard = () => {
   const { hasPermission } = usePermissions();
 
   // Redux state
-  const currentUser = useSelector(state => state.auth.user);
   const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
-
 
   // Local state for modals and UI
   const [showWidgetModal, setShowWidgetModal] = useState(false); // legacy widget add (template style)
   const [widgetConfigOpen, setWidgetConfigOpen] = useState(false); // widget config modal
-
-  // Legacy / enhanced stats + filters state placeholders (can be wired later)
-  // Removed Key Statistics state (stats, metric filters, sites) as feature deprecated
-
-  // Role presentation (fallback mapping)
-  const primaryRole = currentUser?.role || currentUser?.primaryRole || 'User';
-  const roleConfig = useMemo(() => {
-    return {
-      name: primaryRole,
-      color: '#2563eb',
-      permissions: currentUser?.permissions || []
-    };
-  }, [primaryRole, currentUser]);
 
   // NOTE: serviceFactory has no global initialize lifecycle; services are lazy-instantiated on first get* call.
   // The previous call to serviceFactory.initialize() caused a runtime TypeError. Removed.
@@ -64,8 +45,6 @@ const RealtimeDashboard = () => {
   widgetInstances,
   instancesLoading,
   isEditMode,
-  connectionStatus,
-  connectionInfo,
   widgetData,
   widgetErrors,
   widgetLoadingStates,
@@ -78,22 +57,6 @@ const RealtimeDashboard = () => {
     refreshInterval: 30000,
     autoLoad: true
   });
-
-  // --- Helper & legacy compatibility functions ---
-  // Removed previousDayTotals & updateMetricFilter (Key Statistics removed)
-
-
-  const testWidgetDataRequest = useCallback(async (id) => {
-    try {
-      const dashboardSvc = serviceFactory.getDashboardService();
-      const res = await dashboardSvc.getWidgetData(Number(id));
-      console.log('[Debug] Test widget data response:', res);
-      notify('Widget data fetched. Check console.', 'success', 2000);
-    } catch (e) {
-      console.error('[Debug] Test widget data error:', e);
-      notify('Failed to fetch widget data', 'error', 3000);
-    }
-  }, []);
 
   // Permission check for dashboard access
   useEffect(() => {
@@ -143,19 +106,6 @@ const RealtimeDashboard = () => {
     }
   }, [loadWidgetInstances]);
 
-  /**
-   * Global refresh handler
-   */
-  const handleGlobalRefresh = useCallback(async () => {
-    try {
-  await loadWidgetInstances();
-      notify('Dashboard refreshed', 'success', 1500);
-    } catch (e) {
-      console.error('[RealtimeDashboard] Refresh failed:', e);
-      notify('Failed to refresh dashboard', 'error', 3000);
-    }
-  }, [loadWidgetInstances]);
-
   // Authentication & permission gating
   if (!isAuthenticated) {
     return (
@@ -179,100 +129,38 @@ const RealtimeDashboard = () => {
 
   // Main return
   return (
-  <div className="realtime-dashboard tw-space-y-6 force-light-theme">
-      {/* Connection Status Indicator (legacy restored) */}
-      <div className={`connection-status-bar tw-flex tw-items-center tw-gap-2 tw-text-sm tw-rounded tw-px-3 tw-py-2 tw-w-fit ${
-        connectionStatus === 'connected' ? 'tw-bg-green-50 tw-text-green-700' : connectionStatus === 'error' ? 'tw-bg-red-50 tw-text-red-700' : 'tw-bg-yellow-50 tw-text-yellow-700'
-      }`}>
-        <i className={`fa-solid fa-${connectionStatus === 'connected' ? 'wifi' : connectionStatus === 'error' ? 'triangle-exclamation' : 'wifi-slash'}`}></i>
-        <span className="tw-font-medium">
-          {connectionStatus === 'connected' ? 'Live Updates Active' : connectionStatus === 'error' ? 'Connection Error' : 'Connecting...'}
-        </span>
-        {connectionInfo?.connectionId && (
-          <span className="tw-text-xs tw-opacity-70">ID: {connectionInfo.connectionId.substring(0, 8)}...</span>
-        )}
-      </div>
+    <div className="realtime-dashboard-container">
+      {/* Dashboard Header with Controls */}
+      <div className=" content-block  dashboard-header">
+        <h1 className="dashboard-title">
+          <i className="fa-solid fa-gauge-high"></i>
+          Hyoung FMS Real-time Dashboard
+        </h1>
 
-      {/* Dashboard Header (refactored) */}
-      <DashboardHeader
-        title="Real-time Dashboard"
-        subtitle={`Welcome back, ${currentUser?.firstName || 'User'}`}
-        connectionStatus={connectionStatus}
-        connectionInfo={connectionInfo}
-        isEditMode={isEditMode}
-        onEditModeToggle={handleEditModeToggle}
-        onRefresh={handleGlobalRefresh}
-        onSettings={() => console.log('Settings clicked - not implemented yet')}
-        onWidgetAdd={() => setWidgetConfigOpen(true)}
-        showEditControls={hasPermission('_edit_dashboard')}
-        className="tw-mb-2"
-      />
-
-      {/* Role Badge */}
-      <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm">
-        <div className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded tw-bg-blue-50 tw-text-blue-700 tw-px-3 tw-py-1">
-          <i className="fa-solid fa-user"></i>
-          <span>{roleConfig.name}</span>
-          {currentUser?.userName && <span className="tw-text-xs tw-opacity-70">({currentUser.userName})</span>}
+        {/* Header Controls - Right Side */}
+        <div className="dashboard-header-controls">
+          <Button
+            icon="fa-solid fa-edit"
+            hint={isEditMode ? "Done Editing" : "Edit Layout"}
+            type={isEditMode ? "default" : "normal"}
+            text={isEditMode ? 'Done Editing' : 'Edit Layout'}
+            stylingMode="text"
+            onClick={() => handleEditModeToggle(!isEditMode)}
+          />
+          <Button
+            icon="fa-solid fa-plus"
+            hint="Add Widget"
+            text='Add Widget'
+            type="default"
+            stylingMode="text"
+            onClick={() => setWidgetConfigOpen(true)}
+          />
         </div>
       </div>
 
-      {/* Debug Test Section (keep for now, can hide in prod) */}
-      <div className="tw-border tw-border-gray-200 tw-rounded tw-p-3 tw-bg-gray-50 tw-text-[12px]">
-        <strong>Debug Test Controls:</strong>
-        <div className="tw-mt-2 tw-flex tw-items-center tw-gap-2">
-          <input id="testWidgetId" type="number" placeholder="Widget ID" className="tw-border tw-rounded tw-text-xs tw-px-2 tw-py-1 tw-w-24" />
-          <button
-            onClick={() => {
-              const v = document.getElementById('testWidgetId').value;
-              v ? testWidgetDataRequest(v) : alert('Enter ID');
-            }}
-            className="tw-bg-blue-600 tw-text-white tw-text-xs tw-rounded tw-px-3 tw-py-1 hover:tw-bg-blue-700"
-          >Test Widget Request</button>
-          <span className="tw-text-gray-500">Check console for results</span>
-        </div>
-        <div className="tw-mt-2 tw-flex tw-items-center tw-gap-1">
-          <span className="tw-text-[11px] tw-text-gray-600">Quick Tests:</span>
-          {[16,17,18].map(id => (
-            <button key={id} onClick={() => testWidgetDataRequest(id)} className="tw-bg-red-600 tw-text-white tw-text-[10px] tw-rounded tw-px-2 tw-py-0.5 hover:tw-bg-red-700">Test {id}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      {canViewWidget('quickActions') && (
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded tw-p-3">
-          <QuickActionButtons role={primaryRole} userPermissions={roleConfig.permissions} />
-        </div>
-      )}
-
-
-      {/* Main Dashboard Grid (refactored widgets) */}
-      <div className="dashboard-main-grid">
-        <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-          <h2 className="tw-text-lg tw-font-semibold tw-flex tw-items-center tw-gap-2">
-            <i className="fa-solid fa-cubes"></i>
-            Enhanced Widgets (Category Layout)
-            {instancesLoading && <span className="tw-text-sm tw-text-gray-500">(Loading...)</span>}
-          </h2>
-          <div className="tw-flex tw-gap-2">
-            <Button
-              text={isEditMode ? 'Done Editing' : 'Edit Layout'}
-              height={32}
-              stylingMode="contained"
-              type={isEditMode ? 'default' : 'normal'}
-              onClick={() => handleEditModeToggle(!isEditMode)}
-            />
-            <Button
-              text="Add Widget"
-              height={32}
-              stylingMode="contained"
-              type="default"
-              onClick={() => setWidgetConfigOpen(true)}
-            />
-          </div>
-        </div>
-        <div className="tw-w-full">
+      {/* Enhanced Widgets Section */}
+      <div className="enhanced-widgets-section">
+        {widgetInstances && widgetInstances.length > 0 ? (
           <CategoryGroupedWidgetRenderer
             widgets={widgetInstances.filter(w => canViewWidget(w))}
             widgetData={widgetData}
@@ -285,21 +173,26 @@ const RealtimeDashboard = () => {
               setIsEditMode(false);
             }}
           />
-        </div>
-
-        {widgetInstances.length === 0 && !instancesLoading && (
-          <div className="tw-text-center tw-py-12">
-            <div className="tw-max-w-md tw-mx-auto">
-              <i className="fa-light fa-puzzle-piece tw-text-6xl tw-text-gray-300 tw-mb-4"></i>
-              <h3 className="tw-text-xl tw-font-semibold tw-text-gray-700 tw-mb-2">No widgets configured</h3>
-              <p className="tw-text-gray-500 tw-mb-6">Add widgets to customize your dashboard experience</p>
-              <QuickActionButtons role={currentUser?.role || 'user'} userPermissions={currentUser?.permissions || []} />
-            </div>
+        ) : (
+          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-8 tw-text-center">
+            <i className="fa-solid fa-cube tw-text-4xl tw-text-gray-300 tw-mb-4"></i>
+            <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-2">No Enhanced Widgets</h3>
+            <p className="tw-text-gray-600 tw-mb-4">
+              Create your first enhanced widget to get started with the new dashboard experience.
+            </p>
+            <Button
+              text="Add Widget"
+              icon="fa-solid fa-plus"
+              type="default"
+              stylingMode="contained"
+              height={36}
+              onClick={() => setWidgetConfigOpen(true)}
+            />
           </div>
         )}
       </div>
 
-      {/* Legacy simple widget add modal */}
+      {/* Configuration Modals */}
       {showWidgetModal && (
         <CustomWidgetDialog
           visible={showWidgetModal}
@@ -320,9 +213,7 @@ const RealtimeDashboard = () => {
         />
       )}
 
-  {/* Key Statistics visibility modal removed */}
-
-      {/* Loading overlay */}
+  {/* Loading overlay */}
       {instancesLoading && (
         <div className="tw-fixed tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-z-50">
           <div className="tw-text-center">

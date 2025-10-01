@@ -25,7 +25,8 @@ namespace FMS.WebClient.Controllers {
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DashboardController : ControllerBase {
         private readonly IMediator _mediator;
-        private readonly IWidgetDataService _widgetDataService;
+        // Deprecated: IWidgetDataService
+        // private readonly IWidgetDataService _widgetDataService;
         private readonly IWidgetFactoryService _widgetFactoryService;
         private readonly IDataSourceManager _dataSourceManager;
         private readonly ILogger<DashboardController> _logger;
@@ -33,13 +34,13 @@ namespace FMS.WebClient.Controllers {
 
         public DashboardController (
             IMediator mediator,
-            IWidgetDataService widgetDataService,
+            // IWidgetDataService widgetDataService,
             IWidgetFactoryService widgetFactoryService,
             IDataSourceManager dataSourceManager,
             ILogger<DashboardController> logger,
             GpsdataContext context) {
             _mediator = mediator;
-            _widgetDataService = widgetDataService;
+            // _widgetDataService = widgetDataService;
             _widgetFactoryService = widgetFactoryService;
             _dataSourceManager = dataSourceManager;
             _logger = logger;
@@ -151,11 +152,75 @@ namespace FMS.WebClient.Controllers {
         [HttpGet ("widgets/{widgetInstanceId}/data")]
         public async Task<ActionResult<WidgetDataResponseDto>> GetWidgetData (int widgetInstanceId) {
             string userId = CurrentUserId;
-            WidgetDataResponseDto result = await _widgetDataService.GetWidgetDataAsync (userId, widgetInstanceId);
-            if (!result.Success) {
-                return BadRequest (result);
+            // Load widget configuration
+            var widgetInstance = await _context.DashboardWidgetInstances
+                .Include (w => w.Template)
+                .FirstOrDefaultAsync (w => w.Id == widgetInstanceId && w.UserId == userId && w.IsVisible);
+
+            if (widgetInstance == null) {
+                return Ok (new WidgetDataResponseDto {
+                    WidgetInstanceId = widgetInstanceId,
+                        WidgetType = "unknown",
+                        ErrorMessage = "Widget instance not found or not visible",
+                        LastUpdated = DateTime.UtcNow
+                });
             }
-            return Ok (result);
+
+            // Parse configuration safely
+            Dictionary<string, object> configuration;
+            try {
+                configuration = JsonConvert.DeserializeObject<Dictionary<string, object>> (widgetInstance.ConfigurationJson) ??
+                    new Dictionary<string, object> ();
+            } catch {
+                configuration = new Dictionary<string, object> ();
+            }
+
+            var widgetType = widgetInstance.Template?.WidgetType ??
+                configuration.GetValueOrDefault ("widgetType", widgetInstance.WidgetType)?.ToString () ??
+                "unknown";
+
+            var dataSource = widgetInstance.Template?.DataSource ??
+                configuration.GetValueOrDefault ("dataSource", null)?.ToString ();
+
+            if (string.IsNullOrWhiteSpace (dataSource)) {
+                return Ok (new WidgetDataResponseDto {
+                    WidgetInstanceId = widgetInstanceId,
+                        WidgetType = widgetType,
+                        ErrorMessage = "Widget data source not defined",
+                        LastUpdated = DateTime.UtcNow
+                });
+            }
+
+            // Build a request for IDataSourceManager
+            var metricRequest = new DashboardMetricRequestDto {
+                MetricType = dataSource,
+                Mode = configuration.GetValueOrDefault ("mode", "historical_snapshot")?.ToString () ?? "historical_snapshot",
+                DatePreset = configuration.GetValueOrDefault ("datePreset", "last_7_days")?.ToString () ?? "last_7_days"
+            };
+            if (configuration.TryGetValue ("siteIds", out var siteIdsObj) && siteIdsObj is IEnumerable<object> siteIds) {
+                metricRequest.SiteIds = siteIds.Select (s => Convert.ToInt32 (s)).ToList ();
+            }
+            if (configuration.TryGetValue ("vehicleIds", out var vehicleIdsObj) && vehicleIdsObj is IEnumerable<object> vehicleIds) {
+                metricRequest.VehicleIds = vehicleIds.Select (v => Convert.ToInt32 (v)).ToList ();
+            }
+            if (configuration.TryGetValue ("startDate", out var startDateObj) && startDateObj is DateTime startDate) {
+                metricRequest.StartDate = startDate;
+            }
+            if (configuration.TryGetValue ("endDate", out var endDateObj) && endDateObj is DateTime endDate) {
+                metricRequest.EndDate = endDate;
+            }
+
+            // Fetch metric + time series via DataSourceManager
+            var initial = await _dataSourceManager.GetInitialDataAsync (dataSource, metricRequest);
+            // Transform for widget rendering
+            var transformed = await _dataSourceManager.TransformDataForWidgetType (widgetType, initial, configuration);
+
+            return Ok (new WidgetDataResponseDto {
+                WidgetInstanceId = widgetInstanceId,
+                    WidgetType = widgetType,
+                    Data = transformed,
+                    LastUpdated = DateTime.UtcNow
+            });
         }
 
         /// <summary>
@@ -164,7 +229,18 @@ namespace FMS.WebClient.Controllers {
         [HttpGet ("widgets/data")]
         public async Task<ActionResult<List<WidgetDataResponseDto>>> GetAllWidgetData () {
             string userId = CurrentUserId;
-            List<WidgetDataResponseDto> results = await _widgetDataService.GetAllUserWidgetDataAsync (userId);
+            var widgetInstances = await _context.DashboardWidgetInstances
+                .Include (w => w.Template)
+                .Where (w => w.UserId == userId && w.IsVisible)
+                .ToListAsync ();
+
+            var results = new List<WidgetDataResponseDto> (widgetInstances.Count);
+            foreach (var widgetInstance in widgetInstances) {
+                var single = await GetWidgetData (widgetInstance.Id);
+                if (single.Result is OkObjectResult ok && ok.Value is WidgetDataResponseDto dto) {
+                    results.Add (dto);
+                }
+            }
             return Ok (results);
         }
 
@@ -173,12 +249,8 @@ namespace FMS.WebClient.Controllers {
         /// </summary>
         [HttpPost ("widgets/{widgetInstanceId}/refresh")]
         public async Task<ActionResult<WidgetDataResponseDto>> RefreshWidgetData (int widgetInstanceId) {
-            string userId = CurrentUserId;
-            WidgetDataResponseDto result = await _widgetDataService.RefreshWidgetDataAsync (userId, widgetInstanceId);
-            if (!result.Success) {
-                return BadRequest (result);
-            }
-            return Ok (result);
+            // For now, just call GetWidgetData to refresh from source
+            return await GetWidgetData (widgetInstanceId);
         }
 
         // ===== DASHBOARD LAYOUT ENDPOINTS =====
@@ -506,26 +578,35 @@ namespace FMS.WebClient.Controllers {
             try {
                 _logger.LogInformation ("Phase 1: Getting initial widget data for widget {WidgetId}", widgetId);
 
-                string userId = CurrentUserId;
-                var result = await _widgetDataService.GetWidgetDataAsync (userId, widgetId);
+                var actionResult = await GetWidgetData (widgetId);
+                if (actionResult.Result is OkObjectResult ok && ok.Value is WidgetDataResponseDto dto) {
+                    var isSuccess = string.IsNullOrWhiteSpace (dto.ErrorMessage);
+                    if (!isSuccess) {
+                        return BadRequest (new {
+                            success = false,
+                                error = dto.ErrorMessage,
+                                widgetId = widgetId,
+                                timestamp = DateTime.UtcNow
+                        });
+                    }
 
-                if (!result.Success) {
-                    return BadRequest (new {
-                        success = false,
-                            error = result.ErrorMessage ?? "Failed to get widget data",
+                    return Ok (new {
+                        success = true,
                             widgetId = widgetId,
+                            widgetType = dto.WidgetType,
+                            data = dto.Data,
+                            lastUpdated = dto.LastUpdated,
+                            isInitialData = true,
+                            enhancedDataEngine = "Phase1",
                             timestamp = DateTime.UtcNow
                     });
                 }
 
-                return Ok (new {
-                    success = true,
+                // Fallback unexpected result type
+                return BadRequest (new {
+                    success = false,
+                        error = "Failed to get widget data",
                         widgetId = widgetId,
-                        widgetType = result.WidgetType,
-                        data = result.Data,
-                        lastUpdated = result.LastUpdated,
-                        isInitialData = true,
-                        enhancedDataEngine = "Phase1",
                         timestamp = DateTime.UtcNow
                 });
             } catch (Exception ex) {

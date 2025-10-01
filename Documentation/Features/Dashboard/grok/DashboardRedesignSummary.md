@@ -46,11 +46,12 @@ public string PreferencesJson { get; set; } = null!;
    - Overall dashboard layout
    - Grid-based positioning system
 
-### Services
-1. **WidgetDataService**
-   - Retrieves data for individual widgets
-   - Transforms metric data based on widget type
-   - Handles different visualization formats
+> Deprecation note (Sept 2025): Legacy WidgetDataService/IWidgetDataService has been retired. Use IDataSourceManager + transformer/metric/time-series services.
+
+## Services
+1. **DataSourceManager (new)**
+   - Orchestrates metric computations, time-series, and transformations
+   - Exposes metadata and supports SignalR broadcasts
 
 2. **KeyStatisticsService**
    - Specialized service for key statistics widgets

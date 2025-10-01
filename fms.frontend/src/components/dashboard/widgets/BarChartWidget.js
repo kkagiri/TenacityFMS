@@ -380,10 +380,6 @@ const BarChartWidget = ({
             </div>
           </div>
         )}
-
-        <div className="widget-meta">
-          Last updated: {new Date().toLocaleTimeString()}
-        </div>
       </div>
 
       {isEditing && (

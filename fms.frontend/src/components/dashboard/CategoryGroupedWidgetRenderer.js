@@ -100,9 +100,16 @@ const CategoryGroupedWidgetRenderer = ({
       widgets.forEach(widget => {
         const widgetId = String(widget.instanceId || widget.id);
         if (!layoutFromRedux.widgetSizes[widgetId]) {
+          // Determine default height based on widget type
+          const widgetType = (widget.widgetType || widget.templateType || widget.template?.widgetType || '').toLowerCase();
+          let defaultHeight = 3; // Default for charts
+          if (widgetType.includes('big_stat') || widgetType.includes('stat') || widgetType === 'bigstat') {
+            defaultHeight = 2; // Shorter for stat cards
+          }
+
           initialSizes[widgetId] = {
             width: widget.width || 6, // Default to half width (6/12 columns)
-            height: widget.height || 4 // Default height
+            height: widget.height || defaultHeight
           };
         }
       });
@@ -524,6 +531,11 @@ const CategoryGroupedWidgetRenderer = ({
                     const widgetCols = getWidgetGridColumns(instanceId);
                     const currentSizeOption = getSizeOptionFromCols(widgetCols);
 
+                    // Determine smart default height based on widget type
+                    const widgetType = (widget.widgetType || widget.templateType || widget.template?.widgetType || '').toLowerCase();
+                    const defaultHeight = (widgetType.includes('big_stat') || widgetType.includes('stat') || widgetType === 'bigstat') ? 2 : 3;
+
+
                     return (
                       <div
                         key={instanceId}
@@ -559,7 +571,7 @@ const CategoryGroupedWidgetRenderer = ({
                                     <button
                                       key={option.key}
                                       className={`control-btn size-btn ${widgetCols === option.cols ? 'active' : ''}`}
-                                      onClick={() => handleWidgetSizeChange(instanceId, { width: option.cols, height: widgetSizes[String(instanceId)]?.height || 4 })}
+                                      onClick={() => handleWidgetSizeChange(instanceId, { width: option.cols, height: widgetSizes[String(instanceId)]?.height || defaultHeight })}
                                       title={option.label}
                                     >
                                       {option.icon}
