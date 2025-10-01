@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     public class RoleController : ControllerBase {
         private readonly IMediator _mediator;
 

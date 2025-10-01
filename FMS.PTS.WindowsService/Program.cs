@@ -451,6 +451,10 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<ChartWidgetFactory> ();
             services.AddScoped<StatCardWidgetFactory> ();
             services.AddScoped<TableWidgetFactory> ();
+            services.AddScoped<IMetricCalculationService, MetricCalculationService> ();
+            services.AddScoped<IWidgetDataTransformerService, WidgetDataTransformerService> ();
+            services.AddScoped<IDataSourceMetadataService, DataSourceMetadataService> ();
+            services.AddScoped<ITimeSeriesDataService, TimeSeriesDataService> ();
             services.AddScoped<IDataSourceManager, DataSourceManager> ();
 
             // Register additional missing services from WebClient
@@ -467,9 +471,9 @@ namespace FMS.PTS.WindowsService {
             services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SlackNotificationChannel> ();
             services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.PushNotificationChannel> ();
 
-            // Register Dashboard Services
-            services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
-            services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
+            // Removed legacy Dashboard Services (migrated to IDataSourceManager)
+            // services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
+            // services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
             services.AddScoped<FMS.Application.Services.Dashboard.IWidgetTemplateSeeder, FMS.Application.Services.Dashboard.WidgetTemplateSeeder> ();
 
             // Register background service

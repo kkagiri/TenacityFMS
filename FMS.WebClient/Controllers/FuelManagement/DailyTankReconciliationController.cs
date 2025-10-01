@@ -13,7 +13,7 @@
 
  //Cursor - Controller for daily tank reconciliation operations
  [ApiController]
- [Route ("api/[controller]")]
+ [Route ("api/v1/[controller]")]
  [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
  public class DailyTankReconciliationController : ControllerBase {
      private readonly IMediator _mediator;

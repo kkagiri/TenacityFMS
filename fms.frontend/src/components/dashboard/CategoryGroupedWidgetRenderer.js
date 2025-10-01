@@ -19,6 +19,7 @@ const CategoryGroupedWidgetRenderer = ({
   onConfigChange = null,
   onWidgetSizeChange = null,
   isEditMode = false,
+  widgetStaleness = {}, // map of widgetId -> lastUpdated timestamp (ms) from hook
   onEditModeComplete = null, // New callback for when editing is done
   layoutSettings = {}
 }) => {
@@ -99,9 +100,16 @@ const CategoryGroupedWidgetRenderer = ({
       widgets.forEach(widget => {
         const widgetId = String(widget.instanceId || widget.id);
         if (!layoutFromRedux.widgetSizes[widgetId]) {
+          // Determine default height based on widget type
+          const widgetType = (widget.widgetType || widget.templateType || widget.template?.widgetType || '').toLowerCase();
+          let defaultHeight = 3; // Default for charts
+          if (widgetType.includes('big_stat') || widgetType.includes('stat') || widgetType === 'bigstat') {
+            defaultHeight = 2; // Shorter for stat cards
+          }
+
           initialSizes[widgetId] = {
             width: widget.width || 6, // Default to half width (6/12 columns)
-            height: widget.height || 4 // Default height
+            height: widget.height || defaultHeight
           };
         }
       });
@@ -379,16 +387,21 @@ const CategoryGroupedWidgetRenderer = ({
       .join(' ');
   };
 
-  const parseFilters = (configurationJson) => {
+  const parseFilters = (configurationJson, liveData) => {
     try {
       const config = JSON.parse(configurationJson || '{}');
       const filters = [];
 
-      if (config.datePreset) {
-        filters.push(`Period: ${config.datePreset}`);
+  // Prefer envelope/live data over static config; also prefer settings.datePreset over root datePreset
+  const configDatePreset = (config.settings && config.settings.datePreset) || config.datePreset;
+  const period = liveData?.timeRange || config.timeRange || configDatePreset;
+      const mode = liveData?.mode || config.mode;
+
+      if (period) {
+        filters.push(`Period: ${period}`);
       }
-      if (config.mode) {
-        filters.push(`Mode: ${config.mode}`);
+      if (mode) {
+        filters.push(`Mode: ${mode}`);
       }
       if (config.visualizationType && config.visualizationType !== 'default') {
         filters.push(`View: ${config.visualizationType}`);
@@ -400,8 +413,13 @@ const CategoryGroupedWidgetRenderer = ({
           }
         });
       }
-      if (config.settings && config.settings.siteIds && Array.isArray(config.settings.siteIds)) {
-        filters.push(`Sites: ${config.settings.siteIds.length} selected`);
+      // Sites filter chip
+      const siteIds = config?.settings?.siteIds;
+      if (Array.isArray(siteIds)) {
+        filters.push(siteIds.length > 0 ? `Sites: ${siteIds.length} selected` : 'Sites: all');
+      } else {
+        // If no explicit site selection, assume all
+        filters.push('Sites: all');
       }
 
       return filters;
@@ -502,12 +520,21 @@ const CategoryGroupedWidgetRenderer = ({
                   {categoryWidgets.map(widget => {
                     const instanceId = widget.instanceId || widget.id;
                     const data = widgetData[instanceId];
+                    const lastUpdated = data?.lastUpdated ? new Date(data.lastUpdated).getTime() : null;
+                    const now = Date.now();
+                    const ageMs = lastUpdated ? now - lastUpdated : null;
+                    const isStale = ageMs != null && ageMs > 60000; // >60s
                     const loading = isLoading[instanceId] || false;
                     const rawError = errors[instanceId] || null;
                     const error = rawError ? (typeof rawError === 'string' ? { message: rawError } : rawError) : null;
-                    const filters = parseFilters(widget.configurationJson);
+                    const filters = parseFilters(widget.configurationJson, data);
                     const widgetCols = getWidgetGridColumns(instanceId);
                     const currentSizeOption = getSizeOptionFromCols(widgetCols);
+
+                    // Determine smart default height based on widget type
+                    const widgetType = (widget.widgetType || widget.templateType || widget.template?.widgetType || '').toLowerCase();
+                    const defaultHeight = (widgetType.includes('big_stat') || widgetType.includes('stat') || widgetType === 'bigstat') ? 2 : 3;
+
 
                     return (
                       <div
@@ -544,7 +571,7 @@ const CategoryGroupedWidgetRenderer = ({
                                     <button
                                       key={option.key}
                                       className={`control-btn size-btn ${widgetCols === option.cols ? 'active' : ''}`}
-                                      onClick={() => handleWidgetSizeChange(instanceId, { width: option.cols, height: widgetSizes[String(instanceId)]?.height || 4 })}
+                                      onClick={() => handleWidgetSizeChange(instanceId, { width: option.cols, height: widgetSizes[String(instanceId)]?.height || defaultHeight })}
                                       title={option.label}
                                     >
                                       {option.icon}
@@ -594,11 +621,13 @@ const CategoryGroupedWidgetRenderer = ({
                           <div className="widget-card-footer">
                             <div className="widget-meta">
                               <span className="last-updated">
-                                {data?.lastUpdated ?
-                                  `Updated: ${new Date(data.lastUpdated).toLocaleTimeString()}` :
-                                  'No data'
-                                }
+                                {data?.lastUpdated ? `Updated: ${new Date(data.lastUpdated).toLocaleTimeString()}` : 'No data'}
                               </span>
+                              {isStale && (
+                                <span className="stale-indicator" title={`Data stale (${Math.round(ageMs/1000)}s old)`}>
+                                  <i className="fa-solid fa-clock" /> Stale
+                                </span>
+                              )}
                               {isEditMode && (
                                 <div className="widget-controls">
                                   <button

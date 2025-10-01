@@ -20,7 +20,8 @@ const PieChartWidget = ({
   data = null,
   onRefresh,
   onConfigure,
-  isEditing = false
+  isEditing = false,
+  units
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -46,24 +47,27 @@ const PieChartWidget = ({
 
   // Process chart data
   const chartData = useMemo(() => {
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
-
-    return data.map((item, index) => {
-      if (typeof item === 'object') {
-        return {
-          category: item.category || item.name || `Category ${index + 1}`,
-          value: parseFloat(item.value) || 0,
-          ...item
-        };
-      }
-      return {
-        category: `Category ${index + 1}`,
-        value: parseFloat(item) || 0
-      };
+    if (!data) return [];
+    // Support server envelope mapping: either array of slices or array of category/value
+    const arr = Array.isArray(data) ? data : Array.isArray(data.slices) ? data.slices : [];
+    return arr.map((item, index) => {
+      const cat = item.category || item.label || item.name || `Category ${index + 1}`;
+      const val = parseFloat(item.value ?? 0) || 0;
+      const pct = item.percentage; // prefer server-provided percentage
+      return { category: cat, value: val, percentage: pct };
     });
   }, [data]);
+
+  // Compute total before any early returns to avoid conditional hook calls
+  const total = useMemo(() => {
+    if (Array.isArray(data) || !data?.total) {
+      return chartData.reduce((sum, item) => sum + (item.value || 0), 0);
+    }
+    // Prefer server-provided total
+    return typeof data.total === 'number'
+      ? data.total
+      : (data.total?.value ?? chartData.reduce((sum, item) => sum + (item.value || 0), 0));
+  }, [data, chartData]);
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
@@ -166,8 +170,6 @@ const PieChartWidget = ({
     );
   }
 
-  const total = chartData.reduce((sum, item) => sum + item.value, 0);
-
   return (
     <div className="pie-chart-widget">
       <div className="widget-header">
@@ -203,9 +205,16 @@ const PieChartWidget = ({
               <Tooltip
                 enabled={true}
                 format="millions"
-                customizeTooltip={(arg) => ({
-                  text: `${arg.argument}: ${formatValue(arg.value)} (${((arg.value / total) * 100).toFixed(1)}%)`
-                })}
+                customizeTooltip={(arg) => {
+                  // Prefer server-provided percentage if present
+                  const item = chartData[arg.point?.index ?? 0];
+                  const pct = item?.percentage !== undefined && item?.percentage !== null
+                    ? item.percentage
+                    : (total ? (arg.value / total) * 100 : 0);
+                  const pctText = typeof pct === 'number' ? pct.toFixed(1) : String(pct);
+                  const unitText = units ? ` ${units}` : '';
+                  return { text: `${arg.argument}: ${formatValue(arg.value)}${unitText} (${pctText}%)` };
+                }}
               />
             )}
 
@@ -228,11 +237,17 @@ const PieChartWidget = ({
                 <Label
                   visible={true}
                   position="columns"
-                  customizeText={(arg) =>
-                    mergedConfig.percentageFormat
-                      ? `${((arg.value / total) * 100).toFixed(1)}%`
-                      : formatValue(arg.value)
-                  }
+                  customizeText={(arg) => {
+                    const item = chartData[arg.point?.index ?? 0];
+                    if (mergedConfig.percentageFormat) {
+                      const pct = item?.percentage !== undefined && item?.percentage !== null
+                        ? item.percentage
+                        : (total ? (arg.value / total) * 100 : 0);
+                      const pctText = typeof pct === 'number' ? pct.toFixed(1) : String(pct);
+                      return `${pctText}%`;
+                    }
+                    return formatValue(arg.value);
+                  }}
                 >
                   <Connector visible={true} width={0.5} />
                 </Label>
@@ -262,10 +277,6 @@ const PieChartWidget = ({
             </div>
           </div>
         </div>
-
-        <div className="widget-meta">
-          Last updated: {new Date().toLocaleTimeString()}
-        </div>
       </div>
 
       {isEditing && (
@@ -281,10 +292,11 @@ const PieChartWidget = ({
 PieChartWidget.propTypes = {
   widgetId: PropTypes.string.isRequired,
   config: PropTypes.object,
-  data: PropTypes.array,
+  data: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
   onRefresh: PropTypes.func,
   onConfigure: PropTypes.func,
-  isEditing: PropTypes.bool
+  isEditing: PropTypes.bool,
+  units: PropTypes.string
 };
 
 export default PieChartWidget;

@@ -1,4 +1,4 @@
-﻿using FMS.Application.Command.DatabaseCommand.SupplierCommands;
+using FMS.Application.Command.DatabaseCommand.SupplierCommands;
 using FMS.Application.Common;
 using FMS.Application.Features.FMS.Supplier;
 using FMS.Application.Queries.Database.FMSQuery.SuppliersQueries;
@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class SupplierController : ControllerBase {
         private readonly IMediator _mediator;

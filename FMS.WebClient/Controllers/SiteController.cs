@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.SiteCommands;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Common;
@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class SiteController : ControllerBase {
         private readonly IMediator _mediator;

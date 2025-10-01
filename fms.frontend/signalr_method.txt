@@ -1,0 +1,8 @@
+﻿  /**
+   * Get SignalR service
+   * @returns {SignalRService}
+   */
+  getSignalRService() {
+    // Return the singleton instance directly since SignalRService is already a singleton
+    return SignalRService;
+  }

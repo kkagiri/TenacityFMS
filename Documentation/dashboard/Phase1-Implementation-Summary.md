@@ -29,7 +29,7 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 ```
 
 ### 2. Widget Data Service (Simplified)
-- **Location**: Uses existing `WidgetDataService`
+- Deprecated: Replaced by `IDataSourceManager` and `IWidgetFactoryService`
 - **Purpose**: Core widget data operations
 
 **Key Features:**
@@ -39,16 +39,14 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 - Maintains full backward compatibility
 
 ### 3. Simplified DTOs
-- **Location**: Uses existing DTOs from `WidgetDataService`
+- Deprecated references to `WidgetDataService` DTOs; use dashboard DTOs under `FMS.Application/Features/Dashboard/` and DataSource envelope v2
 - **Purpose**: Standard request/response objects
 
 **Key Features:**
 - Core widget DTOs
 - No over-engineered abstractions
 
-### 4. Enhanced WidgetDataService Integration
-- **Location**: Updated `FMS.Application\Services\Dashboard\WidgetDataService.cs`
-- **Purpose**: Extended existing service to support new widget types
+- Removed: WidgetDataService integration has been superseded by DataSourceManager + WidgetDataTransformerService
 
 **Enhancements:**
 - Added transformation logic for new widget types
@@ -70,11 +68,11 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 
 ### Existing Functionality Preserved
 ✅ All existing widget types (ticker, graph, chart, table, gauge) continue to work
-✅ Existing `WidgetDataService` methods remain unchanged
 ✅ Current SignalR functionality maintained
 ✅ Existing DTOs and database entities unchanged
 
 ### Legacy Support
+
 - Legacy widget types automatically map to new enhanced types
 - Existing configurations continue to work
 - Current dashboard layouts remain functional
@@ -83,11 +81,13 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 ## Key Design Decisions
 
 ### 1. **No Breaking Changes**
+
 - Extended existing services rather than replacing them
 - Used inheritance and composition patterns
 - Maintained existing method signatures
 
 ### 2. **Category-Based Organization**
+
 - **key_statistics**: Only tickers (as per your requirement)
 - **fuel_management**: Fuel-related widgets with full flexibility
 - **vehicle_performance**: Vehicle metrics and analytics
@@ -96,6 +96,7 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 - **alerts_monitoring**: Status and alert widgets
 
 ### 3. **Flexible Widget System**
+
 - Widget behavior controlled by `WidgetType` and configuration
 - Key statistics restricted to tickers only
 - All other categories support any widget type
@@ -104,6 +105,7 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 ## Current Status
 
 ### ✅ Completed
+
 - Widget type definitions and constants
 - Enhanced service interfaces and base implementations
 - New DTOs for enhanced functionality
@@ -111,6 +113,7 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 - Backward compatibility layer
 
 ### 🚧 Ready for Implementation (Stubs Created)
+
 - Actual data retrieval methods (marked with TODO comments)
 - Real-time data integration
 - Performance metrics collection
@@ -136,6 +139,7 @@ STAT_CARD_WITH_TREND    // Statistics with trend indicators
 ## Usage Examples
 
 ### Creating a Big Stat Card Widget
+
 ```csharp
 var bigStatCard = new CreateWidgetInstanceDto {
     TemplateId = fuelEfficiencyTemplateId,
@@ -151,6 +155,7 @@ var bigStatCard = new CreateWidgetInstanceDto {
 ```
 
 ### Key Statistics Restriction
+
 ```csharp
 // This ensures key statistics can only use ticker widgets
 if (category == WidgetTypeDefinitions.Categories.KEY_STATISTICS) {

@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 [ApiController]
-[Route ("api/[controller]")]
+[Route ("api/v1/[controller]")]
 public class GPSGateTagMonitoringController : ControllerBase {
     private readonly IMediator _mediator;
     private readonly GpsdataContext _context;

@@ -1,5 +1,7 @@
 # 🎉 Widget Factory Integration - COMPLETE
 
+> Deprecation note (Sept 2025): References to `WidgetDataService`/`IWidgetDataService` in this document are legacy. Use `IDataSourceManager` with `IWidgetFactoryService` and `IWidgetDataTransformerService` going forward.
+
 ## ✅ What's Been Implemented
 
 ### 1. Command Separation
@@ -15,14 +17,14 @@
 - ✅ `WidgetFactoryCoordinator` - Routes requests to appropriate factory
 
 ### 3. Data Bridge Service
-- ✅ `WidgetDataService` - Connects factory system to your existing DataSourceManager
-- ✅ `IWidgetDataService` - Interface for widget data operations
-- ✅ Validation, processing, and data transformation capabilities
+- 🧰 Legacy bridge removed: `WidgetDataService`/`IWidgetDataService` were decommissioned
+- ✅ Current bridge: `IWidgetFactoryService` + `IDataSourceManager` + `IWidgetDataTransformerService`
+- ✅ Validation, processing, and data transformation are handled by the factory + transformer
 
 ### 4. Service Registration
 - ✅ All factory classes registered in `Program.cs`
-- ✅ `IWidgetDataService` already registered
-- ✅ Bridge to existing `DataSourceManager` maintained
+- ✅ `IDataSourceManager`, `IMetricCalculationService`, `ITimeSeriesDataService`, `IWidgetDataTransformerService` registered
+- ✅ Bridge to existing `DataSourceManager` maintained via factory + transformer
 
 ## 🔧 Integration Points
 

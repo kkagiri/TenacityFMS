@@ -13,7 +13,7 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace FMS.WebClient.Controllers {
     [ApiController]
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     public class VehicleController : ControllerBase {
 
         private readonly IMediator _mediator;

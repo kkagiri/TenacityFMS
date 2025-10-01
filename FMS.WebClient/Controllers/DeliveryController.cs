@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers {
-    [Route ("api/[controller]")]
+    [Route ("api/v1/[controller]")]
     [ApiController]
     [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DeliveryController : ControllerBase {

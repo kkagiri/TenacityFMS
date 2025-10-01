@@ -141,9 +141,109 @@ const EnhancedWidgetRenderer = memo(({
     }
   }, [widget, category]);
 
-  // Enhanced data transformation for factory compatibility
+  // Helper: normalize server envelope v2 into widget-friendly shapes
+  const normalizeFromEnvelope = useCallback((normalizedType, envelope) => {
+    if (!envelope || !envelope.data) return null;
+    const meta = envelope.metadata || {};
+    const units = meta.units || meta.unit;
+
+    const t = normalizedType.toLowerCase();
+
+    // BigStat
+    if (t.includes('big_stat') || t === 'bigstat' || t === 'stat' || t === 'big-stat' || t === 'big_stat_card' || t === 'big stat') {
+      const current = envelope.data.current || {};
+      const ctx = envelope.data.context || {};
+      const val = current.value ?? envelope.data.value;
+      const unit = current.unit || units || envelope.data.unit;
+      const delta = ctx.delta;
+      const trend = ctx.trend; // may be a fraction (e.g., 0.046)
+      const trendObj = trend !== undefined && trend !== null
+        ? { percentage: typeof trend === 'number' && Math.abs(trend) <= 1 ? +(trend * 100).toFixed(1) : trend }
+        : undefined;
+      return {
+        value: val,
+        unit,
+        previousValue: delta !== undefined && typeof val === 'number' ? val - delta : undefined,
+        trend: trendObj,
+        period: envelope.timeRange?.preset || widgetConfig.timeRange,
+        lastUpdated: envelope.data.freshnessUtc || envelope.timestamp,
+        metadata: meta
+      };
+    }
+
+    // BarChart (categorical)
+    if (t.includes('bar')) {
+      const series = Array.isArray(envelope.data.series) ? envelope.data.series : [];
+      const mapped = series.map(s => ({
+        category: s.label ?? s.key ?? '',
+        value: s.value ?? 0,
+        unit: s.unit || units
+      }));
+      const total = envelope.data.total?.value ?? undefined;
+      return mapped.length > 0 ? mapped : [];
+    }
+
+    // PieChart (categorical with percentages)
+    if (t.includes('pie')) {
+      const slices = Array.isArray(envelope.data.slices) ? envelope.data.slices : [];
+      return slices.map(s => ({
+        category: s.label ?? s.key ?? '',
+        value: s.value ?? 0,
+        percentage: s.percentage,
+        unit: s.unit || units
+      }));
+    }
+
+    // LineChart (time series)
+    if (t.includes('line') || t === 'graph' || t.includes('trend')) {
+      const series = Array.isArray(envelope.data.series) ? envelope.data.series : [];
+      const firstSeries = series[0] || { points: [] };
+      const points = Array.isArray(firstSeries.points) ? firstSeries.points : [];
+      const chartData = points.map(p => ({ argument: p.timestampUtc || p.timestamp || p.x, value: p.value }));
+      return { chartData, metadata: { ...meta, serverBucketed: true } };
+    }
+
+    // Table
+    if (t.includes('data_table') || t.includes('data-table') || t.includes('datatable') || t.includes('table')) {
+      return Array.isArray(envelope.data.rows) ? envelope.data.rows : [];
+    }
+
+    // Progress List (ranked)
+    if (t.includes('progress')) {
+      const items = Array.isArray(envelope.data.items) ? envelope.data.items : [];
+      const max = envelope.data.max ?? Math.max(1, ...items.map(i => i.value || 0));
+      return items.map(i => ({
+        id: i.key,
+        name: i.label ?? i.key,
+        description: i.description,
+        progress: max ? ((i.value || 0) / max) * 100 : 0,
+        priority: i.priority,
+        status: i.status
+      }));
+    }
+
+    // Default: pass through data
+    return envelope.data;
+  }, [widgetConfig.timeRange]);
+
+  // Enhanced data transformation for factory compatibility + envelope v2
   const transformedData = useMemo(() => {
     if (!data) return null;
+
+    const normalizedType = (widgetConfig.type || '').toString().trim();
+
+    // If server provided envelope v2, normalize to component-friendly shape
+    if (data && typeof data === 'object' && (data.schemaVersion === 2 || (data.widgetType && data.data))) {
+      const mapped = normalizeFromEnvelope(normalizedType, data);
+      if (factoryMetadata) {
+        return {
+          ...mapped,
+          metadata: { ...(data.metadata || {}), ...(factoryMetadata || {}) },
+          isFactoryData: true
+        };
+      }
+      return mapped;
+    }
 
     // If factory metadata is available, use enhanced data structure
     if (factoryMetadata) {
@@ -170,7 +270,44 @@ const EnhancedWidgetRenderer = memo(({
         processingTime: null
       }
     };
-  }, [data, factoryMetadata, widgetConfig.dataSource]);
+  }, [data, factoryMetadata, widgetConfig.type, widgetConfig.dataSource, normalizeFromEnvelope]);
+
+  // Normalize data shape for specific widget component expectations
+  const componentData = useMemo(() => {
+    if (!transformedData) return null;
+
+    const t = (widgetConfig.type || '').toString().toLowerCase();
+
+    // Line chart expects an object with chartData
+    if (t.includes('line') || t === 'graph' || t.includes('trend')) {
+      return transformedData;
+    }
+
+    // Bar/Pie expect arrays
+    if (t.includes('bar') || t.includes('pie')) {
+      if (Array.isArray(transformedData)) return transformedData;
+      if (Array.isArray(transformedData?.series)) return transformedData.series;
+      if (Array.isArray(transformedData?.slices)) return transformedData.slices;
+      return [];
+    }
+
+    // Table expects array of rows
+    if (t.includes('table')) {
+      if (Array.isArray(transformedData)) return transformedData;
+      if (Array.isArray(transformedData?.rows)) return transformedData.rows;
+      return [];
+    }
+
+    // Progress list expects array of items
+    if (t.includes('progress')) {
+      if (Array.isArray(transformedData)) return transformedData;
+      if (Array.isArray(transformedData?.items)) return transformedData.items;
+      return [];
+    }
+
+    // Big stat and others consume object as-is
+    return transformedData;
+  }, [transformedData, widgetConfig.type]);
 
   // Determine widget component to render
   const WidgetComponent = useMemo(() => {
@@ -315,6 +452,46 @@ const EnhancedWidgetRenderer = memo(({
     );
   }, [widgetConfig.type]);
 
+  // Normalize data for target widget before any early returns to preserve hook order
+  const finalData = useMemo(() => {
+    // Ensure LineChartWidget always receives an object with chartData
+    if (WidgetComponent === LineChartWidget) {
+      if (Array.isArray(componentData)) {
+        return { chartData: componentData };
+      }
+      if (componentData && typeof componentData === 'object') {
+        if (Array.isArray(componentData.chartData)) {
+          return componentData;
+        }
+        if (Array.isArray(componentData.dataPoints)) {
+          return { chartData: componentData.dataPoints, ...componentData };
+        }
+        return { chartData: [], ...componentData };
+      }
+      return { chartData: [] };
+    }
+
+    // Map BIG_STAT_CARD envelope data into BigStatCardWidget-friendly shape (if not already normalized)
+    if (WidgetComponent === BigStatCardWidget && componentData && typeof componentData === 'object') {
+      const value = componentData.value ?? componentData.mainValue?.value ?? componentData.data?.value;
+      const unit = componentData.unit ?? componentData.mainValue?.unit ?? componentData.data?.unit;
+      const lastUpdated = componentData.lastUpdated ?? componentData.data?.lastUpdated;
+      const previousValue = componentData.previousValue ?? componentData.data?.previousValue;
+      const trend = componentData.trend || componentData.data?.trend || undefined;
+      return {
+        value,
+        unit,
+        lastUpdated,
+        previousValue,
+        trend,
+        additionalInfo: componentData.additionalInfo
+      };
+    }
+
+    // Other widgets consume componentData as computed
+    return componentData;
+  }, [WidgetComponent, componentData]);
+
   // Render error state
   if (error && !transformedData) {
     return (
@@ -358,11 +535,22 @@ const EnhancedWidgetRenderer = memo(({
     );
   }
 
+
+
   // Prepare props for widget component
   const widgetProps = {
     // Core widget data
     widget: widgetConfig,
-    data: transformedData,
+    data: finalData,
+    // Metadata-driven presentation (no client aggregation)
+    aggregation: (data && data.metadata && data.metadata.aggregation) || factoryMetadata?.aggregation,
+    groupBy: (data && data.metadata && data.metadata.groupBy) || factoryMetadata?.groupBy,
+    granularity: (data && data.metadata && data.metadata.granularity) || factoryMetadata?.granularity,
+    topK: (data && data.metadata && data.metadata.topK) || factoryMetadata?.topK,
+    includeTotal: (data && data.metadata && data.metadata.includeTotal) || factoryMetadata?.includeTotal,
+    units: (data && (data.metadata?.units || data.metadata?.unit)) || factoryMetadata?.units,
+    // Ensure widgetId is a string for widgets that expect string identifiers
+    widgetId: String(widgetConfig.instanceId ?? widgetConfig.id),
 
     // State props
     isLoading,

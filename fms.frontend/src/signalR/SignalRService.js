@@ -133,6 +133,15 @@ class SignalRService {
           headers: {
             "Access-Control-Allow-Origin": "*",
           },
+          accessTokenFactory: () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+              console.log('[SignalR] Using authentication token');
+              return token;
+            }
+            console.warn('[SignalR] No authentication token available');
+            return null;
+          }
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(signalR.LogLevel.Information)

@@ -1,4 +1,5 @@
 import axiosInstance from '../api/axiosInstance';
+import { dashboardApi } from '../api/dashboardFactory';
 import dashboardSignalRService from '../signalR/dashboardSignalRService';
 
 /**
@@ -14,6 +15,11 @@ class DataSourceService {
     this.retryAttempts = new Map(); // Track retry attempts per data source
     this.maxRetryAttempts = 3;
     this.retryDelay = 1000; // Start with 1 second delay
+    this.metadataCache = new Map();
+    this.catalogCache = { items: null, timestamp: 0 };
+    this.catalogTtl = 5 * 60 * 1000; // 5 minutes
+    this.categoryIndex = new Map();
+    this.widgetCompatibilityIndex = new Map();
   }
 
   // ========================================
@@ -349,55 +355,294 @@ class DataSourceService {
    * @param {string} dataSource - Data source identifier
    * @returns {Promise<object>} Data source metadata
    */
-  async getDataSourceMetadata(dataSource) {
+  async getDataSourceMetadata(dataSource, options = {}) {
+    if (!dataSource) return null;
+
+    const { forceRefresh = false } = options;
+    const cacheKey = dataSource.toLowerCase();
+    const cached = this.metadataCache.get(cacheKey);
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < this.catalogTtl) {
+      return cached.metadata;
+    }
+
     try {
-      const response = await axiosInstance.get(`/dashboard/data-sources/health`);
-      return response.data;
+      const metadata = await dashboardApi.getDataSourceMetadata(dataSource, { forceRefresh });
+      if (metadata) {
+        this.metadataCache.set(cacheKey, { metadata, timestamp: Date.now() });
+        return metadata;
+      }
     } catch (error) {
       console.error(`[DataSource] Error getting metadata for ${dataSource}:`, error);
-
-      // Return default metadata structure
-      return {
-        displayName: dataSource,
-        unit: 'units',
-        description: `Data for ${dataSource}`,
-        supportsLiveData: false,
-        supportsHistoricalData: true,
-        supportedAggregations: ['sum'],
-        category: 'general',
-        refreshIntervalSeconds: 30
-      };
     }
+
+    if (cached) {
+      return cached.metadata;
+    }
+
+    return {
+      displayName: dataSource,
+      category: 'general',
+      supportedModes: [],
+      supportedAggregations: ['sum'],
+      supportedGranularities: ['day'],
+      defaultMode: 'historical_snapshot',
+      defaultAggregation: 'sum',
+      defaultGranularity: 'day',
+      refreshIntervalSeconds: 30
+    };
+  }
+
+  rebuildCatalogIndexes(items = []) {
+    const categoryIndex = new Map();
+    const widgetIndex = new Map();
+
+    items.forEach(item => {
+      if (!item) return;
+      const metadata = item.metadata || {};
+      const category = metadata.category || item.category || 'general';
+      const entry = {
+        id: item.id,
+        displayName: item.displayName || item.id,
+        category,
+        modes: metadata.supportedModes || [],
+        metadata
+      };
+
+      if (!categoryIndex.has(category)) {
+        categoryIndex.set(category, []);
+      }
+      categoryIndex.get(category).push(entry);
+
+      (metadata.compatibleWidgetTypes || []).forEach(widgetType => {
+        if (!widgetType) return;
+        if (!widgetIndex.has(widgetType)) {
+          widgetIndex.set(widgetType, new Set());
+        }
+        widgetIndex.get(widgetType).add(item.id);
+      });
+    });
+
+    // Ensure deterministic ordering within categories
+    categoryIndex.forEach((sources, category) => {
+      categoryIndex.set(
+        category,
+        sources.sort((a, b) => a.displayName.localeCompare(b.displayName))
+      );
+    });
+
+    this.categoryIndex = categoryIndex;
+    this.widgetCompatibilityIndex = widgetIndex;
   }
 
   /**
    * Get all available data sources
    * @returns {Promise<Array>} List of available data sources
    */
-  async getAvailableDataSources() {
+  async getAvailableDataSources(options = {}) {
+    const { forceRefresh = false } = options;
+
+    if (!forceRefresh && this.catalogCache.items && Date.now() - this.catalogCache.timestamp < this.catalogTtl) {
+      if (!this.categoryIndex.size) {
+        this.rebuildCatalogIndexes(this.catalogCache.items);
+      }
+      return this.catalogCache.items;
+    }
+
     try {
-      const response = await axiosInstance.get('/dashboard/data-sources');
-      return response.data;
+      const items = await dashboardApi.getDataSources({ forceRefresh });
+      this.catalogCache = { items, timestamp: Date.now() };
+
+      items.forEach(item => {
+        if (item?.id && item?.metadata) {
+          this.metadataCache.set(item.id.toLowerCase(), {
+            metadata: item.metadata,
+            timestamp: Date.now()
+          });
+        }
+      });
+
+      this.rebuildCatalogIndexes(items);
+      return items;
     } catch (error) {
       console.error('[DataSource] Error getting available data sources:', error);
-
-      // Return default data sources
-      return [
-        'fuel_dispense',
-        'fuel_used_gps',
-        'fuel_lost_gps',
-        'flowmeter_fuel_used',
-        'flowmeter_fuel_lost',
-        'engine_hours',
-        'engine_hours_gps',
-        'km_travel',
-        'distance_travel',
-        'fuel_efficiency',
-        'flowmeter_efficiency',
-        'max_speed',
-        'avg_speed'
-      ];
+      if (this.catalogCache.items) {
+        if (!this.categoryIndex.size) {
+          this.rebuildCatalogIndexes(this.catalogCache.items);
+        }
+        return this.catalogCache.items;
+      }
+      this.rebuildCatalogIndexes([]);
+      return [];
     }
+  }
+
+  async getDataSourceCatalog(options = {}) {
+    const items = await this.getAvailableDataSources(options);
+    const includeMetadata = options.includeMetadata ?? false;
+
+    const categories = Array.from(this.categoryIndex.entries()).map(([category, sources]) => ({
+      category,
+      sources: sources.map(source => {
+        const base = {
+          id: source.id,
+          displayName: source.displayName,
+          modes: source.modes,
+          category: source.category
+        };
+        if (includeMetadata) {
+          base.metadata = source.metadata;
+        }
+        return base;
+      })
+    }));
+
+    const widgetCompatibility = Array.from(this.widgetCompatibilityIndex.entries()).reduce((acc, [widgetType, idSet]) => {
+      acc[widgetType] = Array.from(idSet.values());
+      return acc;
+    }, {});
+
+    return {
+      items,
+      categories,
+      widgetCompatibility
+    };
+  }
+
+  async getCategoryModeMatrix(options = {}) {
+    await this.getAvailableDataSources(options);
+
+    const matrix = {};
+    this.categoryIndex.forEach((sources, category) => {
+      matrix[category] = sources.reduce((acc, source) => {
+        const meta = source.metadata || {};
+        acc[source.id] = {
+          modes: source.modes || [],
+          defaultMode: meta.defaultMode || meta.DefaultMode || meta.defaultConfiguration?.mode,
+          defaultAggregation: meta.defaultAggregation || meta.DefaultAggregation || meta.defaultConfiguration?.aggregation,
+          defaultGranularity: meta.defaultGranularity || meta.DefaultGranularity || meta.defaultConfiguration?.granularity,
+          recommendations: meta.recommendations || meta.Recommendations || {}
+        };
+        return acc;
+      }, {});
+    });
+
+    return matrix;
+  }
+
+  async getSourcesForCategory(category, options = {}) {
+    if (!category) return [];
+    await this.getAvailableDataSources(options);
+    const includeMetadata = options.includeMetadata ?? false;
+    const sources = this.categoryIndex.get(category) || [];
+    return sources.map(source => {
+      const base = {
+        id: source.id,
+        displayName: source.displayName,
+        modes: source.modes,
+        category: source.category
+      };
+      if (includeMetadata) {
+        base.metadata = source.metadata;
+      }
+      return base;
+    });
+  }
+
+  async getCompatibleSourcesForWidget(widgetType, options = {}) {
+    if (!widgetType) return [];
+    await this.getAvailableDataSources(options);
+    const includeMetadata = options.includeMetadata ?? false;
+    const ids = Array.from(this.widgetCompatibilityIndex.get(widgetType) || []);
+    if (ids.length === 0) return [];
+    return ids
+      .map(id => {
+        const matchFromCatalog = this.catalogCache.items?.find(item => item.id === id);
+        if (!matchFromCatalog) return null;
+        const base = {
+          id: matchFromCatalog.id,
+          displayName: matchFromCatalog.displayName,
+          category: matchFromCatalog.metadata?.category || matchFromCatalog.category,
+          modes: matchFromCatalog.metadata?.supportedModes || []
+        };
+        if (includeMetadata) {
+          base.metadata = matchFromCatalog.metadata;
+        }
+        return base;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  async getSupportedModesForSource(sourceId, options = {}) {
+    if (!sourceId) return [];
+    const metadata = await this.getDataSourceMetadata(sourceId, options);
+    return metadata?.supportedModes || metadata?.SupportedModes || [];
+  }
+
+  async getDefaultConfigurationForSource(sourceId, options = {}) {
+    const metadata = await this.getDataSourceMetadata(sourceId, options);
+    if (!metadata) return {};
+    const defaults = metadata.defaultConfiguration || {};
+    return {
+      mode: metadata.defaultMode || defaults.mode,
+      aggregation: metadata.defaultAggregation || defaults.aggregation,
+      granularity: metadata.defaultGranularity || defaults.granularity,
+      datePreset: metadata.recommendations?.datePreset || defaults.datePreset,
+      unit: defaults.unit || metadata.unit,
+      includeTotal: defaults.includeTotal,
+      topK: defaults.topK
+    };
+  }
+
+  applyMetadataDefaults(metadata, currentConfig = {}) {
+    if (!metadata) return { ...currentConfig };
+
+    const result = { ...currentConfig };
+    const defaults = metadata.defaultConfiguration || {};
+    const recommendations = metadata.recommendations || {};
+    const firstMode = metadata.supportedModes?.[0];
+    const firstAggregation = metadata.supportedAggregations?.[0];
+    const firstGranularity = metadata.supportedGranularities?.[0];
+    const firstUnit = metadata.recommendedUnits?.[0] || metadata.supportedUnits?.[0];
+
+    const ensure = (key, value) => {
+      if (result[key] === undefined || result[key] === null || result[key] === '') {
+        result[key] = value;
+      }
+    };
+
+    ensure('mode', defaults.mode || metadata.defaultMode || firstMode || 'historical_snapshot');
+    ensure('aggregation', defaults.aggregation || metadata.defaultAggregation || firstAggregation || 'sum');
+    ensure('granularity', defaults.granularity || metadata.defaultGranularity || recommendations.granularity || firstGranularity || 'day');
+    ensure('datePreset', defaults.datePreset || recommendations.datePreset || 'last_7_days');
+    ensure('unit', defaults.unit || metadata.unit || firstUnit || result.unit);
+
+    if (defaults.includeTotal !== undefined && result.includeTotal === undefined) {
+      result.includeTotal = defaults.includeTotal;
+    }
+
+    if (defaults.topK !== undefined && result.topK === undefined) {
+      result.topK = defaults.topK;
+    }
+
+    if (recommendations.cumulativeDefault !== undefined && result.cumulative === undefined) {
+      result.cumulative = recommendations.cumulativeDefault;
+    }
+
+    if (recommendations.smoothingDefault !== undefined && result.smoothing === undefined) {
+      result.smoothing = recommendations.smoothingDefault;
+    }
+
+    return result;
+  }
+
+  async normalizeConfigurationForSource(sourceId, currentConfig = {}, options = {}) {
+    const metadata = await this.getDataSourceMetadata(sourceId, options);
+    const normalized = this.applyMetadataDefaults(metadata, currentConfig);
+    return {
+      metadata,
+      config: normalized
+    };
   }
 
   // ========================================
@@ -458,12 +703,25 @@ class DataSourceService {
    */
   transformApiResponse(apiResponse) {
     // Handle different response formats
+    if (apiResponse?.isSuccess !== undefined) {
+      return {
+        success: apiResponse.isSuccess,
+        data: apiResponse.data,
+        error: apiResponse.isSuccess ? null : (apiResponse.message || apiResponse.errorMessage),
+        message: apiResponse.message,
+        validationErrors: apiResponse.validationErrors || [],
+        timestamp: Date.now()
+      };
+    }
+
     if (apiResponse.success !== undefined) {
       // FMSResponseMessage format
       return {
         success: apiResponse.success,
         data: apiResponse.data,
         error: apiResponse.errorMessage,
+        message: apiResponse.message,
+        validationErrors: apiResponse.validationErrors || [],
         timestamp: Date.now()
       };
     }
@@ -473,6 +731,8 @@ class DataSourceService {
       success: true,
       data: apiResponse,
       error: null,
+      message: null,
+      validationErrors: [],
       timestamp: Date.now()
     };
   }
@@ -659,6 +919,10 @@ class DataSourceService {
   clearCache() {
     console.log('[DataSource] Clearing data cache');
     this.dataCache.clear();
+    this.metadataCache.clear();
+    this.catalogCache = { items: null, timestamp: 0 };
+    this.categoryIndex.clear();
+    this.widgetCompatibilityIndex.clear();
   }
 
   /**

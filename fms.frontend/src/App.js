@@ -20,6 +20,7 @@ import StoreProvider from "./store";
 import "./dx-styles.scss";
 import LoadPanel from "devextreme-react/load-panel";
 import { NavigationProvider } from "./contexts/navigation";
+import { AuthProvider } from "./hooks/useAuth"; // Import AuthProvider
 import { useScreenSizeClass } from "./utils/media-query";
 import Content from "./Content";
 import ProtectedRoute from "./components/ProtectedRoute/protectedRoute";
@@ -62,10 +63,12 @@ export default function Root() {
   const screenSizeClass = useScreenSizeClass();
 
   return (
-    <NavigationProvider>
-      <div className={`app ${screenSizeClass}`}>
-        <App />
-      </div>
-    </NavigationProvider>
+    <AuthProvider>
+      <NavigationProvider>
+        <div className={`app ${screenSizeClass}`}>
+          <App />
+        </div>
+      </NavigationProvider>
+    </AuthProvider>
   );
 }

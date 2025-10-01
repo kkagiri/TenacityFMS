@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers;
 
-[Route ("api/[controller]")]
+[Route ("api/v1/[controller]")]
 [ApiController]
 public class FuelTagController : ControllerBase {
     private readonly IMediator _mediator;

@@ -1,14 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Popup from 'devextreme-react/popup';
 import Button from 'devextreme-react/button';
 import SelectBox from 'devextreme-react/select-box';
 import TextBox from 'devextreme-react/text-box';
+import { dashboardApi } from '../../../api/dashboardFactory';
 
 export default function CustomWidgetDialog({
   open,
   onClose,
   onComplete,
-  metricOptions
+  metricOptions // legacy prop; ignored when API is available
 }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [widgetConfig, setWidgetConfig] = useState({
@@ -17,6 +18,25 @@ export default function CustomWidgetDialog({
     customName: '',
     metric: ''
   });
+  const [dataSources, setDataSources] = useState([]);
+  const [dsLoading, setDsLoading] = useState(false);
+  const [dsError, setDsError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setDsLoading(true);
+      try {
+        const items = await dashboardApi.getDataSources();
+        if (mounted) setDataSources(items);
+      } catch (e) {
+        if (mounted) setDsError(e?.message || 'Failed to load data sources');
+      } finally {
+        if (mounted) setDsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // Widget types available for each category
   const widgetTypesByCategory = useMemo(() => ({
@@ -239,23 +259,24 @@ export default function CustomWidgetDialog({
                 ? 'Select the data source for your widget.'
                 : 'Optionally select a data source for your widget.'}
             </p>
-            <SelectBox
-              items={metricOptions.filter(metric =>
-                !widgetConfig.category ||
-                metric.category === widgetConfig.category ||
-                ['key_statistics', 'performance_metrics'].includes(widgetConfig.category)
-              )}
-              value={widgetConfig.metric}
-              displayExpr="label"
-              valueExpr="id"
-              width="100%"
-              placeholder={requiresMetric ? "Choose data source *" : "Choose data source (optional)"}
-              searchEnabled={true}
-              onValueChanged={(e) => setWidgetConfig(prev => ({
-                ...prev,
-                metric: e.value
-              }))}
-            />
+            {dsLoading && <div className="tw-text-xs tw-text-gray-500">Loading data sources…</div>}
+            {dsError && <div className="tw-text-xs tw-text-red-500">{dsError}</div>}
+            {!dsLoading && !dsError && (
+              <SelectBox
+                items={(dataSources || []).filter(metric =>
+                  !widgetConfig.category ||
+                  metric.category === widgetConfig.category ||
+                  ['key_statistics', 'performance_metrics'].includes(widgetConfig.category)
+                ).map(m => ({ id: m.id, label: m.displayName || m.id }))}
+                value={widgetConfig.metric}
+                displayExpr="label"
+                valueExpr="id"
+                width="100%"
+                placeholder={requiresMetric ? "Choose data source *" : "Choose data source (optional)"}
+                searchEnabled={true}
+                onValueChanged={(e) => setWidgetConfig(prev => ({ ...prev, metric: e.value }))}
+              />
+            )}
           </div>
         );
 

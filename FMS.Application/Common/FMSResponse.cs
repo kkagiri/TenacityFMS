@@ -5,7 +5,18 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace FMS.Application.Common {
+    /// <summary>
+    /// DEPRECATED: Use FMSResponse instead for new development
+    /// Legacy record-based response - kept for backward compatibility
+    /// </summary>
+    [Obsolete ("Use FMSResponse instead. This will be removed in a future version.", false)]
     public record FMSResponseMessage (bool Success, string Message);
+
+    /// <summary>
+    /// DEPRECATED: Use FMSResponse<T> instead for new development
+    /// Legacy generic record-based response - kept for backward compatibility
+    /// </summary>
+    [Obsolete ("Use FMSResponse<T> instead. This will be removed in a future version.", false)]
     public record FMSResponseMessage<T> (bool Success, string Message, T Data) : FMSResponseMessage (Success, Message);
 
     //Cursor: Add error type enumeration for better error categorization
