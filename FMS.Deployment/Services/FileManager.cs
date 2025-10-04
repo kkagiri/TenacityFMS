@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HyoungFMS.Deployment.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ namespace HyoungFMS.Deployment.Services
         private readonly IConfiguration _config;
         private string _currentFrontendBackup;
         private string _currentBackendBackup;
+        private string? _currentVersionNumber;
 
         public FileManager(ILogger<FileManager> logger, IConfiguration config)
         {
@@ -39,7 +41,6 @@ namespace HyoungFMS.Deployment.Services
                 );
             }
 
-            // Create backup directory if it doesn't exist
             if (!Directory.Exists(backupDir))
             {
                 try
@@ -54,11 +55,11 @@ namespace HyoungFMS.Deployment.Services
                 }
             }
 
-            // Generate timestamp for backup folders
-            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            _currentVersionNumber = GetNextVersionNumber(backupDir, "backup");
+            _logger.LogInformation($"Using version {_currentVersionNumber} for this backup");
+
             bool success = true;
 
-            // Backup frontend if needed
             if (!backendOnly)
             {
                 string reactDeploymentPath = _config["DeploymentSettings:ReactDeploymentPath"];
@@ -77,7 +78,7 @@ namespace HyoungFMS.Deployment.Services
                 {
                     string frontendBackupPath = Path.Combine(
                         backupDir,
-                        $"frontend_backup_{timestamp}"
+                        $"frontend_backup_{_currentVersionNumber}"
                     );
                     _logger.LogInformation(
                         $"Backing up frontend from {reactDeploymentPath} to {frontendBackupPath}"
@@ -85,7 +86,6 @@ namespace HyoungFMS.Deployment.Services
 
                     try
                     {
-                        // Use robocopy for reliable copying
                         bool frontendBackupSuccess = await RunRobocopyAsync(
                             reactDeploymentPath,
                             frontendBackupPath,
@@ -97,6 +97,11 @@ namespace HyoungFMS.Deployment.Services
                             _currentFrontendBackup = frontendBackupPath;
                             _logger.LogInformation(
                                 $"Frontend backup completed successfully: {frontendBackupPath}"
+                            );
+
+                            File.WriteAllText(
+                                Path.Combine(frontendBackupPath, "version.txt"),
+                                $"Version: {_currentVersionNumber}\nTimestamp: {DateTime.Now}\nType: Frontend"
                             );
                         }
                         else
@@ -113,7 +118,6 @@ namespace HyoungFMS.Deployment.Services
                 }
             }
 
-            // Backup backend if needed
             if (!frontendOnly)
             {
                 string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
@@ -132,7 +136,7 @@ namespace HyoungFMS.Deployment.Services
                 {
                     string backendBackupPath = Path.Combine(
                         backupDir,
-                        $"backend_backup_{timestamp}"
+                        $"backend_backup_{_currentVersionNumber}"
                     );
                     _logger.LogInformation(
                         $"Backing up backend from {webApiDeploymentPath} to {backendBackupPath}"
@@ -140,7 +144,6 @@ namespace HyoungFMS.Deployment.Services
 
                     try
                     {
-                        // Use robocopy for reliable copying
                         bool backendBackupSuccess = await RunRobocopyAsync(
                             webApiDeploymentPath,
                             backendBackupPath,
@@ -152,6 +155,11 @@ namespace HyoungFMS.Deployment.Services
                             _currentBackendBackup = backendBackupPath;
                             _logger.LogInformation(
                                 $"Backend backup completed successfully: {backendBackupPath}"
+                            );
+
+                            File.WriteAllText(
+                                Path.Combine(backendBackupPath, "version.txt"),
+                                $"Version: {_currentVersionNumber}\nTimestamp: {DateTime.Now}\nType: Backend"
                             );
                         }
                         else
@@ -168,7 +176,6 @@ namespace HyoungFMS.Deployment.Services
                 }
             }
 
-            // Clean up old backups
             int maxBackupsToKeep = int.Parse(_config["BackupSettings:MaxBackupsToKeep"] ?? "5");
             await CleanupOldBackupsAsync(maxBackupsToKeep);
 
@@ -605,62 +612,6 @@ namespace HyoungFMS.Deployment.Services
             return success;
         }
 
-        /// <inheritdoc />
-        public async Task<bool> CleanupOldBackupsAsync(int maxBackupsToKeep)
-        {
-            _logger.LogInformation(
-                $"Cleaning up old backups, keeping {maxBackupsToKeep} most recent"
-            );
-
-            string backupDir = _config["BackupSettings:BackupDirectory"];
-            if (string.IsNullOrEmpty(backupDir) || !Directory.Exists(backupDir))
-            {
-                _logger.LogWarning("Backup directory not configured or does not exist");
-                return false;
-            }
-
-            try
-            {
-                // Get frontend backups
-                var frontendBackups = Directory
-                    .GetDirectories(backupDir, "frontend_backup_*")
-                    .OrderByDescending(d => d)
-                    .Skip(maxBackupsToKeep)
-                    .ToList();
-
-                // Get backend backups
-                var backendBackups = Directory
-                    .GetDirectories(backupDir, "backend_backup_*")
-                    .OrderByDescending(d => d)
-                    .Skip(maxBackupsToKeep)
-                    .ToList();
-
-                // Delete old frontend backups
-                foreach (var backup in frontendBackups)
-                {
-                    _logger.LogInformation($"Deleting old frontend backup: {backup}");
-                    Directory.Delete(backup, true);
-                }
-
-                // Delete old backend backups
-                foreach (var backup in backendBackups)
-                {
-                    _logger.LogInformation($"Deleting old backend backup: {backup}");
-                    Directory.Delete(backup, true);
-                }
-
-                _logger.LogInformation(
-                    $"Cleanup completed. Deleted {frontendBackups.Count} frontend backups and {backendBackups.Count} backend backups"
-                );
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cleaning up old backups");
-                return false;
-            }
-        }
-
         private async Task<bool> RunRobocopyAsync(
             string source,
             string destination,
@@ -696,7 +647,7 @@ namespace HyoungFMS.Deployment.Services
                     // 2 = Extra files or directories detected
                     // 3 = Some files copied, some failed
                     // 4+ = Failure
-                    if (process.ExitCode >= 0 && process.ExitCode <= 3)
+                    if (process.ExitCode is >= 0 and <= 3)
                     {
                         _logger.LogInformation(
                             $"Robocopy completed with exit code {process.ExitCode}"
@@ -704,13 +655,11 @@ namespace HyoungFMS.Deployment.Services
                         _logger.LogDebug($"Robocopy output: {output}");
                         return true;
                     }
-                    else
-                    {
-                        _logger.LogError($"Robocopy failed with exit code {process.ExitCode}");
-                        _logger.LogError($"Robocopy error: {error}");
-                        _logger.LogError($"Robocopy output: {output}");
-                        return false;
-                    }
+
+                    _logger.LogError($"Robocopy failed with exit code {process.ExitCode}");
+                    _logger.LogError($"Robocopy error: {error}");
+                    _logger.LogError($"Robocopy output: {output}");
+                    return false;
                 }
                 catch (Exception ex)
                 {
@@ -726,7 +675,9 @@ namespace HyoungFMS.Deployment.Services
         private string GetNextVersionNumber(string backupDir, string prefix)
         {
             if (!Directory.Exists(backupDir))
+            {
                 return "v1.0.0";
+            }
 
             var versionPattern = new Regex($@"{prefix}_v(\d+)\.(\d+)\.(\d+)");
             int major = 0,
@@ -785,176 +736,7 @@ namespace HyoungFMS.Deployment.Services
 
         public string GetCurrentVersionNumber()
         {
-            return _currentVersionNumber;
-        }
-
-        /// <inheritdoc />
-        public async Task<bool> BackupCurrentDeploymentAsync(bool frontendOnly, bool backendOnly)
-        {
-            _logger.LogInformation("Starting backup of current deployment");
-
-            string backupDir = _config["BackupSettings:BackupDirectory"];
-            if (string.IsNullOrEmpty(backupDir))
-            {
-                backupDir = Path.Combine(Path.GetTempPath(), "HyoungFMS_Backups");
-                _logger.LogWarning(
-                    $"Backup directory not configured, using temporary directory: {backupDir}"
-                );
-            }
-
-            // Create backup directory if it doesn't exist
-            if (!Directory.Exists(backupDir))
-            {
-                try
-                {
-                    Directory.CreateDirectory(backupDir);
-                    _logger.LogInformation($"Created backup directory: {backupDir}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Failed to create backup directory: {backupDir}");
-                    return false;
-                }
-            }
-
-            // Generate version for backup folders
-            _currentVersionNumber = GetNextVersionNumber(backupDir, "backup");
-            _logger.LogInformation($"Using version {_currentVersionNumber} for this backup");
-
-            bool success = true;
-
-            // Backup frontend if needed
-            if (!backendOnly)
-            {
-                string reactDeploymentPath = _config["DeploymentSettings:ReactDeploymentPath"];
-                if (string.IsNullOrEmpty(reactDeploymentPath))
-                {
-                    _logger.LogError("Frontend deployment path not configured");
-                    success = false;
-                }
-                else if (!Directory.Exists(reactDeploymentPath))
-                {
-                    _logger.LogWarning(
-                        $"Frontend deployment path does not exist: {reactDeploymentPath}"
-                    );
-                }
-                else
-                {
-                    string frontendBackupPath = Path.Combine(
-                        backupDir,
-                        $"frontend_backup_{_currentVersionNumber}"
-                    );
-                    _logger.LogInformation(
-                        $"Backing up frontend from {reactDeploymentPath} to {frontendBackupPath}"
-                    );
-
-                    try
-                    {
-                        // Use robocopy for reliable copying
-                        bool frontendBackupSuccess = await RunRobocopyAsync(
-                            reactDeploymentPath,
-                            frontendBackupPath,
-                            "/MIR /R:3 /W:5 /MT:8 /NFL /NDL"
-                        );
-
-                        if (frontendBackupSuccess)
-                        {
-                            _currentFrontendBackup = frontendBackupPath;
-                            _logger.LogInformation(
-                                $"Frontend backup completed successfully: {frontendBackupPath}"
-                            );
-
-                            // Create a version.txt file in the backup to record version and timestamp
-                            string versionFilePath = Path.Combine(
-                                frontendBackupPath,
-                                "version.txt"
-                            );
-                            File.WriteAllText(
-                                versionFilePath,
-                                $"Version: {_currentVersionNumber}\nTimestamp: {DateTime.Now}\nType: Frontend"
-                            );
-                        }
-                        else
-                        {
-                            _logger.LogError("Frontend backup failed");
-                            success = false;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error during frontend backup");
-                        success = false;
-                    }
-                }
-            }
-
-            // Backup backend if needed
-            if (!frontendOnly)
-            {
-                string webApiDeploymentPath = _config["DeploymentSettings:WebApiDeploymentPath"];
-                if (string.IsNullOrEmpty(webApiDeploymentPath))
-                {
-                    _logger.LogError("Backend deployment path not configured");
-                    success = false;
-                }
-                else if (!Directory.Exists(webApiDeploymentPath))
-                {
-                    _logger.LogWarning(
-                        $"Backend deployment path does not exist: {webApiDeploymentPath}"
-                    );
-                }
-                else
-                {
-                    string backendBackupPath = Path.Combine(
-                        backupDir,
-                        $"backend_backup_{_currentVersionNumber}"
-                    );
-                    _logger.LogInformation(
-                        $"Backing up backend from {webApiDeploymentPath} to {backendBackupPath}"
-                    );
-
-                    try
-                    {
-                        // Use robocopy for reliable copying
-                        bool backendBackupSuccess = await RunRobocopyAsync(
-                            webApiDeploymentPath,
-                            backendBackupPath,
-                            "/MIR /R:3 /W:5 /MT:8 /NFL /NDL"
-                        );
-
-                        if (backendBackupSuccess)
-                        {
-                            _currentBackendBackup = backendBackupPath;
-                            _logger.LogInformation(
-                                $"Backend backup completed successfully: {backendBackupPath}"
-                            );
-
-                            // Create a version.txt file in the backup to record version and timestamp
-                            string versionFilePath = Path.Combine(backendBackupPath, "version.txt");
-                            File.WriteAllText(
-                                versionFilePath,
-                                $"Version: {_currentVersionNumber}\nTimestamp: {DateTime.Now}\nType: Backend"
-                            );
-                        }
-                        else
-                        {
-                            _logger.LogError("Backend backup failed");
-                            success = false;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error during backend backup");
-                        success = false;
-                    }
-                }
-            }
-
-            // Clean up old backups
-            int maxBackupsToKeep = int.Parse(_config["BackupSettings:MaxBackupsToKeep"] ?? "5");
-            await CleanupOldBackupsAsync(maxBackupsToKeep);
-
-            return success;
+            return _currentVersionNumber ?? "v0.0.0";
         }
 
         /// <inheritdoc />
@@ -973,19 +755,20 @@ namespace HyoungFMS.Deployment.Services
 
             try
             {
-                // Get frontend backups sorted by version (rather than by name)
-                var versionPattern = new Regex(@"frontend_backup_v(\d+)\.(\d+)\.(\d+)");
+                var frontendPattern = new Regex(@"frontend_backup_v(\d+)\.(\d+)\.(\d+)");
+                var backendPattern = new Regex(@"backend_backup_v(\d+)\.(\d+)\.(\d+)");
+
                 var frontendBackups = Directory
                     .GetDirectories(backupDir, "frontend_backup_v*")
                     .Select(d => new
                     {
                         Path = d,
-                        Match = versionPattern.Match(Path.GetFileName(d)),
+                        Match = frontendPattern.Match(Path.GetFileName(d)),
                     })
                     .Where(x => x.Match.Success)
                     .Select(x => new
                     {
-                        Path = x.Path,
+                        x.Path,
                         Major = int.Parse(x.Match.Groups[1].Value),
                         Minor = int.Parse(x.Match.Groups[2].Value),
                         Patch = int.Parse(x.Match.Groups[3].Value),
@@ -997,19 +780,17 @@ namespace HyoungFMS.Deployment.Services
                     .Select(x => x.Path)
                     .ToList();
 
-                // Get backend backups sorted by version
-                versionPattern = new Regex(@"backend_backup_v(\d+)\.(\d+)\.(\d+)");
                 var backendBackups = Directory
                     .GetDirectories(backupDir, "backend_backup_v*")
                     .Select(d => new
                     {
                         Path = d,
-                        Match = versionPattern.Match(Path.GetFileName(d)),
+                        Match = backendPattern.Match(Path.GetFileName(d)),
                     })
                     .Where(x => x.Match.Success)
                     .Select(x => new
                     {
-                        Path = x.Path,
+                        x.Path,
                         Major = int.Parse(x.Match.Groups[1].Value),
                         Minor = int.Parse(x.Match.Groups[2].Value),
                         Patch = int.Parse(x.Match.Groups[3].Value),
@@ -1021,14 +802,12 @@ namespace HyoungFMS.Deployment.Services
                     .Select(x => x.Path)
                     .ToList();
 
-                // Delete old frontend backups
                 foreach (var backup in frontendBackups)
                 {
                     _logger.LogInformation($"Deleting old frontend backup: {backup}");
                     Directory.Delete(backup, true);
                 }
 
-                // Delete old backend backups
                 foreach (var backup in backendBackups)
                 {
                     _logger.LogInformation($"Deleting old backend backup: {backup}");
@@ -1046,57 +825,57 @@ namespace HyoungFMS.Deployment.Services
                 return false;
             }
         }
-    }
 
-    private async Task<bool> RunProcessAsync(
-        string fileName,
-        string arguments,
-        string workingDirectory
-    )
-    {
-        return await Task.Run(() =>
+        private async Task<bool> RunProcessAsync(
+            string fileName,
+            string arguments,
+            string workingDirectory
+        )
         {
-            try
+            return await Task.Run(() =>
             {
-                var startInfo = new ProcessStartInfo
+                try
                 {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    WorkingDirectory = workingDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                };
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = fileName,
+                        Arguments = arguments,
+                        WorkingDirectory = workingDirectory,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    };
 
-                _logger.LogInformation(
-                    $"Running process: {fileName} {arguments} in {workingDirectory}"
-                );
+                    _logger.LogInformation(
+                        $"Running process: {fileName} {arguments} in {workingDirectory}"
+                    );
 
-                using var process = Process.Start(startInfo);
-                var output = process.StandardOutput.ReadToEnd();
-                var error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
+                    using var process = Process.Start(startInfo);
+                    var output = process.StandardOutput.ReadToEnd();
+                    var error = process.StandardError.ReadToEnd();
+                    process.WaitForExit();
 
-                if (process.ExitCode == 0)
-                {
-                    _logger.LogInformation($"Process completed successfully");
-                    _logger.LogDebug($"Process output: {output}");
-                    return true;
+                    if (process.ExitCode == 0)
+                    {
+                        _logger.LogInformation("Process completed successfully");
+                        _logger.LogDebug($"Process output: {output}");
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogError($"Process failed with exit code {process.ExitCode}");
+                        _logger.LogError($"Process error: {error}");
+                        _logger.LogError($"Process output: {output}");
+                        return false;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogError($"Process failed with exit code {process.ExitCode}");
-                    _logger.LogError($"Process error: {error}");
-                    _logger.LogError($"Process output: {output}");
+                    _logger.LogError(ex, $"Error executing process {fileName}");
                     return false;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error executing process {fileName}");
-                return false;
-            }
-        });
+            });
+        }
     }
 }
