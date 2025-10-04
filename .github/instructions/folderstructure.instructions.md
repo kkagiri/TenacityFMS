@@ -1,7 +1,234 @@
 # AI Agent Development Instructions - FMS System
-1. you are a
+
+## 🚨 CRITICAL RULES - READ FIRST
+
+### 1. **NEVER REPEAT EXISTING CODE**
+
+- **Check existing files FIRST** before writing any code
+- Look in the feature/pages/service folders for similar functionality
+- If functionality exists, reference or extend it - DO NOT rewrite it
+- Search the codebase before creating new files, functions, or features
+- **Rule**: If the code exists, USE IT - don't duplicate it
+
+### 2. **Documentation Protocol**
+
+- **ONLY write documentation when explicitly asked using [doc] prefix**
+- **Write documentation ONCE only per request**
+- **Structure**: `documentation/[topic]/[version]/[type]/`
+  - Example: `documentation/feature/dashboard/V1/bug-fix/`
+  - Example: `documentation/feature/vehicle-tracking/V2/enhancement/`
+- **Never auto-generate documentation** unless requested
+
+### 3. **Build & Run Policy**
+
+- **DO NOT build or run the application automatically**
+- After completing code changes, ALWAYS:
+  1. Summarize what was changed
+  2. Recommend: "Please build and test the application"
+  3. Wait for user feedback before proceeding
+- **Exception**: User explicitly asks to build/run
+
+### 4. **Architecture Planning Protocol**
+
+- **BEFORE suggesting architecture changes** (services, hooks, new files, features):
+
+  1. **Check the domain/feature folder first** - Look in `FMS.Application/Features/{Domain}/`
+  2. **Verify folder structure exists** - Check if domain folder is present
+  3. **If domain folder is MISSING**:
+     - ❌ **STOP - DO NOT CREATE**
+     - ✋ **ASK USER**: "The domain folder 'Features/{Domain}' does not exist. Should I create it with the following structure: [propose structure]?"
+     - ⏸️ **WAIT for approval** before proceeding
+  4. **If domain exists but structure is unclear**:
+     - 📋 **Document** your findings (what exists, what's missing)
+     - 💡 **Present a plan** to the user with proposed structure
+     - ⏸️ **Wait for user agreement** before implementing
+  5. **Check for anti-patterns**:
+     - ❌ Files in `FMS.Application/DTO/` (wrong location)
+     - ❌ Files in `FMS.Application/Services/` (wrong location)
+     - ✅ Files should be in `FMS.Application/Features/{Domain}/DTOs/`
+     - ✅ Files should be in `FMS.Application/Features/{Domain}/Services/`
+
+- **Domain Folder Discovery Protocol**:
+
+  ```
+  Before creating ANY files:
+  1. Search for existing domain folder: Features/{Domain}/
+  2. If NOT found → Ask user for approval to create
+  3. If found → Check for proper sub-folders (Commands/, Queries/, DTOs/, Services/)
+  4. If structure incomplete → Propose completing it and wait for approval
+  ```
+
+- **Example Response when Domain Missing**:
+
+  ```
+  ⚠️ DOMAIN FOLDER NOT FOUND
+
+  I need to create files in Features/TaskManagement/ but this domain folder doesn't exist.
+
+  Proposed structure:
+  FMS.Application/Features/TaskManagement/
+  ├── Commands/
+  ├── Queries/
+  ├── DTOs/
+  ├── Services/
+  └── Validators/
+
+  Should I proceed with creating this domain structure?
+  ```
+
+- **Example Response when Files in Wrong Location**:
+
+  ```
+  ⚠️ INCORRECT FILE LOCATION DETECTED
+
+  Found files in wrong locations:
+  - FMS.Application/Services/TaskService.cs (should be in Features/TaskManagement/Services/)
+  - FMS.Application/DTO/TaskDto.cs (should be in Features/TaskManagement/DTOs/)
+
+  These files should follow domain-driven structure:
+  ✅ FMS.Application/Features/TaskManagement/Services/TaskService.cs
+  ✅ FMS.Application/Features/TaskManagement/DTOs/TaskDto.cs
+
+  Recommendation: Do not use the incorrectly located files. Should I create properly structured files instead?
+  ```
+
+### 5. **Environment Awareness**
+
+- **Assume development PC environment** unless stated otherwise
+- Do not make environment-specific decisions that will:
+  - Break local development
+  - Require cloud resources
+  - Need production infrastructure
+- Use localhost, local database, local file system by default
+- **Only suggest environment-specific changes** when user specifies:
+  - "for production"
+  - "for staging"
+  - "for testing environment"
+
+### 6. **Domain Layer is SACRED**
+
+- **STRICTLY DO NOT modify** the Domain layer (`FMS.Domain/`)
+- Domain entities are the source of truth
+- If domain changes are needed:
+  1. **Stop immediately**
+  2. **Inform the user**: "This requires Domain layer changes"
+  3. **Explain the impact**
+  4. **Wait for explicit approval**
+
+### 7. **File Size & Single Responsibility Principle (SRP)**
+
+- **If a file reaches 600+ lines**: STOP and refactor
+- **Actions to take**:
+  1. Identify logical separations
+  2. Split into multiple files following SRP
+  3. Create folder structure if needed
+- **Example Refactoring**:
+  ```
+  Before: VehicleService.js (800 lines)
+  After:
+  - VehicleService.js (core operations, 300 lines)
+  - VehicleValidationService.js (validation logic, 200 lines)
+  - VehicleReportService.js (reporting, 250 lines)
+  ```
+
+### 8. **File Documentation Header**
+
+- **Every file MUST have** a documentation header at the top
+- If missing, add it before making changes
+- **Template**:
+  ```javascript
+  /**
+   * File: [FileName].js
+   * Purpose: [Brief description of what this file does]
+   * Dependencies: [Key dependencies]
+   * Last Modified: [Date]
+   *
+   * Key Functions/Components:
+   * - [function1]: [what it does]
+   * - [function2]: [what it does]
+   */
+  ```
+- **Example**:
+  ```javascript
+  /**
+   * File: VehicleService.js
+   * Purpose: Handles all vehicle-related API communications and business logic
+   * Dependencies: axiosInstance, FMSResponse
+   * Last Modified: 2025-10-02
+   *
+   * Key Functions:
+   * - getVehicles(): Fetches all vehicles with pagination
+   * - createVehicle(data): Creates a new vehicle record
+   * - updateVehicle(id, data): Updates existing vehicle
+   * - deleteVehicle(id): Soft deletes a vehicle
+   */
+  ```
+
+### 9. **Clean Architecture - CQRS Pattern & Class Organization**
+
+- **Backend MUST follow Command Query Responsibility Segregation**
+- **CRITICAL: ONE CLASS PER FILE - NO EXCEPTIONS**
+- **Structure**: `FMS.Application/Features/{Domain}/`
+
+  ```
+  Features/
+  ├── Vehicle/
+  │   ├── Commands/
+  │   │   ├── CreateVehicleCommand.cs          (command and handler)
+  │   │   ├── UpdateVehicleCommand.cs          (command and handler)
+  │   │   ├── DeleteVehicleCommand.cs          (command and handler)
+  │   ├── Queries/
+  │   │   ├── GetVehicleQuery.cs                (query and handler)
+  │   │   ├── GetVehiclesQuery.cs               (query and handler)
+  │   ├── DTOs/
+  │   │   ├── VehicleDto.cs                     (one DTO per file)
+  │   │   ├── VehicleDetailDto.cs
+  │   │   └── CreateVehicleDto.cs
+  │   ├── Services(unnless specialized)/
+  │   │   ├── IVehicleService.cs                (interface only)
+  │   │   └── VehicleService.cs                 (implementation only)
+  │   └── Validators/
+  │       ├── CreateVehicleValidator.cs
+  │       └── UpdateVehicleValidator.cs
+
+  ```
+
+- **Class Separation Rules**:
+
+  - ❌ **NEVER put multiple classes in one file C**
+  - ❌ **NEVER put DTOs in service files**
+  - ❌ **NEVER put classes in controller files** (controllers are classes themselves)
+  - ✅ Each command in its own file
+  - ✅ Each handler in its own file (even if small)
+  - ✅ Each DTO in its own file in DTOs folder
+  - ✅ Each interface in its own file
+  - ✅ Each implementation in its own file
+  - ✅ Services have dedicated Services folder
+
+- **Interface & Implementation Pattern**:
+
+  ```
+  Features/
+  ├── Vehicle/
+  │   └── Services/
+  │       ├── IVehicleService.cs          (interface definition)
+  │       ├── VehicleService.cs           (main implementation)
+  │       ├── IVehicleValidationService.cs
+  │       └── VehicleValidationService.cs
+  ```
+
+- **CQRS Rules**:
+  - Commands = Write operations (Create, Update, Delete)
+  - Queries = Read operations (Get, List, Search)
+  - Each command/query in same file with handler
+  - No mixing of read/write logic
+
+---
+
 ## Project Overview
+
 FMS (Fleet Management System) is a full-stack application with:
+
 - **Backend**: .NET Core with CQRS pattern
 - **Frontend**: React with DevExtreme UI components
 - **Database**: MySQL with Entity Framework
@@ -10,18 +237,20 @@ FMS (Fleet Management System) is a full-stack application with:
 ## Core Development Rules
 
 ### 1. File Management
+
 - **Check existing files first** before creating new ones
 - Look in documentation folder for similar queries/features (e.g., GetTasksQuery → check task PRD/documents)
 - If file exists in another folder, don't recreate it
 - **Don't repeat file creation/deletion** if there's no content changes
 
 ### 2. Project Structure
+
 ```
 FMS.Application/        # Business logic, DTOs, commands, queries
 FMS.WebClient/         # Web API controllers
 FMS.Frontend/          # React frontend
 FMS.Persistence/       # Data access layer
-FMS.Domain/            # Entities and domain models
+FMS.Domain/            # Entities and domain models (DO NOT MODIFY)
 FMS.BackgroundServices/# Background jobs
 documentation/         # Feature documentation all documentation goes here
 ```
@@ -29,40 +258,136 @@ documentation/         # Feature documentation all documentation goes here
 ## Backend Development Standards
 
 ### Response Handling
+
 - **Always use `FMSResponse.cs`** for all API endpoints
 - `FMSResponse<T>` for returning data
 - `FMSResponse` for errors/validation
 - **Always include validation checks**
 
 ### CQRS Implementation
-- Commands and CommandHandlers in same file
-- Queries and QueryHandlers in same file
-- Use existing features in `FMS.Application/Features/` before creating new ones
+
+- **ONE CLASS PER FILE - STRICTLY ENFORCED**
+- Commands in separate file from CommandHandlers
+- Queries in separate file from QueryHandlers
+- Use existing features in `FMS.Application/Features/{Domain}/` before creating new ones
+- **Check domain folder exists before creating files**
 
 **Example Structure:**
+
 ```csharp
+// File: CreateVehicleCommand.cs (command only)
 public record CreateVehicleCommand : IRequest<FMSResponse<VehicleDto>>
 {
     public string Name { get; init; }
     public string LicensePlate { get; init; }
 }
 
+// File: CreateVehicleCommandHandler.cs (handler only)
 public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand, FMSResponse<VehicleDto>>
 {
     // Implementation here
 }
 ```
 
+**DTO Separation**:
+
+```csharp
+// File: VehicleDto.cs (in Features/Vehicle/DTOs/ folder)
+public class VehicleDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    // ... properties only
+}
+
+// ❌ WRONG - Never put DTOs in service files or controller files
+// ❌ WRONG - Never put multiple DTOs in one file
+```
+
+**Service/Interface Separation**:
+
+```csharp
+// File: IVehicleService.cs (interface only, in Features/Vehicle/Services/)
+public interface IVehicleService
+{
+    Task<FMSResponse<VehicleDto>> GetVehicleAsync(Guid id);
+}
+
+// File: VehicleService.cs (implementation only, in Features/Vehicle/Services/)
+public class VehicleService : IVehicleService
+{
+    // Implementation here
+}
+
+// ❌ WRONG - Never put interface and implementation in same file
+```
+
 ### Database Operations
+
 - **Use `GPSDataContext`** for all database operations
 - Create entity configuration files in `FMS.Persistence`
 - Add new entities to `GPSDataContext`
-- Generate MySQL syntax and place in documentation/database folder
+- **CRITICAL: MySQL 5.6 Syntax Compatibility**
+  - ❌ **DO NOT use `CURRENT_TIMESTAMP` for default values**
+  - ❌ **DO NOT use multiple TIMESTAMP columns with defaults**
+  - ❌ **DO NOT use JSON data type** (not supported in MySQL 5.6)
+  - ❌ **DO NOT use generated columns**
+  - ✅ Use explicit datetime values or NULL for timestamps
+  - ✅ Use TEXT for JSON-like data with application-level parsing
+  - ✅ Use VARCHAR with appropriate length constraints
+- Generate MySQL 5.6 compatible syntax and place in `documentation/features/[domain]/[feature]/[version]/database-schema.sql`
 - **Don't create new PTS models** unless explicitly told
+
+**MySQL 5.6 Compatible Examples**:
+
+```sql
+-- ❌ INCORRECT (MySQL 5.7+)
+CREATE TABLE vehicles (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ✅ CORRECT (MySQL 5.6)
+CREATE TABLE vehicles (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+);
+
+-- ❌ INCORRECT (JSON not supported)
+CREATE TABLE settings (
+    config JSON
+);
+
+-- ✅ CORRECT (Use TEXT)
+CREATE TABLE settings (
+    config TEXT NULL
+);
+```
+
+### User ID Pattern in Controllers
+
+```csharp
+var userIdClaim = User.Claims.FirstOrDefault(c =>
+    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+    Guid.TryParse(c.Value, out _));
+
+var userId = userIdClaim?.Value;
+```
+
+### Permission Check Pattern
+
+```csharp
+var hasPermission = User.HasClaim("permissions", "_createFuelRefill");
+if (!hasPermission) return Forbid();
+if (!ModelState.IsValid) return BadRequest(ModelState);
+```
 
 ## Frontend Development Standards
 
 ### Technology Stack
+
 - React 18.2.0 with hooks
 - DevExtreme 23.2.8 for UI components
 - Redux Toolkit for state management
@@ -71,6 +396,7 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
 - SCSS (not CSS)
 
 ### Key Rules
+
 1. **All Tailwind classes must use `tw-` prefix** (e.g., `tw-font-semibold`)
 2. **Use SCSS, not CSS**
 3. **FontAwesome icons**: Start with `"fa-light fa-icon"`
@@ -78,11 +404,13 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
 5. **API URLs**: Use `/vehicles` not `/api/vehicles` (axiosInstance handles base URL)
 
 ### Mobile Responsiveness
+
 - **Always make applications mobile and web responsive**
 - Use height-based collapsing for mobile sidebars (not width-based)
 - Reference: TankStock Layout for working mobile implementation
 
 ### Popup Configuration
+
 ```javascript
 // Standard popup settings
 showCloseButton={true}
@@ -92,17 +420,56 @@ height="auto"
 
 ## File Organization
 
-### Backend Features
+### Backend Features - Domain-Driven Structure
+
 ```
 FMS.Application/Features/
-├── Vehicle/
+├── Vehicle/                          # Domain folder
+│   ├── Commands/                    # Write operations
+│   │   ├── CreateVehicleCommand.cs          # Command only
+│   │   ├── CreateVehicleCommandHandler.cs   # Handler only
+│   │   ├── UpdateVehicleCommand.cs
+│   │   ├── UpdateVehicleCommandHandler.cs
+│   │   ├── DeleteVehicleCommand.cs
+│   │   └── DeleteVehicleCommandHandler.cs
+│   ├── Queries/                     # Read operations
+│   │   ├── GetVehicleQuery.cs               # Query only
+│   │   ├── GetVehicleQueryHandler.cs        # Handler only
+│   │   ├── GetVehiclesQuery.cs
+│   │   └── GetVehiclesQueryHandler.cs
+│   ├── DTOs/                        # Data Transfer Objects
+│   │   ├── VehicleDto.cs                    # One DTO per file
+│   │   ├── VehicleDetailDto.cs
+│   │   ├── CreateVehicleDto.cs
+│   │   └── UpdateVehicleDto.cs
+│   ├── Services/                    # Business logic services
+│   │   ├── IVehicleService.cs               # Interface
+│   │   ├── VehicleService.cs                # Implementation
+│   │   ├── IVehicleValidationService.cs
+│   │   └── VehicleValidationService.cs
+│   └── Validators/                  # FluentValidation validators
+│       ├── CreateVehicleValidator.cs
+│       └── UpdateVehicleValidator.cs
+
+├── TaskManagement/                   # Another domain example
 │   ├── Commands/
 │   ├── Queries/
+│   ├── DTOs/
 │   ├── Services/
-│   └── DTOs/
+│   └── Validators/
 ```
 
+**Critical Rules**:
+
+- ✅ Each class in its own file
+- ✅ Follow domain-driven folder structure
+- ✅ Check if domain folder exists before creating files
+- ❌ Never use `FMS.Application/Services/` directly
+- ❌ Never use `FMS.Application/DTO/` directly
+- ❌ Never put multiple classes in one file
+
 ### Frontend Structure
+
 ```
 src/
 ├── api/              # HTTP clients
@@ -117,33 +484,62 @@ src/
 
 ## Documentation Requirements
 
-### After Completing Tasks if user asks for documentation in prefix using [doc]
-Create/update documentation in `documentation/[feature-name]/`:
-1. **Requirement Document** (PRD) - includes feature description, user stories, and acceptance criteria
-2. **Design Document** - includes architecture, data flow, and UI mockups
-3. **User Flow Document** - includes step-by-step user interactions
-4. **Task List Document** - includes all tasks to be completed for the feature
-5. **Database Schema** (if applicable)
+### When User Requests Documentation with [doc] Prefix
+
+Create/update documentation following **feature-based folder structure**:
+
+**Structure Pattern**: `documentation/features/[domain]/[feature]/[version]/[type]/`
+
+**Examples**:
+
+```
+documentation/features/vehicle/fleet-management/V1/bug-fix/
+documentation/features/vehicle/gps-tracking/V2/implementation/
+documentation/features/tankstock/reconciliation/V1/enhancement/
+documentation/features/dashboard/real-time-widgets/V1/bug-fix/
+```
+
+**Document Types**:
+
+1. **bug-fix/** - Bug fixes and issue resolutions
+2. **implementation/** - New feature implementations
+3. **enhancement/** - Feature improvements and enhancements
+4. **migration/** - Migration and refactoring documentation
+5. **api/** - API changes and updates
+
+**Required Files** (create only what's relevant):
+
+1. **README.md** - Overview and summary
+2. **requirements.md** - Feature requirements (PRD)
+3. **design.md** - Architecture and design decisions
+4. **user-flow.md** - User interaction flows
+5. **tasks.md** - Task list and completion tracking
+6. **database-schema.sql** - MySQL 5.6 compatible schema changes
+7. **api-changes.md** - API endpoint changes
+8. **testing.md** - Test cases and validation
 
 ### When Creating New Features
+
 1. Check existing implementations first
 2. Follow established patterns
-3. Update documentation
+3. Update documentation (only if asked)
 4. Ensure mobile responsiveness
 5. Include proper validation
 
 ## Common Patterns
 
 ### API Service Example
+
 ```javascript
 // Frontend service
 const getVehicles = async () => {
-  const response = await axiosInstance.get('/vehicles');
+  const response = await axiosInstance.get("/vehicles");
   return response.data;
 };
 ```
 
 ### Component Example
+
 ```jsx
 // React component with proper styling
 <div className="tw-flex tw-flex-col tw-gap-4">
@@ -155,16 +551,29 @@ const getVehicles = async () => {
 ## Quality Checklist
 
 ### Before Submitting Code
+
+- [ ] Checked existing files/features for similar functionality
+- [ ] **Verified domain folder exists in Features/{Domain}/ (asked user if missing)**
+- [ ] **Ensured one class per file (no multiple classes)**
+- [ ] **DTOs are in Features/{Domain}/DTOs/ folder only**
+- [ ] **Services are in Features/{Domain}/Services/ folder only**
+- [ ] **Interfaces and implementations are in separate files**
 - [ ] Used proper response types (`FMSResponse`)
 - [ ] Included validation
-- [ ] Followed naming conventions
+- [ ] Followed naming conventions (PascalCase for domains and files)
 - [ ] Added proper error handling
 - [ ] Tested mobile responsiveness (frontend)
 - [ ] Used `tw-` prefix for Tailwind
-- [ ] Updated documentation
-- [ ] Checked for existing similar implementations
+- [ ] File is under 600 lines (or properly split)
+- [ ] File has documentation header
+- [ ] Followed CQRS pattern with separate Command/Handler files (backend)
+- [ ] Did NOT modify Domain layer
+- [ ] MySQL syntax is MySQL 5.6 compatible (no CURRENT_TIMESTAMP, no JSON type)
+- [ ] Checked for and documented any {deprecated} code encountered
+- [ ] Recommended build/test instead of auto-building
 
 ## Key Files to Reference
+
 - `FMSResponse.cs` - Response handling patterns
 - `package.json` - Frontend dependencies
 - `tailwind.config.js` - Styling configuration
@@ -172,37 +581,25 @@ const getVehicles = async () => {
 - Existing feature folders - Implementation patterns
 
 ## Important Notes
+
 - **Notification system implementation** - Ask user if notifications need to be implemented
 - **GPSGate integration** - Use dedicated axios instance
 - **Real-time updates** - Use SignalR for live data
 - **Role-based access** - Implement proper permission checks
 - **Environment configuration** - Use appropriate environment files
 
-# FMS Module Navigation Setup Guide for AI Agents
+---
+
+# FMS Module Navigation Setup Guide
 
 ## Overview: Setting Up Navigation for Any Module
 
 This guide helps AI agents understand how to set up navigation for any module in the FMS system, following established patterns like the Tank Stock, Notifications, Vehicles, and Admin modules.
 
-
-#pattern to follow when getting userID in backend in the controller
-     var userIdClaim = User.Claims.FirstOrDefault (c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse (c.Value, out _));
-
-                var deletedBy = userIdClaim?.Value;
-
-#pattern to use if the endpoint requires permission
-```csharp
- var hasPermission = User.HasClaim ("permissions", "_createFuelRefill");
-        if (!hasPermission) return Forbid ();
-        if (!ModelState.IsValid) return BadRequest (ModelState);
-
-
-
 ## Common Navigation Issues
 
 When working with module navigation, you may encounter these issues:
+
 1. Routes redirect to the main FMS dashboard instead of the module dashboard
 2. Module systems don't load properly from the navigation menu
 3. Sub-routes within modules (e.g., `/module/sub-feature`) don't work
@@ -211,6 +608,7 @@ When working with module navigation, you may encounter these issues:
 ## Root Cause Analysis
 
 Navigation issues typically occur when:
+
 1. The navigation item in the database doesn't have the correct link path or page mapping
 2. The main router (Content.js) lacks wildcard route support for module sub-routes
 3. Role-based access is not properly configured
@@ -234,24 +632,10 @@ Every module requires a navigation item in the database. Use the Navigation Mana
 - **Roles**: Assign appropriate user roles (Admin, Manager, etc.)
 
 **SQL Template for New Module Navigation:**
+
 ```sql
 INSERT INTO navigationitems (Page, Link, Icon, ParentId)
 VALUES ('[module-name]', '/[route-path]', '[icon-class]', NULL);
-```
-
-**Real Examples:**
-```sql
--- Tank Stock Module
-INSERT INTO navigationitems (Page, Link, Icon, ParentId)
-VALUES ('tank stock', '/tankstock', 'fa-light fa-gas-pump', NULL);
-
--- Notifications Module
-INSERT INTO navigationitems (Page, Link, Icon, ParentId)
-VALUES ('notifications', '/notifications', 'fa-light fa-bell', NULL);
-
--- Vehicles Module
-INSERT INTO navigationitems (Page, Link, Icon, ParentId)
-VALUES ('vehicles', '/vehicles', 'fa-light fa-car', NULL);
 ```
 
 ### 2. Router Configuration in Content.js
@@ -259,6 +643,7 @@ VALUES ('vehicles', '/vehicles', 'fa-light fa-car', NULL);
 Every module needs two routes in `Content.js` - one for the base path and one wildcard for sub-routes:
 
 **Pattern Template:**
+
 ```javascript
 {/* [Module Name] System Routes - Handle all [module] sub-routes internally */}
 <Route
@@ -268,29 +653,6 @@ Every module needs two routes in `Content.js` - one for the base path and one wi
 <Route
   path="/[route-path]/*"
   element={React.createElement(resolvedComponents("[page-name]"))}
-/>
-```
-
-**Real Examples from Content.js:**
-```javascript
-{/* Tank Stock System Routes */}
-<Route
-  path="/tankstock"
-  element={React.createElement(resolvedComponents("tank stock"))}
-/>
-<Route
-  path="/tankstock/*"
-  element={React.createElement(resolvedComponents("tank stock"))}
-/>
-
-{/* Notification System Routes */}
-<Route
-  path="/notifications"
-  element={React.createElement(resolvedComponents("notifications"))}
-/>
-<Route
-  path="/notifications/*"
-  element={React.createElement(resolvedComponents("notifications"))}
 />
 ```
 
@@ -299,690 +661,100 @@ Every module needs two routes in `Content.js` - one for the base path and one wi
 Ensure the module is properly mapped in `app-routes.js` switch statement:
 
 **Pattern Template:**
+
 ```javascript
 case "[page-name]":
     return [ModuleMainComponent];
 ```
 
-**Real Examples:**
-```javascript
-case "tank stock":
-    return TankStockMain;
-
-case "notifications":
-    return NotificationSystem;
-
-case "vehicles":
-    return VehicleMain;
-
-case "admin":
-    return AdminMain;
-```
-
 ### 4. Module Main Component Structure
 
-Each module should have a main component that handles internal routing using React Router:
-
-**Component Pattern (see TankStockMain.js):**
-```javascript
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import ModuleLayout from './layout/ModuleLayout';
-import ModuleDashboard from './dashboard/ModuleDashboard';
-// ... other module components
-
-const ModuleMain = () => {
-  return (
-    <ModuleLayout>
-      <Routes>
-        {/* Default route - Dashboard */}
-        <Route index element={<ModuleDashboard />} />
-        <Route path="/" element={<ModuleDashboard />} />
-        <Route path="/dashboard" element={<ModuleDashboard />} />
-
-        {/* Feature routes */}
-        <Route path="/feature1" element={<Feature1Component />} />
-        <Route path="/feature2" element={<Feature2Component />} />
-
-        {/* Catch all - redirect to module base */}
-        <Route path="*" element={<Navigate to="/[module-path]" replace />} />
-      </Routes>
-    </ModuleLayout>
-  );
-};
-```
+Each module should have a main component that handles internal routing using React Router.
 
 ### 5. Role Assignment
 
-After creating the navigation item, assign it to appropriate roles:
+After creating the navigation item, assign it to appropriate roles via Navigation Management.
 
-1. Go to `/admin/navigations`
-2. Find the module's navigation item
-3. Edit it and assign roles (Admin, Manager, etc.)
-4. Save the changes
+---
 
-## FMS Module Architecture Standards
-
-### 1. Consistent Folder Structure Pattern
-
-All modules should follow this standardized folder structure:
-
-```
-/pages/[module-name]/
-├── [ModuleName]Main.js           # Main routing component
-├── index.js                      # Export file (optional)
-├── layout/
-│   ├── [ModuleName]Layout.js     # Layout wrapper component
-│   └── [ModuleName]Layout.scss   # Layout styles
-├── dashboard/                    # Dashboard/home view
-├── components/                   # Module-specific components
-├── utils/                        # Module utilities
-│   └── navigationHelper.js       # Navigation configuration
-└── [feature-folders]/            # Feature-specific folders
-```
-
-**Real Examples:**
-- `/pages/tankStock/` → `TankStockMain.js`, `layout/TankStockLayout.js`
-- `/pages/vehicles/` → `VehicleMain.js`, `layout/VehicleLayout.js`
-- `/pages/admin/` → `AdminMain.js`, `layout/AdminLayout.js`
-- `/pages/notifications/` → `index.js`, `layout/NotificationLayout.js`
-
-### 2. Standardized Component Naming Convention
-
-| Component Type | Naming Pattern | Example |
-|----------------|----------------|---------|
-| Main Router | `[ModuleName]Main.js` | `TankStockMain.js`, `VehicleMain.js` |
-| Layout Wrapper | `[ModuleName]Layout.js` | `TankStockLayout.js`, `VehicleLayout.js` |
-| Dashboard | `[ModuleName]Dashboard.js` | `AdminDashboard.js`, `VehicleDashboard.js` |
-| Feature Pages | `[FeatureName]Page.js` | `VehicleFleetPage.js`, `PolicyManagement.js` |
-
-### 3. Standard Module Main Component Pattern
-
-**Required Structure for all ModuleMain.js files:**
-
-```javascript
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
-import [ModuleName]Layout from './layout/[ModuleName]Layout';
-import [ModuleName]Dashboard from './dashboard/[ModuleName]Dashboard';
-// ... other imports
-
-const [ModuleName]Main = () => {
-  const location = useLocation();
-
-  return (
-    <[ModuleName]Layout currentPath={location.pathname}>
-      <Routes>
-        {/* Standard dashboard routes */}
-        <Route index element={<[ModuleName]Dashboard />} />
-        <Route path="/" element={<[ModuleName]Dashboard />} />
-        <Route path="/dashboard" element={<[ModuleName]Dashboard />} />
-
-        {/* Feature routes */}
-        <Route path="/[feature1]" element={<[Feature1]Component />} />
-        <Route path="/[feature2]" element={<[Feature2]Component />} />
-
-        {/* Parameterized routes (if needed) */}
-        <Route path="/:id/details" element={<[Item]Details />} />
-        <Route path="/:id/edit" element={<[Item]Edit />} />
-
-        {/* Catch all - redirect to module base */}
-        <Route path="*" element={<Navigate to="/[module-path]" replace />} />
-      </Routes>
-    </[ModuleName]Layout>
-  );
-};
-
-export default [ModuleName]Main;
-```
-
-### 4. Standard Layout Component Pattern
-
-**Required Structure for all ModuleLayout.js files:**
-
-```javascript
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { [module]Routes, isActiveRoute } from '../utils/navigationHelper';
-import './[ModuleName]Layout.scss';
-
-const [ModuleName]Layout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Standard page info determination
-  const getPageInfo = () => {
-    const pathname = location.pathname;
-    // Map routes to page titles and subtitles
-    // Return { title, subtitle }
-  };
-
-  // Standard navigation rendering
-  // Standard sidebar/header structure
-  // Standard content wrapper
-
-  return (
-    <div className="[module]-layout">
-      {/* Header with breadcrumbs */}
-      {/* Sidebar navigation */}
-      {/* Main content area */}
-      <main className="[module]-content">
-        {children}
-      </main>
-    </div>
-  );
-};
-```
-
-### 5. Standard Navigation Helper Pattern
-
-**Required utils/navigationHelper.js structure:**
-
-```javascript
-export const [module]Routes = [
-  {
-    path: '/[module]',
-    name: 'Dashboard',
-    icon: 'fa-light fa-[icon]',
-    component: 'dashboard'
-  },
-  {
-    path: '/[module]/[feature1]',
-    name: '[Feature1]',
-    icon: 'fa-light fa-[icon]',
-    component: '[feature1]'
-  }
-  // ... more routes
-];
-
-export const navigationGroups = {
-  // Group routes for sidebar organization
-};
-
-export const isActiveRoute = (currentPath, targetPath) => {
-  // Standard active route detection logic
-};
-```
-
-### 6. Standard Database Navigation Item Fields
-
-**Standardized field patterns across all modules:**
-
-| Field | Pattern | Examples |
-|-------|---------|----------|
-| **Page** | `"[module-name]"` (lowercase, spaces allowed) | `"tank stock"`, `"notifications"`, `"vehicles"`, `"admin"` |
-| **Link** | `"/[module-path]"` (kebab-case, no spaces) | `"/tankstock"`, `"/notifications"`, `"/vehicles"`, `"/admin"` |
-| **Icon** | `"fa-light fa-[icon-name]"` | `"fa-light fa-gas-pump"`, `"fa-light fa-bell"`, `"fa-light fa-car"` |
-| **ParentId** | `NULL` for top-level, specific ID for nested | `NULL`, `1` (for Admin parent) |
-
-### 7. Standard Content.js Route Patterns
-
-**Every module must follow this exact routing pattern:**
-
-```javascript
-{/* [Module Name] System Routes - Handle all [module] sub-routes internally */}
-<Route
-  path="/[route-path]"
-  element={React.createElement(resolvedComponents("[page-name]"))}
-/>
-<Route
-  path="/[route-path]/*"
-  element={React.createElement(resolvedComponents("[page-name]"))}
-/>
-```
-
-**Pattern Validation:**
-- Route path matches database Link field exactly
-- Both routes use identical resolvedComponents("[page-name]")
-- Page name matches database Page field exactly
-- Comment follows standard format
-
-### 8. Standard app-routes.js Mapping Patterns
-
-**Case statement must follow exact pattern:**
-
-```javascript
-case "[page-name]":
-    return [ModuleName]Main;
-```
-
-**Validation Rules:**
-- Case value matches database Page field exactly (including spaces and case)
-- Returns the ModuleMain component (not individual pages)
-- Import statement follows pattern: `import [ModuleName]Main from "./pages/[module-folder]/[ModuleName]Main";`
-
-## AI Agent Verification Checklist with Standards
-
-When implementing navigation for any module, verify these standardized components:
-
-### ✅ Database Navigation Item Standards
-- [ ] **Page field**: Matches app-routes.js case statement exactly
-- [ ] **Link field**: Matches Content.js route paths exactly
-- [ ] **Icon field**: Valid FontAwesome `fa-light fa-[icon]` format
-- [ ] **ParentId field**: `NULL` for top-level or correct parent ID
-- [ ] **Roles assigned**: Appropriate user roles selected
-
-### ✅ Content.js Router Standards
-- [ ] **Base route**: `/[module-path]` pattern
-- [ ] **Wildcard route**: `/[module-path]/*` pattern
-- [ ] **Component resolution**: Both use `resolvedComponents("[page-name]")`
-- [ ] **Comment format**: Follows standard comment pattern
-
-### ✅ app-routes.js Mapping Standards
-- [ ] **Case statement**: Matches database Page field exactly
-- [ ] **Return value**: Returns `[ModuleName]Main` component
-- [ ] **Import statement**: Follows standard import pattern
-- [ ] **Component naming**: Follows `[ModuleName]Main` convention
-
-### ✅ Module Structure Standards
-- [ ] **Folder structure**: Follows standardized layout
-- [ ] **Main component**: Uses React Router for internal routing
-- [ ] **Layout component**: Wraps all routes with standard layout
-- [ ] **Navigation helper**: Implements standard navigation patterns
-- [ ] **Fallback routes**: Proper redirect to module base
-
-### ✅ Testing Standards
-- [ ] **Direct access**: `/[module-path]` loads correctly
-- [ ] **Sub-routes**: `/[module-path]/[feature]` work properly
-- [ ] **Menu visibility**: Navigation item appears for assigned roles
-- [ ] **Route navigation**: Clicking menu item navigates correctly
-- [ ] **Console check**: No JavaScript errors or routing issues
-
-## Quick Implementation Template for New Modules
-
-Use these standardized templates when creating navigation for new modules:
-
-### 1. Create Navigation Item SQL
-```sql
-INSERT INTO navigationitems (Page, Link, Icon, ParentId)
-VALUES ('[module-name]', '/[route-path]', '[icon-class]', NULL);
-```
-
-### 2. Add to Content.js
-```javascript
-{/* [Module] System Routes */}
-<Route
-  path="/[route-path]"
-  element={React.createElement(resolvedComponents("[module-name]"))}
-/>
-<Route
-  path="/[route-path]/*"
-  element={React.createElement(resolvedComponents("[module-name]"))}
-/>
-```
-
-### 3. Add to app-routes.js
-```javascript
-case "[module-name]":
-    return [ModuleName]Main;
-```
-
-### 4. Import Module Component
-```javascript
-import [ModuleName]Main from "./pages/[module-folder]/[ModuleName]Main";
-```
-
-### 5. Create Module Structure
-```bash
-/pages/[module-name]/
-├── [ModuleName]Main.js           # Main routing component
-├── layout/
-│   ├── [ModuleName]Layout.js     # Layout wrapper
-│   └── [ModuleName]Layout.scss   # Layout styles
-├── dashboard/                    # Dashboard components
-├── components/                   # Module components
-└── utils/
-    └── navigationHelper.js       # Navigation config
-```
-
-## Module-Specific Implementation Examples
-
-### Example: Creating a "Reports" Module
-
-**1. Database Navigation Item:**
-```sql
-INSERT INTO navigationitems (Page, Link, Icon, ParentId)
-VALUES ('reports', '/reports', 'fa-light fa-chart-line', NULL);
-```
-
-**2. Content.js Routes:**
-```javascript
-{/* Reports System Routes */}
-<Route
-  path="/reports"
-  element={React.createElement(resolvedComponents("reports"))}
-/>
-<Route
-  path="/reports/*"
-  element={React.createElement(resolvedComponents("reports"))}
-/>
-```
-
-**3. app-routes.js Mapping:**
-```javascript
-import ReportsMain from "./pages/reports/ReportsMain";
-
-// In switch statement:
-case "reports":
-    return ReportsMain;
-```
-
-**4. ReportsMain.js Structure:**
-```javascript
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
-import ReportsLayout from './layout/ReportsLayout';
-import ReportsDashboard from './dashboard/ReportsDashboard';
-
-const ReportsMain = () => {
-  const location = useLocation();
-
-  return (
-    <ReportsLayout currentPath={location.pathname}>
-      <Routes>
-        <Route index element={<ReportsDashboard />} />
-        <Route path="/" element={<ReportsDashboard />} />
-        <Route path="/dashboard" element={<ReportsDashboard />} />
-
-        {/* Add your report features here */}
-        <Route path="/financial" element={<FinancialReports />} />
-        <Route path="/operational" element={<OperationalReports />} />
-
-        <Route path="*" element={<Navigate to="/reports" replace />} />
-      </Routes>
-    </ReportsLayout>
-  );
-};
-
-export default ReportsMain;
-```
-
-## Common Troubleshooting Issues
-
-### Issue: Route goes to main dashboard
-
-**Cause**: Navigation item has incorrect link or doesn't exist
-**Solution**: Update the navigation item link to match the route path in Content.js
-
-### Issue: Access denied or unauthorized
-
-**Cause**: User role doesn't have access to the navigation item
-**Solution**: Assign the navigation item to the user's role via Navigation Management
-
-### Issue: Sub-routes not working
-
-**Cause**: Wildcard route not configured properly in Content.js
-**Solution**: Verify Content.js has both `/module-path` and `/module-path/*` routes
-
-### Issue: Component not found
-
-**Cause**: app-routes.js doesn't map page name correctly
-**Solution**: Verify the case statement maps database Page field to correct Main component
-
-## Database Queries for Navigation Debugging
-
-```sql
--- Check if module navigation item exists
-SELECT * FROM navigationitems WHERE Page = '[module-name]';
-
--- Check role assignments for module navigation
-SELECT ni.*, rn.RoleId, r.Name as RoleName
-FROM navigationitems ni
-LEFT JOIN rolenavigations rn ON ni.Id = rn.NavigationItemId
-LEFT JOIN roles r ON rn.RoleId = r.Id
-WHERE ni.Page = '[module-name]';
-
--- List all navigation items and their roles
-SELECT ni.Page, ni.Link, ni.Icon, r.Name as RoleName
-FROM navigationitems ni
-LEFT JOIN rolenavigations rn ON ni.Id = rn.NavigationItemId
-LEFT JOIN roles r ON rn.RoleId = r.Id
-ORDER BY ni.Page;
-```
-
-## Working Examples in FMS System
-
-### Tank Stock Module (Working Reference)
-- **Database**: Page=`"tank stock"`, Link=`"/tankstock"`
-- **Content.js**: Routes `/tankstock` and `/tankstock/*`
-- **app-routes.js**: Case `"tank stock"` returns `TankStockMain`
-- **Component**: `TankStockMain.js` handles internal routing
-
-### Notifications Module (Working Reference)
-- **Database**: Page=`"notifications"`, Link=`"/notifications"`
-- **Content.js**: Routes `/notifications` and `/notifications/*`
-- **app-routes.js**: Case `"notifications"` returns `NotificationSystem`
-- **Component**: `NotificationSystem` handles internal routing
-
-### Vehicles Module (Working Reference)
-- **Database**: Page=`"vehicles"`, Link=`"/vehicles"`
-- **Content.js**: Routes `/vehicles` and `/vehicles/*`
-- **app-routes.js**: Case `"vehicles"` returns `VehicleMain`
-- **Component**: `VehicleMain.js` handles internal routing
-
-## Testing Your Navigation Setup
-
-1. **Database Check**: Verify navigation item exists with correct values
-2. **Role Check**: Ensure your user role has access to the navigation item
-3. **Direct Access**: Test `/module-path` URL directly in browser
-4. **Sub-route Access**: Test `/module-path/sub-feature` URLs
-5. **Console Check**: Look for JavaScript errors or routing issues
-6. **Menu Visibility**: Check that navigation item appears in main menu
-7. **Route Navigation**: Click navigation item and verify it loads correctly
-
-Following this pattern ensures consistent navigation behavior across all FMS modules.
 # Permission System Migration Guide
 
 ## Overview
+
 This guide helps migrate from the current API-based permission system to a JWT token-based permission system for better performance and user experience.
 
 ## Current vs New Approach
 
 ### Current Approach (Less Efficient)
+
 ```javascript
 // In each component
-import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
-
-// In useEffect
-useEffect(() => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (user?.id) {
-    dispatch(fetchpermissionbyUserId(user.id));
-  }
-}, [dispatch]);
-
-// Using permissions
-const permissions = useSelector(state => state.permission.permissions);
-const canEdit = permissions.includes("_EditVehicle");
+import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
 ```
 
 ### New Approach (Recommended)
+
 ```javascript
 // Import the custom hook
-import { usePermissions } from '../hooks/usePermissions';
+import { usePermissions } from "../hooks/usePermissions";
 
 // In component
 const { hasPermission, permissions } = usePermissions();
 const canEdit = hasPermission("_EditVehicle");
-const canDelete = hasPermission("_DeleteVehicle");
 ```
-
-## Benefits of New Approach
-
-1. **Performance**: No API calls needed - permissions extracted from JWT token
-2. **Consistency**: Single source of truth for authentication and authorization
-3. **Offline Support**: Works without network connectivity
-4. **Reduced Server Load**: Fewer API requests
-5. **Better UX**: Instant permission checks without loading states
-
-## Migration Steps
-
-### Step 1: Update Component Imports
-Remove the old permission action import and add the new hook:
-
-```javascript
-// Remove this
-import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
-
-// Add this
-import { usePermissions } from '../hooks/usePermissions';
-```
-
-### Step 2: Update Permission Loading Logic
-Replace the useEffect that fetches permissions:
-
-```javascript
-// Remove this entire useEffect
-useEffect(() => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (user?.id) {
-    dispatch(fetchpermissionbyUserId(user.id));
-  }
-}, [dispatch]);
-
-// Replace with this simple hook call
-const { hasPermission, permissions } = usePermissions();
-```
-
-### Step 3: Update Permission Checks
-Replace the Redux selector-based checks:
-
-```javascript
-// Old way
-const permissions = useSelector(state => state.permission.permissions);
-const canEdit = permissions.includes("_EditVehicle");
-const canDelete = permissions.includes("_DeleteVehicle");
-
-// New way
-const canEdit = hasPermission("_EditVehicle");
-const canDelete = hasPermission("_DeleteVehicle");
-```
-
-### Step 4: Add Permission-Based Rendering
-For components that should only be visible to authorized users:
-
-```javascript
-// Early return for no access
-if (!hasPermission('_Read_specificFeature')) {
-  return (
-    <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
-      <div className="tw-text-center">
-        <i className="fa-light fa-lock tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-600 tw-mb-2">Access Denied</h3>
-        <p className="tw-text-gray-500">You don't have permission to access this feature.</p>
-      </div>
-    </div>
-  );
-}
-```
-
-### Step 5: Conditional UI Elements
-For buttons and actions that should be hidden/disabled:
-
-```javascript
-{/* Delete button - only show if user has permission */}
-{canDelete && (
-  <Button
-    icon="fa-light fa-trash"
-    onClick={() => handleDelete(item)}
-    className="tw-text-red-600"
-  />
-)}
-
-{/* Show lock icon if no permission */}
-{!canDelete && (
-  <span className="tw-text-gray-400" title="No delete permission">
-    <i className="fa-light fa-lock"></i>
-  </span>
-)}
-```
-
-## Components to Update
-
-The following components currently use the old permission system and should be migrated:
-
-1. **VehicleDataGrid** (`fms.frontend/src/pages/vehicles/component/vehicleDataGrid.js`)
-   - Permissions: `_EditVehicle`
-
-2. **ManualRefillPage** (`fms.frontend/src/pages/manualrefill/manualRefilPage.js`)
-   - Permissions: `_editFuelRefill`, `_deleteFuelRefill`, `_createFuelRefill`
-
-3. **EmployeePage** (`fms.frontend/src/pages/employees/employeePage.js`)
-   - Permissions: Various employee management permissions
-
-## Example Migration: ManualRefillPage
-
-### Before:
-```javascript
-import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
-
-const ManualRefillPage = () => {
-  const permissions = useSelector((state) => state.permission.permissions);
-
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user?.id) {
-      dispatch(fetchpermissionbyUserId(user.id));
-    }
-  }, [dispatch]);
-
-  const canEdit = permissions.includes('_editFuelRefill');
-  const canDelete = permissions.includes('_deleteFuelRefill');
-  const canCreate = permissions.includes('_createFuelRefill');
-
-  // ... rest of component
-};
-```
-
-### After:
-```javascript
-import { usePermissions } from '../../hooks/usePermissions';
-
-const ManualRefillPage = () => {
-  const { hasPermission } = usePermissions();
-
-  const canEdit = hasPermission('_editFuelRefill');
-  const canDelete = hasPermission('_deleteFuelRefill');
-  const canCreate = hasPermission('_createFuelRefill');
-
-  // ... rest of component
-};
-```
-
-## Testing the Migration
-
-1. **Verify JWT Token Contains Permissions**: Check browser dev tools → Application → Local Storage → token. Decode it to ensure permissions are present.
-
-2. **Test Permission Checks**: Verify that UI elements show/hide correctly based on user permissions.
-
-3. **Test Performance**: Notice the elimination of permission API calls during page loads.
-
-4. **Test Offline**: Disconnect from network and verify permissions still work (cached in token).
-
-## Troubleshooting
-
-### Issue: Permissions not found in token
-**Solution**: Ensure the backend login endpoint uses `GenerateTokenWithPermissions` instead of the basic `GenerateToken` method.
-
-### Issue: usePermissions hook not working
-**Solution**: Verify the JWT token is properly stored in Redux state under `state.auth.token`.
-
-### Issue: Permission checks always return false
-**Solution**: Check that the permission names in the frontend match exactly with those in the JWT token (case-sensitive).
 
 ## Best Practices
 
 1. **Use Descriptive Permission Names**: Follow the pattern `_Action_Resource` (e.g., `_Read_tankVolumeHistory`)
-
 2. **Implement Graceful Degradation**: Show appropriate messages when users lack permissions
-
 3. **Cache Permission Checks**: The `usePermissions` hook already memoizes results for performance
-
 4. **Consistent Error Handling**: Use standardized access denied UI components
-
 5. **Security Note**: Remember that frontend permission checks are for UX only. Always validate permissions on the backend as well.
 
-Rules - Do not build Application or try to run any application you are working on .. Just proceed to end your answer without building . Ask the user to do so .
+---
+
+## AI Agent Response Protocol
+
+### After Completing Any Task:
+
+1. ✅ Summarize what was changed/created
+2. ✅ List files modified/created
+3. ✅ Highlight any architectural decisions made
+4. ✅ **⚠️ DEPRECATED CODE WARNING**: If any code contains `{deprecated}` comments or attributes, explicitly notify the user
+5. ✅ **STOP and recommend**: "Please build and test the application to verify these changes"
+6. ✅ Wait for user feedback before proceeding
+
+### Deprecated Code Warning Format:
+
+```
+⚠️ DEPRECATED CODE DETECTED:
+The following files contain deprecated code that should be reviewed:
+- [FileName.js]: [FunctionName] marked as {deprecated} - [reason if available]
+- [ClassName.cs]: [MethodName] marked as {deprecated} - [reason if available]
+
+Recommendation: Consider refactoring or migrating away from deprecated code.
+```
+
+### Example Response Format:
+
+```
+Changes Summary:
+- Created: VehicleService.js (280 lines)
+- Modified: VehicleDataGrid.js (added delete functionality)
+- Updated: usePermissions hook (added caching)
+
+Architecture Decisions:
+- Split VehicleService into three separate services (SRP compliance)
+- Used existing axiosInstance instead of creating new HTTP client
+
+⚠️ DEPRECATED CODE DETECTED:
+- VehicleDataGrid.js: legacyFilterMethod() marked as {deprecated} - Use modernFilterService instead
+
+Next Steps:
+Please build and test the application to verify these changes.
+Let me know if you encounter any issues or need adjustments.
+```
+
+---
+
+**Remember: You are a helpful assistant that follows these rules strictly. When in doubt, ask the user for clarification rather than making assumptions.**

@@ -1,30 +1,10 @@
-import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 import store from "../store";
 import {
   authorizePump,
   stopPump,
   closeTransaction,
 } from "../redux/actions/ptsActions/ptspumpActions";
-
-// Create an axios instance with default config
-const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:7009/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add request interceptor to attach auth token
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 const pumpControlService = {
   /**
@@ -176,7 +156,9 @@ const pumpControlService = {
      */
     getFuelGrades: async (deviceId) => {
       try {
-        const response = await axiosInstance.get(`/device/${deviceId}/fuel-grades`);
+        const response = await axiosInstance.get(
+          `/device/${deviceId}/fuel-grades`
+        );
         return response.data;
       } catch (error) {
         console.error("Get fuel grades error:", error);
@@ -189,7 +171,10 @@ const pumpControlService = {
      */
     sendDirectCommand: async (deviceId, command) => {
       try {
-        const response = await axiosInstance.post(`/device/${deviceId}/command`, command);
+        const response = await axiosInstance.post(
+          `/device/${deviceId}/command`,
+          command
+        );
         return response.data;
       } catch (error) {
         console.error("Send command error:", error);
@@ -209,8 +194,8 @@ const pumpControlService = {
         console.error("Get device config error:", error);
         throw error;
       }
-    }
-  }
+    },
+  },
 };
 
 export default pumpControlService;

@@ -3,7 +3,10 @@
 import * as signalR from "@microsoft/signalr";
 import { debounce } from "lodash";
 import store from "../store";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance, {
+  getResolvedApiBaseUrlSync,
+  resolveApiBaseUrl,
+} from "../api/axiosInstance";
 import {
   FETCH_ONLINE_DEVICES_SUCCESS,
   FETCH_DASHBOARD_METRICS_SUCCESS,
@@ -122,26 +125,46 @@ class SignalRService {
     this.state = ConnectionState.CONNECTING;
 
     try {
-      const baseURL = process.env.REACT_APP_SIGNALR_URL || "http://localhost:7009";
-      const signalRUrl = `${baseURL}/frontendHub`;
+      let baseURL =
+        getResolvedApiBaseUrlSync() ||
+        (await resolveApiBaseUrl().catch(() => null));
+
+      if (!baseURL) {
+        baseURL =
+          process.env.REACT_APP_SIGNALR_URL ||
+          process.env.REACT_APP_PUBLIC_FMS_API_URL ||
+          process.env.REACT_APP_API_URL ||
+          "http://localhost:7009/api";
+      }
+
+      if (baseURL.endsWith("/api/")) {
+        baseURL = baseURL.slice(0, -5);
+      } else if (baseURL.endsWith("/api")) {
+        baseURL = baseURL.slice(0, -4);
+      }
+
+      const normalizedBase = baseURL.replace(/\/+$/, "");
+      const signalRUrl = `${normalizedBase}/frontendHub`;
 
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl(signalRUrl, {
           skipNegotiation: false,
-          transport: signalR.HttpTransportType.WebSockets,
+          transport:
+            signalR.HttpTransportType.WebSockets |
+            signalR.HttpTransportType.LongPolling,
           // withCredentials: true,
           headers: {
             "Access-Control-Allow-Origin": "*",
           },
           accessTokenFactory: () => {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem("token");
             if (token) {
-              console.log('[SignalR] Using authentication token');
+              console.log("[SignalR] Using authentication token");
               return token;
             }
-            console.warn('[SignalR] No authentication token available');
+            console.warn("[SignalR] No authentication token available");
             return null;
-          }
+          },
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(signalR.LogLevel.Information)
@@ -515,20 +538,20 @@ class SignalRService {
         // Dispatch to active alarm store
         store.dispatch({
           type: "ACTIVE_ALARM_CREATED",
-          payload: alarm
+          payload: alarm,
         });
         // Also create a notification for the new alarm
         store.dispatch({
           type: "ADD_NOTIFICATION",
           payload: {
-            type: 'alarm',
-            title: 'New Active Alarm',
-            message: alarm.message || 'A new alarm has been created',
-            priority: alarm.priority?.toLowerCase() || 'medium',
+            type: "alarm",
+            title: "New Active Alarm",
+            message: alarm.message || "A new alarm has been created",
+            priority: alarm.priority?.toLowerCase() || "medium",
             relatedId: alarm.id,
             timestamp: Date.now(),
-            autoExpire: false
-          }
+            autoExpire: false,
+          },
         });
       })
     );
@@ -539,7 +562,7 @@ class SignalRService {
         console.log("[SignalR] Active alarm updated:", alarm);
         store.dispatch({
           type: "ACTIVE_ALARM_UPDATED",
-          payload: alarm
+          payload: alarm,
         });
       })
     );
@@ -550,20 +573,20 @@ class SignalRService {
         console.log("[SignalR] Active alarm state changed:", data);
         store.dispatch({
           type: "ACTIVE_ALARM_STATE_CHANGED",
-          payload: { alarmId: data.alarmId, newState: data.newState }
+          payload: { alarmId: data.alarmId, newState: data.newState },
         });
         // Create notification for state changes
         store.dispatch({
           type: "ADD_NOTIFICATION",
           payload: {
-            type: 'info',
-            title: 'Alarm State Changed',
+            type: "info",
+            title: "Alarm State Changed",
             message: `Alarm ${data.alarmId} state changed to ${data.newState}`,
             relatedId: data.alarmId,
             timestamp: Date.now(),
             autoExpire: true,
-            expireAfter: 10000
-          }
+            expireAfter: 10000,
+          },
         });
       })
     );
@@ -576,8 +599,8 @@ class SignalRService {
           type: "ADD_NOTIFICATION",
           payload: {
             ...notification,
-            timestamp: notification.timestamp || Date.now()
-          }
+            timestamp: notification.timestamp || Date.now(),
+          },
         });
       })
     );
@@ -589,13 +612,13 @@ class SignalRService {
         store.dispatch({
           type: "ADD_NOTIFICATION",
           payload: {
-            type: 'success',
-            title: 'SignalR Test',
+            type: "success",
+            title: "SignalR Test",
             message: `Test alarm broadcast received: ${testData.message}`,
             timestamp: Date.now(),
             autoExpire: true,
-            expireAfter: 5000
-          }
+            expireAfter: 5000,
+          },
         });
       })
     );

@@ -11,23 +11,27 @@ using FMS.Domain.Entities.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
-namespace FMS.WebClient.Controllers.Dashboard {
+namespace FMS.WebClient.Controllers.Dashboard
+{
     /// <summary>
     /// Phase 2: Data Source API Controller (partial legacy)
     /// NOTE: Live/streaming delivery is migrating to SignalR (DashboardHub). HTTP endpoints involved in
     /// streaming are deprecated and should not be used by new clients. Prefer SignalR subscriptions via DashboardHub.
     /// </summary>
     [ApiController]
-    [Route ("api/v1/dashboard/data-sources")]
-    [Authorize]
-    public class DataSourceController : ControllerBase {
+    [Route("api/v1/dashboard/data-sources")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public class DataSourceController : ControllerBase
+    {
         private readonly IDataSourceManager _dataSourceManager;
         private readonly ILogger<DataSourceController> _logger;
 
-        public DataSourceController (
+        public DataSourceController(
             IDataSourceManager dataSourceManager,
-            ILogger<DataSourceController> logger) {
+            ILogger<DataSourceController> logger)
+        {
             _dataSourceManager = dataSourceManager;
             _logger = logger;
         }
@@ -38,34 +42,40 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// <param name="dataSource">Data source identifier (e.g., 'fuel_dispense', 'engine_hours')</param>
         /// <param name="request">Dashboard metric request parameters</param>
         /// <returns>Initial data response</returns>
-        [HttpGet ("{dataSource}/initial")]
-        public async Task<ActionResult<FMSResponse<object>>> GetInitialData (
-            string dataSource, [FromQuery] DashboardMetricRequestDto request) {
-            try {
-                _logger.LogInformation ("Getting initial data for data source: {DataSource}", dataSource);
+        [HttpGet("{dataSource}/initial")]
+        public async Task<ActionResult<FMSResponse<object>>> GetInitialData(
+            string dataSource, [FromQuery] DashboardMetricRequestDto request)
+        {
+            try
+            {
+                _logger.LogInformation("Getting initial data for data source: {DataSource}", dataSource);
 
-                if (string.IsNullOrWhiteSpace (dataSource)) {
-                    return BadRequest (CreateValidationErrorResponse ("Data source identifier is required"));
+                if (string.IsNullOrWhiteSpace(dataSource))
+                {
+                    return BadRequest(CreateValidationErrorResponse("Data source identifier is required"));
                 }
 
                 // Set defaults if not provided
-                if (request == null) request = new DashboardMetricRequestDto ();
+                if (request == null) request = new DashboardMetricRequestDto();
                 if (request.MetricType == null) request.MetricType = dataSource;
                 if (request.Mode == null) request.Mode = "historical";
                 if (request.DatePreset == null) request.DatePreset = "today";
 
-                var result = await _dataSourceManager.GetInitialDataAsync (dataSource, request);
+                var result = await _dataSourceManager.GetInitialDataAsync(dataSource, request);
 
-                if (TryExtractError (result, out var errorMessage)) {
-                    var errorResponse = FMSResponse<object>.Failed (errorMessage);
+                if (TryExtractError(result, out var errorMessage))
+                {
+                    var errorResponse = FMSResponse<object>.Failed(errorMessage);
                     errorResponse.Data = result;
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                return Ok (FMSResponse<object>.Success (result));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting initial data for data source: {DataSource}", dataSource);
-                return StatusCode (500, FMSResponse<object>.SystemError ("An unexpected error occurred while retrieving initial data."));
+                return Ok(FMSResponse<object>.Success(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting initial data for data source: {DataSource}", dataSource);
+                return StatusCode(500, FMSResponse<object>.SystemError("An unexpected error occurred while retrieving initial data."));
             }
         }
 
@@ -75,47 +85,55 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// <param name="dataSource">Data source identifier</param>
         /// <param name="request">Dashboard metric request parameters</param>
         /// <returns>Live data response</returns>
-        [Obsolete ("Deprecated: Use SignalR DashboardHub for live streaming (MetricDataUpdate group 'metric_{dataSource}').")]
-        [ApiExplorerSettings (IgnoreApi = true)]
-        [HttpGet ("{dataSource}/live")]
-        public async Task<ActionResult<FMSResponse<object>>> GetLiveData (
-            string dataSource, [FromQuery] DashboardMetricRequestDto request) {
-            try {
+        [Obsolete("Deprecated: Use SignalR DashboardHub for live streaming (MetricDataUpdate group 'metric_{dataSource}').")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [HttpGet("{dataSource}/live")]
+        public async Task<ActionResult<FMSResponse<object>>> GetLiveData(
+            string dataSource, [FromQuery] DashboardMetricRequestDto request)
+        {
+            try
+            {
                 // Mark response as deprecated for clients that still call this endpoint
                 Response.Headers["Deprecation"] = "true";
                 Response.Headers["Sunset"] = "2025-12-31";
-                _logger.LogInformation ("Getting live data for data source: {DataSource}", dataSource);
+                _logger.LogInformation("Getting live data for data source: {DataSource}", dataSource);
 
-                if (string.IsNullOrWhiteSpace (dataSource)) {
-                    return BadRequest (CreateValidationErrorResponse ("Data source identifier is required"));
+                if (string.IsNullOrWhiteSpace(dataSource))
+                {
+                    return BadRequest(CreateValidationErrorResponse("Data source identifier is required"));
                 }
 
-                if (!_dataSourceManager.IsLiveDataSource (dataSource)) {
-                    var errorResponse = FMSResponse<object>.Failed ($"Data source '{dataSource}' does not support live data");
-                    errorResponse.Data = new {
-                        supportedModes = new [] { "historical" }
+                if (!_dataSourceManager.IsLiveDataSource(dataSource))
+                {
+                    var errorResponse = FMSResponse<object>.Failed($"Data source '{dataSource}' does not support live data");
+                    errorResponse.Data = new
+                    {
+                        supportedModes = new[] { "historical" }
                     };
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
                 // Set defaults for live data
-                if (request == null) request = new DashboardMetricRequestDto ();
+                if (request == null) request = new DashboardMetricRequestDto();
                 if (request.MetricType == null) request.MetricType = dataSource;
                 request.Mode = "live"; // Force live mode
                 if (request.DatePreset == null) request.DatePreset = "today";
 
-                var result = await _dataSourceManager.GetLiveDataAsync (dataSource, request);
+                var result = await _dataSourceManager.GetLiveDataAsync(dataSource, request);
 
-                if (TryExtractError (result, out var errorMessage)) {
-                    var errorResponse = FMSResponse<object>.Failed (errorMessage);
+                if (TryExtractError(result, out var errorMessage))
+                {
+                    var errorResponse = FMSResponse<object>.Failed(errorMessage);
                     errorResponse.Data = result;
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                return Ok (FMSResponse<object>.Success (result));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting live data for data source: {DataSource}", dataSource);
-                return StatusCode (500, FMSResponse<object>.SystemError ("An unexpected error occurred while retrieving live data."));
+                return Ok(FMSResponse<object>.Success(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting live data for data source: {DataSource}", dataSource);
+                return StatusCode(500, FMSResponse<object>.SystemError("An unexpected error occurred while retrieving live data."));
             }
         }
 
@@ -126,43 +144,51 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// <param name="aggregationInterval">Aggregation interval (hourly, daily, weekly)</param>
         /// <param name="request">Dashboard metric request parameters</param>
         /// <returns>Aggregated data response</returns>
-        [HttpGet ("{dataSource}/aggregated")]
-        public async Task<ActionResult<FMSResponse<object>>> GetAggregatedData (
-            string dataSource, [FromQuery] string aggregationInterval = "hourly", [FromQuery] DashboardMetricRequestDto request = null) {
-            try {
-                _logger.LogInformation ("Getting aggregated data for data source: {DataSource}, Interval: {Interval}",
+        [HttpGet("{dataSource}/aggregated")]
+        public async Task<ActionResult<FMSResponse<object>>> GetAggregatedData(
+            string dataSource, [FromQuery] string aggregationInterval = "hourly", [FromQuery] DashboardMetricRequestDto request = null)
+        {
+            try
+            {
+                _logger.LogInformation("Getting aggregated data for data source: {DataSource}, Interval: {Interval}",
                     dataSource, aggregationInterval);
 
-                if (string.IsNullOrWhiteSpace (dataSource)) {
-                    return BadRequest (CreateValidationErrorResponse ("Data source identifier is required"));
+                if (string.IsNullOrWhiteSpace(dataSource))
+                {
+                    return BadRequest(CreateValidationErrorResponse("Data source identifier is required"));
                 }
 
-                var validIntervals = new [] { "hourly", "daily", "weekly", "monthly" };
-                if (!validIntervals.Contains (aggregationInterval?.ToLower ())) {
-                    var errorResponse = CreateValidationErrorResponse ("Invalid aggregation interval", new [] { "Invalid aggregation interval" }, new {
+                var validIntervals = new[] { "hourly", "daily", "weekly", "monthly" };
+                if (!validIntervals.Contains(aggregationInterval?.ToLower()))
+                {
+                    var errorResponse = CreateValidationErrorResponse("Invalid aggregation interval", new[] { "Invalid aggregation interval" }, new
+                    {
                         validIntervals
                     });
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
                 // Set defaults
-                if (request == null) request = new DashboardMetricRequestDto ();
+                if (request == null) request = new DashboardMetricRequestDto();
                 if (request.MetricType == null) request.MetricType = dataSource;
                 if (request.Mode == null) request.Mode = "historical";
                 if (request.DatePreset == null) request.DatePreset = "last7days";
 
-                var result = await _dataSourceManager.GetAggregatedDataAsync (dataSource, request, aggregationInterval);
+                var result = await _dataSourceManager.GetAggregatedDataAsync(dataSource, request, aggregationInterval);
 
-                if (TryExtractError (result, out var errorMessage)) {
-                    var errorResponse = FMSResponse<object>.Failed (errorMessage);
+                if (TryExtractError(result, out var errorMessage))
+                {
+                    var errorResponse = FMSResponse<object>.Failed(errorMessage);
                     errorResponse.Data = result;
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                return Ok (FMSResponse<object>.Success (result));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting aggregated data for data source: {DataSource}", dataSource);
-                return StatusCode (500, FMSResponse<object>.SystemError ("An unexpected error occurred while retrieving aggregated data."));
+                return Ok(FMSResponse<object>.Success(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting aggregated data for data source: {DataSource}", dataSource);
+                return StatusCode(500, FMSResponse<object>.SystemError("An unexpected error occurred while retrieving aggregated data."));
             }
         }
 
@@ -171,23 +197,28 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// </summary>
         /// <param name="dataSource">Data source identifier</param>
         /// <returns>Data source metadata</returns>
-        [HttpGet ("{dataSource}/metadata")]
-        public ActionResult<FMSResponse<DataSourceMetadata>> GetDataSourceMetadata (string dataSource) {
-            try {
-                _logger.LogInformation ("Getting metadata for data source: {DataSource}", dataSource);
+        [HttpGet("{dataSource}/metadata")]
+        public ActionResult<FMSResponse<DataSourceMetadata>> GetDataSourceMetadata(string dataSource)
+        {
+            try
+            {
+                _logger.LogInformation("Getting metadata for data source: {DataSource}", dataSource);
 
-                if (string.IsNullOrWhiteSpace (dataSource)) {
-                    var errorResponse = FMSResponse<DataSourceMetadata>.ValidationFailed (new List<string> { "Data source identifier is required" });
+                if (string.IsNullOrWhiteSpace(dataSource))
+                {
+                    var errorResponse = FMSResponse<DataSourceMetadata>.ValidationFailed(new List<string> { "Data source identifier is required" });
                     errorResponse.Message = "Data source identifier is required";
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                var metadata = _dataSourceManager.GetDataSourceMetadata (dataSource);
+                var metadata = _dataSourceManager.GetDataSourceMetadata(dataSource);
 
-                return Ok (FMSResponse<DataSourceMetadata>.Success (metadata));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting metadata for data source: {DataSource}", dataSource);
-                return StatusCode (500, FMSResponse<DataSourceMetadata>.SystemError ("An unexpected error occurred while retrieving metadata."));
+                return Ok(FMSResponse<DataSourceMetadata>.Success(metadata));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting metadata for data source: {DataSource}", dataSource);
+                return StatusCode(500, FMSResponse<DataSourceMetadata>.SystemError("An unexpected error occurred while retrieving metadata."));
             }
         }
 
@@ -196,38 +227,44 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// </summary>
         /// <returns>List of available data sources with metadata</returns>
         [HttpGet]
-        public ActionResult<FMSResponse<DataSourceCatalogDto>> GetAvailableDataSources () {
-            try {
-                _logger.LogInformation ("Getting all available data sources");
+        public ActionResult<FMSResponse<DataSourceCatalogDto>> GetAvailableDataSources()
+        {
+            try
+            {
+                _logger.LogInformation("Getting all available data sources");
 
                 var catalogItems = _dataSourceManager
-                    .GetAllDataSources ()
-                    .Select (kvp => {
-                        var metadata = kvp.Value ?? new DataSourceMetadata ();
-                        var category = string.IsNullOrWhiteSpace (metadata.Category) ?
+                    .GetAllDataSources()
+                    .Select(kvp =>
+                    {
+                        var metadata = kvp.Value ?? new DataSourceMetadata();
+                        var category = string.IsNullOrWhiteSpace(metadata.Category) ?
                             WidgetTypeDefinitions.Categories.CUSTOM_ANALYTICS :
                             metadata.Category;
 
-                        return new DataSourceCatalogItemDto (
+                        return new DataSourceCatalogItemDto(
                             kvp.Key,
-                            string.IsNullOrWhiteSpace (metadata.DisplayName) ? kvp.Key : metadata.DisplayName,
+                            string.IsNullOrWhiteSpace(metadata.DisplayName) ? kvp.Key : metadata.DisplayName,
                             category,
                             metadata
                         );
                     })
-                    .OrderBy (item => item.Category)
-                    .ThenBy (item => item.DisplayName)
-                    .ToList ();
+                    .OrderBy(item => item.Category)
+                    .ThenBy(item => item.DisplayName)
+                    .ToList();
 
-                var payload = new DataSourceCatalogDto {
+                var payload = new DataSourceCatalogDto
+                {
                     Items = catalogItems,
                     Count = catalogItems.Count
                 };
 
-                return Ok (FMSResponse<DataSourceCatalogDto>.Success (payload, "Data source catalog retrieved successfully"));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting available data sources");
-                return StatusCode (500, FMSResponse<DataSourceCatalogDto>.SystemError ("Failed to retrieve data source catalog."));
+                return Ok(FMSResponse<DataSourceCatalogDto>.Success(payload, "Data source catalog retrieved successfully"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting available data sources");
+                return StatusCode(500, FMSResponse<DataSourceCatalogDto>.SystemError("Failed to retrieve data source catalog."));
             }
         }
 
@@ -305,10 +342,12 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// </summary>
         /// <param name="sourceId">Source identifier from frontend</param>
         /// <returns>Mapped metric type</returns>
-        private string MapSourceIdToMetricType (string sourceId) {
-            if (string.IsNullOrEmpty (sourceId)) return sourceId ?? string.Empty;
+        private string MapSourceIdToMetricType(string sourceId)
+        {
+            if (string.IsNullOrEmpty(sourceId)) return sourceId ?? string.Empty;
 
-            return sourceId.ToLower () switch {
+            return sourceId.ToLower() switch
+            {
                 "fuel-dispense-metrics" => "fuel_dispensed",
                 "fuel_dispensed" => "fuel_dispensed", // Direct mapping
                 "fuel_dispense" => "fuel_dispensed", // Alternative variation
@@ -339,7 +378,7 @@ namespace FMS.WebClient.Controllers.Dashboard {
                 "avg-speed-metrics" => "avg_speed",
                 "avg_speed" => "avg_speed", // Direct mapping
                 "average_speed" => "avg_speed", // Alternative variation
-                _ => sourceId.Replace ("-metrics", "").Replace ("-", "_")
+                _ => sourceId.Replace("-metrics", "").Replace("-", "_")
             };
         }
 
@@ -348,17 +387,19 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// </summary>
         /// <param name="datePreset">Date preset</param>
         /// <returns>Default interval in hours</returns>
-        private int GetDefaultIntervalHours (string datePreset) {
-            return datePreset?.ToLower () switch {
+        private int GetDefaultIntervalHours(string datePreset)
+        {
+            return datePreset?.ToLower() switch
+            {
                 "today" => 1, // 1-hour intervals for today
                 "yesterday" => 1, // 1-hour intervals for yesterday
                 "last_7_days"
                 or "last_week" => 6, // 6-hour intervals for week
-                    "last_30_days"
-                or "last_month" => 24, // Daily intervals for month
-                    "this_week" => 6, // 6-hour intervals for this week
-                    "this_month" => 24, // Daily intervals for this month
-                    _ => 1 // Default: 1-hour intervals
+                "last_30_days"
+            or "last_month" => 24, // Daily intervals for month
+                "this_week" => 6, // 6-hour intervals for this week
+                "this_month" => 24, // Daily intervals for this month
+                _ => 1 // Default: 1-hour intervals
             };
         }
 
@@ -367,23 +408,28 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// </summary>
         /// <param name="dataSource">Data source identifier</param>
         /// <returns>List of supported aggregations</returns>
-        [HttpGet ("{dataSource}/aggregations")]
-        public ActionResult<FMSResponse<List<string>>> GetSupportedAggregations (string dataSource) {
-            try {
-                _logger.LogInformation ("Getting supported aggregations for data source: {DataSource}", dataSource);
+        [HttpGet("{dataSource}/aggregations")]
+        public ActionResult<FMSResponse<List<string>>> GetSupportedAggregations(string dataSource)
+        {
+            try
+            {
+                _logger.LogInformation("Getting supported aggregations for data source: {DataSource}", dataSource);
 
-                if (string.IsNullOrWhiteSpace (dataSource)) {
-                    var errorResponse = FMSResponse<List<string>>.ValidationFailed (new List<string> { "Data source identifier is required" });
+                if (string.IsNullOrWhiteSpace(dataSource))
+                {
+                    var errorResponse = FMSResponse<List<string>>.ValidationFailed(new List<string> { "Data source identifier is required" });
                     errorResponse.Message = "Data source identifier is required";
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                var aggregations = _dataSourceManager.GetSupportedAggregations (dataSource);
+                var aggregations = _dataSourceManager.GetSupportedAggregations(dataSource);
 
-                return Ok (FMSResponse<List<string>>.Success (aggregations));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting supported aggregations for data source: {DataSource}", dataSource);
-                return StatusCode (500, FMSResponse<List<string>>.SystemError ("An unexpected error occurred while retrieving supported aggregations."));
+                return Ok(FMSResponse<List<string>>.Success(aggregations));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting supported aggregations for data source: {DataSource}", dataSource);
+                return StatusCode(500, FMSResponse<List<string>>.SystemError("An unexpected error occurred while retrieving supported aggregations."));
             }
         }
 
@@ -392,48 +438,56 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// </summary>
         /// <param name="dataSource">Data source identifier</param>
         /// <returns>Refresh status</returns>
-        [Obsolete ("Deprecated: Use SignalR DashboardHub to receive pushed updates; do not call HTTP refresh.")]
-        [ApiExplorerSettings (IgnoreApi = true)]
-        [HttpPost ("{dataSource}/refresh")]
-        public async Task<ActionResult<FMSResponse<object>>> RefreshDataSource (string dataSource) {
-            try {
+        [Obsolete("Deprecated: Use SignalR DashboardHub to receive pushed updates; do not call HTTP refresh.")]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [HttpPost("{dataSource}/refresh")]
+        public async Task<ActionResult<FMSResponse<object>>> RefreshDataSource(string dataSource)
+        {
+            try
+            {
                 Response.Headers["Deprecation"] = "true";
                 Response.Headers["Sunset"] = "2025-12-31";
-                _logger.LogInformation ("Manually refreshing data source: {DataSource}", dataSource);
+                _logger.LogInformation("Manually refreshing data source: {DataSource}", dataSource);
 
-                if (string.IsNullOrWhiteSpace (dataSource)) {
-                    var errorResponse = FMSResponse<object>.ValidationFailed (new List<string> { "Data source identifier is required" });
+                if (string.IsNullOrWhiteSpace(dataSource))
+                {
+                    var errorResponse = FMSResponse<object>.ValidationFailed(new List<string> { "Data source identifier is required" });
                     errorResponse.Message = "Data source identifier is required";
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                var request = new DashboardMetricRequestDto {
+                var request = new DashboardMetricRequestDto
+                {
                     MetricType = dataSource,
                     Mode = "live",
                     DatePreset = "today"
                 };
 
-                var refreshedData = await _dataSourceManager.GetLiveDataAsync (dataSource, request);
+                var refreshedData = await _dataSourceManager.GetLiveDataAsync(dataSource, request);
 
-                if (TryExtractError (refreshedData, out var errorMessage)) {
-                    var errorResponse = FMSResponse<object>.Failed (errorMessage);
+                if (TryExtractError(refreshedData, out var errorMessage))
+                {
+                    var errorResponse = FMSResponse<object>.Failed(errorMessage);
                     errorResponse.Data = refreshedData;
-                    return BadRequest (errorResponse);
+                    return BadRequest(errorResponse);
                 }
 
-                await _dataSourceManager.BroadcastDataUpdateAsync (dataSource, refreshedData);
+                await _dataSourceManager.BroadcastDataUpdateAsync(dataSource, refreshedData);
 
-                var successPayload = new {
+                var successPayload = new
+                {
                     dataSource,
                     data = refreshedData,
                     timestamp = DateTime.UtcNow
                 };
 
-                var response = FMSResponse<object>.Success (successPayload, $"Data source '{dataSource}' refreshed successfully");
-                return Ok (response);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error refreshing data source: {DataSource}", dataSource);
-                return StatusCode (500, FMSResponse<object>.SystemError ("An unexpected error occurred while refreshing the data source."));
+                var response = FMSResponse<object>.Success(successPayload, $"Data source '{dataSource}' refreshed successfully");
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing data source: {DataSource}", dataSource);
+                return StatusCode(500, FMSResponse<object>.SystemError("An unexpected error occurred while refreshing the data source."));
             }
         }
 
@@ -441,64 +495,77 @@ namespace FMS.WebClient.Controllers.Dashboard {
         /// Health check endpoint for data source service
         /// </summary>
         /// <returns>Health status</returns>
-        [HttpGet ("health")]
-        public ActionResult<FMSResponse<object>> GetHealthStatus () {
-            try {
-                _logger.LogInformation ("Getting data source service health status");
+        [HttpGet("health")]
+        public ActionResult<FMSResponse<object>> GetHealthStatus()
+        {
+            try
+            {
+                _logger.LogInformation("Getting data source service health status");
 
-                var healthData = new {
+                var healthData = new
+                {
                     status = "healthy",
                     service = "DataSourceService",
                     phase = "Phase 2 - Streaming Data Service",
                     version = "2.0.0",
                     timestamp = DateTime.UtcNow,
-                    capabilities = new {
-                    streamingSupported = true,
-                    aggregationSupported = true,
-                    liveDataSupported = true,
-                    cacheEnabled = true
+                    capabilities = new
+                    {
+                        streamingSupported = true,
+                        aggregationSupported = true,
+                        liveDataSupported = true,
+                        cacheEnabled = true
                     },
                     availableDataSources = _dataSourceManager
-                    .GetAllDataSources ()
-                    .Select (kvp => kvp.Key)
-                    .ToArray ()
+                    .GetAllDataSources()
+                    .Select(kvp => kvp.Key)
+                    .ToArray()
                 };
 
-                return Ok (FMSResponse<object>.Success (healthData));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting health status");
-                var errorResponse = FMSResponse<object>.SystemError ("An unexpected error occurred while retrieving health status.");
-                errorResponse.Data = new {
+                return Ok(FMSResponse<object>.Success(healthData));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting health status");
+                var errorResponse = FMSResponse<object>.SystemError("An unexpected error occurred while retrieving health status.");
+                errorResponse.Data = new
+                {
                     timestamp = DateTime.UtcNow
                 };
-                return StatusCode (500, errorResponse);
+                return StatusCode(500, errorResponse);
             }
         }
 
-        private static FMSResponse<object> CreateValidationErrorResponse (string message, IEnumerable<string> errors = null, object data = null) {
-            var errorList = errors?.ToList () ?? new List<string> { message };
-            var response = FMSResponse<object>.ValidationFailed (errorList);
+        private static FMSResponse<object> CreateValidationErrorResponse(string message, IEnumerable<string> errors = null, object data = null)
+        {
+            var errorList = errors?.ToList() ?? new List<string> { message };
+            var response = FMSResponse<object>.ValidationFailed(errorList);
             response.Message = message;
-            if (data != null) {
+            if (data != null)
+            {
                 response.Data = data;
             }
             return response;
         }
 
-        private static bool TryExtractError (object result, out string errorMessage) {
+        private static bool TryExtractError(object result, out string errorMessage)
+        {
             errorMessage = null;
 
-            if (result == null) {
+            if (result == null)
+            {
                 return false;
             }
 
-            var errorProperty = result.GetType ().GetProperty ("error", BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
-            if (errorProperty == null) {
+            var errorProperty = result.GetType().GetProperty("error", BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+            if (errorProperty == null)
+            {
                 return false;
             }
 
-            var value = errorProperty.GetValue (result);
-            if (value is string stringValue && !string.IsNullOrWhiteSpace (stringValue)) {
+            var value = errorProperty.GetValue(result);
+            if (value is string stringValue && !string.IsNullOrWhiteSpace(stringValue))
+            {
                 errorMessage = stringValue;
                 return true;
             }

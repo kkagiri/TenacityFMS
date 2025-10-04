@@ -1,23 +1,31 @@
-import { HubConnectionBuilder, LogLevel, HubConnectionState } from '@microsoft/signalr';
-import { debounce } from 'lodash';
-import store from '../store';
+import {
+  HubConnectionBuilder,
+  LogLevel,
+  HubConnectionState,
+} from "@microsoft/signalr";
+import { debounce } from "lodash";
+import store from "../store";
+import {
+  getResolvedApiBaseUrlSync,
+  resolveApiBaseUrl,
+} from "../api/axiosInstance";
 
 // Connection state enum
 export const ConnectionState = {
-  DISCONNECTED: 'disconnected',
-  CONNECTING: 'connecting',
-  CONNECTED: 'connected',
-  RECONNECTING: 'reconnecting',
-  ERROR: 'error',
-  PAUSED: 'paused'
+  DISCONNECTED: "disconnected",
+  CONNECTING: "connecting",
+  CONNECTED: "connected",
+  RECONNECTING: "reconnecting",
+  ERROR: "error",
+  PAUSED: "paused",
 };
 
 // Error types
 export const SignalRError = {
-  CONNECTION_FAILED: 'connection_failed',
-  RECONNECTION_FAILED: 'reconnection_failed',
-  HANDLER_ERROR: 'handler_error',
-  AUTHENTICATION_FAILED: 'authentication_failed'
+  CONNECTION_FAILED: "connection_failed",
+  RECONNECTION_FAILED: "reconnection_failed",
+  HANDLER_ERROR: "handler_error",
+  AUTHENTICATION_FAILED: "authentication_failed",
 };
 
 // Create dynamic debounce functions based on current state
@@ -29,7 +37,8 @@ const createDynamicDebouncedHandler = (handlerFn, defaultDebounceMs = 500) => {
 
   const handler = (...args) => {
     const state = store.getState();
-    const { isLiveDataEnabled = true, updateFrequency = 1 } = state.realtimeStatus || {};
+    const { isLiveDataEnabled = true, updateFrequency = 1 } =
+      state.realtimeStatus || {};
 
     const minUpdateFrequency = 1000;
     const actualFrequency = Math.max(
@@ -40,7 +49,7 @@ const createDynamicDebouncedHandler = (handlerFn, defaultDebounceMs = 500) => {
     if (isLiveDataEnabled) {
       debouncedFn(...args);
     } else {
-      console.log('[PTS SignalR] Live data disabled');
+      console.log("[PTS SignalR] Live data disabled");
     }
   };
 
@@ -88,41 +97,69 @@ class PTSSignalRService {
    */
   async start(hubUrl = null) {
     const connectionId = Math.random().toString(36).substring(2, 15);
-    console.log(`[PTS SignalR] Starting connection attempt (ID: ${connectionId})...`);
+    console.log(
+      `[PTS SignalR] Starting connection attempt (ID: ${connectionId})...`
+    );
 
     if (this.connection?.state === HubConnectionState.Connected) {
-      console.log('[PTS SignalR] Already connected');
+      console.log("[PTS SignalR] Already connected");
       return;
     }
 
     this.state = ConnectionState.CONNECTING;
 
     try {
-      if (this.connection && this.connection.state !== HubConnectionState.Disconnected) {
+      if (
+        this.connection &&
+        this.connection.state !== HubConnectionState.Disconnected
+      ) {
         await this.stop();
       }
 
-      const baseURL = process.env.REACT_APP_SIGNALR_URL || 'http://localhost:7009';
-      const fullHubUrl = hubUrl || `${baseURL}/ptsHub`;
+      let baseURL =
+        getResolvedApiBaseUrlSync() ||
+        (await resolveApiBaseUrl().catch(() => null));
 
-      console.log('[PTS SignalR] Connecting to:', fullHubUrl);
+      if (!baseURL) {
+        baseURL =
+          process.env.REACT_APP_SIGNALR_URL ||
+          process.env.REACT_APP_PUBLIC_FMS_API_URL ||
+          process.env.REACT_APP_API_URL ||
+          "http://localhost:7009/api";
+      }
+
+      if (baseURL.endsWith("/api/")) {
+        baseURL = baseURL.slice(0, -5);
+      } else if (baseURL.endsWith("/api")) {
+        baseURL = baseURL.slice(0, -4);
+      }
+
+      const normalizedBase = baseURL.replace(/\/+$/, "");
+      const fullHubUrl =
+        hubUrl && hubUrl.startsWith("http")
+          ? hubUrl
+          : hubUrl
+          ? `${normalizedBase}${hubUrl.startsWith("/") ? hubUrl : `/${hubUrl}`}`
+          : `${normalizedBase}/ptsHub`;
+
+      console.log("[PTS SignalR] Connecting to:", fullHubUrl);
 
       this.connection = new HubConnectionBuilder()
         .withUrl(fullHubUrl, {
           skipNegotiation: false,
           transport: 1, // WebSockets
           headers: {
-            'Access-Control-Allow-Origin': '*'
+            "Access-Control-Allow-Origin": "*",
           },
           accessTokenFactory: () => {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem("token");
             if (token) {
-              console.log('[PTS SignalR] Using authentication token');
+              console.log("[PTS SignalR] Using authentication token");
               return token;
             }
-            console.warn('[PTS SignalR] No authentication token available');
+            console.warn("[PTS SignalR] No authentication token available");
             return null;
-          }
+          },
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Information)
@@ -141,13 +178,15 @@ class PTSSignalRService {
       this.startHealthChecks();
 
       // Notify listeners
-      this.notifyListeners('connectionStatusChanged', true);
+      this.notifyListeners("connectionStatusChanged", true);
 
       // Request initial device status
       await this.requestDeviceStatusSummary();
-
     } catch (error) {
-      console.error(`[PTS SignalR] Connection error (ID: ${connectionId}):`, error);
+      console.error(
+        `[PTS SignalR] Connection error (ID: ${connectionId}):`,
+        error
+      );
       this.handleConnectionError(error);
       throw error;
     }
@@ -158,12 +197,17 @@ class PTSSignalRService {
    * @param {Error} error - Connection error
    */
   handleConnectionError = (error) => {
-    console.error('[PTS SignalR] Connection error:', error);
+    console.error("[PTS SignalR] Connection error:", error);
     this.state = ConnectionState.ERROR;
 
     // Immediate retry for network errors
-    if (error.message?.includes('network') || error.message?.includes('connection')) {
-      console.log('[PTS SignalR] Network error detected, attempting immediate reconnect');
+    if (
+      error.message?.includes("network") ||
+      error.message?.includes("connection")
+    ) {
+      console.log(
+        "[PTS SignalR] Network error detected, attempting immediate reconnect"
+      );
       setTimeout(() => this.start(), 1000);
       return;
     }
@@ -179,18 +223,19 @@ class PTSSignalRService {
         try {
           await this.start();
         } catch (error) {
-          console.error('[PTS SignalR] Reconnection attempt failed:', error);
+          console.error("[PTS SignalR] Reconnection attempt failed:", error);
         }
       }, delay);
     } else {
-      console.error('[PTS SignalR] Max reconnection attempts reached');
+      console.error("[PTS SignalR] Max reconnection attempts reached");
       if (store) {
         store.dispatch({
-          type: 'PTS_SIGNALR_CONNECTION_ERROR',
+          type: "PTS_SIGNALR_CONNECTION_ERROR",
           payload: {
             type: SignalRError.CONNECTION_FAILED,
-            message: 'Failed to establish PTS SignalR connection after multiple attempts'
-          }
+            message:
+              "Failed to establish PTS SignalR connection after multiple attempts",
+          },
         });
       }
     }
@@ -210,13 +255,13 @@ class PTSSignalRService {
     if (this.connection) {
       try {
         await this.connection.stop();
-        console.log('[PTS SignalR] Connection stopped');
+        console.log("[PTS SignalR] Connection stopped");
       } catch (error) {
-        console.error('[PTS SignalR] Error stopping connection:', error);
+        console.error("[PTS SignalR] Error stopping connection:", error);
       } finally {
         this.connection = null;
         this.state = ConnectionState.DISCONNECTED;
-        this.notifyListeners('connectionStatusChanged', false);
+        this.notifyListeners("connectionStatusChanged", false);
       }
     }
   }
@@ -229,12 +274,12 @@ class PTSSignalRService {
 
     this.connection.onreconnecting(() => {
       this.state = ConnectionState.RECONNECTING;
-      console.log('[PTS SignalR] Reconnecting...');
-      this.notifyListeners('connectionStatusChanged', false);
+      console.log("[PTS SignalR] Reconnecting...");
+      this.notifyListeners("connectionStatusChanged", false);
       if (store) {
         store.dispatch({
-          type: 'PTS_SIGNALR_STATE_CHANGED',
-          payload: { state: 'reconnecting', timestamp: Date.now() }
+          type: "PTS_SIGNALR_STATE_CHANGED",
+          payload: { state: "reconnecting", timestamp: Date.now() },
         });
       }
     });
@@ -242,34 +287,34 @@ class PTSSignalRService {
     this.connection.onreconnected(async () => {
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
-      console.log('[PTS SignalR] Reconnected successfully');
+      console.log("[PTS SignalR] Reconnected successfully");
 
       try {
         // Request fresh data after reconnection
         await this.requestDeviceStatusSummary();
         await this.requestAllDevicesStatus();
 
-        this.notifyListeners('connectionStatusChanged', true);
+        this.notifyListeners("connectionStatusChanged", true);
 
         if (store) {
           store.dispatch({
-            type: 'PTS_SIGNALR_STATE_CHANGED',
-            payload: { state: 'connected', timestamp: Date.now() }
+            type: "PTS_SIGNALR_STATE_CHANGED",
+            payload: { state: "connected", timestamp: Date.now() },
           });
         }
       } catch (error) {
-        console.error('[PTS SignalR] Error requesting fresh data:', error);
+        console.error("[PTS SignalR] Error requesting fresh data:", error);
       }
     });
 
     this.connection.onclose(() => {
       this.state = ConnectionState.DISCONNECTED;
-      console.log('[PTS SignalR] Connection closed');
-      this.notifyListeners('connectionStatusChanged', false);
+      console.log("[PTS SignalR] Connection closed");
+      this.notifyListeners("connectionStatusChanged", false);
 
       // Attempt to reconnect if not manually stopped
       if (this.connectionState !== ConnectionState.DISCONNECTED) {
-        this.handleConnectionError(new Error('Connection closed'));
+        this.handleConnectionError(new Error("Connection closed"));
       }
     });
   };
@@ -283,209 +328,226 @@ class PTSSignalRService {
     // Helper function to register event with cleanup and debouncing
     const registerEvent = (eventName, handler, debounceMs = 500) => {
       this.connection.off(eventName); // Remove existing handlers
-      const debouncedHandler = debounceMs > 0
-        ? createDynamicDebouncedHandler(handler, debounceMs)
-        : handler;
+      const debouncedHandler =
+        debounceMs > 0
+          ? createDynamicDebouncedHandler(handler, debounceMs)
+          : handler;
       this.connection.on(eventName, debouncedHandler);
     };
 
     // PTS Device events with debouncing
-    registerEvent('ConnectedDevicesStatus', (data) => {
-      if (data) {
-        this.notifyListeners('connectedDevicesStatus', data);
-        if (store) {
-          store.dispatch({
-            type: 'RECEIVE_CONNECTED_DEVICES_STATUS',
-            payload: { ...data, timestamp: Date.now() }
-          });
+    registerEvent(
+      "ConnectedDevicesStatus",
+      (data) => {
+        if (data) {
+          this.notifyListeners("connectedDevicesStatus", data);
+          if (store) {
+            store.dispatch({
+              type: "RECEIVE_CONNECTED_DEVICES_STATUS",
+              payload: { ...data, timestamp: Date.now() },
+            });
+          }
         }
-      }
-    }, 500);
+      },
+      500
+    );
 
-    registerEvent('PTSDeviceListUpdate', (data) => {
+    registerEvent("PTSDeviceListUpdate", (data) => {
       if (data) {
-        this.notifyListeners('ptsDeviceListUpdate', data);
+        this.notifyListeners("ptsDeviceListUpdate", data);
         if (store) {
           store.dispatch({
-            type: 'FETCH_PTS_DEVICE_LIST_SUCCESS',
-            payload: data
+            type: "FETCH_PTS_DEVICE_LIST_SUCCESS",
+            payload: data,
           });
         }
       }
     });
 
-    registerEvent('DeviceStatusUpdate', (data) => {
-      if (data && data.deviceId) {
-        this.notifyListeners('deviceStatusUpdate', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_SINGLE_DEVICE_STATUS',
-            payload: {
-              deviceId: data.deviceId,
-              connectionStatus: data.connectionStatus,
-              connectionType: data.connectionType,
-              lastActivity: data.lastActivity,
-              ipAddress: data.ipAddress,
-              timestamp: Date.now()
-            }
-          });
+    registerEvent(
+      "DeviceStatusUpdate",
+      (data) => {
+        if (data && data.deviceId) {
+          this.notifyListeners("deviceStatusUpdate", data);
+          if (store) {
+            store.dispatch({
+              type: "UPDATE_SINGLE_DEVICE_STATUS",
+              payload: {
+                deviceId: data.deviceId,
+                connectionStatus: data.connectionStatus,
+                connectionType: data.connectionType,
+                lastActivity: data.lastActivity,
+                ipAddress: data.ipAddress,
+                timestamp: Date.now(),
+              },
+            });
+          }
         }
-      }
-    }, 100);
+      },
+      100
+    );
 
-    registerEvent('AllDevicesStatus', (data) => {
+    registerEvent("AllDevicesStatus", (data) => {
       if (data) {
-        this.notifyListeners('allDevicesStatus', data);
+        this.notifyListeners("allDevicesStatus", data);
       }
     });
 
     // Fuel Import events
-    registerEvent('FuelImportProgress', (data) => {
-      if (data) {
-        this.notifyListeners('fuelImportProgress', data);
-        if (store) {
-          store.dispatch({
-            type: 'UPDATE_IMPORT_PROGRESS',
-            payload: data
-          });
+    registerEvent(
+      "FuelImportProgress",
+      (data) => {
+        if (data) {
+          this.notifyListeners("fuelImportProgress", data);
+          if (store) {
+            store.dispatch({
+              type: "UPDATE_IMPORT_PROGRESS",
+              payload: data,
+            });
+          }
         }
-      }
-    }, 100);
+      },
+      100
+    );
 
     // Upload Status events
-    registerEvent('UploadStatusUpdate', (data) => {
+    registerEvent("UploadStatusUpdate", (data) => {
       if (data?.deviceId && data?.status) {
-        this.notifyListeners('uploadStatusUpdate', data);
+        this.notifyListeners("uploadStatusUpdate", data);
         if (store) {
           store.dispatch({
-            type: 'RECEIVE_UPLOAD_STATUS_UPDATE',
-            payload: data
+            type: "RECEIVE_UPLOAD_STATUS_UPDATE",
+            payload: data,
           });
         }
       }
     });
 
     // Pump events with debouncing
-    registerEvent('NozzleStateChange', (data) => {
+    registerEvent("NozzleStateChange", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('nozzleStateChange', data);
+        this.notifyListeners("nozzleStateChange", data);
         if (store) {
           store.dispatch({
-            type: 'NOZZLE_STATE_CHANGE',
-            payload: data
+            type: "NOZZLE_STATE_CHANGE",
+            payload: data,
           });
         }
       }
     });
 
-    registerEvent('FillingStatus', (data) => {
+    registerEvent("FillingStatus", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('fillingStatus', data);
+        this.notifyListeners("fillingStatus", data);
         if (store) {
           store.dispatch({
-            type: 'FILLING_STATUS_UPDATE',
-            payload: data
+            type: "FILLING_STATUS_UPDATE",
+            payload: data,
           });
         }
       }
     });
 
-    registerEvent('PumpTransactionCompleted', (data) => {
+    registerEvent("PumpTransactionCompleted", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('pumpTransactionCompleted', data);
+        this.notifyListeners("pumpTransactionCompleted", data);
         if (store) {
           store.dispatch({
-            type: 'PUMP_TRANSACTION_COMPLETED',
-            payload: data
+            type: "PUMP_TRANSACTION_COMPLETED",
+            payload: data,
           });
         }
       }
     });
 
-    registerEvent('PumpOffline', (data) => {
+    registerEvent("PumpOffline", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('pumpOffline', data);
+        this.notifyListeners("pumpOffline", data);
         if (store) {
           store.dispatch({
-            type: 'PUMP_OFFLINE',
-            payload: data
+            type: "PUMP_OFFLINE",
+            payload: data,
           });
         }
       }
     });
 
     // RFID/Tag events
-    registerEvent('ReceiveRFIDTag', (data) => {
+    registerEvent("ReceiveRFIDTag", (data) => {
       if (data) {
-        this.notifyListeners('rfidTag', data);
+        this.notifyListeners("rfidTag", data);
         if (store) {
           store.dispatch({
-            type: 'TAG_ACTIONS.UPDATE_TAG_SUCCESS',
-            payload: data
+            type: "TAG_ACTIONS.UPDATE_TAG_SUCCESS",
+            payload: data,
           });
         }
       }
     });
 
-    registerEvent('UploadstatusTagRead', (data) => {
+    registerEvent("UploadstatusTagRead", (data) => {
       if (data) {
-        this.notifyListeners('uploadStatusTagRead', data);
+        this.notifyListeners("uploadStatusTagRead", data);
         if (store) {
           store.dispatch({
-            type: 'UPLOADSTATUS_TAG_READ',
-            payload: data
+            type: "UPLOADSTATUS_TAG_READ",
+            payload: data,
           });
         }
       }
     });
 
     // Probe and Reader events
-    registerEvent('ProbeStatusUpdate', (data) => {
+    registerEvent("ProbeStatusUpdate", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('probeStatusUpdate', data);
+        this.notifyListeners("probeStatusUpdate", data);
         if (store) {
           store.dispatch({
-            type: 'PROBE_STATUS_UPDATE',
-            payload: data
+            type: "PROBE_STATUS_UPDATE",
+            payload: data,
           });
         }
       }
     });
 
-    registerEvent('ReaderStatusUpdate', (data) => {
+    registerEvent("ReaderStatusUpdate", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('readerStatusUpdate', data);
+        this.notifyListeners("readerStatusUpdate", data);
         if (store) {
           store.dispatch({
-            type: 'READER_STATUS_UPDATE',
-            payload: data
+            type: "READER_STATUS_UPDATE",
+            payload: data,
           });
         }
       }
     });
 
     // Fueling events
-    registerEvent('FuelingEvent', (data) => {
+    registerEvent("FuelingEvent", (data) => {
       if (data?.deviceId) {
-        this.notifyListeners('fuelingEvent', data);
+        this.notifyListeners("fuelingEvent", data);
         if (store) {
           store.dispatch({
-            type: 'FUELING_EVENT_TYPES.ADD',
+            type: "FUELING_EVENT_TYPES.ADD",
             payload: {
               ...data,
               timestamp: new Date(),
-              id: `${data.type}-${Date.now()}`
-            }
+              id: `${data.type}-${Date.now()}`,
+            },
           });
         }
       }
     });
 
     // Error handling
-    registerEvent('Error', (error) => {
-      console.error('[PTS SignalR] Error received:', error);
-      this.notifyListeners('error', error);
-    }, 0); // No debounce for errors
+    registerEvent(
+      "Error",
+      (error) => {
+        console.error("[PTS SignalR] Error received:", error);
+        this.notifyListeners("error", error);
+      },
+      0
+    ); // No debounce for errors
   }
 
   /**
@@ -494,14 +556,14 @@ class PTSSignalRService {
    */
   async requestDeviceStatusSummary() {
     if (!this.connection || !this.isConnected) {
-      throw new Error('PTS SignalR connection not established');
+      throw new Error("PTS SignalR connection not established");
     }
 
     try {
-      await this.connection.invoke('RequestDeviceStatusSummary');
-      console.log('Requested device status summary');
+      await this.connection.invoke("RequestDeviceStatusSummary");
+      console.log("Requested device status summary");
     } catch (error) {
-      console.error('Failed to request device status summary:', error);
+      console.error("Failed to request device status summary:", error);
       throw error;
     }
   }
@@ -512,14 +574,14 @@ class PTSSignalRService {
    */
   async requestPTSDeviceList() {
     if (!this.connection || !this.isConnected) {
-      throw new Error('PTS SignalR connection not established');
+      throw new Error("PTS SignalR connection not established");
     }
 
     try {
-      await this.connection.invoke('BroadcastPTSDeviceList');
-      console.log('Requested PTS device list');
+      await this.connection.invoke("BroadcastPTSDeviceList");
+      console.log("Requested PTS device list");
     } catch (error) {
-      console.error('Failed to request PTS device list:', error);
+      console.error("Failed to request PTS device list:", error);
       throw error;
     }
   }
@@ -531,14 +593,14 @@ class PTSSignalRService {
    */
   async requestDeviceStatus(deviceId) {
     if (!this.connection || !this.isConnected) {
-      throw new Error('PTS SignalR connection not established');
+      throw new Error("PTS SignalR connection not established");
     }
 
     try {
-      await this.connection.invoke('RequestDeviceStatus', deviceId);
-      console.log('Requested device status for:', deviceId);
+      await this.connection.invoke("RequestDeviceStatus", deviceId);
+      console.log("Requested device status for:", deviceId);
     } catch (error) {
-      console.error('Failed to request device status:', error);
+      console.error("Failed to request device status:", error);
       throw error;
     }
   }
@@ -549,14 +611,14 @@ class PTSSignalRService {
    */
   async requestAllDevicesStatus() {
     if (!this.connection || !this.isConnected) {
-      throw new Error('PTS SignalR connection not established');
+      throw new Error("PTS SignalR connection not established");
     }
 
     try {
-      await this.connection.invoke('RequestAllDevicesStatus');
-      console.log('Requested all devices status');
+      await this.connection.invoke("RequestAllDevicesStatus");
+      console.log("Requested all devices status");
     } catch (error) {
-      console.error('Failed to request all devices status:', error);
+      console.error("Failed to request all devices status:", error);
       throw error;
     }
   }
@@ -572,21 +634,24 @@ class PTSSignalRService {
     this.healthCheckInterval = setInterval(async () => {
       if (this.connection?.state === HubConnectionState.Connected) {
         try {
-          const result = await this.connection.invoke('HealthCheck');
+          const result = await this.connection.invoke("HealthCheck");
           this.lastSuccessfulHealthCheck = new Date();
 
           // Request fresh device status if needed
           const timeSinceLastUpdate = Date.now() - (this.lastStatusUpdate || 0);
-          if (timeSinceLastUpdate > 30000) { // 30 seconds
+          if (timeSinceLastUpdate > 30000) {
+            // 30 seconds
             await this.requestDeviceStatusSummary();
             await this.requestAllDevicesStatus();
             this.lastStatusUpdate = Date.now();
           }
         } catch (error) {
-          console.error('[PTS SignalR] Health check failed:', error);
+          console.error("[PTS SignalR] Health check failed:", error);
           // Only attempt reconnect if we haven't had a successful health check recently
-          if (!this.lastSuccessfulHealthCheck ||
-              Date.now() - this.lastSuccessfulHealthCheck > 60000) {
+          if (
+            !this.lastSuccessfulHealthCheck ||
+            Date.now() - this.lastSuccessfulHealthCheck > 60000
+          ) {
             await this.refreshConnection();
           }
         }
@@ -599,7 +664,7 @@ class PTSSignalRService {
    * @returns {Promise<void>}
    */
   async refreshConnection() {
-    console.log('[PTS SignalR] Attempting to refresh connection...');
+    console.log("[PTS SignalR] Attempting to refresh connection...");
     if (this.connection) {
       try {
         if (this.connection.state === HubConnectionState.Connected) {
@@ -607,9 +672,9 @@ class PTSSignalRService {
         }
         await this.connection.start();
         await this.requestDeviceStatusSummary();
-        console.log('[PTS SignalR] Connection refreshed successfully');
+        console.log("[PTS SignalR] Connection refreshed successfully");
       } catch (error) {
-        console.error('[PTS SignalR] Error refreshing connection:', error);
+        console.error("[PTS SignalR] Error refreshing connection:", error);
         this.handleConnectionError(error);
       }
     }
@@ -621,16 +686,16 @@ class PTSSignalRService {
    */
   async healthCheck() {
     if (!this.connection || !this.isConnected) {
-      throw new Error('PTS SignalR connection not established');
+      throw new Error("PTS SignalR connection not established");
     }
 
     try {
-      const result = await this.connection.invoke('HealthCheck');
-      console.log('[PTS SignalR] Health check result:', result);
+      const result = await this.connection.invoke("HealthCheck");
+      console.log("[PTS SignalR] Health check result:", result);
       this.lastSuccessfulHealthCheck = new Date();
       return result;
     } catch (error) {
-      console.error('[PTS SignalR] Health check failed:', error);
+      console.error("[PTS SignalR] Health check failed:", error);
       throw error;
     }
   }
@@ -666,7 +731,7 @@ class PTSSignalRService {
   notifyListeners(event, ...args) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.forEach(callback => {
+      eventListeners.forEach((callback) => {
         try {
           callback(...args);
         } catch (error) {

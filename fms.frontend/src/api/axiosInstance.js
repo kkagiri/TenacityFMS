@@ -1,43 +1,160 @@
 import axios from "axios";
-// Resolve API URL from multiple env vars with sensible fallbacks
-const getApiUrl = () => {
-  const candidates = [
+
+const HEALTH_CHECK_PATH = "v1/Health";
+const PROBE_TIMEOUT_MS = 4000;
+
+const getWindowOrigin = () =>
+  typeof window !== "undefined" && window.location
+    ? window.location.origin
+    : "";
+
+const normalizeUrl = (url) => {
+  if (!url) {
+    return null;
+  }
+
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+};
+
+const buildCandidateList = () => {
+  const envCandidates = [
+    process.env.REACT_APP_PRIVATE_FMS_API_URL,
     process.env.REACT_APP_API_URL,
     process.env.REACT_APP_FMS_API_URL,
-    process.env.REACT_APP_PUBLIC_FMS_API_URL,
     process.env.REACT_APP_FMS_API_URL_DEV,
     process.env.REACT_APP_FMS_API_URL_PROD,
-  ].filter(Boolean);
+    process.env.REACT_APP_PUBLIC_FMS_API_URL,
+  ]
+    .filter(Boolean)
+    .map(normalizeUrl)
+    .filter(Boolean);
 
-  let apiUrl = candidates[0];
+  const fallback = normalizeUrl(`${getWindowOrigin()}/api`);
+  const combined = fallback ? [...envCandidates, fallback] : [...envCandidates];
 
-  if (!apiUrl) {
-    const fallback = `${window.location.origin}/api`;
-    console.warn(
-      `API base URL not configured via env. Falling back to ${fallback}. Set REACT_APP_API_URL in .env.`
-    );
-    return fallback;
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("Environment:", process.env.NODE_ENV);
-    console.log("Resolved API URL:", apiUrl);
-  }
-
-  // Ensure trailing slash so relative URLs join as /api/route
-  if (apiUrl && !apiUrl.endsWith('/')) {
-    apiUrl = apiUrl + '/';
-  }
-
-  return apiUrl;
+  // Deduplicate while preserving order
+  return combined.filter((value, index) => combined.indexOf(value) === index);
 };
+
+let cachedApiBaseUrl = null;
+let defaultApiBaseUrl = null;
+let resolvePromise = null;
+
+const ensureDefaultApiUrl = () => {
+  if (!defaultApiBaseUrl) {
+    const candidates = buildCandidateList();
+    defaultApiBaseUrl =
+      candidates[0] || normalizeUrl("http://localhost:7009/api");
+
+    if (!defaultApiBaseUrl) {
+      defaultApiBaseUrl = "http://localhost:7009/api/";
+    }
+  }
+
+  return defaultApiBaseUrl;
+};
+
+const getApiUrl = () => cachedApiBaseUrl || ensureDefaultApiUrl();
+
+const probeCandidate = async (baseUrl) => {
+  if (typeof fetch !== "function") {
+    return false;
+  }
+
+  const controller =
+    typeof AbortController !== "undefined" ? new AbortController() : null;
+  let timeoutId;
+
+  try {
+    if (controller) {
+      timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+    }
+
+    const healthEndpoint = `${baseUrl}${HEALTH_CHECK_PATH}`;
+    const response = await fetch(healthEndpoint, {
+      method: "GET",
+      mode: "cors",
+      credentials: "omit",
+      signal: controller?.signal,
+    });
+
+    return response.ok;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[Axios] Probe failed for ${baseUrl}`, error);
+    }
+    return false;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
+export const resolveApiBaseUrl = async (forceRefresh = false) => {
+  if (cachedApiBaseUrl && !forceRefresh) {
+    return cachedApiBaseUrl;
+  }
+
+  if (resolvePromise) {
+    return resolvePromise;
+  }
+
+  const candidates = buildCandidateList();
+
+  const attemptResolve = async () => {
+    for (const candidate of candidates) {
+      if (!candidate) {
+        continue;
+      }
+
+      const reachable = await probeCandidate(candidate);
+      if (reachable) {
+        cachedApiBaseUrl = candidate;
+        break;
+      }
+    }
+
+    if (!cachedApiBaseUrl) {
+      cachedApiBaseUrl = ensureDefaultApiUrl();
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          `[Axios] Falling back to default API URL ${cachedApiBaseUrl}. Check connectivity to preferred endpoints.`
+        );
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.__FMS_API_BASE_URL__ = cachedApiBaseUrl;
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[Axios] Resolved API base URL: ${cachedApiBaseUrl}`);
+    }
+
+    return cachedApiBaseUrl;
+  };
+
+  resolvePromise = attemptResolve().finally(() => {
+    resolvePromise = null;
+  });
+
+  return resolvePromise;
+};
+
+export const getResolvedApiBaseUrlSync = () => cachedApiBaseUrl;
 
 // Create axios instance with dynamic baseURL
 const axiosInstance = axios.create({
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    Accept: "application/json",
     "API-Version": "v1", // Default to v1 for all requests
   },
   timeout: 30000, // 30 second timeout - restored for debugging
@@ -50,12 +167,14 @@ axiosInstance.interceptors.request.use(
     config.baseURL = getApiUrl();
 
     // Handle API versioning - auto-prepend v1 if not already in URL
-    if (config.url && !config.url.includes('/api/v')) {
+    if (config.url && !config.url.includes("/api/v")) {
       // If URL starts with just controller name (e.g., 'tankstock/openingstock')
       // prepend v1 to make it 'v1/tankstock/openingstock'
-      if (!config.url.startsWith('api/')) {
+      if (!config.url.startsWith("api/")) {
         // Remove leading slash if present to avoid double slash
-        const cleanUrl = config.url.startsWith('/') ? config.url.slice(1) : config.url;
+        const cleanUrl = config.url.startsWith("/")
+          ? config.url.slice(1)
+          : config.url;
         config.url = `v1/${cleanUrl}`;
       }
     }
@@ -67,15 +186,15 @@ axiosInstance.interceptors.request.use(
     }
 
     // Ensure API-Version header is set (can be overridden per request)
-    if (!config.headers['API-Version']) {
-      config.headers['API-Version'] = 'v1';
+    if (!config.headers["API-Version"]) {
+      config.headers["API-Version"] = "v1";
     }
 
     if (process.env.NODE_ENV === "development") {
       console.log(`Making request to: ${config.baseURL}${config.url}`);
-      console.log('Request headers:', config.headers);
-      console.log('Request method:', config.method);
-      console.log('Request data:', config.data);
+      console.log("Request headers:", config.headers);
+      console.log("Request method:", config.method);
+      console.log("Request data:", config.data);
     }
 
     return config;
@@ -92,17 +211,23 @@ axiosInstance.interceptors.response.use(
       console.log(`Response from ${response.config.url}:`, {
         status: response.status,
         statusText: response.statusText,
-        baseURL: response.config.baseURL
+        baseURL: response.config.baseURL,
       });
     }
     return response;
   },
   (error) => {
     // Handle network errors (often CORS related)
-    if (error.code === 'ECONNABORTED') {
-      console.error("Request timeout - server may be slow or unreachable. Consider checking server status:", error);
+    if (error.code === "ECONNABORTED") {
+      console.error(
+        "Request timeout - server may be slow or unreachable. Consider checking server status:",
+        error
+      );
     } else if (error.message === "Network Error") {
-      console.error("Network error - check CORS configuration or server connection:", error);
+      console.error(
+        "Network error - check CORS configuration or server connection:",
+        error
+      );
     }
 
     // Log error responses
@@ -111,7 +236,7 @@ axiosInstance.interceptors.response.use(
         status: error.response.status,
         statusText: error.response.statusText,
         data: error.response.data,
-        baseURL: error.config?.baseURL
+        baseURL: error.config?.baseURL,
       });
 
       // Handle authentication errors
@@ -135,7 +260,7 @@ axiosInstance.interceptors.response.use(
       console.error("No response received from server:", {
         baseURL: error.config?.baseURL,
         url: error.config?.url,
-        method: error.config?.method
+        method: error.config?.method,
       });
     }
 
@@ -144,10 +269,11 @@ axiosInstance.interceptors.response.use(
 );
 // Initialize function for App.js compatibility
 export const initializeAxiosInstance = async () => {
-  axiosInstance.defaults.baseURL = getApiUrl();
+  const resolvedBase = await resolveApiBaseUrl();
+  axiosInstance.defaults.baseURL = resolvedBase;
 
   if (process.env.NODE_ENV === "development") {
-    console.log("Axios instance initialized with baseURL:", axiosInstance.defaults.baseURL);
+    console.log("Axios instance initialized with baseURL:", resolvedBase);
   }
 };
 export default axiosInstance;
