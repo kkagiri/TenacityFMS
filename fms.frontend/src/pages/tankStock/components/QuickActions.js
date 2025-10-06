@@ -1,70 +1,101 @@
-import React, { useState, useCallback } from 'react';
-import { useSelector } from 'react-redux';
-import { DropDownButton } from 'devextreme-react/drop-down-button';
-import { Popup } from 'devextreme-react/popup';
-import notify from 'devextreme/ui/notify';
+/**
+ * File: QuickActions.js
+ * Purpose: Provide a centralized launcher for tank stock management forms, coordinating popup state and shared datasets.
+ * Dependencies: React, Redux Toolkit, DevExtreme DropDownButton/Popup, tankActions, siteActions
+ * Last Modified: 2025-10-06
+ *
+ * Key Functions/Components:
+ * - QuickActions: Hosts the stock management dropdown and ensures forms receive preloaded site/tank data
+ * - handleStockSubmit: Standardizes success handling across forms
+ * - renderPopup: Renders the active form within a shared popup wrapper
+ */
+import React, { useState, useCallback, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { DropDownButton } from "devextreme-react/drop-down-button";
+import { Popup } from "devextreme-react/popup";
+import notify from "devextreme/ui/notify";
 // import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
-import './QuickActions.scss';
+import "./QuickActions.scss";
 
 // Form imports
-import OpeningStockForm from '../forms/OpeningStockForm';
-import ClosingStockForm from '../forms/ClosingStockForm';
-import TankDeliveryForm from '../forms/TankDeliveryForm';
-import TankTransferForm from '../forms/TankTransferForm';
-import ManualRefillForm from '../forms/ManualRefillForm';
+import OpeningStockForm from "../forms/OpeningStockForm";
+import ClosingStockForm from "../forms/ClosingStockForm";
+import TankDeliveryForm from "../forms/TankDeliveryForm";
+import TankTransferForm from "../forms/TankTransferForm";
+import ManualRefillForm from "../forms/ManualRefillForm";
 
 // API actions
 // Note: Forms handle their own dispatching. QuickActions only coordinates UI.
+import { fetchSiteList } from "../../../redux/actions/siteActions";
+import { fetchTanks } from "../../../redux/actions/tankActions";
 
 const POPUP_CONFIG = {
   openingStock: {
     title: "Opening Stock",
     Form: OpeningStockForm,
     width: "90%",
-  maxWidth: "650px",
-  // Use viewport-relative height to allow internal scrolling
-  maxHeight: "80vh",
+    maxWidth: "650px",
+    // Use viewport-relative height to allow internal scrolling
+    maxHeight: "80vh",
     height: "auto",
   },
   closingStock: {
     title: "Closing Stock",
     Form: ClosingStockForm,
     width: "90%",
-  maxWidth: "600px",
-  maxHeight: "80vh",
+    maxWidth: "600px",
+    maxHeight: "80vh",
     height: "auto",
   },
   delivery: {
     title: "Delivery",
     Form: TankDeliveryForm,
-  width: "95%",
-  maxWidth: "1000px",
-  maxHeight: "80vh",
+    width: "95%",
+    maxWidth: "1000px",
+    maxHeight: "80vh",
     height: "auto",
   },
   transfer: {
     title: "Transfer",
     Form: TankTransferForm,
     width: "90%",
-  maxWidth: "800px",
-  maxHeight: "80vh",
+    maxWidth: "800px",
+    maxHeight: "80vh",
     height: "auto",
   },
   manualRefill: {
     title: "Manual Refill",
     Form: ManualRefillForm,
     width: "90%",
-  maxWidth: "700px",
-  maxHeight: "85vh",
+    maxWidth: "700px",
+    maxHeight: "85vh",
 
     height: "auto",
-  }
+  },
 };
 
 const QuickActions = ({ collapsed = false, onRefreshData }) => {
-  // const dispatch = useDispatch();
-  const sites = useSelector((state) => state.site.sites);
+  const dispatch = useDispatch();
+  const sitesState = useSelector((state) => state.site.sites || []);
+  const sitesLoading = useSelector((state) => state.site.loading);
+  const tanksState = useSelector((state) => state.tank.tanks || []);
+  const tanksLoading = useSelector((state) => state.tank.loading);
   const user = useSelector((state) => state.auth.user);
+
+  const sites = sitesState || [];
+  const tanks = tanksState || [];
+
+  useEffect(() => {
+    if (sites.length === 0) {
+      dispatch(fetchSiteList());
+    }
+  }, [dispatch, sites.length]);
+
+  useEffect(() => {
+    if (tanks.length === 0) {
+      dispatch(fetchTanks());
+    }
+  }, [dispatch, tanks.length]);
 
   const [popupVisibility, setPopupVisibility] = useState({
     openingStock: false,
@@ -108,20 +139,17 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
       text: "Manual Refill",
       icon: "fa-light fa-book",
       type: "normal",
-    }
+    },
   ];
-
-
-
 
   const handleStockManagementClick = useCallback((e) => {
     const actionKey = e.itemData.key;
     setCurrentForm(actionKey);
-    setPopupVisibility(prev => ({ ...prev, [actionKey]: true }));
+    setPopupVisibility((prev) => ({ ...prev, [actionKey]: true }));
   }, []);
 
   const handlePopupVisibility = useCallback((popupName, isVisible) => {
-    setPopupVisibility(prev => ({ ...prev, [popupName]: isVisible }));
+    setPopupVisibility((prev) => ({ ...prev, [popupName]: isVisible }));
     if (!isVisible) {
       setCurrentForm(null);
       setPrefilledFormData(null); // Clear prefilled data when closing
@@ -129,65 +157,83 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
   }, []);
 
   // Forms dispatch themselves; onSubmit here means success -> close & refresh
-  const handleStockSubmit = useCallback((formData, actionType) => {
-    // Close popup on success
-    handlePopupVisibility(currentForm, false);
-    // Optional toast
-    const actionTypeDisplay = actionType && typeof actionType === 'string'
-      ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
-      : 'Stock';
+  const handleStockSubmit = useCallback(
+    (formData, actionType) => {
+      // Close popup on success
+      handlePopupVisibility(currentForm, false);
+      // Optional toast
+      const actionTypeDisplay =
+        actionType && typeof actionType === "string"
+          ? actionType.charAt(0).toUpperCase() + actionType.slice(1)
+          : "Stock";
 
-    // Special message for closing stock created from opening stock validation
-    let message = `${actionTypeDisplay} saved`;
-    if (prefilledFormData?.reason && actionType === 'closing') {
-      message = 'Required closing stock created successfully. You can now create your opening stock.';
-    }
+      // Special message for closing stock created from opening stock validation
+      let message = `${actionTypeDisplay} saved`;
+      if (prefilledFormData?.reason && actionType === "closing") {
+        message =
+          "Required closing stock created successfully. You can now create your opening stock.";
+      }
 
-    notify({ message, type: 'success', displayTime: 3000 });
-    // Refresh parent data if provided
-    if (onRefreshData) onRefreshData();
-  }, [currentForm, onRefreshData, handlePopupVisibility, prefilledFormData]);
+      notify({ message, type: "success", displayTime: 3000 });
+      // Refresh parent data if provided
+      if (onRefreshData) onRefreshData();
+    },
+    [currentForm, onRefreshData, handlePopupVisibility, prefilledFormData]
+  );
 
-  const handleOpeningStockSubmit = useCallback((formData) =>
-    handleStockSubmit(formData, 'opening'), [handleStockSubmit]);
+  const handleOpeningStockSubmit = useCallback(
+    (formData) => handleStockSubmit(formData, "opening"),
+    [handleStockSubmit]
+  );
 
-  const handleClosingStockSubmit = useCallback((formData) =>
-    handleStockSubmit(formData, 'closing'), [handleStockSubmit]);
+  const handleClosingStockSubmit = useCallback(
+    (formData) => handleStockSubmit(formData, "closing"),
+    [handleStockSubmit]
+  );
 
-  const handleDeliverySubmit = useCallback((formData) =>
-    handleStockSubmit(formData, 'delivery'), [handleStockSubmit]);
+  const handleDeliverySubmit = useCallback(
+    (formData) => handleStockSubmit(formData, "delivery"),
+    [handleStockSubmit]
+  );
 
-  const handleTransferSubmit = useCallback((formData) =>
-    handleStockSubmit(formData, 'transfer'), [handleStockSubmit]);
+  const handleTransferSubmit = useCallback(
+    (formData) => handleStockSubmit(formData, "transfer"),
+    [handleStockSubmit]
+  );
 
-  const handleManualRefillSubmit = useCallback((formData) =>
-    handleStockSubmit(formData, 'manualRefill'), [handleStockSubmit]);
+  const handleManualRefillSubmit = useCallback(
+    (formData) => handleStockSubmit(formData, "manualRefill"),
+    [handleStockSubmit]
+  );
 
   // Enhanced cancel handler to support form navigation
-  const handleFormCancel = useCallback((action, actionData) => {
-    if (action === 'create-closing-stock' && actionData) {
-      // Close current form and open closing stock form with pre-filled data
-      handlePopupVisibility(currentForm, false);
+  const handleFormCancel = useCallback(
+    (action, actionData) => {
+      if (action === "create-closing-stock" && actionData) {
+        // Close current form and open closing stock form with pre-filled data
+        handlePopupVisibility(currentForm, false);
 
-      // Set form data for closing stock
-      setPrefilledFormData(actionData);
-      setCurrentForm('closingStock');
-      setPopupVisibility(prev => ({ ...prev, closingStock: true }));
+        // Set form data for closing stock
+        setPrefilledFormData(actionData);
+        setCurrentForm("closingStock");
+        setPopupVisibility((prev) => ({ ...prev, closingStock: true }));
 
-      // Show notification about the transition
-      if (actionData.reason) {
-        notify({
-          message: 'Opening closing stock form with required information.',
-          type: 'info',
-          displayTime: 3000
-        });
+        // Show notification about the transition
+        if (actionData.reason) {
+          notify({
+            message: "Opening closing stock form with required information.",
+            type: "info",
+            displayTime: 3000,
+          });
+        }
+      } else {
+        // Normal cancel - just close the popup
+        setPrefilledFormData(null);
+        handlePopupVisibility(currentForm, false);
       }
-    } else {
-      // Normal cancel - just close the popup
-      setPrefilledFormData(null);
-      handlePopupVisibility(currentForm, false);
-    }
-  }, [currentForm, handlePopupVisibility]);
+    },
+    [currentForm, handlePopupVisibility]
+  );
 
   const renderPopup = () => {
     if (!currentForm) return null;
@@ -197,19 +243,19 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
 
     let submitHandler;
     switch (currentForm) {
-      case 'openingStock':
+      case "openingStock":
         submitHandler = handleOpeningStockSubmit;
         break;
-      case 'closingStock':
+      case "closingStock":
         submitHandler = handleClosingStockSubmit;
         break;
-      case 'delivery':
+      case "delivery":
         submitHandler = handleDeliverySubmit;
         break;
-      case 'transfer':
+      case "transfer":
         submitHandler = handleTransferSubmit;
         break;
-      case 'manualRefill':
+      case "manualRefill":
         submitHandler = handleManualRefillSubmit;
         break;
       default:
@@ -223,23 +269,26 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         title={config.title}
         width={config.width}
         maxWidth={config.maxWidth}
-  maxHeight={config.maxHeight}
+        maxHeight={config.maxHeight}
         height={config.height}
         showCloseButton={true}
         dragEnabled={true}
         resizeEnabled={false}
-        position={{ my: 'center', at: 'center', of: window }}
+        position={{ my: "center", at: "center", of: window }}
         wrapperAttr={{
-          class: 'stock-management-popup'
+          class: "stock-management-popup",
         }}
       >
         <FormComponent
           onSubmit={submitHandler}
-          isLoading={false}
+          isLoading={sitesLoading || tanksLoading}
           sites={sites}
+          tanks={tanks}
           user={user}
           onCancel={handleFormCancel}
-          prefilledData={currentForm === 'closingStock' ? prefilledFormData : undefined}
+          prefilledData={
+            currentForm === "closingStock" ? prefilledFormData : undefined
+          }
         />
       </Popup>
     );
@@ -259,7 +308,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
           useSelectMode={false}
           stylingMode="outlined"
           elementAttr={{
-            title: "Stock Management Actions"
+            title: "Stock Management Actions",
           }}
         />
         {renderPopup()}
@@ -282,7 +331,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         stylingMode="contained"
         type="default"
         elementAttr={{
-          title: 'Stock Management Actions'
+          title: "Stock Management Actions",
         }}
       />
       {renderPopup()}

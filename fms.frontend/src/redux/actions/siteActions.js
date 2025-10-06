@@ -75,15 +75,40 @@ export const deleteSiteFailure = (error) => ({
 });
 
 // Thunk actions
+const ensureArray = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  if (payload && Array.isArray(payload.Data)) {
+    return payload.Data;
+  }
+
+  console.warn("[siteActions] Unexpected sites payload shape", payload);
+  return [];
+};
+
 export const fetchSiteList = () => async (dispatch) => {
   try {
     dispatch(fetchSitesRequest());
-  const response = await axiosInstance.get(`/site`); // NEW: GET /api/site
-    dispatch(fetchSitesSuccess(response.data));
-    return { success: true, data: response.data };
+    const response = await axiosInstance.get(`/site`); // NEW: GET /api/site
+
+    const sitesData = ensureArray(response.data);
+    console.log("[siteActions] Fetched sites:", sitesData);
+
+    dispatch(fetchSitesSuccess(sitesData));
+    return { success: true, data: sitesData };
   } catch (error) {
+    console.error("[siteActions] Error fetching sites:", error);
     dispatch(fetchSitesFailure(error.response?.data?.message || error.message));
-    return { success: false, message: error.response?.data?.message || error.message };
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message,
+    };
   }
 };
 
@@ -98,9 +123,19 @@ export const fetchSitebyUserId = () => async (dispatch) => {
       // fallback legacy route during transition
       response = await axiosInstance.get(`/site/getsitebyuserid`);
     }
-    dispatch(fetchSitesSuccess(response.data));
+
+    const sitesData = ensureArray(response.data);
+    console.log("[siteActions] Fetched user sites:", sitesData);
+
+    dispatch(fetchSitesSuccess(sitesData));
+    return { success: true, data: sitesData };
   } catch (error) {
+    console.error("[siteActions] Error fetching user sites:", error);
     dispatch(fetchSitesFailure(error.response?.data?.message || error.message));
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message,
+    };
   }
 };
 
@@ -141,7 +176,7 @@ export const createSite = (siteData) => async (dispatch) => {
     return {
       success: false,
       message: errorMessage,
-      validationErrors: validationErrors
+      validationErrors: validationErrors,
     };
   }
 };
@@ -166,7 +201,7 @@ export const updateSite = (siteId, siteData) => async (dispatch) => {
     return {
       success: false,
       message: errorMessage,
-      validationErrors: validationErrors
+      validationErrors: validationErrors,
     };
   }
 };
@@ -190,7 +225,7 @@ export const deleteSite = (siteId) => async (dispatch) => {
     return {
       success: false,
       message: errorMessage,
-      validationErrors: validationErrors
+      validationErrors: validationErrors,
     };
   }
 };

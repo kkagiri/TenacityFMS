@@ -1,8 +1,8 @@
 // SignalR Connection Manager
 // Manages which SignalR services are active based on current route/module
 
-import ptsSignalRService from './ptsSignalRService';
-import dashboardSignalRService from './dashboardSignalRService';
+import ptsSignalRService from "./ptsSignalRService";
+import dashboardSignalRService from "./dashboardSignalRService";
 
 /**
  * Route patterns for different modules
@@ -12,11 +12,10 @@ const ROUTE_PATTERNS = {
     /^\/home$/,
     /^\/dashboard/,
     /\/dashboard$/,
-    /^\/$/,  // Root often goes to dashboard
-    /^\/notifications/,  // Notifications typically show on dashboard
-    /^\/issue-tracker/,  // Issue tracking often needs dashboard updates
-    /^\/active-alarms/,  // Active alarms are dashboard-centric
-    // /^\/tankstock/       // Tank stock monitoring uses dashboard features
+    /^\/$/, // Root often goes to dashboard
+    /^\/notifications/, // Notifications typically show on dashboard
+    /^\/issue-tracker/, // Issue tracking often needs dashboard updates
+    /^\/active-alarms/, // Active alarms are dashboard-centric
   ],
   PTS: [
     /^\/pts/,
@@ -27,21 +26,23 @@ const ROUTE_PATTERNS = {
     /^\/tag/,
     /^\/probe/,
     /^\/reader/,
-    /^\/fueling/,        // Fueling process needs PTS data
-    /^\/atg/,            // ATG is part of PTS system
-    /^\/vehicles/        // Vehicle management might need PTS device data
+    /^\/fueling/, // Fueling process needs PTS data
+    /^\/atg/, // ATG is part of PTS system
   ],
-  REPORTS: [
-    /^\/reports/,
-    /^\/analytics/
+  // Routes that DON'T need any SignalR connection
+  NO_SIGNALR: [
+    /^\/tankstock/, // Tank stock forms and management (static data only)
+    /^\/stock/, // Stock management pages
+    /^\/vehicles/, // Vehicle management (static data)
+    /^\/employees/, // Employee management
+    /^\/site/, // Site management
+    /^\/user/, // User management
+    /^\/roles/, // Role management
+    /^\/permissions/, // Permission management
+    /^\/navigation/, // Navigation management
   ],
-  ADMIN: [
-    /^\/admin/,
-    /^\/users/,
-    /^\/roles/,
-    /^\/permissions/,
-    /^\/system/
-  ]
+  REPORTS: [/^\/reports/, /^\/analytics/],
+  ADMIN: [/^\/admin/],
 };
 
 /**
@@ -61,7 +62,7 @@ class SignalRConnectionManager {
    * @param {string} initialPath - Initial route path
    */
   async initialize(initialPath = window.location.pathname) {
-    console.log('[SignalRManager] Initializing with path:', initialPath);
+    console.log("[SignalRManager] Initializing with path:", initialPath);
     this.isInitialized = true;
     await this.handleRouteChange(initialPath);
   }
@@ -72,11 +73,16 @@ class SignalRConnectionManager {
    */
   async handleRouteChange(newPath) {
     if (!this.isInitialized) {
-      console.warn('[SignalRManager] Not initialized yet');
+      console.warn("[SignalRManager] Not initialized yet");
       return;
     }
 
-    console.log('[SignalRManager] Route changed from', this.currentPath, 'to', newPath);
+    console.log(
+      "[SignalRManager] Route changed from",
+      this.currentPath,
+      "to",
+      newPath
+    );
     this.currentPath = newPath;
 
     const requiredServices = this.getRequiredServices(newPath);
@@ -98,10 +104,14 @@ class SignalRConnectionManager {
     }
 
     // Stop unnecessary services
-    await Promise.all(servicesToStop.map(service => this.stopService(service)));
+    await Promise.all(
+      servicesToStop.map((service) => this.stopService(service))
+    );
 
     // Start required services
-    await Promise.all(servicesToStart.map(service => this.startService(service)));
+    await Promise.all(
+      servicesToStart.map((service) => this.startService(service))
+    );
   }
 
   /**
@@ -112,30 +122,52 @@ class SignalRConnectionManager {
   getRequiredServices(path) {
     const services = new Set();
 
+    // First, check if this route explicitly DOESN'T need SignalR
+    if (this.matchesPattern(path, ROUTE_PATTERNS.NO_SIGNALR)) {
+      console.log(
+        "[SignalRManager] Route",
+        path,
+        "doesn't require SignalR connections"
+      );
+      return services; // Return empty set
+    }
+
     // Check if path matches dashboard patterns
     if (this.matchesPattern(path, ROUTE_PATTERNS.DASHBOARD)) {
-      services.add('dashboard');
+      services.add("dashboard");
     }
 
     // Check if path matches PTS patterns
     if (this.matchesPattern(path, ROUTE_PATTERNS.PTS)) {
-      services.add('pts');
+      services.add("pts");
     }
 
     // Admin and Reports might need both services
-    if (this.matchesPattern(path, ROUTE_PATTERNS.ADMIN) ||
-        this.matchesPattern(path, ROUTE_PATTERNS.REPORTS)) {
-      services.add('dashboard');
-      services.add('pts');
+    if (
+      this.matchesPattern(path, ROUTE_PATTERNS.ADMIN) ||
+      this.matchesPattern(path, ROUTE_PATTERNS.REPORTS)
+    ) {
+      services.add("dashboard");
+      services.add("pts");
     }
 
-    // If no specific match, default to dashboard
-    if (services.size === 0) {
-      console.log('[SignalRManager] No specific route match, defaulting to dashboard');
-      services.add('dashboard');
+    // Only default to dashboard if on root path or truly unknown route
+    if (services.size === 0 && (path === "/" || path === "/home")) {
+      console.log("[SignalRManager] Root/Home path, connecting to dashboard");
+      services.add("dashboard");
+    } else if (services.size === 0) {
+      console.log(
+        "[SignalRManager] No SignalR services required for path:",
+        path
+      );
     }
 
-    console.log('[SignalRManager] Required services for', path, ':', Array.from(services));
+    console.log(
+      "[SignalRManager] Required services for",
+      path,
+      ":",
+      Array.from(services)
+    );
     return services;
   }
 
@@ -147,10 +179,13 @@ class SignalRConnectionManager {
    */
   matchesPattern(path, patterns) {
     if (!patterns || !Array.isArray(patterns)) {
-      console.warn('[SignalRManager] Invalid patterns provided to matchesPattern:', patterns);
+      console.warn(
+        "[SignalRManager] Invalid patterns provided to matchesPattern:",
+        patterns
+      );
       return false;
     }
-    return patterns.some(pattern => pattern.test(path));
+    return patterns.some((pattern) => pattern.test(path));
   }
 
   /**
@@ -160,7 +195,9 @@ class SignalRConnectionManager {
   async startService(serviceName) {
     // Prevent duplicate start attempts
     if (this.connectionPromises.has(serviceName)) {
-      console.log(`[SignalRManager] Service ${serviceName} is already starting`);
+      console.log(
+        `[SignalRManager] Service ${serviceName} is already starting`
+      );
       return this.connectionPromises.get(serviceName);
     }
 
@@ -169,10 +206,10 @@ class SignalRConnectionManager {
     let promise;
     try {
       switch (serviceName) {
-        case 'dashboard':
+        case "dashboard":
           promise = dashboardSignalRService.start();
           break;
-        case 'pts':
+        case "pts":
           promise = ptsSignalRService.start();
           break;
         default:
@@ -183,13 +220,17 @@ class SignalRConnectionManager {
       this.connectionPromises.set(serviceName, promise);
       await promise;
       this.activeServices.add(serviceName);
-      console.log(`[SignalRManager] ${serviceName} service started successfully`);
+      console.log(
+        `[SignalRManager] ${serviceName} service started successfully`
+      );
 
       // Request initial data after connection
       await this.requestInitialData(serviceName);
-
     } catch (error) {
-      console.error(`[SignalRManager] Failed to start ${serviceName} service:`, error);
+      console.error(
+        `[SignalRManager] Failed to start ${serviceName} service:`,
+        error
+      );
     } finally {
       this.connectionPromises.delete(serviceName);
     }
@@ -208,10 +249,10 @@ class SignalRConnectionManager {
 
     try {
       switch (serviceName) {
-        case 'dashboard':
+        case "dashboard":
           await dashboardSignalRService.stop();
           break;
-        case 'pts':
+        case "pts":
           await ptsSignalRService.stop();
           break;
         default:
@@ -221,7 +262,10 @@ class SignalRConnectionManager {
       this.activeServices.delete(serviceName);
       console.log(`[SignalRManager] ${serviceName} service stopped`);
     } catch (error) {
-      console.error(`[SignalRManager] Error stopping ${serviceName} service:`, error);
+      console.error(
+        `[SignalRManager] Error stopping ${serviceName} service:`,
+        error
+      );
     }
   }
 
@@ -232,14 +276,14 @@ class SignalRConnectionManager {
   async requestInitialData(serviceName) {
     try {
       switch (serviceName) {
-        case 'dashboard':
+        case "dashboard":
           // Request dashboard initial data
           if (dashboardSignalRService.getConnectionStatus()) {
             await dashboardSignalRService.requestDashboardMetrics();
             // Note: RequestKeyStatistics removed as it's not implemented on server
           }
           break;
-        case 'pts':
+        case "pts":
           // Request PTS initial data
           if (ptsSignalRService.getConnectionStatus()) {
             await ptsSignalRService.requestDeviceStatusSummary();
@@ -247,11 +291,16 @@ class SignalRConnectionManager {
           }
           break;
         default:
-          console.warn(`[SignalRManager] Unknown service for initial data request: ${serviceName}`);
+          console.warn(
+            `[SignalRManager] Unknown service for initial data request: ${serviceName}`
+          );
           break;
       }
     } catch (error) {
-      console.error(`[SignalRManager] Error requesting initial data for ${serviceName}:`, error);
+      console.error(
+        `[SignalRManager] Error requesting initial data for ${serviceName}:`,
+        error
+      );
     }
   }
 
@@ -259,8 +308,8 @@ class SignalRConnectionManager {
    * Stop all active services
    */
   async stopAll() {
-    console.log('[SignalRManager] Stopping all services');
-    const stopPromises = Array.from(this.activeServices).map(service =>
+    console.log("[SignalRManager] Stopping all services");
+    const stopPromises = Array.from(this.activeServices).map((service) =>
       this.stopService(service)
     );
     await Promise.all(stopPromises);
@@ -276,7 +325,7 @@ class SignalRConnectionManager {
       currentPath: this.currentPath,
       activeServices: Array.from(this.activeServices),
       dashboardConnected: dashboardSignalRService.getConnectionStatus(),
-      ptsConnected: ptsSignalRService.getConnectionStatus()
+      ptsConnected: ptsSignalRService.getConnectionStatus(),
     };
   }
 
@@ -299,7 +348,9 @@ class SignalRConnectionManager {
    * @returns {boolean}
    */
   shouldServiceBeActive(serviceName) {
-    const requiredServices = this.getRequiredServices(this.currentPath || window.location.pathname);
+    const requiredServices = this.getRequiredServices(
+      this.currentPath || window.location.pathname
+    );
     return requiredServices.has(serviceName);
   }
 }

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import * as signalR from "@microsoft/signalr";
-import signalRService, {
+import ptsSignalRService, {
   ConnectionState,
   SignalRError,
-} from '../SignalRService';
+} from "../ptsSignalRService";
 
 /**
  * Custom hook to handle real-time status updates via SignalR
@@ -36,17 +36,17 @@ export const useSignalR = () => {
     };
 
     // Subscribe to connection state changes
-    signalRService.onStateChange = handleConnectionStateChange;
-    signalRService.onError = handleError;
+    ptsSignalRService.onStateChange = handleConnectionStateChange;
+    ptsSignalRService.onError = handleError;
 
     // Cleanup on unmount
     return () => {
       if (updateInterval) {
         clearInterval(updateInterval);
       }
-      signalRService.stopConnection();
-      signalRService.onStateChange = null;
-      signalRService.onError = null;
+      ptsSignalRService.stop();
+      ptsSignalRService.onStateChange = null;
+      ptsSignalRService.onError = null;
     };
   }, [updateInterval]);
 
@@ -54,7 +54,7 @@ export const useSignalR = () => {
   const startConnection = useCallback(async () => {
     try {
       setError(null);
-      await signalRService.startConnection();
+      await ptsSignalRService.start();
     } catch (err) {
       setError({
         type: SignalRError.CONNECTION_FAILED,
@@ -70,7 +70,7 @@ export const useSignalR = () => {
       clearInterval(updateInterval);
       setUpdateInterval(null);
     }
-    signalRService.stopConnection();
+    ptsSignalRService.stop();
     setConnectionState(ConnectionState.DISCONNECTED);
   }, [updateInterval]);
 
@@ -82,8 +82,11 @@ export const useSignalR = () => {
 
     if (isLiveDataEnabled && connectionState === ConnectionState.CONNECTED) {
       const newInterval = setInterval(() => {
-        if (signalRService.connection?.state === signalR.HubConnectionState.Connected) {
-          signalRService.connection.invoke("RequestDeviceStatus");
+        if (
+          ptsSignalRService.connection?.state ===
+          signalR.HubConnectionState.Connected
+        ) {
+          ptsSignalRService.connection.invoke("RequestDeviceStatusSummary");
         }
       }, updateFrequency * 1000); // Convert seconds to milliseconds
 
@@ -107,13 +110,18 @@ export const useSignalR = () => {
     } else if (connectionState === ConnectionState.CONNECTED) {
       startPeriodicUpdates();
     }
-  }, [isLiveDataEnabled, connectionState, startPeriodicUpdates, stopPeriodicUpdates]);
+  }, [
+    isLiveDataEnabled,
+    connectionState,
+    startPeriodicUpdates,
+    stopPeriodicUpdates,
+  ]);
 
   // Refresh connection manually
   const refreshConnection = useCallback(async () => {
     try {
       setError(null);
-      await signalRService.refreshConnection();
+      await ptsSignalRService.refreshConnection();
     } catch (err) {
       setError({
         type: SignalRError.CONNECTION_FAILED,
