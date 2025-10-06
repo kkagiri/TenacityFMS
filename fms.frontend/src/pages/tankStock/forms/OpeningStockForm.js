@@ -549,6 +549,7 @@ const OpeningStockForm = ({
                   items: sitesAvailable,
                   displayExpr: "name",
                   valueExpr: "id",
+                  value: formData.siteId,
                   onValueChanged: handleSiteChange,
                   placeholder:
                     sitesAvailable.length === 0
@@ -580,13 +581,12 @@ const OpeningStockForm = ({
                   items: filteredTanks,
                   displayExpr: "name",
                   valueExpr: "id",
-                  onValueChanged: handleTankChange,
                   disabled: !formData.siteId,
                   placeholder: !formData.siteId
                     ? "Select a site first"
-                    : filteredTanks.length === 0
-                    ? "No tanks available"
-                    : "Select a tank",
+                    : filteredTanks.length > 0
+                    ? "Select a tank"
+                    : "No tanks available",
                   width: "100%",
                   dropDownOptions: {
                     container: ".opening-stock-form",

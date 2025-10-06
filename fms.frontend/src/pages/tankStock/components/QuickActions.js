@@ -50,8 +50,8 @@ const POPUP_CONFIG = {
   delivery: {
     title: "Delivery",
     Form: TankDeliveryForm,
-    width: "95%",
-    maxWidth: "1000px",
+    width: "98%",
+    maxWidth: "1050px",
     maxHeight: "80vh",
     height: "auto",
   },

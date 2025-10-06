@@ -553,6 +553,7 @@ const ClosingStockForm = ({
                   items: sitesAvailable,
                   displayExpr: "name",
                   valueExpr: "id",
+                  value: formData.siteId,
                   onValueChanged: handleSiteChange,
                   placeholder:
                     !dataLoaded && sitesAvailable.length === 0
@@ -586,13 +587,12 @@ const ClosingStockForm = ({
                   items: filteredTanks,
                   displayExpr: "name",
                   valueExpr: "id",
-                  onValueChanged: handleTankChange,
                   disabled: !formData.siteId,
                   placeholder: !formData.siteId
                     ? "Select site first"
-                    : filteredTanks.length === 0
-                    ? "No tanks available"
-                    : "Select a tank",
+                    : filteredTanks.length > 0
+                    ? "Select a tank"
+                    : "No tanks available",
                   width: "100%",
                   isValid: !validationErrors.tankId,
                   validationError: validationErrors.tankId

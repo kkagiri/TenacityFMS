@@ -5,16 +5,19 @@
 Git confirms the following fixes were successfully applied:
 
 1. **OpeningStockForm.js** ✅
+
    - Removed `value: formData.siteId` from site selectbox
    - Removed `value: formData.tankId` from tank selectbox
    - Simplified tank disabled condition
 
 2. **ClosingStockForm.js** ✅
+
    - Removed `value: formData.siteId` from site selectbox
    - Removed `value: formData.tankId` from tank selectbox
    - Simplified tank disabled condition
 
 3. **TankTransferForm.js** ✅
+
    - Removed all four `value` props from selectboxes
    - Simplified both tank disabled conditions
 
@@ -32,6 +35,7 @@ Your browser is using **cached JavaScript bundle** from before the fixes. The de
 ### Method 1: Hard Refresh (Try This First)
 
 **Chrome/Edge:**
+
 1. Make sure the app is open in your browser
 2. Press `Ctrl + Shift + Delete`
 3. Select "Cached images and files"
@@ -40,6 +44,7 @@ Your browser is using **cached JavaScript bundle** from before the fixes. The de
 6. Reopen the browser and navigate to your app
 
 **OR use keyboard shortcut:**
+
 - Press `Ctrl + F5` (Windows)
 - Or `Ctrl + Shift + R` (Windows)
 
@@ -68,6 +73,7 @@ Your browser is using **cached JavaScript bundle** from before the fixes. The de
 ## 🧪 How to Verify Changes Loaded
 
 ### Check 1: Network Tab
+
 1. Open DevTools (`F12`)
 2. Go to **Network** tab
 3. Refresh page (`Ctrl + F5`)
@@ -77,6 +83,7 @@ Your browser is using **cached JavaScript bundle** from before the fixes. The de
    - ✅ If it shows actual size (e.g., "2.4 MB") → updated!
 
 ### Check 2: Sources Tab
+
 1. Open DevTools (`F12`)
 2. Go to **Sources** tab
 3. Navigate to: `webpack://` → `src/pages/tankStock/forms/OpeningStockForm.js`
@@ -86,10 +93,12 @@ Your browser is using **cached JavaScript bundle** from before the fixes. The de
 7. ❌ If `value: formData.siteId` is still there → cache not cleared
 
 ### Check 3: Console Test
+
 Open Console tab and run:
+
 ```javascript
 // Check bundle timestamp
-console.log('App loaded at:', new Date().toISOString());
+console.log("App loaded at:", new Date().toISOString());
 
 // Force check sites array
 window.sitesTest = true;
@@ -104,6 +113,7 @@ Then open a form and check if sites appear.
 If cache clear doesn't work, restart the dev server:
 
 **In PowerShell:**
+
 ```powershell
 # 1. Stop the current dev server (press Ctrl+C in terminal)
 
@@ -126,21 +136,25 @@ npm start
 When you open any tank stock form:
 
 ### Opening Stock Form:
+
 1. Click site dropdown → **Should show 24 sites**
 2. Select a site (e.g., "GARSEN")
 3. Click tank dropdown → **Should show filtered tanks** for that site
 4. Both dropdowns should work smoothly
 
 ### Closing Stock Form:
+
 1. Same as above
 
 ### Tank Transfer Form:
+
 1. Source site dropdown → **Should show 24 sites**
 2. Source tank dropdown → **Should enable after selecting source site**
 3. Destination site dropdown → **Should show 24 sites**
 4. Destination tank dropdown → **Should enable after selecting destination site**
 
 ### Manual Refill Form:
+
 1. Site dropdown → **Should show 24 sites**
 2. Tank dropdown → **Should enable after selecting site** (even if no tanks initially)
 
@@ -151,12 +165,14 @@ When you open any tank stock form:
 If after clearing cache AND restarting dev server, sites still don't show:
 
 1. **Check Console Tab** for errors:
+
    ```
    F12 → Console tab
    Look for red error messages
    ```
 
 2. **Check Redux DevTools** for sites data:
+
    ```
    F12 → Redux tab
    State → site → sites
@@ -172,12 +188,12 @@ If after clearing cache AND restarting dev server, sites still don't show:
 
 ## 📞 Summary
 
-**Changes applied:** ✅ All 4 forms fixed  
-**Dev server has new code:** ✅ Yes  
-**Browser has new code:** ❌ No (cached)  
+**Changes applied:** ✅ All 4 forms fixed
+**Dev server has new code:** ✅ Yes
+**Browser has new code:** ❌ No (cached)
 
-**Solution:** Clear browser cache using Method 1, 2, or 3 above  
-**Expected time:** 1-2 minutes  
+**Solution:** Clear browser cache using Method 1, 2, or 3 above
+**Expected time:** 1-2 minutes
 **Success indicator:** Sites appear in dropdowns
 
 ---

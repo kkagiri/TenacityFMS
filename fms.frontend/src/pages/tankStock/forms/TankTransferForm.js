@@ -702,6 +702,7 @@ const TankTransferForm = ({
                   items: sitesAvailable,
                   displayExpr: "name",
                   valueExpr: "id",
+                  value: formData.sourceSiteId,
                   onValueChanged: handleSourceSiteChange,
                   placeholder: combinedLoading
                     ? "Loading sites..."
@@ -735,7 +736,6 @@ const TankTransferForm = ({
                   items: filteredSourceTanks,
                   displayExpr: "name",
                   valueExpr: "id",
-                  onValueChanged: handleSourceTankChange,
                   disabled: !formData.sourceSiteId,
                   placeholder: !formData.sourceSiteId
                     ? "Select source site first"
@@ -768,6 +768,7 @@ const TankTransferForm = ({
                   items: sitesAvailable,
                   displayExpr: "name",
                   valueExpr: "id",
+                  value: formData.destinationSiteId,
                   onValueChanged: handleDestinationSiteChange,
                   searchEnabled: true,
                   disabled: formData.transferType === "InterTank",
@@ -805,7 +806,6 @@ const TankTransferForm = ({
                   items: filteredDestinationTanks,
                   displayExpr: "name",
                   valueExpr: "id",
-                  onValueChanged: handleDestinationTankChange,
                   disabled: !formData.destinationSiteId,
                   placeholder: !formData.destinationSiteId
                     ? "Select destination site first"
