@@ -3,15 +3,18 @@
 ## Date: October 7, 2025
 
 ## Problem
+
 GitHub Actions deployment was failing with:
+
 ```
-Error: EBUSY: resource busy or locked, rmdir 
+Error: EBUSY: resource busy or locked, rmdir
 'C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS\fms.frontend'
 ```
 
 Additional issue: `pwsh: command not found` - PowerShell Core not available on runner.
 
 ## Root Causes
+
 1. **Node.js processes** from previous builds weren't terminating
 2. **File handles** remained open on `node_modules` and `build` directories
 3. **Wrong shell**: Workflow used `pwsh` (PowerShell Core) but runner only has `powershell` (Windows PowerShell)
@@ -20,6 +23,7 @@ Additional issue: `pwsh: command not found` - PowerShell Core not available on r
 ## Solutions Applied
 
 ### 1. **MAJOR SIMPLIFICATION: Use Proven Deployment Script** ✅
+
 - Copied `deploy-alternative.ps1` from `C:\dev\deployment\scripts\`
 - Workflow now delegates to this proven, tested script
 - **Reduced workflow from 267 lines to 95 lines (64% reduction!)**
@@ -27,10 +31,12 @@ Additional issue: `pwsh: command not found` - PowerShell Core not available on r
 - One source of truth for deployment logic
 
 ### 2. Fixed Shell Compatibility ✅
+
 - Changed ALL `shell: pwsh` to `shell: powershell`
 - Ensures compatibility with Windows PowerShell 5.1 on self-hosted runner
 
 ### 3. Enhanced Pre-Deployment Cleanup ✅
+
 - Uses hardcoded workspace path: `C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS`
 - Kills ALL Node.js processes (not just runner-specific)
 - Waits 5 seconds for file handles to release
@@ -38,14 +44,18 @@ Additional issue: `pwsh: command not found` - PowerShell Core not available on r
 - Clear status messages for debugging
 
 ### 4. Created Emergency Cleanup Script ✅
+
 New file: `scripts/emergency-cleanup.ps1`
+
 - Kills ALL Node.js processes
 - Uses `robocopy` to mirror empty directory (fastest for locked files)
 - Detailed status output
 - Manual use when needed
 
 ### 5. Deployment Script Features ✅
+
 The `deploy-alternative.ps1` script handles:
+
 - Backend deployment with atomic folder swap
 - Frontend deployment with atomic folder swap
 - web.config preservation (never overwrites)
@@ -55,6 +65,7 @@ The `deploy-alternative.ps1` script handles:
 - Optional `-BackendOnly` or `-FrontendOnly` parameters
 
 ### 6. Post-Deployment Cleanup ✅
+
 - Runs ALWAYS (even on failure)
 - Stops lingering Node processes
 - Cleans npm cache
@@ -71,9 +82,11 @@ The `deploy-alternative.ps1` script handles:
 ## How to Use
 
 ### Automatic (Recommended)
+
 Just **retry the failed workflow** - the new cleanup steps will handle everything automatically.
 
 ### Manual Cleanup (If Needed)
+
 On the runner server (HY-FMS), as Administrator:
 
 ```powershell
@@ -85,6 +98,7 @@ cd C:\dev\Hyoung.FMS
 ```
 
 ### Emergency Manual Fix
+
 If scripts don't work:
 
 ```powershell
@@ -136,6 +150,7 @@ After committing these changes:
 ## Prevention
 
 The workflow is now self-healing:
+
 - **Before each run**: Clean workspace
 - **During frontend install**: Clean node_modules
 - **After each run**: Kill processes and clean cache
@@ -154,6 +169,7 @@ git push origin productionv1
 ## Next Steps
 
 1. **Commit these changes**:
+
    ```powershell
    git add .
    git commit -m "fix: Resolve locked files in GitHub Actions (use PowerShell, add robust cleanup)"
@@ -165,6 +181,7 @@ git push origin productionv1
 3. **If still failing**: Run `.\scripts\emergency-cleanup.ps1` manually on runner server
 
 ## Status
+
 - [x] Shell compatibility fixed (pwsh → powershell)
 - [x] Pre-checkout cleanup enhanced
 - [x] Emergency cleanup script created

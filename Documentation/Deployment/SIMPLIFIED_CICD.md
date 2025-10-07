@@ -5,6 +5,7 @@
 The GitHub Actions workflow has been simplified to use the **proven `deploy-alternative.ps1` script** that was already tested and working in `C:\dev\deployment\scripts\`.
 
 This approach is:
+
 - ✅ **Simpler** - Less code in the workflow
 - ✅ **More reliable** - Uses tested, working script
 - ✅ **Easier to maintain** - Script changes don't require workflow updates
@@ -13,6 +14,7 @@ This approach is:
 ## Architecture
 
 ### Before (Complex):
+
 ```
 GitHub Actions Workflow
 ├── Multiple inline PowerShell steps
@@ -22,6 +24,7 @@ GitHub Actions Workflow
 ```
 
 ### After (Simple):
+
 ```
 GitHub Actions Workflow
 ├── Pre-cleanup
@@ -34,23 +37,28 @@ GitHub Actions Workflow
 ## How It Works
 
 ### 1. Pre-Deployment Cleanup
+
 - Stops Node.js processes
 - Removes locked `node_modules` and `build` folders
 - Waits for file handles to release
 
 ### 2. Code Checkout
+
 - Gets latest code from repository
 - Uses `clean: false` to avoid file locking issues
 
 ### 3. Environment Setup
+
 - Sets up .NET 8.0
 - Sets up Node.js 18
 - Prepares build environment
 
 ### 4. **The Deployment Script** (Key Step)
+
 Runs `scripts\deploy-alternative.ps1` which:
 
 **Backend Deployment:**
+
 1. Builds to temporary location
 2. Copies web.config from current deployment
 3. Stops IIS app pool
@@ -59,6 +67,7 @@ Runs `scripts\deploy-alternative.ps1` which:
 6. Cleans up old deployment
 
 **Frontend Deployment:**
+
 1. Builds React app
 2. Copies build to temporary location
 3. Copies web.config from current deployment
@@ -68,6 +77,7 @@ Runs `scripts\deploy-alternative.ps1` which:
 7. Cleans up old deployment
 
 ### 5. Post-Deployment Cleanup
+
 - Stops lingering Node.js processes
 - Cleans npm cache
 - Prepares for next run
@@ -77,6 +87,7 @@ Runs `scripts\deploy-alternative.ps1` which:
 Location: `scripts/deploy-alternative.ps1`
 
 ### Features:
+
 - **Atomic folder swap** - No partial deployments
 - **Automatic rollback** - Reverts on failure
 - **web.config preservation** - Never overwrites configuration
@@ -102,33 +113,39 @@ Location: `scripts/deploy-alternative.ps1`
 Location: `.github/workflows/deploy-to-iis.yml`
 
 ### Key Changes:
+
 1. **Removed** complex inline deployment steps
 2. **Added** single step that runs `deploy-alternative.ps1`
 3. **Simplified** cleanup steps
 4. **Reduced** total lines from ~267 to ~95 (64% reduction!)
 
 ### Workflow Triggers:
+
 - Automatic: On push to `productionv1`, `main`, or `master`
 - Manual: Via "Actions" tab → "Run workflow" button
 
 ## Benefits
 
 ### 1. Maintainability
+
 - **One source of truth** - Script is the deployment logic
 - **Easy updates** - Change script, not workflow
 - **Local testing** - Can test script manually before pushing
 
 ### 2. Reliability
+
 - **Proven code** - Script already working in production
 - **Consistent behavior** - Same script everywhere
 - **Better error handling** - Comprehensive try/catch blocks
 
 ### 3. Flexibility
+
 - **Partial deployments** - Backend-only or frontend-only
 - **Manual deployment** - Run script directly when needed
 - **Easy debugging** - Script output is clearer
 
 ### 4. Simplicity
+
 - **Less code** - Fewer lines = fewer bugs
 - **Clearer intent** - Workflow delegates to script
 - **Easier onboarding** - New developers understand faster
@@ -172,6 +189,7 @@ cd C:\dev\Hyoung.FMS
 ## Comparison: Old vs New Workflow
 
 ### Old Workflow (Complex)
+
 ```yaml
 steps:
   - Cleanup (15 lines)
@@ -190,6 +208,7 @@ Total: ~267 lines, 11 steps
 ```
 
 ### New Workflow (Simple)
+
 ```yaml
 steps:
   - Pre-Cleanup (30 lines, clearer)
@@ -207,6 +226,7 @@ Total: ~95 lines, 6 steps
 ## Testing
 
 ### Test the Workflow
+
 1. Make a small change in code
 2. Commit and push to `productionv1`
 3. Watch GitHub Actions
@@ -214,6 +234,7 @@ Total: ~95 lines, 6 steps
 5. Check both applications work
 
 ### Test the Script Manually
+
 ```powershell
 # From repository root
 cd C:\dev\Hyoung.FMS
@@ -229,6 +250,7 @@ cd C:\dev\Hyoung.FMS
 ## Migration Benefits
 
 ### What We Gained:
+
 ✅ 64% less code in workflow
 ✅ Proven, tested deployment logic
 ✅ Easier to maintain and debug
@@ -237,6 +259,7 @@ cd C:\dev\Hyoung.FMS
 ✅ Clearer separation of concerns
 
 ### What We Kept:
+
 ✅ Automatic deployment on push
 ✅ Manual workflow trigger
 ✅ web.config preservation
@@ -245,6 +268,7 @@ cd C:\dev\Hyoung.FMS
 ✅ Status reporting
 
 ### What We Improved:
+
 ✅ Reliability - using proven script
 ✅ Simplicity - less complex logic
 ✅ Maintainability - one source of truth
