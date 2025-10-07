@@ -1,0 +1,201 @@
+name: Deploy Hyoung FMS to IIS
+
+on:
+  push:
+    branches: [ productionv1, main, master ]
+  workflow_dispatch:
+
+env:
+  BACKEND_PROJECT: 'FMS.WebClient/FMS.WebClient.csproj'
+  FRONTEND_PATH: 'fms.frontend'
+  IIS_BACKEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\webAPI'
+  IIS_FRONTEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\reactApp'
+  BACKEND_APPPOOL: 'HyoungFMS.WebAPI'
+  FRONTEND_APPPOOL: 'HyoungFMS.ReactApp'
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        
+    - name: 🔧 Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: '${{ env.FRONTEND_PATH }}/package-lock.json'
+        
+    # ========================================
+    # BACKEND DEPLOYMENT (Folder Swap Method)
+    # ========================================
+    
+    - name: 🔨 Build Backend
+      run: |
+        Write-Host "Building backend..." -ForegroundColor Cyan
+        
+        $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
+        $tempPath = "${{ env.IIS_BACKEND_PATH }}_temp_$timestamp"
+        
+        # Build to temporary location
+        dotnet publish ${{ env.BACKEND_PROJECT }} `
+          --configuration Release `
+          --output $tempPath `
+          --verbosity minimal
+        
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "Backend built successfully" -ForegroundColor Green
+          Write-Host "BACKEND_TEMP_PATH=$tempPath" >> $env:GITHUB_ENV
+        } else {
+          Write-Error "Backend build failed"
+          exit 1
+        }
+      shell: pwsh
+      
+    - name: 🔄 Deploy Backend (Atomic Swap)
+      run: |
+        Import-Module WebAdministration
+        
+        $tempPath = "$env:BACKEND_TEMP_PATH"
+        $currentPath = "${{ env.IIS_BACKEND_PATH }}"
+        $oldPath = "${{ env.IIS_BACKEND_PATH }}_old"
+        
+        Write-Host "Deploying backend via folder swap..." -ForegroundColor Yellow
+        
+        # Copy existing web.config to temp deployment
+        $currentWebConfig = Join-Path $currentPath "web.config"
+        $tempWebConfig = Join-Path $tempPath "web.config"
+        if (Test-Path $currentWebConfig) {
+          Copy-Item $currentWebConfig $tempWebConfig -Force
+          Write-Host "Preserved web.config" -ForegroundColor Green
+        }
+        
+        # Stop IIS
+        Stop-WebAppPool -Name "${{ env.BACKEND_APPPOOL }}" -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 10
+        
+        # Remove old backup if exists
+        if (Test-Path $oldPath) {
+          Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        # Atomic swap
+        Rename-Item $currentPath $oldPath -Force
+        Rename-Item $tempPath $currentPath -Force
+        
+        # Start IIS
+        Start-WebAppPool -Name "${{ env.BACKEND_APPPOOL }}" -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
+        
+        Write-Host "Backend deployed successfully" -ForegroundColor Green
+        
+        # Cleanup old deployment
+        if (Test-Path $oldPath) {
+          Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+      shell: pwsh
+      
+    # ========================================
+    # FRONTEND DEPLOYMENT (Folder Swap Method)
+    # ========================================
+    
+    - name: 📦 Install Frontend Dependencies
+      working-directory: ${{ env.FRONTEND_PATH }}
+      run: npm ci
+      
+    - name: 🔨 Build Frontend
+      working-directory: ${{ env.FRONTEND_PATH }}
+      run: npm run build
+      
+    - name: � Deploy Frontend (Atomic Swap)
+      run: |
+        Import-Module WebAdministration
+        
+        $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
+        $tempPath = "${{ env.IIS_FRONTEND_PATH }}_temp_$timestamp"
+        $currentPath = "${{ env.IIS_FRONTEND_PATH }}"
+        $oldPath = "${{ env.IIS_FRONTEND_PATH }}_old"
+        $buildPath = "${{ env.FRONTEND_PATH }}\build"
+        
+        Write-Host "Deploying frontend via folder swap..." -ForegroundColor Yellow
+        
+        # Copy build to temp location
+        Copy-Item -Path $buildPath -Destination $tempPath -Recurse -Force
+        
+        # Copy existing web.config to temp deployment
+        $currentWebConfig = Join-Path $currentPath "web.config"
+        $tempWebConfig = Join-Path $tempPath "web.config"
+        if (Test-Path $currentWebConfig) {
+          Copy-Item $currentWebConfig $tempWebConfig -Force
+          Write-Host "Preserved web.config" -ForegroundColor Green
+        }
+        
+        # Stop IIS
+        Stop-WebAppPool -Name "${{ env.FRONTEND_APPPOOL }}" -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 10
+        
+        # Remove old backup if exists
+        if (Test-Path $oldPath) {
+          Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        # Atomic swap
+        Rename-Item $currentPath $oldPath -Force
+        Rename-Item $tempPath $currentPath -Force
+        
+        # Start IIS
+        Start-WebAppPool -Name "${{ env.FRONTEND_APPPOOL }}" -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
+        
+        Write-Host "Frontend deployed successfully" -ForegroundColor Green
+        
+        # Cleanup old deployment
+        if (Test-Path $oldPath) {
+          Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+      shell: pwsh
+      
+    # ========================================
+    # VERIFICATION
+    # ========================================
+    
+    - name: ✅ Verify Deployment
+      run: |
+        Write-Host ""
+        Write-Host "========================================" -ForegroundColor Green
+        Write-Host "     DEPLOYMENT COMPLETE" -ForegroundColor Green
+        Write-Host "========================================" -ForegroundColor Green
+        Write-Host ""
+        
+        Import-Module WebAdministration
+        
+        $backendState = (Get-WebAppPoolState -Name "${{ env.BACKEND_APPPOOL }}" -ErrorAction SilentlyContinue).Value
+        $frontendState = (Get-WebAppPoolState -Name "${{ env.FRONTEND_APPPOOL }}" -ErrorAction SilentlyContinue).Value
+        
+        Write-Host "Status:" -ForegroundColor Cyan
+        Write-Host "  Backend:  $backendState" -ForegroundColor $(if($backendState -eq "Started"){"Green"}else{"Red"})
+        Write-Host "  Frontend: $frontendState" -ForegroundColor $(if($frontendState -eq "Started"){"Green"}else{"Red"})
+        
+        Write-Host ""
+        Write-Host "Deployment Paths:" -ForegroundColor Cyan
+        Write-Host "  Backend:  ${{ env.IIS_BACKEND_PATH }}"
+        Write-Host "  Frontend: ${{ env.IIS_FRONTEND_PATH }}"
+        
+        Write-Host ""
+        Write-Host "web.config files preserved" -ForegroundColor Yellow
+        
+        Write-Host ""
+        Write-Host "Access your application:" -ForegroundColor Cyan
+        Write-Host "  Backend:  http://localhost:7009"
+        Write-Host "  Frontend: http://localhost:80"
+        Write-Host ""
+      shell: pwsh
