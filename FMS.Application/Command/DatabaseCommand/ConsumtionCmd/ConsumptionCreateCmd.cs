@@ -5,7 +5,7 @@ using AutoMapper;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
-
+//change
 namespace FMS.Application.Command.DatabaseCommand.ConsumptionCmd;
 
 public class ConsumptionCreateCmd : IRequest<Unit>
