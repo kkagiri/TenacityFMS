@@ -2,7 +2,30 @@
 
 ## Problem
 
-When using `actions/checkout@v4` in a self-hosted GitHub Actions runner on Windows, the checkout step may fail with:
+When using `act### Option 2: Manual Cleanup
+```powershell
+# Connect to the self-hosted runner server
+# Run as Administrator:
+.\scripts\cleanup-runner-workspace.ps1
+
+# Then retry the workflow
+```
+
+### Option 3: Reset Runner (When Nothing Else Works)
+If files are still locked after cleanup, reset the runner:
+
+```powershell
+# As Administrator:
+.\scripts\reset-runner-workspace.ps1
+
+# This will:
+# 1. Stop the runner service
+# 2. Kill lingering processes
+# 3. Clear the workspace completely
+# 4. Restart the runner service
+```
+
+### Option 4: Emergency Manual Cleanupcheckout@v4` in a self-hosted GitHub Actions runner on Windows, the checkout step may fail with:
 
 ```
 Error: File was unable to be removed Error: EBUSY: resource busy or locked, rmdir 'C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS\fms.frontend'
