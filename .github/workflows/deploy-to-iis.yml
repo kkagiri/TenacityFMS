@@ -22,17 +22,17 @@ jobs:
         continue-on-error: true
         run: |
           Write-Host "Attempting to cleanup locked files..." -ForegroundColor Yellow
-          
+
           # Define workspace path
           $workspacePath = "C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS"
-          
+
           # Stop any running Node.js processes from previous builds
           Write-Host "Stopping Node.js processes..." -ForegroundColor Cyan
           Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*actions-runner*" } | Stop-Process -Force -ErrorAction SilentlyContinue
-          
+
           # Wait for file handles to be released
           Start-Sleep -Seconds 5
-          
+
           # Try to remove node_modules if it exists and is causing issues
           $nodeModulesPath = Join-Path $workspacePath "fms.frontend\node_modules"
           if (Test-Path $nodeModulesPath) {
@@ -40,14 +40,14 @@ jobs:
             Remove-Item $nodeModulesPath -Recurse -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 2
           }
-          
+
           # Try to remove build folder too
           $buildPath = Join-Path $workspacePath "fms.frontend\build"
           if (Test-Path $buildPath) {
             Write-Host "Removing build folder..." -ForegroundColor Cyan
             Remove-Item $buildPath -Recurse -Force -ErrorAction SilentlyContinue
           }
-          
+
           Write-Host "Cleanup completed" -ForegroundColor Green
         shell: powershell
 
