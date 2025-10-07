@@ -5,50 +5,52 @@ on:
     branches: [productionv1, main, master]
   workflow_dispatch:
 
-env:
-  BACKEND_PROJECT: "FMS.WebClient/FMS.WebClient.csproj"
-  FRONTEND_PATH: "fms.frontend"
-  IIS_BACKEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\webAPI'
-  IIS_FRONTEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\reactApp'
-  BACKEND_APPPOOL: "HyoungFMS.WebAPI"
-  FRONTEND_APPPOOL: "HyoungFMS.ReactApp"
-
 jobs:
   deploy:
     runs-on: self-hosted
 
     steps:
-      - name: 🧹 Cleanup Locked Files
+      - name: 🧹 Pre-Deployment Cleanup
         continue-on-error: true
         run: |
-          Write-Host "Attempting to cleanup locked files..." -ForegroundColor Yellow
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Pre-Deployment Cleanup" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
 
           # Define workspace path
           $workspacePath = "C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS"
 
           # Stop any running Node.js processes from previous builds
-          Write-Host "Stopping Node.js processes..." -ForegroundColor Cyan
-          Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*actions-runner*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Write-Host "Stopping Node.js processes..." -ForegroundColor Yellow
+          $nodeProcesses = Get-Process -Name "node" -ErrorAction SilentlyContinue
+          if ($nodeProcesses) {
+            $nodeProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+            Write-Host "  Stopped $($nodeProcesses.Count) Node.js process(es)" -ForegroundColor Green
+          } else {
+            Write-Host "  No Node.js processes found" -ForegroundColor Green
+          }
 
           # Wait for file handles to be released
           Start-Sleep -Seconds 5
 
-          # Try to remove node_modules if it exists and is causing issues
-          $nodeModulesPath = Join-Path $workspacePath "fms.frontend\node_modules"
-          if (Test-Path $nodeModulesPath) {
-            Write-Host "Removing node_modules at: $nodeModulesPath" -ForegroundColor Cyan
-            Remove-Item $nodeModulesPath -Recurse -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
+          # Try to remove problematic directories
+          $dirsToClean = @(
+            "fms.frontend\node_modules",
+            "fms.frontend\build"
+          )
+
+          foreach ($dir in $dirsToClean) {
+            $fullPath = Join-Path $workspacePath $dir
+            if (Test-Path $fullPath) {
+              Write-Host "Removing $dir..." -ForegroundColor Yellow
+              Remove-Item $fullPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
           }
 
-          # Try to remove build folder too
-          $buildPath = Join-Path $workspacePath "fms.frontend\build"
-          if (Test-Path $buildPath) {
-            Write-Host "Removing build folder..." -ForegroundColor Cyan
-            Remove-Item $buildPath -Recurse -Force -ErrorAction SilentlyContinue
-          }
-
+          Write-Host ""
           Write-Host "Cleanup completed" -ForegroundColor Green
+          Write-Host ""
         shell: powershell
 
       - name: 📥 Checkout Code
@@ -67,201 +69,65 @@ jobs:
         with:
           node-version: "18"
           cache: "npm"
-          cache-dependency-path: "${{ env.FRONTEND_PATH }}/package-lock.json"
+          cache-dependency-path: "fms.frontend/package-lock.json"
 
       # ========================================
-      # BACKEND DEPLOYMENT (Folder Swap Method)
+      # RUN DEPLOYMENT SCRIPT
       # ========================================
 
-      - name: 🔨 Build Backend
+      - name: 🚀 Deploy to IIS (Using Proven Script)
         run: |
-          Write-Host "Building backend..." -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Running Deployment Script" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
 
-          $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
-          $tempPath = "${{ env.IIS_BACKEND_PATH }}_temp_$timestamp"
-
-          # Build to temporary location
-          dotnet publish ${{ env.BACKEND_PROJECT }} `
-            --configuration Release `
-            --output $tempPath `
-            --verbosity minimal
-
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Backend built successfully" -ForegroundColor Green
-            Write-Host "BACKEND_TEMP_PATH=$tempPath" >> $env:GITHUB_ENV
-          } else {
-            Write-Error "Backend build failed"
-            exit 1
-          }
-        shell: powershell
-
-      - name: 🔄 Deploy Backend (Atomic Swap)
-        run: |
-          Import-Module WebAdministration
-
-          $tempPath = "$env:BACKEND_TEMP_PATH"
-          $currentPath = "${{ env.IIS_BACKEND_PATH }}"
-          $oldPath = "${{ env.IIS_BACKEND_PATH }}_old"
-
-          Write-Host "Deploying backend via folder swap..." -ForegroundColor Yellow
-
-          # Copy existing web.config to temp deployment
-          $currentWebConfig = Join-Path $currentPath "web.config"
-          $tempWebConfig = Join-Path $tempPath "web.config"
-          if (Test-Path $currentWebConfig) {
-            Copy-Item $currentWebConfig $tempWebConfig -Force
-            Write-Host "Preserved web.config" -ForegroundColor Green
-          }
-
-          # Stop IIS
-          Stop-WebAppPool -Name "${{ env.BACKEND_APPPOOL }}" -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 10
-
-          # Remove old backup if exists
-          if (Test-Path $oldPath) {
-            Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
-          }
-
-          # Atomic swap
-          Rename-Item $currentPath $oldPath -Force
-          Rename-Item $tempPath $currentPath -Force
-
-          # Start IIS
-          Start-WebAppPool -Name "${{ env.BACKEND_APPPOOL }}" -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 3
-
-          Write-Host "Backend deployed successfully" -ForegroundColor Green
-
-          # Cleanup old deployment
-          if (Test-Path $oldPath) {
-            Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
-          }
-        shell: powershell
-
-      # ========================================
-      # FRONTEND DEPLOYMENT (Folder Swap Method)
-      # ========================================
-
-      - name: 📦 Install Frontend Dependencies
-        working-directory: ${{ env.FRONTEND_PATH }}
-        run: |
-          Write-Host "Installing frontend dependencies..." -ForegroundColor Cyan
-
-          # Clean npm cache if needed
+          # Ensure npm dependencies are installed
+          Write-Host "Installing npm dependencies..." -ForegroundColor Yellow
+          Push-Location "fms.frontend"
           if (Test-Path "node_modules") {
-            Write-Host "Cleaning existing node_modules..." -ForegroundColor Yellow
-            Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
           }
-
           npm ci
+          Pop-Location
 
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Dependencies installed successfully" -ForegroundColor Green
-          } else {
-            Write-Error "Failed to install dependencies"
+          Write-Host ""
+          Write-Host "Running deploy-alternative.ps1..." -ForegroundColor Yellow
+          Write-Host ""
+
+          # Run the proven deployment script
+          .\scripts\deploy-alternative.ps1
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Deployment script failed"
             exit 1
           }
         shell: powershell
 
-      - name: 🔨 Build Frontend
-        working-directory: ${{ env.FRONTEND_PATH }}
-        run: npm run build
-
-      - name: � Deploy Frontend (Atomic Swap)
-        run: |
-          Import-Module WebAdministration
-
-          $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
-          $tempPath = "${{ env.IIS_FRONTEND_PATH }}_temp_$timestamp"
-          $currentPath = "${{ env.IIS_FRONTEND_PATH }}"
-          $oldPath = "${{ env.IIS_FRONTEND_PATH }}_old"
-          $buildPath = "${{ env.FRONTEND_PATH }}\build"
-
-          Write-Host "Deploying frontend via folder swap..." -ForegroundColor Yellow
-
-          # Copy build to temp location
-          Copy-Item -Path $buildPath -Destination $tempPath -Recurse -Force
-
-          # Copy existing web.config to temp deployment
-          $currentWebConfig = Join-Path $currentPath "web.config"
-          $tempWebConfig = Join-Path $tempPath "web.config"
-          if (Test-Path $currentWebConfig) {
-            Copy-Item $currentWebConfig $tempWebConfig -Force
-            Write-Host "Preserved web.config" -ForegroundColor Green
-          }
-
-          # Stop IIS
-          Stop-WebAppPool -Name "${{ env.FRONTEND_APPPOOL }}" -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 10
-
-          # Remove old backup if exists
-          if (Test-Path $oldPath) {
-            Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
-          }
-
-          # Atomic swap
-          Rename-Item $currentPath $oldPath -Force
-          Rename-Item $tempPath $currentPath -Force
-
-          # Start IIS
-          Start-WebAppPool -Name "${{ env.FRONTEND_APPPOOL }}" -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 3
-
-          Write-Host "Frontend deployed successfully" -ForegroundColor Green
-
-          # Cleanup old deployment
-          if (Test-Path $oldPath) {
-            Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
-          }
-        shell: powershell
-
       # ========================================
-      # VERIFICATION
+      # POST-DEPLOYMENT
       # ========================================
-
-      - name: ✅ Verify Deployment
-        run: |
-          Write-Host ""
-          Write-Host "========================================" -ForegroundColor Green
-          Write-Host "     DEPLOYMENT COMPLETE" -ForegroundColor Green
-          Write-Host "========================================" -ForegroundColor Green
-          Write-Host ""
-
-          Import-Module WebAdministration
-
-          $backendState = (Get-WebAppPoolState -Name "${{ env.BACKEND_APPPOOL }}" -ErrorAction SilentlyContinue).Value
-          $frontendState = (Get-WebAppPoolState -Name "${{ env.FRONTEND_APPPOOL }}" -ErrorAction SilentlyContinue).Value
-
-          Write-Host "Status:" -ForegroundColor Cyan
-          Write-Host "  Backend:  $backendState" -ForegroundColor $(if($backendState -eq "Started"){"Green"}else{"Red"})
-          Write-Host "  Frontend: $frontendState" -ForegroundColor $(if($frontendState -eq "Started"){"Green"}else{"Red"})
-
-          Write-Host ""
-          Write-Host "Deployment Paths:" -ForegroundColor Cyan
-          Write-Host "  Backend:  ${{ env.IIS_BACKEND_PATH }}"
-          Write-Host "  Frontend: ${{ env.IIS_FRONTEND_PATH }}"
-
-          Write-Host ""
-          Write-Host "web.config files preserved" -ForegroundColor Yellow
-
-          Write-Host ""
-          Write-Host "Access your application:" -ForegroundColor Cyan
-          Write-Host "  Backend:  http://localhost:7009"
-          Write-Host "  Frontend: http://localhost:80"
-          Write-Host ""
-        shell: powershell
 
       - name: 🧹 Post-Deployment Cleanup
         if: always()
         continue-on-error: true
         run: |
-          Write-Host "Performing post-deployment cleanup..." -ForegroundColor Yellow
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Yellow
+          Write-Host "  Post-Deployment Cleanup" -ForegroundColor Yellow
+          Write-Host "========================================" -ForegroundColor Yellow
+          Write-Host ""
 
           # Stop any lingering Node.js processes
-          Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*actions-runner*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+          $nodeProcesses = Get-Process -Name "node" -ErrorAction SilentlyContinue
+          if ($nodeProcesses) {
+            $nodeProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+            Write-Host "Stopped $($nodeProcesses.Count) Node.js process(es)" -ForegroundColor Green
+          }
 
           # Clean npm cache
           npm cache clean --force 2>$null
 
           Write-Host "Cleanup completed" -ForegroundColor Green
+          Write-Host ""
         shell: powershell

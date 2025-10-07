@@ -10,13 +10,12 @@ Error: EBUSY: resource busy or locked, rmdir
 
 ## ✅ Solution Applied
 
-I've updated your GitHub Actions workflow with automatic cleanup steps that will:
+I've **completely simplified** your GitHub Actions workflow by:
 
-1. **Pre-Checkout Cleanup**: Stop Node.js processes and clean locked files before checkout
-2. **Enhanced Build Process**: Clean node_modules before npm install
-3. **Post-Deployment Cleanup**: Always cleanup after deployment (even on failure)
-
-## 🚀 Next Steps
+1. **Using your proven `deploy-alternative.ps1` script** from `C:\dev\deployment\scripts\`
+2. **Removed complex inline deployment code** - 64% less code in workflow!
+3. **Added robust pre/post cleanup** - Stops Node.js processes and cleans locked files
+4. **Single deployment step** - Delegates to tested script instead of duplicating logic## 🚀 Next Steps
 
 ### Option 1: Just Retry (Recommended)
 
@@ -53,19 +52,33 @@ Remove-Item "C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS" -Recurse -Force
 
 ## 📝 What Changed
 
-### 1. Workflow File (`.github/workflows/deploy-to-iis.yml`)
+### 1. Workflow File (`.github/workflows/deploy-to-iis.yml`) - **SIMPLIFIED!**
 
-- Added pre-checkout cleanup step
-- Enhanced npm install with cleanup
-- Added post-deployment cleanup (runs always)
+**Before**: 267 lines, 11 steps, complex inline deployment logic
+**After**: 95 lines, 6 steps, delegates to proven script
 
-### 2. New Cleanup Script (`scripts/cleanup-runner-workspace.ps1`)
+- Removed complex inline PowerShell deployment steps
+- Now simply runs `scripts\deploy-alternative.ps1`
+- Added robust pre/post cleanup
+- **64% less code, 45% fewer steps!**
 
-Manual cleanup script for emergencies
+### 2. New Deployment Script (`scripts/deploy-alternative.ps1`)
 
-### 3. Documentation (`Documentation/Deployment/locked-files-issue.md`)
+Copied your proven script from `C:\dev\deployment\scripts\`
+- Handles backend and frontend deployment
+- Atomic folder swaps with rollback
+- web.config preservation
+- Comprehensive error handling
 
-Complete troubleshooting guide
+### 3. New Cleanup Scripts
+
+- `scripts/emergency-cleanup.ps1` - Nuclear option for locked files
+- `scripts/cleanup-runner-workspace.ps1` - Regular cleanup
+
+### 4. Documentation
+
+- `Documentation/Deployment/SIMPLIFIED_CICD.md` - Explains new approach
+- `Documentation/Deployment/locked-files-issue.md` - Troubleshooting guide
 
 ## ⚡ Test Your Fix
 

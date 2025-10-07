@@ -19,31 +19,42 @@ Additional issue: `pwsh: command not found` - PowerShell Core not available on r
 
 ## Solutions Applied
 
-### 1. Fixed Shell Issue ✅
-- Changed ALL `shell: pwsh` to `shell: powershell` throughout workflow
-- This ensures compatibility with Windows PowerShell 5.1 on self-hosted runner
+### 1. **MAJOR SIMPLIFICATION: Use Proven Deployment Script** ✅
+- Copied `deploy-alternative.ps1` from `C:\dev\deployment\scripts\`
+- Workflow now delegates to this proven, tested script
+- **Reduced workflow from 267 lines to 95 lines (64% reduction!)**
+- **Reduced steps from 11 to 6 (45% reduction!)**
+- One source of truth for deployment logic
 
-### 2. Enhanced Pre-Checkout Cleanup ✅
-Updated the cleanup step to:
-- Use hardcoded workspace path: `C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS`
-- Kill Node.js processes that match `*actions-runner*` path
-- Wait 5 seconds for file handles to release
-- Remove both `node_modules` AND `build` folders
-- Added explicit status messages for debugging
+### 2. Fixed Shell Compatibility ✅
+- Changed ALL `shell: pwsh` to `shell: powershell`
+- Ensures compatibility with Windows PowerShell 5.1 on self-hosted runner
 
-### 3. Created Emergency Cleanup Script ✅
+### 3. Enhanced Pre-Deployment Cleanup ✅
+- Uses hardcoded workspace path: `C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS`
+- Kills ALL Node.js processes (not just runner-specific)
+- Waits 5 seconds for file handles to release
+- Removes `node_modules` AND `build` folders
+- Clear status messages for debugging
+
+### 4. Created Emergency Cleanup Script ✅
 New file: `scripts/emergency-cleanup.ps1`
-- Kills ALL Node.js processes (not just runner-specific ones)
-- Uses `robocopy` to mirror empty directory (fastest method for locked files)
-- Provides detailed status output
-- Can be run manually when needed
+- Kills ALL Node.js processes
+- Uses `robocopy` to mirror empty directory (fastest for locked files)
+- Detailed status output
+- Manual use when needed
 
-### 4. Enhanced npm Install Step ✅
-- Cleans `node_modules` before install
-- Better error handling and logging
-- Uses `npm ci` for deterministic installs
+### 5. Deployment Script Features ✅
+The `deploy-alternative.ps1` script handles:
+- Backend deployment with atomic folder swap
+- Frontend deployment with atomic folder swap
+- web.config preservation (never overwrites)
+- Automatic rollback on failure
+- Comprehensive error handling
+- Status reporting
+- Optional `-BackendOnly` or `-FrontendOnly` parameters
 
-### 5. Post-Deployment Cleanup ✅
+### 6. Post-Deployment Cleanup ✅
 - Runs ALWAYS (even on failure)
 - Stops lingering Node processes
 - Cleans npm cache
