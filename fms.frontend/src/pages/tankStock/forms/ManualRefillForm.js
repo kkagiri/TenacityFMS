@@ -25,7 +25,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import { Form, SimpleItem, Label } from "devextreme-react/form";
 import Button from "devextreme-react/button";
-import ScrollView from "devextreme-react/scroll-view";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
@@ -40,7 +39,8 @@ import EmployeeSearchableSelector from "../../../components/selectors/EmployeeSe
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
 import FixedHeightSelector from "../../../components/selectors/FixedHeightSelector";
-import "./ManualRefillForm.css";
+import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
+import "./ManualRefillForm.scss";
 
 const ManualRefillForm = ({
   onCancel,
@@ -237,7 +237,7 @@ const ManualRefillForm = ({
       // Validate if this is a historical entry and we have date selected
       if (tankId && formData.date) {
         try {
-          await validateHistoricalEntry(tankId, formData.date);
+          await validateHistoricalEntry(tankId, formData.date, VolumeChangeReasons.DISPENSING);
         } catch (error) {
           showNotification(error.message, "error");
         }
@@ -264,7 +264,7 @@ const ManualRefillForm = ({
       // Validate if this is a historical entry and we have tank selected
       if (newDate && formData.tankId) {
         try {
-          await validateHistoricalEntry(formData.tankId, newDate);
+          await validateHistoricalEntry(formData.tankId, newDate, VolumeChangeReasons.DISPENSING);
         } catch (error) {
           showNotification(error.message, "error");
         }
@@ -431,9 +431,9 @@ const ManualRefillForm = ({
   ]);
 
   return (
-    <div formId="manual-refill-form">
+    <div formId="manual-refill-form" className="tw-h-full">
       <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
-        <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
+        <div className="manual-refill-scroll-container tw-flex-1 tw-overflow-y-auto">
           <div className="tw-p-6 tw-max-w-4xl tw-mx-auto">
             {/* Header */}
             <div className="tw-mb-6">
@@ -748,9 +748,9 @@ const ManualRefillForm = ({
                 onClick={handleSaveAndNew}
                 disabled={
                   isSubmitting ||
-                  !canSubmitForm ||
                   isValidating ||
-                  combinedLoading
+                  combinedLoading ||
+                  !!validationError
                 }
                 loading={isSubmitting}
                 className="tw-min-w-32"
@@ -764,9 +764,9 @@ const ManualRefillForm = ({
                 onClick={handleSaveAndClose}
                 disabled={
                   isSubmitting ||
-                  !canSubmitForm ||
                   isValidating ||
-                  combinedLoading
+                  combinedLoading ||
+                  !!validationError
                 }
                 loading={isSubmitting}
                 className="tw-min-w-32"
@@ -777,7 +777,7 @@ const ManualRefillForm = ({
               </Button>
             </div>
           </div>
-        </ScrollView>
+        </div>
       </div>
     </div>
   );

@@ -13,7 +13,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, SimpleItem, Label } from "devextreme-react/form";
 import { Button } from "devextreme-react";
-import ScrollView from "devextreme-react/scroll-view";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import DataGrid, {
   Column,
@@ -106,6 +105,7 @@ const ClosingStockForm = ({
   const [validationErrors, setValidationErrors] = useState({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
+  const [showVolumeHistory, setShowVolumeHistory] = useState(true);
 
   // Future records validation hook
   const {
@@ -438,9 +438,9 @@ const ClosingStockForm = ({
   ]);
 
   return (
-    <IsolatedForm formId="closing-stock-form">
+    <div formId="closing-stock-form" className="tw-h-full">
       <div className="closing-stock-form tw-h-full tw-flex tw-flex-col">
-        <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
+        <div className="closing-stock-scroll-container tw-flex-1 tw-overflow-y-auto">
           <div className="tw-p-6">
             <div className="tw-mb-6">
               <p className="tw-text-gray-600 tw-text-sm">
@@ -586,8 +586,8 @@ const ClosingStockForm = ({
                   displayExpr: "name",
                   valueExpr: "id",
                   onValueChanged: handleTankChange,
-                  disabled: !formData.siteId,
-                  placeholder: !formData.siteId
+                  disabled: !formData.siteId || formData.siteId === 0,
+                  placeholder: !formData.siteId || formData.siteId === 0
                     ? "Select site first"
                     : filteredTanks.length > 0
                     ? "Select a tank"
@@ -783,19 +783,29 @@ const ClosingStockForm = ({
             )}
 
             {/* Tank Volume History Section - Only show if tank is selected */}
-            {formData.siteId > 0 && formData.tankId > 0 && (
+            {formData.siteId > 0 && formData.tankId > 0 && showVolumeHistory && (
               <div className="tw-mt-6 tw-mb-6">
                 <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-shadow-sm">
-                  <div className="tw-p-4 tw-border-b tw-border-gray-200">
-                    <h4 className="tw-font-semibold tw-text-gray-800">
-                      <i className="fa-light fa-history tw-mr-2 tw-text-blue-600"></i>
-                      Tank Volume History
-                    </h4>
-                    <p className="tw-text-sm tw-text-gray-600">
-                      Recent volume changes for selected tank. Use search and
-                      filters to analyze transaction data. Negative values
-                      indicate fuel dispensed or transferred out.
-                    </p>
+                  <div className="tw-p-4 tw-border-b tw-border-gray-200 tw-flex tw-items-start tw-justify-between">
+                    <div className="tw-flex-1">
+                      <h4 className="tw-font-semibold tw-text-gray-800">
+                        <i className="fa-light fa-history tw-mr-2 tw-text-blue-600"></i>
+                        Tank Volume History
+                      </h4>
+                      <p className="tw-text-sm tw-text-gray-600">
+                        Recent volume changes for selected tank. Use search and
+                        filters to analyze transaction data. Negative values
+                        indicate fuel dispensed or transferred out.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowVolumeHistory(false)}
+                      className="tw-ml-3 tw-text-gray-600 hover:tw-text-gray-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
+                      title="Hide volume history"
+                    >
+                      <i className="fa-light fa-times tw-text-lg"></i>
+                    </button>
                   </div>
 
                   <div className="tw-p-4">
@@ -874,59 +884,6 @@ const ClosingStockForm = ({
                           caption="Reference"
                           width="100"
                         />
-                        <Summary>
-                          {/* Overall totals */}
-                          <TotalItem
-                            column="volumeChange"
-                            summaryType="sum"
-                            displayFormat="Net Volume Change: {0} L"
-                            valueFormat="#,##0.00"
-                            cssClass="tw-font-bold tw-text-blue-600"
-                          />
-                          <TotalItem
-                            column="volumeChange"
-                            summaryType="count"
-                            displayFormat="Total Transactions: {0}"
-                            cssClass="tw-font-bold tw-text-gray-600"
-                          />
-                          {/* Custom summary for positive and negative changes */}
-                          <TotalItem
-                            column="volumeChange"
-                            summaryType="custom"
-                            displayFormat="Volume In: {0} L"
-                            valueFormat="#,##0.00"
-                            cssClass="tw-font-medium tw-text-green-600"
-                            calculateCustomSummary={(options) => {
-                              if (options.summaryProcess === "start") {
-                                options.totalValue = 0;
-                              } else if (
-                                options.summaryProcess === "calculate"
-                              ) {
-                                if (options.value > 0) {
-                                  options.totalValue += options.value;
-                                }
-                              }
-                            }}
-                          />
-                          <TotalItem
-                            column="volumeChange"
-                            summaryType="custom"
-                            displayFormat="Volume Out: {0} L"
-                            valueFormat="#,##0.00"
-                            cssClass="tw-font-medium tw-text-red-600"
-                            calculateCustomSummary={(options) => {
-                              if (options.summaryProcess === "start") {
-                                options.totalValue = 0;
-                              } else if (
-                                options.summaryProcess === "calculate"
-                              ) {
-                                if (options.value < 0) {
-                                  options.totalValue += Math.abs(options.value);
-                                }
-                              }
-                            }}
-                          />
-                        </Summary>
                       </DataGrid>
                     ) : (
                       <div className="tw-text-center tw-py-8">
@@ -966,9 +923,9 @@ const ClosingStockForm = ({
               </Button>
             </div>
           </div>
-        </ScrollView>
+        </div>
       </div>
-    </IsolatedForm>
+    </div>
   );
 };
 

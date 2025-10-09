@@ -745,78 +745,38 @@ const OpeningStockForm = ({
                 <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mt-0.5 tw-mr-3"></i>
                 <div className="tw-flex-1">
                   <h4 className="tw-font-medium tw-text-red-800 tw-mb-1">
-                    Validation Error
+                    Opening Stock Validation Error
                   </h4>
-                  <p className="tw-text-red-700 tw-text-sm tw-mb-3">
-                    {backendError?.message || "An error occurred"}
-                  </p>
 
-                  {/* Enhanced guidance for unclosed opening stock */}
+                  {/* Enhanced error description for unclosed opening stock */}
                   {backendError?.message?.includes(
                     "opening stock already exists"
                   ) &&
                     backendError?.message?.includes(
                       "without a subsequent closing stock"
-                    ) && (
-                      <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded tw-p-3 tw-mt-3">
-                        <h5 className="tw-font-medium tw-text-yellow-800 tw-mb-2">
-                          <i className="fa-light fa-lightbulb tw-mr-2"></i>
-                          Solution Required
-                        </h5>
-                        <p className="tw-text-yellow-700 tw-text-sm tw-mb-3">
-                          You need to create a closing stock for the same date
-                          as the existing opening stock before you can add a new
-                          opening stock.
+                    ) ? (
+                      <div className="tw-bg-white tw-rounded tw-p-3 tw-border tw-border-red-100">
+                        <p className="tw-text-red-800 tw-text-sm tw-font-medium tw-mb-2">
+                          <i className="fa-light fa-info-circle tw-mr-2"></i>
+                          What happened?
                         </p>
-                        <div className="tw-flex tw-flex-col tw-space-y-2">
-                          <button
-                            onClick={() => {
-                              // Extract date from error message if possible
-                              const dateMatch =
-                                backendError.message.match(
-                                  /(\d{4}-\d{2}-\d{2})/
-                                );
-                              const suggestedDate = dateMatch
-                                ? new Date(dateMatch[1])
-                                : new Date();
-
-                              // Use the SAME date as the opening stock, not the next day
-                              // Closing stock must be on the same date as opening stock per backend validation
-
-                              // Call the parent component to open closing stock form
-                              if (onCancel) {
-                                onCancel("create-closing-stock", {
-                                  tankId: formData.tankId,
-                                  siteId: formData.siteId,
-                                  suggestedDate: suggestedDate, // Same date as opening stock
-                                  reason:
-                                    "Required to close existing opening stock before creating new opening stock",
-                                });
-                              }
-                            }}
-                            className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded tw-text-sm hover:tw-bg-blue-700 tw-transition-colors tw-flex tw-items-center tw-justify-center tw-space-x-2"
-                            disabled={!formData.tankId}
-                          >
-                            <i className="fa-light fa-plus tw-mr-2"></i>
-                            Create Required Closing Stock
-                          </button>
-
-                          <p className="tw-text-yellow-600 tw-text-xs">
-                            This will open the closing stock form with the same
-                            tank and date as the existing opening stock. After
-                            creating the closing stock, you can return to create
-                            your new opening stock.
-                          </p>
-                        </div>
+                        <p className="tw-text-red-700 tw-text-sm">
+                          {backendError?.message}
+                        </p>
                       </div>
+                    ) : (
+                      <p className="tw-text-red-700 tw-text-sm tw-mb-3">
+                        {backendError?.message || "An error occurred"}
+                      </p>
                     )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => setBackendError(null)}
-                  className="tw-ml-3 tw-text-red-600 hover:tw-text-red-800 tw-transition-colors"
-                  title="Dismiss error"
+                  className="tw-ml-3 tw-text-red-600 hover:tw-text-red-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
+                  title="Close error message"
                 >
-                  <i className="fa-light fa-times"></i>
+                  <i className="fa-light fa-times tw-text-lg"></i>
                 </button>
               </div>
             </div>
