@@ -98,7 +98,6 @@ export const fetchSiteList = () => async (dispatch) => {
     const response = await axiosInstance.get(`/site`); // NEW: GET /api/site
 
     const sitesData = ensureArray(response.data);
-    console.log("[siteActions] Fetched sites:", sitesData);
 
     dispatch(fetchSitesSuccess(sitesData));
     return { success: true, data: sitesData };
@@ -125,7 +124,6 @@ export const fetchSitebyUserId = () => async (dispatch) => {
     }
 
     const sitesData = ensureArray(response.data);
-    console.log("[siteActions] Fetched user sites:", sitesData);
 
     dispatch(fetchSitesSuccess(sitesData));
     return { success: true, data: sitesData };

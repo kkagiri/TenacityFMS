@@ -15,6 +15,25 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+/* FIX: Prevent DevExtreme ScrollView auto-scroll to top issue */
+/* This prevents scroll position resets on component re-renders */
+.dx-scrollable-container {
+  scroll-behavior: auto !important;
+  overflow-anchor: auto !important;
+}
+
+.dx-scrollview-content {
+  overflow-anchor: auto !important;
+}
+
+/* Prevent DataGrid virtual scrolling from causing scroll jumps */
+.dx-datagrid .dx-scrollable-container,
+.dx-datagrid-rowsview .dx-scrollable-container {
+  scroll-behavior: auto !important;
+  overscroll-behavior: contain !important;
+}
+
 .view-wrapper {
   overflow: hidden;
   display: flex;

@@ -22,7 +22,17 @@ const normalizeUrl = (url) => {
 };
 
 const buildCandidateList = () => {
+  // Check if we're on local dev machine using Windows environment variable
+  const isLocalDev = process.env.REACT_APP_IS_LOCAL_DEV === 'true';
+
+  // If local dev, prioritize localhost URLs
+  const localDevUrls = isLocalDev ? [
+    'http://localhost:7009/api/',
+    'http://127.0.0.1:7009/api/',
+  ] : [];
+
   const envCandidates = [
+    ...localDevUrls, // Local dev URLs go first if enabled
     process.env.REACT_APP_PRIVATE_FMS_API_URL,
     process.env.REACT_APP_API_URL,
     process.env.REACT_APP_FMS_API_URL,
@@ -38,7 +48,13 @@ const buildCandidateList = () => {
   const combined = fallback ? [...envCandidates, fallback] : [...envCandidates];
 
   // Deduplicate while preserving order
-  return combined.filter((value, index) => combined.indexOf(value) === index);
+  const deduplicated = combined.filter((value, index) => combined.indexOf(value) === index);
+
+  if (process.env.NODE_ENV === "development" && isLocalDev) {
+    console.log(`[Axios] Local dev mode enabled - prioritizing localhost URLs`);
+  }
+
+  return deduplicated;
 };
 
 let cachedApiBaseUrl = null;

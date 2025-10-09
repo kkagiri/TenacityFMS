@@ -14,7 +14,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { DropDownButton } from "devextreme-react/drop-down-button";
 import { Popup } from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
-// import TankStockErrorHandler from '../../../utils/tankStockErrorHandler';
 import "./QuickActions.scss";
 
 // Form imports
@@ -50,7 +49,7 @@ const POPUP_CONFIG = {
   delivery: {
     title: "Delivery",
     Form: TankDeliveryForm,
-    width: "98%",
+    width: "100%",
     maxWidth: "1050px",
     maxHeight: "80vh",
     height: "auto",
@@ -146,9 +145,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     const actionKey = e.itemData.key;
     setCurrentForm(actionKey);
     setPopupVisibility((prev) => ({ ...prev, [actionKey]: true }));
-  }, []);
-
-  const handlePopupVisibility = useCallback((popupName, isVisible) => {
+  }, []);  const handlePopupVisibility = useCallback((popupName, isVisible) => {
     setPopupVisibility((prev) => ({ ...prev, [popupName]: isVisible }));
     if (!isVisible) {
       setCurrentForm(null);

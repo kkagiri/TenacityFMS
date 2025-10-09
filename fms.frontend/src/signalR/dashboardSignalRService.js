@@ -1,3 +1,13 @@
+/**
+ * File: dashboardSignalRService.js
+ * Purpose: Manage SignalR connectivity for the realtime dashboard, including retry logic and protocol negotiation
+ * Dependencies: @microsoft/signalr, lodash/debounce, redux store, axiosInstance helpers
+ * Last Modified: 2025-10-08
+ *
+ * Key Functions/Components:
+ * - DashboardSignalRService: Orchestrates connection lifecycle, listeners, and reconnection strategies
+ */
+
 import {
   HubConnectionBuilder,
   LogLevel,
@@ -62,6 +72,53 @@ const getWindowOrigin = () =>
     ? window.location.origin
     : "";
 
+const getEnvironmentHint = () =>
+  (process.env.REACT_APP_FMS_ENVIRONMENT ||
+    process.env.REACT_APP_ENVIRONMENT ||
+    process.env.NODE_ENV ||
+    "")
+    .toString()
+    .toLowerCase();
+
+const normalizeSignalRHost = (value) =>
+  value ? value.replace(/\/+$/, "") : null;
+
+const getEnvironmentPreferredSignalRHosts = () => {
+  const env = getEnvironmentHint();
+  const preferred = [];
+
+  const pushIfPresent = (candidate) => {
+    const normalized = normalizeSignalRHost(candidate);
+    if (normalized) {
+      preferred.push(normalized);
+    }
+  };
+
+  // Allow custom override for any environment
+  pushIfPresent(process.env.REACT_APP_SIGNALR_URL);
+  pushIfPresent(process.env.REACT_APP_DEV_SIGNALR_URL);
+
+  switch (env) {
+    case "production":
+      pushIfPresent("https://10.0.10.153:7009");
+      pushIfPresent("http://10.0.10.153:7009");
+      break;
+    case "staging":
+    case "qa":
+    case "uat":
+      pushIfPresent("https://10.0.11.90:7009");
+      pushIfPresent("http://10.0.11.90:7009");
+      break;
+    default:
+      pushIfPresent("http://localhost:7009");
+      pushIfPresent("https://localhost:7009");
+      pushIfPresent("http://10.0.11.90:7009");
+      break;
+  }
+
+  return preferred;
+};
+
 /**
  * Dashboard SignalR Service
  * Handles dashboard-specific real-time updates
@@ -81,6 +138,9 @@ class DashboardSignalRService {
     this.lastMetricsUpdate = null;
     this.hasReceivedInitialBatch = false; // gate streaming until initial batch arrives
     this.dashboardOverviewWidgetId = null;
+  this.pendingRetryTimeout = null;
+  this.endpointRetryDelayMs = 60000;
+  this.endpointUnavailableRetries = 0;
 
     // Protocol negotiation state (for envelope v2 support)
     this.protocol = {
@@ -189,23 +249,35 @@ class DashboardSignalRService {
       baseUrl = await resolveApiBaseUrl().catch(() => null);
     }
 
-    if (!baseUrl) {
-      const candidates = [
-        process.env.REACT_APP_SIGNALR_URL,
-        process.env.REACT_APP_PUBLIC_FMS_API_URL,
-        process.env.REACT_APP_FMS_API_URL,
-        process.env.REACT_APP_FMS_API_URL_PROD,
-        process.env.REACT_APP_API_URL,
-      ].filter(Boolean);
+    const environmentHosts = getEnvironmentPreferredSignalRHosts();
+    const candidateHosts = [];
 
-      baseUrl = candidates[0] || `${getWindowOrigin()}`;
-
-      if (!baseUrl) {
-        throw new Error("Unable to determine SignalR base URL");
-      }
+    if (baseUrl) {
+      candidateHosts.push(baseUrl);
     }
 
-    let normalized = baseUrl;
+    const windowOrigin = getWindowOrigin();
+    environmentHosts.forEach((host) => {
+      if (host) {
+        candidateHosts.push(`${host}/api`);
+      }
+    });
+
+    if (!baseUrl && windowOrigin) {
+      candidateHosts.push(`${windowOrigin}/api`);
+    }
+
+    // Remove falsy and duplicate candidates while preserving order
+    const uniqueCandidates = candidateHosts.filter((value, index, self) => {
+      return value && self.indexOf(value) === index;
+    });
+
+    let normalized = uniqueCandidates.length > 0 ? uniqueCandidates[0] : null;
+
+    if (!normalized) {
+      throw new Error("Unable to determine SignalR base URL");
+    }
+
     if (normalized.endsWith("/api/")) {
       normalized = normalized.slice(0, -5);
     } else if (normalized.endsWith("/api")) {
@@ -214,7 +286,18 @@ class DashboardSignalRService {
 
     normalized = normalized.replace(/\/+$/, "");
 
-    return normalized;
+    const fallbackHost = environmentHosts.find(
+      (host) =>
+        host &&
+        !/localhost:(3000|5173)/i.test(host) &&
+        host.toLowerCase() !== normalized.toLowerCase()
+    );
+
+    if (/localhost:(3000|5173)/i.test(normalized) && fallbackHost) {
+      normalized = fallbackHost;
+    }
+
+    return normalizeSignalRHost(normalized);
   }
 
   /**

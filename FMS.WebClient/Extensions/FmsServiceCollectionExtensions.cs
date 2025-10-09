@@ -44,6 +44,13 @@ using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.SignalR;
+using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Communication.HttpPolling;
+using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Communication.HttpPolling;
+using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Command.PTSCommand.Common;
 // Removed incorrect Tracker namespace import; DeviceConnectionTracker lives directly under FMS.Application.Communication
 using FMS.Application.Communication.Connection;
 using FMS.Application.PTSServices.PumpService;
@@ -54,6 +61,9 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using FMS.Application.Communication;
+using FMS.Application.Validation.PTSValidators;
+using FMS.Application.Validation.PTSValidators.Common;
 
 namespace FMS.WebClient.Extensions;
 
@@ -339,6 +349,32 @@ public static class FmsServiceCollectionExtensions
         // Register SignalR connection monitor for FrontEndHub
         services.AddSingleton<FMS.Application.Communication.SignalR.ConnectionMonitor>();
         services.AddScoped<ISystemUserService, SystemUserService>();
+
+        // Vehicle & GPS Services
+        services.AddScoped<IGPSService, GPSGateService>();
+
+        // Configuration Services
+        services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
+
+        // PTS Services
+        services.AddScoped<IServiceControlService, ServiceControlService>();
+        services.AddScoped<IPumpService, PumpService>();
+        services.AddScoped<PumpTransactionIntegrationService>();
+        services.AddScoped<ICommandExecutor, CommandExecutor>();
+        services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService>();
+        services.AddScoped<ITransactionCompletionService, TransactionCompletionService>();
+        services.AddScoped<IAutoTransactionCompletionService, AutoTransactionCompletionService>();
+        services.AddScoped<IDirectHttpTransactionService, DirectHttpTransactionService>();
+        services.AddScoped<IDeviceCommunicationService, DeviceCommunicationService>();
+        services.AddScoped<IDeviceValidator, DeviceValidator>();
+
+        // Communication & Tracking Services
+        services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
+        services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
+
+        // Tank Management Services
+        services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
+
         services.AddHostedService<SystemUserInitializationService>();
         services.AddHostedService<NotificationBackgroundService>();
         services.AddHostedService<TankMonitoringService>();

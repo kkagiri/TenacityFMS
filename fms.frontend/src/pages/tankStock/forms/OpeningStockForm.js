@@ -13,6 +13,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, SimpleItem, Label, GroupItem } from "devextreme-react/form";
 import { Button } from "devextreme-react";
+import ScrollView from "devextreme-react/scroll-view";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import {
   fetchTanks,
@@ -20,12 +21,9 @@ import {
 } from "../../../redux/actions/tankActions";
 import { createOpeningStock } from "../../../redux/actions/tankStockAction";
 import LoadIndicator from "devextreme-react/load-indicator";
-import ScrollView from "devextreme-react/scroll-view";
 import notify from "devextreme/ui/notify";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
-import TankStockErrorHandler from "../../../utils/tankStockErrorHandler";
-import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import "./OpeningStockForm.scss";
 
 const OpeningStockForm = ({
@@ -55,9 +53,7 @@ const OpeningStockForm = ({
       return tanksProp;
     }
     return tanksState;
-  }, [usingPropTanks, tanksProp, tanksState]);
-
-  const [dataLoaded, setDataLoaded] = useState(false);
+  }, [usingPropTanks, tanksProp, tanksState]);  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Future records validation hook
   const {
@@ -91,6 +87,12 @@ const OpeningStockForm = ({
           show: {
             type: "slide",
             duration: 300,
+            from: { top: -100, opacity: 0 },
+            to: { top: 0, opacity: 1 },
+          },
+          hide: {
+            type: "slide",
+            duration: 300,
             from: { top: 0, opacity: 1 },
             to: { top: -100, opacity: 0 },
           },
@@ -112,6 +114,7 @@ const OpeningStockForm = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [backendError, setBackendError] = useState(null);
 
@@ -122,42 +125,24 @@ const OpeningStockForm = ({
 
     if (sitesReady && tanksReady) {
       if (!dataLoaded) {
-        console.log(
-          "[OpeningStockForm] Using available data (sites:%d, tanks:%d)",
-          sitesAvailable.length,
-          tanksAvailable.length
-        );
         setDataLoaded(true);
       }
       return;
     }
 
-    console.log("[OpeningStockForm] Initializing - fetching sites and tanks");
     const fetchData = async () => {
       try {
-        let sitesResult;
-        let tanksResult;
-
         if (!sitesReady) {
-          sitesResult = await dispatch(fetchSiteList());
-          console.log("[OpeningStockForm] Sites fetch result:", sitesResult);
+          await dispatch(fetchSiteList());
         }
 
         if (!tanksReady) {
-          tanksResult = await dispatch(fetchTanks());
-          console.log("[OpeningStockForm] Tanks fetch result:", tanksResult);
-          if (!tanksResult?.success) {
-            console.warn(
-              "[OpeningStockForm] Initial tank fetch returned no data:",
-              tanksResult
-            );
-          }
+          await dispatch(fetchTanks());
         }
 
         setDataLoaded(true);
-        console.log("[OpeningStockForm] Data loaded successfully");
       } catch (error) {
-        console.error("[OpeningStockForm] Error loading data:", error);
+        console.error("OpeningStockForm - Error loading data:", error);
         showNotification(
           "Failed to load form data. Please try again.",
           "error",
@@ -173,14 +158,6 @@ const OpeningStockForm = ({
     tanksAvailable.length,
     dataLoaded,
   ]);
-
-  // Debug: Log when sites or tanks change
-  useEffect(() => {
-    console.log("[OpeningStockForm] Effective sites:", sitesAvailable);
-    console.log("[OpeningStockForm] Sites length:", sitesAvailable?.length);
-    console.log("[OpeningStockForm] Effective tanks:", tanksAvailable);
-    console.log("[OpeningStockForm] Tanks length:", tanksAvailable?.length);
-  }, [sitesAvailable, tanksAvailable]);
 
   // Keep filtered tanks synchronized with store updates
   useEffect(() => {
@@ -201,10 +178,6 @@ const OpeningStockForm = ({
         return previous;
       }
 
-      console.log(
-        "[OpeningStockForm] Syncing filtered tanks from store:",
-        matchingTanks.length
-      );
       return matchingTanks;
     });
   }, [formData.siteId, tanksAvailable]);
@@ -216,11 +189,30 @@ const OpeningStockForm = ({
     }
   }, [formData, updateFormData]);
 
+  // Generic change handler for all form fields (controlled mode)
+  const handleChange = useCallback(
+    (e) => {
+      const { dataField, value } = e;
+
+      setFormData((prev) => {
+        const updated = { ...prev, [dataField]: value };
+        if (typeof updateFormData === "function") {
+          updateFormData(updated);
+        }
+        return updated;
+      });
+
+      // Clear validation errors for the changed field
+      setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
+      setBackendError(null);
+    },
+    [updateFormData]
+  );
+
   // ✅ FIX #2 & #3: Filter tanks first, then update form data
   const handleSiteChange = useCallback(
     async (e) => {
-      const siteId = e?.value ?? null;
-      console.log("[OpeningStockForm] Site changed:", siteId);
+      const siteId = e.value;
 
       setValidationErrors((prev) => ({ ...prev, siteId: null, tankId: null }));
       setBackendError(null);
@@ -229,7 +221,7 @@ const OpeningStockForm = ({
       setFormData((prev) => ({
         ...prev,
         siteId,
-        tankId: null,
+        tankId: "", // ✅ Using empty string for no selection state
         bookBalance: null,
         physicalStockValue: null,
       }));
@@ -244,28 +236,14 @@ const OpeningStockForm = ({
       );
 
       if (tanksForSite.length === 0 && !usingPropTanks) {
-        console.warn(
-          "[OpeningStockForm] Local store has no tanks for site, requesting fresh data"
-        );
         try {
           const result = await dispatch(fetctTankbySiteId(siteId));
           if (result?.success && Array.isArray(result.data)) {
             tanksForSite = result.data;
-            console.log(
-              "[OpeningStockForm] Loaded",
-              tanksForSite.length,
-              "tanks from API for site",
-              siteId
-            );
-          } else {
-            console.warn(
-              "[OpeningStockForm] Tank fetch by site returned no data:",
-              result
-            );
           }
         } catch (siteTankError) {
           console.error(
-            "[OpeningStockForm] Failed to fetch tanks for site:",
+            "OpeningStockForm - Failed to fetch tanks for site:",
             siteTankError
           );
           showNotification(
@@ -362,17 +340,19 @@ const OpeningStockForm = ({
       errors.amount = "Valid opening stock amount is required";
     if (!formData.date) errors.date = "Date is required";
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   }, [formData]);
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
     console.log("Starting form submission...");
 
-    if (!validateForm()) {
-      console.log("Form validation failed");
-      showNotification("Please correct the errors in the form", "error", 4000);
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification("Please fill in all required fields correctly", "error", 4000);
       return;
     }
 
@@ -386,8 +366,6 @@ const OpeningStockForm = ({
       return;
     }
 
-    console.log("Form data before submission:", formData);
-
     setIsSubmitting(true);
     try {
       // Prepare the data in the format expected by the action
@@ -399,8 +377,6 @@ const OpeningStockForm = ({
       };
 
       const response = await dispatch(createOpeningStock(preparedData));
-
-      console.log("Opening stock creation response:", response);
 
       // Check for success - be more explicit about what constitutes success
       if (response && response.success === true) {
@@ -424,7 +400,7 @@ const OpeningStockForm = ({
         // Handle both explicit failure and undefined success - including backend validation errors
         const errorMessage =
           response?.message || "Failed to create opening stock";
-        console.error("Opening stock creation failed:", errorMessage, response);
+        console.error("OpeningStockForm - Creation failed:", errorMessage, response);
 
         // Set backend error for inline display instead of notification
         setBackendError({
@@ -435,7 +411,7 @@ const OpeningStockForm = ({
         // Form stays open so user can retry or make corrections
       }
     } catch (error) {
-      console.error("Error creating opening stock:", error);
+      console.error("OpeningStockForm - Error creating opening stock:", error);
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -463,17 +439,10 @@ const OpeningStockForm = ({
 
   return (
     <div className="opening-stock-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView
-        className="tw-flex-1"
-        showScrollbar="onScroll"
-        scrollByContent={true}
-        scrollByThumb={true}
-        bounceEnabled={false}
-        useNative={false}
-      >
-        <div className="tw-p-1">
+      <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
+        <div className="tw-p-6">
           {/* Header */}
-          <div className="tw-mb">
+          <div className="tw-mb-6">
             <p className="tw-text-gray-600 tw-text-sm">
               Record the opening stock amount for the selected tank and date.
             </p>
@@ -496,15 +465,16 @@ const OpeningStockForm = ({
             </div>
           )}
 
-          <IsolatedForm formId="opening-stock-form">
-            <Form
-              readOnly={isLoading}
-              showColonAfterLabel={true}
-              labelLocation="top"
-              colCount={2}
-              className="tw-mb-6"
-              scrollingEnabled={false}
-            >
+          <Form
+            formData={formData}
+            readOnly={isLoading}
+            showColonAfterLabel={true}
+            labelLocation="top"
+            onFieldDataChanged={handleChange}
+            colCount={2}
+            className="tw-mb-6"
+            scrollingEnabled={true}
+          >
               <GroupItem colCount={1} colSpan={2}>
                 <SimpleItem
                   dataField="date"
@@ -525,10 +495,11 @@ const OpeningStockForm = ({
                       maxWidth: 520,
                       wrapperAttr: { class: "datebox-wide" },
                     },
-                    isValid: !validationErrors.date,
+                    isValid: hasAttemptedSubmit ? !validationErrors.date : true,
                     validationError: validationErrors.date
                       ? { message: validationErrors.date }
                       : null,
+                    validationMessageMode: "always",
                     // Add date validation to prevent invalid date formatting
                     acceptCustomValue: false,
                     openOnFieldClick: true,
@@ -549,7 +520,6 @@ const OpeningStockForm = ({
                   items: sitesAvailable,
                   displayExpr: "name",
                   valueExpr: "id",
-                  value: formData.siteId,
                   onValueChanged: handleSiteChange,
                   placeholder:
                     sitesAvailable.length === 0
@@ -557,18 +527,15 @@ const OpeningStockForm = ({
                       : "Select a site",
                   width: "100%",
                   searchEnabled: true,
+                  showClearButton: true,
                   dropDownOptions: {
-                    container: ".opening-stock-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
-                  isValid: !validationErrors.siteId,
+                  isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
                   validationError: validationErrors.siteId
                     ? { message: validationErrors.siteId }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Site" />
@@ -581,6 +548,7 @@ const OpeningStockForm = ({
                   items: filteredTanks,
                   displayExpr: "name",
                   valueExpr: "id",
+                  onValueChanged: handleTankChange,
                   disabled: !formData.siteId,
                   placeholder: !formData.siteId
                     ? "Select a site first"
@@ -588,18 +556,16 @@ const OpeningStockForm = ({
                     ? "Select a tank"
                     : "No tanks available",
                   width: "100%",
+                  searchEnabled: true,
+                  showClearButton: true,
                   dropDownOptions: {
-                    container: ".opening-stock-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
-                  isValid: !validationErrors.tankId,
+                  isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
                   validationError: validationErrors.tankId
                     ? { message: validationErrors.tankId }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Tank" />
@@ -656,10 +622,11 @@ const OpeningStockForm = ({
                   width: "100%",
                   ...(formData.amount !== null &&
                     formData.amount !== undefined && { format: "#,##0" }),
-                  isValid: !validationErrors.amount,
+                  isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
                   validationError: validationErrors.amount
                     ? { message: validationErrors.amount }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Physical Stock Amount (Liters)" />
@@ -759,7 +726,6 @@ const OpeningStockForm = ({
                   </div>
                 )}
             </Form>
-          </IsolatedForm>
 
           {/* Future Records Validation Warning */}
           {(showWarning || validationError) && (
@@ -881,11 +847,12 @@ const OpeningStockForm = ({
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowInfoNotice(false)}
-                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
+                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
                   title="Close information"
                 >
-                  <i className="fa-light fa-times"></i>
+                  <i className="fa-light fa-times tw-text-lg"></i>
                 </button>
               </div>
             </div>

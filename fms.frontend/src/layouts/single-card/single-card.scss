@@ -1,37 +1,58 @@
 @import "../../themes/generated/variables.base.scss";
 
-.single-card {
 
-  .dx-card {
-    width: 330px;
-    margin: auto auto;
-    padding: 40px;
+.single-card-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, #f8fafc 0%, #eef2ff 100%);
+
+  .single-card-inner {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .single-card-scroll {
+    max-width: 520px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
+.single-card-scroll {
+  .single-card-card {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 38px 44px;
     flex-grow: 0;
+    border-radius: 20px;
+    box-shadow: 0 24px 54px rgba(15, 23, 42, 0.12);
+    background-color: #ffffff;
 
     .screen-x-small & {
-      width: 100%;
-      height: 100%;
       border-radius: 0;
       box-shadow: none;
-      margin: 0;
-      border: 0;
-      flex-grow: 1;
+      padding: 32px 20px;
     }
+  }
+}
 
-    .header {
-      margin-bottom: 30px;
+.single-card-hero {
+  text-align: center;
 
-      .title {
-        color: $base-text-color;
-        line-height: 28px;
-        font-weight: 500;
-        font-size: 24px;
-      }
+  span {
+    letter-spacing: 0.38em;
+  }
 
-      .description {
-        color: rgba($base-text-color, alpha($base-text-color) * 0.7);
-        line-height: 18px;
-      }
-    }
+  h1 {
+    margin: 0;
+    color: $base-text-color;
+  }
+
+  p {
+    color: rgba($base-text-color, alpha($base-text-color) * 0.7);
   }
 }

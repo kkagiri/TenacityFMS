@@ -23,7 +23,6 @@ import { DatePeriods } from "../../components/Shared/datePeriods";
 import TankStockDashBoardCards from "./tankStockDashBoardCards";
 
 import LoadIndicator from 'devextreme-react/load-indicator';
-import ScrollView from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
 import TabPanel, { Item } from 'devextreme-react/tab-panel';
 import Popup from 'devextreme-react/popup';
@@ -276,7 +275,7 @@ const TankStockPage = () => {
   }
 
   return (
-    <ScrollView className='content-block tw-bg-gray-50 tw-min-h-screen'>
+    <div className='content-block tw-bg-gray-50 tw-min-h-screen tw-overflow-y-auto tw-h-full'>
       <div className="tw-p-6">
         <div className="tw-mb-4">
           <h1 className="tw-text-2xl tw-font-bold tw-text-gray-800">Tank Stock Dashboard</h1>
@@ -356,7 +355,7 @@ const TankStockPage = () => {
           </TabPanel>
         </div>
       </div>
-    </ScrollView>
+    </div>
   );
 };
 

@@ -19,15 +19,12 @@ import {
   NumericRule,
 } from "devextreme-react/form";
 import { Button } from "devextreme-react";
+import ScrollView from "devextreme-react/scroll-view";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
-import {
-  fetchTanks,
-  fetctTankbySiteId,
-} from "../../../redux/actions/tankActions";
+import { fetchTanks } from "../../../redux/actions/tankActions";
 import { createTankTransfer } from "../../../redux/actions/tankStockAction";
 import { prepareTankTransferDTO } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
-import ScrollView from "devextreme-react/scroll-view";
 import notify from "devextreme/ui/notify";
 import "./TankTransferForm.scss";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
@@ -89,8 +86,7 @@ const TankTransferForm = ({
 
   const [filteredSourceTanks, setFilteredSourceTanks] = useState([]);
   const [filteredDestinationTanks, setFilteredDestinationTanks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const combinedLoading = isLoading || loading;
+  const [loading] = useState(false);
 
   const findTankById = useCallback(
     (tankId) => {
@@ -114,6 +110,7 @@ const TankTransferForm = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showSourceTankInfo, setShowSourceTankInfo] = useState(false);
 
@@ -135,17 +132,11 @@ const TankTransferForm = ({
 
     if (sitesReady && tanksReady) {
       if (!dataLoaded) {
-        console.log(
-          "[TankTransferForm] Using available datasets (sites:%d, tanks:%d)",
-          sitesAvailable.length,
-          tanksAvailable.length
-        );
         setDataLoaded(true);
       }
       return;
     }
 
-    console.log("[TankTransferForm] Initializing - fetching sites and tanks");
     const fetchData = async () => {
       try {
         if (!sitesReady && !usingPropSites) {
@@ -155,9 +146,8 @@ const TankTransferForm = ({
           await dispatch(fetchTanks());
         }
         setDataLoaded(true);
-        console.log("[TankTransferForm] Data loaded successfully");
       } catch (error) {
-        console.error("[TankTransferForm] Error loading data:", error);
+        console.error("TankTransferForm - Error loading data:", error);
         showNotification(
           "Failed to load form data. Please try again.",
           "error",
@@ -184,136 +174,90 @@ const TankTransferForm = ({
     }
   }, [formData, updateFormData]);
 
-  const handleSourceSiteChange = useCallback(
-    async (e) => {
-      const siteId = e?.value ?? null;
-      console.log("[TankTransferForm] Source site changed:", siteId);
+  // Generic change handler for all form fields (controlled mode)
+  const handleChange = useCallback(
+    (e) => {
+      const { dataField, value } = e;
 
-      setFilteredSourceTanks([]);
-      setFormData((prevData) => ({
-        ...prevData,
-        sourceSiteId: siteId,
-        sourceTankId: null,
-      }));
+      setFormData((prev) => {
+        const updated = { ...prev, [dataField]: value };
+        if (typeof updateFormData === "function") {
+          updateFormData(updated);
+        }
+        return updated;
+      });
+
+      // Clear validation errors for the changed field
+      setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
+    },
+    [updateFormData]
+  );
+
+  const handleSourceSiteChange = useCallback(
+    (e) => {
+      const siteId = e?.value ?? null;
+      setShowSourceTankInfo(false);
+
+      setFormData((prevData) => {
+        const isInterTank = prevData.transferType === "InterTank";
+
+        const updatedData = {
+          ...prevData,
+          sourceSiteId: siteId,
+          sourceTankId: null,
+          sourceTankCurrentStock: null,
+        };
+
+        if (isInterTank) {
+          updatedData.destinationSiteId = siteId;
+          updatedData.destinationTankId = null;
+        }
+
+        if (!siteId) {
+          return {
+            ...updatedData,
+            destinationSiteId: isInterTank ? null : updatedData.destinationSiteId,
+            destinationTankId: null,
+          };
+        }
+
+        return updatedData;
+      });
 
       if (!siteId) {
+        setFilteredSourceTanks([]);
+        setFilteredDestinationTanks([]);
         return;
       }
 
-      let tanksForSite = tanksAvailable.filter(
+      const tanksForSite = tanksAvailable.filter(
         (tank) => tank.siteId === siteId
       );
-
-      if (tanksForSite.length === 0 && !usingPropTanks) {
-        setLoading(true);
-        try {
-          const result = await dispatch(fetctTankbySiteId(siteId));
-          if (result?.success && Array.isArray(result.data)) {
-            tanksForSite = result.data;
-            console.log(
-              "[TankTransferForm] Loaded %d source tanks from API for site %s",
-              tanksForSite.length,
-              siteId
-            );
-          } else {
-            console.warn(
-              "[TankTransferForm] No source tanks returned for site %s",
-              siteId
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[TankTransferForm] Failed to load source tanks",
-            error
-          );
-          showNotification(
-            "Unable to load tanks for the selected source site.",
-            "error",
-            5000
-          );
-        } finally {
-          setLoading(false);
-        }
-      }
-
       setFilteredSourceTanks(tanksForSite);
+
+      // When in InterTank mode, ensure destination list mirrors current site selection
+      if (formData.transferType === "InterTank") {
+        setFilteredDestinationTanks(tanksForSite);
+      }
     },
-    [dispatch, showNotification, tanksAvailable, usingPropTanks]
+    [formData.transferType, tanksAvailable]
   );
 
   const handleDestinationSiteChange = useCallback(
-    async (e) => {
-      const siteId = e?.value ?? null;
-      console.log("[TankTransferForm] Destination site changed:", siteId);
-
-      setFilteredDestinationTanks([]);
+    (e) => {
+      const siteId = e.value;
       setFormData((prevData) => ({
         ...prevData,
         destinationSiteId: siteId,
-        destinationTankId: null,
+        destinationTankId: null
       }));
 
-      if (!siteId) {
-        return;
-      }
-
-      const excludeSourceTank = formData.transferType === "InterTank";
-      let tanksForSite = tanksAvailable.filter((tank) => {
-        if (tank.siteId !== siteId) return false;
-        if (excludeSourceTank && tank.id === formData.sourceTankId) {
-          return false;
-        }
-        return true;
-      });
-
-      if (tanksForSite.length === 0 && !usingPropTanks) {
-        setLoading(true);
-        try {
-          const result = await dispatch(fetctTankbySiteId(siteId));
-          if (result?.success && Array.isArray(result.data)) {
-            tanksForSite = result.data.filter((tank) => {
-              if (tank.siteId !== siteId) return false;
-              if (excludeSourceTank && tank.id === formData.sourceTankId) {
-                return false;
-              }
-              return true;
-            });
-            console.log(
-              "[TankTransferForm] Loaded %d destination tanks from API for site %s",
-              tanksForSite.length,
-              siteId
-            );
-          } else {
-            console.warn(
-              "[TankTransferForm] No destination tanks returned for site %s",
-              siteId
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[TankTransferForm] Failed to load destination tanks",
-            error
-          );
-          showNotification(
-            "Unable to load tanks for the selected destination site.",
-            "error",
-            5000
-          );
-        } finally {
-          setLoading(false);
-        }
-      }
-
+      const tanksForSite = tanksAvailable.filter(
+        (tank) => tank.siteId === siteId
+      );
       setFilteredDestinationTanks(tanksForSite);
     },
-    [
-      dispatch,
-      showNotification,
-      tanksAvailable,
-      usingPropTanks,
-      formData.transferType,
-      formData.sourceTankId,
-    ]
+    [tanksAvailable]
   );
 
   const normalizeTank = (tank) => {
@@ -412,6 +356,9 @@ const TankTransferForm = ({
       ...prevData,
       destinationTankId: tankId,
     }));
+
+    // Clear validation errors for this field
+    setValidationErrors((prev) => ({ ...prev, destinationTankId: null }));
   }, []);
 
   const handleDateChange = useCallback(
@@ -448,33 +395,31 @@ const TankTransferForm = ({
   const handleTransferTypeChange = useCallback(
     (e) => {
       const transferType = e.value;
+
       setFormData((prevData) => {
         const updatedData = {
           ...prevData,
-          transferType,
-          destinationSiteId:
-            transferType === "InterTank" ? prevData.sourceSiteId : null,
-          destinationTankId: null,
+          transferType: transferType,
+          destinationSiteId: transferType === "InterTank" ? prevData.sourceSiteId : null,
+          destinationTankId: null
         };
 
+        // Update destination tanks based on transfer type
         if (transferType === "InterTank" && prevData.sourceSiteId) {
-          const sourceTanks = filteredSourceTanks.length
-            ? filteredSourceTanks
-            : tanksAvailable;
-          const tanksForSite = sourceTanks.filter(
+          const tanksForSite = tanksAvailable.filter(
             (tank) =>
               tank.siteId === prevData.sourceSiteId &&
               tank.id !== prevData.sourceTankId
           );
           setFilteredDestinationTanks(tanksForSite);
-        } else if (transferType === "InterSite") {
+        } else {
           setFilteredDestinationTanks([]);
         }
 
         return updatedData;
       });
     },
-    [filteredSourceTanks, tanksAvailable]
+    [tanksAvailable]
   );
 
   // reason removed
@@ -501,15 +446,18 @@ const TankTransferForm = ({
       errors.destinationTankId =
         "Destination tank must be different from source tank";
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   }, [formData]);
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
-    if (!validateForm()) {
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
       showNotification(
-        "Please fix validation errors before submitting",
+        "Please fill in all required fields correctly",
         "error",
         3000
       );
@@ -567,19 +515,13 @@ const TankTransferForm = ({
     onCancel,
     canSubmit,
     resetValidation,
+    showNotification,
   ]);
 
   return (
     <div className="tank-transfer-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView
-        className="tw-flex-1"
-        showScrollbar="onScroll"
-        scrollByContent={true}
-        scrollByThumb={true}
-        bounceEnabled={false}
-        useNative={false}
-      >
-        <div className="tw-p-1">
+      <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
+        <div className="tw-p-6">
           {/* Header */}
           <div className="tw-mb-6">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2">
@@ -639,12 +581,12 @@ const TankTransferForm = ({
               </div>
             </div>
           )}
-          <IsolatedForm formId="tank-transfer-form">
             <Form
-              readOnly={combinedLoading}
+              readOnly={isLoading}
               formData={formData}
               showColonAfterLabel={true}
               labelLocation="top"
+              onFieldDataChanged={handleChange}
               colCount={2}
               className="tw-mb-6"
               scrollingEnabled={false}
@@ -668,10 +610,11 @@ const TankTransferForm = ({
                     wrapperAttr: { class: "datebox-wide" },
                   },
                   elementAttr: { class: "datebox-full-width-popup" },
-                  isValid: !validationErrors.date,
+                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
                   validationError: validationErrors.date
                     ? { message: validationErrors.date }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Date & Time" />
@@ -686,7 +629,6 @@ const TankTransferForm = ({
                   displayExpr: "name",
                   valueExpr: "id",
                   onValueChanged: handleTransferTypeChange,
-                  value: formData.transferType,
                   placeholder: "Select transfer type",
                   width: "100%",
                 }}
@@ -704,25 +646,18 @@ const TankTransferForm = ({
                   valueExpr: "id",
                   value: formData.sourceSiteId,
                   onValueChanged: handleSourceSiteChange,
-                  placeholder: combinedLoading
-                    ? "Loading sites..."
-                    : sitesAvailable.length > 0
-                    ? "Select source site"
-                    : "No sites available",
+                  placeholder: "Select source site",
                   searchEnabled: true,
+                  showClearButton: true,
                   width: "100%",
                   dropDownOptions: {
-                    container: ".tank-transfer-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
-                  isValid: !validationErrors.sourceSiteId,
+                  isValid: hasAttemptedSubmit ? !validationErrors.sourceSiteId : true,
                   validationError: validationErrors.sourceSiteId
                     ? { message: validationErrors.sourceSiteId }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Source Site" />
@@ -736,25 +671,24 @@ const TankTransferForm = ({
                   items: filteredSourceTanks,
                   displayExpr: "name",
                   valueExpr: "id",
+                  onValueChanged: handleSourceTankChange,
                   disabled: !formData.sourceSiteId,
                   placeholder: !formData.sourceSiteId
                     ? "Select source site first"
                     : filteredSourceTanks.length === 0
                     ? "No tanks available"
                     : "Select source tank",
+                  searchEnabled: true,
+                  showClearButton: true,
                   width: "100%",
                   dropDownOptions: {
-                    container: ".tank-transfer-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
-                  isValid: !validationErrors.sourceTankId,
+                  isValid: hasAttemptedSubmit ? !validationErrors.sourceTankId : true,
                   validationError: validationErrors.sourceTankId
                     ? { message: validationErrors.sourceTankId }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Source Tank" />
@@ -762,6 +696,7 @@ const TankTransferForm = ({
               </SimpleItem>
 
               <SimpleItem
+                key={`destination-site-${formData.destinationSiteId || 'empty'}-${formData.transferType}`}
                 dataField="destinationSiteId"
                 editorType="dxSelectBox"
                 editorOptions={{
@@ -772,27 +707,17 @@ const TankTransferForm = ({
                   onValueChanged: handleDestinationSiteChange,
                   searchEnabled: true,
                   disabled: formData.transferType === "InterTank",
-                  placeholder:
-                    formData.transferType === "InterTank"
-                      ? "Same as source site"
-                      : combinedLoading
-                      ? "Loading sites..."
-                      : sitesAvailable.length > 0
-                      ? "Select destination site"
-                      : "No sites available",
+                  placeholder: "Select destination site",
+                  showClearButton: true,
                   width: "100%",
                   dropDownOptions: {
-                    container: ".tank-transfer-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
-                  isValid: !validationErrors.destinationSiteId,
+                  isValid: hasAttemptedSubmit ? !validationErrors.destinationSiteId : true,
                   validationError: validationErrors.destinationSiteId
                     ? { message: validationErrors.destinationSiteId }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Destination Site" />
@@ -806,25 +731,21 @@ const TankTransferForm = ({
                   items: filteredDestinationTanks,
                   displayExpr: "name",
                   valueExpr: "id",
+                  value: formData.destinationTankId,
+                  onValueChanged: handleDestinationTankChange,
                   disabled: !formData.destinationSiteId,
-                  placeholder: !formData.destinationSiteId
-                    ? "Select destination site first"
-                    : filteredDestinationTanks.length === 0
-                    ? "No tanks available"
-                    : "Select destination tank",
+                  placeholder: "Select destination tank",
+                  searchEnabled: true,
+                  showClearButton: true,
                   width: "100%",
                   dropDownOptions: {
-                    container: ".tank-transfer-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
-                  isValid: !validationErrors.destinationTankId,
+                  isValid: hasAttemptedSubmit ? !validationErrors.destinationTankId : true,
                   validationError: validationErrors.destinationTankId
                     ? { message: validationErrors.destinationTankId }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Destination Tank" />
@@ -842,10 +763,11 @@ const TankTransferForm = ({
                   width: "100%",
                   ...(formData.amount !== null &&
                     formData.amount !== undefined && { format: "#,##0.00" }),
-                  isValid: !validationErrors.amount,
+                  isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
                   validationError: validationErrors.amount
                     ? { message: validationErrors.amount }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Transfer Amount (Liters)" />
@@ -855,7 +777,7 @@ const TankTransferForm = ({
 
               {/* Reason removed as not required */}
             </Form>
-          </IsolatedForm>
+
           {/* Future Records Warning */}
           {(showWarning || validationError) && (
             <div className="tw-mb-4">
@@ -888,11 +810,12 @@ const TankTransferForm = ({
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowInfoNotice(false)}
-                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
+                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
                   title="Close information"
                 >
-                  <i className="fa-light fa-times"></i>
+                  <i className="fa-light fa-times tw-text-lg"></i>
                 </button>
               </div>
             </div>

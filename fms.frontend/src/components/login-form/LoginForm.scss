@@ -1,6 +1,25 @@
 @import "../../themes/generated/variables.base.scss";
 
 .login-form {
+  .login-submit-button {
+    width: 100%;
+    &.loading {
+      cursor: progress;
+    }
+
+    .dx-button-content {
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  .login-submit-spinner {
+    .dx-loadindicator-icon::before,
+    .dx-loadindicator-segment::before {
+      background-color: #ffffff !important;
+    }
+  }
+
   .link {
     text-align: center;
     font-size: 16px;

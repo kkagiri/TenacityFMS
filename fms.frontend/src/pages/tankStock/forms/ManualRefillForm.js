@@ -7,16 +7,27 @@
  * Key Functions/Components:
  * - ManualRefillForm: Main component handling manual refill submission and validation workflows
  * - handleSiteChange: Filters tanks based on selected site with API fallback when cache misses occur
- * - handleSaveAndClose/handleSaveAndNew: Persist manual refill data and coordinate UI feedback
+ * - handleSaveAndClose/handleSaveAndNew: Persi                      }
+                      maxHeight={250}
+                      dropDownOptions={{
+                        container: "body",
+                      }}
+                    />
+                  </div>
+                )}
+              />
+
+              <SimpleItem
+                dataField="vehicleId"data and coordinate UI feedback
  */
 import React, { useState, useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import { Form, SimpleItem, Label } from "devextreme-react/form";
 import Button from "devextreme-react/button";
+import ScrollView from "devextreme-react/scroll-view";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
-import ScrollView from "devextreme-react/scroll-view";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import {
   fetchTanks,
@@ -57,6 +68,7 @@ const ManualRefillForm = ({
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [formData, setFormData] = useState({
     vehicleId: null,
@@ -112,18 +124,12 @@ const ManualRefillForm = ({
 
     if (sitesReady && tanksReady) {
       if (!dataLoaded) {
-        console.log(
-          "[ManualRefillForm] Using available datasets (sites:%d, tanks:%d)",
-          sitesAvailable.length,
-          tanksAvailable.length
-        );
         setDataLoaded(true);
       }
       return;
     }
 
     const fetchData = async () => {
-      console.log("[ManualRefillForm] Loading initial data...");
       try {
         if (!sitesReady && !usingPropSites) {
           await dispatch(fetchSiteList());
@@ -132,9 +138,8 @@ const ManualRefillForm = ({
           await dispatch(fetchTanks());
         }
         setDataLoaded(true);
-        console.log("[ManualRefillForm] Data loaded successfully");
       } catch (error) {
-        console.error("[ManualRefillForm] Error loading data:", error);
+        console.error("ManualRefillForm - Error loading data:", error);
         showNotification("Error loading form data", "error");
       }
     };
@@ -155,7 +160,6 @@ const ManualRefillForm = ({
   const handleSiteChange = useCallback(
     async (e) => {
       const siteId = e.value;
-      console.log("[ManualRefillForm] Site changed:", siteId);
 
       setFormData((prev) => ({
         ...prev,
@@ -173,10 +177,6 @@ const ManualRefillForm = ({
       let tanksForSite = tanksAvailable.filter(
         (tank) => tank.siteId === siteId
       );
-      console.log(
-        "[ManualRefillForm] Tanks for site (cached):",
-        tanksForSite.length
-      );
 
       if (tanksForSite.length === 0 && !usingPropTanks) {
         setLoading(true);
@@ -184,20 +184,10 @@ const ManualRefillForm = ({
           const result = await dispatch(fetctTankbySiteId(siteId));
           if (result?.success && Array.isArray(result.data)) {
             tanksForSite = result.data;
-            console.log(
-              "[ManualRefillForm] Loaded %d tanks from API for site %s",
-              tanksForSite.length,
-              siteId
-            );
-          } else {
-            console.warn(
-              "[ManualRefillForm] No tanks returned for site %s",
-              siteId
-            );
           }
         } catch (error) {
           console.error(
-            "[ManualRefillForm] Failed to load tanks for site",
+            "ManualRefillForm - Failed to load tanks for site:",
             error
           );
           showNotification(
@@ -331,8 +321,7 @@ const ManualRefillForm = ({
       errors.driverId = "Driver is required";
     }
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   }, [formData]);
 
   // Clear form data for new entry (preserve site and tank selections)
@@ -356,8 +345,12 @@ const ManualRefillForm = ({
 
   // Handle form submission and close
   const handleSaveAndClose = useCallback(async () => {
-    if (!validateForm()) {
-      showNotification("Please correct the validation errors", "error");
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification("Please fill in all required fields correctly", "error");
       return;
     }
 
@@ -395,8 +388,12 @@ const ManualRefillForm = ({
 
   // Handle save and new entry
   const handleSaveAndNew = useCallback(async () => {
-    if (!validateForm()) {
-      showNotification("Please correct the validation errors", "error");
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification("Please fill in all required fields correctly", "error");
       return;
     }
 
@@ -417,6 +414,7 @@ const ManualRefillForm = ({
         "success"
       );
       clearFormData();
+      setHasAttemptedSubmit(false); // Reset for new entry
     } catch (error) {
       console.error("Error creating manual refill:", error);
       showNotification("Failed to record manual refill", "error");
@@ -433,17 +431,9 @@ const ManualRefillForm = ({
   ]);
 
   return (
-    <IsolatedForm formId="manual-refill-form">
-      <div
-        className="manual-refill-form tw-h-full tw-flex tw-flex-col"
-        style={{ overflow: "hidden" }}
-      >
-        <ScrollView
-          className="tw-flex-1"
-          bounceEnabled={false}
-          useNative={false}
-          showScrollbar="onScroll"
-        >
+    <div formId="manual-refill-form">
+      <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
+        <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
           <div className="tw-p-6 tw-max-w-4xl tw-mx-auto">
             {/* Header */}
             <div className="tw-mb-6">
@@ -470,11 +460,12 @@ const ManualRefillForm = ({
                       </p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => setShowInfoNotice(false)}
-                      className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
+                      className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
                       title="Close information"
                     >
-                      <i className="fa-light fa-times"></i>
+                      <i className="fa-light fa-times tw-text-lg"></i>
                     </button>
                   </div>
                 </div>
@@ -508,16 +499,18 @@ const ManualRefillForm = ({
                     wrapperAttr: { class: "datebox-wide" },
                   },
                   elementAttr: { class: "datebox-full-width-popup" },
-                  isValid: !validationErrors.date,
+                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
                   validationError: validationErrors.date
                     ? { message: validationErrors.date }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Date & Time" />
               </SimpleItem>
 
               <SimpleItem
+                key={`site-${formData.siteId || 'empty'}`}
                 dataField="siteId"
                 render={() => (
                   <div>
@@ -535,21 +528,17 @@ const ManualRefillForm = ({
                           ? "Select a site"
                           : "No sites available"
                       }
-                      isValid={!validationErrors.siteId}
+                      isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
                       validationError={
                         validationErrors.siteId
                           ? { message: validationErrors.siteId }
                           : null
                       }
+                      validationMessageMode="always"
                       maxHeight={250}
                       searchEnabled={true}
                       dropDownOptions={{
-                        container: ".manual-refill-form",
-                        position: {
-                          my: "top",
-                          at: "bottom",
-                          collision: "flip",
-                        },
+                        container: "body",
                       }}
                     />
                   </div>
@@ -557,6 +546,7 @@ const ManualRefillForm = ({
               />
 
               <SimpleItem
+                key={`tank-${formData.siteId || 'empty'}-${formData.tankId || 'none'}`}
                 dataField="tankId"
                 render={() => (
                   <div>
@@ -577,12 +567,13 @@ const ManualRefillForm = ({
                           : "Select a tank"
                       }
                       disabled={!formData.siteId || combinedLoading}
-                      isValid={!validationErrors.tankId}
+                      isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
                       validationError={
                         validationErrors.tankId
                           ? { message: validationErrors.tankId }
                           : null
                       }
+                      validationMessageMode="always"
                       maxHeight={250}
                       searchEnabled={true}
                       dropDownOptions={{
@@ -608,12 +599,13 @@ const ManualRefillForm = ({
                       onValueChanged={(e) => handleFieldChange("vehicleId")(e)}
                       placeholder="Type to search vehicle"
                       width="100%"
-                      isValid={!validationErrors.vehicleId}
+                      isValid={hasAttemptedSubmit ? !validationErrors.vehicleId : true}
                       validationError={
                         validationErrors.vehicleId
                           ? { message: validationErrors.vehicleId }
                           : null
                       }
+                      validationMessageMode="always"
                     />
                   </div>
                 )}
@@ -629,12 +621,13 @@ const ManualRefillForm = ({
                       onValueChanged={(e) => handleFieldChange("driverId")(e)}
                       placeholder="Type to search driver"
                       width="100%"
-                      isValid={!validationErrors.driverId}
+                      isValid={hasAttemptedSubmit ? !validationErrors.driverId : true}
                       validationError={
                         validationErrors.driverId
                           ? { message: validationErrors.driverId }
                           : null
                       }
+                      validationMessageMode="always"
                       activeOnly={true}
                       siteId={formData.siteId}
                     />
@@ -655,10 +648,11 @@ const ManualRefillForm = ({
                     formData.manualFuelrefillAmount !== undefined && {
                       format: "#,##0.00",
                     }),
-                  isValid: !validationErrors.manualFuelrefillAmount,
+                  isValid: hasAttemptedSubmit ? !validationErrors.manualFuelrefillAmount : true,
                   validationError: validationErrors.manualFuelrefillAmount
                     ? { message: validationErrors.manualFuelrefillAmount }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Fuel Amount (Liters)" />
@@ -767,6 +761,7 @@ const ManualRefillForm = ({
               </Button>
               <Button
                 text="Save and Close"
+                onClick={handleSaveAndClose}
                 disabled={
                   isSubmitting ||
                   !canSubmitForm ||
@@ -784,7 +779,7 @@ const ManualRefillForm = ({
           </div>
         </ScrollView>
       </div>
-    </IsolatedForm>
+    </div>
   );
 };
 

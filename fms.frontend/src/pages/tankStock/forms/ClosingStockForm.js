@@ -13,6 +13,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Form, SimpleItem, Label } from "devextreme-react/form";
 import { Button } from "devextreme-react";
+import ScrollView from "devextreme-react/scroll-view";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import DataGrid, {
   Column,
@@ -34,7 +35,6 @@ import { fetchTankVolumeHistoryByTankId } from "../../../redux/actions/tankVolum
 import { createClosingStock } from "../../../redux/actions/ClosingStockActions";
 import { prepareOpeningClosingStockParams } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
-import ScrollView from "devextreme-react/scroll-view";
 import notify from "devextreme/ui/notify";
 import "./ClosingStockForm.scss";
 
@@ -64,7 +64,7 @@ const ClosingStockForm = ({
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Helper function for notifications with consistent positioning
-  const showNotification = (message, type = "info", duration = 3000) => {
+  const showNotification = useCallback((message, type = "info", duration = 3000) => {
     notify({
       message,
       type,
@@ -90,13 +90,13 @@ const ClosingStockForm = ({
         },
       },
     });
-  };
+  }, []);
 
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    siteId: prefilledData?.siteId || null,
-    tankId: prefilledData?.tankId || null,
+    siteId: prefilledData?.siteId || 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility (Site ID is int)
+    tankId: prefilledData?.tankId || 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility (Tank ID is int)
     amount: null, // Physical stock measurement
     bookBalance: null, // Current book balance (read-only)
     physicalStockValue: null, // Current physical stock value (read-only)
@@ -104,6 +104,7 @@ const ClosingStockForm = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
 
   // Future records validation hook
@@ -125,17 +126,10 @@ const ClosingStockForm = ({
 
     if (sitesReady && tanksReady) {
       if (!dataLoaded) {
-        console.log(
-          "[ClosingStockForm] Using available data (sites:%d, tanks:%d)",
-          sitesAvailable.length,
-          tanksAvailable.length
-        );
         setDataLoaded(true);
       }
       return;
     }
-
-    console.log("[ClosingStockForm] Initializing - fetching sites and tanks");
     const fetchData = async () => {
       try {
         if (!sitesReady && !usingPropSites) {
@@ -145,9 +139,8 @@ const ClosingStockForm = ({
           await dispatch(fetchTanks());
         }
         setDataLoaded(true);
-        console.log("[ClosingStockForm] Data loaded successfully");
       } catch (error) {
-        console.error("[ClosingStockForm] Error loading data:", error);
+        console.error("ClosingStockForm - Error loading data:", error);
         showNotification(
           "Failed to load form data. Please try again.",
           "error",
@@ -202,7 +195,7 @@ const ClosingStockForm = ({
         }
       }
     }
-  }, [prefilledData, tanksAvailable, dispatch]);
+  }, [prefilledData, tanksAvailable, dispatch, showNotification]);
 
   // Notify parent component of form data changes
   useEffect(() => {
@@ -211,16 +204,34 @@ const ClosingStockForm = ({
     }
   }, [formData, updateFormData]);
 
+  // Generic change handler for all form fields (controlled mode)
+  const handleChange = useCallback(
+    (e) => {
+      const { dataField, value } = e;
+
+      setFormData((prev) => {
+        const updated = { ...prev, [dataField]: value };
+        if (typeof updateFormData === "function") {
+          updateFormData(updated);
+        }
+        return updated;
+      });
+
+      // Clear validation errors for the changed field
+      setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
+    },
+    [updateFormData]
+  );
+
   const handleSiteChange = useCallback(
     async (e) => {
       const siteId = e?.value ?? null;
-      console.log("[ClosingStockForm] Site changed:", siteId);
 
       setValidationErrors((prev) => ({ ...prev, siteId: null, tankId: null }));
       setFormData((prev) => ({
         ...prev,
         siteId,
-        tankId: null,
+        tankId: 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility
         bookBalance: null,
         physicalStockValue: null,
       }));
@@ -235,28 +246,14 @@ const ClosingStockForm = ({
       );
 
       if (tanksForSite.length === 0 && !usingPropTanks) {
-        console.warn(
-          "[ClosingStockForm] Local store has no tanks for site, requesting fresh data"
-        );
         try {
           const result = await dispatch(fetctTankbySiteId(siteId));
           if (result?.success && Array.isArray(result.data)) {
             tanksForSite = result.data;
-            console.log(
-              "[ClosingStockForm] Loaded",
-              tanksForSite.length,
-              "tanks from API for site",
-              siteId
-            );
-          } else {
-            console.warn(
-              "[ClosingStockForm] Tank fetch by site returned no data:",
-              result
-            );
           }
         } catch (siteTankError) {
           console.error(
-            "[ClosingStockForm] Failed to fetch tanks for site:",
+            "ClosingStockForm - Failed to fetch tanks for site:",
             siteTankError
           );
           showNotification(
@@ -267,7 +264,6 @@ const ClosingStockForm = ({
         }
       }
 
-      console.log("[ClosingStockForm] Tanks for site:", tanksForSite.length);
       setFilteredTanks(tanksForSite);
     },
     [dispatch, tanksAvailable, usingPropTanks, showNotification]
@@ -299,7 +295,7 @@ const ClosingStockForm = ({
             console.log("Tank volume history loaded successfully");
           })
           .catch((error) => {
-            console.error("Error loading tank volume history:", error);
+            console.error("ClosingStockForm - Error loading tank volume history:", error);
             showNotification("Failed to load tank volume history", "error");
           })
           .finally(() => {
@@ -324,6 +320,7 @@ const ClosingStockForm = ({
       validateHistoricalEntry,
       resetValidation,
       tanksAvailable,
+      showNotification,
     ]
   );
 
@@ -372,14 +369,17 @@ const ClosingStockForm = ({
       errors.amount = "Valid closing stock amount is required";
     if (!formData.date) errors.date = "Date is required";
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   }, [formData]);
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
-    if (!validateForm()) {
-      showNotification("Please correct the errors in the form", "error", 3000);
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification("Please fill in all required fields correctly", "error", 3000);
       return;
     }
 
@@ -434,21 +434,14 @@ const ClosingStockForm = ({
     onCancel,
     canSubmit,
     resetValidation,
+    showNotification,
   ]);
 
   return (
     <IsolatedForm formId="closing-stock-form">
-      <div
-        className="closing-stock-form tw-h-full tw-flex tw-flex-col"
-        style={{ overflow: "hidden" }}
-      >
-        <ScrollView
-          className="tw-flex-1"
-          bounceEnabled={false}
-          useNative={false}
-          showScrollbar="onScroll"
-        >
-          <div className="tw-p-4">
+      <div className="closing-stock-form tw-h-full tw-flex tw-flex-col">
+        <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
+          <div className="tw-p-6">
             <div className="tw-mb-6">
               <p className="tw-text-gray-600 tw-text-sm">
                 Record the closing stock amount for the selected tank and date.
@@ -494,11 +487,16 @@ const ClosingStockForm = ({
                     </p>
                   </div>
                   <button
-                    onClick={() => setShowInfoNotice(false)}
-                    className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowInfoNotice(false);
+                    }}
+                    className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
                     title="Close information"
                   >
-                    <i className="fa-light fa-times"></i>
+                    <i className="fa-light fa-times tw-text-lg"></i>
                   </button>
                 </div>
               </div>
@@ -515,6 +513,7 @@ const ClosingStockForm = ({
               formData={formData}
               showColonAfterLabel={true}
               labelLocation="top"
+              onFieldDataChanged={handleChange}
               colCount={2}
               className="tw-mb-6"
             >
@@ -537,23 +536,24 @@ const ClosingStockForm = ({
                     wrapperAttr: { class: "datebox-wide" },
                   },
                   elementAttr: { class: "datebox-full-width-popup" },
-                  isValid: !validationErrors.date,
+                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
                   validationError: validationErrors.date
                     ? { message: validationErrors.date }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Date & Time" />
               </SimpleItem>
 
               <SimpleItem
+                key={`site-${formData.siteId || 'empty'}`}
                 dataField="siteId"
                 editorType="dxSelectBox"
                 editorOptions={{
                   items: sitesAvailable,
                   displayExpr: "name",
                   valueExpr: "id",
-                  value: formData.siteId,
                   onValueChanged: handleSiteChange,
                   placeholder:
                     !dataLoaded && sitesAvailable.length === 0
@@ -563,17 +563,14 @@ const ClosingStockForm = ({
                       : "No sites available",
                   width: "100%",
                   searchEnabled: true,
-                  isValid: !validationErrors.siteId,
+                  showClearButton: true,
+                  isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
                   validationError: validationErrors.siteId
                     ? { message: validationErrors.siteId }
                     : null,
+                  validationMessageMode: "always",
                   dropDownOptions: {
-                    container: ".closing-stock-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
                 }}
               >
@@ -581,12 +578,14 @@ const ClosingStockForm = ({
               </SimpleItem>
 
               <SimpleItem
+                key={`tank-${formData.siteId || 'empty'}-${formData.tankId || 'none'}`}
                 dataField="tankId"
                 editorType="dxSelectBox"
                 editorOptions={{
                   items: filteredTanks,
                   displayExpr: "name",
                   valueExpr: "id",
+                  onValueChanged: handleTankChange,
                   disabled: !formData.siteId,
                   placeholder: !formData.siteId
                     ? "Select site first"
@@ -594,17 +593,15 @@ const ClosingStockForm = ({
                     ? "Select a tank"
                     : "No tanks available",
                   width: "100%",
-                  isValid: !validationErrors.tankId,
+                  searchEnabled: true,
+                  showClearButton: true,
+                  isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
                   validationError: validationErrors.tankId
                     ? { message: validationErrors.tankId }
                     : null,
+                  validationMessageMode: "always",
                   dropDownOptions: {
-                    container: ".closing-stock-form",
-                    position: {
-                      my: "top",
-                      at: "bottom",
-                      collision: "flip",
-                    },
+                    container: "body",
                   },
                 }}
               >
@@ -632,7 +629,7 @@ const ClosingStockForm = ({
                 )}
 
               {/* Physical Stock Value Display (Read-only) */}
-              {formData.tankId && (
+              {formData.tankId > 0 && (
                 <SimpleItem
                   dataField="physicalStockValue"
                   editorType="dxTextBox"
@@ -662,10 +659,11 @@ const ClosingStockForm = ({
                   width: "100%",
                   ...(formData.amount !== null &&
                     formData.amount !== undefined && { format: "#,##0" }),
-                  isValid: !validationErrors.amount,
+                  isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
                   validationError: validationErrors.amount
                     ? { message: validationErrors.amount }
                     : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Physical Stock Amount (Liters)" />
@@ -785,7 +783,7 @@ const ClosingStockForm = ({
             )}
 
             {/* Tank Volume History Section - Only show if tank is selected */}
-            {formData.siteId && formData.tankId && (
+            {formData.siteId > 0 && formData.tankId > 0 && (
               <div className="tw-mt-6 tw-mb-6">
                 <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-shadow-sm">
                   <div className="tw-p-4 tw-border-b tw-border-gray-200">

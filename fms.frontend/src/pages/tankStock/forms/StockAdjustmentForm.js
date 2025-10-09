@@ -87,6 +87,15 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
     setFormData(prevFormData => {
       const updatedData = { ...prevFormData, [field]: value };
 
+      if (field === 'siteId') {
+        // Clear tank selection when site changes
+        updatedData.tankId = '';
+        updatedData.currentVolume = 0;
+        updatedData.newVolume = 0;
+        updatedData.volumeChange = 0;
+        updatedData.adjustmentType = 2;
+      }
+
       if (field === 'tankId') {
         const tank = tanks.find(t => t.id === value);
         if (tank) {
@@ -117,18 +126,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
     });
   }, [tanks, calculateVolumeChange]);
 
-  // Validation functions
-  const validateTank = useCallback((value) => {
-    if (!value) return false;
-    return filteredTanks.some(tank => tank.id === value);
-  }, [filteredTanks]);
-
-  const validateVolume = useCallback((value) => {
-    if (!selectedTank) return true;
-    const validation = validateTankCapacity(selectedTank.id, value, tanks);
-    return validation.isValid;
-  }, [selectedTank, validateTankCapacity, tanks]);
-
+  // Validation logic
   const validateForm = useCallback(() => {
     const errors = {};
 
@@ -243,6 +241,8 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
             validationError={formErrors.siteId}
             isValid={!formErrors.siteId}
             height={40}
+            searchEnabled={true}
+            showClearButton={true}
           />
           {formErrors.siteId && (
             <div className="tw-text-red-500 tw-text-xs tw-mt-1">{formErrors.siteId}</div>
@@ -257,13 +257,21 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
             dataSource={filteredTanks}
             valueExpr="id"
             displayExpr="name"
-            placeholder="Select Tank"
+            placeholder={
+              !formData.siteId
+                ? "Select site first"
+                : filteredTanks.length > 0
+                ? "Select Tank"
+                : "No tanks available"
+            }
             value={formData.tankId}
             onValueChanged={(e) => handleVolumeChange('tankId', e.value)}
             disabled={!formData.siteId}
             validationError={formErrors.tankId}
             isValid={!formErrors.tankId}
             height={40}
+            searchEnabled={true}
+            showClearButton={true}
           />
           {formErrors.tankId && (
             <div className="tw-text-red-500 tw-text-xs tw-mt-1">{formErrors.tankId}</div>

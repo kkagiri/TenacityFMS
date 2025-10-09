@@ -9,7 +9,6 @@ import ConfigurationPanel from './components/ConfigurationPanel';
 import PumpTransactionManager from './components/PumpTransactionManager';
 import TransactionHub from './components/TransactionHub';
 import LoadIndicator from 'devextreme-react/load-indicator';
-import ScrollView from 'devextreme-react/scroll-view';
 import Tabs from 'devextreme-react/tabs';
 import './StockManagement.scss';
 
@@ -135,7 +134,7 @@ const StockManagement = () => {
         </div>
       )}
 
-      <ScrollView className="stock-management">
+      <div className="stock-management tw-overflow-y-auto tw-h-full">
         <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
           {/* Cursor - Tabs Navigation */}
           <Tabs
@@ -152,7 +151,7 @@ const StockManagement = () => {
             {renderContent()}
           </div>
         </div>
-      </ScrollView>
+      </div>
     </div>
   );
 };

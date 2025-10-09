@@ -21,7 +21,7 @@ export const useSignalRRouting = (options = {}) => {
   } = options;
 
   const location = useLocation();
-  const [connectionStatus, setConnectionStatus] = useState(() => 
+  const [connectionStatus, setConnectionStatus] = useState(() =>
     signalRConnectionManager.getStatus()
   );
   const [isInitializing, setIsInitializing] = useState(false);
@@ -34,11 +34,26 @@ export const useSignalRRouting = (options = {}) => {
    */
   const updateConnectionStatus = useCallback(() => {
     const status = signalRConnectionManager.getStatus();
-    setConnectionStatus(status);
-    
-    if (onConnectionChange) {
-      onConnectionChange(status);
-    }
+
+    // Only update state if status actually changed
+    setConnectionStatus((prevStatus) => {
+      const hasChanged =
+        prevStatus.initialized !== status.initialized ||
+        prevStatus.currentPath !== status.currentPath ||
+        prevStatus.dashboardConnected !== status.dashboardConnected ||
+        prevStatus.ptsConnected !== status.ptsConnected ||
+        JSON.stringify(prevStatus.activeServices) !== JSON.stringify(status.activeServices);
+
+      if (hasChanged) {
+        console.log('[useSignalRRouting] Status changed:', status);
+        if (onConnectionChange) {
+          onConnectionChange(status);
+        }
+        return status;
+      }
+
+      return prevStatus; // No change, return previous state
+    });
   }, [onConnectionChange]);
 
   /**
@@ -136,7 +151,7 @@ export const useSignalRRouting = (options = {}) => {
     if (!enabled) return;
 
     const currentPath = location.pathname;
-    
+
     // Only handle if path actually changed
     if (currentPath !== previousPathRef.current) {
       console.log('[useSignalRRouting] Route changed from', previousPathRef.current, 'to', currentPath);
@@ -170,20 +185,20 @@ export const useSignalRRouting = (options = {}) => {
     connectionStatus,
     isInitializing,
     currentPath: location.pathname,
-    
+
     // Connection states
     isDashboardConnected: connectionStatus.dashboardConnected,
     isPtsConnected: connectionStatus.ptsConnected,
     activeServices: connectionStatus.activeServices,
-    
+
     // Methods
     refreshService,
     connectService,
     disconnectService,
     getStatus,
-    
+
     // Utility
-    shouldServiceBeActive: (serviceName) => 
+    shouldServiceBeActive: (serviceName) =>
       signalRConnectionManager.shouldServiceBeActive(serviceName)
   };
 };

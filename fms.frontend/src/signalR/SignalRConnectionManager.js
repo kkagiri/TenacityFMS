@@ -34,7 +34,7 @@ const ROUTE_PATTERNS = {
     /^\/tankstock/, // Tank stock forms and management (static data only)
     /^\/stock/, // Stock management pages
     /^\/vehicles/, // Vehicle management (static data)
-    /^\/employees/, // Employee management
+    // /^\/employees/, // Employee management
     /^\/site/, // Site management
     /^\/user/, // User management
     /^\/roles/, // Role management

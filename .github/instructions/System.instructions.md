@@ -3,24 +3,52 @@
 ## 🚨 CRITICAL RULES - READ FIRST
 
 ### 1. **NEVER REPEAT EXISTING CODE**
-
 - **Check existing files FIRST** before writing any code
 - Look in the feature/pages/service folders for similar functionality
 - If functionality exists, reference or extend it - DO NOT rewrite it
 - Search the codebase before creating new files, functions, or features
 - **Rule**: If the code exists, USE IT - don't duplicate it
 
-### 2. **Documentation Protocol**
+### 2. **Documentation Protocol - STRICTLY ENFORCED**
+- **⚠️ CRITICAL: ONLY write documentation when user EXPLICITLY requests with [doc] prefix**
+- **DO NOT auto-generate documentation at any time**
+- **DO NOT suggest documentation unless user asks**
+- **Write documentation ONCE ONLY per [doc] request**
+- **Folder Structure**: `documentation/features/{domain}/{feature}/{version}/{type}/`
+  - Example: `documentation/features/vehicle/fleet-management/V1/bug-fix/`
+  - Example: `documentation/features/taskmanagement/assignment/V2/implementation/`
+  - Example: `documentation/features/tankstock/reconciliation/V1/enhancement/`
 
-- **ONLY write documentation when explicitly asked using [doc] prefix**
-- **Write documentation ONCE only per request**
-- **Structure**: `documentation/[topic]/[version]/[type]/`
-  - Example: `documentation/feature/dashboard/V1/bug-fix/`
-  - Example: `documentation/feature/vehicle-tracking/V2/enhancement/`
-- **Never auto-generate documentation** unless requested
+**Correct Pattern**:
+```
+documentation/
+└── features/
+    ├── vehicle/
+    │   ├── fleet-management/
+    │   │   └── V1/
+    │   │       ├── bug-fix/
+    │   │       │   ├── README.md
+    │   │       │   ├── requirements.md
+    │   │       │   └── database-schema.sql
+    │   │       └── implementation/
+    │   └── gps-tracking/
+    │       └── V2/
+    │           └── bug-fix/
+    └── taskmanagement/
+        └── assignment/
+            └── V1/
+                └── implementation/
+```
+
+**Behavior Rules**:
+- ❌ **Never mention documentation** unless user requests with [doc]
+- ❌ **Never create documentation files** unless user requests with [doc]
+- ❌ **Never suggest "documentation should be updated"**
+- ✅ **Only create documentation when user explicitly says [doc] in their prompt**
+- ✅ **Place documentation in correct feature-based folder structure**
+- ✅ **Create ONLY the requested documentation types**
 
 ### 3. **Build & Run Policy**
-
 - **DO NOT build or run the application automatically**
 - After completing code changes, ALWAYS:
   1. Summarize what was changed
@@ -29,9 +57,7 @@
 - **Exception**: User explicitly asks to build/run
 
 ### 4. **Architecture Planning Protocol**
-
 - **BEFORE suggesting architecture changes** (services, hooks, new files, features):
-
   1. **Check the domain/feature folder first** - Look in `FMS.Application/Features/{Domain}/`
   2. **Verify folder structure exists** - Check if domain folder is present
   3. **If domain folder is MISSING**:
@@ -49,7 +75,6 @@
      - ✅ Files should be in `FMS.Application/Features/{Domain}/Services/`
 
 - **Domain Folder Discovery Protocol**:
-
   ```
   Before creating ANY files:
   1. Search for existing domain folder: Features/{Domain}/
@@ -59,7 +84,6 @@
   ```
 
 - **Example Response when Domain Missing**:
-
   ```
   ⚠️ DOMAIN FOLDER NOT FOUND
 
@@ -77,7 +101,6 @@
   ```
 
 - **Example Response when Files in Wrong Location**:
-
   ```
   ⚠️ INCORRECT FILE LOCATION DETECTED
 
@@ -93,7 +116,6 @@
   ```
 
 ### 5. **Environment Awareness**
-
 - **Assume development PC environment** unless stated otherwise
 - Do not make environment-specific decisions that will:
   - Break local development
@@ -106,7 +128,6 @@
   - "for testing environment"
 
 ### 6. **Domain Layer is SACRED**
-
 - **STRICTLY DO NOT modify** the Domain layer (`FMS.Domain/`)
 - Domain entities are the source of truth
 - If domain changes are needed:
@@ -116,7 +137,6 @@
   4. **Wait for explicit approval**
 
 ### 7. **File Size & Single Responsibility Principle (SRP)**
-
 - **If a file reaches 600+ lines**: STOP and refactor
 - **Actions to take**:
   1. Identify logical separations
@@ -132,7 +152,6 @@
   ```
 
 ### 8. **File Documentation Header**
-
 - **Every file MUST have** a documentation header at the top
 - If missing, add it before making changes
 - **Template**:
@@ -165,37 +184,38 @@
   ```
 
 ### 9. **Clean Architecture - CQRS Pattern & Class Organization**
-
 - **Backend MUST follow Command Query Responsibility Segregation**
 - **CRITICAL: ONE CLASS PER FILE - NO EXCEPTIONS**
 - **Structure**: `FMS.Application/Features/{Domain}/`
-
   ```
   Features/
   ├── Vehicle/
   │   ├── Commands/
-  │   │   ├── CreateVehicleCommand.cs          (command and handler)
-  │   │   ├── UpdateVehicleCommand.cs          (command and handler)
-  │   │   ├── DeleteVehicleCommand.cs          (command and handler)
+  │   │   ├── CreateVehicleCommand.cs           (command only)
+  │   │   ├── CreateVehicleCommandHandler.cs    (handler only)
+  │   │   ├── UpdateVehicleCommand.cs
+  │   │   ├── UpdateVehicleCommandHandler.cs
+  │   │   ├── DeleteVehicleCommand.cs
+  │   │   └── DeleteVehicleCommandHandler.cs
   │   ├── Queries/
-  │   │   ├── GetVehicleQuery.cs                (query and handler)
-  │   │   ├── GetVehiclesQuery.cs               (query and handler)
+  │   │   ├── GetVehicleQuery.cs                (query only)
+  │   │   ├── GetVehicleQueryHandler.cs         (handler only)
+  │   │   ├── GetVehiclesQuery.cs
+  │   │   └── GetVehiclesQueryHandler.cs
   │   ├── DTOs/
   │   │   ├── VehicleDto.cs                     (one DTO per file)
   │   │   ├── VehicleDetailDto.cs
   │   │   └── CreateVehicleDto.cs
-  │   ├── Services(unnless specialized)/
+  │   ├── Services/
   │   │   ├── IVehicleService.cs                (interface only)
   │   │   └── VehicleService.cs                 (implementation only)
   │   └── Validators/
   │       ├── CreateVehicleValidator.cs
   │       └── UpdateVehicleValidator.cs
-
   ```
 
 - **Class Separation Rules**:
-
-  - ❌ **NEVER put multiple classes in one file C**
+  - ❌ **NEVER put multiple classes in one file**
   - ❌ **NEVER put DTOs in service files**
   - ❌ **NEVER put classes in controller files** (controllers are classes themselves)
   - ✅ Each command in its own file
@@ -206,7 +226,6 @@
   - ✅ Services have dedicated Services folder
 
 - **Interface & Implementation Pattern**:
-
   ```
   Features/
   ├── Vehicle/
@@ -220,15 +239,13 @@
 - **CQRS Rules**:
   - Commands = Write operations (Create, Update, Delete)
   - Queries = Read operations (Get, List, Search)
-  - Each command/query in same file with handler
+  - Each command/query in separate file from handler
   - No mixing of read/write logic
 
 ---
 
 ## Project Overview
-
 FMS (Fleet Management System) is a full-stack application with:
-
 - **Backend**: .NET Core with CQRS pattern
 - **Frontend**: React with DevExtreme UI components
 - **Database**: MySQL with Entity Framework
@@ -237,14 +254,12 @@ FMS (Fleet Management System) is a full-stack application with:
 ## Core Development Rules
 
 ### 1. File Management
-
 - **Check existing files first** before creating new ones
 - Look in documentation folder for similar queries/features (e.g., GetTasksQuery → check task PRD/documents)
 - If file exists in another folder, don't recreate it
 - **Don't repeat file creation/deletion** if there's no content changes
 
 ### 2. Project Structure
-
 ```
 FMS.Application/        # Business logic, DTOs, commands, queries
 FMS.WebClient/         # Web API controllers
@@ -258,14 +273,12 @@ documentation/         # Feature documentation all documentation goes here
 ## Backend Development Standards
 
 ### Response Handling
-
 - **Always use `FMSResponse.cs`** for all API endpoints
 - `FMSResponse<T>` for returning data
 - `FMSResponse` for errors/validation
 - **Always include validation checks**
 
 ### CQRS Implementation
-
 - **ONE CLASS PER FILE - STRICTLY ENFORCED**
 - Commands in separate file from CommandHandlers
 - Queries in separate file from QueryHandlers
@@ -273,7 +286,6 @@ documentation/         # Feature documentation all documentation goes here
 - **Check domain folder exists before creating files**
 
 **Example Structure:**
-
 ```csharp
 // File: CreateVehicleCommand.cs (command only)
 public record CreateVehicleCommand : IRequest<FMSResponse<VehicleDto>>
@@ -290,7 +302,6 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
 ```
 
 **DTO Separation**:
-
 ```csharp
 // File: VehicleDto.cs (in Features/Vehicle/DTOs/ folder)
 public class VehicleDto
@@ -305,7 +316,6 @@ public class VehicleDto
 ```
 
 **Service/Interface Separation**:
-
 ```csharp
 // File: IVehicleService.cs (interface only, in Features/Vehicle/Services/)
 public interface IVehicleService
@@ -323,7 +333,6 @@ public class VehicleService : IVehicleService
 ```
 
 ### Database Operations
-
 - **Use `GPSDataContext`** for all database operations
 - Create entity configuration files in `FMS.Persistence`
 - Add new entities to `GPSDataContext`
@@ -339,7 +348,6 @@ public class VehicleService : IVehicleService
 - **Don't create new PTS models** unless explicitly told
 
 **MySQL 5.6 Compatible Examples**:
-
 ```sql
 -- ❌ INCORRECT (MySQL 5.7+)
 CREATE TABLE vehicles (
@@ -367,7 +375,6 @@ CREATE TABLE settings (
 ```
 
 ### User ID Pattern in Controllers
-
 ```csharp
 var userIdClaim = User.Claims.FirstOrDefault(c =>
     c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
@@ -377,7 +384,6 @@ var userId = userIdClaim?.Value;
 ```
 
 ### Permission Check Pattern
-
 ```csharp
 var hasPermission = User.HasClaim("permissions", "_createFuelRefill");
 if (!hasPermission) return Forbid();
@@ -387,7 +393,6 @@ if (!ModelState.IsValid) return BadRequest(ModelState);
 ## Frontend Development Standards
 
 ### Technology Stack
-
 - React 18.2.0 with hooks
 - DevExtreme 23.2.8 for UI components
 - Redux Toolkit for state management
@@ -396,7 +401,6 @@ if (!ModelState.IsValid) return BadRequest(ModelState);
 - SCSS (not CSS)
 
 ### Key Rules
-
 1. **All Tailwind classes must use `tw-` prefix** (e.g., `tw-font-semibold`)
 2. **Use SCSS, not CSS**
 3. **FontAwesome icons**: Start with `"fa-light fa-icon"`
@@ -404,13 +408,11 @@ if (!ModelState.IsValid) return BadRequest(ModelState);
 5. **API URLs**: Use `/vehicles` not `/api/vehicles` (axiosInstance handles base URL)
 
 ### Mobile Responsiveness
-
 - **Always make applications mobile and web responsive**
 - Use height-based collapsing for mobile sidebars (not width-based)
 - Reference: TankStock Layout for working mobile implementation
 
 ### Popup Configuration
-
 ```javascript
 // Standard popup settings
 showCloseButton={true}
@@ -421,7 +423,6 @@ height="auto"
 ## File Organization
 
 ### Backend Features - Domain-Driven Structure
-
 ```
 FMS.Application/Features/
 ├── Vehicle/                          # Domain folder
@@ -460,7 +461,6 @@ FMS.Application/Features/
 ```
 
 **Critical Rules**:
-
 - ✅ Each class in its own file
 - ✅ Follow domain-driven folder structure
 - ✅ Check if domain folder exists before creating files
@@ -469,7 +469,6 @@ FMS.Application/Features/
 - ❌ Never put multiple classes in one file
 
 ### Frontend Structure
-
 ```
 src/
 ├── api/              # HTTP clients
@@ -485,13 +484,11 @@ src/
 ## Documentation Requirements
 
 ### When User Requests Documentation with [doc] Prefix
-
 Create/update documentation following **feature-based folder structure**:
 
 **Structure Pattern**: `documentation/features/[domain]/[feature]/[version]/[type]/`
 
 **Examples**:
-
 ```
 documentation/features/vehicle/fleet-management/V1/bug-fix/
 documentation/features/vehicle/gps-tracking/V2/implementation/
@@ -500,7 +497,6 @@ documentation/features/dashboard/real-time-widgets/V1/bug-fix/
 ```
 
 **Document Types**:
-
 1. **bug-fix/** - Bug fixes and issue resolutions
 2. **implementation/** - New feature implementations
 3. **enhancement/** - Feature improvements and enhancements
@@ -508,7 +504,6 @@ documentation/features/dashboard/real-time-widgets/V1/bug-fix/
 5. **api/** - API changes and updates
 
 **Required Files** (create only what's relevant):
-
 1. **README.md** - Overview and summary
 2. **requirements.md** - Feature requirements (PRD)
 3. **design.md** - Architecture and design decisions
@@ -519,27 +514,24 @@ documentation/features/dashboard/real-time-widgets/V1/bug-fix/
 8. **testing.md** - Test cases and validation
 
 ### When Creating New Features
-
 1. Check existing implementations first
 2. Follow established patterns
-3. Update documentation (only if asked)
-4. Ensure mobile responsiveness
-5. Include proper validation
+3. Ensure mobile responsiveness
+4. Include proper validation
+5. **DO NOT mention or create documentation** (only if user explicitly requests with [doc])
 
 ## Common Patterns
 
 ### API Service Example
-
 ```javascript
 // Frontend service
 const getVehicles = async () => {
-  const response = await axiosInstance.get("/vehicles");
+  const response = await axiosInstance.get('/vehicles');
   return response.data;
 };
 ```
 
 ### Component Example
-
 ```jsx
 // React component with proper styling
 <div className="tw-flex tw-flex-col tw-gap-4">
@@ -551,7 +543,6 @@ const getVehicles = async () => {
 ## Quality Checklist
 
 ### Before Submitting Code
-
 - [ ] Checked existing files/features for similar functionality
 - [ ] **Verified domain folder exists in Features/{Domain}/ (asked user if missing)**
 - [ ] **Ensured one class per file (no multiple classes)**
@@ -573,7 +564,6 @@ const getVehicles = async () => {
 - [ ] Recommended build/test instead of auto-building
 
 ## Key Files to Reference
-
 - `FMSResponse.cs` - Response handling patterns
 - `package.json` - Frontend dependencies
 - `tailwind.config.js` - Styling configuration
@@ -581,7 +571,6 @@ const getVehicles = async () => {
 - Existing feature folders - Implementation patterns
 
 ## Important Notes
-
 - **Notification system implementation** - Ask user if notifications need to be implemented
 - **GPSGate integration** - Use dedicated axios instance
 - **Real-time updates** - Use SignalR for live data
@@ -599,7 +588,6 @@ This guide helps AI agents understand how to set up navigation for any module in
 ## Common Navigation Issues
 
 When working with module navigation, you may encounter these issues:
-
 1. Routes redirect to the main FMS dashboard instead of the module dashboard
 2. Module systems don't load properly from the navigation menu
 3. Sub-routes within modules (e.g., `/module/sub-feature`) don't work
@@ -608,7 +596,6 @@ When working with module navigation, you may encounter these issues:
 ## Root Cause Analysis
 
 Navigation issues typically occur when:
-
 1. The navigation item in the database doesn't have the correct link path or page mapping
 2. The main router (Content.js) lacks wildcard route support for module sub-routes
 3. Role-based access is not properly configured
@@ -632,7 +619,6 @@ Every module requires a navigation item in the database. Use the Navigation Mana
 - **Roles**: Assign appropriate user roles (Admin, Manager, etc.)
 
 **SQL Template for New Module Navigation:**
-
 ```sql
 INSERT INTO navigationitems (Page, Link, Icon, ParentId)
 VALUES ('[module-name]', '/[route-path]', '[icon-class]', NULL);
@@ -643,7 +629,6 @@ VALUES ('[module-name]', '/[route-path]', '[icon-class]', NULL);
 Every module needs two routes in `Content.js` - one for the base path and one wildcard for sub-routes:
 
 **Pattern Template:**
-
 ```javascript
 {/* [Module Name] System Routes - Handle all [module] sub-routes internally */}
 <Route
@@ -661,7 +646,6 @@ Every module needs two routes in `Content.js` - one for the base path and one wi
 Ensure the module is properly mapped in `app-routes.js` switch statement:
 
 **Pattern Template:**
-
 ```javascript
 case "[page-name]":
     return [ModuleMainComponent];
@@ -680,23 +664,20 @@ After creating the navigation item, assign it to appropriate roles via Navigatio
 # Permission System Migration Guide
 
 ## Overview
-
 This guide helps migrate from the current API-based permission system to a JWT token-based permission system for better performance and user experience.
 
 ## Current vs New Approach
 
 ### Current Approach (Less Efficient)
-
 ```javascript
 // In each component
-import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
+import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
 ```
 
 ### New Approach (Recommended)
-
 ```javascript
 // Import the custom hook
-import { usePermissions } from "../hooks/usePermissions";
+import { usePermissions } from '../hooks/usePermissions';
 
 // In component
 const { hasPermission, permissions } = usePermissions();
@@ -715,28 +696,59 @@ const canEdit = hasPermission("_EditVehicle");
 
 ## AI Agent Response Protocol
 
-### After Completing Any Task:
+### During Development (NO DOCUMENTATION REQUESTED)
+
+When completing code tasks WITHOUT [doc] prefix:
 
 1. ✅ Summarize what was changed/created
 2. ✅ List files modified/created
 3. ✅ Highlight any architectural decisions made
 4. ✅ **⚠️ DEPRECATED CODE WARNING**: If any code contains `{deprecated}` comments or attributes, explicitly notify the user
-5. ✅ **STOP and recommend**: "Please build and test the application to verify these changes"
-6. ✅ Wait for user feedback before proceeding
+5. ❌ **DO NOT mention documentation**
+6. ❌ **DO NOT suggest documenting**
+7. ❌ **DO NOT create any documentation files**
+8. ✅ **STOP and recommend**: "Please build and test the application to verify these changes"
+9. ✅ Wait for user feedback before proceeding
 
-### Deprecated Code Warning Format:
+### When User Requests Documentation [doc] PREFIX
 
+When user EXPLICITLY requests documentation with [doc] prefix:
+
+1. ✅ Create documentation files ONLY in the correct folder structure
+2. ✅ Use: `documentation/features/{domain}/{feature}/{version}/{type}/`
+3. ✅ Create files specified by user (or all if user didn't specify which documents)
+4. ✅ Place ALL files in the correct folder
+5. ❌ **DO NOT create documentation in any other location**
+6. ❌ **DO NOT split documentation across multiple locations**
+
+### Documentation File Placement - CRITICAL
+
+**Correct Pattern**:
 ```
-⚠️ DEPRECATED CODE DETECTED:
-The following files contain deprecated code that should be reviewed:
-- [FileName.js]: [FunctionName] marked as {deprecated} - [reason if available]
-- [ClassName.cs]: [MethodName] marked as {deprecated} - [reason if available]
-
-Recommendation: Consider refactoring or migrating away from deprecated code.
+documentation/features/vehicle/fleet-management/V1/bug-fix/
+├── README.md
+├── requirements.md
+├── design.md
+└── database-schema.sql
 ```
 
-### Example Response Format:
+**Wrong Patterns** ❌:
+```
+documentation/vehicle/fleet-management/...         (missing "features" folder)
+documentation/bug-fix/vehicle/...                 (wrong structure)
+documentation/fleet-management/v1/...             (missing domain)
+src/documentation/...                             (wrong location entirely)
+```
 
+**Enforcement**:
+- Before creating any documentation file, verify the complete path
+- Always include `features/{domain}/{feature}/{version}/{type}/` in the path
+- Never deviate from this structure
+- If user specifies just a filename, add it to the correct folder structure
+
+### Example Correct Responses
+
+**Without [doc] in request:**
 ```
 Changes Summary:
 - Created: VehicleService.js (280 lines)
@@ -747,12 +759,73 @@ Architecture Decisions:
 - Split VehicleService into three separate services (SRP compliance)
 - Used existing axiosInstance instead of creating new HTTP client
 
-⚠️ DEPRECATED CODE DETECTED:
-- VehicleDataGrid.js: legacyFilterMethod() marked as {deprecated} - Use modernFilterService instead
-
 Next Steps:
 Please build and test the application to verify these changes.
 Let me know if you encounter any issues or need adjustments.
+```
+
+**With [doc] in request:**
+```
+Documentation Created:
+✅ Created: documentation/features/vehicle/fleet-management/V1/bug-fix/README.md
+✅ Created: documentation/features/vehicle/fleet-management/V1/bug-fix/requirements.md
+✅ Created: documentation/features/vehicle/fleet-management/V1/bug-fix/design.md
+
+Files successfully placed in correct folder structure.
+
+Please review the documentation and let me know if adjustments are needed.
+```
+
+**WRONG RESPONSE** ❌:
+```
+Changes Summary:
+- Created: VehicleService.js
+
+📄 Documentation:
+I've also created some helpful documentation files...
+[Creates docs without being asked]
+```
+
+### Mixed Scenarios
+
+**Scenario A: Code changes + [doc] request**
+```
+Changes Summary:
+- Created: VehicleService.cs
+- Modified: CreateVehicleCommand.cs
+
+Documentation Created:
+✅ documentation/features/vehicle/fleet-management/V1/implementation/README.md
+✅ documentation/features/vehicle/fleet-management/V1/implementation/requirements.md
+✅ documentation/features/vehicle/fleet-management/V1/implementation/design.md
+
+[Both sections present]
+```
+
+**Scenario B: Code changes without [doc]**
+```
+Changes Summary:
+- Created: VehicleService.cs
+- Modified: CreateVehicleCommand.cs
+
+Architecture Decisions:
+- Used CQRS pattern with separate handlers
+- Implemented validation at service level
+
+Next Steps:
+Please build and test the application to verify these changes.
+
+[NO documentation section - user didn't ask for [doc]]
+```
+
+### Deprecated Code Warning Format:
+```
+⚠️ DEPRECATED CODE DETECTED:
+The following files contain deprecated code that should be reviewed:
+- VehicleDataGrid.js: legacyFilterMethod() marked as {deprecated} - Use modernFilterService instead
+- AuthService.js: oldAuthMethod() marked as {deprecated} - Migrate to JWT-based auth
+
+Recommendation: Consider refactoring or migrating away from deprecated code.
 ```
 
 ---

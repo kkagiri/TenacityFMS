@@ -1,3 +1,13 @@
+/**
+ * File: LoginForm.js
+ * Purpose: Provides the authentication form for unauthenticated users and handles sign-in workflow
+ * Dependencies: React, DevExtreme Form, AuthenticationService, Redux
+ * Last Modified: 2025-10-08
+ *
+ * Key Functions/Components:
+ * - LoginForm: Renders the login form and orchestrates authentication flow
+ */
+
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -79,8 +89,8 @@ const LoginForm = () => {
         // Show success notification
         notify(`Welcome back, ${user.userName || user.username}!`, 'success', 2000);
 
-        console.log('✅ Sign in successful, navigating to home...');
-        navigate('/home');
+  console.log('✅ Sign in successful, navigating to home...');
+  navigate('/home', { replace: true });
 
       } else {
         // Handle authentication failure
@@ -131,7 +141,7 @@ const LoginForm = () => {
   }, []);
 
   return (
-    <form className={'login-form'} onSubmit={onSubmit}>
+    <form className={'login-form tw-flex tw-flex-col tw-gap-6 tw-w-full'} onSubmit={onSubmit}>
       <Form
         formData={formData.current}
         disabled={loading}
@@ -164,13 +174,22 @@ const LoginForm = () => {
             width={'100%'}
             type={'default'}
             useSubmitBehavior={true}
+            stylingMode={'contained'}
             disabled={loading}
+            elementAttr={{
+              class: `login-submit-button${loading ? ' loading' : ''}`
+            }}
           >
-            <span className="dx-button-text">
+            <span className="dx-button-text tw-flex tw-items-center tw-justify-center tw-gap-3">
               {loading ? (
                 <>
-                  <LoadIndicator width={'20px'} height={'20px'} visible={true} />
-                  <span style={{ marginLeft: '8px' }}>Signing in...</span>
+                  <LoadIndicator
+                    visible={true}
+                    width={20}
+                    height={20}
+                    elementAttr={{ class: 'login-submit-spinner' }}
+                  />
+                  <span>Signing in...</span>
                 </>
               ) : (
                 'Sign In'

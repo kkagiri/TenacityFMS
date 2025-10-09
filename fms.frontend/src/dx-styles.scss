@@ -65,11 +65,15 @@
   > .dx-scrollable-container
   > .dx-scrollable-content {
   height: 100%;
+  /* Prevent scroll position resets */
+  overflow-anchor: auto;
 
   & > .dx-scrollview-content {
     display: flex;
     flex-direction: column;
     min-height: 100%;
+    /* Prevent scroll jumps in flex containers */
+    overflow-anchor: auto;
   }
 }
 
@@ -88,6 +92,27 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* FIX: Prevent DevExtreme ScrollView from auto-scrolling to top on re-renders */
+/* Force native scrolling behavior for all DevExtreme scrollable containers */
+.dx-scrollable-container,
+.dx-scrollview-content,
+.dx-scrollable-wrapper {
+  /* Prevent scroll position resets */
+  scroll-behavior: auto !important;
+
+  /* Ensure smooth scrolling without jumps */
+  overflow-anchor: auto;
+
+  /* Prevent scroll snap that might cause jumps */
+  scroll-snap-type: none !important;
+}
+
+/* Specifically for DataGrid scrollable containers */
+.dx-datagrid .dx-scrollable-container {
+  /* Let browser handle scrolling naturally */
+  overscroll-behavior: contain;
 }
 
 .view-wrapper {

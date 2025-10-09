@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { tankStockRoutes, isActiveRoute } from '../utils/navigationHelper';
 import QuickActions from '../components/QuickActions';
@@ -9,8 +9,8 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Determine page title and subtitle based on current route
-  const getPageInfo = () => {
+  // 🚀 OPTIMIZATION: Memoize page info to avoid recalculating on every render
+  const pageInfo = useMemo(() => {
     const pathname = location.pathname;
 
     if (pathname.includes('/stock-management')) {
@@ -39,13 +39,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         subtitle: null
       };
     }
-  };
+  }, [location.pathname]);
 
-  const { title: autoTitle, subtitle: autoSubtitle } = getPageInfo();
-  const finalTitle = pageTitle || autoTitle;
-  const finalSubtitle = pageSubtitle || autoSubtitle;
+  const finalTitle = pageTitle || pageInfo.title;
+  const finalSubtitle = pageSubtitle || pageInfo.subtitle;
 
-  const navigationItems = [
+  // 🚀 OPTIMIZATION: Memoize navigation items to prevent recreation on every render
+  const navigationItems = useMemo(() => [
     {
       id: 'dashboard',
       title: 'Dashboard',
@@ -74,16 +74,17 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
     //   path: tankStockRoutes.reconciliationControl,
     //   badge: '2',
     // }
-  ];
+  ], []);
 
-  const configurationItems = [
+  // 🚀 OPTIMIZATION: Memoize configuration items
+  const configurationItems = useMemo(() => [
     {
       id: 'settings',
       title: 'Settings',
       icon: 'fa-light fa-cog',
       path: tankStockRoutes.settings,
     }
-  ];
+  ], []);
 
   const handleNavigation = (path) => {
     navigate(path);
