@@ -313,14 +313,38 @@ const OpeningStockForm = ({
     ]
   );
 
-  const handleDateChange = (e) => {
-    // Ensure we have a valid date object or null
-    const dateValue = e && e.value !== undefined ? e.value : e;
-    setFormData((prev) => ({ ...prev, date: dateValue }));
-    // Clear validation errors and backend errors for this field
-    setValidationErrors((prev) => ({ ...prev, date: null }));
-    setBackendError(null);
-  };
+  const handleDateChange = useCallback(
+    async (e) => {
+      // Ensure we have a valid date object or null
+      const dateValue = e && e.value !== undefined ? e.value : e;
+      setFormData((prev) => ({ ...prev, date: dateValue }));
+      // Clear validation errors and backend errors for this field
+      setValidationErrors((prev) => ({ ...prev, date: null }));
+      setBackendError(null);
+
+      // Reset future records validation when date changes
+      resetValidation();
+
+      // Validate if this is a historical entry and we have tank selected
+      if (dateValue && formData.tankId) {
+        const validation = await validateHistoricalEntry(
+          formData.tankId,
+          dateValue,
+          "OpeningStock"
+        );
+
+        if (validation.error) {
+          showNotification(validation.error, "error");
+        }
+      }
+    },
+    [
+      formData.tankId,
+      resetValidation,
+      validateHistoricalEntry,
+      showNotification,
+    ]
+  );
 
   const handleAmountChange = (e) => {
     const value = e && e.value !== undefined ? e.value : e;
@@ -726,6 +750,37 @@ const OpeningStockForm = ({
                   </div>
                 )}
             </Form>
+
+          {/* Historical Entry Information Notice */}
+          {formData.date && formData.tankId && !isValidating && !showWarning && !validationError && (
+            (() => {
+              const selectedDate = new Date(formData.date);
+              const today = new Date();
+              const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+              if (isHistorical) {
+                return (
+                  <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                    <div className="tw-flex tw-items-start">
+                      <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                      <div className="tw-flex-1">
+                        <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                          Historical Entry Detected
+                        </h4>
+                        <p className="tw-text-blue-700 tw-text-sm">
+                          You are creating an opening stock entry for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                        </p>
+                        <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                          <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()
+          )}
 
           {/* Future Records Validation Warning */}
           {(showWarning || validationError) && (

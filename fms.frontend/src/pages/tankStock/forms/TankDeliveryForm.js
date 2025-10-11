@@ -29,6 +29,10 @@ import {
 import { fetchSuppliers } from "../../../redux/actions/SupplierActions"; // Assuming you have this action
 //import './deliveryForm.scss';
 import ScrollView from "devextreme-react/scroll-view";
+import LoadIndicator from "devextreme-react/load-indicator";
+import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
+import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
+import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
 
 const Products = [
   { id: 1, name: "Diesel" },
@@ -57,6 +61,19 @@ const TankDeliveryForm = ({
   const sitesAvailable = usingPropSites ? sitesProp : sitesState;
   const tanksAvailable = usingPropTanks ? tanksProp : tanksState;
   const combinedLoading = isLoading || loading;
+
+  // Future records validation hook
+  const {
+    isValidating,
+    validationResult,
+    error: validationError,
+    showWarning,
+    canSubmit: canSubmitForm,
+    validateHistoricalEntry,
+    confirmProceed,
+    cancelProceed,
+    resetValidation,
+  } = useFutureRecordsValidation();
 
   const [formData, setFormData] = useState({
     siteId: null,
@@ -140,7 +157,7 @@ const TankDeliveryForm = ({
   }, [formData.siteId, tanksAvailable]);
 
   const handleChange = useCallback(
-    (e) => {
+    async (e) => {
       const { dataField, value } = e;
       let updatedValue = value;
 
@@ -159,8 +176,28 @@ const TankDeliveryForm = ({
 
       // Clear validation error for this field when user changes it
       setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
+
+      // Handle tank change - validate historical entry
+      if (dataField === "tankId" && value && formData.deliveryDate) {
+        resetValidation();
+        try {
+          await validateHistoricalEntry(value, formData.deliveryDate, VolumeChangeReasons.DELIVERY);
+        } catch (error) {
+          console.warn("Validation error:", error);
+        }
+      }
+
+      // Handle date change - validate historical entry
+      if (dataField === "deliveryDate" && value && formData.tankId) {
+        resetValidation();
+        try {
+          await validateHistoricalEntry(formData.tankId, value, VolumeChangeReasons.DELIVERY);
+        } catch (error) {
+          console.warn("Validation error:", error);
+        }
+      }
     },
-    [updateFormData]
+    [updateFormData, formData.deliveryDate, formData.tankId, resetValidation, validateHistoricalEntry]
   );
 
   // Validation function
@@ -199,10 +236,20 @@ const TankDeliveryForm = ({
       return;
     }
 
+    // Check if we can submit based on future records validation
+    if (!canSubmitForm) {
+      notify({
+        message: "Please resolve validation warnings before submitting",
+        type: "warning",
+        displayTime: 4000,
+      });
+      return;
+    }
+
     if (onSubmit) {
       onSubmit(formData);
     }
-  }, [formData, validateForm, onSubmit]);
+  }, [formData, validateForm, onSubmit, canSubmitForm]);
 
   const handleSiteChange = useCallback(
     async (e) => {
@@ -537,6 +584,58 @@ const TankDeliveryForm = ({
         </GroupItem>
           </Form>
 
+          {/* Historical Entry Information Notice */}
+          {formData.deliveryDate && formData.tankId && !isValidating && !showWarning && !validationError && (
+            (() => {
+              const selectedDate = new Date(formData.deliveryDate);
+              const today = new Date();
+              const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+              if (isHistorical) {
+                return (
+                  <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                    <div className="tw-flex tw-items-start">
+                      <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                      <div className="tw-flex-1">
+                        <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                          Historical Entry Detected
+                        </h4>
+                        <p className="tw-text-blue-700 tw-text-sm">
+                          You are creating a tank delivery for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                        </p>
+                        <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                          <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()
+          )}
+
+          {/* Future Records Warning */}
+          {(showWarning || validationError) && (
+            <FutureRecordsWarning
+              validationResult={validationResult}
+              onConfirm={confirmProceed}
+              onCancel={cancelProceed}
+              isVisible={showWarning || !!validationError}
+              className="tw-mb-4"
+            />
+          )}
+
+          {/* Validating indicator */}
+          {isValidating && (
+            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-space-x-3">
+              <LoadIndicator height={20} width={20} />
+              <span className="tw-text-blue-700 tw-text-sm">
+                Validating historical entry...
+              </span>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
             <Button
@@ -552,7 +651,7 @@ const TankDeliveryForm = ({
             <Button
               text="Save"
               onClick={handleSubmit}
-              disabled={combinedLoading}
+              disabled={combinedLoading || isValidating || !canSubmitForm}
               loading={combinedLoading}
               className="tw-min-w-32"
               type="default"

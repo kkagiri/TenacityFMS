@@ -279,28 +279,22 @@ const EmployeeSearchableSelector = ({
                             }}
                           >
                             <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    fontSize: '14px',
-                                    lineHeight: '1.3'
-                                  }}>
-                                    <span style={{ fontWeight: '600', color: '#337ab7' }}>
-                                      {employee.fullName}
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                  fontSize: '14px',
+                                  lineHeight: '1.3'
+                                }}>
+                                  <span style={{ fontWeight: '600', color: '#337ab7' }}>
+                                    {employee.fullName}
+                                  </span>
+                                  {employee.employeeWorkNo && (
+                                    <span style={{ color: '#666', fontSize: '13px' }}>
+                                      ({employee.employeeWorkNo})
                                     </span>
-                                    {employee.employeeWorkNo && (
-                                      <span style={{ color: '#666', fontSize: '13px' }}>
-                                        ({employee.employeeWorkNo})
-                                      </span>
-                                    )}
-
-                                  </div>
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginLeft: '16px' }}>
-                                  {employee.siteName}
+                                  )}
                                 </div>
                               </div>
                             </div>

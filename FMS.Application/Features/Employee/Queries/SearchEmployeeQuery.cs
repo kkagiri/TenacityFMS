@@ -65,27 +65,29 @@ public class SearchEmployeeQueryHandler(GpsdataContext context, IMapper mapper) 
             }
 
             // Use EF.Functions.Like for better MySQL performance with indexes
-            // StartsWith is much faster than Contains when applicable
+            // Note: MySQL latin1_swedish_ci collation is case-insensitive by default
+            // Don't use ToLower() on columns as it prevents index usage
             bool isPrefixSearch = !searchTerm.Contains(" ");
 
             if (isPrefixSearch)
             {
                 // Prefix search - much faster with indexes
+                // Case-insensitive by default due to collation
                 query = query.Where(e =>
-                    EF.Functions.Like(e.FullName.ToLower(), $"{searchTerm}%") ||
-                    (e.EmployeeWorkNo != null && EF.Functions.Like(e.EmployeeWorkNo.ToLower(), $"{searchTerm}%")));
+                    EF.Functions.Like(e.FullName, $"{searchTerm}%") ||
+                    (e.EmployeeWorkNo != null && EF.Functions.Like(e.EmployeeWorkNo, $"{searchTerm}%")));
             }
             else
             {
                 // Full text search for multi-word queries
+                // Case-insensitive by default due to collation
                 query = query.Where(e =>
-                    e.FullName.ToLower().Contains(searchTerm) ||
-                    (e.EmployeeWorkNo != null && e.EmployeeWorkNo.ToLower().Contains(searchTerm)));
+                    e.FullName.Contains(searchTerm) ||
+                    (e.EmployeeWorkNo != null && e.EmployeeWorkNo.Contains(searchTerm)));
             }
 
-            // Only load vehicles if needed - skip for performance
+            // No includes needed - just employee data for fast search results
             List<Domain.Entities.Employee> employees = await query
-                .Include(e => e.Site)
                 .OrderBy(e => e.FullName)
                 .Take(limit)
                 .ToListAsync(cancellationToken);

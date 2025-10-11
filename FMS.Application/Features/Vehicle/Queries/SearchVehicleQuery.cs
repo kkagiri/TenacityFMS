@@ -82,41 +82,48 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             }
 
             // Apply additional filters to reduce dataset size
+            // Case-insensitive by default due to MySQL collation
             if (!string.IsNullOrWhiteSpace(request.VehicleType))
             {
+                var vehicleTypeLower = request.VehicleType.ToLower();
                 query = query.Where(v => v.VehicleType != null &&
-                    v.VehicleType.Name.ToLower().Contains(request.VehicleType.ToLower()));
+                    v.VehicleType.Name.Contains(vehicleTypeLower));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Manufacturer))
             {
+                var manufacturerLower = request.Manufacturer.ToLower();
                 query = query.Where(v => v.VehicleManufacturer != null &&
-                    v.VehicleManufacturer.Name.ToLower().Contains(request.Manufacturer.ToLower()));
+                    v.VehicleManufacturer.Name.Contains(manufacturerLower));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Model))
             {
+                var modelLower = request.Model.ToLower();
                 query = query.Where(v => v.VehicleModel != null &&
-                    v.VehicleModel.Name.ToLower().Contains(request.Model.ToLower()));
+                    v.VehicleModel.Name.Contains(modelLower));
             }
 
             // Use EF.Functions.Like for better MySQL performance with indexes
-            // Optimize for prefix searches when possible
+            // Note: MySQL latin1_swedish_ci collation is case-insensitive by default
+            // Don't use ToLower() on columns as it prevents index usage
             bool isPrefixSearch = !searchTerm.Contains(" ");
 
             if (isPrefixSearch)
             {
                 // Prefix search - much faster with indexes
+                // Case-insensitive by default due to collation
                 query = query.Where(v =>
-                    EF.Functions.Like(v.HyoungNo.ToLower(), $"{searchTerm}%") ||
-                    (v.NumberPlate != null && EF.Functions.Like(v.NumberPlate.ToLower(), $"{searchTerm}%")));
+                    EF.Functions.Like(v.HyoungNo, $"{searchTerm}%") ||
+                    (v.NumberPlate != null && EF.Functions.Like(v.NumberPlate, $"{searchTerm}%")));
             }
             else
             {
                 // Full text search for complex queries
+                // Case-insensitive by default due to collation
                 query = query.Where(v =>
-                    v.HyoungNo.ToLower().Contains(searchTerm) ||
-                    (v.NumberPlate != null && v.NumberPlate.ToLower().Contains(searchTerm)));
+                    v.HyoungNo.Contains(searchTerm) ||
+                    (v.NumberPlate != null && v.NumberPlate.Contains(searchTerm)));
             }
 
             // Include only essential navigation properties for list view

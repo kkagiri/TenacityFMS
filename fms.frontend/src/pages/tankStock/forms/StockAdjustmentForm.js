@@ -7,6 +7,9 @@ import { TextArea } from 'devextreme-react/text-area';
 import { DateBox } from 'devextreme-react/date-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import { useStockManagement } from '../../../hooks/useStockManagement';
+import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValidation';
+import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
+import { VolumeChangeReasons } from '../../../services/tankStockFutureRecordsService';
 import notify from 'devextreme/ui/notify';
 
 const AdjustmentTypes = [
@@ -37,6 +40,19 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
 
   //Cursor - Local saving state for the form only
   const [saving, setSaving] = useState(false);
+
+  // Future records validation hook
+  const {
+    isValidating,
+    validationResult,
+    error: validationError,
+    showWarning,
+    canSubmit: canSubmitForm,
+    validateHistoricalEntry,
+    confirmProceed,
+    cancelProceed,
+    resetValidation,
+  } = useFutureRecordsValidation();
 
   const [formData, setFormData] = useState({
     tankId: '',
@@ -83,7 +99,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
   }, [tanks, formData.tankId]);
 
   // Calculate volume change when values change
-  const handleVolumeChange = useCallback((field, value) => {
+  const handleVolumeChange = useCallback(async (field, value) => {
     setFormData(prevFormData => {
       const updatedData = { ...prevFormData, [field]: value };
 
@@ -94,6 +110,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
         updatedData.newVolume = 0;
         updatedData.volumeChange = 0;
         updatedData.adjustmentType = 2;
+        resetValidation();
       }
 
       if (field === 'tankId') {
@@ -103,6 +120,25 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
           updatedData.newVolume = tank.currentStock || 0;
           updatedData.volumeChange = 0;
           updatedData.adjustmentType = 2; // Correction when no change
+        }
+        resetValidation();
+
+        // Validate historical entry for tank change
+        if (value && formData.adjustmentDate) {
+          validateHistoricalEntry(value, formData.adjustmentDate, VolumeChangeReasons.STOCK_ADJUSTMENT).catch(err => {
+            console.warn("Validation error:", err);
+          });
+        }
+      }
+
+      if (field === 'adjustmentDate') {
+        resetValidation();
+
+        // Validate historical entry for date change
+        if (value && formData.tankId) {
+          validateHistoricalEntry(formData.tankId, value, VolumeChangeReasons.STOCK_ADJUSTMENT).catch(err => {
+            console.warn("Validation error:", err);
+          });
         }
       }
 
@@ -124,7 +160,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
 
       return updatedData;
     });
-  }, [tanks, calculateVolumeChange]);
+  }, [tanks, calculateVolumeChange, formData.adjustmentDate, formData.tankId, resetValidation, validateHistoricalEntry]);
 
   // Validation logic
   const validateForm = useCallback(() => {
@@ -153,6 +189,12 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
       notify('Please fix the validation errors', 'error', 3000);
+      return;
+    }
+
+    // Check if we can submit based on future records validation
+    if (!canSubmitForm) {
+      notify('Please resolve validation warnings before submitting', 'warning', 4000);
       return;
     }
 
@@ -203,7 +245,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
       //Cursor - Reset local saving state
       setSaving(false);
     }
-  }, [formData, validateForm, onSubmit, user]);
+  }, [formData, validateForm, onSubmit, user, canSubmitForm]);
 
   if (!isVisible) return null;
 
@@ -444,6 +486,58 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
         />
       </div>
 
+      {/* Historical Entry Information Notice */}
+      {formData.adjustmentDate && formData.tankId && !isValidating && !showWarning && !validationError && (
+        (() => {
+          const selectedDate = new Date(formData.adjustmentDate);
+          const today = new Date();
+          const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+          if (isHistorical) {
+            return (
+              <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                  <div className="tw-flex-1">
+                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                      Historical Entry Detected
+                    </h4>
+                    <p className="tw-text-blue-700 tw-text-sm">
+                      You are creating a stock adjustment for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                    </p>
+                    <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                      <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()
+      )}
+
+      {/* Future Records Warning */}
+      {(showWarning || validationError) && (
+        <FutureRecordsWarning
+          validationResult={validationResult}
+          onConfirm={confirmProceed}
+          onCancel={cancelProceed}
+          isVisible={showWarning || !!validationError}
+          className="tw-mb-4"
+        />
+      )}
+
+      {/* Validating indicator */}
+      {isValidating && (
+        <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-space-x-3">
+          <LoadIndicator height={20} width={20} />
+          <span className="tw-text-blue-700 tw-text-sm">
+            Validating historical entry...
+          </span>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="tw-flex tw-justify-end tw-space-x-3">
         <Button
@@ -455,7 +549,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
         <Button
           text={saving ? "Saving..." : "Create Adjustment"}
           onClick={handleSubmit}
-          disabled={saving || !formData.siteId || !formData.tankId}
+          disabled={saving || !formData.siteId || !formData.tankId || isValidating || !canSubmitForm}
           stylingMode="contained"
           type="default"
         >

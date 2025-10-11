@@ -365,11 +365,18 @@ const ManualRefillForm = ({
     setIsSubmitting(true);
 
     try {
-      await dispatch(createFuelRefill(formData));
-      showNotification("Manual refill recorded successfully", "success");
+      const result = await dispatch(createFuelRefill(formData));
 
-      if (onSuccess) {
-        onSuccess();
+      // Check if the operation was successful
+      if (result && result.success) {
+        showNotification(result.message || "Manual refill recorded successfully", "success");
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        // Handle failure case
+        const errorMessage = result?.message || "Failed to record manual refill";
+        showNotification(errorMessage, "error");
       }
     } catch (error) {
       console.error("Error creating manual refill:", error);
@@ -408,13 +415,21 @@ const ManualRefillForm = ({
     setIsSubmitting(true);
 
     try {
-      await dispatch(createFuelRefill(formData));
-      showNotification(
-        "Manual refill recorded successfully. Form cleared for new entry.",
-        "success"
-      );
-      clearFormData();
-      setHasAttemptedSubmit(false); // Reset for new entry
+      const result = await dispatch(createFuelRefill(formData));
+
+      // Check if the operation was successful
+      if (result && result.success) {
+        showNotification(
+          result.message || "Manual refill recorded successfully. Form cleared for new entry.",
+          "success"
+        );
+        clearFormData();
+        setHasAttemptedSubmit(false); // Reset for new entry
+      } else {
+        // Handle failure case - don't clear form, let user fix the issue
+        const errorMessage = result?.message || "Failed to record manual refill";
+        showNotification(errorMessage, "error");
+      }
     } catch (error) {
       console.error("Error creating manual refill:", error);
       showNotification("Failed to record manual refill", "error");
@@ -709,6 +724,37 @@ const ManualRefillForm = ({
                 <Label text="Comments" />
               </SimpleItem>
             </Form>
+
+            {/* Historical Entry Information Notice */}
+            {formData.date && formData.tankId && !isValidating && !showWarning && !validationError && (
+              (() => {
+                const selectedDate = new Date(formData.date);
+                const today = new Date();
+                const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+                if (isHistorical) {
+                  return (
+                    <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                      <div className="tw-flex tw-items-start">
+                        <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                        <div className="tw-flex-1">
+                          <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                            Historical Entry Detected
+                          </h4>
+                          <p className="tw-text-blue-700 tw-text-sm">
+                            You are creating a manual refill for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                          </p>
+                          <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                            <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()
+            )}
 
             {/* Future Records Warning */}
             {(showWarning || validationError) && (
