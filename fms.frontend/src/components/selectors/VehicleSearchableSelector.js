@@ -75,16 +75,20 @@ const VehicleSearchableSelector = ({
     e.preventDefault();
     e.stopPropagation();
 
+    // Stop any ongoing search immediately
+    setIsLoading(false);
+
+    // Clear any pending search timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+
     // Clear all local state immediately
     setSelectedVehicle(null);
     setSearchTerm('');
     setVehicles([]);
     setShowDropdown(false);
-
-    // Clear any pending search timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
 
     // Notify parent component
     if (onValueChanged) {
@@ -174,7 +178,7 @@ const VehicleSearchableSelector = ({
 
   return (
     <div ref={containerRef} className="searchable-selector" style={{ width, position: 'relative' }}>
-      <div className={`dx-texteditor dx-editor-outlined dx-texteditor-empty dx-dropdowneditor dx-selectbox dx-widget ${!isValid ? 'dx-invalid' : ''}`}>
+      <div className={`dx-texteditor dx-editor-outlined dx-texteditor-empty dx-dropdowneditor dx-selectbox dx-widget ${!isValid ? 'dx-invalid' : ''}`} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
         <div className="dx-texteditor-container">
           <input
             type="text"
@@ -187,19 +191,21 @@ const VehicleSearchableSelector = ({
             autoComplete="off"
             style={{
               backgroundColor: disabled ? '#f8f9fa' : 'transparent',
-              paddingRight: '40px'
+              paddingRight: '40px',
+              border: 'none',
+              outline: 'none'
             }}
           />
           <div className="dx-texteditor-buttons-container">
-            {selectedVehicle && (
+            {(selectedVehicle || searchTerm) && (
               <div
                 className="dx-button dx-button-normal dx-button-mode-text dx-widget"
-                style={{ backgroundColor: 'transparent', marginRight: '4px', cursor: 'pointer' }}
+                style={{ backgroundColor: 'transparent', marginRight: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                 onClick={handleClearSelection}
                 title="Clear selection"
               >
                 <div className="dx-button-content">
-                  <i className="fa-light fa-times" style={{ color: '#666', fontSize: '12px' }}></i>
+                  <i className="fa-light fa-times" style={{ color: '#666', fontSize: '14px' }}></i>
                 </div>
               </div>
             )}

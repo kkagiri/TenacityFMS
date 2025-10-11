@@ -11,14 +11,28 @@ const FixedHeightSelector = ({
   disabled = false,
   isValid = true,
   validationError = null,
-  maxHeight = 250
+  maxHeight = 250,
+  searchEnabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Stabilize items array to prevent unnecessary re-renders
   const stableItems = useMemo(() => items || [], [items]);
+
+  // Filter items based on search term
+  const filteredItems = useMemo(() => {
+    if (!searchEnabled || !searchTerm.trim()) {
+      return stableItems;
+    }
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return stableItems.filter(item =>
+      item[displayExpr]?.toString().toLowerCase().includes(lowerSearchTerm)
+    );
+  }, [stableItems, searchTerm, displayExpr, searchEnabled]);
 
   // Set initial selected item if value is provided
   useEffect(() => {
@@ -51,13 +65,27 @@ const FixedHeightSelector = ({
 
   const toggleDropdown = () => {
     if (!disabled) {
-      setIsOpen(!isOpen);
+      const newIsOpen = !isOpen;
+      setIsOpen(newIsOpen);
+      if (newIsOpen && searchEnabled) {
+        // Focus search input when dropdown opens
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+          }
+        }, 100);
+      }
+      if (!newIsOpen) {
+        // Clear search when closing
+        setSearchTerm('');
+      }
     }
   };
 
   const handleSelect = (item) => {
     setSelectedItem(item);
     setIsOpen(false);
+    setSearchTerm('');
     if (onChange) {
       onChange({ value: item[valueExpr] });
     }
@@ -66,9 +94,14 @@ const FixedHeightSelector = ({
   const handleClear = (e) => {
     e.stopPropagation();
     setSelectedItem(null);
+    setSearchTerm('');
     if (onChange) {
       onChange({ value: null });
     }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
   };
 
   return (
@@ -106,9 +139,23 @@ const FixedHeightSelector = ({
 
       {isOpen && (
         <div className="selector-dropdown" style={{ maxHeight }}>
-          {stableItems?.length > 0 ? (
+          {searchEnabled && (
+            <div className="selector-search-container">
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="selector-search-input"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <i className="fa-light fa-search selector-search-icon"></i>
+            </div>
+          )}
+          {filteredItems?.length > 0 ? (
             <ul className="selector-list">
-              {stableItems.map((item, index) => (
+              {filteredItems.map((item, index) => (
                 <li
                   key={`${item[valueExpr]}-${index}`}
                   className={`selector-item ${selectedItem && selectedItem[valueExpr] === item[valueExpr] ? 'selected' : ''}`}
@@ -119,7 +166,9 @@ const FixedHeightSelector = ({
               ))}
             </ul>
           ) : (
-            <div className="selector-no-data">No items available</div>
+            <div className="selector-no-data">
+              {searchEnabled && searchTerm ? 'No matching items found' : 'No items available'}
+            </div>
           )}
         </div>
       )}
