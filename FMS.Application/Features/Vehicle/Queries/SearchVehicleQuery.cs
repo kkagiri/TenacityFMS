@@ -66,7 +66,7 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
                 return FMSResponse<List<VehicleDTO>>.Failed("Limit must be between 1 and 100");
             }
 
-            var searchTerm = request.SearchTerm.ToLower().Trim();
+            var searchTerm = request.SearchTerm.Trim();
             var limit = request.Limit ?? 10;
 
             // Build optimized query - apply filters first, then search
@@ -85,46 +85,29 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             // Case-insensitive by default due to MySQL collation
             if (!string.IsNullOrWhiteSpace(request.VehicleType))
             {
-                var vehicleTypeLower = request.VehicleType.ToLower();
                 query = query.Where(v => v.VehicleType != null &&
-                    v.VehicleType.Name.Contains(vehicleTypeLower));
+                    v.VehicleType.Name.Contains(request.VehicleType));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Manufacturer))
             {
-                var manufacturerLower = request.Manufacturer.ToLower();
                 query = query.Where(v => v.VehicleManufacturer != null &&
-                    v.VehicleManufacturer.Name.Contains(manufacturerLower));
+                    v.VehicleManufacturer.Name.Contains(request.Manufacturer));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Model))
             {
-                var modelLower = request.Model.ToLower();
                 query = query.Where(v => v.VehicleModel != null &&
-                    v.VehicleModel.Name.Contains(modelLower));
+                    v.VehicleModel.Name.Contains(request.Model));
             }
 
             // Use EF.Functions.Like for better MySQL performance with indexes
             // Note: MySQL latin1_swedish_ci collation is case-insensitive by default
             // Don't use ToLower() on columns as it prevents index usage
-            bool isPrefixSearch = !searchTerm.Contains(" ");
-
-            if (isPrefixSearch)
-            {
-                // Prefix search - much faster with indexes
-                // Case-insensitive by default due to collation
-                query = query.Where(v =>
-                    EF.Functions.Like(v.HyoungNo, $"{searchTerm}%") ||
-                    (v.NumberPlate != null && EF.Functions.Like(v.NumberPlate, $"{searchTerm}%")));
-            }
-            else
-            {
-                // Full text search for complex queries
-                // Case-insensitive by default due to collation
-                query = query.Where(v =>
-                    v.HyoungNo.Contains(searchTerm) ||
-                    (v.NumberPlate != null && v.NumberPlate.Contains(searchTerm)));
-            }
+            // Use contains search to match anywhere in the vehicle identifier
+            query = query.Where(v =>
+                v.HyoungNo.Contains(searchTerm) ||
+                (v.NumberPlate != null && v.NumberPlate.Contains(searchTerm)));
 
             // Include only essential navigation properties for list view
             query = query
@@ -139,9 +122,8 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
                 .ProjectTo<VehicleDTO>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
 
-            string searchType = isPrefixSearch ? "Prefix" : "Contains";
-            _logger.LogInformation("Vehicle search for '{SearchTerm}' using {SearchType} returned {ResultCount} results",
-                request.SearchTerm, searchType, results.Count);
+            _logger.LogInformation("Vehicle search for '{SearchTerm}' returned {ResultCount} results",
+                request.SearchTerm, results.Count);
 
             return FMSResponse<List<VehicleDTO>>.Success(
                 results,

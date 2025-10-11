@@ -44,7 +44,7 @@ public class SearchEmployeeQueryHandler(GpsdataContext context, IMapper mapper) 
                 return FMSResponse<List<EmployeeDto>>.Failed("Limit must be between 1 and 100");
             }
 
-            string searchTerm = request.SearchTerm.Trim().ToLower();
+            string searchTerm = request.SearchTerm.Trim();
             int limit = request.Limit ?? 50;
 
             // Build optimized query - apply filters first, then search
@@ -67,24 +67,10 @@ public class SearchEmployeeQueryHandler(GpsdataContext context, IMapper mapper) 
             // Use EF.Functions.Like for better MySQL performance with indexes
             // Note: MySQL latin1_swedish_ci collation is case-insensitive by default
             // Don't use ToLower() on columns as it prevents index usage
-            bool isPrefixSearch = !searchTerm.Contains(" ");
-
-            if (isPrefixSearch)
-            {
-                // Prefix search - much faster with indexes
-                // Case-insensitive by default due to collation
-                query = query.Where(e =>
-                    EF.Functions.Like(e.FullName, $"{searchTerm}%") ||
-                    (e.EmployeeWorkNo != null && EF.Functions.Like(e.EmployeeWorkNo, $"{searchTerm}%")));
-            }
-            else
-            {
-                // Full text search for multi-word queries
-                // Case-insensitive by default due to collation
-                query = query.Where(e =>
-                    e.FullName.Contains(searchTerm) ||
-                    (e.EmployeeWorkNo != null && e.EmployeeWorkNo.Contains(searchTerm)));
-            }
+            // Use contains search to match anywhere in the name (first, middle, or last name)
+            query = query.Where(e =>
+                e.FullName.Contains(searchTerm) ||
+                (e.EmployeeWorkNo != null && e.EmployeeWorkNo.Contains(searchTerm)));
 
             // No includes needed - just employee data for fast search results
             List<Domain.Entities.Employee> employees = await query
@@ -94,8 +80,7 @@ public class SearchEmployeeQueryHandler(GpsdataContext context, IMapper mapper) 
 
             List<EmployeeDto> dtos = mapper.Map<List<EmployeeDto>>(employees);
 
-            string searchType = isPrefixSearch ? "Prefix" : "Contains";
-            string message = $"Found {dtos.Count} employee(s) using {searchType} search";
+            string message = $"Found {dtos.Count} employee(s)";
 
             return FMSResponse<List<EmployeeDto>>.Success(dtos, message);
         }
