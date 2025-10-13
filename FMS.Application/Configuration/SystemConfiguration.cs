@@ -1,12 +1,14 @@
 using System;
 
-namespace FMS.Application.Configuration {
+namespace FMS.Application.Configuration
+{
     //Cursor on changes to code
     /// <summary>
     /// System-wide configuration defaults for FMS
     /// These values are used as fallbacks when configuration is not found in database or settings files
     /// </summary>
-    public static class SystemConfiguration {
+    public static class SystemConfiguration
+    {
         #region Device Activity Monitoring
         /// <summary>
         /// Default WebSocket timeout in seconds for device activity monitoring
@@ -67,12 +69,12 @@ namespace FMS.Application.Configuration {
         /// <summary>
         /// Default start of work time (24-hour format)
         /// </summary>
-        public static readonly TimeSpan DEFAULT_WORK_START_TIME = new TimeSpan (6, 0, 0); // 6:00 AM
+        public static readonly TimeSpan DEFAULT_WORK_START_TIME = new TimeSpan(6, 0, 0); // 6:00 AM
 
         /// <summary>
         /// Default end of work time (24-hour format)
         /// </summary>
-        public static readonly TimeSpan DEFAULT_WORK_END_TIME = new TimeSpan (22, 0, 0); // 10:00 PM
+        public static readonly TimeSpan DEFAULT_WORK_END_TIME = new TimeSpan(22, 0, 0); // 10:00 PM
 
         /// <summary>
         /// Default timezone for work schedule
@@ -95,7 +97,7 @@ namespace FMS.Application.Configuration {
         /// <summary>
         /// Default maximum number of days in the past allowed for historical entries
         /// </summary>
-        public const int DEFAULT_TANK_STOCK_MAX_HISTORICAL_DAYS = 30;
+        public const int DEFAULT_TANK_STOCK_MAX_HISTORICAL_DAYS = 60;
         #endregion
 
         #region Redis Configuration Keys

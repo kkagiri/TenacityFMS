@@ -1,4 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Popup, ToolbarItem } from 'devextreme-react/popup';
+import { TextBox } from 'devextreme-react/text-box';
+import { SelectBox } from 'devextreme-react/select-box';
+import { useSelector } from 'react-redux';
+import notify from 'devextreme/ui/notify';
 import axiosInstance from '../../api/axiosInstance';
 import './SearchableSelector.css';
 
@@ -18,8 +23,18 @@ const EmployeeSearchableSelector = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showAddPopup, setShowAddPopup] = useState(false);
+  const [newEmployee, setNewEmployee] = useState({
+    fullName: '',
+    employeestatus: 'Active',
+    siteId: siteId || null
+  });
+  const [isSaving, setIsSaving] = useState(false);
   const searchTimeoutRef = useRef(null);
   const containerRef = useRef(null);
+
+  // Get sites from Redux store
+  const sites = useSelector((state) => state.site?.sites || []);
 
   const performSearch = useCallback(async (term) => {
     if (!term || term.length < 2) {
@@ -130,6 +145,82 @@ const EmployeeSearchableSelector = ({
       performSearch(searchTerm);
     }
   }, [searchTerm, performSearch]);
+
+  const handleAddNewEmployee = useCallback(() => {
+    setShowDropdown(false);
+    setNewEmployee({
+      fullName: searchTerm || '',
+      employeestatus: 'Active',
+      siteId: siteId || null
+    });
+    setShowAddPopup(true);
+  }, [searchTerm, siteId]);
+
+  const handleSaveNewEmployee = useCallback(async () => {
+    // Validation
+    if (!newEmployee.fullName || newEmployee.fullName.trim().length < 2) {
+      notify('Please enter employee full name (minimum 2 characters)', 'error', 3000);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await axiosInstance.post('/employee', newEmployee);
+      console.log('Employee creation response:', response.data);
+
+      // Response structure: { success: bool, message: string, employeeDto: {...} }
+      const success = response.data?.success || response.data?.Success;
+      const message = response.data?.message || response.data?.Message;
+      const created = response.data?.employeeDto || response.data?.EmployeeDto;
+
+      if (success && created && created.id) {
+        notify(message || 'Employee created successfully', 'success', 2000);
+
+        // Close popup first
+        setShowAddPopup(false);
+
+        // Update search term with the newly created employee's name
+        const workNo = created.employeeWorkNo ? ` (${created.employeeWorkNo})` : '';
+        const displayName = created.fullName + workNo;
+        setSearchTerm(displayName);
+
+        // Select the newly created employee
+        setSelectedEmployee(created);
+
+        // Notify parent component
+        if (onValueChanged) {
+          onValueChanged({ value: created.id });
+        }
+
+        // Trigger search to refresh dropdown with the new employee
+        await performSearch(created.fullName);
+
+        // Reset form
+        setNewEmployee({
+          fullName: '',
+          employeestatus: 'Active',
+          siteId: siteId || null
+        });
+      } else {
+        notify(message || 'Failed to create employee', 'error', 3000);
+      }
+    } catch (err) {
+      console.error('Error creating employee:', err);
+      const errorMsg = err.response?.data?.message || err.response?.data?.Message || 'Error creating employee';
+      notify(errorMsg, 'error', 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [newEmployee, siteId, onValueChanged, performSearch]);
+
+  const handleCancelAddEmployee = useCallback(() => {
+    setShowAddPopup(false);
+    setNewEmployee({
+      fullName: '',
+      employeestatus: 'Active',
+      siteId: siteId || null
+    });
+  }, [siteId]);
 
   // Handle click outside
   useEffect(() => {
@@ -301,17 +392,43 @@ const EmployeeSearchableSelector = ({
                           </div>
                         ))
                       ) : (
-                        <div className="dx-list-item">
-                          <div className="dx-list-item-content" style={{
-                            padding: '12px',
-                            textAlign: 'center',
-                            color: '#666',
-                            fontStyle: 'italic',
-                            fontSize: '13px'
-                          }}>
-                            {isLoading ? 'Searching...' : searchTerm.length < 2 ? 'Type to search employees' : 'No employees found'}
+                        <>
+                          <div className="dx-list-item">
+                            <div className="dx-list-item-content" style={{
+                              padding: '12px',
+                              textAlign: 'center',
+                              color: '#666',
+                              fontStyle: 'italic',
+                              fontSize: '13px'
+                            }}>
+                              {isLoading ? 'Searching...' : searchTerm.length < 2 ? 'Type to search employees' : 'No employees found'}
+                            </div>
                           </div>
-                        </div>
+                          {searchTerm.length >= 2 && !isLoading && (
+                            <div className="dx-list-item"
+                              style={{
+                                borderTop: '1px solid #e6e6e6',
+                                cursor: 'pointer'
+                              }}
+                              onClick={handleAddNewEmployee}
+                              onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
+                              onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
+                            >
+                              <div className="dx-list-item-content" style={{
+                                padding: '12px 16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                color: '#337ab7',
+                                fontSize: '14px',
+                                fontWeight: '500'
+                              }}>
+                                <i className="fa-light fa-plus-circle" style={{ fontSize: '16px' }}></i>
+                                <span>Add New Employee</span>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -321,6 +438,78 @@ const EmployeeSearchableSelector = ({
           </div>
         </div>
       )}
+
+      {/* Add New Employee Popup */}
+      <Popup
+        visible={showAddPopup}
+        onHiding={handleCancelAddEmployee}
+        dragEnabled={false}
+        showTitle={true}
+        title="Add New Employee / Driver"
+        showCloseButton={true}
+        width="auto"
+        maxWidth={500}
+        height="auto"
+        position={{ my: 'center', at: 'center', of: window }}
+        wrapperAttr={{ class: 'tw-mx-4' }}
+      >
+        <div className="tw-p-4 tw-min-w-[280px] tw-max-w-full">
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-mb-2 tw-text-gray-700">
+              Full Name <span className="tw-text-red-500">*</span>
+            </label>
+            <TextBox
+              value={newEmployee.fullName}
+              onValueChanged={(e) => setNewEmployee({ ...newEmployee, fullName: e.value })}
+              placeholder="Enter employee full name"
+              width="100%"
+            />
+          </div>
+
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-mb-2 tw-text-gray-700">
+              Site
+            </label>
+            <SelectBox
+              dataSource={sites}
+              displayExpr="name"
+              valueExpr="id"
+              value={newEmployee.siteId}
+              onValueChanged={(e) => setNewEmployee({ ...newEmployee, siteId: e.value })}
+              placeholder="Select a site"
+              width="100%"
+              showClearButton={true}
+            />
+          </div>
+        </div>
+
+        <ToolbarItem
+          widget="dxButton"
+          toolbar="bottom"
+          location="after"
+          options={{
+            text: "Cancel",
+            icon: "close",
+            type: "normal",
+            stylingMode: "contained",
+            onClick: handleCancelAddEmployee,
+            disabled: isSaving
+          }}
+        />
+        <ToolbarItem
+          widget="dxButton"
+          toolbar="bottom"
+          location="after"
+          options={{
+            text: isSaving ? "Saving..." : "Save Employee",
+            icon: isSaving ? "fas fa-spinner fa-spin" : "check",
+            type: "success",
+            stylingMode: "contained",
+            onClick: handleSaveNewEmployee,
+            disabled: isSaving || !newEmployee.fullName || newEmployee.fullName.trim().length < 2
+          }}
+        />
+      </Popup>
     </div>
   );
 };
