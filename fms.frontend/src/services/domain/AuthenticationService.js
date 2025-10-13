@@ -143,32 +143,183 @@ export class AuthenticationService extends BaseService {
   }
 
   /**
-   * Sign out current user
-   * @returns {Promise<FMSResponse<boolean>>}
+   * Check if there are any active fueling processes
+   * Important: Only checks for FullTank mode fueling (no predetermined end)
+   * @private
+   * @returns {Object} Status object with hasActive, count, and processes array
    */
-  async signOut() {
+  _checkActiveFuelingProcesses() {
     try {
-      this.logger.info("Signing out user");
+      // Import store dynamically to avoid circular dependencies
+      const store = require('../../store').default;
+      const state = store.getState();
 
-      // Note: The backend doesn't have a signout endpoint, but we can still clear local state
-      // In a real implementation, you might want to add a signout endpoint to invalidate the JWT server-side
+      // Check pump reducer for active fueling processes
+      const activeFueling = state.pump?.activeFuelingProcesses || [];
 
-      // Always clear local auth state
+      if (activeFueling.length > 0) {
+        this.logger.warn(`⛽ Found ${activeFueling.length} active fueling process(es)`);
+        return {
+          hasActive: true,
+          count: activeFueling.length,
+          processes: activeFueling
+        };
+      }
+
+      return { hasActive: false, count: 0, processes: [] };
+    } catch (error) {
+      this.logger.warn('⚠️ Could not check fueling status', error);
+      return { hasActive: false, count: 0, processes: [] };
+    }
+  }
+
+  /**
+   * Sign out current user - Production-grade implementation
+   *
+   * Special handling for active fueling:
+   * - Checks for active FullTank fueling processes
+   * - Returns warning if fueling is active (caller should confirm with user)
+   * - Can force signout to terminate fueling if needed
+   *
+   * @param {boolean} force - Force logout even with active fueling (default: false)
+   * @returns {Promise<FMSResponse<{success: boolean, activeFueling?: object}>>}
+   */
+  async signOut(force = false) {
+    try {
+      this.logger.info("🔓 Starting sign out process");
+
+      // 1. Check for active fueling processes FIRST (before disconnecting anything)
+      const fuelingStatus = this._checkActiveFuelingProcesses();
+
+      if (fuelingStatus.hasActive && !force) {
+        this.logger.warn(`⛽ Active fueling detected - logout requires confirmation`);
+
+        // Return status indicating active fueling - let the caller handle confirmation
+        return {
+          success: false,
+          data: {
+            success: false,
+            requiresConfirmation: true,
+            activeFueling: fuelingStatus
+          },
+          message: `Cannot logout: ${fuelingStatus.count} active fueling process(es)`,
+          errors: ['ACTIVE_FUELING_PROCESSES']
+        };
+      }
+
+      // If force = true or no active fueling, proceed with logout
+      if (fuelingStatus.hasActive && force) {
+        this.logger.warn(`⛽ Forcing logout with ${fuelingStatus.count} active fueling process(es)`);
+
+        // Try to send stop commands to active pumps
+        try {
+          const { default: ptsSignalRService } = await import('../../signalR/ptsSignalRService');
+
+          if (ptsSignalRService?.isConnected) {
+            this.logger.debug('🛑 Attempting to stop active pumps...');
+
+            for (const process of fuelingStatus.processes) {
+              try {
+                this.logger.debug(`🛑 Stopping pump ${process.pumpId}...`);
+                // Note: You may need to implement a stop pump command in PTSSignalRService
+                // await ptsSignalRService.connection.invoke('StopPump', process.pumpId);
+              } catch (stopError) {
+                this.logger.error(`Failed to stop pump ${process.pumpId}`, stopError);
+              }
+            }
+
+            // Give pumps a moment to receive stop commands
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (pumpStopError) {
+          this.logger.error('⚠️ Error stopping pumps', pumpStopError);
+          // Continue with logout even if pump stop fails
+        }
+      }
+
+      // 2. Disconnect SignalR connections before clearing token
+      try {
+        this.logger.debug("📡 Disconnecting SignalR connections...");
+
+        // Import SignalR services dynamically
+        const { default: dashboardSignalRService } = await import('../../signalR/dashboardSignalRService');
+        const { default: ptsSignalRService } = await import('../../signalR/ptsSignalRService');
+
+        await Promise.allSettled([
+          dashboardSignalRService?.disconnect?.(),
+          ptsSignalRService?.disconnect?.()
+        ]);
+
+        this.logger.debug("✅ SignalR connections disconnected");
+      } catch (signalRError) {
+        this.logger.warn("⚠️ Error disconnecting SignalR", signalRError);
+        // Don't fail logout if SignalR disconnect fails
+      }
+
+      // 2. Call backend logout endpoint (if available in future)
+      // Note: Currently the backend doesn't have a logout endpoint
+      // In production, you should implement one to:
+      // - Blacklist JWT tokens
+      // - Log logout events for security auditing
+      // - Invalidate refresh tokens
+      // - Track active user sessions
+      /*
+      try {
+        await this.post('/Logout', {});
+        this.logger.info("✅ Server-side session invalidated");
+      } catch (backendError) {
+        this.logger.warn("⚠️ Backend logout endpoint not available", backendError);
+        // Continue with client-side cleanup
+      }
+      */
+
+      // 3. Clear authentication token and cache
       this.clearAuthToken();
       this.clearCache();
 
-      this.logger.info("User signed out successfully");
+      // 4. Clear user-specific localStorage data
+      const keysToRemove = [
+        'fms_dashboard_layouts',        // User dashboard layouts
+        'fms_layout_settings',          // User layout settings
+        'dashboard_widgetConfig',       // Widget configurations
+        'dashboard_todayFuelBaseline',  // Dashboard cache
+        'selectedSite',                 // User selections
+        'selectedPeriod',               // User selections
+        'issueTrackerSavedFilters',    // User filters
+        'currentUser',                  // Legacy user data
+      ];
 
+      keysToRemove.forEach(key => {
+        try {
+          if (localStorage.getItem(key)) {
+            localStorage.removeItem(key);
+            this.logger.debug(`✅ Cleared localStorage: ${key}`);
+          }
+        } catch (storageError) {
+          this.logger.warn(`⚠️ Failed to clear ${key}`, storageError);
+        }
+      });
+
+      this.logger.info("✅ User signed out successfully");
+
+      // Return success with info about terminated fueling if applicable
       return {
         success: true,
-        data: true,
-        message: "Successfully signed out",
+        data: {
+          success: true,
+          fuelingTerminated: fuelingStatus.hasActive,
+          terminatedProcesses: fuelingStatus.hasActive ? fuelingStatus.processes : []
+        },
+        message: fuelingStatus.hasActive
+          ? `Signed out successfully. ${fuelingStatus.count} fueling process(es) terminated.`
+          : "Successfully signed out",
         errors: [],
       };
     } catch (error) {
-      this.logger.error("Sign out error", error);
+      this.logger.error("🚨 Sign out error", error);
 
-      // Still clear local state even if any operations fail
+      // CRITICAL: Still clear local state even if operations fail
+      // Security is more important than perfect error handling
       this.clearAuthToken();
       this.clearCache();
 

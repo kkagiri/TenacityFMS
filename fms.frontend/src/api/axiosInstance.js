@@ -257,10 +257,17 @@ axiosInstance.interceptors.response.use(
 
       // Handle authentication errors
       if (error.response.status === 401) {
-        console.error("Authentication error - token may be expired");
-        // Clear token and redirect to login
-        localStorage.removeItem("token");
-        // window.location.href = '/login'; // Uncomment if you want automatic redirect
+        const token = localStorage.getItem('token');
+
+        // Only log and clear if we actually had a token (i.e., it's expired)
+        // Don't log 401 errors when there's no token (unauthenticated state is expected)
+        if (token) {
+          console.error("🚫 Authentication error - token may be expired or invalid");
+          localStorage.removeItem("token");
+          // window.location.href = '/login'; // Uncomment if you want automatic redirect
+        } else {
+          console.debug("ℹ️ 401 response (no token present - expected on login page)");
+        }
       }
 
       // Handle not found errors

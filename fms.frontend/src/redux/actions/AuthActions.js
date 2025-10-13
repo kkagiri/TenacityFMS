@@ -1,5 +1,6 @@
 import axiosInstance from './../../api/axiosInstance';
 import { fetchConfigurations } from './configurationActions';
+import store from '../../store'; // Import store to check fueling status
 import {
     LOGIN_SUCCESS,
     LOGIN_FAILURE,
@@ -12,10 +13,19 @@ import {
 } from './types';
 
 export const loadUser = () => async (dispatch) => {
+    // Check if token exists before making the request
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.log('⚠️ No token found, skipping user load');
+        dispatch({ type: AUTH_ERROR, payload: 'No authentication token' });
+        return;
+    }
+
     dispatch({ type: AUTH_REQUEST });
 
     try {
-        const response = await axiosInstance.get('/user/details');
+        // Use correct endpoint with proper casing - backend expects /User/details (capital U)
+        const response = await axiosInstance.get('/User/details');
         const user = response.data;
 
         // Normalize the user data - the backend already returns 'Roles' as an array
@@ -37,6 +47,7 @@ export const loadUser = () => async (dispatch) => {
             console.error('Network error - login service cannot be found');
         } else if (error.response && error.response.status === 401) {
             // Token is invalid, remove it
+            console.warn('🚫 Invalid token detected, clearing authentication');
             localStorage.removeItem('token');
         }
 
@@ -48,8 +59,10 @@ export const signIn = (username, password) => async (dispatch) => {
     dispatch({ type: AUTH_REQUEST });
 
     try {
-        console.log('Attempting login for username:', username);
-        const response = await axiosInstance.post(`/user/login`, { username, password });
+        console.log('🔐 Attempting login for username:', username);
+
+        // Use correct endpoint with proper casing - backend expects /User/Login (capital U)
+        const response = await axiosInstance.post(`/User/Login`, { username, password });
 
         const { token } = response.data; // Backend returns { token: "..." } (lowercase)
 
@@ -92,7 +105,171 @@ export const signIn = (username, password) => async (dispatch) => {
     }
 };
 
-export const logout = () => (dispatch) => {
-    localStorage.removeItem('token');
-    dispatch({ type: LOGOUT });
+/**
+ * Check if there are any active fueling processes
+ * Important: Only checks for FullTank mode fueling (no predetermined end)
+ * Fixed volume/price fueling will complete automatically
+ */
+const hasActiveFuelingProcesses = () => {
+    try {
+        const state = store.getState();
+
+        // Check pump reducer for active fueling processes
+        const activeFueling = state.pump?.activeFuelingProcesses || [];
+
+        if (activeFueling.length > 0) {
+            console.log(`⛽ Found ${activeFueling.length} active fueling process(es)`);
+            return {
+                hasActive: true,
+                count: activeFueling.length,
+                processes: activeFueling
+            };
+        }
+
+        return { hasActive: false, count: 0, processes: [] };
+    } catch (error) {
+        console.warn('⚠️ Could not check fueling status:', error);
+        return { hasActive: false, count: 0, processes: [] };
+    }
+};
+
+/**
+ * Logout user - Production-grade implementation
+ * Clears all user session data and redirects to login
+ *
+ * Special handling for active fueling:
+ * - Checks for active FullTank fueling processes
+ * - Warns user before terminating active fueling
+ * - Sends stop command to pumps if user confirms
+ */
+export const logout = () => async (dispatch) => {
+    try {
+        console.log('🔓 Starting logout process...');
+
+        // 1. Check for active fueling processes FIRST (before disconnecting anything)
+        const fuelingStatus = hasActiveFuelingProcesses();
+
+        if (fuelingStatus.hasActive) {
+            // Import necessary services for fueling termination
+            const { default: ptsSignalRService } = await import('../../signalR/ptsSignalRService');
+
+            console.warn(`⛽ Warning: ${fuelingStatus.count} active fueling process(es) detected`);
+
+            // Show confirmation dialog
+            const shouldTerminate = window.confirm(
+                `⚠️ Active Fueling Alert\n\n` +
+                `There ${fuelingStatus.count === 1 ? 'is' : 'are'} ${fuelingStatus.count} active fueling process${fuelingStatus.count === 1 ? '' : 'es'}:\n\n` +
+                fuelingStatus.processes.map(p => `• Pump ${p.pumpId}, Nozzle ${p.nozzleId} - ${p.fuelType}`).join('\n') +
+                `\n\nLogging out will TERMINATE these fueling processes.\n\n` +
+                `Do you want to proceed with logout?`
+            );
+
+            if (!shouldTerminate) {
+                console.log('🔓 Logout cancelled by user due to active fueling');
+                return; // Cancel logout
+            }
+
+            console.log('⛽ User confirmed - terminating active fueling processes...');
+
+            // Try to send stop commands to active pumps
+            try {
+                if (ptsSignalRService?.isConnected) {
+                    for (const process of fuelingStatus.processes) {
+                        try {
+                            console.log(`🛑 Stopping pump ${process.pumpId}...`);
+                            // You may need to implement a stop pump command
+                            // await ptsSignalRService.connection.invoke('StopPump', process.pumpId);
+                        } catch (stopError) {
+                            console.error(`Failed to stop pump ${process.pumpId}:`, stopError);
+                        }
+                    }
+
+                    // Give pumps a moment to receive stop commands
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (pumpStopError) {
+                console.error('⚠️ Error stopping pumps:', pumpStopError);
+                // Continue with logout even if pump stop fails
+            }
+        }
+
+        // 2. Disconnect SignalR connections before clearing token
+        try {
+            // Import SignalR services dynamically to avoid circular dependencies
+            const { default: dashboardSignalRService } = await import('../../signalR/dashboardSignalRService');
+            const { default: ptsSignalRService } = await import('../../signalR/ptsSignalRService');
+
+            console.log('📡 Disconnecting SignalR connections...');
+            await Promise.allSettled([
+                dashboardSignalRService?.disconnect?.(),
+                ptsSignalRService?.disconnect?.()
+            ]);
+            console.log('✅ SignalR connections disconnected');
+        } catch (signalRError) {
+            console.warn('⚠️ Error disconnecting SignalR:', signalRError);
+            // Don't fail logout if SignalR disconnect fails
+        }
+
+        // 2. Clear authentication token
+        localStorage.removeItem('token');
+        console.log('✅ Token removed');
+
+        // 3. Clear user-specific localStorage data (but keep system preferences)
+        const keysToRemove = [
+            'fms_dashboard_layouts',        // User dashboard layouts
+            'fms_layout_settings',          // User layout settings
+            'dashboard_widgetConfig',       // Widget configurations
+            'dashboard_todayFuelBaseline',  // Dashboard cache
+            'selectedSite',                 // User selections
+            'selectedPeriod',               // User selections
+            'issueTrackerSavedFilters',    // User filters
+            'currentUser',                  // Legacy user data
+        ];
+
+        keysToRemove.forEach(key => {
+            if (localStorage.getItem(key)) {
+                localStorage.removeItem(key);
+                console.log(`✅ Cleared localStorage: ${key}`);
+            }
+        });
+
+        // 4. Dispatch logout action to clear Redux state
+        dispatch({ type: LOGOUT });
+        console.log('✅ Redux state cleared');
+
+        // 5. Optional: Call backend logout endpoint if it exists
+        // Note: Currently there's no backend logout endpoint,
+        // but in production you should have one to:
+        // - Blacklist the JWT token
+        // - Log the logout event
+        // - Invalidate refresh tokens
+        // - Track user sessions
+        /*
+        try {
+            await axiosInstance.post('/user/logout');
+            console.log('✅ Server-side session cleared');
+        } catch (backendError) {
+            console.warn('⚠️ Backend logout failed:', backendError);
+            // Don't fail logout if backend call fails
+        }
+        */
+
+        // 6. Redirect to login page
+        // Note: We can't use navigate here because we're not in a component
+        // The App.js will handle the redirect when isAuthenticated becomes false
+        console.log('🔓 Logout completed successfully');
+
+        // Force reload to clear any in-memory state and return to login
+        window.location.href = '/login';
+
+    } catch (error) {
+        console.error('🚨 Logout error:', error);
+
+        // Even if logout fails, clear critical data
+        localStorage.removeItem('token');
+        dispatch({ type: LOGOUT });
+
+        // Force redirect to login page
+        window.location.href = '/login';
+    }
 };

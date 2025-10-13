@@ -40,7 +40,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-users",
       route: "/employees",
       color: "#ff8c00",
-      roles: ["admin", "management"] // Only admin and management
+      roles: ["admin", "management","user"] // to allow users to see employees for assignment
     },
     {
       id: 4,

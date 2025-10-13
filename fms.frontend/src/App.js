@@ -37,14 +37,24 @@ function App() {
 
   useEffect(() => {
     const initialize = async () => {
-      await initializeAxiosInstance(); // Initialize Axios instance
-      setIsApiInitialized(true);
-      // SignalR connection is now manual - components will start it when needed
+      try {
+        await initializeAxiosInstance(); // Initialize Axios instance
+        setIsApiInitialized(true);
 
-      //Cursor: Only load user if there's a token in localStorage
-      const token = localStorage.getItem('token');
-      if (token) {
-        dispatch(loadUser());
+        // SignalR connection is now manual - components will start it when needed
+
+        //Cursor: Only load user if there's a token in localStorage
+        const token = localStorage.getItem('token');
+        if (token) {
+          console.log('🔑 Token found, loading user data...');
+          dispatch(loadUser());
+        } else {
+          console.log('🔓 No token found, skipping user load');
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize app:', error);
+        // Still set API as initialized to prevent infinite loading
+        setIsApiInitialized(true);
       }
     };
     initialize();
