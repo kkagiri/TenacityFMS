@@ -3,6 +3,7 @@ import LoadIndicator from 'devextreme-react/load-indicator';
 import Button from 'devextreme-react/button';
 import CheckBox from 'devextreme-react/check-box';
 import Popup from 'devextreme-react/popup';
+import ShareWidgetModal from './ShareWidgetModal';
 
 export default function WidgetList({
   widgets,
@@ -17,6 +18,7 @@ export default function WidgetList({
 }) {
   const [dragState, setDragState] = useState({ widgetId: null, category: null });
   const [deleteConfirm, setDeleteConfirm] = useState({ visible: false, widget: null });
+  const [shareModal, setShareModal] = useState({ visible: false, widget: null });
 
   const filtered = useMemo(() => {
     if (activeCategory === 'all') return widgets;
@@ -84,44 +86,45 @@ export default function WidgetList({
     setDeleteConfirm({ visible: false, widget: null });
   };
 
+  const handleShareClick = (widget) => {
+    setShareModal({ visible: true, widget });
+  };
+
+  const closeShareModal = () => {
+    setShareModal({ visible: false, widget: null });
+  };
+
   const renderCard = (widget, index, category) => {
     const isDragging = dragState.widgetId === widget.id;
+    const isShared = widget.isShared || false;
+    const canDelete = widget.canDelete !== false; // default true if not specified
     return (
       <div
-        key={widget.id}
-        className={`tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-3 tw-transition-all ${isDragging ? 'tw-opacity-50 tw-ring-2 tw-ring-blue-400' : ''}`}
-        draggable
-        onDragStart={(e) => startDrag(e, widget, category)}
-        onDragOver={onDragOver}
-        onDrop={(e) => handleDrop(e, widget, category)}
-        onDragEnd={cancelDrag}
+
       >
         {/* Responsive layout: Stacked on mobile, inline on desktop */}
         <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-gap-3">
           {/* Left section: Drag handle + Position + Checkbox + Widget info */}
           <div className="tw-flex tw-items-center tw-gap-3 tw-flex-1 tw-min-w-0">
-            <div className="tw-flex tw-flex-col tw-items-center tw-gap-1 tw-cursor-move tw-text-gray-400 hover:tw-text-gray-600 tw-flex-shrink-0">
-              <i className="fa-solid fa-grip-vertical"></i>
-              <span className="tw-text-[10px] tw-font-semibold tw-bg-gray-100 tw-text-gray-600 tw-rounded tw-px-1">#{index + 1}</span>
-            </div>
-            <CheckBox
-              value={widget.isVisible}
-              onValueChanged={(e) => onToggleVisibility(widget)}
-              text=""
-              className="tw-flex-shrink-0"
-            />
+
+
             <div className="tw-flex-1 tw-min-w-0">
               <div className="tw-font-medium tw-text-gray-900 tw-truncate">{widget.customName || widget.template?.displayName}</div>
               <div className="tw-text-xs tw-text-gray-500 tw-flex tw-gap-2">
-                <span className="tw-truncate">{widget.metric || 'N/A'}</span>
-                <span className="tw-text-gray-300">|</span>
-                <span className="tw-truncate">{widget.siteIds?.length > 0 ? `${widget.siteIds.length} site(s)` : 'All sites'}</span>
               </div>
             </div>
           </div>
 
           {/* Right section: Action buttons - Stack on mobile, inline on desktop */}
           <div className="tw-flex tw-gap-1 tw-flex-shrink-0 tw-justify-start sm:tw-justify-end">
+            {/* Shared indicator */}
+            {isShared && (
+              <div className="tw-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded tw-text-xs tw-text-blue-700 tw-mr-1">
+                <i className="fa-light fa-share-nodes"></i>
+                <span>Shared</span>
+              </div>
+            )}
+
             <Button
               text="Edit"
               icon="fa-solid fa-edit"
@@ -131,15 +134,22 @@ export default function WidgetList({
               onClick={() => onEditWidget(widget)}
               className="tw-text-blue-600 hover:tw-bg-blue-50"
             />
-            <Button
-              text="Test"
-              icon="fa-solid fa-flask"
-              type="normal"
-              stylingMode="text"
-              height={28}
-              onClick={() => console.log('Test widget config', widget.id)}
-              className="tw-text-indigo-600 hover:tw-bg-indigo-50"
-            />
+
+            {/* Share button - only show for original widgets (not shared) */}
+            {!isShared && (
+              <Button
+                text="Share"
+                icon="fa-solid fa-share"
+                type="normal"
+                stylingMode="text"
+                height={28}
+                onClick={() => handleShareClick(widget)}
+                className="tw-text-green-600 hover:tw-bg-green-50"
+                hint="Share this widget with other users"
+              />
+            )}
+
+            {/* Delete button - disabled for shared widgets */}
             <Button
               text="Delete"
               icon="fa-solid fa-trash"
@@ -147,7 +157,9 @@ export default function WidgetList({
               stylingMode="text"
               height={28}
               onClick={() => handleDeleteClick(widget)}
-              className="tw-text-red-600 hover:tw-bg-red-50"
+              disabled={!canDelete}
+              className={canDelete ? "tw-text-red-600 hover:tw-bg-red-50" : "tw-text-gray-400 tw-cursor-not-allowed"}
+              hint={canDelete ? "Delete this widget" : "Cannot delete shared widgets"}
             />
           </div>
         </div>
@@ -227,6 +239,16 @@ export default function WidgetList({
           </div>
         </div>
       </Popup>
+
+      {/* Share Widget Modal */}
+      {shareModal.visible && shareModal.widget && (
+        <ShareWidgetModal
+          visible={shareModal.visible}
+          onHiding={closeShareModal}
+          widgetInstanceId={shareModal.widget.id}
+          widgetName={shareModal.widget.customName || shareModal.widget.template?.displayName || 'Widget'}
+        />
+      )}
     </div>
   );
 }

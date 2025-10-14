@@ -131,10 +131,10 @@ const RealtimeDashboard = () => {
   return (
     <div className="realtime-dashboard-container">
       {/* Dashboard Header with Controls */}
-      <div className=" content-block  dashboard-header">
+      <div className="dashboard-header">
         <h1 className="dashboard-title">
           <i className="fa-solid fa-gauge-high"></i>
-          Hyoung FMS Real-time Dashboard
+          <span className="dashboard-title-text">Hyoung FMS Real-time Dashboard</span>
         </h1>
 
         {/* Header Controls - Right Side */}
@@ -146,6 +146,7 @@ const RealtimeDashboard = () => {
             text={isEditMode ? 'Done Editing' : 'Edit Layout'}
             stylingMode="text"
             onClick={() => handleEditModeToggle(!isEditMode)}
+            className="header-btn"
           />
           <Button
             icon="fa-solid fa-plus"
@@ -154,6 +155,7 @@ const RealtimeDashboard = () => {
             type="default"
             stylingMode="text"
             onClick={() => setWidgetConfigOpen(true)}
+            className="header-btn"
           />
         </div>
       </div>

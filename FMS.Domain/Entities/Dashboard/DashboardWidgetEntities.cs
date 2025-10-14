@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 
-namespace FMS.Domain.Entities.Dashboard {
+namespace FMS.Domain.Entities.Dashboard
+{
     /// <summary>
     /// Master template defining available dashboard widgets
     /// </summary>
-    public class DashboardWidgetTemplate {
+    public class DashboardWidgetTemplate
+    {
         public int Id { get; set; }
         public string WidgetType { get; set; } = null!; // ticker, graph, chart, table, gauge
         public string Name { get; set; } = null!;
@@ -21,14 +23,15 @@ namespace FMS.Domain.Entities.Dashboard {
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation
-        public virtual ICollection<DashboardWidgetInstance> WidgetInstances { get; set; } = new List<DashboardWidgetInstance> ();
+        public virtual ICollection<DashboardWidgetInstance> WidgetInstances { get; set; } = new List<DashboardWidgetInstance>();
     }
 
     /// <summary>
     /// User's specific widget instance with custom configuration
     /// Enhanced to support both template-based and fully custom widgets
     /// </summary>
-    public class DashboardWidgetInstance {
+    public class DashboardWidgetInstance
+    {
         public int Id { get; set; }
         public string UserId { get; set; } = null!;
 
@@ -53,6 +56,14 @@ namespace FMS.Domain.Entities.Dashboard {
         public bool IsVisible { get; set; } = true;
         public bool IsCustomWidget { get; set; } = false; // True if created without template
 
+        // Widget Sharing properties
+        public bool IsShared { get; set; } = false; // True if this widget was shared from another user
+        public string? SharedFromUserId { get; set; } // Original owner's user ID (null if not shared)
+        public int? SharedFromWidgetId { get; set; } // Original widget instance ID (null if not shared)
+        public bool CanEdit { get; set; } = true; // Can edit configuration (always true for shared widgets)
+        public bool CanDelete { get; set; } = true; // Can delete (false for shared widgets)
+        public DateTime? SharedAt { get; set; } // When this widget was shared to this user
+
         // Audit fields
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -65,8 +76,9 @@ namespace FMS.Domain.Entities.Dashboard {
     /// <summary>
     /// User's dashboard layout and global settings
     /// </summary>
-    public class UserDashboardLayout {
-        public Guid Id { get; set; } = Guid.NewGuid ();
+    public class UserDashboardLayout
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
         public string UserId { get; set; } = null!;
         public string LayoutName { get; set; } = "Default";
         public string LayoutJson { get; set; } = null!; // Grid layout configuration

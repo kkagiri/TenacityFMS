@@ -9,6 +9,18 @@ import './CategoryGroupedWidgetRenderer.scss';
 /**
  * Category Grouped Widget Renderer
  * Groups widgets by category with individual widget sizing
+ *
+ * RESPONSIVE BEHAVIOR:
+ * - Desktop: Uses 12-column grid system with saved widget sizes (3, 6, 9, or 12 columns)
+ * - Mobile (≤768px): Switches to flex column layout - ALL widgets display full-width
+ *   in their own row, regardless of saved database layout
+ * - Layout data in database remains unchanged - CSS handles mobile transformation
+ *
+ * This approach ensures:
+ * - No backend changes needed for mobile support
+ * - Database stores optimal desktop layout
+ * - Mobile users get clean, full-width stacked layout
+ * - Easy maintenance (CSS-only solution)
  */
 const CategoryGroupedWidgetRenderer = ({
   widgets = [],

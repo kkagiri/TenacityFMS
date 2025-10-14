@@ -43,5 +43,10 @@
 
 .content-block {
   margin-top: auto;
-  padding: 20px; // Add padding only to footer area
+  padding: 0 10px 10px 10px; // Remove top padding, keep sides and bottom
+
+  // Mobile optimization - remove side padding
+  @media (max-width: 768px) {
+    padding: 0 0 10px 0;
+  }
 }

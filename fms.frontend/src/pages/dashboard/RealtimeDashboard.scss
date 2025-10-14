@@ -1,5 +1,23 @@
 /* Realtime Dashboard (vanilla CSS version without Tailwind @apply) */
 
+.realtime-dashboard-container {
+  min-height: 100vh;
+  background: #f9fafb;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 16px;
+  padding-bottom: 40px;
+  margin: 0; // Ensure no top margin
+
+  // Mobile optimization - remove edge padding
+  @media (max-width: 768px) {
+    padding: 16px 0; // Keep some top padding on mobile
+  }
+
+  @media (max-width: 480px) {
+    padding: 12px 0; // Minimal top padding on small mobile
+  }
+}
+
 .realtime-dashboard {
   min-height: 100vh;
   background: #f9fafb;
@@ -89,21 +107,144 @@
 /* Debug panel (your debug test section) */
 .realtime-dashboard .tw-border.tw-bg-gray-50 { background:#f5f6fa !important; border:1px solid #e2e8f0 !important; }
 
+/* Dashboard Header Styles */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  margin: 0 0 16px 0;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+
+  .dashboard-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: #1f2937;
+
+    i {
+      color: #2563eb;
+      font-size: 1.25rem;
+    }
+
+    .dashboard-title-text {
+      display: inline;
+    }
+  }
+
+  .dashboard-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-btn {
+      white-space: nowrap;
+    }
+  }
+}
+
+/* Enhanced widgets section */
+.enhanced-widgets-section {
+  margin: 0;
+  padding: 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .widget-header { padding:8px 10px; }
   .widget-header .widget-title { font-size:12px; }
 }
+
 @media (max-width: 768px) {
   .realtime-dashboard { padding: 12px; }
   .dashboard-main-grid { padding: 0; }
   .widget-header { flex-direction:column; align-items:flex-start; gap:6px; padding:8px 10px; }
   .widget-header .widget-controls { width:100%; justify-content:flex-end; }
+
+  // Dashboard header mobile optimizations
+  .dashboard-header {
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+
+    .dashboard-title {
+      font-size: 1rem;
+
+      i {
+        font-size: 1rem;
+      }
+
+      .dashboard-title-text {
+        display: none; // Hide title text on tablets
+      }
+    }
+
+    .dashboard-header-controls {
+      gap: 4px;
+
+      .header-btn {
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  .enhanced-widgets-section {
+    padding: 0 8px;
+  }
 }
+
 @media (max-width: 480px) {
   .realtime-dashboard { padding: 8px; }
   .widget-header .widget-title { font-size:12px; }
   .widget-header .widget-controls .widget-control-btn { width:26px; height:26px; font-size:11px; }
+
+  // Dashboard header mobile optimizations
+  .dashboard-header {
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .dashboard-title {
+      font-size: 0.875rem;
+
+      i {
+        font-size: 0.875rem;
+      }
+
+      .dashboard-title-text {
+        display: none; // Keep hidden on mobile
+      }
+    }
+
+    .dashboard-header-controls {
+      flex: 1;
+      justify-content: flex-end;
+      gap: 4px;
+
+      .header-btn {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+
+        // Hide button text on very small screens, show only icons
+        span {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .enhanced-widgets-section {
+    padding: 0 4px;
+  }
 }
 
 /* Optional dark mode (manual) */

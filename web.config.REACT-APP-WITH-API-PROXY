@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+
+        <!-- Rule 1: Forward API requests to backend on port 7009 -->
+        <rule name="Proxy API to Backend" stopProcessing="true">
+          <match url="^api/(.*)" />
+          <action type="Rewrite" url="http://localhost:7009/api/{R:1}" />
+          <serverVariables>
+            <set name="HTTP_X_ORIGINAL_HOST" value="{HTTP_HOST}" />
+            <set name="HTTP_X_FORWARDED_FOR" value="{REMOTE_ADDR}" />
+            <set name="HTTP_X_FORWARDED_PROTO" value="http" />
+          </serverVariables>
+        </rule>
+
+        <!-- Rule 2: Forward SignalR hub requests to backend -->
+        <rule name="Proxy SignalR to Backend" stopProcessing="true">
+          <match url="^hub/(.*)" />
+          <action type="Rewrite" url="http://localhost:7009/hub/{R:1}" />
+          <serverVariables>
+            <set name="HTTP_X_ORIGINAL_HOST" value="{HTTP_HOST}" />
+            <set name="HTTP_X_FORWARDED_FOR" value="{REMOTE_ADDR}" />
+            <set name="HTTP_X_FORWARDED_PROTO" value="http" />
+          </serverVariables>
+        </rule>
+
+        <!-- Rule 3: React Routes - SPA fallback (must be LAST) -->
+        <rule name="React Routes" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            <add input="{REQUEST_URI}" pattern="^/api/" negate="true" />
+            <add input="{REQUEST_URI}" pattern="^/hub/" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/" />
+        </rule>
+
+      </rules>
+    </rewrite>
+
+    <!-- Cache control for index.html -->
+    <httpProtocol>
+      <customHeaders>
+        <add name="Cache-Control" value="no-cache, no-store, must-revalidate" />
+        <add name="Pragma" value="no-cache" />
+        <add name="Expires" value="0" />
+      </customHeaders>
+    </httpProtocol>
+
+    <!-- Static file caching for JS/CSS (they have hash in filename) -->
+    <staticContent>
+      <clientCache cacheControlMode="UseMaxAge" cacheControlMaxAge="365.00:00:00" />
+    </staticContent>
+
+  </system.webServer>
+</configuration>

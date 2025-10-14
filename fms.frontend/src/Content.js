@@ -159,7 +159,7 @@ export default function Content() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
-            Version:1.1.0
+            Version:2.0.2
             <br />
             Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
             trademarks are property of Hyoung EA Co. Ltd.

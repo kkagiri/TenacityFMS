@@ -375,7 +375,26 @@ namespace FMS.Application.Communication.SignalR
             }
         }
 
-        public async Task RequestDashboardMetrics(object request = null)
+        /// <summary>
+        /// Request dashboard metrics - overload without parameters
+        /// </summary>
+        public async Task RequestDashboardMetrics()
+        {
+            await RequestDashboardMetricsCore(null);
+        }
+
+        /// <summary>
+        /// Request dashboard metrics - overload with request parameter
+        /// </summary>
+        public async Task RequestDashboardMetrics(object request)
+        {
+            await RequestDashboardMetricsCore(request);
+        }
+
+        /// <summary>
+        /// Core implementation for dashboard metrics request
+        /// </summary>
+        private async Task RequestDashboardMetricsCore(object? request)
         {
             int widgetInstanceId = 0;
             Dictionary<string, object>? frontendConfiguration = null;

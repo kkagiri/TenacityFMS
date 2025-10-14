@@ -375,6 +375,62 @@ class DashboardService {
   }
 
   // ========================================
+  // WIDGET SHARING METHODS
+  // ========================================
+
+  /**
+   * Share a widget with other users
+   * @param {number} widgetInstanceId - Widget instance ID
+   * @param {string[]} targetUserIds - Array of user IDs to share with
+   * @returns {Promise<object>} FMSResponseMessage<ShareWidgetResponseDto>
+   */
+  async shareWidget(widgetInstanceId, targetUserIds) {
+    const response = await axiosInstance.post(`/dashboard/widgets/${widgetInstanceId}/share`, targetUserIds);
+    return response.data;
+  }
+
+  /**
+   * Get list of users a widget has been shared with (for original owner)
+   * @param {number} widgetInstanceId - Widget instance ID
+   * @returns {Promise<object>} FMSResponseMessage<SharedWithUserDto[]>
+   */
+  async getWidgetShares(widgetInstanceId) {
+    const response = await axiosInstance.get(`/dashboard/widgets/${widgetInstanceId}/shares`);
+    return response.data;
+  }
+
+  /**
+   * Get widgets that have been shared with the current user
+   * @param {string} category - Optional category filter
+   * @returns {Promise<object>} FMSResponseMessage<DashboardWidgetInstanceWithSharingDto[]>
+   */
+  async getSharedWidgets(category = null) {
+    const params = {};
+    if (category) params.category = category;
+    const response = await axiosInstance.get('/dashboard/widgets/shared-with-me', { params });
+    return response.data;
+  }
+
+  /**
+   * Remove a shared widget (for the user who received it)
+   * @param {number} sharedWidgetInstanceId - Shared widget instance ID
+   * @returns {Promise<object>} FMSResponseMessage<bool>
+   */
+  async unshareWidget(sharedWidgetInstanceId) {
+    const response = await axiosInstance.delete(`/dashboard/widgets/${sharedWidgetInstanceId}/unshare`);
+    return response.data;
+  }
+
+  /**
+   * Get all users in the system (for sharing selection)
+   * @returns {Promise<object[]>} List of users
+   */
+  async getUsersForSharing() {
+    const response = await axiosInstance.get('/dashboard/users');
+    return response.data;
+  }
+
+  // ========================================
   // NEW LAYOUT MANAGEMENT - ADD THESE
   // ========================================
 
