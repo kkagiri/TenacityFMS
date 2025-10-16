@@ -62,7 +62,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (sourceOpeningStock == null)
-                    return new FMSResponseMessage<TankTransferDTO>(false, $"Opening stock for the source tank on {transferDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.", null);
+                    return new FMSResponseMessage<TankTransferDTO>(false, $"Opening stock for SOURCE tank '{sourceTank.Name}' on {transferDate.Date:yyyy-MM-dd} not found. Create opening stock for this tank first.", null);
 
                 var destinationOpeningStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.TankTransferDTO.DestinationTankId &&
@@ -72,7 +72,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (destinationOpeningStock == null)
-                    return new FMSResponseMessage<TankTransferDTO>(false, $"Opening stock for the destination tank on {transferDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.", null);
+                    return new FMSResponseMessage<TankTransferDTO>(false, $"Opening stock for DESTINATION tank '{destinationTank.Name}' on {transferDate.Date:yyyy-MM-dd} not found. Create opening stock for this tank first.", null);
 
                 // Ensure there is a proper sequence: if there's an opening stock, transfers should come after it
                 // but before or after a closing stock if it exists
@@ -92,12 +92,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 // then we need a new opening stock first
                 if (sourceClosingStockForDay != null && transferDate > sourceClosingStockForDay.Timestamp)
                 {
-                    return new FMSResponseMessage<TankTransferDTO>(false, $"Cannot add transfer after closing stock for source tank on {transferDate.Date:yyyy-MM-dd}. Please create a new opening stock first.", null);
+                    return new FMSResponseMessage<TankTransferDTO>(false, $"Cannot add transfer after closing stock for SOURCE tank '{sourceTank.Name}' on {transferDate.Date:yyyy-MM-dd}. Please create a new opening stock first.", null);
                 }
 
                 if (destinationClosingStockForDay != null && transferDate > destinationClosingStockForDay.Timestamp)
                 {
-                    return new FMSResponseMessage<TankTransferDTO>(false, $"Cannot add transfer after closing stock for destination tank on {transferDate.Date:yyyy-MM-dd}. Please create a new opening stock first.", null);
+                    return new FMSResponseMessage<TankTransferDTO>(false, $"Cannot add transfer after closing stock for DESTINATION tank '{destinationTank.Name}' on {transferDate.Date:yyyy-MM-dd}. Please create a new opening stock first.", null);
                 }
 
                 // Validate historical entry against future records policy for both tanks

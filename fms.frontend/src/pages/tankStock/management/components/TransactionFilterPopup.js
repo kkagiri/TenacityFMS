@@ -1,16 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Popup } from 'devextreme-react/popup';
-import { Form, SimpleItem, Label } from 'devextreme-react/form';
-import Button from 'devextreme-react/button';
-import { ScrollView } from 'devextreme-react/scroll-view';
-import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
+import React, { useState, useCallback, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { Popup } from "devextreme-react/popup";
+import { Form, SimpleItem, Label } from "devextreme-react/form";
+import Button from "devextreme-react/button";
+import { ScrollView } from "devextreme-react/scroll-view";
+import { fetchUsersForFilter } from "../../../../redux/actions/userActions";
 
 const TransactionFilterPopup = ({
   visible,
   onHiding,
   currentFilters,
-  onApplyFilters
+  onApplyFilters,
 }) => {
   const dispatch = useDispatch();
   const sites = useSelector((state) => state.site.sites);
@@ -22,7 +22,7 @@ const TransactionFilterPopup = ({
     tankId: null,
     recordedBy: null,
     startDate: null,
-    endDate: null
+    endDate: null,
   });
 
   const [filteredTanks, setFilteredTanks] = useState([]);
@@ -34,8 +34,12 @@ const TransactionFilterPopup = ({
         siteId: currentFilters.siteId || null,
         tankId: currentFilters.tankId || null,
         recordedBy: currentFilters.recordedBy || null,
-        startDate: currentFilters.startDate ? new Date(currentFilters.startDate) : null,
-        endDate: currentFilters.endDate ? new Date(currentFilters.endDate) : null
+        startDate: currentFilters.startDate
+          ? new Date(currentFilters.startDate)
+          : null,
+        endDate: currentFilters.endDate
+          ? new Date(currentFilters.endDate)
+          : null,
       });
 
       // Load users for filter dropdown
@@ -46,26 +50,29 @@ const TransactionFilterPopup = ({
   // Filter tanks based on selected site
   useEffect(() => {
     if (filters.siteId) {
-      setFilteredTanks(tanks.filter(tank => tank.siteId === filters.siteId));
+      setFilteredTanks(tanks.filter((tank) => tank.siteId === filters.siteId));
     } else {
       setFilteredTanks(tanks);
     }
   }, [filters.siteId, tanks]);
 
   const handleSiteChange = useCallback((e) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       siteId: e.value,
-      tankId: null // Reset tank when site changes
+      tankId: null, // Reset tank when site changes
     }));
   }, []);
 
-  const handleFieldChange = useCallback((field) => (e) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: e.value
-    }));
-  }, []);
+  const handleFieldChange = useCallback(
+    (field) => (e) => {
+      setFilters((prev) => ({
+        ...prev,
+        [field]: e.value,
+      }));
+    },
+    []
+  );
 
   const handleApply = useCallback(() => {
     const filterParams = {
@@ -74,10 +81,10 @@ const TransactionFilterPopup = ({
       recordedBy: filters.recordedBy,
       startDate: filters.startDate?.toISOString(),
       endDate: filters.endDate?.toISOString(),
-      includeVehicleNames: true
+      includeVehicleNames: true,
     };
 
-    console.log('Applying filters from popup:', filterParams);
+    console.log("Applying filters from popup:", filterParams);
 
     // Close popup immediately, then apply filters
     onHiding();
@@ -90,7 +97,7 @@ const TransactionFilterPopup = ({
       tankId: null,
       recordedBy: null,
       startDate: null,
-      endDate: null
+      endDate: null,
     });
   }, []);
 
@@ -99,10 +106,10 @@ const TransactionFilterPopup = ({
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       startDate,
-      endDate
+      endDate,
     }));
   }, []);
 
@@ -115,11 +122,12 @@ const TransactionFilterPopup = ({
       title="Filter Transaction History"
       width="90%"
       maxWidth={600}
-      height="auto"
+      height={500} // Fixed height to enable scrolling
       showCloseButton={true}
       className="transaction-filter-popup"
     >
-      <ScrollView>
+      {/* Use ScrollView with fixed height, fallback to native scroll if needed */}
+      <ScrollView height={440}>
         <div className="tw-p-4">
           {/* Header */}
           <div className="tw-mb-6">
@@ -134,7 +142,9 @@ const TransactionFilterPopup = ({
 
           {/* Quick Date Filters */}
           <div className="tw-mb-6">
-            <h4 className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">Quick Date Ranges</h4>
+            <h4 className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">
+              Quick Date Ranges
+            </h4>
             <div className="tw-flex tw-flex-wrap tw-gap-2">
               <Button
                 text="Today"
@@ -175,13 +185,13 @@ const TransactionFilterPopup = ({
               dataField="siteId"
               editorType="dxSelectBox"
               editorOptions={{
-                items: [{ id: null, name: 'All Sites' }, ...(sites || [])],
-                displayExpr: 'name',
-                valueExpr: 'id',
+                items: [{ id: null, name: "All Sites" }, ...(sites || [])],
+                displayExpr: "name",
+                valueExpr: "id",
                 onValueChanged: handleSiteChange,
                 value: filters.siteId,
                 placeholder: "Select site",
-                width: "100%"
+                width: "100%",
               }}
             >
               <Label text="Site" />
@@ -191,14 +201,14 @@ const TransactionFilterPopup = ({
               dataField="tankId"
               editorType="dxSelectBox"
               editorOptions={{
-                items: [{ id: null, name: 'All Tanks' }, ...filteredTanks],
-                displayExpr: 'name',
-                valueExpr: 'id',
-                onValueChanged: handleFieldChange('tankId'),
+                items: [{ id: null, name: "All Tanks" }, ...filteredTanks],
+                displayExpr: "name",
+                valueExpr: "id",
+                onValueChanged: handleFieldChange("tankId"),
                 value: filters.tankId,
                 placeholder: "Select tank",
                 width: "100%",
-                disabled: !filters.siteId
+                disabled: !filters.siteId,
               }}
             >
               <Label text="Tank" />
@@ -208,13 +218,16 @@ const TransactionFilterPopup = ({
               dataField="recordedBy"
               editorType="dxSelectBox"
               editorOptions={{
-                items: [{ id: null, userName: 'All Users' }, ...(usersForFilter || [])],
-                displayExpr: 'userName',
-                valueExpr: 'id',
-                onValueChanged: handleFieldChange('recordedBy'),
+                items: [
+                  { id: null, userName: "All Users" },
+                  ...(usersForFilter || []),
+                ],
+                displayExpr: "userName",
+                valueExpr: "id",
+                onValueChanged: handleFieldChange("recordedBy"),
                 value: filters.recordedBy,
                 placeholder: "Select user",
-                width: "100%"
+                width: "100%",
               }}
             >
               <Label text="Recorded By" />
@@ -228,8 +241,8 @@ const TransactionFilterPopup = ({
                 max: new Date(),
                 displayFormat: "yyyy-MM-dd",
                 type: "date",
-                onValueChanged: handleFieldChange('startDate'),
-                width: "100%"
+                onValueChanged: handleFieldChange("startDate"),
+                width: "100%",
               }}
             >
               <Label text="Start Date" />
@@ -243,8 +256,8 @@ const TransactionFilterPopup = ({
                 max: new Date(),
                 displayFormat: "yyyy-MM-dd",
                 type: "date",
-                onValueChanged: handleFieldChange('endDate'),
-                width: "100%"
+                onValueChanged: handleFieldChange("endDate"),
+                width: "100%",
               }}
             >
               <Label text="End Date" />
@@ -252,15 +265,29 @@ const TransactionFilterPopup = ({
           </Form>
 
           {/* Current Filter Summary */}
-          {(filters.siteId || filters.tankId || filters.recordedBy || filters.startDate || filters.endDate) && (
+          {(filters.siteId ||
+            filters.tankId ||
+            filters.recordedBy ||
+            filters.startDate ||
+            filters.endDate) && (
             <div className="tw-mb-6 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
-              <h4 className="tw-text-sm tw-font-medium tw-text-blue-800 tw-mb-2">Current Filters</h4>
+              <h4 className="tw-text-sm tw-font-medium tw-text-blue-800 tw-mb-2">
+                Current Filters
+              </h4>
               <div className="tw-text-xs tw-text-blue-700">
                 {filters.siteId && (
-                  <div>Site: {sites?.find(s => s.id === filters.siteId)?.name || 'Unknown'}</div>
+                  <div>
+                    Site:{" "}
+                    {sites?.find((s) => s.id === filters.siteId)?.name ||
+                      "Unknown"}
+                  </div>
                 )}
                 {filters.tankId && (
-                  <div>Tank: {filteredTanks?.find(t => t.id === filters.tankId)?.name || 'Unknown'}</div>
+                  <div>
+                    Tank:{" "}
+                    {filteredTanks?.find((t) => t.id === filters.tankId)
+                      ?.name || "Unknown"}
+                  </div>
                 )}
                 {filters.startDate && (
                   <div>From: {filters.startDate.toLocaleDateString()}</div>

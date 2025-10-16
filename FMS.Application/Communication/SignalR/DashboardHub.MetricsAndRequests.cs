@@ -376,25 +376,10 @@ namespace FMS.Application.Communication.SignalR
         }
 
         /// <summary>
-        /// Request dashboard metrics - overload without parameters
+        /// Request dashboard metrics
+        /// SignalR does not support method overloading, so using optional parameter
         /// </summary>
-        public async Task RequestDashboardMetrics()
-        {
-            await RequestDashboardMetricsCore(null);
-        }
-
-        /// <summary>
-        /// Request dashboard metrics - overload with request parameter
-        /// </summary>
-        public async Task RequestDashboardMetrics(object request)
-        {
-            await RequestDashboardMetricsCore(request);
-        }
-
-        /// <summary>
-        /// Core implementation for dashboard metrics request
-        /// </summary>
-        private async Task RequestDashboardMetricsCore(object? request)
+        public async Task RequestDashboardMetrics(object? request = null)
         {
             int widgetInstanceId = 0;
             Dictionary<string, object>? frontendConfiguration = null;

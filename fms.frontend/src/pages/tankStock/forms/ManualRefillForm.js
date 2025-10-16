@@ -237,7 +237,11 @@ const ManualRefillForm = ({
       // Validate if this is a historical entry and we have date selected
       if (tankId && formData.date) {
         try {
-          await validateHistoricalEntry(tankId, formData.date, VolumeChangeReasons.DISPENSING);
+          await validateHistoricalEntry(
+            tankId,
+            formData.date,
+            VolumeChangeReasons.DISPENSING
+          );
         } catch (error) {
           showNotification(error.message, "error");
         }
@@ -264,7 +268,11 @@ const ManualRefillForm = ({
       // Validate if this is a historical entry and we have tank selected
       if (newDate && formData.tankId) {
         try {
-          await validateHistoricalEntry(formData.tankId, newDate, VolumeChangeReasons.DISPENSING);
+          await validateHistoricalEntry(
+            formData.tankId,
+            newDate,
+            VolumeChangeReasons.DISPENSING
+          );
         } catch (error) {
           showNotification(error.message, "error");
         }
@@ -369,13 +377,17 @@ const ManualRefillForm = ({
 
       // Check if the operation was successful
       if (result && result.success) {
-        showNotification(result.message || "Manual refill recorded successfully", "success");
+        showNotification(
+          result.message || "Manual refill recorded successfully",
+          "success"
+        );
         if (onSuccess) {
           onSuccess();
         }
       } else {
         // Handle failure case
-        const errorMessage = result?.message || "Failed to record manual refill";
+        const errorMessage =
+          result?.message || "Failed to record manual refill";
         showNotification(errorMessage, "error");
       }
     } catch (error) {
@@ -420,14 +432,16 @@ const ManualRefillForm = ({
       // Check if the operation was successful
       if (result && result.success) {
         showNotification(
-          result.message || "Manual refill recorded successfully. Form cleared for new entry.",
+          result.message ||
+            "Manual refill recorded successfully. Form cleared for new entry.",
           "success"
         );
         clearFormData();
         setHasAttemptedSubmit(false); // Reset for new entry
       } else {
         // Handle failure case - don't clear form, let user fix the issue
-        const errorMessage = result?.message || "Failed to record manual refill";
+        const errorMessage =
+          result?.message || "Failed to record manual refill";
         showNotification(errorMessage, "error");
       }
     } catch (error) {
@@ -525,7 +539,7 @@ const ManualRefillForm = ({
               </SimpleItem>
 
               <SimpleItem
-                key={`site-${formData.siteId || 'empty'}`}
+                key={`site-${formData.siteId || "empty"}`}
                 dataField="siteId"
                 render={() => (
                   <div>
@@ -543,7 +557,9 @@ const ManualRefillForm = ({
                           ? "Select a site"
                           : "No sites available"
                       }
-                      isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
+                      isValid={
+                        hasAttemptedSubmit ? !validationErrors.siteId : true
+                      }
                       validationError={
                         validationErrors.siteId
                           ? { message: validationErrors.siteId }
@@ -561,7 +577,9 @@ const ManualRefillForm = ({
               />
 
               <SimpleItem
-                key={`tank-${formData.siteId || 'empty'}-${formData.tankId || 'none'}`}
+                key={`tank-${formData.siteId || "empty"}-${
+                  formData.tankId || "none"
+                }`}
                 dataField="tankId"
                 render={() => (
                   <div>
@@ -582,7 +600,9 @@ const ManualRefillForm = ({
                           : "Select a tank"
                       }
                       disabled={!formData.siteId || combinedLoading}
-                      isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
+                      isValid={
+                        hasAttemptedSubmit ? !validationErrors.tankId : true
+                      }
                       validationError={
                         validationErrors.tankId
                           ? { message: validationErrors.tankId }
@@ -614,7 +634,9 @@ const ManualRefillForm = ({
                       onValueChanged={(e) => handleFieldChange("vehicleId")(e)}
                       placeholder="Type to search vehicle"
                       width="100%"
-                      isValid={hasAttemptedSubmit ? !validationErrors.vehicleId : true}
+                      isValid={
+                        hasAttemptedSubmit ? !validationErrors.vehicleId : true
+                      }
                       validationError={
                         validationErrors.vehicleId
                           ? { message: validationErrors.vehicleId }
@@ -636,7 +658,9 @@ const ManualRefillForm = ({
                       onValueChanged={(e) => handleFieldChange("driverId")(e)}
                       placeholder="Type to search driver"
                       width="100%"
-                      isValid={hasAttemptedSubmit ? !validationErrors.driverId : true}
+                      isValid={
+                        hasAttemptedSubmit ? !validationErrors.driverId : true
+                      }
                       validationError={
                         validationErrors.driverId
                           ? { message: validationErrors.driverId }
@@ -663,7 +687,9 @@ const ManualRefillForm = ({
                     formData.manualFuelrefillAmount !== undefined && {
                       format: "#,##0.00",
                     }),
-                  isValid: hasAttemptedSubmit ? !validationErrors.manualFuelrefillAmount : true,
+                  isValid: hasAttemptedSubmit
+                    ? !validationErrors.manualFuelrefillAmount
+                    : true,
                   validationError: validationErrors.manualFuelrefillAmount
                     ? { message: validationErrors.manualFuelrefillAmount }
                     : null,
@@ -684,7 +710,7 @@ const ManualRefillForm = ({
                   showClearButton: false,
                   ...(formData.previousMeterReading !== null &&
                     formData.previousMeterReading !== undefined && {
-                      format: "#,##0",
+                      format: "#,##0.00",
                     }),
                 }}
               >
@@ -702,7 +728,7 @@ const ManualRefillForm = ({
                   showClearButton: false,
                   ...(formData.currentMeterReading !== null &&
                     formData.currentMeterReading !== undefined && {
-                      format: "#,##0",
+                      format: "#,##0.00",
                     }),
                 }}
               >
@@ -726,11 +752,16 @@ const ManualRefillForm = ({
             </Form>
 
             {/* Historical Entry Information Notice */}
-            {formData.date && formData.tankId && !isValidating && !showWarning && !validationError && (
+            {formData.date &&
+              formData.tankId &&
+              !isValidating &&
+              !showWarning &&
+              !validationError &&
               (() => {
                 const selectedDate = new Date(formData.date);
                 const today = new Date();
-                const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+                const isHistorical =
+                  selectedDate < new Date(today.setHours(0, 0, 0, 0));
 
                 if (isHistorical) {
                   return (
@@ -742,10 +773,14 @@ const ManualRefillForm = ({
                             Historical Entry Detected
                           </h4>
                           <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating a manual refill for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                            You are creating a manual refill for{" "}
+                            <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                            (backdated entry).
                           </p>
                           <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                            <strong>Impact:</strong> This will recalculate the
+                            tank's current stock and affect all subsequent
+                            records.
                           </p>
                         </div>
                       </div>
@@ -753,8 +788,7 @@ const ManualRefillForm = ({
                   );
                 }
                 return null;
-              })()
-            )}
+              })()}
 
             {/* Future Records Warning */}
             {(showWarning || validationError) && (

@@ -73,10 +73,12 @@ const getWindowOrigin = () =>
     : "";
 
 const getEnvironmentHint = () =>
-  (process.env.REACT_APP_FMS_ENVIRONMENT ||
+  (
+    process.env.REACT_APP_FMS_ENVIRONMENT ||
     process.env.REACT_APP_ENVIRONMENT ||
     process.env.NODE_ENV ||
-    "")
+    ""
+  )
     .toString()
     .toLowerCase();
 
@@ -138,9 +140,9 @@ class DashboardSignalRService {
     this.lastMetricsUpdate = null;
     this.hasReceivedInitialBatch = false; // gate streaming until initial batch arrives
     this.dashboardOverviewWidgetId = null;
-  this.pendingRetryTimeout = null;
-  this.endpointRetryDelayMs = 60000;
-  this.endpointUnavailableRetries = 0;
+    this.pendingRetryTimeout = null;
+    this.endpointRetryDelayMs = 60000;
+    this.endpointUnavailableRetries = 0;
 
     // Protocol negotiation state (for envelope v2 support)
     this.protocol = {
@@ -243,28 +245,44 @@ class DashboardSignalRService {
    * @returns {Promise<string>} Base URL without trailing slash or /api suffix.
    */
   async resolveSignalRBaseUrl() {
+    // CRITICAL FIX: Always try to resolve API base URL first (don't rely on sync cache)
     let baseUrl = getResolvedApiBaseUrlSync();
 
     if (!baseUrl) {
-      baseUrl = await resolveApiBaseUrl().catch(() => null);
+      console.log("[Dashboard SignalR] Base URL not cached, resolving...");
+      try {
+        baseUrl = await resolveApiBaseUrl();
+        console.log("[Dashboard SignalR] Resolved base URL:", baseUrl);
+      } catch (err) {
+        console.error(
+          "[Dashboard SignalR] Failed to resolve API base URL:",
+          err
+        );
+        baseUrl = null;
+      }
+    } else {
+      console.log("[Dashboard SignalR] Using cached base URL:", baseUrl);
     }
 
     const environmentHosts = getEnvironmentPreferredSignalRHosts();
+    const windowOrigin = getWindowOrigin();
     const candidateHosts = [];
 
+    // Priority 1: Use resolved API base URL
     if (baseUrl) {
       candidateHosts.push(baseUrl);
     }
 
-    const windowOrigin = getWindowOrigin();
+    // Priority 2: Try environment-specific hosts
     environmentHosts.forEach((host) => {
       if (host) {
-        candidateHosts.push(`${host}/api`);
+        candidateHosts.push(host);
       }
     });
 
-    if (!baseUrl && windowOrigin) {
-      candidateHosts.push(`${windowOrigin}/api`);
+    // Priority 3: Fall back to window origin
+    if (windowOrigin) {
+      candidateHosts.push(windowOrigin);
     }
 
     // Remove falsy and duplicate candidates while preserving order
@@ -275,17 +293,53 @@ class DashboardSignalRService {
     let normalized = uniqueCandidates.length > 0 ? uniqueCandidates[0] : null;
 
     if (!normalized) {
-      throw new Error("Unable to determine SignalR base URL");
+      console.error(
+        "[Dashboard SignalR] No valid candidates found. CandidateHosts:",
+        candidateHosts,
+        "WindowOrigin:",
+        windowOrigin,
+        "BaseUrl:",
+        baseUrl
+      );
+      // Last resort: use window origin or localhost
+      normalized = windowOrigin || "http://localhost:7009";
+      console.warn("[Dashboard SignalR] Using fallback URL:", normalized);
     }
 
+    console.log(
+      "[Dashboard SignalR] Selected base URL (before normalization):",
+      normalized
+    );
+
+    // Remove /api suffix if present
     if (normalized.endsWith("/api/")) {
       normalized = normalized.slice(0, -5);
     } else if (normalized.endsWith("/api")) {
       normalized = normalized.slice(0, -4);
     }
 
+    // Remove trailing slashes
     normalized = normalized.replace(/\/+$/, "");
 
+    console.log(
+      "[Dashboard SignalR] Normalized base URL (after stripping /api):",
+      normalized
+    );
+
+    // Additional validation: make sure we still have a valid URL
+    if (
+      !normalized ||
+      normalized === "null" ||
+      normalized === null ||
+      String(normalized) === "null" ||
+      normalized.length < 7
+    ) {
+      console.error("[Dashboard SignalR] Invalid normalized URL:", normalized);
+      normalized = windowOrigin || "http://localhost:7009";
+      console.warn("[Dashboard SignalR] Using emergency fallback:", normalized);
+    }
+
+    // Don't normalize localhost dev servers to intranet hosts
     const fallbackHost = environmentHosts.find(
       (host) =>
         host &&
@@ -295,9 +349,14 @@ class DashboardSignalRService {
 
     if (/localhost:(3000|5173)/i.test(normalized) && fallbackHost) {
       normalized = fallbackHost;
+      console.log(
+        "[Dashboard SignalR] Replaced localhost with fallback:",
+        normalized
+      );
     }
 
-    return normalizeSignalRHost(normalized);
+    console.log("[Dashboard SignalR] Final SignalR base URL:", normalized);
+    return normalized;
   }
 
   /**
@@ -343,6 +402,23 @@ class DashboardSignalRService {
       }
 
       const baseURL = await this.resolveSignalRBaseUrl();
+
+      // Safety check: ensure baseURL is valid before constructing hub URL
+      if (
+        !baseURL ||
+        baseURL === "null" ||
+        baseURL === null ||
+        String(baseURL) === "null"
+      ) {
+        console.error(
+          "[Dashboard SignalR] Invalid baseURL received from resolveSignalRBaseUrl:",
+          baseURL
+        );
+        throw new Error(
+          `Invalid SignalR base URL: ${baseURL}. Cannot establish connection.`
+        );
+      }
+
       const resolvedHubPath = hubUrl
         ? hubUrl.startsWith("/")
           ? hubUrl
