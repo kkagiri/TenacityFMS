@@ -97,7 +97,7 @@ namespace FMS.Application.Configuration
         /// <summary>
         /// Default maximum number of days in the past allowed for historical entries
         /// </summary>
-        public const int DEFAULT_TANK_STOCK_MAX_HISTORICAL_DAYS = 60;
+        public const int DEFAULT_TANK_STOCK_MAX_HISTORICAL_DAYS = 90;
         #endregion
 
         #region Redis Configuration Keys
