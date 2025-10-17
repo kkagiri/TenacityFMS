@@ -33,7 +33,7 @@ export const prepareTankTransferDTO = (formData) => ({
     sourceTankId: formData.sourceTankId,
     destinationTankId: formData.destinationTankId,
     amount: formData.amount,
-    transferDate: formData.date,
+    date: formData.date,
     transferType: formData.transferType || 'InterTank', // Default to InterTank
     reason: formData.reason || '',
     // Note: RecordedBy will be set by the controller from JWT token
