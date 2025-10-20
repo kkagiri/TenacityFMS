@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace FMS.Application.Features.FMS.TankTransfer
 {
@@ -12,6 +13,7 @@ namespace FMS.Application.Features.FMS.TankTransfer
         public int? SourceTankId { get; set; }
         public int? DestinationTankId { get; set; }
         public decimal? Amount { get; set; }
+        [JsonProperty("transferDate")]
         public DateTime? Date { get; set; }
         public string? RecordedBy { get; set; } = null;
     }
