@@ -41,7 +41,7 @@ export const fetchDashboardAnalytics = () => async (dispatch) => {
   try {
     dispatch({ type: FETCH_DASHBOARD_ANALYTICS_REQUEST });
 
-    const response = await axiosInstance.get('/api/vehicle/dashboard/analytics');
+    const response = await axiosInstance.get('/vehicle/dashboard/analytics');
 
     const result = {
       success: true,
@@ -76,7 +76,7 @@ export const fetchDashboardMetrics = () => async (dispatch) => {
   try {
     dispatch({ type: FETCH_DASHBOARD_METRICS_REQUEST });
 
-    const response = await axiosInstance.get('/api/vehicle/dashboard/metrics');
+    const response = await axiosInstance.get('/vehicle/dashboard/metrics');
 
     const result = {
       success: true,
@@ -111,7 +111,7 @@ export const fetchStatusDistribution = () => async (dispatch) => {
   try {
     dispatch({ type: FETCH_STATUS_DISTRIBUTION_REQUEST });
 
-    const response = await axiosInstance.get('/api/vehicle/dashboard/status-distribution');
+    const response = await axiosInstance.get('/vehicle/dashboard/status-distribution');
 
     const result = {
       success: true,
@@ -146,7 +146,7 @@ export const fetchFleetUtilization = (days = 30) => async (dispatch) => {
   try {
     dispatch({ type: FETCH_FLEET_UTILIZATION_REQUEST });
 
-    const response = await axiosInstance.get(`/api/vehicle/dashboard/fleet-utilization?days=${days}`);
+    const response = await axiosInstance.get(`/vehicle/dashboard/fleet-utilization?days=${days}`);
 
     const result = {
       success: true,
@@ -181,7 +181,7 @@ export const fetchMaintenanceAlerts = () => async (dispatch) => {
   try {
     dispatch({ type: FETCH_MAINTENANCE_ALERTS_REQUEST });
 
-    const response = await axiosInstance.get('/api/vehicle/dashboard/maintenance-alerts');
+    const response = await axiosInstance.get('/vehicle/dashboard/maintenance-alerts');
 
     const result = {
       success: true,
@@ -216,7 +216,7 @@ export const fetchRecentActivities = (limit = 10) => async (dispatch) => {
   try {
     dispatch({ type: FETCH_RECENT_ACTIVITIES_REQUEST });
 
-    const response = await axiosInstance.get(`/api/vehicle/dashboard/recent-activities?limit=${limit}`);
+    const response = await axiosInstance.get(`/vehicle/dashboard/recent-activities?limit=${limit}`);
 
     const result = {
       success: true,
@@ -251,7 +251,7 @@ export const fetchPerformanceMetrics = (days = 7) => async (dispatch) => {
   try {
     dispatch({ type: FETCH_PERFORMANCE_METRICS_REQUEST });
 
-    const response = await axiosInstance.get(`/api/vehicle/dashboard/performance-metrics?days=${days}`);
+    const response = await axiosInstance.get(`/vehicle/dashboard/performance-metrics?days=${days}`);
 
     const result = {
       success: true,

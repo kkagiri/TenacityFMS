@@ -83,6 +83,7 @@ using FMS.Application.Services.TankStock;
 using FMS.BackgroundServices;
 using FMS.BackgroundServices.ActiveAlarmProcessing;
 using FMS.BackgroundServices.FMS;
+using FMS.BackgroundServices.VehicleDocumentNotifier;
 using FMS.WebClient.Extensions; // Added for AddFms* and UseFmsPipeline extensions
 //using FMS.Application.Extensions;
 
@@ -127,6 +128,7 @@ public class Program
             .AddFmsCore(builder.Configuration, builder.Environment)
             .AddFmsAuthentication(builder.Configuration)
             .AddFmsDatabase(builder.Configuration, builder.Environment);
+        builder.Services.AddHostedService<VehicleDocumentExpiryNotifierService>();
 
         // Port 7009 availability check (skip when hosted under IIS where HTTP.sys already owns the port)
         var isIIS = IsRunningUnderIIS();
