@@ -24,7 +24,7 @@ namespace FMS.Application.Services
     /// </summary>
     ///
 
-    [Deprecated]
+    [Obsolete("Use ActiveAlarmService instead")]
     public interface IAlarmHandlerService
     {
         Task<FMSResponse> ProcessTankMeasurementAlarmsAsync(TankMeasurementDto tankMeasurement, string deviceId, CancellationToken cancellationToken = default);

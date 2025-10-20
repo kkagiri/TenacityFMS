@@ -1,4 +1,5 @@
 using FMS.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -7,7 +8,7 @@ namespace FMS.Application.Features.VehicleDocumentManagement.Dtos;
 public class CreateVehicleDocumentDto
 {
     [Required]
-    public Guid VehicleId { get; set; }
+    public int VehicleId { get; set; }
 
     [Required]
     public VehicleDocumentType DocumentType { get; set; }

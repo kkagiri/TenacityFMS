@@ -65,7 +65,7 @@ public class CreateVehicleDocumentCommandHandler : IRequestHandler<CreateVehicle
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating vehicle document.");
-            return FMSResponse<VehicleDocumentDto>.Fail("Error creating vehicle document.");
+            return FMSResponse<VehicleDocumentDto>.Failed("Error creating vehicle document.");
         }
     }
 }

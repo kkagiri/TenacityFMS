@@ -34,7 +34,7 @@ public class GetVehicleDocumentByIdQueryHandler : IRequestHandler<GetVehicleDocu
 
             if (vehicleDocument == null)
             {
-                return FMSResponse<VehicleDocumentDto>.Fail("Vehicle document not found.");
+                return FMSResponse<VehicleDocumentDto>.Failed("Vehicle document not found.");
             }
 
             var vehicleDocumentDto = _mapper.Map<VehicleDocumentDto>(vehicleDocument);
@@ -44,7 +44,7 @@ public class GetVehicleDocumentByIdQueryHandler : IRequestHandler<GetVehicleDocu
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting vehicle document by ID.");
-            return FMSResponse<VehicleDocumentDto>.Fail("Error getting vehicle document by ID.");
+            return FMSResponse<VehicleDocumentDto>.Failed("Error getting vehicle document by ID.");
         }
     }
 }

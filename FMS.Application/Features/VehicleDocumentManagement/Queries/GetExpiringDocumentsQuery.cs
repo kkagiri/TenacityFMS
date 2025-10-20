@@ -47,7 +47,7 @@ public class GetExpiringDocumentsQueryHandler : IRequestHandler<GetExpiringDocum
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting expiring documents.");
-            return FMSResponse<List<VehicleDocumentDto>>.Fail("Error getting expiring documents.");
+            return FMSResponse<List<VehicleDocumentDto>>.Failed("Error getting expiring documents.");
         }
     }
 }

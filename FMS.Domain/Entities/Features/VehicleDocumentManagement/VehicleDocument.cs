@@ -1,11 +1,11 @@
-using FMS.Domain.Entities.Features.VehicleManagement;
+using FMS.Domain.Entities.Features;
 
 namespace FMS.Domain.Entities.Features.VehicleDocumentManagement;
 
 public class VehicleDocument
 {
     public Guid Id { get; private set; }
-    public Guid VehicleId { get; private set; }
+    public int VehicleId { get; private set; }
     public VehicleDocumentType DocumentType { get; private set; }
     public string DocumentNumber { get; private set; }
     public DateTime IssueDate { get; private set; }
@@ -32,7 +32,7 @@ public class VehicleDocument
     private VehicleDocument() { }
 
     public VehicleDocument(
-        Guid vehicleId,
+        int vehicleId,
         VehicleDocumentType documentType,
         string documentNumber,
         DateTime issueDate,

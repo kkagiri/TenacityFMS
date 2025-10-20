@@ -30,7 +30,7 @@ public class DeleteVehicleDocumentCommandHandler : IRequestHandler<DeleteVehicle
 
             if (vehicleDocument == null)
             {
-                return FMSResponse<bool>.Fail("Vehicle document not found.");
+                return FMSResponse<bool>.Failed("Vehicle document not found.");
             }
 
             _context.VehicleDocuments.Remove(vehicleDocument);
@@ -41,7 +41,7 @@ public class DeleteVehicleDocumentCommandHandler : IRequestHandler<DeleteVehicle
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting vehicle document.");
-            return FMSResponse<bool>.Fail("Error deleting vehicle document.");
+            return FMSResponse<bool>.Failed("Error deleting vehicle document.");
         }
     }
 }

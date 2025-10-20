@@ -36,7 +36,7 @@ public class UpdateVehicleDocumentCommandHandler : IRequestHandler<UpdateVehicle
 
             if (vehicleDocument == null)
             {
-                return FMSResponse<bool>.Fail("Vehicle document not found.");
+                return FMSResponse<bool>.Failed("Vehicle document not found.");
             }
 
             string documentFileUrl = vehicleDocument.DocumentFileUrl;
@@ -67,7 +67,7 @@ public class UpdateVehicleDocumentCommandHandler : IRequestHandler<UpdateVehicle
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating vehicle document.");
-            return FMSResponse<bool>.Fail("Error updating vehicle document.");
+            return FMSResponse<bool>.Failed("Error updating vehicle document.");
         }
     }
 }

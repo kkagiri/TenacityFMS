@@ -1,6 +1,7 @@
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,54 +49,56 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
     {
         _logger.LogInformation("Checking for expiring vehicle documents.");
 
-        using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-        var activeAlarmService = scope.ServiceProvider.GetRequiredService<IActiveAlarmService>();
+        IServiceScope scope = _scopeFactory.CreateScope();
+        GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+        IActiveAlarmService activeAlarmService = scope.ServiceProvider.GetRequiredService<IActiveAlarmService>();
 
-        var expiringSoonDate = DateTime.UtcNow.Date.AddDays(30);
-        var documentsToNotify = await context.VehicleDocuments
+        DateTime expiringSoonDate = DateTime.UtcNow.Date.AddDays(30);
+        List<VehicleDocument> documentsToNotify = await context.VehicleDocuments
             .Include(vd => vd.Vehicle)
             .Where(vd => vd.ExpiryDate <= expiringSoonDate && vd.Status != DocumentStatus.Expired)
             .ToListAsync(stoppingToken);
 
-        foreach (var doc in documentsToNotify)
+        foreach (VehicleDocument doc in documentsToNotify)
         {
-            var daysUntilExpiry = (doc.ExpiryDate.Date - DateTime.UtcNow.Date).Days;
+            int daysUntilExpiry = (doc.ExpiryDate.Date - DateTime.UtcNow.Date).Days;
             if (daysUntilExpiry == 30 || daysUntilExpiry == 7 || daysUntilExpiry == 1 || daysUntilExpiry <= 0)
             {
-                var alarmType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon";
-                var priority = daysUntilExpiry <= 7 ? "High" : "Medium";
-                var message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} is expiring in {daysUntilExpiry} days.";
+                string alarmType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon";
+                string priority = daysUntilExpiry <= 7 ? "High" : "Medium";
+                string message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} is expiring in {daysUntilExpiry} days.";
                 if (daysUntilExpiry == 0) message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} expires today.";
-                if (daysUntilExpiry < 0) message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} expired {-daysUntilExpiry} days ago.";
+
+                if (daysUntilExpiry < 0)
+                {
+                    message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} expired {-daysUntilExpiry} days ago.";
+                }
 
 
-                var request = new CreateActiveAlarmRequest
+                CreateActiveAlarmRequest request = new CreateActiveAlarmRequest
                 {
                     AlarmType = alarmType,
-                    State = "Active",
                     TriggerSource = "System",
                     Severity = Domain.Entities.enums.DiscrepancySeverity.Medium,
                     Priority = priority,
                     Message = message,
                     Description = $"Document: {doc.DocumentNumber}, Expires on: {doc.ExpiryDate:yyyy-MM-dd}",
-                    SiteId = doc.Vehicle.SiteId,
-                    VehicleId = doc.VehicleId,
+                    SiteId = doc.Vehicle.WorkingSiteId,
                     CheckForDuplicates = true,
-                    TriggeredAt = DateTime.UtcNow
                 };
 
                 await activeAlarmService.CreateActiveAlarmAsync(request, stoppingToken);
-                _logger.LogInformation($"Created alarm for document ID {doc.Id} expiring in {daysUntilExpiry} days.");
+                _logger.LogInformation(
+                    $"Created alarm for document ID {doc.Id} expiring in {daysUntilExpiry} days.");
             }
         }
 
         // Also update status for documents that have just expired
-        var newlyExpiredDocuments = await context.VehicleDocuments
+        List<VehicleDocument> newlyExpiredDocuments = await context.VehicleDocuments
             .Where(vd => vd.ExpiryDate < DateTime.UtcNow.Date && vd.Status != DocumentStatus.Expired)
             .ToListAsync(stoppingToken);
 
-        foreach (var doc in newlyExpiredDocuments)
+        foreach (VehicleDocument doc in newlyExpiredDocuments)
         {
             doc.UpdateStatus();
         }

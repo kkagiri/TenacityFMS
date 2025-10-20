@@ -16,7 +16,7 @@ namespace FMS.Application.Features.VehicleDocumentManagement.Queries;
 
 public class GetVehicleDocumentsQuery : IRequest<FMSResponse<List<VehicleDocumentDto>>>
 {
-    public Guid? VehicleId { get; set; }
+    public int? VehicleId { get; set; }
     public VehicleDocumentType? DocumentType { get; set; }
     public DocumentStatus? Status { get; set; }
 }
@@ -63,7 +63,7 @@ public class GetVehicleDocumentsQueryHandler : IRequestHandler<GetVehicleDocumen
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting vehicle documents.");
-            return FMSResponse<List<VehicleDocumentDto>>.Fail("Error getting vehicle documents.");
+            return FMSResponse<List<VehicleDocumentDto>>.Failed("Error getting vehicle documents.");
         }
     }
 }
