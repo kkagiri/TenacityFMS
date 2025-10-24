@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Form, Badge } from "react-bootstrap";
 import Button from "devextreme-react/button"; //Cursor
 import {
@@ -6,7 +6,6 @@ import {
   Paging,
   Pager,
   HeaderFilter,
-  Selection,
   FilterRow,
   Scrolling,
   LoadPanel,
@@ -15,7 +14,7 @@ import {
   Column,
 } from "devextreme-react/data-grid";
 
-const DataPreview = ({
+const DataPreview = memo(({
   filteredData,
   dataGridRef,
   parsedData,
@@ -47,6 +46,11 @@ const DataPreview = ({
   vehicles,
   sites,
 }) => {
+  // Memoize the data source to prevent unnecessary re-renders
+  const memoizedDataSource = useMemo(() => {
+    return getFilteredData();
+  }, [getFilteredData]);
+
   return (
     <div className="tw-mt-6">
       <div className="tw-flex tw-flex-wrap tw-justify-between tw-items-center tw-mb-3 tw-pb-2 tw-border-b tw-border-gray-200 tw-gap-3">
@@ -191,7 +195,7 @@ const DataPreview = ({
             validationErrors.length > 0 && (
               <div className="tw-ml-3 tw-text-red-600 tw-text-sm tw-flex tw-items-center">
                 <i className="fa-solid fa-triangle-exclamation tw-mr-1"></i>
-                Showing {getFilteredData().length} of {parsedData.length} rows
+                Showing {memoizedDataSource.length} of {parsedData.length} rows
               </div>
             )}
         </div>
@@ -222,7 +226,7 @@ const DataPreview = ({
         <DataGrid
           ref={dataGridRef}
           key={reportType}
-          dataSource={getFilteredData()}
+          dataSource={memoizedDataSource}
           keyExpr="_rowIndex"
           showBorders={true}
           columnAutoWidth={true}
@@ -246,23 +250,20 @@ const DataPreview = ({
           }}
           onRowUpdated={onRowUpdated}
           onContentReady={(e) => {
-            setTimeout(() => {
-              if (dataGridRef.current?.instance) {
-                dataGridRef.current.instance.refresh();
-              }
-            }, 100);
+            // Remove the refresh call that was causing infinite re-rendering
+            // The DataGrid will handle its own updates when dataSource changes
           }}
 
           remoteOperations={{
             filtering: false,
-            sorting: true,
-            paging: true,
+            sorting: false,
+            paging: false,
           }}
-          cacheEnabled={true}
-          repaintChangesOnly={true}
+          cacheEnabled={false}
+          repaintChangesOnly={false}
           columnMinWidth={80}
           columnHidingEnabled={true}
-          renderAsync={true}
+          renderAsync={false}
         >
           <Editing
             mode="row"
@@ -580,6 +581,8 @@ const DataPreview = ({
       </div>
     </div>
   );
-};
+});
+
+DataPreview.displayName = 'DataPreview';
 
 export default DataPreview;

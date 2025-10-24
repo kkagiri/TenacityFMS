@@ -1,89 +1,10 @@
 using System;
-using System.Collections.Concurrent;
 using System.Net;
-using System.Reflection;
-using System.Security.Cryptography.Xml;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Linq; // Added for LINQ extension methods used in helper detection
-using System.Diagnostics;
-using Serilog.Context;
-using AutoMapper;
-using FMS.Application;
-using FMS.Application.Command.DatabaseCommand.Common;
-using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
-using FMS.Application.Command.DatabaseCommand.UserManagement;
-using FMS.Application.Command.PTSCommand.Common;
-using FMS.Application.Communication;
-using FMS.Application.Communication.Connection;
-using FMS.Application.Communication.HttpPolling;
-using FMS.Application.Communication.Redis;
-using FMS.Application.Communication.SignalR;
-using FMS.Application.Communication.Tracker;
-using FMS.Application.Features.FMS.UserManagement;
-using FMS.Application.Features.Notification.Services;
-using FMS.Application.Handlers;
-using FMS.Application.Handlers.Interface;
-using FMS.Application.Infrastructure.Communication.SignalR;
-using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.Infrastructure.Services.Authentication;
-using FMS.Application.MappingProfile;
-using FMS.Application.PTSServices.PumpService;
-using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
-using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
-using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
-using FMS.Application.Services;
-using FMS.Application.Services.Dashboard;
-// using FMS.Application.Services.AutomatedReconciliation;
-using FMS.Application.Features.TankManagement.Services;
-using FMS.Application.Services.TankStock;
-using FMS.Application.Util;
-using FMS.Application.Validation.PTSValidators;
-using FMS.Application.Validation.PTSValidators.Common;
-using FMS.Domain.Entities;
+
 using FMS.Persistence.DataAccess;
-using FMS.Persistence.DataAccess.Nafta;
-using FMS.PTS;
-using FMS.PTS.WindowsService.Services.Pump;
-using FMS.WebClient.Controllers;
-using FMS.WebClient.Services;
-using FMS.WebClient.Signal;
-using FMS.WebClient.Util;
-using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
+
 using Serilog;
-using Serilog.Events;
-using Serilog.Formatting.Compact;
-using StackExchange.Redis;
-using Role = FMS.Domain.Entities.Role;
-using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
-// using FMS.Application.Features.AutomatedReconciliation.Services;
-using FMS.Application.Features.AutomatedReconciliation.Services;
-using FMS.Application.Features.Notification.Services;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
-using FMS.Application.Features.Notification.Services.Businessfunction;
-using FMS.Application.Features.Notification.Services.Integration;
-using FMS.Application.Features.Notification.Services.RecipientResolver;
-using FMS.Application.Features.PTSService.Services;
-using FMS.Application.Services.AutomatedReconciliation;
-using FMS.Application.Services.Configuration;
-using FMS.Application.Services.FMS.BackgroundServices.FMS;
-using FMS.Application.Services.TankStock;
-using FMS.BackgroundServices;
-using FMS.BackgroundServices.ActiveAlarmProcessing;
-using FMS.BackgroundServices.FMS;
-using FMS.BackgroundServices.VehicleDocumentNotifier;
+
 using FMS.WebClient.Extensions; // Added for AddFms* and UseFmsPipeline extensions
 //using FMS.Application.Extensions;
 
@@ -128,7 +49,6 @@ public class Program
             .AddFmsCore(builder.Configuration, builder.Environment)
             .AddFmsAuthentication(builder.Configuration)
             .AddFmsDatabase(builder.Configuration, builder.Environment);
-        builder.Services.AddHostedService<VehicleDocumentExpiryNotifierService>();
 
         // Port 7009 availability check (skip when hosted under IIS where HTTP.sys already owns the port)
         var isIIS = IsRunningUnderIIS();
@@ -189,6 +109,22 @@ public class Program
             Log.Information("Environment: {Environment} (self-host) - Using URL configuration: http://{IP}:7009 and http://localhost:7009", currentEnvironment, bindingIP); //Cursor
         }
         var app = builder.Build();
+        try
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+                var model = dbContext.Model; // Force model compilation
+                Log.Information("✓ Model compiled successfully");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "✗ Model compilation failed: {Message}\n{InnerException}",
+                ex.Message, ex.InnerException?.Message);
+            throw;
+        }
+
         app.UseFmsPipeline();
         await SeedWidgetTemplatesAsync(app.Services);
 

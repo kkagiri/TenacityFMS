@@ -79,6 +79,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
+    <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
     <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
   </ItemGroup>
 

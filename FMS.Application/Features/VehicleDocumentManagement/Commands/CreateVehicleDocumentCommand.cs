@@ -52,7 +52,7 @@ public class CreateVehicleDocumentCommandHandler : IRequestHandler<CreateVehicle
                 request.CreateVehicleDocumentDto.Notes,
                 documentFileName,
                 documentFileUrl,
-                "System" // Replace with actual user
+                request.CreateVehicleDocumentDto.UserId
             );
 
             await _context.VehicleDocuments.AddAsync(vehicleDocument, cancellationToken);

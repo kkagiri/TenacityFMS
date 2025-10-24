@@ -30,7 +30,6 @@ export const fetchVehicleList = () => async (dispatch) => {
   try {
     console.log('Fetching vehicles from API...');
     const response = await axiosInstance.get(`/vehicle`);
-    console.log('Vehicle API response:', response.data);
 
     if (response.data && Array.isArray(response.data)) {
       dispatch({ type: FETCH_VEHICLES_SUCCESS, payload: response.data });

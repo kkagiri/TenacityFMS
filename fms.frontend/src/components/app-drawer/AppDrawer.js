@@ -15,7 +15,10 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
 
   // Get user roles, handle both 'roles' and 'Roles' properties
   const userRoles = currentUser?.roles || currentUser?.Roles || [];
-  const primaryRole = userRoles.length > 0 ? userRoles[0].toLowerCase() : 'guest';
+
+  // If roles are not yet loaded, do not default to 'guest'.
+  // Instead, treat as if no role is assigned, preventing the drawer from showing guest-only modules.
+  const primaryRole = userRoles.length > 0 ? userRoles[0].toLowerCase() : null;
 
   const modules = [
     {

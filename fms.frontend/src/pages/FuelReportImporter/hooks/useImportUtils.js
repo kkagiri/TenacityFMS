@@ -108,8 +108,18 @@ const useImportUtils = ({
         // Pre-select the site in the dropdown
         setSelectedSite(detectedSite.id);
 
-        // Show the confirmation dialog
-        setShowSiteConfirmation(true);
+        // Don't show the confirmation dialog anymore since we have the dropdown in ImportForm
+        // The user can change the site directly in the dropdown
+        // setShowSiteConfirmation(true);
+
+        // Show a helpful toast message
+        const displayName = siteName !== originalName
+          ? `${originalName} → ${siteName}`
+          : siteName;
+        showToast(
+          `Auto-detected site: ${displayName}. You can change it in the dropdown if needed.`,
+          "success"
+        );
 
         return detectedSite;
       } else {

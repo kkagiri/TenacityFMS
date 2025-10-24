@@ -19,7 +19,7 @@ public class VehicleDocumentConfiguration : IEntityTypeConfiguration<VehicleDocu
 
         builder.Property(vd => vd.VehicleId)
             .HasColumnName("VehicleId")
-            .HasColumnType("CHAR(36)")
+            .HasColumnType("INT")
             .IsRequired();
 
         builder.Property(vd => vd.DocumentType)
@@ -106,10 +106,10 @@ public class VehicleDocumentConfiguration : IEntityTypeConfiguration<VehicleDocu
             .HasDatabaseName("UK_vehicle_documents_VehicleId_DocumentType_DocumentNumber");
 
         // Relationships
-        builder.HasOne(vd => vd.Vehicle)
-            .WithMany()
-            .HasForeignKey(vd => vd.VehicleId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // builder.HasOne(vd => vd.Vehicle)
+        //     .WithMany()
+        //     .HasForeignKey(vd => vd.VehicleId)
+        //     .OnDelete(DeleteBehavior.Cascade);
 
         // Ignore computed properties
         builder.Ignore(vd => vd.DaysUntilExpiry);

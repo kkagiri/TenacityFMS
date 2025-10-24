@@ -7,6 +7,7 @@ export const vehicleRoutes = {
   consumption: '/vehicles/consumption',
   tracking: '/vehicles/tracking',
   reports: '/vehicles/reports',
+  documents: '/vehicles/documents',
   settings: '/vehicles/settings',
   addVehicle: '/vehicles/fleet#vehicleaction'
 };
@@ -69,6 +70,12 @@ export const navigationGroups = {
       icon: 'fa-light fa-wrench',
       path: vehicleRoutes.maintenance,
       badge: null,
+    },
+    {
+        id: 'documents',
+        title: 'Documents',
+        icon: 'fa-light fa-file-lines',
+        path: vehicleRoutes.documents,
     },
 
     {

@@ -9,8 +9,8 @@ import { fetchNavigationItems } from "./redux/actions/navigationActions";
 import resolvedComponents from "./app-routes";
 import withRoleProtection from "./utils/withRoleProtection";
 import Unauthorized from "./pages/unauthorized";
-import FuelingProcess from "./components/fuelingprocess/fuelingprocess";
-import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
+import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
+import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 import { useSignalRRouting } from "./hooks/useSignalRRouting";
 
 export default function Content() {
@@ -167,12 +167,15 @@ export default function Content() {
           {/* SignalR Connection Status Indicator */}
           <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
             {signalRState.isDashboardConnected && (
-              <span style={{ color: '#4caf50', marginRight: '10px' }}>● Dashboard Connected</span>
+              <span style={{ color: '#4caf50', marginRight: '10px' }}>● Dashboard</span>
             )}
             {signalRState.isPtsConnected && (
-              <span style={{ color: '#4caf50' }}>● PTS Connected</span>
+              <span style={{ color: '#4caf50', marginRight: '10px' }}>● PTS</span>
             )}
-            {!signalRState.isDashboardConnected && !signalRState.isPtsConnected && (
+            {signalRState.isBusinessConnected && (
+              <span style={{ color: '#4caf50' }}>● Business</span>
+            )}
+            {!signalRState.isDashboardConnected && !signalRState.isPtsConnected && !signalRState.isBusinessConnected && (
               <span style={{ color: '#ff9800' }}>● Offline</span>
             )}
           </div>

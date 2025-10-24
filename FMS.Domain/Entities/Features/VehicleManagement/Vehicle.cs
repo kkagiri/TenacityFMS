@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.Features.FuelRule;
+using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 
 namespace FMS.Domain.Entities;
 
-public partial class Vehicle {
+public partial class Vehicle
+{
 
     /// <summary>
     /// THis is company Regirstrato NO for vehicle `
@@ -43,6 +45,7 @@ public partial class Vehicle {
 
     public sbyte? IsActive { get; set; }
     public sbyte? GpsgategeneratedId { get; set; }
+    public virtual ICollection<VehicleDocument> VehicleDocuments { get; private set; } = new List<VehicleDocument>();
 
     public int? DefaultExptdAvgid { get; set; }
 
@@ -51,7 +54,7 @@ public partial class Vehicle {
     public DateTime? DateModified { get; set; }
     public string? CreatedBy { get; set; }
 
-    public virtual ICollection<Calibrationdatum> Calibrationdata { get; set; } = new List<Calibrationdatum> ();
+    public virtual ICollection<Calibrationdatum> Calibrationdata { get; set; } = new List<Calibrationdatum>();
 
     // One-to-many relationship mapping.
     // This is the principal navigation that pairs with Employee.Vehicles.
@@ -64,11 +67,11 @@ public partial class Vehicle {
 
     //public virtual GPSDevice? Device { get; set; }
 
-    public virtual ICollection<Expectedaverage> Expectedaverages { get; set; } = new List<Expectedaverage> ();
+    public virtual ICollection<Expectedaverage> Expectedaverages { get; set; } = new List<Expectedaverage>();
 
-    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill>();
 
-    public virtual ICollection<Issuetracker> Issuetrackers { get; set; } = new List<Issuetracker> ();
+    public virtual ICollection<Issuetracker> Issuetrackers { get; set; } = new List<Issuetracker>();
 
     public virtual Vehiclemanufacturer? VehicleManufacturer { get; set; }
 
@@ -81,19 +84,19 @@ public partial class Vehicle {
 
     public virtual Vehicletype? VehicleType { get; set; }
 
-    public virtual ICollection<FuelingRule> FuelingRules { get; set; } = new List<FuelingRule> ();
+    public virtual ICollection<FuelingRule> FuelingRules { get; set; } = new List<FuelingRule>();
 
-    public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption> ();
+    public virtual ICollection<Vehicleconsumption> Vehicleconsumptions { get; set; } = new List<Vehicleconsumption>();
 
     public virtual Site? WorkingSite { get; set; }
 
     // Many-to-many relationship with Employee through EmployeeVehicle
-    public virtual ICollection<EmployeeVehicle> EmployeeVehicles { get; set; } = new List<EmployeeVehicle> ();
+    public virtual ICollection<EmployeeVehicle> EmployeeVehicles { get; set; } = new List<EmployeeVehicle>();
 
     // Many-to-many relationship mapping.
-    public virtual ICollection<Employee> Employees { get; set; } = new List<Employee> ();
+    public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
-    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction> ();
-    public virtual ICollection<FuelTag> Tags { get; set; } = new List<FuelTag> ();
+    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction>();
+    public virtual ICollection<FuelTag> Tags { get; set; } = new List<FuelTag>();
 
 }

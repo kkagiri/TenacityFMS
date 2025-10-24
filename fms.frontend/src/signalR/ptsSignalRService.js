@@ -66,6 +66,7 @@ class PTSSignalRService {
     this.connectionState = ConnectionState.DISCONNECTED;
     this.listeners = new Map();
     this.handlers = new Map();
+    this._isStarting = false; // guard against concurrent start()
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 5000;
@@ -101,14 +102,29 @@ class PTSSignalRService {
       `[PTS SignalR] Starting connection attempt (ID: ${connectionId})...`
     );
 
-    if (this.connection?.state === HubConnectionState.Connected) {
+    if (this._isStarting) {
+      console.log("[PTS SignalR] Start already in progress, skipping");
+      return;
+    }
+
+    const currentState = this.connection?.state;
+    if (currentState === HubConnectionState.Connected) {
       console.log("[PTS SignalR] Already connected");
+      return;
+    }
+
+    if (
+      currentState === HubConnectionState.Connecting ||
+      currentState === HubConnectionState.Reconnecting
+    ) {
+      console.log("[PTS SignalR] Connection is in progress, skipping start");
       return;
     }
 
     this.state = ConnectionState.CONNECTING;
 
     try {
+      this._isStarting = true;
       if (
         this.connection &&
         this.connection.state !== HubConnectionState.Disconnected
@@ -189,6 +205,8 @@ class PTSSignalRService {
       );
       this.handleConnectionError(error);
       throw error;
+    } finally {
+      this._isStarting = false;
     }
   }
 
@@ -251,6 +269,8 @@ class PTSSignalRService {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
+
+    this._isStarting = false; // Reset the starting flag
 
     if (this.connection) {
       try {
@@ -393,22 +413,7 @@ class PTSSignalRService {
       }
     });
 
-    // Fuel Import events
-    registerEvent(
-      "FuelImportProgress",
-      (data) => {
-        if (data) {
-          this.notifyListeners("fuelImportProgress", data);
-          if (store) {
-            store.dispatch({
-              type: "UPDATE_IMPORT_PROGRESS",
-              payload: data,
-            });
-          }
-        }
-      },
-      100
-    );
+
 
     // Upload Status events
     registerEvent("UploadStatusUpdate", (data) => {

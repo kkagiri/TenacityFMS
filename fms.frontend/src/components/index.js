@@ -7,4 +7,3 @@ export { AppDrawer } from './app-drawer';
 
 // Vehicle consumption components - using default export from vehicleConsumptionDetails
 export { default as VehicleConsumptionDetails } from '../pages/vehicles/vehicleConsumptionDetails';
-export { default as VehicleConsumptionGridList } from '../pages/vehicles/consumption/vehicleConsumptionDataGrid';

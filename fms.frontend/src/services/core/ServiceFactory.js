@@ -18,7 +18,6 @@ import VehicleService from '../domain/VehicleService';
 import UserManagementService from '../domain/UserManagementService';
 import AuthenticationService from '../domain/AuthenticationService';
 import DashboardService from '../domain/DashboardService';
-import SignalRService from '../../signalR/SignalRService';
 
 class ServiceFactory {
   constructor() {

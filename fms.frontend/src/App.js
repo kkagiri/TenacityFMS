@@ -28,7 +28,8 @@ import UnauthenticatedContent from "./UnauthenticatedContent";
 import { fetchNavigationItems } from "./redux/actions/navigationActions";
 import { loadUser } from "./redux/actions/AuthActions";
 import { initializeAxiosInstance } from "./api/axiosInstance";
-import ErrorBoundary from "./components/fuelingprocess/ErrorBoundary";
+import GlobalErrorBoundary from "./GlobalErrorBoundary";
+import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 
 function App() {
   const dispatch = useDispatch();
@@ -73,6 +74,7 @@ export default function Root() {
   const screenSizeClass = useScreenSizeClass();
 
   return (
+        <GlobalErrorBoundary>
     <AuthProvider>
       <NavigationProvider>
         <div className={`app ${screenSizeClass}`}>
@@ -80,5 +82,6 @@ export default function Root() {
         </div>
       </NavigationProvider>
     </AuthProvider>
+    </GlobalErrorBoundary>
   );
 }

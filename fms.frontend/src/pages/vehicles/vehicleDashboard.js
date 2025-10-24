@@ -12,9 +12,9 @@ import DataGrid, { Column, Scrolling, Paging } from 'devextreme-react/data-grid'
 import './vehicles.scss';
 
 // Actions
-import { 
-  fetchDashboardMetrics, 
-  fetchStatusDistribution, 
+import {
+  fetchDashboardMetrics,
+  fetchStatusDistribution,
   fetchFleetUtilization,
   fetchMaintenanceAlerts,
   fetchRecentActivities,
@@ -25,7 +25,7 @@ import {
 const VehicleDashboard = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // Redux state
   const metrics = useSelector((state) => state.vehicleDashboard.metrics);
   const statusDistribution = useSelector((state) => state.vehicleDashboard.statusDistribution);
@@ -43,12 +43,12 @@ const VehicleDashboard = () => {
   // Load dashboard data on component mount
   useEffect(() => {
     loadDashboardData();
-    
+
     // Set up auto-refresh every 5 minutes
     const interval = setInterval(() => {
       dispatch(refreshDashboardData());
     }, 5 * 60 * 1000);
-    
+
     setRefreshInterval(interval);
 
     return () => {
@@ -310,7 +310,7 @@ const VehicleDashboard = () => {
         </div>
       ) : (
         <div className="tw-space-y-3 tw-max-h-64 tw-overflow-y-auto">
-          {recentActivities.slice(0, 8).map((activity, index) => (
+          {Array.isArray(recentActivities) && recentActivities.slice(0, 8).map((activity, index) => (
             <div key={index} className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-bg-gray-50 tw-rounded-lg">
               <div className="tw-flex tw-items-center">
                 <div className="tw-w-8 tw-h-8 tw-bg-blue-100 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-mr-3">
@@ -354,7 +354,7 @@ const VehicleDashboard = () => {
         >
           <Scrolling mode="standard" />
           <Paging defaultPageSize={5} />
-          
+
           <Column dataField="vehicleName" caption="Vehicle" minWidth={150} />
           <Column dataField="plateNumber" caption="Plate No." minWidth={120} />
           <Column

@@ -29,8 +29,11 @@ const Phase2StreamingDemo = () => {
       setAvailableDataSources(dataSources);
       console.log('Available data sources:', dataSources);
 
-      // Connect to SignalR
-      await dashboardSignalRService.start();
+      // Connect to SignalR (should already be connected via SignalRConnectionManager)
+      if (!dashboardSignalRService.isConnected) {
+        console.log('Phase 2 Demo: SignalR not connected, waiting for ConnectionManager...');
+        await dashboardSignalRService.start();
+      }
       setConnectionStatus('connected');
 
       // Listen for connection status changes

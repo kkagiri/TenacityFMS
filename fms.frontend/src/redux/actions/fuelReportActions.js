@@ -1,5 +1,5 @@
 import axiosInstance from "../../api/axiosInstance";
-import SignalRService from "../../signalR/SignalRService";
+import businessSignalRService from "../../signalR/businessSignalRService";
 import {
   handleFuelImportProgress,
   showNotification,
@@ -66,9 +66,9 @@ export const retryImportWithOverwrite = () => ({
 export const setupFuelImportProgressListener = () => async (dispatch) => {
   // Ensure SignalR connection is established before registering event handler
   try {
-    if (SignalRService) {
+    if (businessSignalRService) {
       // Ensure the connection is established
-      const connected = await SignalRService.ensureConnected();
+      const connected = await businessSignalRService.ensureConnection();
 
       if (!connected) {
         console.warn(
@@ -78,12 +78,12 @@ export const setupFuelImportProgressListener = () => async (dispatch) => {
       }
 
       // Remove any existing listener
-      SignalRService.connection.off("FuelImportProgress");
+      businessSignalRService.connection.off("FuelImportProgress");
 
       // Add new listener
-      SignalRService.connection.on("FuelImportProgress", (progressData) => {
+      businessSignalRService.connection.on("FuelImportProgress", (progressData) => {
         console.log(
-          "[SignalR] Received fuel import progress update:",
+          "[Business SignalR] Received fuel import progress update:",
           progressData
         );
         dispatch(updateImportProgress(progressData));
@@ -92,13 +92,13 @@ export const setupFuelImportProgressListener = () => async (dispatch) => {
       return true;
     } else {
       console.warn(
-        "[SignalR] Service not available for fuel import progress updates"
+        "[Business SignalR] Service not available for fuel import progress updates"
       );
       return false;
     }
   } catch (error) {
     console.error(
-      "[SignalR] Error setting up import progress listener:",
+      "[Business SignalR] Error setting up import progress listener:",
       error
     );
     return false;
@@ -107,8 +107,8 @@ export const setupFuelImportProgressListener = () => async (dispatch) => {
 
 // Remove SignalR listener
 export const removeFuelImportProgressListener = () => (dispatch) => {
-  if (SignalRService?.connection) {
-    SignalRService.connection.off("FuelImportProgress");
+  if (businessSignalRService?.connection) {
+    businessSignalRService.connection.off("FuelImportProgress");
     dispatch(resetImportProgress());
   }
 };

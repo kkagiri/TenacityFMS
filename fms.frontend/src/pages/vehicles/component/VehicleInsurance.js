@@ -11,7 +11,7 @@ import {
   createVehicleDocument,
   updateVehicleDocument,
   deleteVehicleDocument,
-} from "../../../api/vehicleDocumentsApi";
+} from "../../../redux/actions/vehicleDocumentActions";
 import { DateBox } from "devextreme-react/date-box";
 
 const VehicleInsurance = ({ vehicleId }) => {

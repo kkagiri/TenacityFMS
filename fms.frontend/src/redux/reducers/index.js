@@ -41,6 +41,7 @@ import issueTrackerReducer from "./issueTrackerReducer";
 import activeAlarmReducer from "./activeAlarmReducer";
 import dashboardPreferencesReducer from "./dashboardPreferencesReducer";
 import dashboardLayoutReducer from "./dashboardLayoutReducer";
+import vehicleDocumentReducer from "./vehicleDocumentReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -54,6 +55,7 @@ const rootReducer = combineReducers({
   site: siteReducer,
   employee: employeeReducer,
   vehicle: vehicleReducer,
+  vehicleDocument: vehicleDocumentReducer,
   vehicleType: vehicleTypeReducer,
   vehicleManufacturer: vehicleManufacturerReducer,
   vehicleModel: vehicleModelReducer,

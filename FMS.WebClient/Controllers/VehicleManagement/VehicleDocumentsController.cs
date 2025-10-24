@@ -3,6 +3,7 @@ using FMS.Application.Features.VehicleDocumentManagement.Commands;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
 using FMS.Application.Features.VehicleDocumentManagement.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement;
 
 [ApiController]
 [Route("api/v1/vehicledocuments")]
+[Authorize]
 public class VehicleDocumentsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -38,6 +40,16 @@ public class VehicleDocumentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<FMSResponse<VehicleDocumentDto>>> CreateVehicleDocument([FromForm] CreateVehicleDocumentDto createVehicleDocumentDto)
     {
+
+
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+            Guid.TryParse(c.Value, out _)
+        );
+        var userId = userIdClaim?.Value;
+        createVehicleDocumentDto.UserId = userId;
+
+
         var result = await _mediator.Send(new CreateVehicleDocumentCommand(createVehicleDocumentDto));
         return Ok(result);
     }
@@ -57,6 +69,13 @@ public class VehicleDocumentsController : ControllerBase
     public async Task<ActionResult<FMSResponse<bool>>> DeleteVehicleDocument(Guid id)
     {
         var result = await _mediator.Send(new DeleteVehicleDocumentCommand(id));
+        return Ok(result);
+    }
+
+    [HttpGet("vehicle/{vehicleId}")]
+    public async Task<ActionResult<FMSResponse<List<VehicleDocumentDto>>>> GetVehicleDocumentsByVehicleId(int vehicleId)
+    {
+        var result = await _mediator.Send(new GetVehicleDocumentsByVehicleIdQuery(vehicleId));
         return Ok(result);
     }
 

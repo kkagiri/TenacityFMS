@@ -3,6 +3,7 @@
 
 import ptsSignalRService from "./ptsSignalRService";
 import dashboardSignalRService from "./dashboardSignalRService";
+import businessSignalRService from "./businessSignalRService";
 
 /**
  * Route patterns for different modules
@@ -13,9 +14,6 @@ const ROUTE_PATTERNS = {
     /^\/dashboard/,
     /\/dashboard$/,
     /^\/$/, // Root often goes to dashboard
-    /^\/notifications/, // Notifications typically show on dashboard
-    /^\/issue-tracker/, // Issue tracking often needs dashboard updates
-    /^\/active-alarms/, // Active alarms are dashboard-centric
   ],
   PTS: [
     /^\/pts/,
@@ -26,22 +24,37 @@ const ROUTE_PATTERNS = {
     /^\/tag/,
     /^\/probe/,
     /^\/reader/,
-    /^\/fueling/, // Fueling process needs PTS data
-    /^\/atg/, // ATG is part of PTS system
+    /^\/fueling/,
+    /^\/atg/,
+  ],
+  BUSINESS: [
+    /^\/tankstock/,
+    /^\/tank-stock/,
+    /^\/notifications/,
+    /^\/issue-tracker/,
+    /^\/active-alarms/,
+    /^\/alarms/,
+    /^\/stock/,
+    /^\/delivery/,
+    /^\/consumption/,
+    /^\/adjustment/,
+    /\/tankstock$/,
+    /\/notifications$/,
+    /\/issue-tracker$/,
+    /\/active-alarms$/,
   ],
   // Routes that DON'T need any SignalR connection
   NO_SIGNALR: [
-    /^\/tankstock/, // Tank stock forms and management (static data only)
-    /^\/stock/, // Stock management pages
-    /^\/vehicles/, // Vehicle management (static data)
-    // /^\/employees/, // Employee management
-    /^\/site/, // Site management
-    /^\/user/, // User management
-    /^\/roles/, // Role management
-    /^\/permissions/, // Permission management
-    /^\/navigation/, // Navigation management
+    /^\/vehicles/,
+    /^\/site/,
+    /^\/user/,
+    /^\/roles/,
+    /^\/permissions/,
+    /^\/navigation/,
+    /^\/admin\/users/,
+    /^\/admin\/roles/,
+    /^\/admin\/permissions/,
   ],
-  REPORTS: [/^\/reports/, /^\/analytics/],
   ADMIN: [/^\/admin/],
 };
 
@@ -142,12 +155,19 @@ class SignalRConnectionManager {
       services.add("pts");
     }
 
-    // Admin and Reports might need both services
-    if (
-      this.matchesPattern(path, ROUTE_PATTERNS.ADMIN) ||
-      this.matchesPattern(path, ROUTE_PATTERNS.REPORTS)
-    ) {
+    // Check if path matches business patterns
+    if (this.matchesPattern(path, ROUTE_PATTERNS.BUSINESS)) {
+      services.add("business");
+    }
+
+    // Admin and Reports might need multiple services
+    if (this.matchesPattern(path, ROUTE_PATTERNS.ADMIN)) {
+      services.add("business");
+    }
+
+    if (this.matchesPattern(path, ROUTE_PATTERNS.REPORTS)) {
       services.add("dashboard");
+      services.add("business");
       services.add("pts");
     }
 
@@ -212,6 +232,9 @@ class SignalRConnectionManager {
         case "pts":
           promise = ptsSignalRService.start();
           break;
+        case "business":
+          promise = businessSignalRService.start();
+          break;
         default:
           console.warn(`[SignalRManager] Unknown service: ${serviceName}`);
           return;
@@ -255,6 +278,9 @@ class SignalRConnectionManager {
         case "pts":
           await ptsSignalRService.stop();
           break;
+        case "business":
+          await businessSignalRService.stop();
+          break;
         default:
           console.warn(`[SignalRManager] Unknown service: ${serviceName}`);
           return;
@@ -280,7 +306,6 @@ class SignalRConnectionManager {
           // Request dashboard initial data
           if (dashboardSignalRService.getConnectionStatus()) {
             await dashboardSignalRService.requestDashboardMetrics();
-            // Note: RequestKeyStatistics removed as it's not implemented on server
           }
           break;
         case "pts":
@@ -288,6 +313,13 @@ class SignalRConnectionManager {
           if (ptsSignalRService.getConnectionStatus()) {
             await ptsSignalRService.requestDeviceStatusSummary();
             await ptsSignalRService.requestPTSDeviceList();
+          }
+          break;
+        case "business":
+          // Request business initial data (if needed)
+          if (businessSignalRService.getConnectionStatus()) {
+            // You can add initial data requests here if needed
+            // await businessSignalRService.requestAlarmStatistics();
           }
           break;
         default:
@@ -326,6 +358,7 @@ class SignalRConnectionManager {
       activeServices: Array.from(this.activeServices),
       dashboardConnected: dashboardSignalRService.getConnectionStatus(),
       ptsConnected: ptsSignalRService.getConnectionStatus(),
+      businessConnected: businessSignalRService.getConnectionStatus(),
     };
   }
 
@@ -352,6 +385,24 @@ class SignalRConnectionManager {
       this.currentPath || window.location.pathname
     );
     return requiredServices.has(serviceName);
+  }
+
+  /**
+   * Manual connect to specific service (for debugging/testing)
+   * @param {string} serviceName - Service to connect
+   */
+  async connectService(serviceName) {
+    console.log(`[SignalRManager] Manual connect: ${serviceName}`);
+    await this.startService(serviceName);
+  }
+
+  /**
+   * Manual disconnect from specific service (for debugging/testing)
+   * @param {string} serviceName - Service to disconnect
+   */
+  async disconnectService(serviceName) {
+    console.log(`[SignalRManager] Manual disconnect: ${serviceName}`);
+    await this.stopService(serviceName);
   }
 }
 

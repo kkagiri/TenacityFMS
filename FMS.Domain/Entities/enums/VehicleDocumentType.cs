@@ -3,6 +3,8 @@ namespace FMS.Domain.Entities;
 public enum VehicleDocumentType
 {
     Insurance = 1,
-    RoadPermit = 2,
-    NTSAInspection = 3
+    Registration = 2,
+    Inspection = 3,
+    RoadPermit = 4,
+    Other = 5
 }

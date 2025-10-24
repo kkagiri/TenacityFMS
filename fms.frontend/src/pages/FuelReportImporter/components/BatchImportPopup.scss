@@ -1,0 +1,90 @@
+.batch-import-popup {
+  .dx-datagrid {
+    @apply tw-border tw-border-gray-200 tw-rounded;
+
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+
+      .dx-header-row {
+        @apply tw-font-semibold;
+      }
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row-alt {
+        @apply tw-bg-gray-50;
+      }
+
+      .dx-row:hover {
+        @apply tw-bg-blue-50;
+      }
+
+      .dx-data-row {
+        &.dx-row-focused {
+          @apply tw-bg-blue-100;
+        }
+      }
+    }
+
+    // Style for status icons
+    .fa-spinner {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    // Input styling within grid
+    input[type="month"],
+    input[type="number"] {
+      @apply tw-text-sm;
+
+      &:focus {
+        @apply tw-ring-2 tw-ring-blue-500 tw-border-blue-500;
+        outline: none;
+      }
+
+      &:disabled {
+        @apply tw-bg-gray-100 tw-cursor-not-allowed;
+      }
+    }
+
+    // SelectBox styling
+    .dx-selectbox {
+      @apply tw-w-full;
+
+      .dx-texteditor-input {
+        @apply tw-text-sm;
+      }
+
+      &.dx-state-disabled {
+        @apply tw-opacity-60;
+      }
+    }
+  }
+
+  // LoadPanel styling
+  .dx-loadpanel-wrapper {
+    @apply tw-z-50;
+  }
+
+  // Button styling
+  .dx-button {
+    @apply tw-transition-all;
+
+    &:hover:not(.dx-state-disabled) {
+      @apply tw-transform tw-scale-105;
+    }
+
+    &.dx-state-disabled {
+      @apply tw-opacity-50 tw-cursor-not-allowed;
+    }
+  }
+
+  // Popup content padding
+  .dx-popup-content {
+    @apply tw-p-6;
+  }
+}

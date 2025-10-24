@@ -29,6 +29,7 @@ const VehicleMain = () => {
         <Route path="tracking" element={<VehicleTrackingPage />} />
         <Route path="consumption" element={<VehicleConsumptionPage />} />
         <Route path="maintenance" element={<VehicleMaintenancePage />} />
+        <Route path="documents" element={<VehicleDocumentsList />} />
         <Route
           path="maintenance/documents"
           element={<VehicleDocumentsList />}

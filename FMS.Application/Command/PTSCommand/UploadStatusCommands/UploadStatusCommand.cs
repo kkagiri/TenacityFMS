@@ -34,22 +34,25 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 
-namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
+namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
+{
 
-    public record UploadStatusCommand : IRequest<CommandResult> {
+    public record UploadStatusCommand : IRequest<CommandResult>
+    {
         public string? DeviceId { get; init; }
 
         public UploadStatus? UploadStatus { get; init; }
 
     }
 
-    public class UploadStatusCommandHandler : IRequestHandler<UploadStatusCommand, CommandResult> {
+    public class UploadStatusCommandHandler : IRequestHandler<UploadStatusCommand, CommandResult>
+    {
 
         private readonly ILogger<UploadStatusCommandHandler> _logger;
         private readonly IPendingCommandRepository _pendingCommandRepo;
         private readonly IAuthorizationStateTracker _authTracker;
         private readonly GpsdataContext _context;
-        private readonly IHubContext<FrontEndHub> _hubContext;
+        private readonly IHubContext<PTSHub> _hubContext;
         private readonly IMediator _mediator;
         private readonly IDatabase _redisDb; //Cursor
         private readonly DeviceConnectionTracker _connectionTracker; //Cursor
@@ -58,8 +61,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
         private readonly ITransactionCompletionService _transactionCompletionService; //Cursor: Add for transaction completion
         private readonly IAutoTransactionCompletionService _autoCompletionService; //Cursor: Add auto-completion service
 
-        public UploadStatusCommandHandler (
-            IHubContext<FrontEndHub> hubContext,
+        public UploadStatusCommandHandler(
+            IHubContext<PTSHub> hubContext,
             GpsdataContext context,
             IMediator mediator,
             ILogger<UploadStatusCommandHandler> logger,
@@ -78,7 +81,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
             _pendingCommandRepo = pendingCommandRepository;
             _authTracker = authorizationState;
             _context = context;
-            _redisDb = redisConnection.GetDatabase (); //Cursor
+            _redisDb = redisConnection.GetDatabase(); //Cursor
             _connectionTracker = connectionTracker; //Cursor
             _pumpService = pumpService; //Cursor: Add pump service
             _transactionMonitoringService = transactionMonitoringService; //Cursor: Add for enhanced monitoring
@@ -86,31 +89,36 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
             _autoCompletionService = autoCompletionService; //Cursor: Add auto-completion service
         }
 
-        public async Task<CommandResult> Handle (UploadStatusCommand request, CancellationToken cancellationToken) {
-            try {
+        public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
+        {
+            try
+            {
                 var uploadstatus = request.UploadStatus;
                 var deviceId = request.DeviceId;
 
-                if (uploadstatus == null) {
-                    _logger.LogWarning ("No status data received for device {DeviceId}", deviceId);
-                    return CommandResult.Failed ("No status data received");
+                if (uploadstatus == null)
+                {
+                    _logger.LogWarning("No status data received for device {DeviceId}", deviceId);
+                    return CommandResult.Failed("No status data received");
                 }
 
                 // Broadcast ONLY the complete upload status update
-                await BroadcastUploadStatusUpdate (deviceId, uploadstatus);
+                await BroadcastUploadStatusUpdate(deviceId, uploadstatus);
 
                 // Store the status update in Redis //Cursor
-                await StoreUploadStatusInRedis (deviceId, uploadstatus); //Cursor
+                await StoreUploadStatusInRedis(deviceId, uploadstatus); //Cursor
 
                 // Update the last activity time for the WebSocket connection
-                if (!string.IsNullOrEmpty (deviceId)) {
-                    await _connectionTracker.UpdateWebSocketLastMessageTime (deviceId);
+                if (!string.IsNullOrEmpty(deviceId))
+                {
+                    await _connectionTracker.UpdateWebSocketLastMessageTime(deviceId);
                 }
 
                 // Process specific components INTERNALLY (e.g., update auth state)
                 // but DO NOT broadcast granular events from here anymore.
-                if (uploadstatus?.Pumps != null) {
-                    await ProcessLivePumpStatusInternally (deviceId!, uploadstatus.Pumps);
+                if (uploadstatus?.Pumps != null)
+                {
+                    await ProcessLivePumpStatusInternally(deviceId!, uploadstatus.Pumps);
                 }
 
                 // // Optional: Internal processing for probes/readers - NO Hub calls
@@ -123,77 +131,90 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
                 //      await ProcessLiveReaderStatusInternalLogic(deviceId!, uploadstatus.Readers);
                 //  }
 
-                return CommandResult.Succeeded ("OK", null!);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error processing status update");
+                return CommandResult.Succeeded("OK", null!);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing status update");
                 throw;
             }
         }
 
         // New method to store the upload status in Redis //Cursor
-        private async Task StoreUploadStatusInRedis (string deviceId, UploadStatus status) {
-            try {
-                if (string.IsNullOrEmpty (deviceId) || status == null) {
-                    _logger.LogWarning ("Cannot store upload status in Redis: device ID or status is null");
+        private async Task StoreUploadStatusInRedis(string deviceId, UploadStatus status)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(deviceId) || status == null)
+                {
+                    _logger.LogWarning("Cannot store upload status in Redis: device ID or status is null");
                     return;
                 }
 
                 var redisKey = $"device:{deviceId}:status";
-                var statusJson = JsonSerializer.Serialize (status);
+                var statusJson = JsonSerializer.Serialize(status);
 
-                await _redisDb.StringSetAsync (
+                await _redisDb.StringSetAsync(
                     redisKey,
                     statusJson,
-                    expiry : TimeSpan.FromMinutes (30) // Keep status for 30 minutes
+                    expiry: TimeSpan.FromMinutes(30) // Keep status for 30 minutes
                 );
 
                 // Also set a timestamp key to track when the status was last updated
-                await _redisDb.StringSetAsync (
+                await _redisDb.StringSetAsync(
                     $"device:{deviceId}:status:timestamp",
-                    DateTime.UtcNow.ToString ("o"),
-                    expiry : TimeSpan.FromMinutes (30)
+                    DateTime.UtcNow.ToString("o"),
+                    expiry: TimeSpan.FromMinutes(30)
                 );
 
-                _logger.LogInformation ("Stored UploadStatus in Redis for device {DeviceId}", deviceId);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error storing upload status in Redis for device {DeviceId}", deviceId);
+                _logger.LogInformation("Stored UploadStatus in Redis for device {DeviceId}", deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error storing upload status in Redis for device {DeviceId}", deviceId);
                 // Don't rethrow - we still want to continue processing if Redis storage fails
             }
         }
 
         // Keep this method for broadcasting the full status
-        private async Task BroadcastUploadStatusUpdate (string deviceId, UploadStatus status) {
-            try {
-                var statusUpdate = new {
+        private async Task BroadcastUploadStatusUpdate(string deviceId, UploadStatus status)
+        {
+            try
+            {
+                var statusUpdate = new
+                {
                     deviceId = deviceId,
                     timestamp = DateTime.UtcNow,
                     status = new // Pass the full nested status object
                     {
-                    configurationId = status.ConfigurationId,
-                    dateTime = status.DateTime,
-                    firmwareDateTime = status.FirmwareDateTime,
-                    startupSeconds = status.StartupSeconds,
-                    batteryVoltage = status.BatteryVoltage,
-                    cpuTemperature = status.CpuTemperature,
-                    ptsPowerDownDetected = status.PtsPowerDownDetected,
-                    sdMounted = status.SdMounted,
-                    pumps = status.Pumps, // Send the whole Pumps object
-                    probes = status.Probes, // Send the whole Probes object
-                    readers = status.Readers, // Send the whole Readers object
-                    fuelGrades = status.FuelGrades
+                        configurationId = status.ConfigurationId,
+                        dateTime = status.DateTime,
+                        firmwareDateTime = status.FirmwareDateTime,
+                        startupSeconds = status.StartupSeconds,
+                        batteryVoltage = status.BatteryVoltage,
+                        cpuTemperature = status.CpuTemperature,
+                        ptsPowerDownDetected = status.PtsPowerDownDetected,
+                        sdMounted = status.SdMounted,
+                        pumps = status.Pumps, // Send the whole Pumps object
+                        probes = status.Probes, // Send the whole Probes object
+                        readers = status.Readers, // Send the whole Readers object
+                        fuelGrades = status.FuelGrades
                     }
                 };
 
-                await _hubContext.Clients.All.SendAsync ("UploadStatusUpdate", statusUpdate);
-                _logger.LogInformation ("[Broadcast] Sent UploadStatusUpdate for {DeviceId}", deviceId);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error broadcasting upload status update for device {DeviceId}", deviceId);
+                await _hubContext.Clients.All.SendAsync("UploadStatusUpdate", statusUpdate);
+                _logger.LogInformation("[Broadcast] Sent UploadStatusUpdate for {DeviceId}", deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting upload status update for device {DeviceId}", deviceId);
             }
         }
 
         // Internal processing logic - NO Hub calls
-        private Task ProcessLiveReaderStatusInternalLogic (string deviceId, Domain.Entities.PTS.PTSStatus.ReaderStatus.ReaderStatus readerStatus) {
-            _logger.LogTrace ("[Internal] Processing Reader Status for {DeviceId}", deviceId);
+        private Task ProcessLiveReaderStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.ReaderStatus.ReaderStatus readerStatus)
+        {
+            _logger.LogTrace("[Internal] Processing Reader Status for {DeviceId}", deviceId);
             // Example: Log online/offline readers
             // if (readerStatus?.OnlineStatus?.Ids != null) { /* Log IDs */ }
             // if (readerStatus?.OfflineStatus?.Ids != null) { /* Log IDs */ }
@@ -201,8 +222,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
         }
 
         // Internal processing logic - NO Hub calls
-        private Task ProcessLiveProbeStatusInternalLogic (string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus) {
-            _logger.LogTrace ("[Internal] Processing Probe Status for {DeviceId}", deviceId);
+        private Task ProcessLiveProbeStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus)
+        {
+            _logger.LogTrace("[Internal] Processing Probe Status for {DeviceId}", deviceId);
             // Example: Log online/offline probes
             // if (probeStatus.OnlineStatus?.Ids != null) { /* Log IDs and maybe measurements */ }
             // if (probeStatus.OfflineStatus?.Ids != null) { /* Log IDs */ }
@@ -210,58 +232,70 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
         }
 
         // Renamed to indicate internal processing only
-        private async Task ProcessLivePumpStatusInternally (string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpStatus pumpStatus) {
-            _logger.LogTrace ("[Internal] Processing Pump Status for {DeviceId}", deviceId);
+        private async Task ProcessLivePumpStatusInternally(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpStatus pumpStatus)
+        {
+            _logger.LogTrace("[Internal] Processing Pump Status for {DeviceId}", deviceId);
             // Handle Idle Status - Check for nozzles up and tags (for internal logic like events/auth)
-            if (pumpStatus.IdleStatus != null) {
-                await ProcessIdleStatusInternalLogic (deviceId, pumpStatus.IdleStatus);
+            if (pumpStatus.IdleStatus != null)
+            {
+                await ProcessIdleStatusInternalLogic(deviceId, pumpStatus.IdleStatus);
             }
 
             // Handle Filling Status (update auth state)
-            if (pumpStatus.FillingStatus != null) {
-                await ProcessFillingStatusInternalLogic (deviceId, pumpStatus.FillingStatus);
+            if (pumpStatus.FillingStatus != null)
+            {
+                await ProcessFillingStatusInternalLogic(deviceId, pumpStatus.FillingStatus);
             }
 
             // Handle End of Transaction (update auth state)
-            if (pumpStatus.EndOfTransactionStatus != null) {
-                await ProcessEndOfTransactionStatusInternalLogic (deviceId, pumpStatus.EndOfTransactionStatus);
+            if (pumpStatus.EndOfTransactionStatus != null)
+            {
+                await ProcessEndOfTransactionStatusInternalLogic(deviceId, pumpStatus.EndOfTransactionStatus);
 
                 // Cursor: Add call to process transactions when EndOfTransactionStatus is detected
-                await ProcessEndOfTransactionForTransactionData (deviceId, pumpStatus.EndOfTransactionStatus);
+                await ProcessEndOfTransactionForTransactionData(deviceId, pumpStatus.EndOfTransactionStatus);
             }
 
             // Handle Offline Status (update auth state)
-            if (pumpStatus.OfflineStatus != null) {
-                await ProcessOfflineStatusInternalLogic (deviceId, pumpStatus.OfflineStatus);
+            if (pumpStatus.OfflineStatus != null)
+            {
+                await ProcessOfflineStatusInternalLogic(deviceId, pumpStatus.OfflineStatus);
             }
         }
 
         // Renamed, only internal logic, NO hub broadcast
-        private async Task ProcessOfflineStatusInternalLogic (string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpOfflineStatus offlineStatus) {
-            if (offlineStatus.Ids == null || !offlineStatus.Ids.Any ()) return;
+        private async Task ProcessOfflineStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpOfflineStatus offlineStatus)
+        {
+            if (offlineStatus.Ids == null || !offlineStatus.Ids.Any()) return;
             // Iterate through nullable ints, check HasValue before using Value
-            foreach (var pumpIdNullable in offlineStatus.Ids) {
+            foreach (var pumpIdNullable in offlineStatus.Ids)
+            {
                 if (!pumpIdNullable.HasValue) continue; // Skip null entries
                 var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
 
-                try {
-                    await _authTracker.ClearAuthorization (deviceId, pumpId);
-                    _logger.LogInformation ("[Internal] Cleared auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
-                } catch (Exception ex) {
-                    _logger.LogError (ex, "[Internal] Error clearing auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                try
+                {
+                    await _authTracker.ClearAuthorization(deviceId, pumpId);
+                    _logger.LogInformation("[Internal] Cleared auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[Internal] Error clearing auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
                 }
             }
             // NO _hubContext call here
         }
 
         // Enhanced IdleStatus processing to detect completed transactions //Cursor
-        private async Task ProcessIdleStatusInternalLogic (string deviceId, IdleStatus idleStatus) {
-            if (idleStatus.Ids == null || !idleStatus.Ids.Any ()) return;
+        private async Task ProcessIdleStatusInternalLogic(string deviceId, IdleStatus idleStatus)
+        {
+            if (idleStatus.Ids == null || !idleStatus.Ids.Any()) return;
 
-            _logger.LogDebug ("[UploadStatus] **IDLE ANALYSIS** - Processing IdleStatus for device {DeviceId} with {Count} pumps",
+            _logger.LogDebug("[UploadStatus] **IDLE ANALYSIS** - Processing IdleStatus for device {DeviceId} with {Count} pumps",
                 deviceId, idleStatus.Ids.Count);
 
-            for (int i = 0; i < idleStatus.Ids.Count; i++) {
+            for (int i = 0; i < idleStatus.Ids.Count; i++)
+            {
                 var pumpIdNullable = idleStatus.Ids[i];
                 if (!pumpIdNullable.HasValue) continue;
 
@@ -270,17 +304,19 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
                 // **CHECK FOR COMPLETED TRANSACTIONS** - Look for LastTransaction data
                 if (idleStatus.LastTransactions?.Count > i &&
                     idleStatus.LastVolumes?.Count > i &&
-                    idleStatus.LastAmounts?.Count > i) {
+                    idleStatus.LastAmounts?.Count > i)
+                {
                     var lastTransaction = idleStatus.LastTransactions[i];
                     var lastVolume = idleStatus.LastVolumes[i];
                     var lastAmount = idleStatus.LastAmounts[i];
 
-                    if (lastTransaction > 0 && (lastVolume > 0 || lastAmount > 0)) {
-                        _logger.LogInformation ("[UploadStatus] **IDLE EOT DETECTED** - Device {DeviceId}, Pump {PumpId} shows completed transaction {TransactionId}, Volume: {Volume}L, Amount: ${Amount}",
+                    if (lastTransaction > 0 && (lastVolume > 0 || lastAmount > 0))
+                    {
+                        _logger.LogInformation("[UploadStatus] **IDLE EOT DETECTED** - Device {DeviceId}, Pump {PumpId} shows completed transaction {TransactionId}, Volume: {Volume}L, Amount: ${Amount}",
                             deviceId, pumpId, lastTransaction, lastVolume, lastAmount);
 
                         // **CHECK IF THIS IS A NEW COMPLETION** - Compare with previous values
-                        await CheckIfTransactionJustCompleted (deviceId, pumpId, lastTransaction, lastVolume, lastAmount);
+                        await CheckIfTransactionJustCompleted(deviceId, pumpId, lastTransaction, lastVolume, lastAmount);
                     }
                 }
             }
@@ -290,66 +326,85 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
         // **CRITICAL FIX**: This method now enriches IdleStatus-based completion with Redis context data
         // to ensure TankId, VehicleId, Tag, and Nozzle are included in the database transaction record.
         // Previously, IdleStatus completion only had basic volume/amount data, missing business context.
-        private async Task CheckIfTransactionJustCompleted (string deviceId, int pumpId, int transactionId, decimal volume, decimal amount) {
-            try {
+        private async Task CheckIfTransactionJustCompleted(string deviceId, int pumpId, int transactionId, decimal volume, decimal amount)
+        {
+            try
+            {
                 var lastIdleKey = $"device:{deviceId}:pump:{pumpId}:last_idle";
-                var lastIdleJson = await _redisDb.StringGetAsync (lastIdleKey);
+                var lastIdleJson = await _redisDb.StringGetAsync(lastIdleKey);
 
                 bool isNewCompletion = false;
 
-                if (lastIdleJson.IsNullOrEmpty) {
+                if (lastIdleJson.IsNullOrEmpty)
+                {
                     // First time seeing this pump's idle status
                     isNewCompletion = true;
-                } else {
-                    try {
-                        var lastIdle = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (lastIdleJson);
-                        var lastTransactionId = lastIdle.TryGetProperty ("LastTransaction", out var transProp) ? transProp.GetInt32 () : 0;
-                        var lastVolume = lastIdle.TryGetProperty ("LastVolume", out var volProp) ? volProp.GetDecimal () : 0;
-                        var lastAmount = lastIdle.TryGetProperty ("LastAmount", out var amtProp) ? amtProp.GetDecimal () : 0;
+                }
+                else
+                {
+                    try
+                    {
+                        var lastIdle = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastIdleJson);
+                        var lastTransactionId = lastIdle.TryGetProperty("LastTransaction", out var transProp) ? transProp.GetInt32() : 0;
+                        var lastVolume = lastIdle.TryGetProperty("LastVolume", out var volProp) ? volProp.GetDecimal() : 0;
+                        var lastAmount = lastIdle.TryGetProperty("LastAmount", out var amtProp) ? amtProp.GetDecimal() : 0;
 
                         // **COMPLETION DETECTED** - Transaction ID changed or values increased significantly
                         if (transactionId != lastTransactionId ||
-                            Math.Abs (volume - lastVolume) > 0.01m ||
-                            Math.Abs (amount - lastAmount) > 0.01m) {
+                            Math.Abs(volume - lastVolume) > 0.01m ||
+                            Math.Abs(amount - lastAmount) > 0.01m)
+                        {
                             isNewCompletion = true;
-                            _logger.LogInformation ("[UploadStatus] **IDLE CHANGE** - Transaction completion detected via IdleStatus change for Device {DeviceId}, Pump {PumpId}",
+                            _logger.LogInformation("[UploadStatus] **IDLE CHANGE** - Transaction completion detected via IdleStatus change for Device {DeviceId}, Pump {PumpId}",
                                 deviceId, pumpId);
                         }
-                    } catch (Exception ex) {
-                        _logger.LogDebug ("Error parsing last idle status: {Error}", ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug("Error parsing last idle status: {Error}", ex.Message);
                         isNewCompletion = true; // Assume new completion if parsing fails
                     }
                 }
 
-                if (isNewCompletion) {
-                    _logger.LogInformation ("[UploadStatus] **NEW COMPLETION** - Processing transaction completion via IdleStatus for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}",
+                if (isNewCompletion)
+                {
+                    _logger.LogInformation("[UploadStatus] **NEW COMPLETION** - Processing transaction completion via IdleStatus for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}",
                         deviceId, pumpId, transactionId);
 
                     // **CRITICAL FIX** - Get Redis context data to enrich the completion data //Cursor
                     var transactionKey = $"device:{deviceId}:transaction:{transactionId}";
-                    var contextJson = await _redisDb.StringGetAsync (transactionKey);
+                    var contextJson = await _redisDb.StringGetAsync(transactionKey);
 
                     // **TRIGGER COMPLETION** - Create enriched EndOfTransaction data with Redis context
-                    var statusData = new JObject {
-                        ["Pump"] = pumpId, ["Transaction"] = transactionId, ["Volume"] = volume, ["Amount"] = amount, ["DateTime"] = DateTime.UtcNow, ["DetectedVia"] = "IdleStatus", ["CompletionSource"] = "LastTransactionData"
+                    var statusData = new JObject
+                    {
+                        ["Pump"] = pumpId,
+                        ["Transaction"] = transactionId,
+                        ["Volume"] = volume,
+                        ["Amount"] = amount,
+                        ["DateTime"] = DateTime.UtcNow,
+                        ["DetectedVia"] = "IdleStatus",
+                        ["CompletionSource"] = "LastTransactionData"
                     };
 
                     // **ENRICH WITH REDIS CONTEXT** - Add authorization data if available //Cursor
-                    if (!contextJson.IsNullOrEmpty) {
-                        _logger.LogInformation ("[UploadStatus] **CONTEXT FOUND** - Enriching IdleStatus completion with Redis context for {DeviceId}:{TransactionId}",
+                    if (!contextJson.IsNullOrEmpty)
+                    {
+                        _logger.LogInformation("[UploadStatus] **CONTEXT FOUND** - Enriching IdleStatus completion with Redis context for {DeviceId}:{TransactionId}",
                             deviceId, transactionId);
 
-                        try {
-                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (contextJson);
+                        try
+                        {
+                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
 
                             // Extract authorization context data
-                            var tankId = context.TryGetProperty ("TankId", out var tankProp) ? tankProp.GetInt32 () : (int?) null;
-                            var vehicleId = context.TryGetProperty ("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32 () : (int?) null;
-                            var autoCloseTransaction = context.TryGetProperty ("AutoCloseTransaction", out var autoProp) ? autoProp.GetBoolean () : false;
-                            var connectionType = context.TryGetProperty ("ConnectionType", out var connProp) ? connProp.GetString () : "Unknown";
+                            var tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
+                            var vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
+                            var autoCloseTransaction = context.TryGetProperty("AutoCloseTransaction", out var autoProp) ? autoProp.GetBoolean() : false;
+                            var connectionType = context.TryGetProperty("ConnectionType", out var connProp) ? connProp.GetString() : "Unknown";
 
                             // Get tag information from authorization state
-                            var authState = await _authTracker.GetAuthorizationState (deviceId, pumpId);
+                            var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
                             var tagId = authState?.TagId;
                             var nozzleId = authState?.NozzleId; //Cursor: Add nozzle from authorization state
 
@@ -362,113 +417,143 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
                             statusData["AutoCloseTransaction"] = autoCloseTransaction;
 
                             // **TRY TO ADD FUEL GRADE INFO** - Get from last known device status //Cursor
-                            try {
+                            try
+                            {
                                 var lastStatusKey = $"device:{deviceId}:status";
-                                var lastStatusJson = await _redisDb.StringGetAsync (lastStatusKey);
-                                if (!lastStatusJson.IsNullOrEmpty) {
-                                    var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (lastStatusJson);
-                                    if (lastStatus.TryGetProperty ("FuelGrades", out var fuelGradesElement) &&
-                                        fuelGradesElement.ValueKind == JsonValueKind.Array) {
-                                        var fuelGrades = fuelGradesElement.EnumerateArray ().ToList ();
+                                var lastStatusJson = await _redisDb.StringGetAsync(lastStatusKey);
+                                if (!lastStatusJson.IsNullOrEmpty)
+                                {
+                                    var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastStatusJson);
+                                    if (lastStatus.TryGetProperty("FuelGrades", out var fuelGradesElement) &&
+                                        fuelGradesElement.ValueKind == JsonValueKind.Array)
+                                    {
+                                        var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
                                         // Use first fuel grade if available (most common case)
-                                        if (fuelGrades.Count > 0) {
+                                        if (fuelGrades.Count > 0)
+                                        {
                                             var firstGrade = fuelGrades[0];
-                                            if (firstGrade.TryGetProperty ("Id", out var gradeIdProp)) {
-                                                statusData["FuelGradeId"] = gradeIdProp.GetInt32 ();
+                                            if (firstGrade.TryGetProperty("Id", out var gradeIdProp))
+                                            {
+                                                statusData["FuelGradeId"] = gradeIdProp.GetInt32();
                                             }
-                                            if (firstGrade.TryGetProperty ("Name", out var gradeNameProp)) {
-                                                statusData["FuelGradeName"] = gradeNameProp.GetString ();
+                                            if (firstGrade.TryGetProperty("Name", out var gradeNameProp))
+                                            {
+                                                statusData["FuelGradeName"] = gradeNameProp.GetString();
                                             }
                                         }
                                     }
                                 }
-                            } catch (Exception fgEx) {
-                                _logger.LogDebug ("Could not extract fuel grade info for IdleStatus completion: {Error}", fgEx.Message);
+                            }
+                            catch (Exception fgEx)
+                            {
+                                _logger.LogDebug("Could not extract fuel grade info for IdleStatus completion: {Error}", fgEx.Message);
                             }
 
                             // **LOG ENRICHED DATA** //Cursor
-                            _logger.LogInformation ("[UploadStatus] **ENRICHED IDLE COMPLETION** - Device {DeviceId}, Transaction {TransactionId}: TankId={TankId}, VehicleId={VehicleId}, Tag={Tag}, Nozzle={Nozzle}",
+                            _logger.LogInformation("[UploadStatus] **ENRICHED IDLE COMPLETION** - Device {DeviceId}, Transaction {TransactionId}: TankId={TankId}, VehicleId={VehicleId}, Tag={Tag}, Nozzle={Nozzle}",
                                 deviceId, transactionId, tankId, vehicleId, tagId, nozzleId);
 
-                        } catch (Exception ex) {
-                            _logger.LogWarning (ex, "[UploadStatus] **CONTEXT ERROR** - Error parsing Redis context for IdleStatus completion {DeviceId}:{TransactionId}, using basic data",
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[UploadStatus] **CONTEXT ERROR** - Error parsing Redis context for IdleStatus completion {DeviceId}:{TransactionId}, using basic data",
                                 deviceId, transactionId);
                         }
-                    } else {
-                        _logger.LogWarning ("[UploadStatus] **NO CONTEXT** - No Redis context found for IdleStatus completion {DeviceId}:{TransactionId} - transaction may be external or context expired",
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[UploadStatus] **NO CONTEXT** - No Redis context found for IdleStatus completion {DeviceId}:{TransactionId} - transaction may be external or context expired",
                             deviceId, transactionId);
                     }
 
                     // **PROCESS COMPLETION** - Trigger auto-completion service with enriched data
-                    _ = Task.Run (async () => {
-                        try {
-                            await _autoCompletionService.ProcessEndOfTransactionAsync (
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _autoCompletionService.ProcessEndOfTransactionAsync(
                                 deviceId, pumpId, transactionId, statusData);
 
-                            _logger.LogInformation ("[UploadStatus] **IDLE SUCCESS** - IdleStatus-based completion successful for {DeviceId}:{TransactionId}",
+                            _logger.LogInformation("[UploadStatus] **IDLE SUCCESS** - IdleStatus-based completion successful for {DeviceId}:{TransactionId}",
                                 deviceId, transactionId);
-                        } catch (Exception ex) {
-                            _logger.LogError (ex, "[UploadStatus] **IDLE FAILED** - IdleStatus-based completion failed for {DeviceId}:{TransactionId}",
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[UploadStatus] **IDLE FAILED** - IdleStatus-based completion failed for {DeviceId}:{TransactionId}",
                                 deviceId, transactionId);
                         }
                     });
                 }
 
                 // **UPDATE CACHE** - Store current IdleStatus data for next comparison
-                var currentIdleData = new {
+                var currentIdleData = new
+                {
                     LastTransaction = transactionId,
                     LastVolume = volume,
                     LastAmount = amount,
                     UpdateTime = DateTime.UtcNow
                 };
 
-                await _redisDb.StringSetAsync (lastIdleKey,
-                    System.Text.Json.JsonSerializer.Serialize (currentIdleData),
-                    TimeSpan.FromMinutes (30));
-            } catch (Exception ex) {
-                _logger.LogError (ex, "[UploadStatus] **IDLE ERROR** - Error checking transaction completion via IdleStatus for {DeviceId}:{PumpId}",
+                await _redisDb.StringSetAsync(lastIdleKey,
+                    System.Text.Json.JsonSerializer.Serialize(currentIdleData),
+                    TimeSpan.FromMinutes(30));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] **IDLE ERROR** - Error checking transaction completion via IdleStatus for {DeviceId}:{PumpId}",
                     deviceId, pumpId);
             }
         }
 
         // Renamed, only internal logic (update auth state), NO hub broadcast
-        private async Task ProcessFillingStatusInternalLogic (string deviceId, FillingStatus fillingStatus) {
+        private async Task ProcessFillingStatusInternalLogic(string deviceId, FillingStatus fillingStatus)
+        {
             if (fillingStatus.Ids == null) return;
-            for (int i = 0; i < fillingStatus.Ids.Count; i++) {
+            for (int i = 0; i < fillingStatus.Ids.Count; i++)
+            {
                 var pumpIdNullable = fillingStatus.Ids[i];
                 if (!pumpIdNullable.HasValue) continue; // Skip null entries
                 var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
 
                 if (pumpId < 1 || pumpId > 50) continue; // Validate range
 
-                try {
-                    await _authTracker.UpdateAuthState (deviceId, pumpId, "InProgress");
-                    _logger.LogInformation ("[Internal] Updated auth state to InProgress for Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                try
+                {
+                    await _authTracker.UpdateAuthState(deviceId, pumpId, "InProgress");
+                    _logger.LogInformation("[Internal] Updated auth state to InProgress for Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
                     // NO _hubContext call here
-                } catch (Exception ex) {
-                    _logger.LogError (ex, "[Internal] Error processing filling status for pump {PumpId} on device {DeviceId}", pumpId, deviceId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[Internal] Error processing filling status for pump {PumpId} on device {DeviceId}", pumpId, deviceId);
                 }
             }
         }
 
         // Keep IsValidHexString helper
-        private bool IsValidHexString (string input) {
-            return input.All (c => "0123456789ABCDEFabcdef".Contains (char.ToUpper (c)));
+        private bool IsValidHexString(string input)
+        {
+            return input.All(c => "0123456789ABCDEFabcdef".Contains(char.ToUpper(c)));
         }
 
         // Renamed, only internal logic (update auth state), NO hub broadcast
-        private async Task ProcessEndOfTransactionStatusInternalLogic (string deviceId, EndOfTransactionStatus eotStatus) {
+        private async Task ProcessEndOfTransactionStatusInternalLogic(string deviceId, EndOfTransactionStatus eotStatus)
+        {
             if (eotStatus.Ids == null) return;
             // Iterate through nullable ints, check HasValue before using Value
-            foreach (var pumpIdNullable in eotStatus.Ids) {
+            foreach (var pumpIdNullable in eotStatus.Ids)
+            {
                 if (!pumpIdNullable.HasValue) continue; // Skip null entries
                 var pumpId = pumpIdNullable.Value; // Get the non-nullable int value
-                try {
-                    await _authTracker.ClearAuthorization (deviceId, pumpId);
-                    _logger.LogInformation ("[Internal] Cleared auth for EOT on Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                try
+                {
+                    await _authTracker.ClearAuthorization(deviceId, pumpId);
+                    _logger.LogInformation("[Internal] Cleared auth for EOT on Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
                     // NO _hubContext call here
-                } catch (Exception ex) {
-                    _logger.LogError (ex, "[Internal] Error processing end of transaction for pump {PumpId} on device {DeviceId}", pumpId, deviceId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[Internal] Error processing end of transaction for pump {PumpId} on device {DeviceId}", pumpId, deviceId);
                 }
             }
         }
@@ -477,64 +562,72 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
         // **RESOLUTION SUMMARY**: This method now successfully detects and processes transaction completion
         // via both EndOfTransactionStatus and IdleStatus changes, with comprehensive Redis context correlation
         // and enhanced debugging capabilities for troubleshooting transaction completion issues.
-        private async Task ProcessEndOfTransactionForTransactionData (string deviceId, EndOfTransactionStatus eotStatus) {
-            try {
-                _logger.LogInformation ("[UploadStatus] **EOT ANALYSIS** - EndOfTransactionStatus check for device {DeviceId}", deviceId);
-                _logger.LogInformation ("[UploadStatus] **EOT STRUCTURE** - Ids: {IdsPresent}, Count: {IdsCount}",
+        private async Task ProcessEndOfTransactionForTransactionData(string deviceId, EndOfTransactionStatus eotStatus)
+        {
+            try
+            {
+                _logger.LogInformation("[UploadStatus] **EOT ANALYSIS** - EndOfTransactionStatus check for device {DeviceId}", deviceId);
+                _logger.LogInformation("[UploadStatus] **EOT STRUCTURE** - Ids: {IdsPresent}, Count: {IdsCount}",
                     eotStatus.Ids != null, eotStatus.Ids?.Count ?? 0);
-                _logger.LogInformation ("[UploadStatus] **EOT ARRAYS** - Transactions: {TransCount}, Volumes: {VolCount}, Amounts: {AmtCount}",
+                _logger.LogInformation("[UploadStatus] **EOT ARRAYS** - Transactions: {TransCount}, Volumes: {VolCount}, Amounts: {AmtCount}",
                     eotStatus.Transactions?.Count ?? 0, eotStatus.Volumes?.Count ?? 0, eotStatus.Amounts?.Count ?? 0);
 
                 // **DETAILED DATA INSPECTION** - Log the actual EndOfTransaction data received //Cursor
-                if (eotStatus.Ids?.Any () == true) {
-                    for (int j = 0; j < eotStatus.Ids.Count; j++) {
+                if (eotStatus.Ids?.Any() == true)
+                {
+                    for (int j = 0; j < eotStatus.Ids.Count; j++)
+                    {
                         var pumpId = eotStatus.Ids[j];
-                        var transaction = eotStatus.Transactions?.Count > j ? eotStatus.Transactions[j] : (int?) null;
-                        var volume = eotStatus.Volumes?.Count > j ? eotStatus.Volumes[j] : (decimal?) null;
-                        var amount = eotStatus.Amounts?.Count > j ? eotStatus.Amounts[j] : (decimal?) null;
-                        var nozzle = eotStatus.Nozzles?.Count > j ? eotStatus.Nozzles[j] : (int?) null;
-                        var fuelGradeId = eotStatus.FuelGradeIds?.Count > j ? eotStatus.FuelGradeIds[j] : (int?) null;
-                        var fuelGradeName = eotStatus.FuelGradeNames?.Count > j && !string.IsNullOrEmpty (eotStatus.FuelGradeNames[j]) ? eotStatus.FuelGradeNames[j] : null;
+                        var transaction = eotStatus.Transactions?.Count > j ? eotStatus.Transactions[j] : (int?)null;
+                        var volume = eotStatus.Volumes?.Count > j ? eotStatus.Volumes[j] : (decimal?)null;
+                        var amount = eotStatus.Amounts?.Count > j ? eotStatus.Amounts[j] : (decimal?)null;
+                        var nozzle = eotStatus.Nozzles?.Count > j ? eotStatus.Nozzles[j] : (int?)null;
+                        var fuelGradeId = eotStatus.FuelGradeIds?.Count > j ? eotStatus.FuelGradeIds[j] : (int?)null;
+                        var fuelGradeName = eotStatus.FuelGradeNames?.Count > j && !string.IsNullOrEmpty(eotStatus.FuelGradeNames[j]) ? eotStatus.FuelGradeNames[j] : null;
 
-                        _logger.LogInformation ("[UploadStatus] **EOT DATA[{Index}]** - Pump: {PumpId}, Transaction: {TransactionId}, Volume: {Volume}L, Amount: ${Amount}, Nozzle: {Nozzle}, FuelGrade: {FuelGradeId} ({FuelGradeName})",
+                        _logger.LogInformation("[UploadStatus] **EOT DATA[{Index}]** - Pump: {PumpId}, Transaction: {TransactionId}, Volume: {Volume}L, Amount: ${Amount}, Nozzle: {Nozzle}, FuelGrade: {FuelGradeId} ({FuelGradeName})",
                             j, pumpId, transaction, volume, amount, nozzle, fuelGradeId, fuelGradeName);
                     }
                 }
 
                 // **CRITICAL** - Check if we have an active transaction that should have completed
-                var activeTransactions = await CheckForActiveTransactions (deviceId);
-                if (activeTransactions.Any ()) {
-                    _logger.LogWarning ("[UploadStatus] **MISSING EOT** - Device {DeviceId} has {Count} active transactions but EndOfTransactionStatus is empty!",
+                var activeTransactions = await CheckForActiveTransactions(deviceId);
+                if (activeTransactions.Any())
+                {
+                    _logger.LogWarning("[UploadStatus] **MISSING EOT** - Device {DeviceId} has {Count} active transactions but EndOfTransactionStatus is empty!",
                         deviceId, activeTransactions.Count);
 
-                    foreach (var (pumpId, transactionId) in activeTransactions) {
-                        _logger.LogWarning ("[UploadStatus] **ACTIVE TX** - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId} - checking for forced completion",
+                    foreach (var (pumpId, transactionId) in activeTransactions)
+                    {
+                        _logger.LogWarning("[UploadStatus] **ACTIVE TX** - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId} - checking for forced completion",
                             deviceId, pumpId, transactionId);
 
                         // **CORRELATION CHECK** - Log what we're expecting vs what we received //Cursor
-                        var expectedMatch = eotStatus.Ids?.Any () == true &&
-                            eotStatus.Transactions?.Any () == true &&
-                            eotStatus.Transactions.Contains (transactionId);
+                        var expectedMatch = eotStatus.Ids?.Any() == true &&
+                            eotStatus.Transactions?.Any() == true &&
+                            eotStatus.Transactions.Contains(transactionId);
 
-                        _logger.LogWarning ("[UploadStatus] **CORRELATION** - Expected Transaction {TransactionId}, Found in EOT: {Found}",
+                        _logger.LogWarning("[UploadStatus] **CORRELATION** - Expected Transaction {TransactionId}, Found in EOT: {Found}",
                             transactionId, expectedMatch);
 
                         // **FALLBACK STRATEGY** - Check if transaction should be completed based on time/conditions
-                        await CheckForForcedCompletion (deviceId, pumpId, transactionId);
+                        await CheckForForcedCompletion(deviceId, pumpId, transactionId);
                     }
                 }
 
                 // **EXISTING LOGIC** - Process if data is present
-                if (eotStatus.Ids == null || !eotStatus.Ids.Any ()) {
-                    _logger.LogDebug ("[UploadStatus] **NO EOT DATA** - EndOfTransactionStatus has no pump IDs for device {DeviceId}", deviceId);
+                if (eotStatus.Ids == null || !eotStatus.Ids.Any())
+                {
+                    _logger.LogDebug("[UploadStatus] **NO EOT DATA** - EndOfTransactionStatus has no pump IDs for device {DeviceId}", deviceId);
                     return;
                 }
 
-                _logger.LogInformation ("[UploadStatus] **EOT PROCESSING** - Processing EndOfTransaction for device {DeviceId} with {Count} pumps",
+                _logger.LogInformation("[UploadStatus] **EOT PROCESSING** - Processing EndOfTransaction for device {DeviceId} with {Count} pumps",
                     deviceId, eotStatus.Ids.Count);
 
                 // Process each pump that has ended a transaction
-                for (int i = 0; i < eotStatus.Ids.Count; i++) {
+                for (int i = 0; i < eotStatus.Ids.Count; i++)
+                {
                     var pumpIdNullable = eotStatus.Ids[i];
                     if (!pumpIdNullable.HasValue) continue;
 
@@ -545,319 +638,404 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands {
                     decimal? volume = null;
                     decimal? amount = null;
 
-                    if (eotStatus.Transactions?.Count > i && eotStatus.Transactions[i] > 0) {
+                    if (eotStatus.Transactions?.Count > i && eotStatus.Transactions[i] > 0)
+                    {
                         detectedTransactionId = eotStatus.Transactions[i];
                     }
 
-                    if (eotStatus.Volumes?.Count > i) {
-                        volume = (decimal?) eotStatus.Volumes[i];
+                    if (eotStatus.Volumes?.Count > i)
+                    {
+                        volume = (decimal?)eotStatus.Volumes[i];
                     }
 
-                    if (eotStatus.Amounts?.Count > i) {
-                        amount = (decimal?) eotStatus.Amounts[i];
+                    if (eotStatus.Amounts?.Count > i)
+                    {
+                        amount = (decimal?)eotStatus.Amounts[i];
                     }
 
-                    _logger.LogInformation ("[UploadStatus] **EOT DETECTED** - Device {DeviceId}, Pump {PumpId}, Transaction: {TransactionId}, Volume: {Volume}L, Amount: ${Amount}",
+                    _logger.LogInformation("[UploadStatus] **EOT DETECTED** - Device {DeviceId}, Pump {PumpId}, Transaction: {TransactionId}, Volume: {Volume}L, Amount: ${Amount}",
                         deviceId, pumpId, detectedTransactionId, volume, amount);
 
                     //Cursor: **CRITICAL ENHANCEMENT** - Immediately check if this transaction ID matches our authorized context
-                    if (detectedTransactionId.HasValue) {
+                    if (detectedTransactionId.HasValue)
+                    {
                         //Cursor: **PREVENT DUPLICATE PROCESSING** - Check if this EndOfTransaction was already processed
                         var eotProcessedKey = $"device:{deviceId}:eot:transaction:{detectedTransactionId.Value}:processed";
-                        var alreadyProcessed = await _redisDb.StringGetAsync (eotProcessedKey);
+                        var alreadyProcessed = await _redisDb.StringGetAsync(eotProcessedKey);
 
-                        if (!alreadyProcessed.IsNullOrEmpty) {
-                            _logger.LogInformation ("[UploadStatus] **DUPLICATE PREVENTION** - EndOfTransaction {TransactionId} for Device {DeviceId} was already processed at {ProcessedTime}, skipping",
+                        if (!alreadyProcessed.IsNullOrEmpty)
+                        {
+                            _logger.LogInformation("[UploadStatus] **DUPLICATE PREVENTION** - EndOfTransaction {TransactionId} for Device {DeviceId} was already processed at {ProcessedTime}, skipping",
                                 detectedTransactionId.Value, deviceId, alreadyProcessed);
                             continue; // Skip this pump's EndOfTransaction processing
                         }
 
                         // Mark as being processed to prevent duplicates
-                        await _redisDb.StringSetAsync (eotProcessedKey, DateTime.UtcNow.ToString ("o"), TimeSpan.FromMinutes (10));
+                        await _redisDb.StringSetAsync(eotProcessedKey, DateTime.UtcNow.ToString("o"), TimeSpan.FromMinutes(10));
 
                         // Check if we have a matching transaction context in Redis for this transaction ID
                         var transactionKey = $"device:{deviceId}:transaction:{detectedTransactionId.Value}";
-                        var contextJson = await _redisDb.StringGetAsync (transactionKey);
+                        var contextJson = await _redisDb.StringGetAsync(transactionKey);
 
-                        _logger.LogInformation ("[UploadStatus] **CONTEXT LOOKUP** - Checking Redis key: {RedisKey}, Found: {Found}",
+                        _logger.LogInformation("[UploadStatus] **CONTEXT LOOKUP** - Checking Redis key: {RedisKey}, Found: {Found}",
                             transactionKey, !contextJson.IsNullOrEmpty);
 
-                        if (!contextJson.IsNullOrEmpty) {
-                            _logger.LogInformation ("[UploadStatus] **MATCH FOUND** - EndOfTransaction {TransactionId} matches our authorized context for Device {DeviceId}",
+                        if (!contextJson.IsNullOrEmpty)
+                        {
+                            _logger.LogInformation("[UploadStatus] **MATCH FOUND** - EndOfTransaction {TransactionId} matches our authorized context for Device {DeviceId}",
                                 detectedTransactionId.Value, deviceId);
 
                             // Parse the stored context to get authorization details
-                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (contextJson);
-                            var tankId = context.TryGetProperty ("TankId", out var tankProp) ? tankProp.GetInt32 () : (int?) null;
-                            var vehicleId = context.TryGetProperty ("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32 () : (int?) null;
-                            var contextPumpId = context.TryGetProperty ("PumpId", out var pumpIdProp) ? pumpIdProp.GetInt32 () : (int?) null;
-                            var autoCloseTransaction = context.TryGetProperty ("AutoCloseTransaction", out var autoProp) ? autoProp.GetBoolean () : false;
-                            var connectionType = context.TryGetProperty ("ConnectionType", out var connProp) ? connProp.GetString () : "Unknown";
+                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+                            var tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
+                            var vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
+                            var contextPumpId = context.TryGetProperty("PumpId", out var pumpIdProp) ? pumpIdProp.GetInt32() : (int?)null;
+                            var autoCloseTransaction = context.TryGetProperty("AutoCloseTransaction", out var autoProp) ? autoProp.GetBoolean() : false;
+                            var connectionType = context.TryGetProperty("ConnectionType", out var connProp) ? connProp.GetString() : "Unknown";
 
                             // **CORRELATION VERIFICATION** - Log the match details //Cursor
-                            _logger.LogInformation ("[UploadStatus] **CONTEXT DETAILS** - Transaction {TransactionId}: AuthorizedPump={AuthPump}, ReceivedPump={RecvPump}, TankId={TankId}, VehicleId={VehicleId}, AutoClose={AutoClose}",
+                            _logger.LogInformation("[UploadStatus] **CONTEXT DETAILS** - Transaction {TransactionId}: AuthorizedPump={AuthPump}, ReceivedPump={RecvPump}, TankId={TankId}, VehicleId={VehicleId}, AutoClose={AutoClose}",
                                 detectedTransactionId.Value, contextPumpId, pumpId, tankId, vehicleId, autoCloseTransaction);
 
                             // Get tag information from authorization state
-                            var authState = await _authTracker.GetAuthorizationState (deviceId, pumpId);
+                            var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
                             var tagId = authState?.TagId;
 
                             // Create enhanced status data object for auto-completion processing
-                            var statusData = new JObject {
-                                ["Pump"] = pumpId, ["Transaction"] = detectedTransactionId.Value, ["Volume"] = volume, ["Amount"] = amount, ["DateTime"] = DateTime.UtcNow, ["TankId"] = tankId, ["VehicleId"] = vehicleId, ["Tag"] = tagId, ["ConnectionType"] = connectionType, ["AutoCloseTransaction"] = autoCloseTransaction
+                            var statusData = new JObject
+                            {
+                                ["Pump"] = pumpId,
+                                ["Transaction"] = detectedTransactionId.Value,
+                                ["Volume"] = volume,
+                                ["Amount"] = amount,
+                                ["DateTime"] = DateTime.UtcNow,
+                                ["TankId"] = tankId,
+                                ["VehicleId"] = vehicleId,
+                                ["Tag"] = tagId,
+                                ["ConnectionType"] = connectionType,
+                                ["AutoCloseTransaction"] = autoCloseTransaction
                             };
 
                             // Add additional data if available from EndOfTransaction
-                            if (eotStatus.Nozzles?.Count > i && eotStatus.Nozzles[i] > 0) {
+                            if (eotStatus.Nozzles?.Count > i && eotStatus.Nozzles[i] > 0)
+                            {
                                 statusData["Nozzle"] = eotStatus.Nozzles[i];
                             }
 
-                            if (eotStatus.FuelGradeIds?.Count > i && eotStatus.FuelGradeIds[i] > 0) {
+                            if (eotStatus.FuelGradeIds?.Count > i && eotStatus.FuelGradeIds[i] > 0)
+                            {
                                 statusData["FuelGradeId"] = eotStatus.FuelGradeIds[i];
                             }
 
-                            if (eotStatus.FuelGradeNames?.Count > i && !string.IsNullOrEmpty (eotStatus.FuelGradeNames[i])) {
+                            if (eotStatus.FuelGradeNames?.Count > i && !string.IsNullOrEmpty(eotStatus.FuelGradeNames[i]))
+                            {
                                 statusData["FuelGradeName"] = eotStatus.FuelGradeNames[i];
                             }
 
-                            if (eotStatus.Prices?.Count > i) {
-                                statusData["Price"] = (decimal?) eotStatus.Prices[i];
+                            if (eotStatus.Prices?.Count > i)
+                            {
+                                statusData["Price"] = (decimal?)eotStatus.Prices[i];
                             }
 
-                            _logger.LogInformation ("[AutoComplete] **IMMEDIATE TRIGGER** - Processing matching EndOfTransaction for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId} with complete context data",
+                            _logger.LogInformation("[AutoComplete] **IMMEDIATE TRIGGER** - Processing matching EndOfTransaction for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId} with complete context data",
                                 deviceId, pumpId, detectedTransactionId);
 
                             // **KEY INTEGRATION** - Immediately process EndOfTransaction through auto-completion service with full context
-                            _ = Task.Run (async () => {
-                                try {
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
                                     // **CRITICAL** - Process with full context data from authorization
-                                    await _autoCompletionService.ProcessEndOfTransactionAsync (
+                                    await _autoCompletionService.ProcessEndOfTransactionAsync(
                                         deviceId, pumpId, detectedTransactionId.Value, statusData);
 
-                                    _logger.LogInformation ("[AutoComplete] **SUCCESS** - Background auto-completion completed for matched transaction {DeviceId}:{Transaction}",
+                                    _logger.LogInformation("[AutoComplete] **SUCCESS** - Background auto-completion completed for matched transaction {DeviceId}:{Transaction}",
                                         deviceId, detectedTransactionId.Value);
-                                } catch (Exception ex) {
-                                    _logger.LogError (ex, "[AutoComplete] **ERROR** - Background auto-completion failed for matched transaction {DeviceId}:{Transaction}",
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "[AutoComplete] **ERROR** - Background auto-completion failed for matched transaction {DeviceId}:{Transaction}",
                                         deviceId, detectedTransactionId);
                                 }
                             });
-                        } else {
-                            _logger.LogWarning ("[UploadStatus] **NO MATCH** - EndOfTransaction {TransactionId} for Device {DeviceId} has no corresponding authorization context - may be external transaction",
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[UploadStatus] **NO MATCH** - EndOfTransaction {TransactionId} for Device {DeviceId} has no corresponding authorization context - may be external transaction",
                                 detectedTransactionId.Value, deviceId);
 
                             // **REDIS INVESTIGATION** - List all current transaction keys for this device //Cursor
-                            try {
+                            try
+                            {
                                 var pattern = $"device:{deviceId}:transaction:*";
-                                var server = _redisDb.Multiplexer.GetServer (_redisDb.Multiplexer.GetEndPoints () [0]);
-                                var keys = server.Keys (pattern: pattern).ToList ();
+                                var server = _redisDb.Multiplexer.GetServer(_redisDb.Multiplexer.GetEndPoints()[0]);
+                                var keys = server.Keys(pattern: pattern).ToList();
 
-                                _logger.LogWarning ("[UploadStatus] **REDIS DEBUG** - Available transaction keys for device {DeviceId}: {KeyCount} keys found",
+                                _logger.LogWarning("[UploadStatus] **REDIS DEBUG** - Available transaction keys for device {DeviceId}: {KeyCount} keys found",
                                     deviceId, keys.Count);
 
-                                foreach (var key in keys.Take (5)) // Log first 5 keys to avoid spam
+                                foreach (var key in keys.Take(5)) // Log first 5 keys to avoid spam
                                 {
-                                    var keyValue = await _redisDb.StringGetAsync (key);
-                                    _logger.LogWarning ("[UploadStatus] **REDIS KEY** - {Key}: {Value}",
-                                        key, keyValue.IsNullOrEmpty ? "EMPTY" : keyValue.ToString ());
+                                    var keyValue = await _redisDb.StringGetAsync(key);
+                                    _logger.LogWarning("[UploadStatus] **REDIS KEY** - {Key}: {Value}",
+                                        key, keyValue.IsNullOrEmpty ? "EMPTY" : keyValue.ToString());
                                 }
-                            } catch (Exception ex) {
-                                _logger.LogError (ex, "[UploadStatus] **REDIS DEBUG ERROR** - Error investigating Redis keys for device {DeviceId}", deviceId);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "[UploadStatus] **REDIS DEBUG ERROR** - Error investigating Redis keys for device {DeviceId}", deviceId);
                             }
 
                             // This might be a transaction that was not authorized through our system
                             // Or the context was already cleaned up (duplicate processing)
                             // Still process it but without enriched context
-                            var basicStatusData = new JObject {
-                                ["Pump"] = pumpId, ["Transaction"] = detectedTransactionId.Value, ["Volume"] = volume, ["Amount"] = amount, ["DateTime"] = DateTime.UtcNow
+                            var basicStatusData = new JObject
+                            {
+                                ["Pump"] = pumpId,
+                                ["Transaction"] = detectedTransactionId.Value,
+                                ["Volume"] = volume,
+                                ["Amount"] = amount,
+                                ["DateTime"] = DateTime.UtcNow
                             };
 
                             // Add device-level data if available
-                            if (eotStatus.Nozzles?.Count > i && eotStatus.Nozzles[i] > 0) {
+                            if (eotStatus.Nozzles?.Count > i && eotStatus.Nozzles[i] > 0)
+                            {
                                 basicStatusData["Nozzle"] = eotStatus.Nozzles[i];
                             }
 
-                            if (eotStatus.FuelGradeIds?.Count > i && eotStatus.FuelGradeIds[i] > 0) {
+                            if (eotStatus.FuelGradeIds?.Count > i && eotStatus.FuelGradeIds[i] > 0)
+                            {
                                 basicStatusData["FuelGradeId"] = eotStatus.FuelGradeIds[i];
                             }
 
-                            if (eotStatus.FuelGradeNames?.Count > i && !string.IsNullOrEmpty (eotStatus.FuelGradeNames[i])) {
+                            if (eotStatus.FuelGradeNames?.Count > i && !string.IsNullOrEmpty(eotStatus.FuelGradeNames[i]))
+                            {
                                 basicStatusData["FuelGradeName"] = eotStatus.FuelGradeNames[i];
                             }
 
-                            if (eotStatus.Prices?.Count > i) {
-                                basicStatusData["Price"] = (decimal?) eotStatus.Prices[i];
+                            if (eotStatus.Prices?.Count > i)
+                            {
+                                basicStatusData["Price"] = (decimal?)eotStatus.Prices[i];
                             }
 
-                            _logger.LogInformation ("[AutoComplete] Processing unmatched EndOfTransaction with basic data for Device {DeviceId}, Transaction {TransactionId}",
+                            _logger.LogInformation("[AutoComplete] Processing unmatched EndOfTransaction with basic data for Device {DeviceId}, Transaction {TransactionId}",
                                 deviceId, detectedTransactionId);
 
                             // Process without full context (may not auto-complete due to missing context)
-                            _ = Task.Run (async () => {
-                                try {
-                                    await _autoCompletionService.ProcessEndOfTransactionAsync (
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _autoCompletionService.ProcessEndOfTransactionAsync(
                                         deviceId, pumpId, detectedTransactionId.Value, basicStatusData);
-                                } catch (Exception ex) {
-                                    _logger.LogError (ex, "[AutoComplete] Error processing unmatched EndOfTransaction {DeviceId}:{Transaction}",
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "[AutoComplete] Error processing unmatched EndOfTransaction {DeviceId}:{Transaction}",
                                         deviceId, detectedTransactionId);
                                 }
                             });
                         }
-                    } else {
-                        _logger.LogWarning ("[UploadStatus] **NO TRANSACTION ID** - EndOfTransaction detected for Device {DeviceId}, Pump {PumpId} but no transaction ID available",
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[UploadStatus] **NO TRANSACTION ID** - EndOfTransaction detected for Device {DeviceId}, Pump {PumpId} but no transaction ID available",
                             deviceId, pumpId);
                     }
 
                     // Also use the existing TransactionCompletionService for compatibility
-                    await _transactionCompletionService.HandleEndOfTransactionAsync (deviceId, pumpId, detectedTransactionId);
+                    await _transactionCompletionService.HandleEndOfTransactionAsync(deviceId, pumpId, detectedTransactionId);
                 }
-            } catch (Exception ex) {
-                _logger.LogError (ex, "[UploadStatus] **EOT ERROR** - Error processing EndOfTransaction for device {DeviceId}", deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] **EOT ERROR** - Error processing EndOfTransaction for device {DeviceId}", deviceId);
             }
         }
 
         // **NEW METHOD** - Check for active transactions that might need completion //Cursor
-        private async Task < List < (int PumpId, int TransactionId) >> CheckForActiveTransactions (string deviceId) {
-            var activeTransactions = new List < (int, int) > ();
+        private async Task<List<(int PumpId, int TransactionId)>> CheckForActiveTransactions(string deviceId)
+        {
+            var activeTransactions = new List<(int, int)>();
 
-            try {
+            try
+            {
                 // Check Redis for active transaction contexts
                 var pattern = $"device:{deviceId}:transaction:*";
-                var server = _redisDb.Multiplexer.GetServer (_redisDb.Multiplexer.GetEndPoints () [0]);
-                var keys = server.Keys (pattern: pattern);
+                var server = _redisDb.Multiplexer.GetServer(_redisDb.Multiplexer.GetEndPoints()[0]);
+                var keys = server.Keys(pattern: pattern);
 
-                foreach (var key in keys) {
-                    var contextJson = await _redisDb.StringGetAsync (key);
-                    if (!contextJson.IsNullOrEmpty) {
-                        try {
-                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (contextJson);
-                            var pumpId = context.TryGetProperty ("PumpId", out var pumpProp) ? pumpProp.GetInt32 () : 0;
-                            var transactionId = context.TryGetProperty ("TransactionId", out var transProp) ? transProp.GetInt32 () : 0;
+                foreach (var key in keys)
+                {
+                    var contextJson = await _redisDb.StringGetAsync(key);
+                    if (!contextJson.IsNullOrEmpty)
+                    {
+                        try
+                        {
+                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+                            var pumpId = context.TryGetProperty("PumpId", out var pumpProp) ? pumpProp.GetInt32() : 0;
+                            var transactionId = context.TryGetProperty("TransactionId", out var transProp) ? transProp.GetInt32() : 0;
 
-                            if (pumpId > 0 && transactionId > 0) {
-                                activeTransactions.Add ((pumpId, transactionId));
+                            if (pumpId > 0 && transactionId > 0)
+                            {
+                                activeTransactions.Add((pumpId, transactionId));
                             }
-                        } catch (Exception ex) {
-                            _logger.LogDebug ("Error parsing transaction context from key {Key}: {Error}", key, ex.Message);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug("Error parsing transaction context from key {Key}: {Error}", key, ex.Message);
                         }
                     }
                 }
 
-                _logger.LogDebug ("[UploadStatus] **ACTIVE CHECK** - Found {Count} active transactions for device {DeviceId}",
+                _logger.LogDebug("[UploadStatus] **ACTIVE CHECK** - Found {Count} active transactions for device {DeviceId}",
                     activeTransactions.Count, deviceId);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "[UploadStatus] **ACTIVE ERROR** - Error checking active transactions for device {DeviceId}", deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] **ACTIVE ERROR** - Error checking active transactions for device {DeviceId}", deviceId);
             }
 
             return activeTransactions;
         }
 
         // **NEW METHOD** - Check if transaction should be forcibly completed //Cursor
-        private async Task CheckForForcedCompletion (string deviceId, int pumpId, int transactionId) {
-            try {
+        private async Task CheckForForcedCompletion(string deviceId, int pumpId, int transactionId)
+        {
+            try
+            {
                 // Get transaction start time from authorization context
                 var transactionKey = $"device:{deviceId}:transaction:{transactionId}";
-                var contextJson = await _redisDb.StringGetAsync (transactionKey);
+                var contextJson = await _redisDb.StringGetAsync(transactionKey);
 
-                if (contextJson.IsNullOrEmpty) {
-                    _logger.LogDebug ("[UploadStatus] **NO CONTEXT** - No transaction context found for {DeviceId}:{TransactionId}",
+                if (contextJson.IsNullOrEmpty)
+                {
+                    _logger.LogDebug("[UploadStatus] **NO CONTEXT** - No transaction context found for {DeviceId}:{TransactionId}",
                         deviceId, transactionId);
                     return;
                 }
 
-                var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (contextJson);
-                var startTimeStr = context.TryGetProperty ("StartTime", out var startProp) ? startProp.GetString () : null;
+                var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+                var startTimeStr = context.TryGetProperty("StartTime", out var startProp) ? startProp.GetString() : null;
 
-                if (DateTime.TryParse (startTimeStr, out var startTime)) {
+                if (DateTime.TryParse(startTimeStr, out var startTime))
+                {
                     var elapsed = DateTime.UtcNow - startTime;
 
                     // **TIMEOUT CONDITION** - Transaction running for more than X minutes without completion
                     if (elapsed.TotalMinutes > 5) // Configurable timeout
                     {
-                        _logger.LogWarning ("[UploadStatus] **TIMEOUT DETECTED** - Transaction {TransactionId} on device {DeviceId} running for {Minutes} minutes without EndOfTransaction",
+                        _logger.LogWarning("[UploadStatus] **TIMEOUT DETECTED** - Transaction {TransactionId} on device {DeviceId} running for {Minutes} minutes without EndOfTransaction",
                             transactionId, deviceId, elapsed.TotalMinutes);
 
                         // **FORCE COMPLETION** - Trigger completion based on last known status
-                        await ForceTransactionCompletion (deviceId, pumpId, transactionId, "Timeout");
+                        await ForceTransactionCompletion(deviceId, pumpId, transactionId, "Timeout");
                     }
                 }
-            } catch (Exception ex) {
-                _logger.LogError (ex, "[UploadStatus] **FORCE ERROR** - Error checking forced completion for {DeviceId}:{TransactionId}",
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] **FORCE ERROR** - Error checking forced completion for {DeviceId}:{TransactionId}",
                     deviceId, transactionId);
             }
         }
 
         // **NEW METHOD** - Force completion when EndOfTransaction is missing //Cursor
-        private async Task ForceTransactionCompletion (string deviceId, int pumpId, int transactionId, string reason) {
-            try {
-                _logger.LogWarning ("[UploadStatus] **FORCE COMPLETION** - Forcing completion of transaction {TransactionId} on device {DeviceId}, reason: {Reason}",
+        private async Task ForceTransactionCompletion(string deviceId, int pumpId, int transactionId, string reason)
+        {
+            try
+            {
+                _logger.LogWarning("[UploadStatus] **FORCE COMPLETION** - Forcing completion of transaction {TransactionId} on device {DeviceId}, reason: {Reason}",
                     transactionId, deviceId, reason);
 
                 // Get last known volume/amount from Redis status or authorization context
                 var lastStatusKey = $"device:{deviceId}:status";
-                var statusJson = await _redisDb.StringGetAsync (lastStatusKey);
+                var statusJson = await _redisDb.StringGetAsync(lastStatusKey);
 
                 decimal? lastVolume = null;
                 decimal? lastAmount = null;
 
-                if (!statusJson.IsNullOrEmpty) {
-                    try {
-                        var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement> (statusJson);
+                if (!statusJson.IsNullOrEmpty)
+                {
+                    try
+                    {
+                        var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(statusJson);
 
                         // Try to extract last known values from IdleStatus.LastVolumes/LastAmounts
-                        if (lastStatus.TryGetProperty ("Pumps", out var pumpsElement) &&
-                            pumpsElement.TryGetProperty ("IdleStatus", out var idleElement)) {
-                            if (idleElement.TryGetProperty ("LastVolumes", out var volumesElement) &&
-                                volumesElement.ValueKind == JsonValueKind.Array) {
-                                var volumes = volumesElement.EnumerateArray ().ToList ();
+                        if (lastStatus.TryGetProperty("Pumps", out var pumpsElement) &&
+                            pumpsElement.TryGetProperty("IdleStatus", out var idleElement))
+                        {
+                            if (idleElement.TryGetProperty("LastVolumes", out var volumesElement) &&
+                                volumesElement.ValueKind == JsonValueKind.Array)
+                            {
+                                var volumes = volumesElement.EnumerateArray().ToList();
                                 if (volumes.Count > pumpId - 1) // PumpId is 1-based
                                 {
-                                    lastVolume = volumes[pumpId - 1].GetDecimal ();
+                                    lastVolume = volumes[pumpId - 1].GetDecimal();
                                 }
                             }
 
-                            if (idleElement.TryGetProperty ("LastAmounts", out var amountsElement) &&
-                                amountsElement.ValueKind == JsonValueKind.Array) {
-                                var amounts = amountsElement.EnumerateArray ().ToList ();
+                            if (idleElement.TryGetProperty("LastAmounts", out var amountsElement) &&
+                                amountsElement.ValueKind == JsonValueKind.Array)
+                            {
+                                var amounts = amountsElement.EnumerateArray().ToList();
                                 if (amounts.Count > pumpId - 1) // PumpId is 1-based
                                 {
-                                    lastAmount = amounts[pumpId - 1].GetDecimal ();
+                                    lastAmount = amounts[pumpId - 1].GetDecimal();
                                 }
                             }
                         }
-                    } catch (Exception ex) {
-                        _logger.LogDebug ("Error parsing last status for forced completion: {Error}", ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug("Error parsing last status for forced completion: {Error}", ex.Message);
                     }
                 }
 
-                _logger.LogInformation ("[UploadStatus] **FORCE VALUES** - Using last known values - Volume: {Volume}L, Amount: ${Amount}",
+                _logger.LogInformation("[UploadStatus] **FORCE VALUES** - Using last known values - Volume: {Volume}L, Amount: ${Amount}",
                     lastVolume, lastAmount);
 
                 // **CREATE SYNTHETIC EOT** - Create a synthetic EndOfTransaction status for processing
-                var syntheticStatusData = new JObject {
-                    ["Pump"] = pumpId, ["Transaction"] = transactionId, ["Volume"] = lastVolume, ["Amount"] = lastAmount, ["DateTime"] = DateTime.UtcNow, ["ForcedCompletion"] = true, ["CompletionReason"] = reason
+                var syntheticStatusData = new JObject
+                {
+                    ["Pump"] = pumpId,
+                    ["Transaction"] = transactionId,
+                    ["Volume"] = lastVolume,
+                    ["Amount"] = lastAmount,
+                    ["DateTime"] = DateTime.UtcNow,
+                    ["ForcedCompletion"] = true,
+                    ["CompletionReason"] = reason
                 };
 
                 // **TRIGGER COMPLETION** - Process through auto-completion service
-                _ = Task.Run (async () => {
-                    try {
-                        await _autoCompletionService.ProcessEndOfTransactionAsync (
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _autoCompletionService.ProcessEndOfTransactionAsync(
                             deviceId, pumpId, transactionId, syntheticStatusData);
 
-                        _logger.LogInformation ("[UploadStatus] **FORCE SUCCESS** - Forced completion successful for {DeviceId}:{TransactionId}",
+                        _logger.LogInformation("[UploadStatus] **FORCE SUCCESS** - Forced completion successful for {DeviceId}:{TransactionId}",
                             deviceId, transactionId);
-                    } catch (Exception ex) {
-                        _logger.LogError (ex, "[UploadStatus] **FORCE FAILED** - Forced completion failed for {DeviceId}:{TransactionId}",
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[UploadStatus] **FORCE FAILED** - Forced completion failed for {DeviceId}:{TransactionId}",
                             deviceId, transactionId);
                     }
                 });
-            } catch (Exception ex) {
-                _logger.LogError (ex, "[UploadStatus] **FORCE ERROR** - Error in forced completion for {DeviceId}:{TransactionId}",
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] **FORCE ERROR** - Error in forced completion for {DeviceId}:{TransactionId}",
                     deviceId, transactionId);
             }
         }
 
         // Keep TransactionDetails record
-        public record TransactionDetails {
+        public record TransactionDetails
+        {
             // Ensure types match domain model (might be nullable)
             public int? Nozzle { get; init; }
             public int? FuelGradeId { get; init; }

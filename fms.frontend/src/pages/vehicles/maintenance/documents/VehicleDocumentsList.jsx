@@ -15,8 +15,8 @@ import {
   createVehicleDocument,
   updateVehicleDocument,
   deleteVehicleDocument,
-} from "../../../../../api/vehicleDocumentsApi";
-import { getVehicles } from "../../../../../api/vehicleApi";
+} from "../../../../redux/actions/vehicleDocumentActions";
+import { fetchVehicleList } from "../../../../redux/actions/vehicleActions";
 
 const VehicleDocumentsList = () => {
   const [documents, setDocuments] = useState([]);
@@ -32,7 +32,7 @@ const VehicleDocumentsList = () => {
   };
 
   const fetchVehicles = async () => {
-    const response = await getVehicles();
+    const response = await fetchVehicleList();
     if (response.isSuccess) {
       setVehicles(response.data);
     }

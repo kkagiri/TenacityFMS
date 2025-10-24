@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useSignalR } from "./useSignalR";
-import FuelingUtils from "../../components/fuelingprocess/FuelingUtils";
+import FuelingUtils from "../../pages/ATG/fuelingprocess/Components/FuelingUtils";
 
 /**
  * Custom hook to select device-specific data from Redux and SignalR

@@ -1,6 +1,6 @@
 //Cursor - Created Vehicle Edit page with metrics, form, tags, and consumption history
 import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 import { useParams, useNavigate } from 'react-router-dom';
 import ScrollView from 'devextreme-react/scroll-view';
@@ -12,10 +12,10 @@ import notify from 'devextreme/ui/notify';
 import VehicleMetricsTiles from './component/VehicleMetricsTiles';
 import VehicleEditForm from './component/VehicleEditForm';
 import TagAssignmentPopup from './component/TagAssignmentPopup';
-import { VehicleConsumptionHistoryDetails } from './consumption/vehicleConsumptionHistoryDetails';
+import VehicleConsumptionHistory from './component/VehicleConsumptionHistory';
 
 // Services
-import {fetchVehicleList, getVehicleById, updateVehicle, deleteVehicle } from '../../redux/actions/vehicleActions';
+import { getVehicleById, updateVehicle, deleteVehicle } from '../../redux/actions/vehicleActions';
 
 const VehicleEdit = () => {
   const { id } = useParams();
@@ -121,10 +121,6 @@ const VehicleEdit = () => {
 
   const handleTagAssignment = () => {
     setShowTagAssignment(true);
-  };
-
-  const handleConsumptionRowClick = (consumptionId) => {
-    navigate(`/vehicles/${id}/consumption/${consumptionId}/details`);
   };
 
   if (isLoading) {
@@ -344,10 +340,8 @@ const VehicleEdit = () => {
           </div>
         </div>
         <div className="tw-p-4">
-          <VehicleConsumptionHistoryDetails
-            vehicleID={id}
-            startDate={new Date(new Date().setDate(new Date().getDate() - consumptionDays))}
-            onRowClick={handleConsumptionRowClick}
+          <VehicleConsumptionHistory
+            vehicleId={id}
           />
         </div>
       </div>

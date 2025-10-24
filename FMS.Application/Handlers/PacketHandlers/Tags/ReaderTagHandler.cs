@@ -16,9 +16,9 @@ namespace FMS.Application.Handlers.PacketHandlers.Tags
         public string PacketType => "ReaderTag"; //reduntant as it is already defined in the attribute
 
         private readonly ILogger<ReaderTagHandler> _logger;
-        private readonly IHubContext<FrontEndHub> _hubContext;
+        private readonly IHubContext<PTSHub> _hubContext;
 
-        public ReaderTagHandler(ILogger<ReaderTagHandler> logger, IHubContext<FrontEndHub> hubContext)
+        public ReaderTagHandler(ILogger<ReaderTagHandler> logger, IHubContext<PTSHub> hubContext)
         {
             _logger = logger;
             _hubContext = hubContext;

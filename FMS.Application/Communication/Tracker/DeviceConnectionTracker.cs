@@ -13,6 +13,8 @@ using StackExchange.Redis;
 using static FMS.Application.Communication.DeviceConnectionTracker;
 using FMS.Application.Communication.Tracker.Common;
 using FMS.Application.Communication.Tracker.Common;
+using System.Net;
+using System.Runtime.Remoting;
 
 namespace FMS.Application.Communication
 {
@@ -23,12 +25,12 @@ namespace FMS.Application.Communication
     public class DeviceConnectionTracker
     {
         private readonly ILogger<DeviceConnectionTracker> _logger;
-        private readonly IHubContext<FrontEndHub> _hubContext;
+        private readonly IHubContext<PTSHub> _hubContext;
         private readonly IDatabase _redisDb;
         private const string WebSocketConnectionHashKey = "device:websocket-connections"; // Hash for WebSocket connections
         private const string HttpConnectionHashKey = "device:http-connections"; // Hash for HTTP connections
 
-        public DeviceConnectionTracker(ILogger<DeviceConnectionTracker> logger, IHubContext<FrontEndHub> hubContext, IConnectionMultiplexer redisConnection)
+        public DeviceConnectionTracker(ILogger<DeviceConnectionTracker> logger, IHubContext<PTSHub> hubContext, IConnectionMultiplexer redisConnection)
         {
             _logger = logger ??
                 throw new ArgumentNullException(nameof(logger));
@@ -482,6 +484,101 @@ namespace FMS.Application.Communication
             }
         }
 
+        /// <summary>
+        /// Gets the count of currently connected devices
+        /// </summary>
+        /// <returns></returns>
+        public async Task<int> GetConnectedDeviceCount()
+        {
+            try
+            {
+                var summary = await GetConnectedDevices(autoRemoveStale: false);
+                return summary.TotalConnectedDevices;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting connected device count.");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Get the detail status of a specific deveinclud inlcude both websocket and http connection info
+        /// </summary>
+        /// <param name="deviceId"></param>
+        /// <returns></returns>
+        ///
+        public async Task<object> GetDeviceStatus(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                _logger.LogWarning("GetDeviceStatus called with empty deviceId.");
+                return null;
+            }
+            try
+            {
+                var wsInfo = await GetWebSocketConnection(deviceId);
+                var httpInfo = await GetHttpConnection(deviceId);
+                if (wsInfo == null && httpInfo == null)
+                {
+                    _logger.LogInformation("No connection info found for device {DeviceId}.", deviceId);
+                    return null;
+                }
+
+                var connectionMode = DetermineConnectionMode(wsInfo, httpInfo);
+
+                var status = new
+                {
+                    DeviceId = deviceId,
+                    ConnectionMode = connectionMode.ToString(),
+                    WebSocketConnection = wsInfo != null ? new
+                    {
+                        status = wsInfo.Status.ToString(),
+                        lastMessageAt = wsInfo.LastMessageAt,
+                        ipAddress = wsInfo.IpAddress,
+                        connectedAt = wsInfo.ConnectedAt
+
+                    } : null,
+                    HttpConnection = httpInfo != null ? new
+                    {
+                        lastPollTime = httpInfo.LastPollTime,
+                        lastStatusUpdate = httpInfo.LastStatusUpdate,
+                        lastKnownIp = httpInfo.LastKnownIp,
+                        successfulPolls = httpInfo.SuccessfulPolls
+                    } : null,
+                    lastActivity = GetLastActivityTime(wsInfo, httpInfo)
+                };
+
+                return status;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device status for {DeviceId}.", deviceId);
+                return null;
+            }
+        }
+
+        private object GetLastActivityTime(WebSocketConnectionInfo? wsInfo, HttpConnectionInfo? httpInfo)
+        {
+            DateTime lastActivity = DateTime.MinValue;
+            if (wsInfo != null)
+            {
+                lastActivity = wsInfo.LastMessageAt > lastActivity ? wsInfo.LastMessageAt : lastActivity;
+            }
+            if (httpInfo != null)
+            {
+                var httpLastActivity = httpInfo.LastStatusUpdate > httpInfo.LastPollTime
+                                   ? httpInfo.LastStatusUpdate
+                                   : httpInfo.LastPollTime;
+
+                if (httpLastActivity > lastActivity)
+                {
+                    lastActivity = httpLastActivity;
+                }
+            }
+            return lastActivity;
+        }
+
         public async Task UpdateWebSocketLastMessageTime(string deviceId)
         {
             if (string.IsNullOrEmpty(deviceId))
@@ -542,5 +639,7 @@ namespace FMS.Application.Communication
                 _logger.LogWarning(ex, "Failed to broadcast single device status update for {DeviceId}", deviceId);
             }
         }
+
+
     }
 }

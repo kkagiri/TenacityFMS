@@ -1,0 +1,69 @@
+.import-calendar-popup {
+  .dx-scheduler-appointment {
+    @apply tw-rounded tw-shadow-sm;
+
+    // Ensure white text on colored backgrounds
+    color: white !important;
+
+    * {
+      color: white !important;
+    }
+  }
+
+  .custom-appointment {
+    @apply tw-p-2 tw-h-full tw-overflow-hidden;
+    color: white !important;
+
+    * {
+      color: white !important;
+    }
+  }
+
+  // Tooltip styling - make it compact
+  .dx-scheduler-appointment-tooltip-wrapper {
+    @apply tw-shadow-lg tw-rounded-lg;
+    max-width: 350px !important;
+    min-width: 250px !important;
+    width: auto !important;
+  }
+
+  .dx-overlay-content {
+    max-width: 350px !important;
+    min-width: 250px !important;
+    width: auto !important;
+  }
+
+  .dx-popup-content {
+    max-width: 350px !important;
+    width: auto !important;
+  }
+
+  // Override DevExtreme default styles
+  .dx-scheduler {
+    @apply tw-border-0;
+  }
+
+  .dx-scheduler-header-panel {
+    @apply tw-bg-gray-50;
+  }
+
+  .dx-scheduler-date-table-cell {
+    &:hover {
+      @apply tw-bg-blue-50;
+    }
+  }
+
+  .dx-scheduler-appointment {
+    &.dx-state-hover {
+      @apply tw-opacity-90;
+    }
+  }
+
+  // Compact appointment collector ("+N more" button)
+  .dx-scheduler-appointment-collector {
+    @apply tw-text-xs tw-font-medium;
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    color: #007bff !important;
+    border: 1px solid #007bff !important;
+  }
+}

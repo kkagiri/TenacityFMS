@@ -12,58 +12,46 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using StackExchange.Redis;
 using System.Text;
 using FMS.Application.Infrastructure.Services.Authentication;
-using FMS.Application.Command.DatabaseCommand.UserManagement; // LoginCommand location
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget services
 using FMS.Application.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
-using FMS.Application.Features.AutomatedReconciliation.Services;
-using FMS.BackgroundServices;
+
 using FMS.BackgroundServices.ActiveAlarmProcessing;
 using FMS.BackgroundServices.FMS;
-using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
-using FMS.WebClient.Util;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Features.Notification.Services.Businessfunction;
-using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication.Redis;
-using FMS.Application.Communication.SignalR;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.Features.Vehicle.Services;
-using FMS.Application.Communication.HttpPolling;
-using FMS.Application.Infrastructure.DistCacheTracker;
+
 using FMS.Application.Command.PTSCommand.Common;
 // Removed incorrect Tracker namespace import; DeviceConnectionTracker lives directly under FMS.Application.Communication
 using FMS.Application.Communication.Connection;
 using FMS.Application.PTSServices.PumpService;
 using FMS.PTS.WindowsService.Services.Pump;
-using FMS.WebClient.Signal;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
+
 using FMS.Application.Communication;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
+using FMS.Application.CommonInterface;
+using FMS.Infrastructure.Services;
+using FMS.BackgroundServices.VehicleDocumentNotifier;
 
 namespace FMS.WebClient.Extensions;
 
@@ -349,6 +337,7 @@ public static class FmsServiceCollectionExtensions
         // Register SignalR connection monitor for FrontEndHub
         services.AddSingleton<FMS.Application.Communication.SignalR.ConnectionMonitor>();
         services.AddScoped<ISystemUserService, SystemUserService>();
+        services.AddScoped<IFileHandlingService, FileHandlingService>();
 
         // Vehicle & GPS Services
         services.AddScoped<IGPSService, GPSGateService>();
@@ -374,9 +363,10 @@ public static class FmsServiceCollectionExtensions
 
         // Tank Management Services
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
-
+        services.AddHostedService<DailyTankReconciliationService>();
         services.AddHostedService<SystemUserInitializationService>();
         services.AddHostedService<NotificationBackgroundService>();
+        services.AddHostedService<VehicleDocumentExpiryNotifierService>();
         services.AddHostedService<TankMonitoringService>();
         services.AddHostedService<AutomatedReconciliationBackgroundService>();
         services.AddHostedService<ActiveAlarmProcessingService>();

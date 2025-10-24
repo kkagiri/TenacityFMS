@@ -9,7 +9,7 @@ import {
   fetchPTSDeviceList,
 } from "../../redux/actions/ptsActions/ptsDeviceActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
-import SignalRService from "../../signalR/SignalRService";
+//import SignalRService from "../../signalR/SignalRService";
 import LiveStatusControl from "../../components/LiveStatus/LiveStatusControl";
 import "./PTSDashboard.scss";
 
@@ -67,7 +67,7 @@ const PTSDashboard = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    const signalRService = SignalRService;
+    //const signalRService = SignalRService; switch to ptssignalrservice later
 
     const initializeConnection = async () => {
       setIsLoading(true);
@@ -85,7 +85,7 @@ const PTSDashboard = () => {
         });
 
       try {
-        await signalRService.startConnection();
+        //await signalRService.startConnection(); switch to ptssignalrservice later
         console.log("SignalR connected");
       } catch (error) {
         console.error("Failed to connect to SignalR:", error);
@@ -103,7 +103,7 @@ const PTSDashboard = () => {
     }, 15000); // Increased to 15 seconds from 5 seconds
 
     return () => {
-      signalRService.stopConnection();
+      //signalRService.stopConnection(); //switch to ptssignalrservice later
       clearInterval(refreshInterval);
     };
   }, [dispatch, realtimeStatus.isLiveDataEnabled]);

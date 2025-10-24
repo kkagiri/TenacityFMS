@@ -1,7 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-
-reducer currently located and src/redux/reducer folder

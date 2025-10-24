@@ -160,9 +160,10 @@ class DataSourceService {
         ...options
       };
 
-      // Ensure SignalR connection is active
+      // Ensure SignalR connection is active (should be managed by SignalRConnectionManager)
       if (!dashboardSignalRService.isConnected) {
-        console.log('[DataSource] SignalR not connected, attempting to connect...');
+        console.log('[DataSource] SignalR not connected, attempting fallback start...');
+        console.warn('[DataSource] Connection should be managed by SignalRConnectionManager based on route');
         await dashboardSignalRService.start();
       }
 

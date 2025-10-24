@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { TabPanel } from "devextreme-react/tab-panel";
+import Tabs from "devextreme-react/tabs";
 import Button from "devextreme-react/button";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
@@ -14,8 +14,7 @@ import VehicleConsumptionHistory from "./component/VehicleConsumptionHistory";
 import VehicleMaintenanceHistory from "./component/VehicleMaintenanceHistory";
 import VehicleFuelingHistory from "./component/VehicleFuelingHistory";
 import VehicleSchedules from "./component/VehicleSchedules";
-import VehicleInsurance from "./component/VehicleInsurance";
-import VehicleLicense from "./component/VehicleLicense";
+import VehicleDocumentsList from "./component/VehicleDocumentsList";
 
 // Import popup components
 import TagAssignmentForm from "../../components/Tags/TagAssignmentForm/TagAssignmentForm";
@@ -182,7 +181,7 @@ const VehicleDetails = () => {
   // Handle tab selection with loading state - Optimized for lazy loading
   const handleTabSelectionChange = useCallback(
     (e) => {
-      const newTabIndex = e.selectedIndex;
+      const newTabIndex = e.itemIndex;
       setActiveTab(newTabIndex);
 
       // Only set loading state if we haven't loaded this tab's data before
@@ -267,20 +266,13 @@ const VehicleDetails = () => {
     );
   }, [vehicle, id, tabLoadingStates]);
 
-  const insuranceComponent = useMemo(() => {
+  const documentsComponent = useMemo(() => {
     if (!vehicle || tabLoadingStates[5]) return null;
     return (
-      <VehicleInsurance
-        key={`insurance-${vehicle?.vehicleId}`}
+      <VehicleDocumentsList
+        key={`documents-${vehicle?.vehicleId}`}
         vehicleId={id}
       />
-    );
-  }, [vehicle, id, tabLoadingStates]);
-
-  const licenseComponent = useMemo(() => {
-    if (!vehicle || tabLoadingStates[6]) return null;
-    return (
-      <VehicleLicense key={`license-${vehicle?.vehicleId}`} vehicleId={id} />
     );
   }, [vehicle, id, tabLoadingStates]);
 
@@ -335,18 +327,11 @@ const VehicleDetails = () => {
           : schedulesComponent,
       },
       {
-        title: "Insurance",
-        icon: "fa-solid fa-shield-check",
+        title: "Documents",
+        icon: "fa-solid fa-file-lines",
         component: tabLoadingStates[5]
-          ? loadingSpinner("insurance info")
-          : insuranceComponent,
-      },
-      {
-        title: "Licenses",
-        icon: "fa-solid fa-id-card",
-        component: tabLoadingStates[6]
-          ? loadingSpinner("license info")
-          : licenseComponent,
+          ? loadingSpinner("documents")
+          : documentsComponent,
       },
     ];
   }, [
@@ -356,10 +341,25 @@ const VehicleDetails = () => {
     maintenanceHistoryComponent,
     fuelingHistoryComponent,
     schedulesComponent,
-    insuranceComponent,
-    licenseComponent,
+    documentsComponent,
     tabLoadingStates,
   ]);
+
+  const renderTabItem = (item) => {
+    return (
+      <div className="tw-flex tw-items-center tw-gap-2">
+        <i className={item.icon}></i>
+        <span className="tw-hidden md:tw-inline">{item.title}</span>
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    const activeComponent = tabItems[activeTab]?.component;
+    return activeComponent ? (
+      <div className="tw-p-4 md:tw-p-6">{activeComponent}</div>
+    ) : null;
+  };
 
   if (isLoading) {
     return (
@@ -501,24 +501,15 @@ const VehicleDetails = () => {
 
       {/* Tabs Section */}
       <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200">
-        <TabPanel
+        <Tabs
           dataSource={tabItems}
-          scrollByContent={true}
           selectedIndex={activeTab}
-          onSelectionChanged={handleTabSelectionChange}
-          animationEnabled={true}
-          swipeEnabled={true}
-          showNavButtons={true}
-          itemTitleRender={(item) => (
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <i className={item.icon}></i>
-              <span className="tw-hidden md:tw-inline">{item.title}</span>
-            </div>
-          )}
-          itemRender={(item) => (
-            <div className="tw-p-4 md:tw-p-6">{item.component}</div>
-          )}
+          onItemClick={handleTabSelectionChange}
+          width="100%"
+          className="tw-mb-4"
+          itemRender={renderTabItem}
         />
+        <div className="tw-p-4">{renderContent()}</div>
       </div>
 
       {/* Popup Forms */}

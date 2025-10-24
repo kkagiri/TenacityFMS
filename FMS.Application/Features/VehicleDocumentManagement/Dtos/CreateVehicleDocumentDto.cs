@@ -23,11 +23,15 @@ public class CreateVehicleDocumentDto
     [Required]
     public DateTime ExpiryDate { get; set; }
 
+    [Required]
     [MaxLength(200)]
     public string IssuingAuthority { get; set; }
 
     [MaxLength(1000)]
     public string Notes { get; set; }
 
+    public string UserId { get; set; }
+
+    [Required]
     public IFormFile DocumentFile { get; set; }
 }

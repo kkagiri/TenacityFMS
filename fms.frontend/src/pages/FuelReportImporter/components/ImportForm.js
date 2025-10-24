@@ -109,11 +109,29 @@ const ImportForm = ({
                 ))}
               </Form.Control>
             )}
-            {siteSelectionMode === "auto" && (
+            {siteSelectionMode === "auto" && !selectedSite && (
               <div className="tw-text-sm tw-text-gray-600 tw-bg-blue-50 tw-p-2 tw-rounded tw-border tw-border-blue-100">
                 <i className="fa-light fa-info-circle tw-mr-1 tw-text-blue-500"></i>
                 Site will be detected from the filename when a file is uploaded.
               </div>
+            )}
+            {siteSelectionMode === "auto" && selectedSite && (
+              <Form.Control
+                as="select"
+                value={selectedSite}
+                onChange={(e) => {
+                  setSelectedSite(e.target.value);
+                }}
+                required
+                className="tw-w-full tw-border-gray-300 tw-rounded-md tw-shadow-sm focus:tw-ring-blue-500 focus:tw-border-blue-500"
+              >
+                <option value="">Select Site</option>
+                {sites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name}
+                  </option>
+                ))}
+              </Form.Control>
             )}
           </Form.Group>
         )}

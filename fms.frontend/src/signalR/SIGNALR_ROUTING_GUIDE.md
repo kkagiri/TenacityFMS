@@ -1,7 +1,16 @@
 # SignalR Route-Based Connection Management Guide
 
+> **📖 For comprehensive documentation, see:** `Documentation/Frontend/SignalR-URL-Based-Routing.md`
+
+## Quick Reference
+
+This guide provides a quick reference for the SignalR routing system. For detailed implementation details, architecture, and best practices, refer to the comprehensive documentation.
+
 ## Overview
+
 The SignalR routing system automatically manages SignalR connections based on the current application route, ensuring optimal network usage and performance.
+
+**Key Principle**: The `SignalRConnectionManager` controls all SignalR service lifecycle based on URL patterns. Individual components should NOT manually start/stop services.
 
 ## Architecture Components
 

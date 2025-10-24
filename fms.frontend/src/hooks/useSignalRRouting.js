@@ -42,6 +42,7 @@ export const useSignalRRouting = (options = {}) => {
         prevStatus.currentPath !== status.currentPath ||
         prevStatus.dashboardConnected !== status.dashboardConnected ||
         prevStatus.ptsConnected !== status.ptsConnected ||
+        prevStatus.businessConnected !== status.businessConnected ||
         JSON.stringify(prevStatus.activeServices) !== JSON.stringify(status.activeServices);
 
       if (hasChanged) {
@@ -189,6 +190,7 @@ export const useSignalRRouting = (options = {}) => {
     // Connection states
     isDashboardConnected: connectionStatus.dashboardConnected,
     isPtsConnected: connectionStatus.ptsConnected,
+    isBusinessConnected: connectionStatus.businessConnected,
     activeServices: connectionStatus.activeServices,
 
     // Methods

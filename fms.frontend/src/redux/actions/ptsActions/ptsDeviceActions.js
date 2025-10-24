@@ -44,7 +44,7 @@ export const fetchPTSDeviceList = () => async (dispatch) => {
     // Dispatch request action to set loading state
     dispatch({ type: "FETCH_PTS_DEVICE_LIST_REQUEST" });
 
-    const response = await axiosInstance.get("/PTSDevice");
+    const response = await axiosInstance.get("/ptsdevice");
     dispatch({
       type: FETCH_PTS_DEVICE_LIST_SUCCESS,
       payload: response.data,
