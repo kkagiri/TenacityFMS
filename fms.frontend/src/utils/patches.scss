@@ -16,7 +16,8 @@
       background-color: $base-bg;
     }
   
-    .dx-overlay-content {
+    // FIX: Only target drawer panel overlay, not all overlays (was affecting DateBox popups)
+    .dx-drawer-panel-content > .dx-overlay-content {
       width: $menuMinSize !important;
     }
 }

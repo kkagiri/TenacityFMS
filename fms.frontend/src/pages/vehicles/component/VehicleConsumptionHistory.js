@@ -1,75 +1,347 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { DataGrid } from 'devextreme-react/data-grid';
-import { Column, Paging, FilterRow, SearchPanel, Export, Selection, LoadPanel } from 'devextreme-react/data-grid';
+/**
+ * File: VehicleConsumptionHistory.js
+ * Purpose: Render vehicle fuel consumption history with filtering and detail views.
+ * Dependencies: react, react-redux, devextreme-react components, notify
+ * Last Modified: 2025-10-26 - NUCLEAR OPTION: Imperative DataGrid Implementation
+ *
+ * Key Functions/Components:
+ * - VehicleConsumptionHistory: Main component managing filters, grid data, and details modal
+ * - loadConsumptionHistory(): Fetches consumption data and normalizes it for the grid
+ * - handleApplyFilter(): Triggers a data reload based on selected date range
+ *
+ * CRITICAL: Uses ImperativeDataGrid to bypass React reconciliation conflicts
+ */
+
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { DateBox } from 'devextreme-react/date-box';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
 
-// Components
+import ImperativeDataGrid from './ImperativeDataGrid';
+import ConsumptionTrendChart from './ConsumptionTrendChart';
 import VehicleConsumptionHistoryDetails from './vehicleConsumptionHistoryDetails';
+import { fetchVehicleConsumptionHistory, clearVehicleConsumptionHistory } from '../../../redux/actions/vehicleActions';
 
-// Redux actions
-import { fetchVehicleConsumptionHistory } from '../../../redux/actions/vehicleActions';
 
 const VehicleConsumptionHistory = ({ vehicleId }) => {
   const dispatch = useDispatch();
+
+  // Memoize selectors to prevent new array references
+  const consumptionData = useSelector(
+    state => state.vehicle.consumptionHistory || [],
+    (prev, next) => prev === next
+  );
+  const isLoading = useSelector(state => state.vehicle.consumptionHistoryLoading);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔄 VehicleConsumptionHistory rendered', {
+      vehicleId,
+      dataLength: consumptionData.length,
+      isLoading,
+      consumptionDataRef: consumptionData
+    });
+  });
+
+  // Track when vehicleId prop changes
+  const prevVehicleIdRef = useRef(vehicleId);
+  useEffect(() => {
+    if (prevVehicleIdRef.current !== vehicleId) {
+      console.log('🆔 vehicleId prop changed:', prevVehicleIdRef.current, '→', vehicleId);
+      prevVehicleIdRef.current = vehicleId;
+    }
+  }, [vehicleId]);
+
   const [dateFrom, setDateFrom] = useState(new Date(new Date().setDate(new Date().getDate() - 30)));
   const [dateTo, setDateTo] = useState(new Date());
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [detailsVisible, setDetailsVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [consumptionData, setConsumptionData] = useState([]);
-  const dataLoadedRef = useRef(false); // Use ref instead of state to avoid dependency issues
+  const loadingRef = useRef(false);
+  const requestControllerRef = useRef(null);
+  const debounceRef = useRef(null);
+  const dataSignatureRef = useRef('');
+  const loadConsumptionHistoryRef = useRef(null);
 
-  // Redux state
-  const consumptionHistory = useSelector((state) => state.vehicle.consumptionHistory);
+  // DataGrid selection state
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
-  // Memoize the loadConsumptionHistory function to prevent recreating on every render
-  const loadConsumptionHistory = useCallback(async (forceReload = false) => {
-    // Skip loading if already loaded and not forced to reload
-    if (!vehicleId || (dataLoadedRef.current && !forceReload)) return;
+  // Define columns configuration for imperative DataGrid
+  const gridColumns = useMemo(() => [
+    {
+      dataField: 'date',
+      caption: 'Date',
+      dataType: 'date',
+      format: 'dd/MM/yyyy',
+      width: 110,
+      allowSorting: true,
+      sortOrder: 'desc'
+    },
+    { dataField: 'site', caption: 'Site', width: 150 },
+    { dataField: 'employee', caption: 'Driver/Operator', width: 150 },
+    { dataField: 'fuelType', caption: 'Fuel Type', width: 120 },
+    {
+      dataField: 'totalDistance',
+      caption: 'Distance (km)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 120
+    },
+    {
+      dataField: 'totalFuel',
+      caption: 'Fuel Used (L)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 120
+    },
+    {
+      dataField: 'avgEfficiency',
+      caption: 'Avg Efficiency',
+      width: 140,
+      calculateCellValue: (rowData) => {
+        if (rowData.isAverageKm && rowData.totalDistance > 0 && rowData.totalFuel > 0) {
+          const efficiency = rowData.totalDistance / rowData.totalFuel;
+          return `${efficiency.toFixed(2)} km/L`;
+        } else if (!rowData.isAverageKm && rowData.engHours > 0 && rowData.totalFuel > 0) {
+          const efficiency = rowData.totalFuel / rowData.engHours;
+          return `${efficiency.toFixed(2)} L/hr`;
+        }
+        return 'N/A';
+      }
+    },
+    {
+      dataField: 'openingMeter',
+      caption: 'Opening Meter',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 130
+    },
+    {
+      dataField: 'closingMeter',
+      caption: 'Closing Meter',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 130
+    },
+    {
+      dataField: 'engHours',
+      caption: 'Engine Hours',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 120
+    },
+    {
+      dataField: 'openingFuelLevel',
+      caption: 'Opening Fuel (L)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 140
+    },
+    {
+      dataField: 'closingFuelLevel',
+      caption: 'Closing Fuel (L)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 140
+    },
+    {
+      dataField: 'fuelLost',
+      caption: 'Fuel Lost (L)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 120,
+      cellRender: (cellData) => {
+        const value = cellData.value || 0;
+        const className = value > 0 ? 'tw-text-red-600 tw-font-semibold' : '';
+        return `<span class="${className}">${value.toFixed(2)}</span>`;
+      }
+    },
+    {
+      dataField: 'excessFuel',
+      caption: 'Excess Fuel (L)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 140,
+      cellRender: (cellData) => {
+        const value = cellData.value || 0;
+        const className = value > 0 ? 'tw-text-green-600 tw-font-semibold' : '';
+        return `<span class="${className}">${value.toFixed(2)}</span>`;
+      }
+    },
+    {
+      dataField: 'stockReceived',
+      caption: 'Stock Received (L)',
+      dataType: 'number',
+      format: { type: 'fixedPoint', precision: 2 },
+      width: 150
+    },
+    { dataField: 'remarks', caption: 'Remarks', width: 200 }
+  ], []);
+
+  // Selected rows data (fallback to all rows when nothing explicitly selected)
+  const selectedData = useMemo(() => {
+    if (!consumptionData || consumptionData.length === 0) return [];
+    if (!selectedRowKeys || selectedRowKeys.length === 0) return consumptionData;
+    const keySet = new Set(selectedRowKeys);
+    return consumptionData.filter(item => keySet.has(item.rowKey));
+  }, [consumptionData, selectedRowKeys]);
+
+  // Calculate summary statistics based on selected rows
+  const summaryStats = useMemo(() => {
+    if (!selectedData || selectedData.length === 0) {
+      return {
+        totalDistance: 0,
+        totalFuel: 0,
+        totalFuelLost: 0,
+        totalEngineHours: 0,
+        avgEfficiencyKmL: 0,
+        avgEfficiencyLHr: 0,
+        numberOfDays: 0,
+        kmLCount: 0,
+        lHrCount: 0
+      };
+    }
+
+    const uniqueDates = new Set(selectedData.map(item =>
+      new Date(item.date).toDateString()
+    ));
+
+    // Separate km/L and L/hr records for proper averaging
+    const kmLRecords = selectedData.filter(item =>
+      item.isAverageKm && item.totalDistance > 0 && item.totalFuel > 0
+    );
+    const lHrRecords = selectedData.filter(item =>
+      !item.isAverageKm && item.engHours > 0 && item.totalFuel > 0
+    );
+
+    // Calculate km/L average (ignore records with 0 distance or fuel)
+    const avgKmL = kmLRecords.length > 0
+      ? kmLRecords.reduce((sum, item) => sum + (item.totalDistance / item.totalFuel), 0) / kmLRecords.length
+      : 0;
+
+    // Calculate L/hr average (ignore records with 0 engine hours or fuel)
+    const avgLHr = lHrRecords.length > 0
+      ? lHrRecords.reduce((sum, item) => sum + (item.totalFuel / item.engHours), 0) / lHrRecords.length
+      : 0;
+
+    return {
+      totalDistance: selectedData.reduce((sum, item) => sum + (item.totalDistance || 0), 0),
+      totalFuel: selectedData.reduce((sum, item) => sum + (item.totalFuel || 0), 0),
+      totalFuelLost: selectedData.reduce((sum, item) => sum + (item.fuelLost || 0), 0),
+      totalEngineHours: selectedData.reduce((sum, item) => sum + (item.engHours || 0), 0),
+      avgEfficiencyKmL: avgKmL,
+      avgEfficiencyLHr: avgLHr,
+      numberOfDays: uniqueDates.size,
+      kmLCount: kmLRecords.length,
+      lHrCount: lHrRecords.length
+    };
+  }, [selectedData]);
+
+  // Auto-select all rows on initial load or when dataset changes
+  useEffect(() => {
+    const allKeys = (consumptionData || []).map(item => item.rowKey);
+    const signature = `${allKeys.length}|${allKeys.join('|')}`;
+    if (!allKeys.length) return;
+    if (signature !== dataSignatureRef.current) {
+      dataSignatureRef.current = signature;
+      setSelectedRowKeys(allKeys);
+    }
+  }, [consumptionData]);
+
+  const loadConsumptionHistory = useCallback(async () => {
+    if (!vehicleId || loadingRef.current) return;
 
     try {
-      setIsLoading(true);
+      loadingRef.current = true;
 
-      // Only execute the fetch if we need to
-      const response = await dispatch(fetchVehicleConsumptionHistory({
-        vehicleId,
-        dateFrom: dateFrom.toISOString(),
-        dateTo: dateTo.toISOString()
-      }));
+      // Cancel any in-flight request before starting a new one
+      if (requestControllerRef.current) {
+        try { requestControllerRef.current.abort(); } catch (_) {}
+      }
+      const controller = new AbortController();
+      requestControllerRef.current = controller;
 
-      if (response?.success) {
-        // Convert ISO strings back to Date objects for DevExtreme components
-        const processedData = (response.data || []).map(item => ({
-          ...item,
-          date: item.date ? new Date(item.date) : null
-        }));
-        setConsumptionData(processedData);
-        dataLoadedRef.current = true; // Mark as loaded
-      } else {
-        throw new Error(response?.message || 'Failed to load consumption history');
+      const diffTime = Math.abs(dateTo - dateFrom);
+      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const entry = Number.isFinite(days) ? Math.max(5, Math.min(30, days)) : 5;
+
+      const response = await dispatch(
+        fetchVehicleConsumptionHistory(
+          {
+            vehicleId: parseInt(vehicleId),
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+            entry: entry
+          },
+          { signal: controller.signal }
+        )
+      );
+
+      if (!response?.success) {
+        notify(response?.message || 'Failed to load consumption history', 'error', 3000);
       }
     } catch (error) {
       console.error('Error loading consumption history:', error);
       notify(error.message || 'Failed to load consumption history', 'error', 3000);
-      setConsumptionData([]); // Set empty array on error
     } finally {
-      setIsLoading(false);
+      loadingRef.current = false;
+      if (!requestControllerRef.current?.signal?.aborted) {
+        requestControllerRef.current = null;
+      }
     }
   }, [dispatch, vehicleId, dateFrom, dateTo]);
 
-  // Only load data when vehicleId changes initially
+  // Store stable reference
   useEffect(() => {
-    if (vehicleId && !dataLoadedRef.current) { // Only load if not already loaded
-      loadConsumptionHistory();
+    loadConsumptionHistoryRef.current = loadConsumptionHistory;
+  }, [loadConsumptionHistory]);
+
+  useEffect(() => {
+    if (vehicleId) {
+      // Debounced load on vehicle switch to avoid races during fast navigation
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        loadConsumptionHistoryRef.current?.();
+      }, 200);
     }
-  }, [vehicleId, loadConsumptionHistory]);
+
+    return () => {
+      // Cancel in-flight requests and clear state between vehicle switches/unmount
+      if (requestControllerRef.current) {
+        try { requestControllerRef.current.abort(); } catch (_) {}
+        requestControllerRef.current = null;
+      }
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      dispatch(clearVehicleConsumptionHistory());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleId, dispatch]);
 
   const handleRefresh = useCallback(() => {
-    dataLoadedRef.current = false; // Reset data loaded flag to allow reloading
-    loadConsumptionHistory(true); // Force reload
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      if (!loadingRef.current) {
+        loadConsumptionHistory();
+      }
+    }, 200);
+  }, [loadConsumptionHistory]);
+
+  const handleApplyFilter = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      if (!loadingRef.current) {
+        loadConsumptionHistory();
+      }
+    }, 200);
   }, [loadConsumptionHistory]);
 
   const handleRowClick = useCallback((e) => {
@@ -77,32 +349,10 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
     setDetailsVisible(true);
   }, []);
 
-  const onDetailsClose = useCallback(() => {
+  const handleCloseDetails = useCallback(() => {
     setDetailsVisible(false);
     setSelectedRecord(null);
   }, []);
-
-  const formatCurrency = useCallback((value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value || 0);
-  }, []);
-
-  const formatDate = useCallback((value) => {
-    return value ? new Date(value).toLocaleDateString() : '';
-  }, []);
-
-  const calculateEfficiency = useCallback((distance, fuelUsed) => {
-    if (!distance || !fuelUsed || fuelUsed === 0) return 0;
-    return (distance / fuelUsed).toFixed(2);
-  }, []);
-
-  // Handle date filter changes
-  const handleApplyFilter = useCallback(() => {
-    dataLoadedRef.current = false; // Reset data loaded flag to allow reloading
-    loadConsumptionHistory(true); // Force reload
-  }, [loadConsumptionHistory]);
 
   return (
     <div className="vehicle-consumption-history">
@@ -111,7 +361,6 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
           Fuel Consumption History
         </h3>
 
-        {/* Date Range Filter */}
         <div className="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center tw-gap-4 tw-mb-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg">
           <div className="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start tw-gap-4">
             <div className="tw-flex tw-items-center tw-gap-2">
@@ -150,197 +399,127 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
               stylingMode="text"
               disabled={isLoading}
             />
+            {isLoading && (
+              <span className="tw-text-sm tw-text-gray-500 tw-ml-2">Loading…</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Data Grid */}
-      <DataGrid
-        dataSource={consumptionData}
-        keyExpr="id"
-        showBorders={true}
-        showRowLines={true}
-        showColumnLines={true}
-        allowColumnReordering={true}
-        allowColumnResizing={true}
-        columnAutoWidth={true}
+      {/* IMPERATIVE DATAGRID - Manages lifecycle outside React */}
+      <ImperativeDataGrid
+        data={consumptionData}
         onRowClick={handleRowClick}
-        height={500}
-      >
-        <LoadPanel enabled={isLoading} />
+        selectedRowKeys={selectedRowKeys}
+        onSelectionChanged={(e) => setSelectedRowKeys(e.selectedRowKeys)}
+        columns={gridColumns}
+      />
 
-        <Column
-          dataField="date"
-          caption="Date"
-          dataType="date"
-          format="dd/MM/yyyy"
-          width={100}
-          allowSorting={true}
-          cellRender={(cellData) => formatDate(cellData.value)}
-        />
-
-        <Column
-          dataField="startLocation"
-          caption="Start Location"
-          width={150}
-        />
-
-        <Column
-          dataField="endLocation"
-          caption="End Location"
-          width={150}
-        />
-
-        <Column
-          dataField="distance"
-          caption="Distance (km)"
-          dataType="number"
-          format="#,##0.00"
-          width={120}
-          alignment="right"
-        />
-
-        <Column
-          dataField="fuelUsed"
-          caption="Fuel Used (L)"
-          dataType="number"
-          format="#,##0.00"
-          width={120}
-          alignment="right"
-        />
-
-        <Column
-          caption="Efficiency (km/L)"
-          width={130}
-          alignment="right"
-          cellRender={(cellData) => {
-            const efficiency = calculateEfficiency(cellData.data.distance, cellData.data.fuelUsed);
-            return (
-              <span className={`tw-font-medium ${
-                efficiency > 10 ? 'tw-text-green-600' :
-                efficiency > 7 ? 'tw-text-yellow-600' :
-                'tw-text-red-600'
-              }`}>
-                {efficiency} km/L
-              </span>
-            );
-          }}
-        />
-
-        <Column
-          dataField="fuelCost"
-          caption="Fuel Cost"
-          dataType="number"
-          width={120}
-          alignment="right"
-          cellRender={(cellData) => formatCurrency(cellData.value)}
-        />
-
-        <Column
-          dataField="driverName"
-          caption="Driver"
-          width={150}
-        />
-
-        <Column
-          dataField="purpose"
-          caption="Purpose"
-          width={200}
-        />
-
-        <Column
-          dataField="status"
-          caption="Status"
-          width={100}
-          cellRender={(cellData) => {
-            const status = cellData.value;
-            const statusColors = {
-              'Completed': 'tw-bg-green-100 tw-text-green-800',
-              'Pending': 'tw-bg-yellow-100 tw-text-yellow-800',
-              'Cancelled': 'tw-bg-red-100 tw-text-red-800'
-            };
-
-            return (
-              <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${
-                statusColors[status] || 'tw-bg-gray-100 tw-text-gray-800'
-              }`}>
-                {status}
-              </span>
-            );
-          }}
-        />
-
-        <Paging enabled={true} pageSize={20} />
-        <FilterRow visible={true} />
-        <SearchPanel visible={true} width={240} placeholder="Search consumption records..." />
-        <Export enabled={true} fileName="vehicle-consumption-history" />
-        <Selection mode="single" />
-      </DataGrid>
-
-      {/* Summary Cards */}
-      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4 tw-mt-6">
-        <div className="tw-bg-blue-50 tw-p-4 tw-rounded-lg tw-border tw-border-blue-200">
+      {/* Summary Cards - Compact Design */}
+      <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-7 tw-gap-3 tw-mt-6">
+        <div className="tw-bg-blue-50 tw-p-3 tw-rounded-lg tw-border tw-border-blue-200">
           <div className="tw-flex tw-items-center tw-justify-between">
             <div>
-              <p className="tw-text-sm tw-text-blue-600 tw-font-medium">Total Distance</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-blue-900">
-                {consumptionData.reduce((sum, item) => sum + (item.distance || 0), 0).toFixed(2)} km
+              <p className="tw-text-xs tw-text-blue-600 tw-font-medium">Days</p>
+              <p className="tw-text-xl tw-font-bold tw-text-blue-900">
+                {summaryStats.numberOfDays}
               </p>
             </div>
-            <i className="fa-light fa-route tw-text-2xl tw-text-blue-600"></i>
+            <i className="fa-light fa-calendar-days tw-text-xl tw-text-blue-600"></i>
           </div>
         </div>
 
-        <div className="tw-bg-green-50 tw-p-4 tw-rounded-lg tw-border tw-border-green-200">
+        <div className="tw-bg-purple-50 tw-p-3 tw-rounded-lg tw-border tw-border-purple-200">
           <div className="tw-flex tw-items-center tw-justify-between">
             <div>
-              <p className="tw-text-sm tw-text-green-600 tw-font-medium">Total Fuel Used</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-green-900">
-                {consumptionData.reduce((sum, item) => sum + (item.fuelUsed || 0), 0).toFixed(2)} L
+              <p className="tw-text-xs tw-text-purple-600 tw-font-medium">Distance</p>
+              <p className="tw-text-xl tw-font-bold tw-text-purple-900">
+                {summaryStats.totalDistance.toFixed(0)} <span className="tw-text-sm">km</span>
               </p>
             </div>
-            <i className="fa-light fa-gas-pump tw-text-2xl tw-text-green-600"></i>
+            <i className="fa-light fa-route tw-text-xl tw-text-purple-600"></i>
           </div>
         </div>
 
-        <div className="tw-bg-yellow-50 tw-p-4 tw-rounded-lg tw-border tw-border-yellow-200">
+        <div className="tw-bg-green-50 tw-p-3 tw-rounded-lg tw-border tw-border-green-200">
           <div className="tw-flex tw-items-center tw-justify-between">
             <div>
-              <p className="tw-text-sm tw-text-yellow-600 tw-font-medium">Avg Efficiency</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-yellow-900">
-                {consumptionData.length > 0 ?
-                  (consumptionData.reduce((sum, item) => sum + (item.distance || 0), 0) /
-                   consumptionData.reduce((sum, item) => sum + (item.fuelUsed || 0), 0) || 0).toFixed(2)
-                  : '0.00'} km/L
+              <p className="tw-text-xs tw-text-green-600 tw-font-medium">Fuel Used</p>
+              <p className="tw-text-xl tw-font-bold tw-text-green-900">
+                {summaryStats.totalFuel.toFixed(0)} <span className="tw-text-sm">L</span>
               </p>
             </div>
-            <i className="fa-light fa-gauge tw-text-2xl tw-text-yellow-600"></i>
+            <i className="fa-light fa-gas-pump tw-text-xl tw-text-green-600"></i>
           </div>
         </div>
 
-        <div className="tw-bg-purple-50 tw-p-4 tw-rounded-lg tw-border tw-border-purple-200">
+        <div className="tw-bg-indigo-50 tw-p-3 tw-rounded-lg tw-border tw-border-indigo-200">
           <div className="tw-flex tw-items-center tw-justify-between">
             <div>
-              <p className="tw-text-sm tw-text-purple-600 tw-font-medium">Total Cost</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-purple-900">
-                {formatCurrency(consumptionData.reduce((sum, item) => sum + (item.fuelCost || 0), 0))}
+              <p className="tw-text-xs tw-text-indigo-600 tw-font-medium">Engine Hrs</p>
+              <p className="tw-text-xl tw-font-bold tw-text-indigo-900">
+                {summaryStats.totalEngineHours.toFixed(1)} <span className="tw-text-sm">hr</span>
               </p>
             </div>
-            <i className="fa-light fa-dollar-sign tw-text-2xl tw-text-purple-600"></i>
+            <i className="fa-light fa-engine tw-text-xl tw-text-indigo-600"></i>
+          </div>
+        </div>
+
+        <div className="tw-bg-yellow-50 tw-p-3 tw-rounded-lg tw-border tw-border-yellow-200">
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <div>
+              <p className="tw-text-xs tw-text-yellow-600 tw-font-medium">Avg km/L</p>
+              <p className="tw-text-xl tw-font-bold tw-text-yellow-900">
+                {summaryStats.avgEfficiencyKmL > 0 ? summaryStats.avgEfficiencyKmL.toFixed(2) : '-'}
+              </p>
+              <p className="tw-text-xs tw-text-yellow-600">({summaryStats.kmLCount} records)</p>
+            </div>
+            <i className="fa-light fa-gauge-high tw-text-xl tw-text-yellow-600"></i>
+          </div>
+        </div>
+
+        <div className="tw-bg-orange-50 tw-p-3 tw-rounded-lg tw-border tw-border-orange-200">
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <div>
+              <p className="tw-text-xs tw-text-orange-600 tw-font-medium">Avg L/hr</p>
+              <p className="tw-text-xl tw-font-bold tw-text-orange-900">
+                {summaryStats.avgEfficiencyLHr > 0 ? summaryStats.avgEfficiencyLHr.toFixed(2) : '-'}
+              </p>
+              <p className="tw-text-xs tw-text-orange-600">({summaryStats.lHrCount} records)</p>
+            </div>
+            <i className="fa-light fa-droplet tw-text-xl tw-text-orange-600"></i>
+          </div>
+        </div>
+
+        <div className="tw-bg-red-50 tw-p-3 tw-rounded-lg tw-border tw-border-red-200">
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <div>
+              <p className="tw-text-xs tw-text-red-600 tw-font-medium">Fuel Lost</p>
+              <p className="tw-text-xl tw-font-bold tw-text-red-900">
+                {summaryStats.totalFuelLost.toFixed(1)} <span className="tw-text-sm">L</span>
+              </p>
+            </div>
+            <i className="fa-light fa-exclamation-triangle tw-text-xl tw-text-red-600"></i>
           </div>
         </div>
       </div>
+
+      {/* Trend Analysis Chart */}
+      <ConsumptionTrendChart selectedData={selectedData} />
 
       {/* Details Modal */}
       {detailsVisible && selectedRecord && (
         <VehicleConsumptionHistoryDetails
           record={selectedRecord}
           visible={detailsVisible}
-          onClose={onDetailsClose}
+          onClose={handleCloseDetails}
         />
       )}
     </div>
   );
 };
 
-export default VehicleConsumptionHistory;
+export default React.memo(VehicleConsumptionHistory, (prevProps, nextProps) => {
+  // Only re-render if vehicleId changes
+  return prevProps.vehicleId === nextProps.vehicleId;
+});

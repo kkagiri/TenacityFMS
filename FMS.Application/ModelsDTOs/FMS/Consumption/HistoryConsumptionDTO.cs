@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.Features.FMS.Consumption {
-    public class HistoryConsumptionDTO {
+namespace FMS.Application.Features.FMS.Consumption
+{
+    public class HistoryConsumptionDTO
+    {
         public int Id { get; set; }
         public int VehicleId { get; set; }
 
@@ -42,6 +44,9 @@ namespace FMS.Application.Features.FMS.Consumption {
         public string Comments { get; set; }
 
         public bool IsModified { get; set; }
+
+        // Computed property for stable grid row key
+        public string RowKey => $"{Id}_{VehicleId}_{Date:yyyyMMdd}";
 
     }
 }

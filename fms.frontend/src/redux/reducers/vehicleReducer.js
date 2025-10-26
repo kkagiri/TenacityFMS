@@ -14,6 +14,9 @@ import {
   FETCH_VEHICLE_MAINTENANCE_HISTORY_FAILURE,
   ADD_MAINTENANCE_RECORD_SUCCESS,
   ADD_MAINTENANCE_RECORD_FAILURE,
+  // New action types for consumption history state management
+  FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST,
+  CLEAR_VEHICLE_CONSUMPTION_HISTORY,
   // Vehicle Schedule Actions
   FETCH_VEHICLE_SCHEDULES_SUCCESS,
   FETCH_VEHICLE_SCHEDULES_FAILURE,
@@ -49,6 +52,8 @@ const initialState = {
     maintenanceHistory: null,
     schedules: null,
   },
+  consumptionHistoryLoading: false,
+  consumptionHistoryError: null,
 };
 
 const VehicleReducer = (state = initialState, action) => {
@@ -95,6 +100,21 @@ const VehicleReducer = (state = initialState, action) => {
         loading: false,
         error: null,
       };
+      case FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST:
+  return {
+    ...state,
+    consumptionHistoryLoading: true,
+    consumptionHistoryError: null,
+  };
+
+case CLEAR_VEHICLE_CONSUMPTION_HISTORY:
+  return {
+    ...state,
+    consumptionHistory: [],
+    consumptionHistoryLoading: false,
+    consumptionHistoryError: null,
+  };
+
     case UPDATE_VEHICLES_FAILURE:
       return {
         ...state,
@@ -122,6 +142,8 @@ const VehicleReducer = (state = initialState, action) => {
       return {
         ...state,
         consumptionHistory: action.payload,
+        consumptionHistoryLoading: false,
+        consumptionHistoryError: null,
         loadingStates: {
           ...state.loadingStates,
           consumptionHistory: false,
@@ -135,6 +157,8 @@ const VehicleReducer = (state = initialState, action) => {
       return {
         ...state,
         consumptionHistory: [],
+        consumptionHistoryLoading: false,
+        consumptionHistoryError: action.payload,
         loadingStates: {
           ...state.loadingStates,
           consumptionHistory: false,

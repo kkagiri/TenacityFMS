@@ -160,6 +160,19 @@ div[id*="tooltip"],
 /* DateBox popup sizing - strictly class-scoped to avoid affecting popups */
 /* ========================================================================== */
 
+/* FIX: Remove overflow constraints from DateBox popup wrappers */
+.dx-datebox-wrapper,
+.dx-datebox-wrapper-calendar,
+.dx-datebox-wrapper-datetime {
+  overflow: visible !important;
+}
+
+/* FIX: Ensure popup wrapper doesn't clip content */
+.dx-datebox-wrapper .dx-overlay-wrapper,
+.dx-datebox-wrapper .dx-popup-wrapper {
+  overflow: visible !important;
+}
+
 /* Applied via dropDownOptions.wrapperAttr: { class: 'datebox-wide' } */
 .datebox-wide .dx-overlay-content {
   min-width: 380px !important;
@@ -170,6 +183,27 @@ div[id*="tooltip"],
 /* Optional opt-in: applied via elementAttr.class on editor host */
 .datebox-full-width-popup .dx-overlay-content {
   min-width: 380px !important;
+}
+
+/* FIX: Ensure ALL DateBox datetime popups have adequate width for calendar + time picker */
+.dx-datebox-wrapper-datetime .dx-overlay-content,
+.dx-datebox-wrapper-calendar.dx-datebox-wrapper-datetime .dx-overlay-content {
+  min-width: 600px !important;
+  width: auto !important;
+  max-width: auto !important;
+}
+
+/* FIX: Ensure date-only popups also have proper width */
+.dx-datebox-wrapper-calendar .dx-overlay-content {
+  min-width: 350px !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+/* FIX: Force overlay content to not be constrained */
+.dx-dropdowneditor-overlay .dx-overlay-content {
+  max-width: none !important;
+  overflow: visible !important;
 }
 
 /* Do NOT change positioning; let DevExtreme place the overlay. */

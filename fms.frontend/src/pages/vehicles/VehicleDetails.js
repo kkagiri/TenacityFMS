@@ -227,14 +227,14 @@ const VehicleDetails = () => {
   }, [vehicle, handleVehicleSave, tabLoadingStates]);
 
   const consumptionHistoryComponent = useMemo(() => {
-    if (!vehicle || tabLoadingStates[1]) return null;
+    // Always render the component - let it handle its own loading state
+    // This prevents unmount/remount which causes DataGrid DOM errors
     return (
       <VehicleConsumptionHistory
-        key={`consumption-${vehicle?.vehicleId}`}
         vehicleId={id}
       />
     );
-  }, [vehicle, id, tabLoadingStates]);
+  }, [id]); // Only recreate if vehicle ID changes
 
   const maintenanceHistoryComponent = useMemo(() => {
     if (!vehicle || tabLoadingStates[2]) return null;

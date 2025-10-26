@@ -25,6 +25,10 @@ export const UPDATE_VEHICLE_SCHEDULE_FAILURE = "UPDATE_VEHICLE_SCHEDULE_FAILURE"
 export const DELETE_VEHICLE_SCHEDULE_SUCCESS = "DELETE_VEHICLE_SCHEDULE_SUCCESS";
 export const DELETE_VEHICLE_SCHEDULE_FAILURE = "DELETE_VEHICLE_SCHEDULE_FAILURE";
 
+// New action types for consumption history state management
+export const FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST = 'FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST';
+export const CLEAR_VEHICLE_CONSUMPTION_HISTORY = 'CLEAR_VEHICLE_CONSUMPTION_HISTORY';
+
 // Thunk action for fetching vehicles
 export const fetchVehicleList = () => async (dispatch) => {
   try {
@@ -166,53 +170,72 @@ export const createVehicle = (vehicleData) => async (dispatch) => {
 // These actions provide a structure for future API integration
 // =============================================================================
 
-// Vehicle Consumption History Actions
-export const fetchVehicleConsumptionHistory = ({ vehicleId, dateFrom, dateTo }) => async (dispatch) => {
+export const fetchVehicleConsumptionHistory = ({ vehicleId, dateFrom, dateTo, entry = 30 }, options = {}) => async (dispatch) => {
   try {
-    // TODO: Replace with actual API call
-    // const response = await axiosInstance.get(`/vehicle/${vehicleId}/consumption-history`, {
-    //   params: { dateFrom, dateTo }
-    // });
+    // Dispatch REQUEST action first
+    dispatch({ type: FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST });
 
-    // Mock data for UI development
-    const mockData = [
+    console.log('=== fetchVehicleConsumptionHistory called ===');
+
+    const formattedDate = dateTo ? new Date(dateTo).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+    let days = entry;
+    if (dateFrom && dateTo) {
+      const diffTime = Math.abs(new Date(dateTo) - new Date(dateFrom));
+      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      days = Math.max(5, Math.min(30, days));
+    }
+
+    const response = await axiosInstance.get(
+      `/consumption/gethistoryconsumptionbyvehicle`,
       {
-        id: 1,
-        date: '2024-07-01T00:00:00.000Z', // Convert to ISO string
-        startLocation: 'Nairobi Office',
-        endLocation: 'Mombasa Site',
-        distance: 485.2,
-        fuelUsed: 52.3,
-        fuelCost: 7845.50,
-        driverName: 'John Doe',
-        purpose: 'Site Inspection',
-        status: 'Completed'
-      },
-      {
-        id: 2,
-        date: '2024-07-03T00:00:00.000Z', // Convert to ISO string
-        startLocation: 'Mombasa Site',
-        endLocation: 'Nairobi Office',
-        distance: 485.2,
-        fuelUsed: 54.1,
-        fuelCost: 8115.50,
-        driverName: 'John Doe',
-        purpose: 'Return Journey',
-        status: 'Completed'
+        params: {
+          vehicleId,
+          datestring: formattedDate,
+          entry: days
+        },
+        // Pass through AbortController signal when provided
+        signal: options.signal
       }
-    ];
+    );
+
+    // Process data with stable keys and serialize dates (avoid non-serializable Date objects in Redux state)
+    const usedKeys = new Map();
+    const processedData = (response.data || []).map((item, idx) => {
+      const dateObj = item.date ? new Date(item.date) : null;
+      const isoDate = dateObj ? dateObj.toISOString() : `no-date-${idx}`;
+      const baseId = (item.id !== undefined && item.id !== null) ? String(item.id) : `no-id-${idx}`;
+      let rawKey = `${baseId}__${isoDate}`;
+      // Ensure rowKey uniqueness
+      const seen = usedKeys.get(rawKey) || 0;
+      usedKeys.set(rawKey, seen + 1);
+      const rowKey = seen === 0 ? rawKey : `${rawKey}__dup${seen}`;
+
+      return {
+        ...item,
+        // Store ISO string to keep Redux state serializable
+        date: isoDate,
+        rowKey
+      };
+    });
 
     dispatch({
       type: FETCH_VEHICLE_CONSUMPTION_HISTORY_SUCCESS,
-      payload: mockData
+      payload: processedData
     });
 
     return {
       success: true,
-      data: mockData,
-      message: 'Consumption history loaded successfully (mock data)'
+      data: processedData,
+      message: 'Consumption history loaded successfully'
     };
   } catch (error) {
+    // Swallow cancellations without dispatching failure
+    if (error?.name === 'CanceledError' || error?.message === 'canceled' || error?.code === 'ERR_CANCELED') {
+      return { success: false, data: null, message: 'Request canceled' };
+    }
+    console.error('=== fetchVehicleConsumptionHistory ERROR ===', error);
+
     const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch consumption history';
     dispatch({
       type: FETCH_VEHICLE_CONSUMPTION_HISTORY_FAILURE,
@@ -226,6 +249,11 @@ export const fetchVehicleConsumptionHistory = ({ vehicleId, dateFrom, dateTo }) 
     };
   }
 };
+
+// Add clear action
+export const clearVehicleConsumptionHistory = () => ({
+  type: CLEAR_VEHICLE_CONSUMPTION_HISTORY
+});
 
 // Vehicle Fueling History Actions
 export const fetchVehicleFuelingHistory = ({ vehicleId, dateFrom, dateTo }) => async (dispatch) => {
