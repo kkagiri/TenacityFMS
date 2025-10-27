@@ -12,19 +12,22 @@ using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Services.TankStock {
+namespace FMS.Application.Services.TankStock
+{
     /// <summary>
     /// Service to handle validation and policy enforcement for tank stock entries with future records
     /// </summary>
-    public class TankStockFutureRecordsService {
+    public class TankStockFutureRecordsService
+    {
         private readonly GpsdataContext _context;
         private readonly ISystemConfigurationService _configService;
         private readonly ILogger<TankStockFutureRecordsService> _logger;
 
-        public TankStockFutureRecordsService (
+        public TankStockFutureRecordsService(
             GpsdataContext context,
             ISystemConfigurationService configService,
-            ILogger<TankStockFutureRecordsService> logger) {
+            ILogger<TankStockFutureRecordsService> logger)
+        {
             _context = context;
             _configService = configService;
             _logger = logger;
@@ -38,105 +41,120 @@ namespace FMS.Application.Services.TankStock {
         /// <param name="entryType">The type of entry (Opening, Closing, Transfer, etc.)</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Validation result with policy decision and warning messages</returns>
-        public async Task<TankStockFutureRecordsValidationResult> ValidateHistoricalEntryAsync (
+        public async Task<TankStockFutureRecordsValidationResult> ValidateHistoricalEntryAsync(
             int tankId,
             DateTime entryDate,
             VolumeChangeReasonEnum entryType,
-            CancellationToken cancellationToken = default) {
-            try {
-                _logger.LogInformation ("Validating historical entry for tank {TankId}, date {EntryDate}, type {EntryType}",
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogInformation("Validating historical entry for tank {TankId}, date {EntryDate}, type {EntryType}",
                     tankId, entryDate, entryType);
 
                 // Input validation
-                if (tankId <= 0) {
-                    return new TankStockFutureRecordsValidationResult {
-                    IsAllowed = false,
-                    Policy = "VALIDATION_ERROR",
-                    Message = "Invalid tank ID. Tank ID must be greater than 0.",
-                    WarningType = "VALIDATION_ERROR"
+                if (tankId <= 0)
+                {
+                    return new TankStockFutureRecordsValidationResult
+                    {
+                        IsAllowed = false,
+                        Policy = "VALIDATION_ERROR",
+                        Message = "Invalid tank ID. Tank ID must be greater than 0.",
+                        WarningType = "VALIDATION_ERROR"
                     };
                 }
 
-                if (!Enum.IsDefined (typeof (VolumeChangeReasonEnum), entryType)) {
-                    return new TankStockFutureRecordsValidationResult {
+                if (!Enum.IsDefined(typeof(VolumeChangeReasonEnum), entryType))
+                {
+                    return new TankStockFutureRecordsValidationResult
+                    {
                         IsAllowed = false,
-                            Policy = "VALIDATION_ERROR",
-                            Message = "Invalid volume change reason type.",
-                            WarningType = "VALIDATION_ERROR"
+                        Policy = "VALIDATION_ERROR",
+                        Message = "Invalid volume change reason type.",
+                        WarningType = "VALIDATION_ERROR"
                     };
                 }
 
                 // Check if tank exists
                 var tankExists = await _context.Tanks
-                    .AnyAsync (t => t.Id == tankId, cancellationToken);
+                    .AnyAsync(t => t.Id == tankId, cancellationToken);
 
-                if (!tankExists) {
-                    return new TankStockFutureRecordsValidationResult {
+                if (!tankExists)
+                {
+                    return new TankStockFutureRecordsValidationResult
+                    {
                         IsAllowed = false,
-                            Policy = "VALIDATION_ERROR",
-                            Message = $"Tank with ID {tankId} does not exist.",
-                            WarningType = "VALIDATION_ERROR"
+                        Policy = "VALIDATION_ERROR",
+                        Message = $"Tank with ID {tankId} does not exist.",
+                        WarningType = "VALIDATION_ERROR"
                     };
                 }
 
                 // Get configuration settings
-                string policy = await _configService.GetTankStockFutureRecordsPolicyAsync (cancellationToken);
-                bool showDetailedWarnings = await _configService.GetTankStockShowDetailedWarningsAsync (cancellationToken);
-                int maxHistoricalDays = await _configService.GetTankStockMaxHistoricalDaysAsync (cancellationToken);
+                string policy = await _configService.GetTankStockFutureRecordsPolicyAsync(cancellationToken);
+                bool showDetailedWarnings = await _configService.GetTankStockShowDetailedWarningsAsync(cancellationToken);
+                int maxHistoricalDays = await _configService.GetTankStockMaxHistoricalDaysAsync(cancellationToken);
 
                 // Check if entry is too far in the past
-                if (maxHistoricalDays > 0) {
-                    DateTime cutoffDate = DateTime.Now.Date.AddDays (-maxHistoricalDays);
-                    if (entryDate.Date < cutoffDate) {
-                        return new TankStockFutureRecordsValidationResult {
+                if (maxHistoricalDays > 0)
+                {
+                    DateTime cutoffDate = DateTime.Now.Date.AddDays(-maxHistoricalDays);
+                    if (entryDate.Date < cutoffDate)
+                    {
+                        return new TankStockFutureRecordsValidationResult
+                        {
                             IsAllowed = false,
-                                Policy = policy,
-                                Message = $"Historical entries are only allowed within {maxHistoricalDays} days. Entry date {entryDate:yyyy-MM-dd} is beyond the cutoff date {cutoffDate:yyyy-MM-dd}.",
-                                WarningType = "HISTORICAL_CUTOFF"
+                            Policy = policy,
+                            Message = $"Historical entries are only allowed within {maxHistoricalDays} days. Entry date {entryDate:yyyy-MM-dd} is beyond the cutoff date {cutoffDate:yyyy-MM-dd}.",
+                            WarningType = "HISTORICAL_CUTOFF"
                         };
                     }
                 }
 
                 // Check for future records (records after the proposed entry date)
-                List<TankVolumeHistory> futureRecords = await GetFutureRecordsAsync (tankId, entryDate, cancellationToken);
+                List<TankVolumeHistory> futureRecords = await GetFutureRecordsAsync(tankId, entryDate, cancellationToken);
 
-                if (!futureRecords.Any ()) {
+                if (!futureRecords.Any())
+                {
                     // No future records - entry is safe
-                    return new TankStockFutureRecordsValidationResult {
+                    return new TankStockFutureRecordsValidationResult
+                    {
                         IsAllowed = true,
-                            Policy = policy,
-                            Message = "No future records found. Entry can proceed without issues.",
-                            WarningType = "NONE"
+                        Policy = policy,
+                        Message = "No future records found. Entry can proceed without issues.",
+                        WarningType = "NONE"
                     };
                 }
 
                 // Future records exist - apply policy
-                var result = new TankStockFutureRecordsValidationResult {
+                var result = new TankStockFutureRecordsValidationResult
+                {
                     Policy = policy,
                     FutureRecordsCount = futureRecords.Count,
-                    EarliestFutureRecord = futureRecords.Min (r => r.Timestamp),
-                    LatestFutureRecord = futureRecords.Max (r => r.Timestamp)
+                    EarliestFutureRecord = futureRecords.Min(r => r.Timestamp),
+                    LatestFutureRecord = futureRecords.Max(r => r.Timestamp)
                 };
 
-                switch (policy.ToUpper ()) {
+                switch (policy.ToUpper())
+                {
                     case "BLOCK":
                         result.IsAllowed = false;
                         result.WarningType = "BLOCKED";
-                        result.Message = BuildBlockMessage (futureRecords, entryDate, showDetailedWarnings);
+                        result.Message = BuildBlockMessage(futureRecords, entryDate, showDetailedWarnings);
                         break;
 
                     case "WARN_RECONCILE":
                         result.IsAllowed = true;
                         result.RequiresUserConfirmation = true;
                         result.WarningType = "WARN_RECONCILE";
-                        result.Message = BuildWarningMessage (futureRecords, entryDate, showDetailedWarnings, true);
+                        result.Message = BuildWarningMessage(futureRecords, entryDate, showDetailedWarnings, true);
                         break;
 
                     case "WARN_RECALCULATE":
                         result.IsAllowed = true;
                         result.RequiresUserConfirmation = true;
                         result.WarningType = "WARN_RECALCULATE";
-                        result.Message = BuildWarningMessage (futureRecords, entryDate, showDetailedWarnings, false);
+                        result.Message = BuildWarningMessage(futureRecords, entryDate, showDetailedWarnings, false);
                         break;
 
                     case "ALLOW_RECALCULATE":
@@ -147,26 +165,30 @@ namespace FMS.Application.Services.TankStock {
                         break;
 
                     default:
-                        _logger.LogWarning ("Unknown tank stock future records policy: {Policy}. Defaulting to WARN_RECONCILE", policy);
+                        _logger.LogWarning("Unknown tank stock future records policy: {Policy}. Defaulting to WARN_RECONCILE", policy);
                         result.IsAllowed = true;
                         result.RequiresUserConfirmation = true;
                         result.WarningType = "WARN_RECONCILE";
-                        result.Message = BuildWarningMessage (futureRecords, entryDate, showDetailedWarnings, true);
+                        result.Message = BuildWarningMessage(futureRecords, entryDate, showDetailedWarnings, true);
                         break;
                 }
 
-                if (showDetailedWarnings && result.RequiresUserConfirmation) {
-                    result.DetailedWarning = BuildDetailedWarning (futureRecords, entryType);
+                if (showDetailedWarnings && result.RequiresUserConfirmation)
+                {
+                    result.DetailedWarning = BuildDetailedWarning(futureRecords, entryType);
                 }
 
                 return result;
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error validating historical entry for tank {TankId}", tankId);
-                return new TankStockFutureRecordsValidationResult {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating historical entry for tank {TankId}", tankId);
+                return new TankStockFutureRecordsValidationResult
+                {
                     IsAllowed = false,
-                        Policy = "ERROR",
-                        Message = "Error occurred while validating historical entry. Please try again.",
-                        WarningType = "ERROR"
+                    Policy = "ERROR",
+                    Message = "Error occurred while validating historical entry. Please try again.",
+                    WarningType = "ERROR"
                 };
             }
         }
@@ -174,24 +196,27 @@ namespace FMS.Application.Services.TankStock {
         /// <summary>
         /// Gets all volume history records after the specified date for a tank
         /// </summary>
-        private async Task<List<TankVolumeHistory>> GetFutureRecordsAsync (
+        private async Task<List<TankVolumeHistory>> GetFutureRecordsAsync(
             int tankId,
             DateTime entryDate,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken)
+        {
             return await _context.TankVolumeHistories
-                .Where (h => h.TankId == tankId && h.Timestamp > entryDate)
-                .OrderBy (h => h.Timestamp)
-                .ToListAsync (cancellationToken);
+                .Where(h => h.TankId == tankId && h.Timestamp > entryDate)
+                .OrderBy(h => h.Timestamp)
+                .ToListAsync(cancellationToken);
         }
 
         /// <summary>
         /// Builds a block message for when entries are not allowed
         /// </summary>
-        private string BuildBlockMessage (List<TankVolumeHistory> futureRecords, DateTime entryDate, bool showDetails) {
+        private string BuildBlockMessage(List<TankVolumeHistory> futureRecords, DateTime entryDate, bool showDetails)
+        {
             string baseMessage = $"Historical entry blocked: {futureRecords.Count} future records exist after {entryDate:yyyy-MM-dd}.";
 
-            if (showDetails && futureRecords.Any ()) {
-                var earliestRecord = futureRecords.First ();
+            if (showDetails && futureRecords.Any())
+            {
+                var earliestRecord = futureRecords.First();
                 baseMessage += $" Next record: {earliestRecord.Timestamp:yyyy-MM-dd HH:mm} ({earliestRecord.ChangeReason}).";
             }
 
@@ -202,15 +227,17 @@ namespace FMS.Application.Services.TankStock {
         /// <summary>
         /// Builds a warning message for when entries require confirmation
         /// </summary>
-        private string BuildWarningMessage (List<TankVolumeHistory> futureRecords, DateTime entryDate,
-            bool showDetails, bool recommendsReconciliation) {
+        private string BuildWarningMessage(List<TankVolumeHistory> futureRecords, DateTime entryDate,
+            bool showDetails, bool recommendsReconciliation)
+        {
             string action = recommendsReconciliation ? "manual reconciliation" : "automatic recalculation";
             string baseMessage = $"Warning: {futureRecords.Count} future records exist after {entryDate:yyyy-MM-dd}. " +
                 $"This entry will affect volume calculations and may require {action}.";
 
-            if (showDetails && futureRecords.Any ()) {
-                var earliestRecord = futureRecords.First ();
-                var latestRecord = futureRecords.Last ();
+            if (showDetails && futureRecords.Any())
+            {
+                var earliestRecord = futureRecords.First();
+                var latestRecord = futureRecords.Last();
                 baseMessage += $" Records span from {earliestRecord.Timestamp:yyyy-MM-dd} to {latestRecord.Timestamp:yyyy-MM-dd}.";
             }
 
@@ -220,15 +247,17 @@ namespace FMS.Application.Services.TankStock {
         /// <summary>
         /// Builds detailed warning information about the affected records
         /// </summary>
-        private string BuildDetailedWarning (List<TankVolumeHistory> futureRecords, VolumeChangeReasonEnum entryType) {
+        private string BuildDetailedWarning(List<TankVolumeHistory> futureRecords, VolumeChangeReasonEnum entryType)
+        {
             var grouped = futureRecords
-                .GroupBy (r => r.ChangeReason)
-                .Select (g => new { Reason = g.Key, Count = g.Count () })
-                .OrderByDescending (x => x.Count)
-                .ToList ();
+                .GroupBy(r => r.ChangeReason)
+                .Select(g => new { Reason = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToList();
 
             string details = "Affected future records:\n";
-            foreach (var group in grouped) {
+            foreach (var group in grouped)
+            {
                 details += $"• {group.Count} {group.Reason} record(s)\n";
             }
 
@@ -241,30 +270,36 @@ namespace FMS.Application.Services.TankStock {
         /// </summary>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Current policy configuration</returns>
-        public async Task<FutureRecordsPolicyConfig> GetFutureRecordsPolicyAsync (CancellationToken cancellationToken = default) {
-            try {
-                var policy = await _configService.GetTankStockFutureRecordsPolicyAsync (cancellationToken);
-                var showDetailedWarnings = await _configService.GetTankStockShowDetailedWarningsAsync (cancellationToken);
-                var maxDaysBack = await _configService.GetTankStockMaxHistoricalDaysAsync (cancellationToken);
+        public async Task<FutureRecordsPolicyConfig> GetFutureRecordsPolicyAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var policy = await _configService.GetTankStockFutureRecordsPolicyAsync(cancellationToken);
+                var showDetailedWarnings = await _configService.GetTankStockShowDetailedWarningsAsync(cancellationToken);
+                var maxDaysBack = await _configService.GetTankStockMaxHistoricalDaysAsync(cancellationToken);
 
                 // Note: AllowOverride is not in the current interface, using a default or configuration lookup
-                var allowOverride = bool.Parse (await _configService.GetConfigurationValueAsync ("TankStock.FutureRecords.AllowOverride", cancellationToken) ?? "true");
+                var allowOverride = bool.Parse(await _configService.GetConfigurationValueAsync("TankStock.FutureRecords.AllowOverride", cancellationToken) ?? "true");
 
-                return new FutureRecordsPolicyConfig {
+                return new FutureRecordsPolicyConfig
+                {
                     Policy = policy,
-                        AllowOverride = allowOverride,
-                        MaxHistoricalDays = maxDaysBack,
-                        ShowDetailedWarnings = showDetailedWarnings
+                    AllowOverride = allowOverride,
+                    MaxHistoricalDays = maxDaysBack,
+                    ShowDetailedWarnings = showDetailedWarnings
                 };
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error retrieving future records policy configuration");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving future records policy configuration");
 
                 // Return default configuration
-                return new FutureRecordsPolicyConfig {
+                return new FutureRecordsPolicyConfig
+                {
                     Policy = "WARN_RECALCULATE",
-                        AllowOverride = true,
-                        MaxHistoricalDays = 90,
-                        ShowDetailedWarnings = true
+                    AllowOverride = true,
+                    MaxHistoricalDays = 0,
+                    ShowDetailedWarnings = true
                 };
             }
         }
@@ -273,7 +308,8 @@ namespace FMS.Application.Services.TankStock {
     /// <summary>
     /// Result of future records validation
     /// </summary>
-    public class TankStockFutureRecordsValidationResult {
+    public class TankStockFutureRecordsValidationResult
+    {
         /// <summary>
         /// Whether the entry is allowed to proceed
         /// </summary>
@@ -323,7 +359,8 @@ namespace FMS.Application.Services.TankStock {
     /// <summary>
     /// Configuration for future records policy
     /// </summary>
-    public class FutureRecordsPolicyConfig {
+    public class FutureRecordsPolicyConfig
+    {
         /// <summary>
         /// The policy for handling future records: "BLOCK", "WARN_RECONCILE", "WARN_RECALCULATE", "ALLOW_RECALCULATE"
         /// </summary>
