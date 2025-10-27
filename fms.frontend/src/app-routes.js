@@ -5,7 +5,7 @@ import VehicleManualRefill from "./pages/manualrefill/manualRefilPage";
 import unauthorized from "./pages/unauthorized";
 import EmployeePage from "./pages/employees/employeePage";
 //Cursor - New tank stock main entry point for Phase 1 redesign
-import { TankStockMain} from "./pages/tankStock";
+import { TankStockMain } from "./pages/tankStock";
 import EditPTSDevice from "./pages/PTSDevice/EditPTSDevice";
 import ATGDashboard from "./pages/ATG/ATGDashboard";
 import UserDetailsPage from "./pages/user/userDetailsPage";
@@ -34,14 +34,15 @@ import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
 import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
 // Import Reports main entry point
 import ReportsMain from "./pages/reports/ReportsMain";
+// Import Provider Management main entry point (Phase 7)
+import ProviderManagementMain from "./pages/providermanagement/ProviderManagementMain";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
-
-   case "dashboard":
+    case "dashboard":
       return HomePage;
 
-     case "task management":
+    case "task management":
       return TaskManagement;
     case "vehicles":
       return VehicleMain;
@@ -55,12 +56,14 @@ const resolvedComponents = (pageName) => {
       return ActiveAlarmMain;
     case "issue-tracker":
       return IssueTrackerMain;
+    case "provider management":
+    case "providermanagement":
+      return ProviderManagementMain;
 
     case "consumption":
       return ConsumptionBasedonRefills;
-      case "notifications":
-          return NotificationSystem;
-
+    case "notifications":
+      return NotificationSystem;
 
     case "Fuel Report Importer":
       return FuelReportImporter;

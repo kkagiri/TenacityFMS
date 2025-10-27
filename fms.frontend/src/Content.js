@@ -21,7 +21,7 @@ export default function Content() {
   // Initialize route-based SignalR management
   const signalRState = useSignalRRouting({
     enabled: true,
-    debounceMs: 300
+    debounceMs: 300,
   });
 
   useEffect(() => {
@@ -61,16 +61,50 @@ export default function Content() {
         />
 
         {/* User routes - now under admin - ADMIN ONLY */}
-        <Route path="/admin/users/:id" element={React.createElement(withRoleProtection(resolvedComponents("user-details"), ["Admin"]))} />
-        <Route path="/admin/users/:id/edit" element={React.createElement(withRoleProtection(resolvedComponents("user-edit"), ["Admin"]))} />
-        <Route path="/admin/users/:id/activities" element={React.createElement(withRoleProtection(resolvedComponents("user-activities"), ["Admin"]))} />
-        <Route path="/admin/users/:id/sites" element={React.createElement(withRoleProtection(resolvedComponents("user-sites"), ["Admin"]))} />
-        <Route path="/user-activities" element={React.createElement(resolvedComponents("activity-dashboard"))} />
+        <Route
+          path="/admin/users/:id"
+          element={React.createElement(
+            withRoleProtection(resolvedComponents("user-details"), ["Admin"])
+          )}
+        />
+        <Route
+          path="/admin/users/:id/edit"
+          element={React.createElement(
+            withRoleProtection(resolvedComponents("user-edit"), ["Admin"])
+          )}
+        />
+        <Route
+          path="/admin/users/:id/activities"
+          element={React.createElement(
+            withRoleProtection(resolvedComponents("user-activities"), ["Admin"])
+          )}
+        />
+        <Route
+          path="/admin/users/:id/sites"
+          element={React.createElement(
+            withRoleProtection(resolvedComponents("user-sites"), ["Admin"])
+          )}
+        />
+        <Route
+          path="/user-activities"
+          element={React.createElement(
+            resolvedComponents("activity-dashboard")
+          )}
+        />
 
         {/* Tank routes */}
-        <Route path="/tanks" element={React.createElement(resolvedComponents("tanks"))} />
-        <Route path="/tanks/:id" element={React.createElement(resolvedComponents("tank-details"))} />
-        <Route path="/tanks/:id/edit" element={React.createElement(resolvedComponents("tank-edit"))} />
+        <Route
+          path="/tanks"
+          element={React.createElement(resolvedComponents("tanks"))}
+        />
+        <Route
+          path="/tanks/:id"
+          element={React.createElement(resolvedComponents("tank-details"))}
+        />
+        <Route
+          path="/tanks/:id/edit"
+          element={React.createElement(resolvedComponents("tank-edit"))}
+        />
 
         {/* Keep the old route for backward compatibility */}
         <Route
@@ -96,7 +130,7 @@ export default function Content() {
           path="/tankstock/*"
           element={React.createElement(resolvedComponents("tank stock"))}
         />
-     {/* notification Stock System Routes - Handle all notification sub-routes internally */}
+        {/* notification Stock System Routes - Handle all notification sub-routes internally */}
         <Route
           path="/notifications"
           element={React.createElement(resolvedComponents("notifications"))}
@@ -109,11 +143,15 @@ export default function Content() {
         {/* Admin System Routes - Handle all admin sub-routes internally - ADMIN ONLY */}
         <Route
           path="/admin"
-          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["Admin"]))}
+          element={React.createElement(
+            withRoleProtection(resolvedComponents("admin"), ["Admin"])
+          )}
         />
         <Route
           path="/admin/*"
-          element={React.createElement(withRoleProtection(resolvedComponents("admin"), ["Admin"]))}
+          element={React.createElement(
+            withRoleProtection(resolvedComponents("admin"), ["Admin"])
+          )}
         />
 
         {/* Vehicle Management System Routes - Handle all vehicle sub-routes internally */}
@@ -136,6 +174,20 @@ export default function Content() {
           element={React.createElement(resolvedComponents("reports"))}
         />
 
+        {/* Provider Management System Routes - Handle all providermanagement sub-routes internally */}
+        <Route
+          path="/providermanagement"
+          element={React.createElement(
+            resolvedComponents("provider management")
+          )}
+        />
+        <Route
+          path="/providermanagement/*"
+          element={React.createElement(
+            resolvedComponents("provider management")
+          )}
+        />
+
         {/* Issue Tracker System Routes - Handle all issue-tracker sub-routes internally */}
         <Route
           path="/issue-tracker"
@@ -145,18 +197,33 @@ export default function Content() {
           path="/issue-tracker/*"
           element={React.createElement(resolvedComponents("issue tracker"))}
         />
-        <Route path="/active-alarms" element={React.createElement(resolvedComponents("active-alarms"))} />
-        <Route path="/active-alarms/*" element={React.createElement(resolvedComponents("active-alarms"))} />
+        <Route
+          path="/active-alarms"
+          element={React.createElement(resolvedComponents("active-alarms"))}
+        />
+        <Route
+          path="/active-alarms/*"
+          element={React.createElement(resolvedComponents("active-alarms"))}
+        />
 
         {/* Home/Dashboard route - maps to the dashboard component */}
-        <Route path="/home" element={React.createElement(resolvedComponents("dashboard"))} />
+        <Route
+          path="/home"
+          element={React.createElement(resolvedComponents("dashboard"))}
+        />
 
         {/* Widget Testing route - for testing dashboard widgets with mock data */}
 
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
       <Footer>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div>
             Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
             Version:2.0.2
@@ -165,19 +232,25 @@ export default function Content() {
             trademarks are property of Hyoung EA Co. Ltd.
           </div>
           {/* SignalR Connection Status Indicator */}
-          <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
+          <div style={{ fontSize: "0.8em", opacity: 0.8 }}>
             {signalRState.isDashboardConnected && (
-              <span style={{ color: '#4caf50', marginRight: '10px' }}>● Dashboard</span>
+              <span style={{ color: "#4caf50", marginRight: "10px" }}>
+                ● Dashboard
+              </span>
             )}
             {signalRState.isPtsConnected && (
-              <span style={{ color: '#4caf50', marginRight: '10px' }}>● PTS</span>
+              <span style={{ color: "#4caf50", marginRight: "10px" }}>
+                ● PTS
+              </span>
             )}
             {signalRState.isBusinessConnected && (
-              <span style={{ color: '#4caf50' }}>● Business</span>
+              <span style={{ color: "#4caf50" }}>● Business</span>
             )}
-            {!signalRState.isDashboardConnected && !signalRState.isPtsConnected && !signalRState.isBusinessConnected && (
-              <span style={{ color: '#ff9800' }}>● Offline</span>
-            )}
+            {!signalRState.isDashboardConnected &&
+              !signalRState.isPtsConnected &&
+              !signalRState.isBusinessConnected && (
+                <span style={{ color: "#ff9800" }}>● Offline</span>
+              )}
           </div>
         </div>
       </Footer>

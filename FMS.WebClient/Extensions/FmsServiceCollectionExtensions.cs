@@ -52,6 +52,7 @@ using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Application.CommonInterface;
 using FMS.Infrastructure.Services;
 using FMS.BackgroundServices.VehicleDocumentNotifier;
+using FMS.Infrastructure.VehicleTracking.Extensions;
 
 namespace FMS.WebClient.Extensions;
 
@@ -89,6 +90,9 @@ public static class FmsServiceCollectionExtensions
 
         // Register dashboard widget services (factories, coordinators)
         services.AddDashboardWidgetServices();
+
+        // Register vehicle tracking provider infrastructure (Phase 1-4)
+        services.AddVehicleTracking();
 
         return services;
     }
@@ -340,7 +344,12 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IFileHandlingService, FileHandlingService>();
 
         // Vehicle & GPS Services
-        services.AddScoped<IGPSService, GPSGateService>();
+        // OLD: Legacy GPSGateService - Now replaced by pluggable vehicle tracking providers (Phase 1-4)
+        // services.AddHttpClient<IGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
+        // services.AddScoped<IGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
+        // NEW: IVehicleTrackingService registered via AddVehicleTracking() in AddFmsCore
+        // Adapter bridges new tracking service to legacy IGPSService interface for backward compatibility
+        services.AddScoped<IGPSService, FMS.Infrastructure.VehicleTracking.Adapters.VehicleTrackingServiceAdapter>();
 
         // Configuration Services
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();

@@ -6,13 +6,19 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.Vehicle.Services;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Features.Vehicle.Services
+namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
 {
+    /// <summary>
+    /// GPSGate implementation of IGPSService for vehicle tracking
+    /// This service communicates with GPSGate API to retrieve real-time vehicle location,
+    /// odometer, and status information.
+    /// </summary>
     public class GPSGateService : IGPSService
     {
         private readonly GpsdataContext _context;
@@ -305,37 +311,5 @@ namespace FMS.Application.Features.Vehicle.Services
                 return FMSResponse<bool>.Failed($"Connection validation failed: {ex.Message}");
             }
         }
-    }
-
-    // GPSGate API response models
-    public class GPSGateUserStatus
-    {
-        public int Id { get; set; }
-        public string? Username { get; set; }
-        public string? UTC { get; set; }
-        public GPSGatePosition? Position { get; set; }
-        public GPSGateVelocity? Velocity { get; set; }
-    }
-
-    public class GPSGatePosition
-    {
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-        public double? Altitude { get; set; }
-    }
-
-    public class GPSGateVelocity
-    {
-        public double? GroundSpeed { get; set; }
-        public double? Heading { get; set; }
-    }
-
-    public class GPSGateAccumulator
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public int AccumulatorTypeId { get; set; }
-        public double? Value { get; set; }
-        public string? Timestamp { get; set; }
     }
 }
