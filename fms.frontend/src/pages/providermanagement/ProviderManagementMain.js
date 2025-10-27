@@ -14,12 +14,12 @@ const ProviderManagementMain = () => {
     <ProviderManagementLayout>
       <Routes>
         <Route index element={<ProviderDashboard />} />
-        <Route path="/dashboard" element={<ProviderDashboard />} />
-        <Route path="/configuration" element={<ProviderConfiguration />} />
-        <Route path="/assignments" element={<VehicleAssignments />} />
+        <Route path="dashboard" element={<ProviderDashboard />} />
+        <Route path="configuration" element={<ProviderConfiguration />} />
+        <Route path="assignments" element={<VehicleAssignments />} />
         <Route
           path="*"
-          element={<Navigate to="/providermanagement" replace />}
+          element={<Navigate to="/admin/providers" replace />}
         />
       </Routes>
     </ProviderManagementLayout>

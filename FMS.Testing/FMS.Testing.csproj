@@ -30,6 +30,7 @@
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
+    <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

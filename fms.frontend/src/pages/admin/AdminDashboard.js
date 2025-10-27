@@ -15,6 +15,13 @@ const AdminDashboard = () => {
       color: 'tw-text-blue-600'
     },
     {
+      title: 'Provider Management',
+      description: 'Configure tracking providers and mappings',
+      icon: 'fa-light fa-network-wired',
+      route: getAdminRoute('providers'),
+      color: 'tw-text-blue-700'
+    },
+    {
       title: 'Role Management',
       description: 'Configure user roles and access levels',
       icon: 'fa-light fa-shield',

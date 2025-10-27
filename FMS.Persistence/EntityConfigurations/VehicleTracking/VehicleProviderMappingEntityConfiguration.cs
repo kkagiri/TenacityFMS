@@ -29,19 +29,17 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
 
             builder.Property(e => e.ExternalDeviceId)
                 .HasColumnName("external_device_id")
-                .HasMaxLength(200);
+                .HasMaxLength(191); // MySQL 5.5/utf8mb4 index-safe length (<= 767 bytes)
 
             builder.Property(e => e.IsActive)
                 .HasColumnName("is_active")
                 .HasDefaultValue(true);
 
             builder.Property(e => e.CreatedAt)
-                .HasColumnName("created_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasColumnName("created_at"); // No DEFAULT CURRENT_TIMESTAMP
 
             builder.Property(e => e.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasColumnName("updated_at"); // No ON UPDATE CURRENT_TIMESTAMP
 
             builder.Property(e => e.CreatedBy)
                 .HasColumnName("created_by")
@@ -70,11 +68,7 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
             builder.HasIndex(e => e.ExternalDeviceId)
                 .HasDatabaseName("idx_mapping_external_device");
 
-            // Unique constraint: one active mapping per vehicle
-            builder.HasIndex(e => new { e.VehicleId, e.IsActive })
-                .HasDatabaseName("idx_unique_active_mapping")
-                .HasFilter("is_active = 1")
-                .IsUnique();
+            // MySQL 5.5: No filtered unique indexes; enforce in application logic
         }
     }
 }

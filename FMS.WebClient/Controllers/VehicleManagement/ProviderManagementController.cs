@@ -1,9 +1,9 @@
-using FMS.Application.Common;
+using FMS.Infrastructure.VehicleTracking.Models;
 using FMS.Infrastructure.VehicleTracking.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+
 
 namespace FMS.WebClient.Controllers.VehicleManagement
 {
@@ -14,21 +14,14 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     [ApiController]
     [Route("api/v1/providers")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class ProviderManagementController : ControllerBase
+    public class ProviderManagementController(
+        IVehicleTrackingService trackingService,
+        IProviderConfigurationService configService,
+        ILogger<ProviderManagementController> logger) : ControllerBase
     {
-        private readonly IVehicleTrackingService _trackingService;
-        private readonly IProviderConfigurationService _configService;
-        private readonly ILogger<ProviderManagementController> _logger;
-
-        public ProviderManagementController(
-            IVehicleTrackingService trackingService,
-            IProviderConfigurationService configService,
-            ILogger<ProviderManagementController> logger)
-        {
-            _trackingService = trackingService;
-            _configService = configService;
-            _logger = logger;
-        }
+        private readonly IVehicleTrackingService _trackingService = trackingService;
+        private readonly IProviderConfigurationService _configService = configService;
+        private readonly ILogger<ProviderManagementController> _logger = logger;
 
         /// <summary>
         /// Get health status of all providers
@@ -41,16 +34,16 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Getting health status for all providers");
 
-                var healthStatuses = await _trackingService.GetProvidersHealthAsync();
+                Dictionary<string, ProviderHealthStatus> healthStatuses = await _trackingService.GetProvidersHealthAsync();
 
                 var response = healthStatuses.Select(kvp => new
                 {
                     ProviderName = kvp.Key,
                     Status = kvp.Value.Status.ToString(),
-                    Message = kvp.Value.Message,
-                    ResponseTimeMs = kvp.Value.ResponseTimeMs,
-                    CheckedAt = kvp.Value.CheckedAt,
-                    IsHealthy = kvp.Value.Status == Infrastructure.VehicleTracking.Models.HealthStatus.Healthy
+                    kvp.Value.Message,
+                    kvp.Value.ResponseTimeMs,
+                    kvp.Value.CheckedAt,
+                    IsHealthy = kvp.Value.Status == HealthStatus.Healthy
                 }).ToList();
 
                 return Ok(new
@@ -80,29 +73,29 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Getting provider statistics");
 
-                var statistics = await _trackingService.GetProviderStatisticsAsync();
+                ProviderUsageStatistics statistics = await _trackingService.GetProviderStatisticsAsync();
 
                 return Ok(new
                 {
                     Success = true,
                     Data = new
                     {
-                        TotalRequests = statistics.TotalRequests,
-                        SuccessfulRequests = statistics.SuccessfulRequests,
-                        FailedRequests = statistics.FailedRequests,
-                        FailoverCount = statistics.FailoverCount,
-                        AverageResponseTimeMs = statistics.AverageResponseTimeMs,
+                        statistics.TotalRequests,
+                        statistics.SuccessfulRequests,
+                        statistics.FailedRequests,
+                        statistics.FailoverCount,
+                        statistics.AverageResponseTimeMs,
                         ProviderStats = statistics.ProviderStats.Select(kvp => new
                         {
                             ProviderName = kvp.Key,
-                            RequestCount = kvp.Value.RequestCount,
-                            SuccessCount = kvp.Value.SuccessCount,
-                            FailureCount = kvp.Value.FailureCount,
+                            kvp.Value.RequestCount,
+                            kvp.Value.SuccessCount,
+                            kvp.Value.FailureCount,
                             SuccessRate = kvp.Value.RequestCount > 0
                                 ? (double)kvp.Value.SuccessCount / kvp.Value.RequestCount * 100
                                 : 0,
-                            AverageResponseTimeMs = kvp.Value.AverageResponseTimeMs,
-                            LastRequestTime = kvp.Value.LastRequestTime,
+                            kvp.Value.AverageResponseTimeMs,
+                            kvp.Value.LastRequestTime,
                             HealthStatus = kvp.Value.HealthStatus.ToString()
                         }).ToList()
                     },
@@ -127,25 +120,26 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Getting all provider configurations");
 
-                var providers = await _configService.GetAllProvidersAsync();
+                // Use service contract method
+                List<ProviderConfiguration> providers = await _configService.GetAllAsync(includeDisabled: true);
 
                 return Ok(new
                 {
                     Success = true,
                     Data = providers.Select(p => new
                     {
-                        p.ProviderId,
-                        p.ProviderName,
+                        ProviderId = p.Id,
+                        ProviderName = p.Name,
                         p.DisplayName,
                         p.Description,
                         p.IsEnabled,
                         p.IsDefault,
-                        p.PriorityOrder,
-                        ConfigurationData = p.ConfigurationData, // JSON string
+                        PriorityOrder = p.Priority,
+                        ConfigurationData = p.Settings,
                         p.CreatedAt,
                         p.UpdatedAt
                     }).ToList(),
-                    Count = providers.Count,
+                    providers.Count,
                     Timestamp = DateTime.UtcNow
                 });
             }
@@ -168,7 +162,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Getting provider configuration for ID {ProviderId}", providerId);
 
-                var provider = await _configService.GetProviderByIdAsync(providerId);
+                ProviderConfiguration? provider = await _configService.GetByIdAsync(providerId);
 
                 if (provider == null)
                 {
@@ -180,14 +174,14 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                     Success = true,
                     Data = new
                     {
-                        provider.ProviderId,
-                        provider.ProviderName,
+                        ProviderId = provider.Id,
+                        ProviderName = provider.Name,
                         provider.DisplayName,
                         provider.Description,
                         provider.IsEnabled,
                         provider.IsDefault,
-                        provider.PriorityOrder,
-                        ConfigurationData = provider.ConfigurationData,
+                        PriorityOrder = provider.Priority,
+                        ConfigurationData = provider.Settings,
                         provider.CreatedAt,
                         provider.UpdatedAt
                     }
@@ -213,21 +207,40 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Updating provider {ProviderId}", providerId);
 
-                var provider = await _configService.GetProviderByIdAsync(providerId);
+                ProviderConfiguration? provider = await _configService.GetByIdAsync(providerId);
                 if (provider == null)
                 {
                     return NotFound(new { Success = false, Message = $"Provider {providerId} not found" });
                 }
 
                 // Update fields
-                if (request.DisplayName != null) provider.DisplayName = request.DisplayName;
-                if (request.Description != null) provider.Description = request.Description;
-                if (request.ConfigurationData != null) provider.ConfigurationData = request.ConfigurationData;
-                if (request.IsEnabled.HasValue) provider.IsEnabled = request.IsEnabled.Value;
-                if (request.IsDefault.HasValue) provider.IsDefault = request.IsDefault.Value;
-                if (request.PriorityOrder.HasValue) provider.PriorityOrder = request.PriorityOrder.Value;
+                if (request.DisplayName != null)
+                {
+                    provider.DisplayName = request.DisplayName;
+                }
+                if (request.Description != null)
+                {
+                    provider.Description = request.Description;
+                }
+                if (request.ConfigurationData != null)
+                {
+                    provider.Settings = request.ConfigurationData;
+                }
+                if (request.IsEnabled.HasValue)
+                {
+                    provider.IsEnabled = request.IsEnabled.Value;
+                }
+                if (request.IsDefault.HasValue)
+                {
+                    provider.IsDefault = request.IsDefault.Value;
+                }
+                if (request.PriorityOrder.HasValue)
+                {
+                    provider.Priority = request.PriorityOrder.Value;
+                }
 
-                await _configService.UpdateProviderAsync(provider);
+                // Persist via service contract
+                await _configService.UpdateAsync(provider);
 
                 // Reload providers to apply changes
                 await _trackingService.ReloadProvidersAsync();
@@ -258,7 +271,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Testing connection to provider {ProviderName}", providerName);
 
-                var isConnected = await _trackingService.TestProviderConnectivityAsync(providerName);
+                bool isConnected = await _trackingService.TestProviderConnectivityAsync(providerName);
 
                 return Ok(new
                 {
@@ -330,17 +343,44 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             {
                 _logger.LogInformation("Getting vehicle-provider mappings");
 
-                var mappings = vehicleId.HasValue
-                    ? await _configService.GetProviderMappingsForVehicleAsync(vehicleId.Value)
-                    : await _configService.GetAllProviderMappingsAsync();
-
-                return Ok(new
+                if (vehicleId.HasValue)
                 {
-                    Success = true,
-                    Data = mappings,
-                    Count = mappings.Count,
-                    Timestamp = DateTime.UtcNow
-                });
+                    // Single vehicle mapping: return provider name (if any)
+                    ProviderConfiguration? config = await _configService.GetForVehicleAsync(vehicleId.Value);
+                    List<object> data = config == null
+                        ? []
+                        : [new { VehicleId = vehicleId.Value, ProviderName = config.Name }];
+
+                    return Ok(new
+                    {
+                        Success = true,
+                        Data = data,
+                        data.Count,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    // Aggregate: provider -> vehicleIds
+                    List<ProviderConfiguration> providers = await _configService.GetAllAsync(includeDisabled: false);
+                    List<object> result = [];
+                    foreach (ProviderConfiguration p in providers)
+                    {
+                        List<int> vehicleIds = await _configService.GetMappedVehiclesAsync(p.Name);
+                        foreach (int vid in vehicleIds)
+                        {
+                            result.Add(new { VehicleId = vid, ProviderName = p.Name });
+                        }
+                    }
+
+                    return Ok(new
+                    {
+                        Success = true,
+                        Data = result,
+                        result.Count,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -362,7 +402,18 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 _logger.LogInformation("Assigning vehicle {VehicleId} to provider {ProviderId}",
                     request.VehicleId, request.ProviderId);
 
-                await _configService.AssignVehicleToProviderAsync(request.VehicleId, request.ProviderId);
+                // Look up provider by ID to get its name (service expects providerName)
+                ProviderConfiguration? provider = await _configService.GetByIdAsync(request.ProviderId);
+                if (provider == null)
+                {
+                    return NotFound(new { Success = false, Message = $"Provider {request.ProviderId} not found" });
+                }
+
+                bool ok = await _configService.MapVehicleToProviderAsync(request.VehicleId, provider.Name);
+                if (!ok)
+                {
+                    return StatusCode(500, new { Success = false, Message = "Failed to assign vehicle" });
+                }
 
                 return Ok(new
                 {

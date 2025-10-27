@@ -49,13 +49,13 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
                 .HasColumnName("error_count")
                 .HasDefaultValue(0);
 
+            // MySQL 5.5/5.6 compatibility: no JSON type
             builder.Property(e => e.AdditionalMetrics)
                 .HasColumnName("additional_metrics")
-                .HasColumnType("json");
+                .HasColumnType("longtext");
 
             builder.Property(e => e.CheckedAt)
-                .HasColumnName("checked_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasColumnName("checked_at"); // No DEFAULT CURRENT_TIMESTAMP
 
             // Relationships
             builder.HasOne(e => e.ProviderConfiguration)

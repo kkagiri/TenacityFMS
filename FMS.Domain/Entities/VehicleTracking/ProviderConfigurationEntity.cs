@@ -61,9 +61,9 @@ namespace FMS.Domain.Entities.VehicleTracking
         public string Version { get; set; } = "1.0.0";
 
         /// <summary>
-        /// JSON configuration settings (encrypted for sensitive data)
+        /// JSON configuration settings (stored as LONGTEXT for MySQL 5.5/5.6 compatibility; encrypted for sensitive data)
         /// </summary>
-        [Column("settings", TypeName = "json")]
+        [Column("settings", TypeName = "longtext")]
         public string Settings { get; set; } = "{}";
 
         /// <summary>

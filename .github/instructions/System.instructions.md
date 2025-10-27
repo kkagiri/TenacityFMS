@@ -603,28 +603,34 @@ Navigation issues typically occur when:
 
 ## Step-by-Step Module Navigation Setup
 
-### 1. Database Navigation Item Setup
+### 1. Database Navigation Item Setup {deprecated}
 
-Every module requires a navigation item in the database. Use the Navigation Management page (`/admin/navigations`) to create or update navigation items:
+**⚠️ DEPRECATED: This approach is no longer used. Navigation is now managed through the Navigation Management UI.**
 
-**Required Fields for Any Module:**
+~~Every module requires a navigation item in the database. Use the Navigation Management page (`/admin/navigations`) to create or update navigation items:~~
 
-- **Page**: The module identifier (must match case in app-routes.js)
-  - Examples: `"tank stock"`, `"notifications"`, `"vehicles"`, `"admin"`
-- **Link**: The exact route path the module should use
-  - Examples: `/tankstock`, `/notifications`, `/vehicles`, `/admin`
-- **Icon**: FontAwesome icon class
-  - Examples: `fa-light fa-gas-pump`, `fa-light fa-bell`, `fa-light fa-car`
-- **Parent ID**: `null` for top-level items, or parent navigation item ID
-- **Roles**: Assign appropriate user roles (Admin, Manager, etc.)
+~~**Required Fields for Any Module:**~~
 
-**SQL Template for New Module Navigation:**
+~~- **Page**: The module identifier (must match case in app-routes.js)~~
+  ~~- Examples: `"tank stock"`, `"notifications"`, `"vehicles"`, `"admin"`~~
+~~- **Link**: The exact route path the module should use~~
+  ~~- Examples: `/tankstock`, `/notifications`, `/vehicles`, `/admin`~~
+~~- **Icon**: FontAwesome icon class~~
+  ~~- Examples: `fa-light fa-gas-pump`, `fa-light fa-bell`, `fa-light fa-car`~~
+~~- **Parent ID**: `null` for top-level items, or parent navigation item ID~~
+~~- **Roles**: Assign appropriate user roles (Admin, Manager, etc.)~~
+
+~~**SQL Template for New Module Navigation:**~~
 ```sql
-INSERT INTO navigationitems (Page, Link, Icon, ParentId)
-VALUES ('[module-name]', '/[route-path]', '[icon-class]', NULL);
+-- DEPRECATED: Use Navigation Management UI instead
+-- INSERT INTO navigationitems (Page, Link, Icon, ParentId)
+-- VALUES ('[module-name]', '/[route-path]', '[icon-class]', NULL);
 ```
 
-### 2. Router Configuration in Content.js
+**Current Approach:**
+Use the Navigation Management page (`/admin/navigations`) to create navigation items through the UI. The system automatically handles database operations.
+
+### 2. Router Configuration in Content.js (CURRENT APPROACH)
 
 Every module needs two routes in `Content.js` - one for the base path and one wildcard for sub-routes:
 

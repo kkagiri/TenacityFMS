@@ -30,7 +30,7 @@ import {
   fetchTanks,
   fetctTankbySiteId,
 } from "../../../redux/actions/tankActions";
-import { fetchTankVolumeHistoryByTankId } from "../../../redux/actions/tankVolumeHistoryActions";
+import { fetchTankVolumeHistoryByTankId, fetchTankVolumeHistoryFiltered } from "../../../redux/actions/tankVolumeHistoryActions";
 import { createClosingStock } from "../../../redux/actions/ClosingStockActions";
 import { prepareOpeningClosingStockParams } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
@@ -290,9 +290,21 @@ const ClosingStockForm = ({
 
       if (tankId) {
         setLoading(true);
-        dispatch(fetchTankVolumeHistoryByTankId(tankId))
+
+        // Fetch tank volume history for the selected date
+        const selectedDate = formData.date ? new Date(formData.date) : new Date();
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        dispatch(fetchTankVolumeHistoryFiltered({
+          tankId: tankId,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }))
           .then(() => {
-            console.log("Tank volume history loaded successfully");
+            console.log("Tank volume history loaded successfully for date:", selectedDate.toLocaleDateString());
           })
           .catch((error) => {
             console.error("ClosingStockForm - Error loading tank volume history:", error);
@@ -336,12 +348,37 @@ const ClosingStockForm = ({
       // Clear validation errors for this field
       setValidationErrors((prev) => ({ ...prev, date: null }));
 
-      // Trigger future records validation when date and tank are available
+      // Reload tank volume history for the new date if tank is selected
       if (newDate && formData.tankId) {
+        setLoading(true);
+
+        const selectedDate = new Date(newDate);
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        dispatch(fetchTankVolumeHistoryFiltered({
+          tankId: formData.tankId,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }))
+          .then(() => {
+            console.log("Tank volume history reloaded for date:", selectedDate.toLocaleDateString());
+          })
+          .catch((error) => {
+            console.error("ClosingStockForm - Error reloading tank volume history:", error);
+            showNotification("Failed to reload tank volume history", "error");
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+
+        // Trigger future records validation when date and tank are available
         validateHistoricalEntry(formData.tankId, newDate, "ClosingStock");
       }
     },
-    [formData, validateHistoricalEntry]
+    [formData, validateHistoricalEntry, dispatch, showNotification]
   );
 
   const handleAmountChange = useCallback(
@@ -824,8 +861,22 @@ const ClosingStockForm = ({
                         Tank Volume History
                       </h4>
                       <p className="tw-text-sm tw-text-gray-600">
-                        Recent volume changes for selected tank. Use search and
-                        filters to analyze transaction data. Negative values
+                        Showing transactions for{" "}
+                        <strong className="tw-text-blue-600">
+                          {formData.date
+                            ? new Date(formData.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })
+                            : new Date().toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })
+                          }
+                        </strong>
+                        . Use search and filters to analyze transaction data. Negative values
                         indicate fuel dispensed or transferred out.
                       </p>
                     </div>

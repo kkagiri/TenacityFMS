@@ -13,19 +13,19 @@ const ProviderManagementLayout = ({ children }) => {
     {
       id: "dashboard",
       title: "Dashboard",
-      path: "/providermanagement/dashboard",
+      path: "/admin/providers/dashboard",
       icon: "fa-light fa-gauge-high",
     },
     {
       id: "configuration",
       title: "Configuration",
-      path: "/providermanagement/configuration",
+      path: "/admin/providers/configuration",
       icon: "fa-light fa-gear",
     },
     {
       id: "assignments",
       title: "Vehicle Assignments",
-      path: "/providermanagement/assignments",
+      path: "/admin/providers/assignments",
       icon: "fa-light fa-truck",
     },
   ];
@@ -37,8 +37,7 @@ const ProviderManagementLayout = ({ children }) => {
   const isActiveTab = (path) => {
     return (
       location.pathname === path ||
-      (location.pathname === "/providermanagement" &&
-        path.includes("dashboard"))
+      (location.pathname === "/admin/providers" && path.includes("dashboard"))
     );
   };
 

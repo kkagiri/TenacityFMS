@@ -47,23 +47,23 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
                 .IsRequired()
                 .HasDefaultValue("1.0.0");
 
+            // MySQL 5.5/5.6 compatibility: no JSON type, no defaults for TEXT/LONGTEXT
             builder.Property(e => e.Settings)
                 .HasColumnName("settings")
-                .HasColumnType("json")
-                .IsRequired()
-                .HasDefaultValue("{}");
+                .HasColumnType("longtext")
+                .IsRequired();
 
             builder.Property(e => e.Priority)
                 .HasColumnName("priority")
                 .HasDefaultValue(999);
 
+            // No DEFAULT CURRENT_TIMESTAMP on MySQL 5.5/5.6 (multiple timestamp columns unsupported)
             builder.Property(e => e.CreatedAt)
-                .HasColumnName("created_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasColumnName("created_at");
 
+            // No ON UPDATE CURRENT_TIMESTAMP on MySQL 5.5/5.6
             builder.Property(e => e.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasColumnName("updated_at");
 
             builder.Property(e => e.CreatedBy)
                 .HasColumnName("created_by")

@@ -18,6 +18,7 @@ import ConfigurationPage from './configuration';
 import SystemConfiguration from './systemConfig/SystemConfigPage';
 import PTSServiceControl from './ptsService/PTSServiceControl';
 import NotificationSettings from './notification-settings/NotificationSettings';
+import ProviderManagementMain from '../providermanagement/ProviderManagementMain';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -40,6 +41,10 @@ const AdminMain = () => {
         <Route path="navigation/*" element={<NavigationPage />} />
         <Route path="notifications" element={<NotificationSettings />} />
         <Route path="notifications/*" element={<NotificationSettings />} />
+
+    {/* Provider Management */}
+    <Route path="providers" element={<ProviderManagementMain />} />
+    <Route path="providers/*" element={<ProviderManagementMain />} />
 
         {/* System Configuration Routes */}
         <Route path="tags" element={<Tagpage />} />

@@ -23,15 +23,19 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             Action<VehicleTrackingOptions>? configureOptions = null)
         {
             if (services == null)
+            {
                 throw new ArgumentNullException(nameof(services));
+            }
 
-            // Configure options
-            var options = new VehicleTrackingOptions();
+            // Configure options and register as DI singleton for consumers
+            VehicleTrackingOptions options = new();
             configureOptions?.Invoke(options);
+            services.AddSingleton(options);
 
             // Register core services
             services.TryAddSingleton<IProviderRegistry, ProviderRegistry>();
-            services.TryAddSingleton<IProviderFactory, ProviderFactory>();
+            // ProviderFactory consumes scoped services (IProviderConfigurationService), so it must be Scoped
+            services.TryAddScoped<IProviderFactory, ProviderFactory>();
             services.TryAddScoped<IProviderConfigurationService, ProviderConfigurationService>();
             services.TryAddScoped<IVehicleTrackingService, VehicleTrackingService>();
 
@@ -62,10 +66,14 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             where TProvider : class, Interfaces.IVehicleTrackingProvider
         {
             if (services == null)
+            {
                 throw new ArgumentNullException(nameof(services));
+            }
 
             if (string.IsNullOrWhiteSpace(providerName))
+            {
                 throw new ArgumentException("Provider name cannot be null or empty", nameof(providerName));
+            }
 
             // Register the provider type
             services.Add(new ServiceDescriptor(typeof(TProvider), typeof(TProvider), lifetime));
@@ -114,21 +122,14 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
     /// <summary>
     /// Hosted service for automatic provider discovery on startup
     /// </summary>
-    internal class ProviderDiscoveryHostedService : Microsoft.Extensions.Hosting.IHostedService
+    internal class ProviderDiscoveryHostedService(
+        IProviderRegistry registry,
+        VehicleTrackingOptions options,
+        ILogger<ProviderDiscoveryHostedService> logger) : Microsoft.Extensions.Hosting.IHostedService
     {
-        private readonly IProviderRegistry _registry;
-        private readonly VehicleTrackingOptions _options;
-        private readonly Microsoft.Extensions.Logging.ILogger<ProviderDiscoveryHostedService> _logger;
-
-        public ProviderDiscoveryHostedService(
-            IProviderRegistry registry,
-            VehicleTrackingOptions options,
-            Microsoft.Extensions.Logging.ILogger<ProviderDiscoveryHostedService> logger)
-        {
-            _registry = registry ?? throw new ArgumentNullException(nameof(registry));
-            _options = options ?? throw new ArgumentNullException(nameof(options));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly IProviderRegistry _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        private readonly VehicleTrackingOptions _options = options ?? throw new ArgumentNullException(nameof(options));
+        private readonly ILogger<ProviderDiscoveryHostedService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public async System.Threading.Tasks.Task StartAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -136,7 +137,7 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
 
             try
             {
-                var count = await _registry.DiscoverProvidersAsync(_options.AssemblyNames ?? Array.Empty<string>());
+                int count = await _registry.DiscoverProvidersAsync(_options.AssemblyNames ?? []);
                 _logger.LogInformation("Provider discovery completed. Discovered {ProviderCount} providers", count);
             }
             catch (Exception ex)

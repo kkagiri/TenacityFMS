@@ -130,6 +130,13 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
     }
     ,
     {
+      id: 'providers',
+      title: 'Providers',
+      icon: 'fa-light fa-network-wired',
+      path: adminRoutes.providers,
+      badge: null,
+    },
+    {
       id:'notifications',
       title:'Notifications',
       icon: 'fa-light fa-bell',
