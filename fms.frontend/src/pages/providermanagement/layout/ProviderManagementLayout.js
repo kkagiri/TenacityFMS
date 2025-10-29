@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import Tabs from "devextreme-react/tabs";
 
 /**
  * Provider Management Layout
@@ -9,37 +10,25 @@ const ProviderManagementLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tabs = [
-    {
-      id: "dashboard",
-      title: "Dashboard",
-      path: "/admin/providers/dashboard",
-      icon: "fa-light fa-gauge-high",
-    },
-    {
-      id: "configuration",
-      title: "Configuration",
-      path: "/admin/providers/configuration",
-      icon: "fa-light fa-gear",
-    },
-    {
-      id: "assignments",
-      title: "Vehicle Assignments",
-      path: "/admin/providers/assignments",
-      icon: "fa-light fa-truck",
-    },
-  ];
+  const tabs = useMemo(
+    () => [
+      { id: "dashboard", text: "Dashboard", path: "/admin/providers/dashboard" },
+      { id: "configuration", text: "Configuration", path: "/admin/providers/configuration" },
+      { id: "assignments", text: "Vehicle Assignments", path: "/admin/providers/assignments" },
+    ],
+    []
+  );
 
   const handleTabClick = (path) => {
     navigate(path);
   };
 
-  const isActiveTab = (path) => {
-    return (
-      location.pathname === path ||
-      (location.pathname === "/admin/providers" && path.includes("dashboard"))
-    );
-  };
+  const selectedIndex = useMemo(() => {
+    const idx = tabs.findIndex((t) => location.pathname.startsWith(t.path));
+    if (idx >= 0) return idx;
+    // default route maps to dashboard
+    return 0;
+  }, [location.pathname, tabs]);
 
   return (
     <div className="tw-h-full tw-flex tw-flex-col">
@@ -48,7 +37,6 @@ const ProviderManagementLayout = ({ children }) => {
         <div className="tw-flex tw-items-center tw-justify-between">
           <div>
             <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">
-              <i className="fa-light fa-network-wired tw-mr-3 tw-text-blue-600"></i>
               Provider Management
             </h1>
             <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
@@ -59,28 +47,17 @@ const ProviderManagementLayout = ({ children }) => {
         </div>
       </div>
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation using DevExtreme Tabs (StockManagement-style) */}
       <div className="tw-bg-white tw-border-b tw-border-gray-200">
         <div className="tw-px-6">
-          <nav className="tw-flex tw-space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.path)}
-                className={`
-                  tw-py-4 tw-px-1 tw-border-b-2 tw-font-medium tw-text-sm tw-transition-colors
-                  ${
-                    isActiveTab(tab.path)
-                      ? "tw-border-blue-500 tw-text-blue-600"
-                      : "tw-border-transparent tw-text-gray-500 hover:tw-text-gray-700 hover:tw-border-gray-300"
-                  }
-                `}
-              >
-                <i className={`${tab.icon} tw-mr-2`}></i>
-                {tab.title}
-              </button>
-            ))}
-          </nav>
+          <Tabs
+            dataSource={tabs}
+            selectedIndex={selectedIndex}
+            onItemClick={(e) => handleTabClick(e.itemData.path)}
+            width="100%"
+            itemRender={(item) => <span>{item.text}</span>}
+            className="tw-pt-2"
+          />
         </div>
       </div>
 

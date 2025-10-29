@@ -99,19 +99,38 @@ namespace FMS.Infrastructure.VehicleTracking.Models
         /// </summary>
         public void SetValue<T>(string key, T value)
         {
-            var config = JsonSerializer.Deserialize<Dictionary<string, object>>(Settings)
-                ?? new Dictionary<string, object>();
-            config[key] = value;
-            Settings = JsonSerializer.Serialize(config);
+            try
+            {
+                var config = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(Settings)
+                    ?? new Dictionary<string, JsonElement>();
+                config[key] = JsonSerializer.SerializeToElement(value);
+                Settings = JsonSerializer.Serialize(config);
+            }
+            catch (Exception)
+            {
+                // If deserialization fails, create new config
+                var config = new Dictionary<string, JsonElement>
+                {
+                    [key] = JsonSerializer.SerializeToElement(value)
+                };
+                Settings = JsonSerializer.Serialize(config);
+            }
         }
 
         /// <summary>
         /// Get all configuration values as a dictionary
         /// </summary>
-        public Dictionary<string, object> GetAllValues()
+        public Dictionary<string, JsonElement> GetAllValues()
         {
-            return JsonSerializer.Deserialize<Dictionary<string, object>>(Settings)
-                ?? new Dictionary<string, object>();
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(Settings)
+                    ?? new Dictionary<string, JsonElement>();
+            }
+            catch (Exception)
+            {
+                return new Dictionary<string, JsonElement>();
+            }
         }
     }
 }

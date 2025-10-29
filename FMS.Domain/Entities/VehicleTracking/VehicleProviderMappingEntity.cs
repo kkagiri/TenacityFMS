@@ -38,6 +38,33 @@ namespace FMS.Domain.Entities.VehicleTracking
         public string? ExternalDeviceId { get; set; }
 
         /// <summary>
+        /// Device IMEI number
+        /// </summary>
+        [MaxLength(50)]
+        [Column("device_imei")]
+        public string? DeviceIMEI { get; set; }
+
+        /// <summary>
+        /// Device name from provider
+        /// </summary>
+        [MaxLength(200)]
+        [Column("device_name")]
+        public string? DeviceName { get; set; }
+
+        /// <summary>
+        /// Device type/model
+        /// </summary>
+        [MaxLength(100)]
+        [Column("device_type")]
+        public string? DeviceType { get; set; }
+
+        /// <summary>
+        /// Additional device metadata (JSON)
+        /// </summary>
+        [Column("metadata", TypeName = "text")]
+        public string? Metadata { get; set; }
+
+        /// <summary>
         /// Whether this mapping is active
         /// </summary>
         [Column("is_active")]
@@ -74,5 +101,11 @@ namespace FMS.Domain.Entities.VehicleTracking
         /// </summary>
         [ForeignKey("ProviderConfigId")]
         public virtual ProviderConfigurationEntity? ProviderConfiguration { get; set; }
+
+        /// <summary>
+        /// Navigation property to vehicle
+        /// </summary>
+        [ForeignKey("VehicleId")]
+        public virtual Vehicle? Vehicle { get; set; }
     }
 }

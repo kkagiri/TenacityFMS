@@ -9,7 +9,7 @@ import {
   fetchPTSDeviceList,
 } from "../../redux/actions/ptsActions/ptsDeviceActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
-//import SignalRService from "../../signalR/SignalRService";
+import ptsSignalRService from "../../signalR/ptsSignalRService";
 import LiveStatusControl from "../../components/LiveStatus/LiveStatusControl";
 import "./PTSDashboard.scss";
 
@@ -67,8 +67,6 @@ const PTSDashboard = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    //const signalRService = SignalRService; switch to ptssignalrservice later
-
     const initializeConnection = async () => {
       setIsLoading(true);
 
@@ -85,14 +83,36 @@ const PTSDashboard = () => {
         });
 
       try {
-        //await signalRService.startConnection(); switch to ptssignalrservice later
-        console.log("SignalR connected");
+        await ptsSignalRService.start();
+        console.log("[PTSDashboard] PTS SignalR connected");
+
+        // Request initial device status and metrics
+        await ptsSignalRService.requestDeviceStatusSummary();
+        await ptsSignalRService.requestPTSDeviceList();
       } catch (error) {
-        console.error("Failed to connect to SignalR:", error);
+        console.error("[PTSDashboard] Failed to connect to PTS SignalR:", error);
       }
     };
 
     initializeConnection();
+
+    // Setup event listeners for real-time updates
+    const unsubscribeConnectedDevices = ptsSignalRService.on(
+      "connectedDevicesStatus",
+      (data) => {
+        console.log("[PTSDashboard] Received connected devices status:", data);
+        // This will trigger a re-render with updated online device counts
+        dispatch(fetchDashboardMetrics());
+      }
+    );
+
+    const unsubscribeDeviceList = ptsSignalRService.on(
+      "ptsDeviceListUpdate",
+      (data) => {
+        console.log("[PTSDashboard] Received device list update");
+        dispatch(fetchPTSDeviceList());
+      }
+    );
 
     // Use a less frequent refresh interval for metrics to prevent too many re-renders
     const refreshInterval = setInterval(() => {
@@ -100,11 +120,13 @@ const PTSDashboard = () => {
       if (realtimeStatus.isLiveDataEnabled) {
         dispatch(fetchDashboardMetrics());
       }
-    }, 15000); // Increased to 15 seconds from 5 seconds
+    }, 30000); // Increased to 30 seconds to rely more on SignalR
 
     return () => {
-      //signalRService.stopConnection(); //switch to ptssignalrservice later
+      unsubscribeConnectedDevices();
+      unsubscribeDeviceList();
       clearInterval(refreshInterval);
+      // Note: We don't stop ptsSignalRService here as it may be used by other components
     };
   }, [dispatch, realtimeStatus.isLiveDataEnabled]);
 

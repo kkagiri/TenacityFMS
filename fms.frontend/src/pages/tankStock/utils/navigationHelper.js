@@ -9,9 +9,9 @@ export const getTankStockRoute = (subPath = '') => {
 export const tankStockRoutes = {
   dashboard: '/tankstock/dashboard',
   stockAnalytics: '/tankstock/stock-analytics',
-  stockManagement: '/tankstock/stock-management'
-  // reconciliationControl: '/tankstock/reconciliation-control',
-  // settings: '/tankstock/settings'
+  stockManagement: '/tankstock/stock-management',
+  reconciliationControl: '/tankstock/reconciliation-control',
+  settings: '/tankstock/settings'
 };
 
 // Helper to check if current path matches a route

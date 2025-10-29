@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { DataGrid } from "devextreme-react";
-import {
-  Column,
-  Paging,
-  SearchPanel,
-  HeaderFilter,
-} from "devextreme-react/data-grid";
 import axiosInstance from "../../../api/axiosInstance";
 import notify from "devextreme/ui/notify";
+import ProviderDataGrid from "./ProviderDataGrid";
+import { Button } from "devextreme-react/button";
 
 /**
  * Provider Dashboard
@@ -42,21 +37,36 @@ const ProviderDashboard = () => {
 
       // Load providers, health, and statistics in parallel
       const [providersRes, healthRes, statsRes] = await Promise.all([
-        axiosInstance.get("/api/v1/providers/list"),
-        axiosInstance.get("/api/v1/providers/health"),
-        axiosInstance.get("/api/v1/providers/statistics"),
+        axiosInstance.get("/providers/list"),
+        axiosInstance.get("/providers/health"),
+        axiosInstance.get("/providers/statistics"),
       ]);
 
-      if (providersRes.data.Success) {
-        setProviders(providersRes.data.Data);
+      // Handle lowercase 'success' from API
+      if (providersRes.data.success || providersRes.data.Success) {
+        // Normalize provider data to ensure consistent property names
+        const providerData = providersRes.data.data || providersRes.data.Data || [];
+        const normalizedProviders = providerData.map(p => ({
+          providerId: p.providerId || p.ProviderId,
+          providerName: p.providerName || p.ProviderName,
+          displayName: p.displayName || p.DisplayName,
+          description: p.description || p.Description,
+          isEnabled: p.isEnabled ?? p.IsEnabled,
+          isDefault: p.isDefault ?? p.IsDefault,
+          priorityOrder: p.priorityOrder || p.PriorityOrder,
+          configurationData: p.configurationData || p.ConfigurationData,
+          createdAt: p.createdAt || p.CreatedAt,
+          updatedAt: p.updatedAt || p.UpdatedAt
+        }));
+        setProviders(normalizedProviders);
       }
 
-      if (healthRes.data.Success) {
-        setHealthData(healthRes.data.Data);
+      if (healthRes.data.success || healthRes.data.Success) {
+        setHealthData(healthRes.data.data || healthRes.data.Data || []);
       }
 
-      if (statsRes.data.Success) {
-        setStatistics(statsRes.data.Data);
+      if (statsRes.data.success || statsRes.data.Success) {
+        setStatistics(statsRes.data.data || statsRes.data.Data || null);
       }
 
       if (!silent) {
@@ -73,10 +83,13 @@ const ProviderDashboard = () => {
   const handleTestConnection = async (providerName) => {
     try {
       const response = await axiosInstance.post(
-        `/api/v1/providers/${providerName}/test`
+        `/providers/${providerName}/test`
       );
 
-      if (response.data.Success && response.data.Data.IsConnected) {
+      const success = response.data.success || response.data.Success;
+      const data = response.data.data || response.data.Data;
+
+      if (success && data.isConnected) {
         notify(`Successfully connected to ${providerName}`, "success", 3000);
       } else {
         notify(`Failed to connect to ${providerName}`, "error", 3000);
@@ -88,9 +101,9 @@ const ProviderDashboard = () => {
 
   const handleReloadProviders = async () => {
     try {
-      const response = await axiosInstance.post("/api/v1/providers/reload");
+      const response = await axiosInstance.post("/providers/reload");
 
-      if (response.data.Success) {
+      if (response.data.success || response.data.Success) {
         notify("Providers reloaded successfully", "success", 3000);
         loadDashboardData();
       }
@@ -99,101 +112,12 @@ const ProviderDashboard = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      Healthy: "tw-bg-green-100 tw-text-green-800",
-      Degraded: "tw-bg-yellow-100 tw-text-yellow-800",
-      Unhealthy: "tw-bg-red-100 tw-text-red-800",
-    };
-
-    return (
-      <span
-        className={`tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${
-          badges[status] || badges.Unhealthy
-        }`}
-      >
-        <i
-          className={`fa-light ${
-            status === "Healthy"
-              ? "fa-circle-check"
-              : status === "Degraded"
-              ? "fa-triangle-exclamation"
-              : "fa-circle-xmark"
-          } tw-mr-1`}
-        ></i>
-        {status}
-      </span>
-    );
-  };
-
-  const renderProviderStatus = (data) => {
-    const health = healthData.find((h) => h.ProviderName === data.ProviderName);
-    return health ? (
-      getStatusBadge(health.Status)
-    ) : (
-      <span className="tw-text-gray-400">Unknown</span>
-    );
-  };
-
-  const renderEnabledStatus = (data) => {
-    return data.IsEnabled ? (
-      <span className="tw-text-green-600">
-        <i className="fa-light fa-check-circle tw-mr-1"></i>Enabled
-      </span>
-    ) : (
-      <span className="tw-text-gray-400">
-        <i className="fa-light fa-circle-xmark tw-mr-1"></i>Disabled
-      </span>
-    );
-  };
-
-  const renderDefaultStatus = (data) => {
-    return data.IsDefault ? (
-      <span className="tw-text-blue-600">
-        <i className="fa-light fa-star tw-mr-1"></i>Default
-      </span>
-    ) : (
-      <span className="tw-text-gray-400">-</span>
-    );
-  };
-
-  const renderResponseTime = (data) => {
-    const health = healthData.find((h) => h.ProviderName === data.ProviderName);
-    if (!health) return <span className="tw-text-gray-400">-</span>;
-
-    const time = health.ResponseTimeMs;
-    const color =
-      time < 100
-        ? "tw-text-green-600"
-        : time < 500
-        ? "tw-text-yellow-600"
-        : "tw-text-red-600";
-
-    return <span className={color}>{time}ms</span>;
-  };
-
-  const renderActions = (data) => {
-    return (
-      <div className="tw-flex tw-gap-2">
-        <button
-          onClick={() => handleTestConnection(data.ProviderName)}
-          className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-sm"
-          title="Test Connection"
-        >
-          <i className="fa-light fa-plug"></i>
-        </button>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="tw-flex tw-items-center tw-justify-center tw-h-full">
         <div className="tw-text-center">
-          <i className="fa-light fa-spinner-third fa-spin tw-text-4xl tw-text-blue-600"></i>
-          <p className="tw-mt-4 tw-text-gray-600">
-            Loading provider dashboard...
-          </p>
+          <p className="tw-text-2xl tw-font-semibold tw-text-blue-700">Loading…</p>
+          <p className="tw-mt-2 tw-text-gray-600">Loading provider dashboard…</p>
         </div>
       </div>
     );
@@ -213,9 +137,7 @@ const ProviderDashboard = () => {
                 {providers.length}
               </p>
             </div>
-            <div className="tw-bg-blue-100 tw-rounded-full tw-p-3">
-              <i className="fa-light fa-network-wired tw-text-2xl tw-text-blue-600"></i>
-            </div>
+            <div className="tw-bg-blue-100 tw-rounded-full tw-p-3 tw-text-blue-700 tw-font-semibold">TP</div>
           </div>
         </div>
 
@@ -226,12 +148,10 @@ const ProviderDashboard = () => {
                 Healthy Providers
               </p>
               <p className="tw-text-3xl tw-font-bold tw-text-green-600 tw-mt-2">
-                {healthData.filter((h) => h.IsHealthy).length}
+                {healthData.filter((h) => h.isHealthy ?? h.IsHealthy).length}
               </p>
             </div>
-            <div className="tw-bg-green-100 tw-rounded-full tw-p-3">
-              <i className="fa-light fa-circle-check tw-text-2xl tw-text-green-600"></i>
-            </div>
+            <div className="tw-bg-green-100 tw-rounded-full tw-p-3 tw-text-green-700 tw-font-semibold">HP</div>
           </div>
         </div>
 
@@ -242,12 +162,10 @@ const ProviderDashboard = () => {
                 Total Requests
               </p>
               <p className="tw-text-3xl tw-font-bold tw-text-gray-900 tw-mt-2">
-                {statistics?.TotalRequests?.toLocaleString() || 0}
+                {(statistics?.totalRequests ?? statistics?.TotalRequests ?? 0).toLocaleString()}
               </p>
             </div>
-            <div className="tw-bg-purple-100 tw-rounded-full tw-p-3">
-              <i className="fa-light fa-chart-line tw-text-2xl tw-text-purple-600"></i>
-            </div>
+            <div className="tw-bg-purple-100 tw-rounded-full tw-p-3 tw-text-purple-700 tw-font-semibold">TR</div>
           </div>
         </div>
 
@@ -258,19 +176,17 @@ const ProviderDashboard = () => {
                 Success Rate
               </p>
               <p className="tw-text-3xl tw-font-bold tw-text-gray-900 tw-mt-2">
-                {statistics?.TotalRequests > 0
+                {(statistics?.totalRequests ?? statistics?.TotalRequests ?? 0) > 0
                   ? (
-                      (statistics.SuccessfulRequests /
-                        statistics.TotalRequests) *
+                      ((statistics?.successfulRequests ?? statistics?.SuccessfulRequests ?? 0) /
+                        (statistics?.totalRequests ?? statistics?.TotalRequests ?? 1)) *
                       100
                     ).toFixed(1)
                   : 0}
                 %
               </p>
             </div>
-            <div className="tw-bg-emerald-100 tw-rounded-full tw-p-3">
-              <i className="fa-light fa-badge-check tw-text-2xl tw-text-emerald-600"></i>
-            </div>
+            <div className="tw-bg-emerald-100 tw-rounded-full tw-p-3 tw-text-emerald-700 tw-font-semibold">SR</div>
           </div>
         </div>
       </div>
@@ -279,10 +195,7 @@ const ProviderDashboard = () => {
       <div className="tw-bg-white tw-rounded-lg tw-shadow">
         <div className="tw-p-6 tw-border-b tw-border-gray-200">
           <div className="tw-flex tw-items-center tw-justify-between">
-            <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
-              <i className="fa-light fa-list tw-mr-2"></i>
-              Provider Status
-            </h2>
+            <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">Provider Status</h2>
             <div className="tw-flex tw-gap-3">
               <label className="tw-flex tw-items-center tw-text-sm tw-text-gray-700">
                 <input
@@ -293,137 +206,62 @@ const ProviderDashboard = () => {
                 />
                 Auto-refresh (30s)
               </label>
-              <button
-                onClick={() => loadDashboardData()}
-                className="tw-px-4 tw-py-2 tw-bg-blue-600 tw-text-white tw-rounded-md hover:tw-bg-blue-700 tw-text-sm"
-              >
-                <i className="fa-light fa-refresh tw-mr-2"></i>
-                Refresh
-              </button>
-              <button
-                onClick={handleReloadProviders}
-                className="tw-px-4 tw-py-2 tw-bg-gray-600 tw-text-white tw-rounded-md hover:tw-bg-gray-700 tw-text-sm"
-              >
-                <i className="fa-light fa-arrows-rotate tw-mr-2"></i>
-                Reload Providers
-              </button>
+              <Button stylingMode="text" text="Refresh" onClick={() => loadDashboardData()} />
+              <Button stylingMode="text" text="Reload Providers" onClick={handleReloadProviders} />
             </div>
           </div>
         </div>
 
         <div className="tw-p-6">
-          <DataGrid
-            dataSource={providers}
-            keyExpr="ProviderId"
-            showBorders={true}
-            rowAlternationEnabled={true}
-            hoverStateEnabled={true}
-          >
-            <SearchPanel visible={true} />
-            <HeaderFilter visible={true} />
-            <Paging defaultPageSize={10} />
-
-            <Column
-              dataField="ProviderName"
-              caption="Provider Name"
-              width={200}
-            />
-
-            <Column
-              dataField="DisplayName"
-              caption="Display Name"
-              width={200}
-            />
-
-            <Column
-              caption="Status"
-              width={120}
-              cellRender={renderProviderStatus}
-              alignment="center"
-            />
-
-            <Column
-              caption="Enabled"
-              width={100}
-              cellRender={renderEnabledStatus}
-              alignment="center"
-            />
-
-            <Column
-              caption="Default"
-              width={100}
-              cellRender={renderDefaultStatus}
-              alignment="center"
-            />
-
-            <Column
-              caption="Response Time"
-              width={130}
-              cellRender={renderResponseTime}
-              alignment="center"
-            />
-
-            <Column
-              dataField="PriorityOrder"
-              caption="Priority"
-              width={80}
-              alignment="center"
-            />
-
-            <Column
-              caption="Actions"
-              width={100}
-              cellRender={renderActions}
-              alignment="center"
-            />
-          </DataGrid>
+          <ProviderDataGrid
+            providers={providers}
+            healthData={healthData}
+            onTestConnection={handleTestConnection}
+          />
         </div>
       </div>
 
       {/* Provider Statistics */}
       {statistics &&
-        statistics.ProviderStats &&
-        statistics.ProviderStats.length > 0 && (
+        (statistics.providerStats || statistics.ProviderStats) &&
+        (statistics.providerStats || statistics.ProviderStats).length > 0 && (
           <div className="tw-bg-white tw-rounded-lg tw-shadow">
             <div className="tw-p-6 tw-border-b tw-border-gray-200">
-              <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
-                <i className="fa-light fa-chart-bar tw-mr-2"></i>
-                Provider Statistics
-              </h2>
+              <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">Provider Statistics</h2>
             </div>
             <div className="tw-p-6">
               <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
-                {statistics.ProviderStats.map((stat) => (
+                {(statistics.providerStats || statistics.ProviderStats).map((stat) => (
                   <div
-                    key={stat.ProviderName}
+                    key={stat.providerName || stat.ProviderName}
                     className="tw-border tw-border-gray-200 tw-rounded-lg tw-p-4"
                   >
                     <h3 className="tw-font-semibold tw-text-gray-900 tw-mb-3">
-                      {stat.ProviderName}
+                      {stat.providerName || stat.ProviderName}
                     </h3>
                     <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-text-sm">
                       <div>
                         <p className="tw-text-gray-600">Requests</p>
                         <p className="tw-font-semibold tw-text-lg">
-                          {stat.RequestCount.toLocaleString()}
+                          {(stat.requestCount || stat.RequestCount || 0).toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="tw-text-gray-600">Success Rate</p>
                         <p className="tw-font-semibold tw-text-lg tw-text-green-600">
-                          {stat.SuccessRate.toFixed(1)}%
+                          {(stat.successRate || stat.SuccessRate || 0).toFixed(1)}%
                         </p>
                       </div>
                       <div>
                         <p className="tw-text-gray-600">Avg Response</p>
                         <p className="tw-font-semibold tw-text-lg">
-                          {stat.AverageResponseTimeMs.toFixed(0)}ms
+                          {(stat.averageResponseTimeMs || stat.AverageResponseTimeMs || 0).toFixed(0)}ms
                         </p>
                       </div>
                       <div>
                         <p className="tw-text-gray-600">Status</p>
                         <p className="tw-font-semibold tw-text-lg">
-                          {stat.HealthStatus}
+                          {stat.healthStatus || stat.HealthStatus}
                         </p>
                       </div>
                     </div>

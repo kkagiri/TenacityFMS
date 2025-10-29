@@ -246,5 +246,19 @@ namespace FMS.Application.Communication.SignalR
                 _logger.LogError(ex, "Error sending alarm statistics");
             }
         }
+
+        // Method to broadcast bulk provider assignment progress
+        public async Task BroadcastBulkProviderAssignmentProgress(object progressData)
+        {
+            try
+            {
+                await Clients.All.SendAsync("BulkProviderAssignmentProgress", progressData);
+                _logger.LogDebug("Bulk provider assignment progress broadcasted: {Data}", progressData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting bulk provider assignment progress");
+            }
+        }
     }
 }

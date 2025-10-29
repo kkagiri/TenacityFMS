@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.VehicleTracking.DTOs;
 using FMS.Infrastructure.VehicleTracking.Interfaces;
 using FMS.Infrastructure.VehicleTracking.Models;
 using Microsoft.Extensions.Logging;
@@ -129,6 +130,7 @@ namespace FMS.Infrastructure.VehicleTracking.Base
             bool gpsEnabledOnly = true);
         public abstract Task<FMSResponse<VehicleOdometerDTO>> GetVehicleOdometerAsync(int vehicleId);
         public abstract Task<FMSResponse<bool>> IsVehicleOnlineAsync(int vehicleId);
+        public abstract Task<FMSResponse<List<GPSDeviceDTO>>> GetAllDevicesAsync();
 
         #endregion
 

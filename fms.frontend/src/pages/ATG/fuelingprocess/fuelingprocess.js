@@ -28,6 +28,7 @@ import {
 } from "../../../redux/actions/tagActions"; //Cursor
 import { fetchSiteList } from "../../../redux/actions/siteActions"; //Cursor
 import { authorizePump } from "../../../redux/actions/ptsActions/ptspumpActions"; //Cursor: Add for enhanced authorization
+import ptsSignalRService from "../../../signalR/ptsSignalRService"; // PTS-specific SignalR service
 
 //Cursor: Import ScanStep
 import ScanStep from "./fuelingsteps/ScanStep";
@@ -208,25 +209,21 @@ const FuelingProcess = () => {
   useEffect(() => {
     if (ptsId && isLiveDataEnabled) {
       // Request status updates for this specific device when component mounts
-      import("../../../signalR/SignalRService").then((module) => {
-        const SignalRService = module.default;
+      if (ptsSignalRService.isConnected) {
+        console.log(`[FuelingProcess] Requesting status for device ${ptsId}`);
+        ptsSignalRService.requestDeviceStatus(ptsId);
 
-        if (SignalRService.state === "connected") {
-          console.log(`[FuelingProcess] Requesting status for device ${ptsId}`);
-          SignalRService.requestDeviceStatus(ptsId);
+        // Set up interval to periodically request status
+        const statusInterval = setInterval(() => {
+          if (ptsSignalRService.isConnected) {
+            ptsSignalRService.requestDeviceStatus(ptsId);
+          }
+        }, 5000); // Request every 5 seconds
 
-          // Set up interval to periodically request status
-          const statusInterval = setInterval(() => {
-            if (SignalRService.state === "connected") {
-              SignalRService.requestDeviceStatus(ptsId);
-            }
-          }, 5000); // Request every 5 seconds
-
-          return () => {
-            clearInterval(statusInterval);
-          };
-        }
-      });
+        return () => {
+          clearInterval(statusInterval);
+        };
+      }
     }
   }, [ptsId, isLiveDataEnabled]);
 
@@ -408,26 +405,42 @@ const FuelingProcess = () => {
   const handleConnectionStatusChange = (status) => {
     setDeviceConnectionStatus(status);
 
-    // If device disconnects during an active fueling process, show warning
+    // Only block new operations when truly disconnected (not during grace period/delayed)
+    const isActuallyDisconnected = status === "disconnected";
+    setIsDeviceDisconnected(isActuallyDisconnected);
+
+    // Show warning only if transitioning from connected to disconnected during active fueling
     if (
-      status === "disconnected" &&
+      isActuallyDisconnected &&
       activeFuelingProcesses?.some((p) => p.status === "fueling")
     ) {
       notify(
-        "Device disconnected! Active fueling processes may be affected.",
+        "Device connection lost! Active fueling may continue but monitoring may be affected. The device will attempt to reconnect automatically.",
         "warning",
-        5000
+        7000
       );
     }
   };
 
   const startFueling = async () => {
-    // Check if device is disconnected first
-    if (isDeviceDisconnected) {
-      notify("Cannot start fueling - device is disconnected", "error", 3000);
+    // Only prevent starting if truly disconnected (not delayed or reconnecting)
+    if (deviceConnectionStatus === "disconnected") {
+      notify(
+        "Cannot start fueling - device is disconnected. Please wait for reconnection.",
+        "error",
+        3000
+      );
       return;
     }
 
+    // Allow fueling even if delayed/reconnecting
+    if (deviceConnectionStatus === "delayed") {
+      notify(
+        "Connection is delayed but fueling will proceed. Monitor connection status closely.",
+        "info",
+        3000
+      );
+    }
 
     if (!selectedPump || !selectedNozzle) {
       notify("Please select a pump and nozzle first.", "warning", 2000);
@@ -1222,6 +1235,7 @@ const FuelingProcess = () => {
         lastUpdated={deviceLastUpdated} // Pass timestamp from hook
         rawUploadStatus={rawUploadStatus} // Cursor: Pass raw status object
         activeFuelingProcesses={activeFuelingProcesses} // Pass derived state
+        availablePumps={availablePumps} // Pass available pumps to check if any exist
         setShowAllFuelingPopup={setShowAllFuelingPopup}
         startNewFueling={startNewFueling}
         handleNavigation={handleNavigation}

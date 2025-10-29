@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Import;
 using FMS.Application.Communication.Tracker;
@@ -153,6 +155,74 @@ namespace FMS.Application.Communication.SignalR
                 _logger.LogError(ex, "Error retrieving all devices status");
                 await Clients.Caller.SendAsync("Error", "Failed to retrieve devices status");
             }
+        }
+
+        /// <summary>
+        /// Broadcast dashboard metrics to all connected clients
+        /// </summary>
+        public async Task BroadcastDashboardMetrics()
+        {
+            try
+            {
+                // Get list of devices from the database
+                var devices = await _mediator.Send(new GetPTSDeviceListQuery());
+
+                // Get online device connections summary from the tracker
+                var summary = await _deviceConnectionTracker.GetConnectedDevices();
+
+                if (devices != null && summary?.WebSocketConnections != null && summary?.HttpConnections != null)
+                {
+                    // Combine online device IDs from both WebSocket and HTTP connections
+                    var onlineDevices = summary.WebSocketConnections.Select(x => x.DeviceId)
+                        .Concat(summary.HttpConnections.Select(x => x.DeviceId))
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Distinct()
+                        .ToList();
+
+                    // Create a set of registered device IDs from the database
+                    var registeredDeviceIds = new HashSet<string>(
+                        devices.Where(d => d.Ptsid != null)
+                        .Select(d => d.Ptsid.ToString())
+                    );
+
+                    // Count validated online connections (registered devices that are online)
+                    int validatedOnline = onlineDevices.Count(id => registeredDeviceIds.Contains(id));
+
+                    // Count unknown online devices (online devices not found in the registered list)
+                    int unknownOnline = onlineDevices.Count - validatedOnline;
+
+                    // Calculate offline devices (registered devices not online)
+                    int totalRegistered = devices.Count;
+                    int offlineRegistered = totalRegistered - validatedOnline;
+
+                    var metrics = new
+                    {
+                        totalRegistered,
+                        validatedOnline,
+                        unknownOnline,
+                        offlineRegistered,
+                        totalOnline = onlineDevices.Count,
+                        webSocketDevicesCount = summary.WebSocketConnections.Count,
+                        httpDevicesCount = summary.HttpConnections.Count,
+                        timestamp = DateTime.UtcNow
+                    };
+
+                    await Clients.All.SendAsync("DashboardMetricsUpdate", metrics);
+                    _logger.LogTrace("Broadcasted dashboard metrics to all clients");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting dashboard metrics");
+            }
+        }
+
+        /// <summary>
+        /// Request dashboard metrics - triggers broadcast
+        /// </summary>
+        public async Task RequestDashboardMetrics()
+        {
+            await BroadcastDashboardMetrics();
         }
         #endregion
 

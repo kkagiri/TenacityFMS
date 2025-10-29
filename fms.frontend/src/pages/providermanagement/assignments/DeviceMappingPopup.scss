@@ -1,0 +1,213 @@
+.device-mapping-popup {
+  // Active grid subtle highlight - remove blue background from grid container
+  .active-grid-highlight {
+    // Remove background color to avoid highlighting entire grid
+    border-color: #3b82f6 !important;
+    border-width: 2px !important;
+    transition: border-color 120ms ease-in;
+  }
+
+  .device-grid {
+    // Selected row styling - dark blue background with white text
+    .dx-datagrid-rowsview .dx-row.dx-selection {
+      background-color: #1e40af !important; // Dark blue
+
+      &:not(.dx-row-focused) .dx-cell {
+        background-color: #1e40af !important;
+        color: white !important;
+      }
+    }
+
+    // Focused selected row - even darker blue
+    .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-focused {
+      background-color: #1e3a8a !important;
+
+      .dx-cell {
+        background-color: #1e3a8a !important;
+        color: white !important;
+      }
+    }
+
+    // Hover state for selected row
+    .dx-datagrid-rowsview .dx-row.dx-selection:hover {
+      background-color: #1e3a8a !important;
+
+      .dx-cell {
+        background-color: #1e3a8a !important;
+        color: white !important;
+      }
+    }
+
+    // Ensure non-selected rows don't have blue background
+    .dx-datagrid-rowsview .dx-row:not(.dx-selection) {
+      background-color: transparent !important;
+
+      .dx-cell {
+        background-color: transparent !important;
+      }
+    }
+
+    // Alternating row colors for non-selected rows
+    .dx-datagrid-rowsview .dx-row:not(.dx-selection).dx-row-alt {
+      background-color: #f9fafb !important;
+
+      .dx-cell {
+        background-color: #f9fafb !important;
+      }
+    }
+  }
+
+  .vehicle-grid {
+    .dx-datagrid-rowsview .dx-row.dx-selection {
+      background-color: #dbeafe;
+
+      .dx-cell {
+        background-color: #dbeafe;
+      }
+    }
+
+    .dx-datagrid-rowsview .dx-row.dx-selection:hover {
+      background-color: #bfdbfe;
+
+      .dx-cell {
+        background-color: #bfdbfe;
+      }
+    }
+  }
+
+  // Improved search input styling
+  .search-input-wrapper {
+    @apply tw-relative;
+
+    input {
+      @apply tw-w-full tw-pl-9 tw-pr-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded tw-text-sm;
+
+      &:focus {
+        @apply tw-outline-none tw-ring-2 tw-ring-blue-500 tw-border-transparent;
+      }
+    }
+
+    i {
+      @apply tw-absolute tw-left-3 tw-top-2.5 tw-text-gray-400 tw-pointer-events-none;
+    }
+  }
+
+  // Header styling
+  .grid-header {
+    @apply tw-bg-gray-100 tw-px-4 tw-py-3 tw-border-b tw-border-gray-300;
+
+    h3 {
+      @apply tw-font-semibold tw-text-gray-800 tw-text-base;
+    }
+  }
+
+  // Notification box
+  .mapping-notification {
+    @apply tw-flex tw-items-start tw-gap-3 tw-p-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg;
+
+    .notification-icon {
+      @apply tw-text-blue-500 tw-mt-0.5 tw-flex-shrink-0;
+    }
+
+    .notification-content {
+      .notification-title {
+        @apply tw-text-sm tw-text-blue-900;
+
+        .label {
+          @apply tw-font-semibold;
+        }
+      }
+
+      .notification-subtitle {
+        @apply tw-text-sm tw-text-blue-800;
+
+        .label {
+          @apply tw-font-semibold;
+        }
+      }
+    }
+  }
+}
+
+.device-mapping-popup {
+  height: 100%;
+
+  .active-grid-highlight {
+    border-color: #3b82f6 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .device-grid,
+  .vehicle-grid {
+    // Ensure consistent styling
+    .dx-datagrid {
+      font-size: 13px;
+    }
+
+    // Matched row styling (backup in case inline styles don't work)
+    .dx-row.matched-row {
+      background-color: #d1fae5 !important;
+      font-weight: 500;
+
+      &:hover {
+        background-color: #a7f3d0 !important;
+      }
+    }
+
+    // Selection styling
+    .dx-row.dx-selection {
+      background-color: #dbeafe !important;
+
+      &.matched-row {
+        background-color: #bbf7d0 !important;
+      }
+    }
+  }
+
+  // Matched pairs preview animations
+  .matched-pairs-enter {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .matched-pairs-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+  }
+
+  // Loading overlay
+  .dx-loadpanel-content {
+    border-radius: 8px;
+  }
+
+  // Smooth scrolling for matched pairs list
+  .matched-pairs-list {
+    scroll-behavior: smooth;
+  }
+}
+
+// Confidence badge animations
+@keyframes pulse-confidence {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.confidence-badge {
+  animation: pulse-confidence 2s ease-in-out infinite;
+}
+
+// Responsive adjustments
+@media (max-width: 1200px) {
+  .device-mapping-popup {
+    .tw-grid-cols-2 {
+      grid-template-columns: 1fr !important;
+    }
+  }
+}

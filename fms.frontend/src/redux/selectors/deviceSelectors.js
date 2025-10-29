@@ -61,6 +61,7 @@ export const selectAllDevices = createSelector(
       return {
         ...device, // Start with base device info from DB list
         ...mergedStatus, // Apply the determined live status info
+        connectionStatus: mergedStatus.status, // Alias for compatibility with existing code
 
         // Add other relevant data (examples)
         tanks: device.tanks || 0, // Assuming this comes from initial load

@@ -6,8 +6,10 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.VehicleTracking.DTOs;
 using FMS.Infrastructure.VehicleTracking.Interfaces;
 using FMS.Infrastructure.VehicleTracking.Models;
+using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Infrastructure.VehicleTracking.Factory;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +32,9 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateProvider> _logger;
 
-        private string? _apiKey;
+        private string? _username;
+        private string? _password;
+        private string? _apiToken;
         private string? _baseUrl;
         private int _applicationId;
         private bool _initialized = false;
@@ -59,7 +63,8 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
             SupportUrl = "https://gpsgate.com/support",
             ConfigurationRequirements = new List<ConfigurationRequirement>
             {
-                new ConfigurationRequirement { Key = "ApiKey", DisplayName = "API Key", IsRequired = true, IsSecure = true },
+                new ConfigurationRequirement { Key = "Username", DisplayName = "Username", IsRequired = true, IsSecure = false },
+                new ConfigurationRequirement { Key = "Password", DisplayName = "Password", IsRequired = true, IsSecure = true },
                 new ConfigurationRequirement { Key = "BaseUrl", DisplayName = "Base URL", IsRequired = true },
                 new ConfigurationRequirement { Key = "ApplicationId", DisplayName = "Application ID", IsRequired = true, DataType = "int" }
             }
@@ -84,13 +89,17 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
             {
                 _logger.LogInformation("Initializing GPSGate provider with configuration");
 
-                // Extract configuration from JSON data
-                var configData = configuration.GetAllValues();
-
-                _apiKey = configuration.GetValue<string>("ApiKey");
-                if (string.IsNullOrEmpty(_apiKey))
+                // Extract configuration values
+                _username = configuration.GetValue<string>("Username");
+                if (string.IsNullOrEmpty(_username))
                 {
-                    return FMSResponse<bool>.Failed("ApiKey configuration is required");
+                    return FMSResponse<bool>.Failed("Username configuration is required");
+                }
+
+                _password = configuration.GetValue<string>("Password");
+                if (string.IsNullOrEmpty(_password))
+                {
+                    return FMSResponse<bool>.Failed("Password configuration is required");
                 }
 
                 _baseUrl = configuration.GetValue<string>("BaseUrl");
@@ -106,15 +115,18 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 }
                 else
                 {
-                    _logger.LogWarning("ApplicationId not configured, using default value of 1");
-                    _applicationId = 1;
+                    return FMSResponse<bool>.Failed("ApplicationId is required and must be a valid integer");
                 }
 
-                // Configure HttpClient
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", _apiKey);
+                // Authenticate and get API token from GPSGate
+                var authResult = await AuthenticateAsync();
+                if (!authResult.IsSuccess)
+                {
+                    _logger.LogError("GPSGate authentication failed: {Message}", authResult.Message);
+                    return FMSResponse<bool>.Failed($"Authentication failed: {authResult.Message}");
+                }
 
-                // Test connection
+                // Test connection with the token
                 var testResponse = await ValidateConnectionAsync();
 
                 if (!testResponse.IsSuccess)
@@ -133,7 +145,72 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 _logger.LogError(ex, "Error initializing GPSGate provider");
                 return FMSResponse<bool>.Failed($"Initialization error: {ex.Message}");
             }
-        }        /// <inheritdoc/>
+        }
+
+        /// <summary>
+        /// Authenticate with GPSGate API and get access token
+        /// </summary>
+        private async Task<FMSResponse<bool>> AuthenticateAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Authenticating with GPSGate API for user {Username}", _username);
+
+                // Build the authentication request URL
+                var tokenUrl = $"{_baseUrl}/applications/{_applicationId}/tokens";
+
+                // Create the authentication payload
+                var authPayload = new
+                {
+                    username = _username,
+                    password = _password
+                };
+
+                var jsonContent = JsonSerializer.Serialize(authPayload);
+                var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+                // Make the authentication request
+                var response = await _httpClient.PostAsync(tokenUrl, httpContent);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("GPSGate authentication failed. Status: {StatusCode}, Response: {Response}",
+                        response.StatusCode, errorContent);
+                    return FMSResponse<bool>.Failed($"Authentication failed: {response.StatusCode} - {errorContent}");
+                }
+
+                // Parse the token response
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var tokenResponse = JsonSerializer.Deserialize<GPSGateTokenResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.Token))
+                {
+                    _logger.LogError("Failed to parse GPSGate token response");
+                    return FMSResponse<bool>.Failed("Failed to obtain authentication token");
+                }
+
+                _apiToken = tokenResponse.Token;
+
+                // Configure HttpClient with the token
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Authorization", _apiToken);
+
+                _logger.LogInformation("Successfully authenticated with GPSGate.");
+
+                return FMSResponse<bool>.Success(true, "Authentication successful");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during GPSGate authentication");
+                return FMSResponse<bool>.Failed($"Authentication error: {ex.Message}");
+            }
+        }
+
+        /// <inheritdoc/>
         public async Task<FMSResponse<bool>> ShutdownAsync()
         {
             try
@@ -155,10 +232,16 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         {
             try
             {
-                var apiKey = configuration.GetValue<string>("ApiKey");
-                if (string.IsNullOrEmpty(apiKey))
+                var username = configuration.GetValue<string>("Username");
+                if (string.IsNullOrEmpty(username))
                 {
-                    return FMSResponse<bool>.Failed("ApiKey is required");
+                    return FMSResponse<bool>.Failed("Username is required");
+                }
+
+                var password = configuration.GetValue<string>("Password");
+                if (string.IsNullOrEmpty(password))
+                {
+                    return FMSResponse<bool>.Failed("Password is required");
                 }
 
                 var baseUrl = configuration.GetValue<string>("BaseUrl");
@@ -359,6 +442,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         /// <inheritdoc/>
         public async Task<FMSResponse<ProviderHealthStatus>> GetHealthStatusAsync()
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 if (!_initialized)
@@ -371,10 +455,32 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     });
                 }
 
-                // Test connection to GPSGate API
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}",
-                    new System.Threading.CancellationToken());
+                // Re-authenticate if no token is set (provider instance may have been reloaded)
+                if (string.IsNullOrEmpty(_apiToken))
+                {
+                    _logger.LogWarning("API token not found during health check, attempting re-authentication");
+                    var authResult = await AuthenticateAsync();
+                    if (!authResult.IsSuccess)
+                    {
+                        _logger.LogWarning("Failed to re-authenticate during health check: {Message}", authResult.Message);
+                        return FMSResponse<ProviderHealthStatus>.Success(new ProviderHealthStatus
+                        {
+                            Status = HealthStatus.Unhealthy,
+                            Message = $"Authentication failed: {authResult.Message}",
+                            CheckedAt = DateTime.UtcNow,
+                            ResponseTimeMs = (int)stopwatch.ElapsedMilliseconds
+                        });
+                    }
+                }
+
+                // Test connection to GPSGate API using /views endpoint (requires authentication)
+                var healthCheckUrl = $"{_baseUrl}/applications/{_applicationId}/views";
+                _logger.LogDebug("Performing health check to {HealthCheckUrl} with token {TokenLength} chars",
+                    healthCheckUrl, _apiToken?.Length ?? 0);
+
+                var response = await _httpClient.GetAsync(healthCheckUrl, new System.Threading.CancellationToken());
+
+                stopwatch.Stop();
 
                 var healthStatus = new ProviderHealthStatus
                 {
@@ -383,20 +489,28 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                         ? "GPS Gate API is accessible"
                         : $"GPS Gate API returned {response.StatusCode}",
                     CheckedAt = DateTime.UtcNow,
-                    ResponseTimeMs = 0 // Could add timing if needed
+                    ResponseTimeMs = (int)stopwatch.ElapsedMilliseconds
                 };
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("GPSGate health check failed with status {StatusCode}: {ErrorContent}",
+                        response.StatusCode, errorContent);
+                }
 
                 return FMSResponse<ProviderHealthStatus>.Success(healthStatus);
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning(ex, "GPSGate API health check failed");
+                _logger.LogWarning(ex, "GPSGate API health check failed - HTTP error");
 
                 return FMSResponse<ProviderHealthStatus>.Success(new ProviderHealthStatus
                 {
                     Status = HealthStatus.Unhealthy,
                     Message = $"API not accessible: {ex.Message}",
-                    CheckedAt = DateTime.UtcNow
+                    CheckedAt = DateTime.UtcNow,
+                    ResponseTimeMs = (int)stopwatch.ElapsedMilliseconds
                 });
             }
             catch (Exception ex)
@@ -407,7 +521,8 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 {
                     Status = HealthStatus.Unhealthy,
                     Message = $"Health check error: {ex.Message}",
-                    CheckedAt = DateTime.UtcNow
+                    CheckedAt = DateTime.UtcNow,
+                    ResponseTimeMs = (int)stopwatch.ElapsedMilliseconds
                 });
             }
         }
@@ -422,7 +537,8 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     return FMSResponse<bool>.Failed("Provider configuration is incomplete");
                 }
 
-                var response = await _httpClient.GetAsync($"{_baseUrl}/applications/{_applicationId}");
+                // Test with /views endpoint which requires authentication
+                var response = await _httpClient.GetAsync($"{_baseUrl}/applications/{_applicationId}/views");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -633,7 +749,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         /// <inheritdoc/>
         public async Task<FMSResponse<bool>> SubscribeToEventsAsync(IEventHandler eventHandler)
         {
-            // GPSGate event subscription not implemented in this version
+            // TODO: GPSGate event subscription not implemented in this version
             _logger.LogWarning("SubscribeToEventsAsync not implemented");
             return await Task.FromResult(FMSResponse<bool>.Failed("Event subscription not supported"));
         }
@@ -641,8 +757,128 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         /// <inheritdoc/>
         public async Task<FMSResponse<bool>> UnsubscribeFromEventsAsync()
         {
-            // GPSGate event subscription not implemented in this version
+            // TODO: GPSGate event subscription not implemented in this version
             return await Task.FromResult(FMSResponse<bool>.Success(true, "No active subscriptions"));
+        }
+
+        /// <inheritdoc/>
+        public async Task<FMSResponse<List<GPSDeviceDTO>>> GetAllDevicesAsync()
+        {
+            if (!_initialized)
+            {
+                return FMSResponse<List<GPSDeviceDTO>>.Failed("Provider not initialized");
+            }
+
+            try
+            {
+                _logger.LogInformation("Fetching all devices from GPSGate for application {ApplicationId}", _applicationId);
+
+                // Call GPSGate API to get all users with pagination
+                var response = await _httpClient.GetAsync(
+                    $"{_baseUrl}/applications/{_applicationId}/users?FromIndex=0&PageSize=5000");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Failed to get users from GPSGate. Status: {StatusCode}",
+                        response.StatusCode);
+
+                    return FMSResponse<List<GPSDeviceDTO>>.Failed(
+                        $"GPS API returned status code: {response.StatusCode}");
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var gpsUsers = JsonSerializer.Deserialize<List<GPSGateUser>>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (gpsUsers == null || !gpsUsers.Any())
+                {
+                    _logger.LogInformation("No users found in GPSGate system");
+                    return FMSResponse<List<GPSDeviceDTO>>.Success(new List<GPSDeviceDTO>());
+                }
+
+                _logger.LogInformation("Retrieved {Count} users from GPSGate", gpsUsers.Count);
+
+                // Get all current vehicle-to-provider mappings
+                var mappings = await _context.VehicleProviderMappings
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.IsActive && m.ProviderConfiguration.Name == ProviderName)
+                    .Include(m => m.Vehicle)
+                    .ToListAsync();
+
+                // Convert to DTOs
+                var devices = new List<GPSDeviceDTO>();
+                foreach (var user in gpsUsers)
+                {
+                    var device = user.Devices?.FirstOrDefault();
+                    var trackPoint = user.TrackPoint;
+
+                    // Check if this device is mapped to a vehicle
+                    var mapping = mappings.FirstOrDefault(m =>
+                        m.ExternalDeviceId == user.Id.ToString());
+
+                    var dto = new GPSDeviceDTO
+                    {
+                        Id = user.Id,
+                        Username = user.Username ?? string.Empty,
+                        Name = user.Name ?? string.Empty,
+                        Surname = user.Surname,
+                        Email = user.Email,
+                        IMEI = device?.IMEI,
+                        PhoneNumber = device?.Msisdn?.Raw,
+                        DeviceType = device?.Name,
+                        Protocol = device?.ProtocolID,
+                        ProviderName = ProviderName,
+
+                        // Position data from trackPoint
+                        Latitude = trackPoint?.Position != null ? (decimal)trackPoint.Position.Latitude : null,
+                        Longitude = trackPoint?.Position != null ? (decimal)trackPoint.Position.Longitude : null,
+                        Altitude = trackPoint?.Position?.Altitude.HasValue == true ? (decimal)trackPoint.Position.Altitude : null,
+                        Speed = trackPoint?.Velocity?.GroundSpeed.HasValue == true ? (decimal)trackPoint.Velocity.GroundSpeed : null,
+                        Heading = trackPoint?.Velocity?.Heading.HasValue == true ? (decimal)trackPoint.Velocity.Heading : null,
+
+                        // Timestamps
+                        LastPositionUpdate = DateTime.TryParse(trackPoint?.UTC, out var posTime) ? posTime : null,
+                        LastDeviceActivity = DateTime.TryParse(user.DeviceActivity, out var actTime) ? actTime : null,
+
+                        // Status
+                        IsOnline = trackPoint?.Valid ?? false,
+                        IsPositionValid = trackPoint?.Valid ?? false,
+
+                        // Mapping info
+                        IsMapped = mapping != null,
+                        MappedVehicleId = mapping?.VehicleId,
+                        MappedVehicleName = mapping?.Vehicle?.HyoungNo,
+                        MappedVehicleNumberPlate = mapping?.Vehicle?.NumberPlate,
+
+                        // Additional metadata
+                        AdditionalData = new Dictionary<string, object>
+                        {
+                            { "UserTemplateID", user.UserTemplateID },
+                            { "CalculatedSpeed", user.CalculatedSpeed },
+                            { "DeviceId", device?.Id ?? 0 },
+                            { "DeviceDefinitionID", device?.DeviceDefinitionID ?? 0 }
+                        }
+                    };
+
+                    devices.Add(dto);
+                }
+
+                _logger.LogInformation(
+                    "Converted {Total} GPSGate users to devices. Mapped: {Mapped}, Unmapped: {Unmapped}",
+                    devices.Count,
+                    devices.Count(d => d.IsMapped),
+                    devices.Count(d => !d.IsMapped));
+
+                return FMSResponse<List<GPSDeviceDTO>>.Success(devices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving devices from GPSGate");
+                return FMSResponse<List<GPSDeviceDTO>>.Failed($"Error retrieving devices: {ex.Message}");
+            }
         }
 
         #endregion
@@ -654,64 +890,4 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
             _initialized = false;
         }
     }
-
-    #region GPSGate API Response Models
-
-    /// <summary>
-    /// GPSGate user status response model
-    /// </summary>
-    public class GPSGateUserStatus
-    {
-        public int Id { get; set; }
-        public string? Username { get; set; }
-        public string? UTC { get; set; }
-        public GPSGatePosition? Position { get; set; }
-        public GPSGateVelocity? Velocity { get; set; }
-    }
-
-    /// <summary>
-    /// GPSGate position data
-    /// </summary>
-    public class GPSGatePosition
-    {
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-        public double? Altitude { get; set; }
-    }
-
-    /// <summary>
-    /// GPSGate velocity data
-    /// </summary>
-    public class GPSGateVelocity
-    {
-        public double? GroundSpeed { get; set; }
-        public double? Heading { get; set; }
-    }
-
-    /// <summary>
-    /// GPSGate track point from history
-    /// </summary>
-    public class GPSGateTrack
-    {
-        public string? UTC { get; set; }
-        public GPSGatePosition? Position { get; set; }
-        public GPSGateVelocity? Velocity { get; set; }
-        public bool Valid { get; set; }
-        public string? ServerUtc { get; set; }
-        public int TrackInfoId { get; set; }
-    }
-
-    /// <summary>
-    /// GPSGate accumulator data for odometer
-    /// </summary>
-    public class GPSGateAccumulator
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public int AccumulatorTypeId { get; set; }
-        public double? Value { get; set; }
-        public string? Timestamp { get; set; }
-    }
-
-    #endregion
 }

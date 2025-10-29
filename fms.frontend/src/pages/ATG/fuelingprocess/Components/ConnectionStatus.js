@@ -3,113 +3,139 @@ import { useSelector } from "react-redux";
 import { format } from "date-fns";
 
 const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
-  const [status, setStatus] = useState("connecting");
   const [lastUpdateText, setLastUpdateText] = useState("Never");
-  const [updateTimer, setUpdateTimer] = useState(null);
+  const [displayStatus, setDisplayStatus] = useState("connecting");
+  const [gracePeriodActive, setGracePeriodActive] = useState(false);
+  const disconnectTimerRef = React.useRef(null);
+  const previousStatusRef = React.useRef("connecting");
 
-  // Get connection state from Redux store
+  // Grace period configuration (in seconds)
+  const DISCONNECT_GRACE_PERIOD = 60; // 60 seconds grace period before showing disconnected
+  const RECONNECT_GRACE_PERIOD = 5;   // 5 seconds to confirm reconnection
+
+  // Get live connection status from Redux (Redis-backed data)
+  const deviceConnectionStatus = useSelector((state) => {
+    const connectionStatuses = state.deviceConnections?.connectionStatuses || {};
+    return connectionStatuses[deviceId] || null;
+  });
+
+  // Get live data toggle state
   const isLiveDataEnabled = useSelector(
     (state) => state.realtimeStatus.isLiveDataEnabled
   );
 
-  // Update status based on last update time
-  useEffect(() => {
-    if (!lastUpdated) {
-      setStatus("disconnected");
-      setLastUpdateText("Never");
+  // Map Redis status to UI status
+  const mapRedisStatusToUI = (redisStatus) => {
+    if (!redisStatus) return "disconnected";
 
-      // Notify parent about status change
+    const statusLower = redisStatus.toLowerCase();
+    if (statusLower === "active" || statusLower === "connected") return "connected";
+    if (statusLower === "idle") return "delayed";
+    return "disconnected";
+  };
+
+  // Get current status from Redis data
+  const currentStatus = deviceConnectionStatus?.status
+    ? mapRedisStatusToUI(deviceConnectionStatus.status)
+    : "connecting";
+
+  // Handle status changes with grace period
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+
+    // Status changed from connected/delayed to disconnected - start grace period
+    if ((previousStatus === "connected" || previousStatus === "delayed") &&
+        currentStatus === "disconnected") {
+
+      if (!gracePeriodActive) {
+        console.log(`[ConnectionStatus] Device ${deviceId} disconnected, starting ${DISCONNECT_GRACE_PERIOD}s grace period`);
+        setGracePeriodActive(true);
+        setDisplayStatus("delayed"); // Show as delayed during grace period
+
+        // Start grace period timer
+        disconnectTimerRef.current = setTimeout(() => {
+          console.log(`[ConnectionStatus] Grace period expired for device ${deviceId}, showing disconnected`);
+          setDisplayStatus("disconnected");
+          setGracePeriodActive(false);
+          if (onStatusChange) {
+            onStatusChange("disconnected");
+          }
+        }, DISCONNECT_GRACE_PERIOD * 1000);
+      }
+    }
+    // Status changed from disconnected to connected - cancel grace period
+    else if (currentStatus === "connected" || currentStatus === "delayed") {
+      if (gracePeriodActive) {
+        console.log(`[ConnectionStatus] Device ${deviceId} reconnected during grace period, canceling disconnect timer`);
+        if (disconnectTimerRef.current) {
+          clearTimeout(disconnectTimerRef.current);
+          disconnectTimerRef.current = null;
+        }
+        setGracePeriodActive(false);
+      }
+
+      setDisplayStatus(currentStatus);
       if (onStatusChange) {
+        onStatusChange(currentStatus);
+      }
+    }
+    // Status is connecting or remained the same
+    else if (currentStatus !== "disconnected") {
+      setDisplayStatus(currentStatus);
+      if (onStatusChange && currentStatus !== previousStatus) {
+        onStatusChange(currentStatus);
+      }
+    }
+    // Already disconnected and no grace period
+    else if (!gracePeriodActive) {
+      setDisplayStatus("disconnected");
+      if (onStatusChange && currentStatus !== previousStatus) {
         onStatusChange("disconnected");
       }
-      return;
     }
 
-    const updateStatusText = () => {
-      const now = new Date();
-      const lastUpdate = new Date(lastUpdated);
-      const diffSeconds = Math.round((now - lastUpdate) / 1000);
+    previousStatusRef.current = currentStatus;
 
-      let newStatus = status;
+    // Cleanup timer on unmount
+    return () => {
+      if (disconnectTimerRef.current) {
+        clearTimeout(disconnectTimerRef.current);
+      }
+    };
+  }, [currentStatus, gracePeriodActive, deviceId, onStatusChange]);
 
-      if (diffSeconds < 10) {
-        newStatus = "connected";
-        setStatus(newStatus);
-        setLastUpdateText("Just now");
-      } else if (diffSeconds < 60) {
-        newStatus = "connected";
-        setStatus(newStatus);
-        setLastUpdateText(`${diffSeconds} seconds ago`);
-      } else if (diffSeconds < 300) {
-        // 5 minutes
-        newStatus = "connected";
-        setStatus(newStatus);
-        setLastUpdateText(`${Math.floor(diffSeconds / 60)} minutes ago`);
-      } else if (diffSeconds < 1800) {
-        // 30 minutes
-        newStatus = "delayed";
-        setStatus(newStatus);
-        setLastUpdateText(`${Math.floor(diffSeconds / 60)} minutes ago`);
-      } else {
-        newStatus = "disconnected";
-        setStatus(newStatus);
-        setLastUpdateText(format(lastUpdate, "hh:mm:ss a"));
+  // Update last update text based on lastSeen from Redis
+  useEffect(() => {
+    const updateLastUpdateText = () => {
+      const lastSeen = deviceConnectionStatus?.lastSeen || lastUpdated;
+
+      if (!lastSeen) {
+        setLastUpdateText("Never");
+        return;
       }
 
-      // Notify parent about status change
-      if (onStatusChange && newStatus !== status) {
-        onStatusChange(newStatus);
+      const now = new Date();
+      const lastUpdate = new Date(lastSeen);
+      const diffSeconds = Math.round((now - lastUpdate) / 1000);
+
+      if (diffSeconds < 10) {
+        setLastUpdateText("Just now");
+      } else if (diffSeconds < 60) {
+        setLastUpdateText(`${diffSeconds} seconds ago`);
+      } else if (diffSeconds < 3600) {
+        setLastUpdateText(`${Math.floor(diffSeconds / 60)} minutes ago`);
+      } else {
+        setLastUpdateText(format(lastUpdate, "hh:mm:ss a"));
       }
     };
 
     // Update immediately
-    updateStatusText();
+    updateLastUpdateText();
 
-    // Setup interval to update the text every second
-    const timer = setInterval(updateStatusText, 1000);
-    setUpdateTimer(timer);
-
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [lastUpdated, onStatusChange, status]);
-
-  // Handle live data toggling
-  useEffect(() => {
-    if (!isLiveDataEnabled && status === "connected") {
-      setStatus("paused");
-      // Notify parent about status change
-      if (onStatusChange) {
-        onStatusChange("paused");
-      }
-    } else if (isLiveDataEnabled && status === "paused") {
-      // Recheck status based on last update time
-      const now = new Date();
-      const lastUpdate = lastUpdated ? new Date(lastUpdated) : null;
-
-      if (lastUpdate) {
-        const diffSeconds = Math.round((now - lastUpdate) / 1000);
-        let newStatus;
-
-        if (diffSeconds < 300) {
-          newStatus = "connected";
-        } else if (diffSeconds < 1800) {
-          newStatus = "delayed";
-        } else {
-          newStatus = "disconnected";
-        }
-
-        setStatus(newStatus);
-
-        // Notify parent about status change
-        if (onStatusChange) {
-          onStatusChange(newStatus);
-        }
-      }
-    }
-  }, [isLiveDataEnabled, status, lastUpdated, onStatusChange]);
-
-  // Status icon and color mapping
+    // Update every second
+    const timer = setInterval(updateLastUpdateText, 1000);
+    return () => clearInterval(timer);
+  }, [deviceConnectionStatus?.lastSeen, lastUpdated]);  // Status icon and color mapping
   const statusConfig = {
     connecting: {
       icon: "fa-solid fa-spinner fa-spin",
@@ -124,7 +150,7 @@ const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
     delayed: {
       icon: "fa-solid fa-clock",
       color: "#ffc107",
-      text: "Delayed",
+      text: gracePeriodActive ? "Reconnecting..." : "Delayed",
     },
     disconnected: {
       icon: "fa-solid fa-plug",
@@ -139,38 +165,41 @@ const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
   };
 
   const { icon, color, text } =
-    statusConfig[status] || statusConfig.disconnected;
-
-  // Get device connection details from Redux //Cursor
-  const deviceConnection = useSelector((state) => {
-    const allConnections = state.ptsDevice.deviceConnections || {};
-    return allConnections[deviceId] || null;
-  });
+    statusConfig[displayStatus] || statusConfig.disconnected;
 
   return (
     <div className="connection-status">
       <div className="status-indicator" style={{ color }}>
         <i className={icon}></i>
         <span className="status-text">{text}</span>
+        {gracePeriodActive && (
+          <span className="tw-ml-1 tw-text-xs tw-text-yellow-600" title="Grace period active - brief disconnection">
+            (grace)
+          </span>
+        )}
       </div>
-      <div className="last-update">Last update: {lastUpdateText}</div>
+      <div className="last-update tw-text-xs tw-whitespace-nowrap">
+        Last update: {lastUpdateText}
+      </div>
 
-      {/* Display connection type if available //Cursor */}
-      {deviceConnection && (
-        <div className="connection-details">
-          <div className="connection-type">
-            {deviceConnection.connectionType === "WebSocket" ? (
+      {/* Display connection type and IP from Redis data */}
+      {deviceConnectionStatus && (
+        <div className="connection-details tw-flex tw-gap-2 tw-text-xs tw-mt-1 tw-flex-wrap">
+          <div className="connection-type tw-flex tw-items-center tw-gap-1">
+            {deviceConnectionStatus.connectionType === "WebSocket" ? (
               <i className="fa-solid fa-wifi" title="WebSocket connection"></i>
             ) : (
               <i className="fa-solid fa-ethernet" title="HTTP connection"></i>
             )}
-            <span>{deviceConnection.connectionType}</span>
+            <span className="tw-hidden md:tw-inline">{deviceConnectionStatus.connectionType || "Unknown"}</span>
           </div>
-          <div className="connection-ip">
-            {deviceConnection.ipAddress && (
-              <span title="IP Address">{deviceConnection.ipAddress}</span>
-            )}
-          </div>
+          {deviceConnectionStatus.ipAddress && (
+            <div className="connection-ip tw-flex tw-items-center">
+              <span title="IP Address" className="tw-text-xs tw-text-gray-600">
+                {deviceConnectionStatus.ipAddress}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -78,6 +78,9 @@ public static class FmsServiceCollectionExtensions
         {
             options.EnableDetailedErrors = true; // For debugging
             options.MaximumReceiveMessageSize = 102400000; // 100MB
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // Server waits 60s for client ping before disconnect
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15); // Server sends keep-alive ping every 15s
+            options.HandshakeTimeout = TimeSpan.FromSeconds(15); // Handshake timeout
         });
 
         RegisterCors(services);

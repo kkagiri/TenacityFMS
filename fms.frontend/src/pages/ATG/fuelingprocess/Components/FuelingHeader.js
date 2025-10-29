@@ -18,6 +18,7 @@ const FuelingHeader = ({
   siteName, // Added siteName prop
   onConnectionStatusChange, // New prop to communicate connection status to parent
   handleViewPumpTransactions, // New prop for viewing pump transactions
+  availablePumps, // New prop to check if pumps are available
 }) => {
   const { isSmall, isMedium } = useScreenSize(); //Cursor
   const [connectionStatus, setConnectionStatus] = useState("connecting");
@@ -32,6 +33,12 @@ const FuelingHeader = ({
 
   // Helper to determine if device is disconnected
   const isDeviceDisconnected = connectionStatus === "disconnected";
+
+  // Helper to determine if device is in unstable state (delayed/reconnecting)
+  const isConnectionUnstable = connectionStatus === "delayed" || connectionStatus === "connecting";
+
+  // Check if pumps are available
+  const noPumpsAvailable = !availablePumps || availablePumps.length === 0;
 
   // Effect to notify parent of connection status changes
   useEffect(() => {
@@ -144,21 +151,21 @@ const FuelingHeader = ({
   return (
     <div className="dx-card responsive-paddings header-card">
       <div className={`header-content ${isSmall ? "mobile-layout" : ""}`}>
+        {/* Header Left - Back button and device info */}
         <div className="header-left">
           <Button
             icon="arrowleft"
             onClick={() => handleNavigation("/atg")}
             type="normal"
             stylingMode="text"
+            hint="Back to ATG Dashboard"
           />
           <div className="header-info">
-            <h2>
-              {/* Display the site name if available, otherwise fallback to device name */}
+            <h2 className="tw-text-lg md:tw-text-xl lg:tw-text-2xl tw-font-semibold tw-mb-1">
               {siteName || ptsDevice.name}
             </h2>
-            <p className="dx-field-description">
+            <p className="dx-field-description tw-text-xs md:tw-text-sm">
               Device ID: {ptsDevice.ptsid || ptsDevice.deviceId}
-              {/* Firmware info removed */}
             </p>
           </div>
         </div>
@@ -195,13 +202,14 @@ const FuelingHeader = ({
               </div>
             </div>
 
-            <div className="action-buttons">
+            <div className={`action-buttons ${isSmall ? "tw-w-full tw-flex-col" : ""}`}>
               {isDeviceDisconnected && hasDeviceSettingsPermission && (
                 <Button
                   icon="fas fa-cog"
-                  text="Check Device Settings"
+                  text={isSmall ? "Settings" : "Check Device Settings"}
                   type="danger"
                   stylingMode="outlined"
+                  width={isSmall ? "100%" : undefined}
                   onClick={() =>
                     handleNavigation(
                       `/ptsdevice/${ptsDevice.ptsid || ptsDevice.deviceId}`
@@ -215,20 +223,22 @@ const FuelingHeader = ({
                 activeFuelingProcesses.length > 0 && (
                   <Button
                     icon="fas fa-list"
-                    text={`Active Processes (${activeFuelingProcesses.length})`}
+                    text={`Active (${activeFuelingProcesses.length})`}
                     type="default"
                     stylingMode="outlined"
+                    width={isSmall ? "100%" : undefined}
                     onClick={() => setShowAllFuelingPopup(true)}
                   />
                 )}
 
               <Button
                 icon="orderedlist"
-                text="Pump Transactions"
+                text={isSmall ? "Transactions" : "Pump Transactions"}
                 type="normal"
                 stylingMode="outlined"
+                width={isSmall ? "100%" : undefined}
                 onClick={handleViewPumpTransactions}
-                title="View pump transaction history"
+                hint="View pump transaction history"
               />
 
               <Button
@@ -236,12 +246,15 @@ const FuelingHeader = ({
                 text="New Fueling"
                 type="success"
                 stylingMode="contained"
+                width={isSmall ? "100%" : undefined}
                 onClick={startNewFueling}
-                disabled={isDeviceDisconnected}
-                title={
+                disabled={isDeviceDisconnected || noPumpsAvailable}
+                hint={
                   isDeviceDisconnected
                     ? "Cannot start new fueling while device is disconnected"
-                    : ""
+                    : noPumpsAvailable
+                    ? "No pumps available for this device"
+                    : "Start a new fueling process"
                 }
               />
             </div>
@@ -249,41 +262,39 @@ const FuelingHeader = ({
         </div>
 
         {/* Right header section with system status */}
-        <div className="header-right">
-          <div className="system-status-icons">
-            <div className="status-icon" title="Battery Status">
-              <i className="fa-solid fa-battery-full"></i>
-              <span className="status-value">
+        <div className={`header-right ${isSmall ? "tw-w-full" : ""}`}>
+          <div className={`system-status-icons ${isSmall ? "tw-justify-start tw-flex-wrap" : ""}`}>
+            <div className="status-icon tw-text-center" title="Battery Status">
+              <i className="fa-solid fa-battery-full tw-text-lg"></i>
+              <span className="status-value tw-text-xs tw-mt-1">
                 {getStatusValue("batteryVoltage", "V", 1)}
               </span>
             </div>
-            <div className="status-icon" title="CPU Temperature">
-              <i className="fa-solid fa-temperature-high"></i>
-              <span className="status-value">
+            <div className="status-icon tw-text-center" title="CPU Temperature">
+              <i className="fa-solid fa-temperature-high tw-text-lg"></i>
+              <span className="status-value tw-text-xs tw-mt-1">
                 {getStatusValue("cpuTemperature", "°C")}
               </span>
             </div>
             <div
-              className={`status-icon ${
+              className={`status-icon tw-text-center ${
                 rawUploadStatus?.ptsPowerDownDetected ? "alert" : ""
               }`}
               title="Power Status"
             >
-              <i className="fa-solid fa-plug"></i>
-              <span className="status-value">
-                {rawUploadStatus?.ptsPowerDownDetected
-                  ? "Power Loss"
-                  : "Normal"}
+              <i className="fa-solid fa-plug tw-text-lg"></i>
+              <span className="status-value tw-text-xs tw-mt-1">
+                {rawUploadStatus?.ptsPowerDownDetected ? "Power Loss" : "Normal"}
               </span>
             </div>
             <div
-              className={`status-icon ${
+              className={`status-icon tw-text-center ${
                 rawUploadStatus?.sdMounted ? "" : "alert"
               }`}
               title="Storage Status"
             >
-              <i className="fa-solid fa-sd-card"></i>
-              <span className="status-value">
+              <i className="fa-solid fa-sd-card tw-text-lg"></i>
+              <span className="status-value tw-text-xs tw-mt-1">
                 {rawUploadStatus?.sdMounted ? "Mounted" : "Not Mounted"}
               </span>
             </div>
@@ -291,7 +302,7 @@ const FuelingHeader = ({
             {/* System alerts section */}
             {systemAlerts.length > 0 && (
               <div
-                className="status-icon alert"
+                className="status-icon alert tw-text-center"
                 title={systemAlerts
                   .map(
                     (alert) =>
@@ -301,8 +312,8 @@ const FuelingHeader = ({
                   )
                   .join(", ")}
               >
-                <i className="fa-solid fa-triangle-exclamation"></i>
-                <span className="status-value">
+                <i className="fa-solid fa-triangle-exclamation tw-text-lg"></i>
+                <span className="status-value tw-text-xs tw-mt-1">
                   {systemAlerts.length}{" "}
                   {systemAlerts.length === 1 ? "Alert" : "Alerts"}
                 </span>
@@ -320,7 +331,36 @@ const FuelingHeader = ({
         >
           <strong className="tw-font-bold">Device Disconnected!</strong>
           <span className="tw-block sm:tw-inline tw-ml-2">
-            Fueling operations are disabled until connection is restored.
+            Fueling operations are disabled until connection is restored. The system will automatically reconnect when the device comes back online.
+          </span>
+        </div>
+      )}
+
+      {/* Connection unstable info banner - shows during grace period */}
+      {!isDeviceDisconnected && isConnectionUnstable && activeFuelingProcesses?.some(p => p.status === "fueling") && (
+        <div
+          className="tw-bg-yellow-50 tw-border tw-border-yellow-300 tw-text-yellow-800 tw-px-4 tw-py-3 tw-rounded tw-mt-2 tw-mb-2 tw-relative"
+          role="alert"
+        >
+          <strong className="tw-font-bold">
+            <i className="fa-solid fa-wifi tw-mr-2"></i>
+            Connection Unstable
+          </strong>
+          <span className="tw-block sm:tw-inline tw-ml-2">
+            Brief connection issues detected. Active fueling will continue, but if connection doesn't stabilize within 60 seconds, operations may be affected.
+          </span>
+        </div>
+      )}
+
+      {/* No pumps warning banner */}
+      {!isDeviceDisconnected && noPumpsAvailable && (
+        <div
+          className="tw-bg-yellow-100 tw-border tw-border-yellow-400 tw-text-yellow-700 tw-px-4 tw-py-3 tw-rounded tw-mt-2 tw-mb-2 tw-relative"
+          role="alert"
+        >
+          <strong className="tw-font-bold">No Pumps Available!</strong>
+          <span className="tw-block sm:tw-inline tw-ml-2">
+            Please check device configuration or connection status.
           </span>
         </div>
       )}

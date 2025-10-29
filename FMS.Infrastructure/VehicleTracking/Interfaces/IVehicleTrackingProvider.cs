@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.VehicleTracking.DTOs;
 using FMS.Infrastructure.VehicleTracking.Models;
 
 namespace FMS.Infrastructure.VehicleTracking.Interfaces
@@ -93,6 +94,13 @@ namespace FMS.Infrastructure.VehicleTracking.Interfaces
         /// <param name="vehicleId">FMS vehicle ID</param>
         /// <returns>True if vehicle is online, false otherwise</returns>
         Task<FMSResponse<bool>> IsVehicleOnlineAsync(int vehicleId);
+
+        /// <summary>
+        /// Get all GPS devices/users from the provider system
+        /// Used for mapping devices to FMS vehicles
+        /// </summary>
+        /// <returns>List of GPS devices with current status and mapping information</returns>
+        Task<FMSResponse<List<GPSDeviceDTO>>> GetAllDevicesAsync();
 
         #endregion
 

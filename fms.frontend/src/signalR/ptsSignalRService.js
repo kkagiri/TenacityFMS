@@ -71,6 +71,7 @@ class PTSSignalRService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 5000;
     this.healthCheckInterval = null;
+    this.pingInterval = null; // Client-side ping interval
     this.lastSuccessfulHealthCheck = null;
     this.lastStatusUpdate = null;
   }
@@ -179,6 +180,8 @@ class PTSSignalRService {
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Information)
+        .withKeepAliveInterval(15000) // Send ping every 15 seconds (default is 15s)
+        .withServerTimeout(30000) // Server timeout 30 seconds (default is 30s)
         .build();
 
       this.setupConnectionHandlers();
@@ -196,8 +199,9 @@ class PTSSignalRService {
       // Notify listeners
       this.notifyListeners("connectionStatusChanged", true);
 
-      // Request initial device status
+      // Request initial device status and metrics
       await this.requestDeviceStatusSummary();
+      await this.requestDashboardMetrics();
     } catch (error) {
       console.error(
         `[PTS SignalR] Connection error (ID: ${connectionId}):`,
@@ -270,6 +274,12 @@ class PTSSignalRService {
       this.healthCheckInterval = null;
     }
 
+    // Clear ping interval
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+
     this._isStarting = false; // Reset the starting flag
 
     if (this.connection) {
@@ -313,6 +323,7 @@ class PTSSignalRService {
         // Request fresh data after reconnection
         await this.requestDeviceStatusSummary();
         await this.requestAllDevicesStatus();
+        await this.requestDashboardMetrics();
 
         this.notifyListeners("connectionStatusChanged", true);
 
@@ -412,6 +423,20 @@ class PTSSignalRService {
         this.notifyListeners("allDevicesStatus", data);
       }
     });
+
+    // Dashboard Metrics Update
+    registerEvent("DashboardMetricsUpdate", (data) => {
+      if (data) {
+        console.log("[PTS SignalR] Received dashboard metrics update:", data);
+        this.notifyListeners("dashboardMetricsUpdate", data);
+        if (store) {
+          store.dispatch({
+            type: "FETCH_DASHBOARD_METRICS_SUCCESS",
+            payload: data,
+          });
+        }
+      }
+    }, 1000); // Debounce dashboard metrics updates
 
 
 
@@ -629,6 +654,24 @@ class PTSSignalRService {
   }
 
   /**
+   * Request dashboard metrics
+   * @returns {Promise<void>}
+   */
+  async requestDashboardMetrics() {
+    if (!this.connection || !this.isConnected) {
+      throw new Error("PTS SignalR connection not established");
+    }
+
+    try {
+      await this.connection.invoke("RequestDashboardMetrics");
+      console.log("Requested dashboard metrics");
+    } catch (error) {
+      console.error("Failed to request dashboard metrics:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Start periodic health checks
    */
   startHealthChecks = () => {
@@ -636,10 +679,29 @@ class PTSSignalRService {
       clearInterval(this.healthCheckInterval);
     }
 
+    // Clear existing ping interval if any
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+    }
+
+    // Start periodic ping to keep connection alive (every 10 seconds)
+    this.pingInterval = setInterval(async () => {
+      if (this.connection?.state === HubConnectionState.Connected) {
+        try {
+          // Send a lightweight ping to prevent timeout
+          await this.connection.invoke("HealthCheck");
+          console.log("[PTS SignalR] Ping sent successfully");
+        } catch (error) {
+          console.error("[PTS SignalR] Ping failed:", error);
+        }
+      }
+    }, 10000); // Ping every 10 seconds (well before 60s timeout)
+
+    // Health check with data refresh (every 30 seconds)
     this.healthCheckInterval = setInterval(async () => {
       if (this.connection?.state === HubConnectionState.Connected) {
         try {
-          const result = await this.connection.invoke("HealthCheck");
+          await this.connection.invoke("HealthCheck");
           this.lastSuccessfulHealthCheck = new Date();
 
           // Request fresh device status if needed

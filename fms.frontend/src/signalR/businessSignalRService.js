@@ -755,6 +755,23 @@ class BusinessSignalRService {
       },
       2000
     );
+
+    // Bulk Provider Assignment Progress
+    registerEvent(
+      "BulkProviderAssignmentProgress",
+      (data) => {
+        if (data) {
+          this.notifyListeners("bulkProviderAssignmentProgress", data);
+          if (store) {
+            store.dispatch({
+              type: "BULK_PROVIDER_ASSIGNMENT_PROGRESS",
+              payload: data,
+            });
+          }
+        }
+      },
+      0
+    ); // No debounce for progress updates
   }
 
   /**

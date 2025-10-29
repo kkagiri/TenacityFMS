@@ -310,6 +310,10 @@ namespace FMS.Infrastructure.VehicleTracking.Services
             int vehicleId,
             string providerName,
             string? externalDeviceId = null,
+            string? deviceIMEI = null,
+            string? deviceName = null,
+            string? deviceType = null,
+            string? metadata = null,
             string? currentUser = null)
         {
             try
@@ -335,12 +339,16 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     mapping.UpdatedBy = currentUser;
                 }
 
-                // Create new mapping
+                // Create new mapping with device metadata
                 var newMapping = new VehicleProviderMappingEntity
                 {
                     VehicleId = vehicleId,
                     ProviderConfigId = provider.Id,
                     ExternalDeviceId = externalDeviceId,
+                    DeviceIMEI = deviceIMEI,
+                    DeviceName = deviceName,
+                    DeviceType = deviceType,
+                    Metadata = metadata,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = currentUser,
@@ -351,8 +359,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 _context.VehicleProviderMappings.Add(newMapping);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Mapped vehicle {VehicleId} to provider {ProviderName}",
-                    vehicleId, providerName);
+                _logger.LogInformation("Mapped vehicle {VehicleId} to provider {ProviderName} with device {DeviceId}",
+                    vehicleId, providerName, externalDeviceId);
 
                 return true;
             }
@@ -536,7 +544,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 IsEnabled = model.IsEnabled,
                 IsDefault = model.IsDefault,
                 Version = model.Version,
-                Settings = JsonSerializer.Serialize(model.Settings),
+                Settings = model.Settings, // Settings is already a JSON string, don't serialize again
                 Priority = model.Priority
             };
         }
@@ -562,8 +570,16 @@ namespace FMS.Infrastructure.VehicleTracking.Services
             {
                 try
                 {
-                    status.Details = JsonSerializer.Deserialize<Dictionary<string, object>>(entity.AdditionalMetrics)
-                        ?? new Dictionary<string, object>();
+                    // Use JsonElement to avoid deserialization issues with Dictionary<string, object>
+                    var jsonElement = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(entity.AdditionalMetrics);
+                    if (jsonElement != null)
+                    {
+                        status.Details = new Dictionary<string, object>();
+                        foreach (var kvp in jsonElement)
+                        {
+                            status.Details[kvp.Key] = kvp.Value.ToString();
+                        }
+                    }
                 }
                 catch (JsonException ex)
                 {

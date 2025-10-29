@@ -86,17 +86,25 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         Task<bool> SetEnabledAsync(string providerName, bool enabled, string? currentUser = null);
 
         /// <summary>
-        /// Map a vehicle to a specific provider
+        /// Map a vehicle to a specific provider with device metadata
         /// </summary>
         /// <param name="vehicleId">Vehicle ID</param>
         /// <param name="providerName">Provider name</param>
         /// <param name="externalDeviceId">External device ID in provider's system</param>
+        /// <param name="deviceIMEI">Device IMEI number</param>
+        /// <param name="deviceName">Device name from provider</param>
+        /// <param name="deviceType">Device type/model</param>
+        /// <param name="metadata">Additional device metadata (JSON string)</param>
         /// <param name="currentUser">User creating the mapping</param>
         /// <returns>Success status</returns>
         Task<bool> MapVehicleToProviderAsync(
             int vehicleId,
             string providerName,
             string? externalDeviceId = null,
+            string? deviceIMEI = null,
+            string? deviceName = null,
+            string? deviceType = null,
+            string? metadata = null,
             string? currentUser = null);
 
         /// <summary>

@@ -42,6 +42,7 @@ import activeAlarmReducer from "./activeAlarmReducer";
 import dashboardPreferencesReducer from "./dashboardPreferencesReducer";
 import dashboardLayoutReducer from "./dashboardLayoutReducer";
 import vehicleDocumentReducer from "./vehicleDocumentReducer";
+import providerReducer from "./providerReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -87,6 +88,7 @@ const rootReducer = combineReducers({
   activeAlarm: activeAlarmReducer,
   dashboardPreferences: dashboardPreferencesReducer,
   dashboard: dashboardLayoutReducer,
+  provider: providerReducer,
 });
 
 export default rootReducer;

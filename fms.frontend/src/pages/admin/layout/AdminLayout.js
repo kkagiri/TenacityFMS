@@ -68,8 +68,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'Notification Settings',
         subtitle: 'Manage notification categories and policies'
       };
-
-
+    } else if (pathname.includes('/providers')) {
+      return {
+        title: 'Provider Management',
+        subtitle: 'Manage GPS tracking providers, configurations, and health monitoring'
+      };
     } else if (pathname.includes('/pts-service')) {
       return {
         title: 'PTS Service Control',

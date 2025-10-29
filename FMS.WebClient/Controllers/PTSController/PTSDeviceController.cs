@@ -9,6 +9,8 @@ using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using FMS.Application.Communication.SignalR;
 using StackExchange.Redis;
 
 namespace FMS.WebClient.Controllers
@@ -23,8 +25,14 @@ namespace FMS.WebClient.Controllers
         private readonly DeviceConnectionTracker _deviceConnectionTracker;
         private readonly IMediator _mediator;
         private readonly RedisCommandService _redisCommandService;
+        private readonly IHubContext<PTSHub> _hubContext;
 
-        public PTSDeviceController(ILogger<PTSDeviceController> logger, IMediator mediator, DeviceConnectionTracker deviceConnectionTracker, RedisCommandService redisCommandService)
+        public PTSDeviceController(
+            ILogger<PTSDeviceController> logger,
+            IMediator mediator,
+            DeviceConnectionTracker deviceConnectionTracker,
+            RedisCommandService redisCommandService,
+            IHubContext<PTSHub> hubContext)
         {
             _logger = logger ??
                 throw new ArgumentNullException(nameof(logger)); // Null check for logger
@@ -34,6 +42,8 @@ namespace FMS.WebClient.Controllers
                 throw new ArgumentNullException(nameof(deviceConnectionTracker)); // Null check for tracker
             _redisCommandService = redisCommandService ??
                 throw new ArgumentNullException(nameof(redisCommandService)); //Cursor: Add null check
+            _hubContext = hubContext ??
+                throw new ArgumentNullException(nameof(hubContext)); // Add null check for hub context
         }
 
         /// <summary>
@@ -272,10 +282,13 @@ namespace FMS.WebClient.Controllers
                         offlineRegistered,
                         totalOnline = onlineDevices.Count,
                         webSocketDevicesCount = summary.WebSocketConnections.Count,
-                        httpDevicesCount = summary.HttpConnections.Count
+                        httpDevicesCount = summary.HttpConnections.Count,
+                        timestamp = DateTime.UtcNow
                     };
 
-                    await _deviceConnectionTracker.BroadcastDashboardMetrics(metrics);
+                    // Broadcast via SignalR to all connected clients
+                    await _hubContext.Clients.All.SendAsync("DashboardMetricsUpdate", metrics);
+                    _logger.LogTrace("Broadcasted dashboard metrics via SignalR");
                 }
             }
             catch (Exception ex)

@@ -24,6 +24,11 @@ public partial class Vehicle
 
     public string? Yom { get; set; }
 
+    /// <summary>
+    /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.
+    /// Legacy device ID reference. Use VehicleProviderMapping.ExternalDeviceId for multi-provider support.
+    /// </summary>
+    [Obsolete("Use VehicleProviderMapping.ExternalDeviceId for GPS device tracking. This field will be removed in a future version.")]
     public int? DeviceId { get; set; }
 
     public int? DefaultEmployeeId { get; set; }
@@ -37,6 +42,12 @@ public partial class Vehicle
     public bool AverageKmL { get; set; }
 
     public string? Capacity { get; set; }
+
+    /// <summary>
+    /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.
+    /// Check VehicleProviderMapping.IsActive to determine if vehicle has GPS tracking enabled.
+    /// </summary>
+    [Obsolete("Use VehicleProviderMapping to manage GPS tracking. This field will be removed in a future version.")]
     public sbyte? HasGPSInstalled { get; set; }
 
     public string? Passenger { get; set; }
@@ -44,6 +55,12 @@ public partial class Vehicle
     public sbyte? IsCompanyVehicle { get; set; }
 
     public sbyte? IsActive { get; set; }
+
+    /// <summary>
+    /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.
+    /// Legacy GPSGate-specific flag. Use VehicleProviderMapping.ExternalDeviceId for multi-provider support.
+    /// </summary>
+    [Obsolete("Use VehicleProviderMapping.ExternalDeviceId for GPS device tracking. This field will be removed in a future version.")]
     public sbyte? GpsgategeneratedId { get; set; }
     public virtual ICollection<VehicleDocument> VehicleDocuments { get; private set; } = new List<VehicleDocument>();
 

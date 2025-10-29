@@ -121,13 +121,15 @@ export const createSystemConfiguration = (configData) => async (dispatch) => {
 };
 
 // Update existing system configuration
-export const updateSystemConfiguration = (id, configData) => async (dispatch) => {
+export const updateSystemConfiguration = (configData) => async (dispatch) => {
   dispatch({ type: SYSTEM_CONFIG_ACTIONS.UPDATE_SYSTEM_CONFIG_REQUEST });
   try {
-    const response = await axiosInstance.put(`/SystemConfiguration/${id}`, {
-      ...configData,
-      id: id, // Ensure ID is included
-    });
+    const id = configData.id;
+    if (!id) {
+      throw new Error("Configuration ID is required for update");
+    }
+
+    const response = await axiosInstance.put(`/SystemConfiguration/${id}`, configData);
     dispatch({
       type: SYSTEM_CONFIG_ACTIONS.UPDATE_SYSTEM_CONFIG_SUCCESS,
       payload: response.data,

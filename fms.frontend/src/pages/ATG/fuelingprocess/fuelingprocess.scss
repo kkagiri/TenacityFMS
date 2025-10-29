@@ -18,6 +18,11 @@
       flex-wrap: wrap;
       padding: 0 24px;
 
+      @media (max-width: 768px) {
+        padding: 0 12px;
+        gap: 12px;
+      }
+
       &.mobile-layout {
         flex-direction: column;
         align-items: flex-start;
@@ -29,10 +34,32 @@
           margin-bottom: 10px;
         }
 
+        .header-middle {
+          .status-actions-row {
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+
+            .device-status-and-pumps {
+              width: 100%;
+              margin-bottom: 10px;
+            }
+
+            .action-buttons {
+              width: 100%;
+
+              &.tw-flex-col {
+                gap: 8px;
+              }
+            }
+          }
+        }
+
         .system-status-icons {
           display: flex;
-          justify-content: center;
+          justify-content: flex-start;
           flex-wrap: wrap;
+          gap: 10px;
         }
       }
 
@@ -42,8 +69,18 @@
         gap: 15px;
         min-width: 200px;
 
+        @media (max-width: 768px) {
+          min-width: 0;
+          gap: 10px;
+          width: 100%;
+        }
+
         .header-info {
           margin-left: 15px;
+
+          @media (max-width: 768px) {
+            margin-left: 8px;
+          }
 
           h2 {
             margin: 0;
@@ -51,12 +88,24 @@
             display: flex;
             align-items: center;
             gap: 10px;
+
+            @media (max-width: 768px) {
+              font-size: 1.125rem;
+            }
+
+            @media (max-width: 480px) {
+              font-size: 1rem;
+            }
           }
 
           .dx-field-description {
             margin: 0;
             color: #6c757d;
             font-size: 0.875rem;
+
+            @media (max-width: 768px) {
+              font-size: 0.75rem;
+            }
 
             .last-updated-text {
               color: #4caf50;
@@ -69,18 +118,33 @@
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        flex: 1;
+
+        @media (max-width: 768px) {
+          width: 100%;
+        }
 
         .status-actions-row {
           display: flex;
           align-items: center;
           gap: 15px;
           flex-wrap: wrap;
+          width: 100%;
+
+          @media (max-width: 768px) {
+            gap: 10px;
+          }
         }
 
         .device-status-and-pumps {
           display: flex;
           align-items: center;
           gap: 12px;
+          flex-wrap: wrap;
+
+          @media (max-width: 768px) {
+            gap: 8px;
+          }
 
           .connection-status-wrapper {
             display: flex;
@@ -91,6 +155,10 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+
+            @media (max-width: 768px) {
+              gap: 6px;
+            }
           }
         }
       }
@@ -99,6 +167,29 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+
+        @media (max-width: 768px) {
+          align-items: flex-start;
+        }
+
+        .connection-details {
+          display: flex;
+          gap: 8px;
+          font-size: 0.75rem;
+          margin-top: 4px;
+
+          @media (max-width: 768px) {
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .connection-type,
+          .connection-ip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+        }
       }
 
       .status-indicator {
@@ -109,11 +200,20 @@
 
       .status-text {
         margin-left: 5px;
+        font-size: 0.875rem;
+
+        @media (max-width: 768px) {
+          font-size: 0.75rem;
+        }
       }
 
       .last-update {
         font-size: 0.8rem;
         color: #6c757d;
+
+        @media (max-width: 768px) {
+          font-size: 0.7rem;
+        }
       }
 
       .active-pump-indicator {
@@ -125,21 +225,41 @@
         padding: 3px 8px;
         border-radius: 12px;
         border: 1px solid rgba(76, 175, 80, 0.3);
+
+        @media (max-width: 768px) {
+          font-size: 0.7rem;
+          padding: 2px 6px;
+        }
       }
 
       .action-buttons {
         display: flex;
         gap: 10px;
+        flex-wrap: wrap;
+
+        @media (max-width: 768px) {
+          gap: 8px;
+          width: 100%;
+        }
       }
 
       .header-right {
         display: flex;
         align-items: center;
+
+        @media (max-width: 768px) {
+          width: 100%;
+        }
       }
 
       .system-status-icons {
         display: flex;
         gap: 15px;
+
+        @media (max-width: 768px) {
+          gap: 10px;
+          flex-wrap: wrap;
+        }
       }
 
       .status-icon {
@@ -147,6 +267,32 @@
         flex-direction: column;
         align-items: center;
         color: #495057;
+        min-width: 50px;
+
+        @media (max-width: 768px) {
+          min-width: 45px;
+        }
+
+        i {
+          font-size: 1.2rem;
+
+          @media (max-width: 768px) {
+            font-size: 1rem;
+          }
+        }
+
+        .status-value {
+          font-size: 0.75rem;
+          margin-top: 2px;
+
+          @media (max-width: 768px) {
+            font-size: 0.65rem;
+          }
+        }
+
+        &.alert {
+          color: #dc3545;
+        }
       }
 
       .status-icon i {

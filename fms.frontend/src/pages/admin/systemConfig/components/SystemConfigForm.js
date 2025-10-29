@@ -56,11 +56,21 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
     { value: 'Performance', text: 'Performance' },
     { value: 'Logging', text: 'Logging' },
     { value: 'Notification', text: 'Notification' },
-    { value: 'Integration', text: 'Integration' }
+    { value: 'Integration', text: 'Integration' },
+    { value: 'TankStock', text: 'Tank Stock' },
+    { value: 'Tank Management', text: 'Tank Management' },
+    { value: 'DeviceActivity', text: 'Device Activity' },
+    { value: 'WorkSchedule', text: 'Work Schedule' },
+    { value: 'CommandExecution', text: 'Command Execution' },
+    { value: 'Maintenance', text: 'Maintenance' },
+    { value: 'Reconciliation', text: 'Reconciliation' },
+    { value: 'Email', text: 'Email' },
+    { value: 'ConnectionThresholds', text: 'Connection Thresholds' }
   ];
 
   useEffect(() => {
     if (config) {
+      // Map API response fields to form fields
       setFormData({
         configurationKey: config.configurationKey || '',
         configurationValue: config.configurationValue || '',
@@ -71,8 +81,8 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         isEditable: config.isEditable !== undefined ? config.isEditable : true,
         validationPattern: config.validationPattern || '',
         defaultValue: config.defaultValue || '',
-        minValue: config.minValue || null,
-        maxValue: config.maxValue || null,
+        minValue: config.minValue !== undefined && config.minValue !== null ? config.minValue : null,
+        maxValue: config.maxValue !== undefined && config.maxValue !== null ? config.maxValue : null,
         possibleValues: config.possibleValues || ''
       });
     } else {
@@ -202,13 +212,11 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
       visible={visible}
       onHiding={onCancel}
       dragEnabled={false}
-      showCloseButton
-={false}
+      showCloseButton={true}
       showTitle={true}
       title={title}
       width="800px"
       height="700px"
-      showCloseButton={true}
     >
       <div className="tw-p-6">
         <Form formData={formData} labelLocation="top" showColonAfterLabel={false}>
