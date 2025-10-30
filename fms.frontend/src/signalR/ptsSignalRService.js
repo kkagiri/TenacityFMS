@@ -170,7 +170,9 @@ class PTSSignalRService {
       console.log("[PTS SignalR] ============================================");
       console.log("[PTS SignalR] Connection Configuration:");
       console.log("[PTS SignalR]   URL:", fullHubUrl);
-      console.log("[PTS SignalR]   Transport: WebSockets with LongPolling fallback");
+      console.log(
+        "[PTS SignalR]   Transport: WebSockets with LongPolling fallback"
+      );
       console.log("[PTS SignalR]   KeepAlive: 15s, ServerTimeout: 30s");
       console.log("[PTS SignalR] ============================================");
 
@@ -209,10 +211,14 @@ class PTSSignalRService {
       this.reconnectAttempts = 0;
 
       // Log which transport was actually used
-      const actualTransport = this.connection.transport || 'Unknown';
-      console.log(`[PTS SignalR] ✓ Connected successfully (ID: ${connectionId})`);
+      const actualTransport = this.connection.transport || "Unknown";
+      console.log(
+        `[PTS SignalR] ✓ Connected successfully (ID: ${connectionId})`
+      );
       console.log(`[PTS SignalR] ✓ Transport: ${actualTransport}`);
-      console.log(`[PTS SignalR] ✓ Connection ID: ${this.connection.connectionId}`);
+      console.log(
+        `[PTS SignalR] ✓ Connection ID: ${this.connection.connectionId}`
+      );
 
       // Start health checks after successful connection
       this.startHealthChecks();
@@ -223,7 +229,7 @@ class PTSSignalRService {
       // Request initial device status and metrics
       await this.requestDeviceStatusSummary();
       await this.requestDashboardMetrics();
-      
+
       console.log("[PTS SignalR] ✓ Initial data requests sent");
     } catch (error) {
       console.error(
@@ -471,9 +477,9 @@ class PTSSignalRService {
         deviceId: data?.deviceId,
         hasStatus: !!data?.status,
         statusKeys: data?.status ? Object.keys(data.status) : [],
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
+
       if (data?.deviceId && data?.status) {
         this.notifyListeners("uploadStatusUpdate", data);
         if (store) {
@@ -481,7 +487,9 @@ class PTSSignalRService {
             type: "RECEIVE_UPLOAD_STATUS_UPDATE",
             payload: data,
           });
-          console.log("[PTS SignalR] ✓ Dispatched RECEIVE_UPLOAD_STATUS_UPDATE to Redux");
+          console.log(
+            "[PTS SignalR] ✓ Dispatched RECEIVE_UPLOAD_STATUS_UPDATE to Redux"
+          );
         }
       } else {
         console.warn("[PTS SignalR] ✗ Invalid UploadStatusUpdate data:", data);
