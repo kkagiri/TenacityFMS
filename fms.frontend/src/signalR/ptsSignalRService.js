@@ -2,6 +2,7 @@ import {
   HubConnectionBuilder,
   LogLevel,
   HubConnectionState,
+  HttpTransportType,
 } from "@microsoft/signalr";
 import { debounce } from "lodash";
 import store from "../store";
@@ -133,16 +134,23 @@ class PTSSignalRService {
         await this.stop();
       }
 
-      let baseURL =
-        getResolvedApiBaseUrlSync() ||
-        (await resolveApiBaseUrl().catch(() => null));
+      // Prefer explicit SignalR base URL from environment first (critical for production where IIS can't proxy WebSockets)
+      let baseURL = process.env.REACT_APP_SIGNALR_URL;
 
       if (!baseURL) {
         baseURL =
-          process.env.REACT_APP_SIGNALR_URL ||
+          getResolvedApiBaseUrlSync() ||
+          (await resolveApiBaseUrl().catch(() => null)) ||
           process.env.REACT_APP_PUBLIC_FMS_API_URL ||
           process.env.REACT_APP_API_URL ||
           "http://localhost:7009/api";
+      }
+
+      if (process.env.REACT_APP_SIGNALR_URL) {
+        console.log(
+          "[PTS SignalR] Using REACT_APP_SIGNALR_URL override:",
+          process.env.REACT_APP_SIGNALR_URL
+        );
       }
 
       if (baseURL.endsWith("/api/")) {
@@ -159,22 +167,31 @@ class PTSSignalRService {
           ? `${normalizedBase}${hubUrl.startsWith("/") ? hubUrl : `/${hubUrl}`}`
           : `${normalizedBase}/ptsHub`;
 
-      console.log("[PTS SignalR] Connecting to:", fullHubUrl);
+      console.log("[PTS SignalR] ============================================");
+      console.log("[PTS SignalR] Connection Configuration:");
+      console.log("[PTS SignalR]   URL:", fullHubUrl);
+      console.log("[PTS SignalR]   Transport: WebSockets with LongPolling fallback");
+      console.log("[PTS SignalR]   KeepAlive: 15s, ServerTimeout: 30s");
+      console.log("[PTS SignalR] ============================================");
 
       this.connection = new HubConnectionBuilder()
         .withUrl(fullHubUrl, {
           skipNegotiation: false,
-          transport: 1, // WebSockets
+          // Allow WebSockets with fallback to LongPolling if WebSocket fails
+          // transport: 1 = WebSockets only (can fail if blocked)
+          // Using bitwise OR to allow multiple transports as fallback
+          transport:
+            HttpTransportType.WebSockets | HttpTransportType.LongPolling,
           headers: {
             "Access-Control-Allow-Origin": "*",
           },
           accessTokenFactory: () => {
             const token = localStorage.getItem("token");
             if (token) {
-              console.log("[PTS SignalR] Using authentication token");
+              console.log("[PTS SignalR] ✓ Auth token present");
               return token;
             }
-            console.warn("[PTS SignalR] No authentication token available");
+            console.warn("[PTS SignalR] ✗ No auth token - connection may fail");
             return null;
           },
         })
@@ -191,7 +208,11 @@ class PTSSignalRService {
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
 
-      console.log(`[PTS SignalR] Connected successfully (ID: ${connectionId})`);
+      // Log which transport was actually used
+      const actualTransport = this.connection.transport || 'Unknown';
+      console.log(`[PTS SignalR] ✓ Connected successfully (ID: ${connectionId})`);
+      console.log(`[PTS SignalR] ✓ Transport: ${actualTransport}`);
+      console.log(`[PTS SignalR] ✓ Connection ID: ${this.connection.connectionId}`);
 
       // Start health checks after successful connection
       this.startHealthChecks();
@@ -202,6 +223,8 @@ class PTSSignalRService {
       // Request initial device status and metrics
       await this.requestDeviceStatusSummary();
       await this.requestDashboardMetrics();
+      
+      console.log("[PTS SignalR] ✓ Initial data requests sent");
     } catch (error) {
       console.error(
         `[PTS SignalR] Connection error (ID: ${connectionId}):`,
@@ -425,23 +448,32 @@ class PTSSignalRService {
     });
 
     // Dashboard Metrics Update
-    registerEvent("DashboardMetricsUpdate", (data) => {
-      if (data) {
-        console.log("[PTS SignalR] Received dashboard metrics update:", data);
-        this.notifyListeners("dashboardMetricsUpdate", data);
-        if (store) {
-          store.dispatch({
-            type: "FETCH_DASHBOARD_METRICS_SUCCESS",
-            payload: data,
-          });
+    registerEvent(
+      "DashboardMetricsUpdate",
+      (data) => {
+        if (data) {
+          console.log("[PTS SignalR] Received dashboard metrics update:", data);
+          this.notifyListeners("dashboardMetricsUpdate", data);
+          if (store) {
+            store.dispatch({
+              type: "FETCH_DASHBOARD_METRICS_SUCCESS",
+              payload: data,
+            });
+          }
         }
-      }
-    }, 1000); // Debounce dashboard metrics updates
-
-
+      },
+      1000
+    ); // Debounce dashboard metrics updates
 
     // Upload Status events
     registerEvent("UploadStatusUpdate", (data) => {
+      console.log("[PTS SignalR] ⚡ UploadStatusUpdate received:", {
+        deviceId: data?.deviceId,
+        hasStatus: !!data?.status,
+        statusKeys: data?.status ? Object.keys(data.status) : [],
+        timestamp: new Date().toISOString()
+      });
+      
       if (data?.deviceId && data?.status) {
         this.notifyListeners("uploadStatusUpdate", data);
         if (store) {
@@ -449,7 +481,10 @@ class PTSSignalRService {
             type: "RECEIVE_UPLOAD_STATUS_UPDATE",
             payload: data,
           });
+          console.log("[PTS SignalR] ✓ Dispatched RECEIVE_UPLOAD_STATUS_UPDATE to Redux");
         }
+      } else {
+        console.warn("[PTS SignalR] ✗ Invalid UploadStatusUpdate data:", data);
       }
     });
 

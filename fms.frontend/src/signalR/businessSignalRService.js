@@ -9,13 +9,18 @@
  * - Separate from dashboard (metrics/widgets) and PTS (device) data
  */
 
-
-import { HubConnectionBuilder, LogLevel,  HubConnectionState,  HttpTransportType,} from "@microsoft/signalr";
+import {
+  HubConnectionBuilder,
+  LogLevel,
+  HubConnectionState,
+  HttpTransportType,
+} from "@microsoft/signalr";
 import { debounce } from "lodash";
 import store from "../store";
-import {  getResolvedApiBaseUrlSync,  resolveApiBaseUrl,} from "../api/axiosInstance";
-
-
+import {
+  getResolvedApiBaseUrlSync,
+  resolveApiBaseUrl,
+} from "../api/axiosInstance";
 
 // Connection state enum
 export const ConnectionState = {
@@ -198,6 +203,19 @@ class BusinessSignalRService {
    * Resolve the best base URL for SignalR connections
    */
   async resolveSignalRBaseUrl() {
+    // Prefer explicit SignalR base URL override (reliable path for WebSockets)
+    const explicitSignalR = (process.env.REACT_APP_SIGNALR_URL || "")
+      .toString()
+      .trim();
+    if (explicitSignalR) {
+      const normalized = explicitSignalR.replace(/\/?$/g, "");
+      console.log(
+        "[Business SignalR] Using REACT_APP_SIGNALR_URL override:",
+        normalized
+      );
+      return normalized;
+    }
+
     let baseUrl = getResolvedApiBaseUrlSync();
 
     if (!baseUrl) {
@@ -337,10 +355,7 @@ class BusinessSignalRService {
         baseURL === null ||
         String(baseURL) === "null"
       ) {
-        console.error(
-          "[Business SignalR] Invalid baseURL received:",
-          baseURL
-        );
+        console.error("[Business SignalR] Invalid baseURL received:", baseURL);
         throw new Error(
           `Invalid SignalR base URL: ${baseURL}. Cannot establish connection.`
         );
@@ -519,10 +534,7 @@ class BusinessSignalRService {
           });
         }
       } catch (error) {
-        console.error(
-          "[Business SignalR] Error requesting fresh data:",
-          error
-        );
+        console.error("[Business SignalR] Error requesting fresh data:", error);
       }
     });
 
@@ -951,10 +963,7 @@ class BusinessSignalRService {
         await this.connection.start();
         console.log("[Business SignalR] Connection refreshed successfully");
       } catch (error) {
-        console.error(
-          "[Business SignalR] Error refreshing connection:",
-          error
-        );
+        console.error("[Business SignalR] Error refreshing connection:", error);
         this.handleConnectionError(error);
       }
     }
