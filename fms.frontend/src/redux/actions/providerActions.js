@@ -1,4 +1,4 @@
-import * as providerApi from "../../api/providerApi";
+import providerManagementService from "../../services/providerManagementService";
 
 // Action types - Provider List
 export const FETCH_PROVIDERS_REQUEST = "FETCH_PROVIDERS_REQUEST";
@@ -75,7 +75,7 @@ export const MAP_DEVICE_TO_VEHICLE_FAILURE = "MAP_DEVICE_TO_VEHICLE_FAILURE";
 export const fetchProviders = () => async (dispatch) => {
   dispatch({ type: FETCH_PROVIDERS_REQUEST });
   try {
-    const response = await providerApi.getAllProviders();
+    const response = await providerManagementService.getAllProviders();
 
     if (response.success && response.data) {
       dispatch({
@@ -104,7 +104,7 @@ export const fetchProviders = () => async (dispatch) => {
 export const fetchProviderDetails = (providerId) => async (dispatch) => {
   dispatch({ type: FETCH_PROVIDER_DETAILS_REQUEST });
   try {
-    const response = await providerApi.getProviderById(providerId);
+    const response = await providerManagementService.getProviderById(providerId);
 
     if (response.success && response.data) {
       dispatch({
@@ -132,7 +132,7 @@ export const fetchProviderDetails = (providerId) => async (dispatch) => {
 export const fetchProvidersHealth = () => async (dispatch) => {
   dispatch({ type: FETCH_PROVIDERS_HEALTH_REQUEST });
   try {
-    const response = await providerApi.getProvidersHealth();
+    const response = await providerManagementService.getProvidersHealth();
 
     if (response.success && response.data) {
       dispatch({
@@ -160,7 +160,7 @@ export const fetchProvidersHealth = () => async (dispatch) => {
 export const fetchProviderStatistics = () => async (dispatch) => {
   dispatch({ type: FETCH_PROVIDER_STATISTICS_REQUEST });
   try {
-    const response = await providerApi.getProviderStatistics();
+    const response = await providerManagementService.getProviderStatistics();
 
     if (response.success && response.data) {
       dispatch({
@@ -190,7 +190,7 @@ export const fetchProviderStatistics = () => async (dispatch) => {
 export const updateProvider = (providerId, updates) => async (dispatch) => {
   dispatch({ type: UPDATE_PROVIDER_REQUEST });
   try {
-    const response = await providerApi.updateProvider(providerId, updates);
+    const response = await providerManagementService.updateProvider(providerId, updates);
 
     if (response.success) {
       dispatch({
@@ -223,7 +223,7 @@ export const updateProvider = (providerId, updates) => async (dispatch) => {
 export const testProviderConnection = (providerName) => async (dispatch) => {
   dispatch({ type: TEST_PROVIDER_CONNECTION_REQUEST });
   try {
-    const response = await providerApi.testProviderConnection(providerName);
+    const response = await providerManagementService.testProviderConnection(providerName);
 
     if (response.success) {
       dispatch({
@@ -251,7 +251,7 @@ export const testProviderConnection = (providerName) => async (dispatch) => {
 export const reloadProviders = () => async (dispatch) => {
   dispatch({ type: RELOAD_PROVIDERS_REQUEST });
   try {
-    const response = await providerApi.reloadProviders();
+    const response = await providerManagementService.reloadProviders();
 
     if (response.success) {
       dispatch({
@@ -283,7 +283,7 @@ export const reloadProviders = () => async (dispatch) => {
 export const fetchProviderMappings = (vehicleId = null) => async (dispatch) => {
   dispatch({ type: FETCH_PROVIDER_MAPPINGS_REQUEST });
   try {
-    const response = await providerApi.getProviderMappings(vehicleId);
+    const response = await providerManagementService.getProviderMappings(vehicleId);
 
     if (response.success && response.data) {
       dispatch({
@@ -313,7 +313,7 @@ export const fetchProviderMappings = (vehicleId = null) => async (dispatch) => {
 export const assignVehicleToProvider = (vehicleId, providerId) => async (dispatch) => {
   dispatch({ type: ASSIGN_VEHICLE_TO_PROVIDER_REQUEST });
   try {
-    const response = await providerApi.assignVehicleToProvider(vehicleId, providerId);
+    const response = await providerManagementService.assignVehicleToProvider(vehicleId, providerId);
 
     if (response.success) {
       dispatch({
@@ -347,7 +347,7 @@ export const assignVehicleToProvider = (vehicleId, providerId) => async (dispatc
 export const bulkAssignVehiclesToProvider = (vehicleIds, providerId) => async (dispatch) => {
   dispatch({ type: BULK_ASSIGN_VEHICLES_TO_PROVIDER_REQUEST });
   try {
-    const response = await providerApi.bulkAssignVehiclesToProvider(vehicleIds, providerId);
+    const response = await providerManagementService.bulkAssignVehiclesToProvider(vehicleIds, providerId);
 
     if (response.success !== false) {
       dispatch({
@@ -389,7 +389,7 @@ export const bulkAssignVehiclesToProvider = (vehicleIds, providerId) => async (d
 export const bulkUnassignVehiclesFromProvider = (vehicleIds) => async (dispatch) => {
   dispatch({ type: BULK_UNASSIGN_VEHICLES_FROM_PROVIDER_REQUEST });
   try {
-    const response = await providerApi.bulkUnassignVehiclesFromProvider(vehicleIds);
+    const response = await providerManagementService.bulkUnassignVehiclesFromProvider(vehicleIds);
 
     if (response.success !== false) {
       dispatch({
@@ -444,7 +444,7 @@ export const clearProviderDetails = () => ({
 export const fetchProviderDevices = (providerName) => async (dispatch) => {
   dispatch({ type: FETCH_PROVIDER_DEVICES_REQUEST });
   try {
-    const response = await providerApi.getProviderDevices(providerName);
+    const response = await providerManagementService.getProviderDevices(providerName);
 
     if (response.success && response.data) {
       dispatch({
@@ -480,7 +480,7 @@ export const fetchProviderDevices = (providerName) => async (dispatch) => {
 export const mapDeviceToVehicle = (mappingData) => async (dispatch) => {
   dispatch({ type: MAP_DEVICE_TO_VEHICLE_REQUEST });
   try {
-    const response = await providerApi.mapDeviceToVehicle(mappingData);
+    const response = await providerManagementService.mapDeviceToVehicle(mappingData);
 
     if (response.success) {
       dispatch({
