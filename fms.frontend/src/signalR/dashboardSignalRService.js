@@ -245,7 +245,20 @@ class DashboardSignalRService {
    * @returns {Promise<string>} Base URL without trailing slash or /api suffix.
    */
   async resolveSignalRBaseUrl() {
-    // CRITICAL FIX: Always try to resolve API base URL first (don't rely on sync cache)
+    // CRITICAL FIX: Prefer explicit SignalR override first (IIS can't reliably proxy WebSockets)
+    const explicitSignalR = (process.env.REACT_APP_SIGNALR_URL || "")
+      .toString()
+      .trim();
+    if (explicitSignalR) {
+      const normalized = explicitSignalR.replace(/\/?$/g, "");
+      console.log(
+        "[Dashboard SignalR] Using REACT_APP_SIGNALR_URL override:",
+        normalized
+      );
+      return normalized;
+    }
+
+    // Fallback: resolve API base URL (may point to IIS/port 80)
     let baseUrl = getResolvedApiBaseUrlSync();
 
     if (!baseUrl) {
