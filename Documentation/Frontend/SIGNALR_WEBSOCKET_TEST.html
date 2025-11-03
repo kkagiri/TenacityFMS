@@ -1,0 +1,585 @@
+<!--
+/**
+ * File: SIGNALR_WEBSOCKET_TEST.html
+ * Purpose: Manual SignalR test harness for PTS, Dashboard, and Business hubs
+ * Dependencies: @microsoft/signalr browser bundle
+ * Last Modified: 2025-10-31
+ *
+ * Key Functions/Components:
+ * - connectPTS(): Connects to the PTS hub with optional JWT authentication
+ * - connectDashboard(): Connects to the dashboard hub with optional JWT authentication
+ * - connectBusiness(): Connects to the business/front-end hub with optional JWT authentication
+ */
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SignalR WebSocket Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@7.0.14/dist/browser/signalr.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      h1 {
+        color: #333;
+        border-bottom: 3px solid #007acc;
+        padding-bottom: 10px;
+      }
+      h2 {
+        color: #555;
+        margin-top: 20px;
+      }
+      .hub-section {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        background: #fafafa;
+      }
+      button {
+        background: #007acc;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #005a9e;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        font-weight: bold;
+      }
+      .status.disconnected {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .status.connecting {
+        background: #fff3e0;
+        color: #e65100;
+      }
+      .status.connected {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .log {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 15px;
+        border-radius: 4px;
+        font-family: "Consolas", "Monaco", monospace;
+        font-size: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+        margin: 10px 0;
+      }
+      .log-entry {
+        margin: 3px 0;
+        padding: 2px 0;
+      }
+      .log-entry.info {
+        color: #4fc3f7;
+      }
+      .log-entry.success {
+        color: #66bb6a;
+      }
+      .log-entry.error {
+        color: #ef5350;
+      }
+      .log-entry.warning {
+        color: #ffa726;
+      }
+      .config {
+        background: #f5f5f5;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .config input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 5px 0;
+      }
+      label {
+        display: block;
+        margin: 10px 0 5px 0;
+        font-weight: bold;
+        color: #555;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔌 SignalR WebSocket Connection Test</h1>
+      <p>Test your three SignalR hubs: PTS, Dashboard, and Business</p>
+
+      <div class="config">
+        <label>Base URL:</label>
+        <input
+          type="text"
+          id="baseUrl"
+          value="http://10.0.10.153"
+          placeholder="http://10.0.10.153"
+        />
+        <small>Change to http://197.254.33.227 to test public IP</small>
+        <label>JWT Access Token:</label>
+        <input
+          type="text"
+          id="authToken"
+          placeholder="Paste token from /api/v1/User/Login"
+        />
+        <small>Leave blank only if the hub allows anonymous access.</small>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- PTS Hub -->
+      <div class="container hub-section">
+        <h2>📡 PTS Hub</h2>
+        <div id="ptsStatus" class="status disconnected">Disconnected</div>
+        <button id="ptsConnect">Connect</button>
+        <button id="ptsDisconnect">Disconnect</button>
+        <button id="ptsRequest">Request Data</button>
+        <div id="ptsLog" class="log"></div>
+      </div>
+
+      <!-- Dashboard Hub -->
+      <div class="container hub-section">
+        <h2>📊 Dashboard Hub</h2>
+        <div id="dashboardStatus" class="status disconnected">Disconnected</div>
+        <button id="dashboardConnect">Connect</button>
+        <button id="dashboardDisconnect">Disconnect</button>
+        <button id="dashboardRequest">Request Metrics</button>
+        <div id="dashboardLog" class="log"></div>
+      </div>
+
+      <!-- Business Hub -->
+      <div class="container hub-section">
+        <h2>💼 Business Hub (Frontend Hub)</h2>
+        <div id="businessStatus" class="status disconnected">Disconnected</div>
+        <button id="businessConnect">Connect</button>
+        <button id="businessDisconnect">Disconnect</button>
+        <button id="businessRequest">Request Data</button>
+        <div id="businessLog" class="log"></div>
+      </div>
+    </div>
+
+    <div class="container">
+      <h2>ℹ️ Connection Info</h2>
+      <div id="connectionInfo" class="log"></div>
+    </div>
+
+    <script>
+      // Connection objects
+      let ptsConnection = null;
+      let dashboardConnection = null;
+      let businessConnection = null;
+
+      // Helper functions
+      function log(elementId, message, type = "info") {
+        const logElement = document.getElementById(elementId);
+        const entry = document.createElement("div");
+        entry.className = `log-entry ${type}`;
+        const timestamp = new Date().toLocaleTimeString();
+        entry.textContent = `[${timestamp}] ${message}`;
+        logElement.appendChild(entry);
+        logElement.scrollTop = logElement.scrollHeight;
+      }
+
+      function updateStatus(elementId, status, text) {
+        const statusElement = document.getElementById(elementId);
+        statusElement.className = `status ${status}`;
+        statusElement.textContent = text;
+      }
+
+      function getBaseUrl() {
+        return document.getElementById("baseUrl").value;
+      }
+
+      function getToken() {
+        return document.getElementById("authToken").value.trim();
+      }
+
+      function logConnectionInfo(hubName, connection) {
+        const info = `
+[${hubName}] Connection Info:
+  - Connection ID: ${connection.connectionId || "Not connected"}
+  - State: ${connection.state}
+  - Base URL: ${connection.baseUrl}
+  - Transport: ${connection.connection?.transport?.name || "N/A"}
+            `;
+        log("connectionInfo", info, "info");
+      }
+
+      // PTS Hub Functions
+      async function connectPTS() {
+        try {
+          const baseUrl = getBaseUrl();
+          const token = getToken();
+          log("ptsLog", "Connecting to " + baseUrl + "/ptsHub...", "info");
+          updateStatus("ptsStatus", "connecting", "Connecting...");
+
+          if (!token) {
+            log(
+              "ptsLog",
+              "No JWT token provided. Authenticated hubs will reject anonymous connections.",
+              "warning"
+            );
+          }
+
+          const hubOptions = {
+            transport:
+              signalR.HttpTransportType.WebSockets |
+              signalR.HttpTransportType.ServerSentEvents |
+              signalR.HttpTransportType.LongPolling,
+          };
+
+          if (token) {
+            hubOptions.accessTokenFactory = () => token;
+          }
+
+          ptsConnection = new signalR.HubConnectionBuilder()
+            .withUrl(baseUrl + "/ptsHub", hubOptions)
+            .configureLogging(signalR.LogLevel.Debug)
+            .withAutomaticReconnect()
+            .build();
+
+          // Set up event handlers
+          ptsConnection.on("DeviceStatusUpdate", function (data) {
+            log(
+              "ptsLog",
+              "Device Status Update: " + JSON.stringify(data),
+              "success"
+            );
+          });
+
+          ptsConnection.on("PumpStatusUpdate", function (data) {
+            log(
+              "ptsLog",
+              "Pump Status Update: " + JSON.stringify(data),
+              "success"
+            );
+          });
+
+          ptsConnection.onclose(function () {
+            log("ptsLog", "Connection closed", "warning");
+            updateStatus("ptsStatus", "disconnected", "Disconnected");
+          });
+
+          ptsConnection.onreconnecting(function () {
+            log("ptsLog", "Reconnecting...", "warning");
+            updateStatus("ptsStatus", "connecting", "Reconnecting...");
+          });
+
+          ptsConnection.onreconnected(function () {
+            log("ptsLog", "Reconnected!", "success");
+            updateStatus("ptsStatus", "connected", "Connected");
+          });
+
+          await ptsConnection.start();
+          log("ptsLog", "Connected successfully!", "success");
+          updateStatus("ptsStatus", "connected", "Connected");
+          logConnectionInfo("PTS Hub", ptsConnection);
+        } catch (error) {
+          log("ptsLog", "Connection failed: " + error.message, "error");
+          updateStatus("ptsStatus", "disconnected", "Connection Failed");
+        }
+      }
+
+      async function disconnectPTS() {
+        if (ptsConnection) {
+          await ptsConnection.stop();
+          log("ptsLog", "Disconnected", "info");
+          updateStatus("ptsStatus", "disconnected", "Disconnected");
+        }
+      }
+
+      async function requestPTSData() {
+        if (
+          ptsConnection &&
+          ptsConnection.state === signalR.HubConnectionState.Connected
+        ) {
+          try {
+            log("ptsLog", "Requesting device status summary...", "info");
+            await ptsConnection.invoke("RequestDeviceStatusSummary");
+            log("ptsLog", "Request sent", "success");
+          } catch (error) {
+            log("ptsLog", "Request failed: " + error.message, "error");
+          }
+        } else {
+          log("ptsLog", "Not connected", "warning");
+        }
+      }
+
+      // Dashboard Hub Functions
+      async function connectDashboard() {
+        try {
+          const baseUrl = getBaseUrl();
+          const token = getToken();
+          log(
+            "dashboardLog",
+            "Connecting to " + baseUrl + "/dashboardHub...",
+            "info"
+          );
+          updateStatus("dashboardStatus", "connecting", "Connecting...");
+
+          if (!token) {
+            log(
+              "dashboardLog",
+              "No JWT token provided. Authenticated hubs will reject anonymous connections.",
+              "warning"
+            );
+          }
+
+          const hubOptions = {
+            transport:
+              signalR.HttpTransportType.WebSockets |
+              signalR.HttpTransportType.ServerSentEvents |
+              signalR.HttpTransportType.LongPolling,
+          };
+
+          if (token) {
+            hubOptions.accessTokenFactory = () => token;
+          }
+
+          dashboardConnection = new signalR.HubConnectionBuilder()
+            .withUrl(baseUrl + "/dashboardHub", hubOptions)
+            .configureLogging(signalR.LogLevel.Debug)
+            .withAutomaticReconnect()
+            .build();
+
+          dashboardConnection.on("ReceiveDashboardMetrics", function (data) {
+            log(
+              "dashboardLog",
+              "Dashboard Metrics: " + JSON.stringify(data),
+              "success"
+            );
+          });
+
+          dashboardConnection.on(
+            "ReceiveWidgetData",
+            function (widgetId, data) {
+              log(
+                "dashboardLog",
+                "Widget " + widgetId + " Data: " + JSON.stringify(data),
+                "success"
+              );
+            }
+          );
+
+          dashboardConnection.onclose(function () {
+            log("dashboardLog", "Connection closed", "warning");
+            updateStatus("dashboardStatus", "disconnected", "Disconnected");
+          });
+
+          await dashboardConnection.start();
+          log("dashboardLog", "Connected successfully!", "success");
+          updateStatus("dashboardStatus", "connected", "Connected");
+          logConnectionInfo("Dashboard Hub", dashboardConnection);
+        } catch (error) {
+          log("dashboardLog", "Connection failed: " + error.message, "error");
+          updateStatus("dashboardStatus", "disconnected", "Connection Failed");
+        }
+      }
+
+      async function disconnectDashboard() {
+        if (dashboardConnection) {
+          await dashboardConnection.stop();
+          log("dashboardLog", "Disconnected", "info");
+          updateStatus("dashboardStatus", "disconnected", "Disconnected");
+        }
+      }
+
+      async function requestDashboardData() {
+        if (
+          dashboardConnection &&
+          dashboardConnection.state === signalR.HubConnectionState.Connected
+        ) {
+          try {
+            log("dashboardLog", "Requesting dashboard metrics...", "info");
+            await dashboardConnection.invoke("RequestDashboardMetrics");
+            log("dashboardLog", "Request sent", "success");
+          } catch (error) {
+            log("dashboardLog", "Request failed: " + error.message, "error");
+          }
+        } else {
+          log("dashboardLog", "Not connected", "warning");
+        }
+      }
+
+      // Business Hub Functions
+      async function connectBusiness() {
+        try {
+          const baseUrl = getBaseUrl();
+          const token = getToken();
+          log(
+            "businessLog",
+            "Connecting to " + baseUrl + "/frontendHub...",
+            "info"
+          );
+          updateStatus("businessStatus", "connecting", "Connecting...");
+
+          if (!token) {
+            log(
+              "businessLog",
+              "No JWT token provided. Authenticated hubs will reject anonymous connections.",
+              "warning"
+            );
+          }
+
+          const hubOptions = {
+            transport:
+              signalR.HttpTransportType.WebSockets |
+              signalR.HttpTransportType.ServerSentEvents |
+              signalR.HttpTransportType.LongPolling,
+          };
+
+          if (token) {
+            hubOptions.accessTokenFactory = () => token;
+          }
+
+          businessConnection = new signalR.HubConnectionBuilder()
+            .withUrl(baseUrl + "/frontendHub", hubOptions)
+            .configureLogging(signalR.LogLevel.Debug)
+            .withAutomaticReconnect()
+            .build();
+
+          businessConnection.on("ReceiveAlarmUpdate", function (data) {
+            log(
+              "businessLog",
+              "Alarm Update: " + JSON.stringify(data),
+              "success"
+            );
+          });
+
+          businessConnection.on("ReceiveTankStockUpdate", function (data) {
+            log(
+              "businessLog",
+              "Tank Stock Update: " + JSON.stringify(data),
+              "success"
+            );
+          });
+
+          businessConnection.on("ReceiveNotification", function (data) {
+            log(
+              "businessLog",
+              "Notification: " + JSON.stringify(data),
+              "success"
+            );
+          });
+
+          businessConnection.onclose(function () {
+            log("businessLog", "Connection closed", "warning");
+            updateStatus("businessStatus", "disconnected", "Disconnected");
+          });
+
+          await businessConnection.start();
+          log("businessLog", "Connected successfully!", "success");
+          updateStatus("businessStatus", "connected", "Connected");
+          logConnectionInfo("Business Hub", businessConnection);
+        } catch (error) {
+          log("businessLog", "Connection failed: " + error.message, "error");
+          updateStatus("businessStatus", "disconnected", "Connection Failed");
+        }
+      }
+
+      async function disconnectBusiness() {
+        if (businessConnection) {
+          await businessConnection.stop();
+          log("businessLog", "Disconnected", "info");
+          updateStatus("businessStatus", "disconnected", "Disconnected");
+        }
+      }
+
+      async function requestBusinessData() {
+        if (
+          businessConnection &&
+          businessConnection.state === signalR.HubConnectionState.Connected
+        ) {
+          try {
+            log("businessLog", "Requesting alarm statistics...", "info");
+            // Add your business hub methods here
+            log("businessLog", "Request sent", "success");
+          } catch (error) {
+            log("businessLog", "Request failed: " + error.message, "error");
+          }
+        } else {
+          log("businessLog", "Not connected", "warning");
+        }
+      }
+
+      // Initialize and attach event listeners
+      document.addEventListener("DOMContentLoaded", function () {
+        // PTS Hub buttons
+        document
+          .getElementById("ptsConnect")
+          .addEventListener("click", connectPTS);
+        document
+          .getElementById("ptsDisconnect")
+          .addEventListener("click", disconnectPTS);
+        document
+          .getElementById("ptsRequest")
+          .addEventListener("click", requestPTSData);
+
+        // Dashboard Hub buttons
+        document
+          .getElementById("dashboardConnect")
+          .addEventListener("click", connectDashboard);
+        document
+          .getElementById("dashboardDisconnect")
+          .addEventListener("click", disconnectDashboard);
+        document
+          .getElementById("dashboardRequest")
+          .addEventListener("click", requestDashboardData);
+
+        // Business Hub buttons
+        document
+          .getElementById("businessConnect")
+          .addEventListener("click", connectBusiness);
+        document
+          .getElementById("businessDisconnect")
+          .addEventListener("click", disconnectBusiness);
+        document
+          .getElementById("businessRequest")
+          .addEventListener("click", requestBusinessData);
+
+        // Log ready state
+        log("connectionInfo", "SignalR WebSocket Test Page Ready", "success");
+        log(
+          "connectionInfo",
+          'Click "Connect" on any hub to start testing',
+          "info"
+        );
+      });
+    </script>
+  </body>
+</html>

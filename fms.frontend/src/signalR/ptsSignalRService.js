@@ -7,27 +7,18 @@ import {
 import { debounce } from "lodash";
 import store from "../store";
 import {
-  getResolvedApiBaseUrlSync,
-  resolveApiBaseUrl,
-} from "../api/axiosInstance";
+  ConnectionState,
+  SignalRError,
+  resolveSignalRBaseUrl,
+  buildHubUrl,
+  logConnectionConfig,
+  logConnectionSuccess,
+  createAccessTokenFactory,
+  getConnectionInfo as getBaseConnectionInfo,
+} from "./signalRBaseService";
 
-// Connection state enum
-export const ConnectionState = {
-  DISCONNECTED: "disconnected",
-  CONNECTING: "connecting",
-  CONNECTED: "connected",
-  RECONNECTING: "reconnecting",
-  ERROR: "error",
-  PAUSED: "paused",
-};
-
-// Error types
-export const SignalRError = {
-  CONNECTION_FAILED: "connection_failed",
-  RECONNECTION_FAILED: "reconnection_failed",
-  HANDLER_ERROR: "handler_error",
-  AUTHENTICATION_FAILED: "authentication_failed",
-};
+// Re-export for backward compatibility
+export { ConnectionState, SignalRError };
 
 // Create dynamic debounce functions based on current state
 const createDynamicDebouncedHandler = (handlerFn, defaultDebounceMs = 500) => {
@@ -134,47 +125,14 @@ class PTSSignalRService {
         await this.stop();
       }
 
-      // Prefer explicit SignalR base URL from environment first (critical for production where IIS can't proxy WebSockets)
-      let baseURL = process.env.REACT_APP_SIGNALR_URL;
+      // Resolve SignalR base URL using shared utility (auto-detection with fallback)
+      const baseURL = await resolveSignalRBaseUrl("PTS");
 
-      if (!baseURL) {
-        baseURL =
-          getResolvedApiBaseUrlSync() ||
-          (await resolveApiBaseUrl().catch(() => null)) ||
-          process.env.REACT_APP_PUBLIC_FMS_API_URL ||
-          process.env.REACT_APP_API_URL ||
-          "http://localhost:7009/api";
-      }
+      // Build full hub URL
+      const fullHubUrl = buildHubUrl(baseURL, hubUrl, "/ptsHub");
 
-      if (process.env.REACT_APP_SIGNALR_URL) {
-        console.log(
-          "[PTS SignalR] Using REACT_APP_SIGNALR_URL override:",
-          process.env.REACT_APP_SIGNALR_URL
-        );
-      }
-
-      if (baseURL.endsWith("/api/")) {
-        baseURL = baseURL.slice(0, -5);
-      } else if (baseURL.endsWith("/api")) {
-        baseURL = baseURL.slice(0, -4);
-      }
-
-      const normalizedBase = baseURL.replace(/\/+$/, "");
-      const fullHubUrl =
-        hubUrl && hubUrl.startsWith("http")
-          ? hubUrl
-          : hubUrl
-          ? `${normalizedBase}${hubUrl.startsWith("/") ? hubUrl : `/${hubUrl}`}`
-          : `${normalizedBase}/ptsHub`;
-
-      console.log("[PTS SignalR] ============================================");
-      console.log("[PTS SignalR] Connection Configuration:");
-      console.log("[PTS SignalR]   URL:", fullHubUrl);
-      console.log(
-        "[PTS SignalR]   Transport: WebSockets with LongPolling fallback"
-      );
-      console.log("[PTS SignalR]   KeepAlive: 15s, ServerTimeout: 30s");
-      console.log("[PTS SignalR] ============================================");
+      // Log connection configuration
+      logConnectionConfig("PTS", fullHubUrl);
 
       this.connection = new HubConnectionBuilder()
         .withUrl(fullHubUrl, {
@@ -187,15 +145,7 @@ class PTSSignalRService {
           headers: {
             "Access-Control-Allow-Origin": "*",
           },
-          accessTokenFactory: () => {
-            const token = localStorage.getItem("token");
-            if (token) {
-              console.log("[PTS SignalR] ✓ Auth token present");
-              return token;
-            }
-            console.warn("[PTS SignalR] ✗ No auth token - connection may fail");
-            return null;
-          },
+          accessTokenFactory: createAccessTokenFactory("PTS"),
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Information)
@@ -210,15 +160,8 @@ class PTSSignalRService {
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
 
-      // Log which transport was actually used
-      const actualTransport = this.connection.transport || "Unknown";
-      console.log(
-        `[PTS SignalR] ✓ Connected successfully (ID: ${connectionId})`
-      );
-      console.log(`[PTS SignalR] ✓ Transport: ${actualTransport}`);
-      console.log(
-        `[PTS SignalR] ✓ Connection ID: ${this.connection.connectionId}`
-      );
+      // Log connection success using shared utility
+      logConnectionSuccess("PTS", connectionId, this.connection);
 
       // Start health checks after successful connection
       this.startHealthChecks();
@@ -857,6 +800,20 @@ class PTSSignalRService {
    */
   getConnectionStatus() {
     return this.isConnected;
+  }
+
+  /**
+   * Get detailed connection information
+   * @returns {Object|null} Connection details
+   */
+  getConnectionInfo() {
+    return getBaseConnectionInfo(
+      this.connection,
+      this.isConnected,
+      this.reconnectAttempts,
+      this.lastSuccessfulHealthCheck,
+      this.lastStatusUpdate
+    );
   }
 }
 

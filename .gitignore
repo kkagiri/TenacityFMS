@@ -12,7 +12,7 @@
 documentation/notifications/prototype/
 documentation/features/Task Management module/prototype/
 documentation/features/TankStockOperationanddashboard/StockManagement/transactionpage/prototype/
-
+.vscode/
 scripts/
 *.ps1
 *.bat
@@ -306,3 +306,4 @@ scripts/environment/setup-pts-env.bat
 scripts/environment/setup-pts-env.ps1
 
 Hyoung.FMS/
+.vscode/settings.json

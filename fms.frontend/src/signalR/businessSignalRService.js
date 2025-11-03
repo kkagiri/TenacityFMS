@@ -1,8 +1,8 @@
 /**
  * File: businessSignalRService.js
  * Purpose: Manage SignalR connectivity for business-related real-time updates (tank stock, alarms, notifications)
- * Dependencies: @microsoft/signalr, lodash/debounce, redux store, axiosInstance helpers
- * Last Modified: 2025-10-23
+ * Dependencies: @microsoft/signalr, lodash/debounce, redux store, shared SignalR base utilities
+ * Last Modified: 2025-10-31 (Refactored to use shared base utilities)
  *
  * Key Functions/Components:
  * - BusinessSignalRService: Handles tank stock, alarms, notifications, and other business data updates
@@ -18,27 +18,18 @@ import {
 import { debounce } from "lodash";
 import store from "../store";
 import {
-  getResolvedApiBaseUrlSync,
-  resolveApiBaseUrl,
-} from "../api/axiosInstance";
+  ConnectionState,
+  SignalRError,
+  resolveSignalRBaseUrl,
+  buildHubUrl,
+  logConnectionConfig,
+  logConnectionSuccess,
+  createAccessTokenFactory,
+  getConnectionInfo as getBaseConnectionInfo,
+} from "./signalRBaseService";
 
-// Connection state enum
-export const ConnectionState = {
-  DISCONNECTED: "disconnected",
-  CONNECTING: "connecting",
-  CONNECTED: "connected",
-  RECONNECTING: "reconnecting",
-  ERROR: "error",
-  PAUSED: "paused",
-};
-
-// Error types
-export const SignalRError = {
-  CONNECTION_FAILED: "connection_failed",
-  RECONNECTION_FAILED: "reconnection_failed",
-  HANDLER_ERROR: "handler_error",
-  AUTHENTICATION_FAILED: "authentication_failed",
-};
+// Re-export for backward compatibility
+export { ConnectionState, SignalRError };
 
 const createDynamicDebouncedHandler = (handlerFn, defaultDebounceMs = 500) => {
   let debouncedFn = debounce((args) => {
@@ -57,60 +48,6 @@ const createDynamicDebouncedHandler = (handlerFn, defaultDebounceMs = 500) => {
   };
 
   return handler;
-};
-
-const getWindowOrigin = () =>
-  typeof window !== "undefined" && window.location
-    ? window.location.origin
-    : "";
-
-const getEnvironmentHint = () =>
-  (
-    process.env.REACT_APP_FMS_ENVIRONMENT ||
-    process.env.REACT_APP_ENVIRONMENT ||
-    process.env.NODE_ENV ||
-    ""
-  )
-    .toString()
-    .toLowerCase();
-
-const normalizeSignalRHost = (value) =>
-  value ? value.replace(/\/+$/, "") : null;
-
-const getEnvironmentPreferredSignalRHosts = () => {
-  const env = getEnvironmentHint();
-  const preferred = [];
-
-  const pushIfPresent = (candidate) => {
-    const normalized = normalizeSignalRHost(candidate);
-    if (normalized) {
-      preferred.push(normalized);
-    }
-  };
-
-  // Allow custom override for any environment
-  pushIfPresent(process.env.REACT_APP_SIGNALR_URL);
-  pushIfPresent(process.env.REACT_APP_DEV_SIGNALR_URL);
-
-  switch (env) {
-    case "production":
-      pushIfPresent("https://10.0.10.153:7009");
-      pushIfPresent("http://10.0.10.153:7009");
-      break;
-    case "staging":
-    case "qa":
-    case "uat":
-      pushIfPresent("https://10.0.11.90:7009");
-      pushIfPresent("http://10.0.11.90:7009");
-      break;
-    default:
-      pushIfPresent("http://localhost:7009");
-      pushIfPresent("https://localhost:7009");
-      pushIfPresent("http://10.0.11.90:7009");
-      break;
-  }
-
-  return preferred;
 };
 
 /**
@@ -193,120 +130,6 @@ class BusinessSignalRService {
   }
 
   /**
-   * Get authentication token for SignalR connection
-   */
-  getAuthToken() {
-    return localStorage.getItem("token");
-  }
-
-  /**
-   * Resolve the best base URL for SignalR connections
-   */
-  async resolveSignalRBaseUrl() {
-    // Prefer explicit SignalR base URL override (reliable path for WebSockets)
-    const explicitSignalR = (process.env.REACT_APP_SIGNALR_URL || "")
-      .toString()
-      .trim();
-    if (explicitSignalR) {
-      const normalized = explicitSignalR.replace(/\/?$/g, "");
-      console.log(
-        "[Business SignalR] Using REACT_APP_SIGNALR_URL override:",
-        normalized
-      );
-      return normalized;
-    }
-
-    let baseUrl = getResolvedApiBaseUrlSync();
-
-    if (!baseUrl) {
-      console.log("[Business SignalR] Base URL not cached, resolving...");
-      try {
-        baseUrl = await resolveApiBaseUrl();
-        console.log("[Business SignalR] Resolved base URL:", baseUrl);
-      } catch (err) {
-        console.error(
-          "[Business SignalR] Failed to resolve API base URL:",
-          err
-        );
-        baseUrl = null;
-      }
-    } else {
-      console.log("[Business SignalR] Using cached base URL:", baseUrl);
-    }
-
-    const environmentHosts = getEnvironmentPreferredSignalRHosts();
-    const windowOrigin = getWindowOrigin();
-    const candidateHosts = [];
-
-    if (baseUrl) {
-      candidateHosts.push(baseUrl);
-    }
-
-    environmentHosts.forEach((host) => {
-      if (host) {
-        candidateHosts.push(host);
-      }
-    });
-
-    if (windowOrigin) {
-      candidateHosts.push(windowOrigin);
-    }
-
-    const uniqueCandidates = candidateHosts.filter((value, index, self) => {
-      return value && self.indexOf(value) === index;
-    });
-
-    let normalized = uniqueCandidates.length > 0 ? uniqueCandidates[0] : null;
-
-    if (!normalized) {
-      console.error(
-        "[Business SignalR] No valid candidates found. Using fallback."
-      );
-      normalized = windowOrigin || "http://localhost:7009";
-      console.warn("[Business SignalR] Using fallback URL:", normalized);
-    }
-
-    // Remove /api suffix if present
-    if (normalized.endsWith("/api/")) {
-      normalized = normalized.slice(0, -5);
-    } else if (normalized.endsWith("/api")) {
-      normalized = normalized.slice(0, -4);
-    }
-
-    normalized = normalized.replace(/\/+$/, "");
-
-    if (
-      !normalized ||
-      normalized === "null" ||
-      normalized === null ||
-      String(normalized) === "null" ||
-      normalized.length < 7
-    ) {
-      console.error("[Business SignalR] Invalid normalized URL:", normalized);
-      normalized = windowOrigin || "http://localhost:7009";
-      console.warn("[Business SignalR] Using emergency fallback:", normalized);
-    }
-
-    const fallbackHost = environmentHosts.find(
-      (host) =>
-        host &&
-        !/localhost:(3000|5173)/i.test(host) &&
-        host.toLowerCase() !== normalized.toLowerCase()
-    );
-
-    if (/localhost:(3000|5173)/i.test(normalized) && fallbackHost) {
-      normalized = fallbackHost;
-      console.log(
-        "[Business SignalR] Replaced localhost with fallback:",
-        normalized
-      );
-    }
-
-    console.log("[Business SignalR] Final SignalR base URL:", normalized);
-    return normalized;
-  }
-
-  /**
    * Initialize and start the SignalR connection
    */
   async start(hubUrl = null) {
@@ -347,7 +170,8 @@ class BusinessSignalRService {
         await this.stop();
       }
 
-      const baseURL = await this.resolveSignalRBaseUrl();
+      // Resolve SignalR base URL using shared utility (auto-detection with fallback)
+      const baseURL = await resolveSignalRBaseUrl("Business");
 
       if (
         !baseURL ||
@@ -361,36 +185,17 @@ class BusinessSignalRService {
         );
       }
 
-      const resolvedHubPath = hubUrl
-        ? hubUrl.startsWith("/")
-          ? hubUrl
-          : `/${hubUrl}`
-        : "/frontendHub";
-      const fullHubUrl = `${baseURL}${resolvedHubPath}`;
+      // Build full hub URL using shared utility
+      const fullHubUrl = buildHubUrl(baseURL, hubUrl, "/frontendHub");
 
-      const tokenPreview = (this.getAuthToken() || "").slice(0, 12);
-      console.log(
-        "[Business SignalR] Connecting to:",
-        fullHubUrl,
-        "tokenPresent:",
-        !!tokenPreview
-      );
+      console.log("[Business SignalR] Connecting to:", fullHubUrl);
 
       this.connection = new HubConnectionBuilder()
         .withUrl(fullHubUrl, {
           skipNegotiation: false,
           transport:
             HttpTransportType.WebSockets | HttpTransportType.LongPolling,
-          accessTokenFactory: () => {
-            const token = this.getAuthToken();
-            if (token) {
-              return token;
-            }
-            console.warn(
-              "[Business SignalR] No authentication token available"
-            );
-            return null;
-          },
+          accessTokenFactory: createAccessTokenFactory("Business"),
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Information)
@@ -402,9 +207,8 @@ class BusinessSignalRService {
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
 
-      console.log(
-        `[Business SignalR] Connected successfully (ID: ${connectionId})`
-      );
+      // Log connection success using shared utility
+      logConnectionSuccess("Business", connectionId, this.connection);
 
       this.setupEventHandlers();
       this.startHealthChecks();
@@ -973,20 +777,13 @@ class BusinessSignalRService {
    * Get detailed connection information
    */
   getConnectionInfo() {
-    if (!this.connection || !this.isConnected) {
-      return null;
-    }
-
-    return {
-      connectionId: this.connection.connectionId,
-      state: this.connection.state,
-      transport: this.connection.transport?.name || "unknown",
-      isConnected: this.isConnected,
-      reconnectAttempts: this.reconnectAttempts,
-      url: this.connection.baseUrl,
-      lastHealthCheck: this.lastSuccessfulHealthCheck,
-      lastDataUpdate: this.lastDataUpdate,
-    };
+    return getBaseConnectionInfo(
+      this.connection,
+      this.isConnected,
+      this.reconnectAttempts,
+      this.lastSuccessfulHealthCheck,
+      this.lastDataUpdate
+    );
   }
 }
 
