@@ -1,8 +1,7 @@
 import React, { useState, useRef } from "react";
+import { useSelector } from "react-redux";
 import Toolbar, { Item } from "devextreme-react/toolbar";
-import Button from "devextreme-react/button";
 
-import DeviceStatusIndicator from "../deviceStatus/deviceStatusIndicator";
 import UserPanel from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { AppDrawer } from "../app-drawer";
@@ -11,6 +10,7 @@ import "./Header.scss";
 export default function Header({ menuToggleEnabled, title }) {
   const [isAppDrawerOpen, setIsAppDrawerOpen] = useState(false);
   const appButtonRef = useRef(null);
+  const user = useSelector((state) => state.auth.user);
 
   const toggleAppDrawer = (e) => {
     setIsAppDrawerOpen(!isAppDrawerOpen);
@@ -28,6 +28,14 @@ export default function Header({ menuToggleEnabled, title }) {
       e.stopPropagation();
       // Don't call toggleAppDrawer here, let the onClick handle it
     }
+  };
+
+  // Get first letter of username for avatar
+  const getUserInitial = () => {
+    if (user?.userName) {
+      return user.userName.charAt(0).toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -83,18 +91,14 @@ export default function Header({ menuToggleEnabled, title }) {
           </div>
         </Item>
 
-        {/* //Cursor - Simplified user button to show only icon */}
+        {/* //Cursor - User avatar with initial letter */}
         <Item
           location={"after"}
           cssClass={"user-panel-item"}
         >
-          <Button
-            className={"user-button authorization"}
-            icon="fa-light fa-user"
-            width={40}
-            height={40}
-            stylingMode={"text"}
-          />
+          <div className="user-button authorization user-avatar-circle">
+            {getUserInitial()}
+          </div>
           <UserPanel menuMode={"context"} />
         </Item>
         {/* <Template name={"userPanelTemplate"}>

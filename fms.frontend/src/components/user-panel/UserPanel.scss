@@ -61,3 +61,72 @@
   padding-left: 4px;
   padding-right: 4px;
 }
+
+// User avatar circle in header
+.user-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #fff;
+  color: #000;
+  transition: all 0.2s ease;
+  margin-right: 8px; // Add right margin to create space from edge
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+}
+
+// User menu popover styles
+.user-menu-popover {
+  .dx-overlay-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.user-menu-content {
+  .user-menu-email-header {
+    padding: 14px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 13px;
+    color: #495057;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .user-menu-items {
+    padding: 4px 0;
+
+    .user-menu-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      color: $base-text-color;
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+
+      .dx-icon {
+        margin-right: 12px;
+        font-size: 16px;
+        color: $base-text-color;
+      }
+
+      span {
+        font-size: 14px;
+      }
+    }
+  }
+}

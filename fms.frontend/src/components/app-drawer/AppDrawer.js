@@ -27,7 +27,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-chart-line",
       route: "/home",
       color: "#0078d4",
-      roles: ["admin", "management", "user", "guest"] // Available to all roles
+      roles: ["admin", "management", "user", "guest","poweruser"] // Available to all roles
     },
     {
       id: 2,
@@ -35,7 +35,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-car",
       route: "/vehicles",
       color: "#107c10",
-      roles: ["admin", "management", "user"] // Not available to guests
+      roles: ["admin", "management", "user","poweruser"] // Not available to guests
     },
     {
       id: 3,
@@ -43,7 +43,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-users",
       route: "/employees",
       color: "#ff8c00",
-      roles: ["admin", "management","user"] // to allow users to see employees for assignment
+      roles: ["admin", "management","user","poweruser"] // to allow users to see employees for assignment
     },
     {
       id: 4,
@@ -51,7 +51,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-gas-pump",
       route: "/atg",
       color: "#d13438",
-      roles: ["admin", "management", "user"] // Operators need access to fueling
+      roles: ["admin", "management", "user","poweruser"] // Operators need access to fueling
     },
     {
       id: 5,
@@ -59,7 +59,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-exclamation-triangle",
       route: "/issue-tracker",
       color: "#881798",
-      roles: ["admin", "management", "user"] // Users can report issues
+      roles: ["admin", "management", "user","poweruser"] // Users can report issues
     },
     {
       id: 6,
@@ -75,7 +75,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-oil-can",
       route: "/tankstock",
       color: "#498205",
-      roles: ["admin", "management", "user"] // Users need tank stock access
+      roles: ["admin", "management", "user","poweruser"] // Users need tank stock access
     },
     {
       id: 8,
@@ -91,7 +91,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-tasks",
       route: "/task-management",
       color: "#8764b8",
-      roles: ["admin", "management", "user"] // All roles can manage tasks
+      roles: ["admin", "management", "user","poweruser"] // All roles can manage tasks
     },
     {
       id: 10,
@@ -99,7 +99,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-bell",
       route: "/active-alarms",
       color: "#e74856",
-      roles: ["admin", "management", "user"] // All roles should see alarms
+      roles: ["admin", "management", "user","poweruser"] // All roles should see alarms
     }
   ];
 

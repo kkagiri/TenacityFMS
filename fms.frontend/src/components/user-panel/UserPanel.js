@@ -1,30 +1,22 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import ContextMenu, { Position } from "devextreme-react/context-menu";
+import Popover from "devextreme-react/popover";
 import List from "devextreme-react/list";
 import "./UserPanel.scss";
 import { logout } from "../../redux/actions/AuthActions";
 
 export default function UserPanel({ menuMode }) {
   const dispatch = useDispatch();
-
   const user = useSelector((state) => state.auth.user);
-  const navigate = useNavigate();
+  const [popoverVisible, setPopoverVisible] = useState(false);
 
-  function navigateToProfile() {
-    navigate("/profile");
-  }
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
+    setPopoverVisible(false);
     dispatch(logout());
-  };
+  }, [dispatch]);
+
   const menuItems = useMemo(
     () => [
-      {
-        text: "Profile",
-        icon: "user",
-        onClick: navigateToProfile,
-      },
       {
         text: "Logout",
         icon: "runner",
@@ -33,26 +25,59 @@ export default function UserPanel({ menuMode }) {
     ],
     [handleLogout]
   );
+
+  // Listen for user button clicks to toggle popover
+  useEffect(() => {
+    if (menuMode === "context") {
+      const userButton = document.querySelector('.user-button');
+      if (userButton) {
+        const handleClick = () => {
+          setPopoverVisible(!popoverVisible);
+        };
+        userButton.addEventListener('click', handleClick);
+        return () => userButton.removeEventListener('click', handleClick);
+      }
+    }
+  }, [menuMode, popoverVisible]);
   return (
     <div className={"user-panel"}>
       {/* //Cursor - Only show user info in list mode, not in context mode for header */}
       {menuMode === "list" && (
         <div className={"user-info"}>
           <div className={"image-container"}></div>
-          <div className={"user-name"}>{user?.email}</div>
+          <div className={"user-name"}>{user?.email || user?.userName || 'User'}</div>
         </div>
       )}
 
       {menuMode === "context" && (
-        <ContextMenu
-          items={menuItems}
+        <Popover
+          visible={popoverVisible}
+          onHiding={() => setPopoverVisible(false)}
           target={".user-button"}
-          showEvent={"dxclick"}
-          width={210}
-          cssClass={"user-menu"}
+          position="bottom"
+          width={240}
+          showTitle={false}
+          showCloseButton={false}
+          className="user-menu-popover"
         >
-          <Position my={"top center"} at={"bottom center"} />
-        </ContextMenu>
+          <div className="user-menu-content">
+            <div className="user-menu-email-header">
+              {user?.email || user?.userName || 'User'}
+            </div>
+            <div className="user-menu-items">
+              {menuItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="user-menu-item"
+                  onClick={item.onClick}
+                >
+                  <i className={`dx-icon dx-icon-${item.icon}`}></i>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Popover>
       )}
       {menuMode === "list" && (
         <List className={"dx-toolbar-menu-action"} items={menuItems} />

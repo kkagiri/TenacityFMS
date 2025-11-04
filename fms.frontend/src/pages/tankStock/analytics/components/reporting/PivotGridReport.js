@@ -14,6 +14,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
   const [pivotGridData, setPivotGridData] = useState([]);
   const [canRenderDevExtreme, setCanRenderDevExtreme] = useState(false);
   const [dataSource, setDataSource] = useState(null);
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
   const pivotGridRef = useRef(null);
 
   // Delay DevExtreme initialization until after React's commit phase
@@ -231,6 +232,31 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
     }
   }, [reportType, pivotGridData, onExporting]);
 
+  // Expand/Collapse All functionality
+  const handleExpandCollapseAll = useCallback(() => {
+    if (pivotGridRef.current && dataSource) {
+      try {
+        const pivotGrid = pivotGridRef.current.instance;
+        const dataSourceInstance = pivotGrid.getDataSource();
+
+        if (isAllExpanded) {
+          // Collapse all - collapse both rows and columns
+          dataSourceInstance.collapseAll(0); // Row area
+          dataSourceInstance.collapseAll(1); // Column area
+          console.log('Collapsed all');
+        } else {
+          // Expand all - expand both rows and columns
+          dataSourceInstance.expandAll(0); // Row area
+          dataSourceInstance.expandAll(1); // Column area
+          console.log('Expanded all');
+        }
+        setIsAllExpanded(!isAllExpanded);
+      } catch (error) {
+        console.error('Error expanding/collapsing:', error);
+      }
+    }
+  }, [isAllExpanded, dataSource]);
+
   return (
     <div className="pivot-grid-report tw-bg-white tw-rounded-lg tw-shadow" style={{ display: visible ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
@@ -245,12 +271,20 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
         </div>
 
         <div className="tw-flex tw-gap-2">
+          <Button
+            text={isAllExpanded ? "Collapse All" : "Expand All"}
+            icon={isAllExpanded ? "fa-light fa-compress-arrows-alt" : "fa-light fa-expand-arrows-alt"}
+            type="default"
+            onClick={handleExpandCollapseAll}
+            disabled={!dataSource || pivotGridData.length === 0}
+          />
 
           <Button
             text="Export to Excel"
             icon="fa-light fa-file-excel"
             type="default"
             onClick={handleExportToExcel}
+            disabled={pivotGridData.length === 0}
           />
         </div>
       </div>
@@ -345,50 +379,6 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
         </div>
       )}
 
-      {/* Field Chooser Popup - Removed as requested */}
-      {/*
-      <Popup
-        visible={showFieldChooser}
-        onHiding={() => setShowFieldChooser(false)}
-        dragEnabled={false}
-        hideOnOutsideClick={true}
-        showCloseButton={true}
-        showTitle={true}
-        title="Customize Pivot Fields"
-        width={500}
-        height={650}
-      >
-        {dataSource && pivotGridReady && pivotGridData.length > 0 ? (
-          <FieldChooser
-            dataSource={dataSource}
-            allowSearch={true}
-            applyChangesMode="instantly"
-            texts={{
-              columnFields: 'Column Fields',
-              rowFields: 'Row Fields',
-              dataFields: 'Data Fields',
-              filterFields: 'Filter Fields',
-              allFields: 'All Fields'
-            }}
-            onContentReady={() => {
-              console.log('FieldChooser content ready with dataSource:', dataSource);
-            }}
-          />
-        ) : (
-          <div className="tw-flex tw-flex-col tw-justify-center tw-items-center tw-h-full tw-space-y-4">
-            <LoadIndicator visible={true} />
-            <div className="tw-text-center">
-              <p className="tw-text-gray-600">Loading field chooser...</p>
-              <p className="tw-text-sm tw-text-gray-500">
-                {!dataSource && 'Waiting for data source...'}
-                {dataSource && !pivotGridReady && 'Initializing pivot grid...'}
-                {dataSource && pivotGridReady && pivotGridData.length === 0 && 'No data available...'}
-              </p>
-            </div>
-          </div>
-        )}
-      </Popup>
-      */}
     </div>
   );
 };

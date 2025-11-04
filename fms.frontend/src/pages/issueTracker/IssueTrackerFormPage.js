@@ -9,6 +9,7 @@ import { FileUploader } from 'devextreme-react/file-uploader';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import { ValidationSummary } from 'devextreme-react/validation-summary';
 import notify from 'devextreme/ui/notify';
+import VehicleSearchableSelector from '../../components/selectors/VehicleSearchableSelector';
 import {
   fetchIssueById,
   createIssue,
@@ -611,21 +612,32 @@ const IssueTrackerFormPage = ({
               <SimpleItem
                 dataField="vehicle"
                 isRequired={true}
-                editorType="dxSelectBox"
-                editorOptions={{
-                  dataSource: vehicles,
-                  displayExpr: "hyoungNo", // Changed from vehicleName to hyoungNo
-                  valueExpr: "vehicleId",   // Changed from id to vehicleId
-                  placeholder: "Select vehicle...",
-                  searchEnabled: true,
-                  searchMode: "contains",
-                  searchExpr: ["hyoungNo", "numberPlate"],
-                  searchTimeout: 300
-                }}
-              >
-                <Label text="Vehicle" />
-                <RequiredRule message="Vehicle is required" />
-              </SimpleItem>
+                render={() => (
+                  <div>
+                    <Label text="Vehicle" />
+                    <VehicleSearchableSelector
+                      value={formData.vehicle}
+                      onValueChanged={(e) => {
+                        if (e && e.value !== undefined) {
+                          setFormData(prev => ({ ...prev, vehicle: e.value }));
+                          if (validationErrors.vehicle) {
+                            setValidationErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.vehicle;
+                              return newErrors;
+                            });
+                          }
+                        }
+                      }}
+                      placeholder="Type to search vehicle"
+                      width="100%"
+                      isValid={validationErrors.vehicle ? false : true}
+                      validationError={validationErrors.vehicle ? { message: validationErrors.vehicle } : null}
+                      validationMessageMode="always"
+                    />
+                  </div>
+                )}
+              />
             )}
 
             {/* Site field for quick create and GPS triggered modes */}
@@ -720,21 +732,32 @@ const IssueTrackerFormPage = ({
                 <SimpleItem
                   dataField="vehicle"
                   isRequired={true}
-                  editorType="dxSelectBox"
-                  editorOptions={{
-                    dataSource: vehicles,
-                    displayExpr: "hyoungNo", // Changed from vehicleName to hyoungNo based on your data structure
-                    valueExpr: "vehicleId",   // Changed from id to vehicleId
-                    placeholder: "Select vehicle...",
-                    searchEnabled: true,
-                    searchMode: "contains",
-                    searchExpr: ["hyoungNo", "numberPlate"],
-                    searchTimeout: 300
-                  }}
-                >
-                  <Label text="Vehicle" />
-                  <RequiredRule message="Vehicle is required" />
-                </SimpleItem>
+                  render={() => (
+                    <div>
+                      <Label text="Vehicle" />
+                      <VehicleSearchableSelector
+                        value={formData.vehicle}
+                        onValueChanged={(e) => {
+                          if (e && e.value !== undefined) {
+                            setFormData(prev => ({ ...prev, vehicle: e.value }));
+                            if (validationErrors.vehicle) {
+                              setValidationErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.vehicle;
+                                return newErrors;
+                              });
+                            }
+                          }
+                        }}
+                        placeholder="Type to search vehicle"
+                        width="100%"
+                        isValid={validationErrors.vehicle ? false : true}
+                        validationError={validationErrors.vehicle ? { message: validationErrors.vehicle } : null}
+                        validationMessageMode="always"
+                      />
+                    </div>
+                  )}
+                />
               )}
 
               {shouldShowField('site') && (

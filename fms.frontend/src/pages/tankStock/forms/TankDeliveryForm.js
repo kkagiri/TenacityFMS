@@ -165,15 +165,7 @@ const TankDeliveryForm = ({
       const { dataField, value } = e;
 
       setFormData((prev) => {
-        let updatedValue = value;
-
-        // Special handling for product field - store the product name string for backend
-        if (dataField === "product") {
-          const product = Products.find((p) => p.id === value);
-          updatedValue = product ? product.name : "";
-        }
-
-        const updated = { ...prev, [dataField]: updatedValue };
+        const updated = { ...prev, [dataField]: value };
 
         if (typeof updateFormData === "function") {
           updateFormData(updated);
@@ -556,11 +548,12 @@ const TankDeliveryForm = ({
             editorOptions={{
               items: Products,
               displayExpr: "name",
-              valueExpr: "id",
-              value: Products.find(p => p.name === formData.product)?.id || null,
+              valueExpr: "name",
+              value: formData.product,
               width: "100%",
               placeholder: "Select product type",
-              showClearButton: true,
+              showClearButton: false,
+              searchEnabled: true,
               isValid: hasAttemptedSubmit ? !validationErrors.product : true,
               validationError: validationErrors.product
                 ? { message: validationErrors.product }

@@ -22,6 +22,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.VehicleId, "issue_vehicle_idx");
                 builder.HasIndex(e => e.SiteId, "issuetracker_site_idx");
                 builder.HasIndex(e => e.Openby, "openby_idx");
+                builder.HasIndex(e => e.ActiveAlarmId, "activealarm_idx");
 
                 builder.Property(e => e.Id)
                     .ValueGeneratedNever()
@@ -68,6 +69,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("int(11)")
                     .HasColumnName("VehicleID");
 
+                builder.Property(e => e.ActiveAlarmId)
+                    .HasColumnType("int(11)")
+                    .HasColumnName("ActiveAlarmId");
+
+                builder.Property(e => e.LastModfield)
+                    .HasColumnName("LastModfield");
+
                 builder.HasOne(d => d.AssignToNavigation)
                     .WithMany(p => p.IssuetrackerAssignToNavigations)
                     .HasForeignKey(d => d.AssignTo)
@@ -112,6 +120,12 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.VehicleId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("issue_vehicle");
+
+                builder.HasOne(d => d.ActiveAlarm)
+                    .WithMany(p => p.Issuetrackers)
+                    .HasForeignKey(d => d.ActiveAlarmId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("issuetracker_activealarm");
             }
 
 

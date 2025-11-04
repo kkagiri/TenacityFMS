@@ -4,10 +4,11 @@
   flex: 0 0 auto;
   z-index: 1;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 0 4px rgba(0, 0, 0, 0.15);
-  padding: 0 0 10px 0; // Remove top padding completely, keep bottom
-  background-color: var(--base-bg);
+  padding: 12px 0; // Add vertical padding for height
+  background-color: #ffffff !important; // Ensure white background
   width: 100%;
   overflow: visible; // Ensure content doesn't get cut off
+  min-height: 60px; // Set minimum height for header
 
   // Firefox-specific positioning fixes
   position: relative;
@@ -22,6 +23,8 @@
 .dx-toolbar.header-toolbar
 {
   padding-right: var(--content-padding);
+  min-height: 56px; // Increased toolbar height
+  background-color: #ffffff !important; // Ensure white background
 
   // Firefox-specific toolbar fixes
   position: relative;
@@ -44,12 +47,13 @@
 
   // Ensure proper spacing and icon visibility for user panel
   .dx-toolbar-item.user-panel-item {
-    margin-right: 20px;
+    margin-right: 24px; // Increased margin to create space from edge
 
     .dx-item-content {
       display: flex;
       align-items: center;
       height: 100%;
+      min-height: 56px; // Match toolbar height
     }
   }
 
@@ -72,27 +76,32 @@
 
 // Cursor - Added styling for Hyoung FMS title
 .hyoung-fms-title .dx-item-content {
-  padding: 0 15px;
+  padding: 0 8px; // Reduced padding
   margin: 0;
   display: flex;
   align-items: center;
+  height: 100%;
 }
 
 .header-title .dx-item-content {
   padding: 0;
   margin: 0;
-  margin-left: 20px; // Add gap on left side similar to user button
+  margin-left: 8px; // Reduced to align better with app drawer button
   white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
   font-weight: 600; // Make title more prominent
-  font-size: 16px;
+  font-size: 18px; // Increased from 16px
   color: var(--base-text-color, #333);
+  display: flex;
+  align-items: center;
+  height: 100%;
+  line-height: 56px; // Match toolbar height for vertical centering
 }
 
 .notification-item {
   z-index: 1050;
-  margin-right: 10px;
+  margin-right: 8px; // Reduced to match other items
   position: relative;
 
   .dx-item-content {
@@ -100,6 +109,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 56px; // Match toolbar height
 
     // Firefox-specific positioning fixes
     position: relative;
@@ -177,7 +187,8 @@
 
 .dx-theme-generic {
   .dx-toolbar {
-    padding: 0 0 10px 0; // Remove top padding, keep bottom
+    padding: 8px 0; // Add vertical padding
+    min-height: 56px; // Set minimum height
   }
 
   .user-button > .dx-button-content {
@@ -209,6 +220,8 @@
     align-items: center;
     justify-content: center;
     padding: 0;
+    height: 100%;
+    min-height: 56px; // Match toolbar height for alignment
   }
 }
 
@@ -368,8 +381,8 @@
   }
 
   .header-title .dx-item-content {
-    font-size: 14px; // Slightly smaller on mobile
-    margin-left: 15px; // Reduce margin on mobile
+    font-size: 16px; // Slightly smaller on mobile
+    margin-left: 8px; // Consistent margin on mobile
   }
 }
 
