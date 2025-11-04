@@ -64,7 +64,8 @@ namespace FMS.Application.Services {
                     TwoFactorEnabled = false,
                     LockoutEnabled = false,
                     AccessFailedCount = 0,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    SecurityStamp = Guid.NewGuid().ToString()
                 };
 
                 var result = await _userManager.CreateAsync (systemUser, "SystemUser@123!");
@@ -114,7 +115,8 @@ namespace FMS.Application.Services {
                     TwoFactorEnabled = false,
                     LockoutEnabled = false,
                     AccessFailedCount = 0,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    SecurityStamp = Guid.NewGuid().ToString()
                 };
 
                 var result = await _userManager.CreateAsync (systemAdmin, "SystemAdmin@123!");

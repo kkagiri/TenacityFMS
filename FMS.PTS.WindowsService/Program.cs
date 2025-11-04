@@ -444,6 +444,9 @@ namespace FMS.PTS.WindowsService
             // services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
             // NEW: Use adapter that bridges to IVehicleTrackingService
             // Note: IVehicleTrackingService and providers are registered via AddVehicleTracking() in ConfigureCoreServices
+            // Register GPSGateService separately for adapter to use (for GPS information with sensor data)
+            services.AddHttpClient<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
+            services.AddScoped<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
             services.AddScoped<FMS.Application.Features.Vehicle.Services.IGPSService,
                 FMS.Infrastructure.VehicleTracking.Adapters.VehicleTrackingServiceAdapter>(); services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
 

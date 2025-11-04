@@ -1,9 +1,25 @@
 // Pivot Grid Report Styles
 .pivot-grid-report {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
   .pivot-grid-container {
-    .dx-pivotgrid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0; // Important for flexbox children with overflow
+    position: relative;
+
+    // Ensure only one pivot grid is visible
+    > .dx-pivotgrid {
       border: 1px solid #e5e7eb;
       border-radius: 6px;
+      flex: 1;
+      min-height: 0; // Important for flexbox children
+      width: 100%;
+      height: 100%;
 
       .dx-pivotgrid-area {
         border-color: #e5e7eb;
@@ -38,6 +54,12 @@
         font-weight: 600;
       }
     }
+
+    // Prevent duplicate pivot grid rendering
+    // Only allow direct child pivot grid to be visible
+    > .dx-pivotgrid:not(:first-child) {
+      display: none !important;
+    }
   }
 
   // Field chooser customization
@@ -71,8 +93,8 @@
 @media (max-width: 768px) {
   .pivot-grid-report {
     .pivot-grid-container {
-      height: 400px !important;
-      overflow: auto;
+      height: calc(100vh - 350px) !important;
+      min-height: 400px !important;
     }
 
     .tw-grid-cols-4 {

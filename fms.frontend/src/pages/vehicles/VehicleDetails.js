@@ -14,11 +14,12 @@ import VehicleConsumptionHistory from "./component/VehicleConsumptionHistory";
 import VehicleMaintenanceHistory from "./component/VehicleMaintenanceHistory";
 import VehicleFuelingHistory from "./component/VehicleFuelingHistory";
 import VehicleSchedules from "./component/VehicleSchedules";
-import VehicleDocumentsList from "./component/VehicleDocumentsList";
+import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
+import VehicleGPSInformation from "./component/VehicleGPSInformation";
 
 // Import popup components
 import TagAssignmentForm from "../../components/Tags/TagAssignmentForm/TagAssignmentForm";
-import ExpectedAverageForm from "./component/ExpectedAverageForm";
+import ExpectedAverageForm from "./component/vehicledetails/ExpectedAverageForm";
 
 // Services
 import {
@@ -276,6 +277,16 @@ const VehicleDetails = () => {
     );
   }, [vehicle, id, tabLoadingStates]);
 
+  const gpsInformationComponent = useMemo(() => {
+    if (!vehicle || tabLoadingStates[6]) return null;
+    return (
+      <VehicleGPSInformation
+        key={`gps-${vehicle?.vehicleId}`}
+        vehicleId={id}
+      />
+    );
+  }, [vehicle, id, tabLoadingStates]);
+
   // Memoize tab items with stable dependencies
   const tabItems = useMemo(() => {
     if (!vehicle) return [];
@@ -333,6 +344,13 @@ const VehicleDetails = () => {
           ? loadingSpinner("documents")
           : documentsComponent,
       },
+      {
+        title: "GPS Information",
+        icon: "fa-solid fa-satellite",
+        component: tabLoadingStates[6]
+          ? loadingSpinner("GPS information")
+          : gpsInformationComponent,
+      },
     ];
   }, [
     vehicle,
@@ -342,6 +360,7 @@ const VehicleDetails = () => {
     fuelingHistoryComponent,
     schedulesComponent,
     documentsComponent,
+    gpsInformationComponent,
     tabLoadingStates,
   ]);
 
@@ -393,107 +412,141 @@ const VehicleDetails = () => {
   }
 
   return (
-    <div className="vehicle-details tw-p-4 md:tw-p-6">
+    <div className="vehicle-details tw-p-2 md:tw-p-6">
       {/* Header Section */}
       <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-p-4 md:tw-p-6 tw-mb-6">
-        <div className="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center md:tw-justify-between tw-mb-4">
-          <div className="tw-flex tw-items-center tw-mb-4 md:tw-mb-0">
-            <Button
-              icon="fa-light fa-arrow-left"
-              onClick={handleBackToList}
-              stylingMode="text"
-              className="tw-mr-4"
-            />
+        {/* Back Button - Above Vehicle Name */}
+        <div className="tw-mb-4">
+          <Button
+            icon="fa-light fa-arrow-left"
+            onClick={handleBackToList}
+            stylingMode="text"
+            className="vehicle-details__back-button"
+            hint="Back to Vehicle List"
+          />
+        </div>
+
+        <div className="vehicle-details__header-content tw-relative tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-start lg:tw-justify-between tw-gap-4 tw-mb-4">
+          {/* Vehicle Info Section */}
+          <div className="tw-flex-1">
             <div>
-              <h1 className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-gray-800">
+              <h1 className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">
                 {vehicle.hyoungNo} - {vehicle.numberPlate}
               </h1>
               <p className="tw-text-sm md:tw-text-base tw-text-gray-600">
-                {vehicle.vehicleManufacturer?.name} {vehicle.vehicleModel?.name}{" "}
-                • {vehicle.yom}
+                {vehicle.vehicleManufacturer?.name} {vehicle.vehicleModel?.name}
               </p>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="tw-flex tw-flex-wrap tw-gap-2">
+          {/* Quick Action Icon Buttons - Right side on wide screen, below title on small */}
+          <div className="vehicle-details__action-buttons">
             <Button
               text="Assign Tag"
               icon="fa-light fa-tag"
               onClick={handleAssignTag}
               type="default"
               stylingMode="outlined"
+              className="vehicle-details__action-btn vehicle-details__action-btn--first"
             />
-
             <Button
               text="Expected Average"
               icon="fa-light fa-chart-line"
               onClick={handleAssignExpectedAverage}
               type="default"
               stylingMode="outlined"
+              className="vehicle-details__action-btn vehicle-details__action-btn--middle"
             />
-
             <Button
               text="Generate Report"
               icon="fa-light fa-file-chart-column"
               onClick={handleGenerateReport}
               type="default"
               stylingMode="outlined"
+              className="vehicle-details__action-btn vehicle-details__action-btn--last"
             />
           </div>
         </div>
 
-        {/* Vehicle Metrics Dashboard */}
-        <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-4">
-          <div className="tw-bg-blue-50 tw-p-4 tw-rounded-lg tw-border tw-border-blue-200">
-            <div className="tw-text-sm tw-text-blue-600 tw-mb-1">Status</div>
-            <div className="tw-text-lg tw-font-semibold tw-text-blue-800">
-              {vehicleMetrics.status}
+        {/* Vehicle Metrics Dashboard - Modern Card Design */}
+        <div className="vehicle-details__metrics">
+          <div className="vehicle-details__metrics-grid tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-4">
+            {/* Status Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--status">
+              <div className="vehicle-details__metric-icon">
+                <i className="fa-light fa-circle-check"></i>
+              </div>
+              <div className="vehicle-details__metric-content">
+                <div className="vehicle-details__metric-label">Status</div>
+                <div className="vehicle-details__metric-value">
+                  {vehicleMetrics.status}
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="tw-bg-green-50 tw-p-4 tw-rounded-lg tw-border tw-border-green-200">
-            <div className="tw-text-sm tw-text-green-600 tw-mb-1">
-              GPS Status
+            {/* GPS Status Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--gps">
+              <div className="vehicle-details__metric-icon">
+                <i className="fa-light fa-satellite"></i>
+              </div>
+              <div className="vehicle-details__metric-content">
+                <div className="vehicle-details__metric-label">GPS Status</div>
+                <div className="vehicle-details__metric-value">
+                  {vehicleMetrics.gpsStatus}
+                </div>
+              </div>
             </div>
-            <div className="tw-text-lg tw-font-semibold tw-text-green-800">
-              {vehicleMetrics.gpsStatus}
-            </div>
-          </div>
 
-          <div className="tw-bg-yellow-50 tw-p-4 tw-rounded-lg tw-border tw-border-yellow-200">
-            <div className="tw-text-sm tw-text-yellow-600 tw-mb-1">
-              Working Site
+            {/* Working Site Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--site">
+              <div className="vehicle-details__metric-icon">
+                <i className="fa-light fa-building"></i>
+              </div>
+              <div className="vehicle-details__metric-content">
+                <div className="vehicle-details__metric-label">Working Site</div>
+                <div className="vehicle-details__metric-value">
+                  {vehicle.workingSite?.name || "Not Assigned"}
+                </div>
+              </div>
             </div>
-            <div className="tw-text-lg tw-font-semibold tw-text-yellow-800">
-              {vehicle.workingSite?.name || "Not Assigned"}
-            </div>
-          </div>
 
-          <div className="tw-bg-purple-50 tw-p-4 tw-rounded-lg tw-border tw-border-purple-200">
-            <div className="tw-text-sm tw-text-purple-600 tw-mb-1">
-              Default Driver
+            {/* Default Driver Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--driver">
+              <div className="vehicle-details__metric-icon">
+                <i className="fa-light fa-user"></i>
+              </div>
+              <div className="vehicle-details__metric-content">
+                <div className="vehicle-details__metric-label">Default Driver</div>
+                <div className="vehicle-details__metric-value">
+                  {vehicle.defaultEmployee?.fullName || "Not Assigned"}
+                </div>
+              </div>
             </div>
-            <div className="tw-text-lg tw-font-semibold tw-text-purple-800">
-              {vehicle.defaultEmployee?.fullName || "Not Assigned"}
-            </div>
-          </div>
 
-          <div className="tw-bg-red-50 tw-p-4 tw-rounded-lg tw-border tw-border-red-200">
-            <div className="tw-text-sm tw-text-red-600 tw-mb-1">
-              Vehicle Type
+            {/* Vehicle Type Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--type">
+              <div className="vehicle-details__metric-icon">
+                <i className="fa-light fa-car-side"></i>
+              </div>
+              <div className="vehicle-details__metric-content">
+                <div className="vehicle-details__metric-label">Vehicle Type</div>
+                <div className="vehicle-details__metric-value">
+                  {vehicle.vehicleType?.name || "Not Specified"}
+                </div>
+              </div>
             </div>
-            <div className="tw-text-lg tw-font-semibold tw-text-red-800">
-              {vehicle.vehicleType?.name || "Not Specified"}
-            </div>
-          </div>
 
-          <div className="tw-bg-indigo-50 tw-p-4 tw-rounded-lg tw-border tw-border-indigo-200">
-            <div className="tw-text-sm tw-text-indigo-600 tw-mb-1">
-              Capacity
-            </div>
-            <div className="tw-text-lg tw-font-semibold tw-text-indigo-800">
-              {vehicle.capacity || "Not Specified"}
+            {/* Capacity Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--capacity">
+              <div className="vehicle-details__metric-icon">
+                <i className="fa-light fa-gauge-high"></i>
+              </div>
+              <div className="vehicle-details__metric-content">
+                <div className="vehicle-details__metric-label">Capacity</div>
+                <div className="vehicle-details__metric-value">
+                  {vehicle.capacity || "Not Specified"}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
 {
     /// <summary>
@@ -10,6 +12,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         public string? UTC { get; set; }
         public GPSGatePosition? Position { get; set; }
         public GPSGateVelocity? Velocity { get; set; }
+        public List<GPSGateVariable>? Variables { get; set; }
     }
 
     /// <summary>

@@ -159,23 +159,38 @@ namespace FMS.WebClient.Controllers
         /// <param name="date"></param>
         /// <returns></returns>
         [HttpGet("gethistoryconsumptionbyvehicle")]
-        public async Task<IActionResult> GetHistoryConsumptionDatabyVehicle([FromQuery] int vehicleId, [FromQuery] string datestring, [FromQuery] int entry)
+        public async Task<IActionResult> GetHistoryConsumptionDatabyVehicle(
+            [FromQuery] int vehicleId,
+            [FromQuery] string datestring,
+            [FromQuery] string? dateFromString = null,
+            [FromQuery] int entry = 30)
         {
-            var date = DateTime.ParseExact(datestring, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var dateTo = DateTime.ParseExact(datestring, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            DateTime? dateFrom = null;
 
-            if (vehicleId <= 0 || date == default(DateTime))
+            if (!string.IsNullOrEmpty(dateFromString))
+            {
+                dateFrom = DateTime.ParseExact(dateFromString, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
+
+            if (vehicleId <= 0 || dateTo == default(DateTime))
             {
                 return BadRequest("Invalid vehicle ID or date");
             }
 
-            if (entry < 5 || entry > 30)
+            if (entry < 5 || entry > 365)
             {
-                return BadRequest("Entry must be between 5 and 30 days");
+                return BadRequest("Entry must be between 5 and 365 days");
             }
             try
             {
-
-                var query = new GetHistoryConsumptionByVehicleQuery { Entry = entry, VehicleId = vehicleId, startDate = date };
+                var query = new GetHistoryConsumptionByVehicleQuery
+                {
+                    Entry = entry,
+                    VehicleId = vehicleId,
+                    EndDate = dateTo,
+                    StartDate = dateFrom ?? dateTo.AddDays(-entry)
+                };
 
                 var results = await _mediator.Send(query);
 

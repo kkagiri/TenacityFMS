@@ -100,7 +100,8 @@ const VehicleReducer = (state = initialState, action) => {
         loading: false,
         error: null,
       };
-      case FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST:
+    case FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST:
+  console.log('⏳ FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST - Loading...');
   return {
     ...state,
     consumptionHistoryLoading: true,
@@ -108,6 +109,7 @@ const VehicleReducer = (state = initialState, action) => {
   };
 
 case CLEAR_VEHICLE_CONSUMPTION_HISTORY:
+  console.log('🧹 CLEAR_VEHICLE_CONSUMPTION_HISTORY - Clearing consumption data');
   return {
     ...state,
     consumptionHistory: [],
@@ -139,6 +141,11 @@ case CLEAR_VEHICLE_CONSUMPTION_HISTORY:
     // VEHICLE CONSUMPTION HISTORY CASES
     // =============================================================================
     case FETCH_VEHICLE_CONSUMPTION_HISTORY_SUCCESS:
+      console.log('✅ FETCH_VEHICLE_CONSUMPTION_HISTORY_SUCCESS - Data received:', {
+        dataLength: action.payload?.length,
+        firstRecord: action.payload?.[0],
+        lastRecord: action.payload?.[action.payload?.length - 1]
+      });
       return {
         ...state,
         consumptionHistory: action.payload,

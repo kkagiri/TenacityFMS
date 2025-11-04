@@ -1,0 +1,29 @@
+.vehicle-gps-information {
+  // Map container styles
+  .map-container {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  // Sensor cards
+  .sensor-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .tw-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+

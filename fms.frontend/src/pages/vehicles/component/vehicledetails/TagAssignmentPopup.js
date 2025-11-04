@@ -4,7 +4,7 @@ import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
 import { CheckBox } from 'devextreme-react/check-box';
 import notify from 'devextreme/ui/notify';
-import { assignTagToVehicle, fetchTags, createTag } from '../../../redux/actions/tagActions';
+import { assignTagToVehicle, fetchTags, createTag } from '../../../../redux/actions/tagActions';
 
 const TagAssignmentPopup = ({ vehicleId, currentTags = [], onSave, onCancel }) => {
   const dispatch = useDispatch();

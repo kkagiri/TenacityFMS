@@ -3,7 +3,6 @@ import { useSelector } from 'react-redux';
 import { useStockData } from '../shared/hooks/useStockDataOptimized';
 import { useDateRange } from '../../../hooks/useDateRange';
 import FilterInfoBar from '../components/FilterInfoBar';
-import InteractiveDashboard from './components/InteractiveDashboard';
 import ReportingEngine from './components/ReportingEngine';
 import PredictiveAnalytics from './components/PredictiveAnalytics';
 import KPIDashboard from './components/KPIDashboard';
@@ -27,7 +26,6 @@ const StockAnalytics = () => {
   //Cursor - Use shared hook for data management
   const {
     isLoading,
-    analyticsData,
     reports,
     forecasts,
     kpiMetrics
@@ -51,15 +49,6 @@ const StockAnalytics = () => {
     );
   };
 
-
-
-  const handleFilterClick = useCallback(() => {
-    // TODO: Open filter popup
-    console.log('Filter clicked');
-  }, []);
-
-  // Ensure arrays are available for FilterInfoBar
-
   const handleTabSelectionChange = useCallback((e) => {
     const newIndex = e.itemIndex;
     setActiveTabIndex(newIndex);
@@ -71,27 +60,20 @@ const StockAnalytics = () => {
     switch (activeTabIndex) {
       case 0:
         return loadedTabs.has(0) && (
-          <InteractiveDashboard
-            analyticsData={analyticsData}
-
-          />
-        );
-      case 1:
-        return loadedTabs.has(1) && (
           <ReportingEngine
             reports={reports}
 
           />
         );
-      case 2:
-        return loadedTabs.has(2) && (
+      case 1:
+        return loadedTabs.has(1) && (
           <PredictiveAnalytics
             forecasts={forecasts}
 
           />
         );
-      case 3:
-        return loadedTabs.has(3) && (
+      case 2:
+        return loadedTabs.has(2) && (
           <KPIDashboard
             kpiMetrics={kpiMetrics}
 
@@ -104,8 +86,6 @@ const StockAnalytics = () => {
 
   return (
     <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
-      {/* Render filter info in header */}
-
 
       {/* Cursor - Loading overlay instead of blocking entire screen */}
       {isLoading && (
@@ -132,7 +112,7 @@ const StockAnalytics = () => {
           />
 
           {/* Cursor - Tab Content */}
-          <div className="tw-p-4">
+          <div className="tw-p-2">
             {renderContent()}
           </div>
         </div>

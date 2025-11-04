@@ -94,7 +94,7 @@ namespace FMS.Application.Services.TankStock
                     var hasClosingStockAfter = await _context.TankVolumeHistories
                         .AnyAsync(cs => cs.TankId == tankId &&
                             cs.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
-                            cs.Timestamp > unClosedOpeningStockAfterRequestedDate.Timestamp,
+                            cs.Timestamp >= unClosedOpeningStockAfterRequestedDate.Timestamp,
                             cancellationToken);
 
                     if (!hasClosingStockAfter)

@@ -169,16 +169,6 @@ const ImperativeDataGrid = ({
 
 export default React.memo(ImperativeDataGrid, (prevProps, nextProps) => {
   // Only re-render if data reference changes
-  const shouldNotUpdate = prevProps.data === nextProps.data &&
+  return prevProps.data === nextProps.data &&
          prevProps.selectedRowKeys === nextProps.selectedRowKeys;
-
-  console.log('🔍 ImperativeDataGrid memo check:', {
-    prevDataLength: prevProps.data?.length,
-    nextDataLength: nextProps.data?.length,
-    dataRefEqual: prevProps.data === nextProps.data,
-    selectedKeysEqual: prevProps.selectedRowKeys === nextProps.selectedRowKeys,
-    shouldNotUpdate
-  });
-
-  return shouldNotUpdate;
 });

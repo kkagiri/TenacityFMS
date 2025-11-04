@@ -1,3 +1,15 @@
+/**
+ * File: TransactionFilterPopup.js
+ * Purpose: Provides a configurable popup form for filtering tank transaction history
+ *          with site, tank, user, and date range criteria.
+ * Dependencies: react, react-redux, devextreme-react Popup/Form/Button/ScrollView components,
+ *               fetchUsersForFilter action.
+ * Last Modified: 2025-11-04
+ *
+ * Key Components:
+ * - TransactionFilterPopup: Renders the popup UI, manages local filter state, and
+ *   communicates filter selections back to the parent component.
+ */
 import React, { useState, useCallback, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Popup } from "devextreme-react/popup";
@@ -120,14 +132,14 @@ const TransactionFilterPopup = ({
       dragEnabled={false}
       showTitle={true}
       title="Filter Transaction History"
-      width="90%"
-      maxWidth={600}
-      height={500} // Fixed height to enable scrolling
+      width="100%"
+      maxWidth={780}
+      height={600} // Increased height to enable more content visibility
       showCloseButton={true}
       className="transaction-filter-popup"
     >
       {/* Use ScrollView with fixed height, fallback to native scroll if needed */}
-      <ScrollView height={440}>
+      <ScrollView height={540}>
         <div className="tw-p-4">
           {/* Header */}
           <div className="tw-mb-6">

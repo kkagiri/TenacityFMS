@@ -352,6 +352,9 @@ public static class FmsServiceCollectionExtensions
         // services.AddScoped<IGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
         // NEW: IVehicleTrackingService registered via AddVehicleTracking() in AddFmsCore
         // Adapter bridges new tracking service to legacy IGPSService interface for backward compatibility
+        // Register GPSGateService separately for adapter to use (for GPS information with sensor data)
+        services.AddHttpClient<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
+        services.AddScoped<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
         services.AddScoped<IGPSService, FMS.Infrastructure.VehicleTracking.Adapters.VehicleTrackingServiceAdapter>();
 
         // Configuration Services

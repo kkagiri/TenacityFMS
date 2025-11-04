@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { PivotGrid, FieldChooser, FieldPanel, Export } from 'devextreme-react/pivot-grid';
+import { PivotGrid, FieldChooser, Export } from 'devextreme-react/pivot-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
 import PivotGridDataSource from 'devextreme/ui/pivot_grid/data_source';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -13,10 +12,8 @@ import './PivotGridReport.scss';
 
 const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
   const [pivotGridData, setPivotGridData] = useState([]);
-  const [showBuiltInFieldChooser, setShowBuiltInFieldChooser] = useState(false);
   const [canRenderDevExtreme, setCanRenderDevExtreme] = useState(false);
   const [dataSource, setDataSource] = useState(null);
-  const [pivotGridReady, setPivotGridReady] = useState(false);
   const pivotGridRef = useRef(null);
 
   // Delay DevExtreme initialization until after React's commit phase
@@ -149,9 +146,6 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       pivotDataSource.load().then(() => {
         console.log('PivotGridDataSource loaded successfully');
         setDataSource(pivotDataSource);
-
-        // Reset pivot grid ready state when data changes
-        setPivotGridReady(false);
       }).catch((error) => {
         console.error('Error loading PivotGridDataSource:', error);
       });
@@ -238,7 +232,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
   }, [reportType, pivotGridData, onExporting]);
 
   return (
-    <div className="pivot-grid-report tw-bg-white tw-rounded-lg tw-shadow" style={{ display: visible ? 'block' : 'none' }}>
+    <div className="pivot-grid-report tw-bg-white tw-rounded-lg tw-shadow" style={{ display: visible ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <div className="tw-flex tw-justify-between tw-items-center tw-p-4 tw-border-b">
         <div>
@@ -281,24 +275,23 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       )}
 
       {/* Pivot Grid */}
-      <div className="pivot-grid-container tw-p-4" style={{ height: '600px' }}>
+      <div className="pivot-grid-container tw-p-4 tw-overflow-hidden tw-flex tw-flex-col" style={{ flex: 1, minHeight: '800px' }}>
         {canRenderDevExtreme && dataSource && (
           <PivotGrid
+            key={`pivot-grid-${reportType}-${pivotGridData.length}`}
             ref={pivotGridRef}
             dataSource={dataSource}
             allowSortingBySummary={true}
             allowSorting={true}
             allowFiltering={true}
+            allowExpanding={true}
             showBorders={true}
             showColumnTotals={true}
             showRowTotals={true}
-            showColumnGrandTotals={true}
             showRowGrandTotals={true}
+            height="100%"
+            width="100%"
             onExporting={onExporting}
-            onInitialized={() => {
-              // Set a small delay to ensure the PivotGrid is fully ready
-              setTimeout(() => setPivotGridReady(true), 100);
-            }}
             onCellClick={(e) => {
               // Handle cell click for drill-down functionality
               console.log('Pivot cell clicked:', e);
@@ -311,15 +304,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
               }
             }}
           >
-            <FieldPanel
-              showDataFields={true}
-              showRowFields={true}
-              showColumnFields={true}
-              showFilterFields={true}
-              allowFieldDragging={true}
-              visible={true}
-            />
-            <FieldChooser enabled = {true} height={500} />
+            <FieldChooser enabled={true} />
             <Export enabled={true} />
           </PivotGrid>
         )}

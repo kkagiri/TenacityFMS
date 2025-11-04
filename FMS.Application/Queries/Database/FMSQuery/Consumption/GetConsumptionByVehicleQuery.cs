@@ -11,37 +11,48 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
-    public class GetHistoryConsumptionByVehicleQuery : IRequest<List<HistoryConsumptionDTO>> {
+namespace FMS.Application.Queries.Database.FMSQuery.Consumption
+{
+    public class GetHistoryConsumptionByVehicleQuery : IRequest<List<HistoryConsumptionDTO>>
+    {
         public int VehicleId { get; set; }
         public int Entry { get; set; } = 5; //default 5
-
-        public DateTime startDate { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 
-    public class GetCosumptionByVehicleQueryHandler : IRequestHandler<GetHistoryConsumptionByVehicleQuery, List<HistoryConsumptionDTO>> {
+    public class GetCosumptionByVehicleQueryHandler : IRequestHandler<GetHistoryConsumptionByVehicleQuery, List<HistoryConsumptionDTO>>
+    {
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger _logger;
 
-        public GetCosumptionByVehicleQueryHandler (GpsdataContext gpsdataContext, IMapper mapper, ILogger<GetCosumptionByVehicleQueryHandler> logger) {
+        public GetCosumptionByVehicleQueryHandler(GpsdataContext gpsdataContext, IMapper mapper, ILogger<GetCosumptionByVehicleQueryHandler> logger)
+        {
             _context = gpsdataContext;
             _mapper = mapper;
             _logger = logger;
         }
 
-        public async Task<List<HistoryConsumptionDTO>> Handle (GetHistoryConsumptionByVehicleQuery request, CancellationToken cancellationToken) {
-            try {
+        public async Task<List<HistoryConsumptionDTO>> Handle(GetHistoryConsumptionByVehicleQuery request, CancellationToken cancellationToken)
+        {
+            try
+            {
 
                 var consumptiondata = await _context.Vehicleconsumptions.
-                Include (x => x.Site).
-                Where (v => v.VehicleId == request.VehicleId && v.Date.Date <= request.startDate.Date).
-                OrderByDescending (v => v.Date.Date).Take (request.Entry).ToListAsync (cancellationToken);
-                return _mapper.Map<List<HistoryConsumptionDTO>> (consumptiondata);
+                Include(x => x.Site).
+                Where(v => v.VehicleId == request.VehicleId
+                    && v.Date.Date >= request.StartDate.Date
+                    && v.Date.Date <= request.EndDate.Date).
+                OrderByDescending(v => v.Date.Date)
+                .ToListAsync(cancellationToken);
+                return _mapper.Map<List<HistoryConsumptionDTO>>(consumptiondata);
 
-            } catch (Exception ex) {
-                _logger.LogError (ex.Message);
-                throw new Exception (ex.Message); //
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw new Exception(ex.Message); //
             }
 
         }

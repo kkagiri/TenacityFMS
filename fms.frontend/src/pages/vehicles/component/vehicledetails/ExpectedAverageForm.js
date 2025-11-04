@@ -7,7 +7,7 @@ import { Chart, Series, CommonSeriesSettings, Legend, Tooltip, ArgumentAxis, Val
 import notify from 'devextreme/ui/notify';
 
 // Redux actions
-import { fetchExpectedAvgbyVehicle, updateExpectedAvg } from '../../../redux/actions/expectedAvgActions';
+import { fetchExpectedAvgbyVehicle, updateExpectedAvg } from '../../../../redux/actions/expectedAvgActions';
 
 const ExpectedAverageForm = ({ vehicle, onClose, onSuccess }) => {
   const dispatch = useDispatch();

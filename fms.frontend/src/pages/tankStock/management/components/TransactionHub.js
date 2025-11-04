@@ -1,3 +1,15 @@
+/**
+ * File: TransactionHub.js
+ * Purpose: Central tank transaction management hub providing data grids, filtering,
+ *          chart views, manual refill workflows, and transaction maintenance actions.
+ * Dependencies: react, react-redux, DevExtreme data grid and popup components, exceljs,
+ *               Redux tank/site/user actions, custom services/hooks/components.
+ * Last Modified: 2025-11-04
+ *
+ * Key Components:
+ * - TransactionHub: Main container orchestrating transaction data loading, filtering,
+ *   visualization, exports, and deletion flows with responsive layout considerations.
+ */
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, {
@@ -1069,8 +1081,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         onHiding={() => setShowManualRefillForm(false)}
         showTitle={true}
         title="Manual Fuel Refill"
-        width={800}
-        height={600}
+        width={1040}
+        height={780}
         showCloseButton={true}
         dragEnabled={true}
         resizeEnabled={true}

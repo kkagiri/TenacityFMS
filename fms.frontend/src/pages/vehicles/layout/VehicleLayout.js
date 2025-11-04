@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { isActiveRoute, navigationGroups } from '../utils/navigationHelper';
-import VehicleSearchBar from '../components/VehicleSearchBar';
+import VehicleSearchBar from '../component/VehicleSearchBar';
 import './VehicleLayout.scss';
 
 const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
@@ -198,18 +198,17 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         {/* Header */}
         <header className="main-header">
           <div className="header-content">
-            <div className="tw-flex tw-items-center tw-justify-between tw-w-full">
-              <div>
-                <h1 className="main-title">{finalTitle}</h1>
-                {finalSubtitle && (
-                  <p className="tw-text-sm tw-text-gray-600 tw-mt-1">{finalSubtitle}</p>
-                )}
-              </div>
-              <div className="tw-flex tw-items-center tw-space-x-4">
-                {/* Vehicle Search Bar */}
-                <div className="tw-min-w-0 tw-flex-1 tw-max-w-md">
-                  <VehicleSearchBar placeholder="Search vehicles by name, plate, or ID..." />
-                </div>
+            {/* Left: Title + Subtitle aligned to content edge via header padding */}
+            <div>
+              <h1 className="main-title">{finalTitle}</h1>
+              {finalSubtitle && (
+                <p className="tw-text-sm tw-text-gray-600 tw-mt-1">{finalSubtitle}</p>
+              )}
+            </div>
+            {/* Right: Search at the far right */}
+            <div className="tw-flex tw-items-center">
+              <div className="tw-w-full md:tw-w-96 tw-max-w-md">
+                <VehicleSearchBar placeholder="Search vehicles by name, plate, or ID..." />
               </div>
             </div>
           </div>

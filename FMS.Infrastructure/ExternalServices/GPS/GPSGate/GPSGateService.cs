@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -309,6 +310,247 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
             {
                 _logger.LogError(ex, "Error validating GPS connection");
                 return FMSResponse<bool>.Failed($"Connection validation failed: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<VehicleGPSInformationDTO>> GetVehicleGPSInformationAsync(int vehicleId)
+        {
+            try
+            {
+                // Get vehicle info from database first
+                var vehicle = await _context.Vehicles
+                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
+                    .FirstOrDefaultAsync();
+
+                if (vehicle == null)
+                {
+                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
+                }
+
+
+
+                // Get user status from GPSGate API
+                var statusResponse = await _httpClient.GetAsync(
+                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}/status");
+
+                // Get device information
+                var deviceResponse = await _httpClient.GetAsync(
+                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}");
+
+                var gpsInfo = new VehicleGPSInformationDTO
+                {
+                    VehicleId = vehicleId,
+                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    NumberPlate = vehicle.NumberPlate,
+                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
+                    DeviceId = vehicle.DeviceId,
+                    IsOnline = false,
+                    SensorHealth = new SensorHealthDTO
+                    {
+                        OverallHealth = "Unknown",
+                        IsPositionValid = false
+                    }
+                };
+
+                // Parse user status
+                if (statusResponse.IsSuccessStatusCode)
+                {
+                    var statusContent = await statusResponse.Content.ReadAsStringAsync();
+                    var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(statusContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (gpsData?.Position != null)
+                    {
+                        gpsInfo.Latitude = (decimal)gpsData.Position.Latitude;
+                        gpsInfo.Longitude = (decimal)gpsData.Position.Longitude;
+                        gpsInfo.Altitude = gpsData.Position.Altitude.HasValue ? (decimal)gpsData.Position.Altitude : null;
+                        gpsInfo.Speed = gpsData.Velocity?.GroundSpeed.HasValue == true ? (decimal)gpsData.Velocity.GroundSpeed : null;
+                        gpsInfo.Heading = gpsData.Velocity?.Heading.HasValue == true ? (decimal)gpsData.Velocity.Heading : null;
+                        gpsInfo.LastUpdated = DateTime.TryParse(gpsData.UTC, out var lastUpdate) ? lastUpdate : DateTime.UtcNow;
+                        gpsInfo.IsOnline = true;
+                        gpsInfo.SensorHealth.IsPositionValid = true;
+                        gpsInfo.SensorHealth.LastSensorUpdate = gpsInfo.LastUpdated;
+
+                        // Parse sensor variables if available
+                        if (gpsData.Variables != null && gpsData.Variables.Any())
+                        {
+                            ParseSensorVariables(gpsData.Variables, gpsInfo.SensorHealth);
+                        }
+                        else
+                        {
+                            // Default values if no variables
+                            gpsInfo.SensorHealth.GPSSignalStrength = "Unknown";
+                            gpsInfo.SensorHealth.OverallHealth = "Unknown";
+                        }
+                    }
+                }
+
+                // Parse device information
+                if (deviceResponse.IsSuccessStatusCode)
+                {
+                    var deviceContent = await deviceResponse.Content.ReadAsStringAsync();
+                    var deviceData = JsonSerializer.Deserialize<GPSGateUser>(deviceContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (deviceData?.Devices != null && deviceData.Devices.Any())
+                    {
+                        var device = deviceData.Devices.FirstOrDefault();
+                        gpsInfo.DeviceIMEI = device?.IMEI;
+                        gpsInfo.DeviceName = device?.Name;
+                        gpsInfo.Protocol = device?.ProtocolID;
+                        gpsInfo.LastIP = device?.LastIP;
+                        gpsInfo.LastDeviceActivity = DateTime.TryParse(deviceData.DeviceActivity, out var activityTime) ? activityTime : null;
+                    }
+                }
+
+                // Set default values for missing sensor data
+                if (gpsInfo.SensorHealth != null)
+                {
+                    gpsInfo.SensorHealth.FuelLevelUnit = gpsInfo.SensorHealth.FuelLevelUnit ?? "Liters";
+
+                    // Determine overall health based on available sensor data
+                    if (gpsInfo.SensorHealth.OverallHealth == "Unknown")
+                    {
+                        if (gpsInfo.SensorHealth.IsPositionValid && gpsInfo.SensorHealth.SatelliteCount.HasValue && gpsInfo.SensorHealth.SatelliteCount > 0)
+                        {
+                            gpsInfo.SensorHealth.OverallHealth = "Good";
+                        }
+                        else if (gpsInfo.SensorHealth.IsPositionValid)
+                        {
+                            gpsInfo.SensorHealth.OverallHealth = "Warning";
+                        }
+                        else
+                        {
+                            gpsInfo.SensorHealth.OverallHealth = "Unknown";
+                        }
+                    }
+                }
+
+                return FMSResponse<VehicleGPSInformationDTO>.Success(gpsInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving GPS information for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<VehicleGPSInformationDTO>.Failed($"Error retrieving GPS information: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Parse sensor variables from GPSGate API response and populate sensor health
+        /// </summary>
+        private void ParseSensorVariables(List<GPSGateVariable> variables, SensorHealthDTO sensorHealth)
+        {
+            foreach (var variable in variables)
+            {
+                if (string.IsNullOrWhiteSpace(variable.Name) || string.IsNullOrWhiteSpace(variable.Value))
+                    continue;
+
+                var variableName = variable.Name.Trim();
+                var variableValue = variable.Value.Trim();
+                var variableType = variable.Type?.ToLower();
+
+                try
+                {
+                    switch (variableName.ToLower())
+                    {
+                        case "satellitecount":
+                            if (int.TryParse(variableValue, out var satelliteCount))
+                            {
+                                sensorHealth.SatelliteCount = satelliteCount;
+                                // Determine GPS signal strength based on satellite count
+                                sensorHealth.GPSSignalStrength = satelliteCount >= 8 ? "Strong" :
+                                                                 satelliteCount >= 4 ? "Moderate" :
+                                                                 satelliteCount > 0 ? "Weak" : "None";
+                            }
+                            break;
+
+                        case "batteryvoltage":
+                        case "voltage":
+                            if (decimal.TryParse(variableValue, out var batteryVoltage))
+                            {
+                                sensorHealth.BatteryVoltage = batteryVoltage;
+                            }
+                            break;
+
+                        case "fuel level":
+                        case "fuellevel":
+                        case "rawfuel":
+                            if (decimal.TryParse(variableValue, out var fuelLevel))
+                            {
+                                sensorHealth.FuelLevel = fuelLevel;
+                                sensorHealth.FuelLevelUnit = "Liters";
+                            }
+                            break;
+
+                        case "ignition":
+                            if (variableType == "boolean" && bool.TryParse(variableValue, out var ignition))
+                            {
+                                sensorHealth.IgnitionStatus = ignition;
+                            }
+                            break;
+
+                        case "engine":
+                        case "enginestatus":
+                            if (variableType == "boolean" && bool.TryParse(variableValue, out var engineStatus))
+                            {
+                                sensorHealth.EngineStatus = engineStatus;
+                            }
+                            break;
+
+                        case "enginetemperature":
+                        case "temperature":
+                        case "engtemp":
+                            if (decimal.TryParse(variableValue, out var engineTemp))
+                            {
+                                sensorHealth.EngineTemperature = engineTemp;
+                            }
+                            break;
+
+                            // Additional sensor variables can be added here
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error parsing sensor variable {VariableName} with value {Value}", variableName, variableValue);
+                }
+            }
+
+            // Determine overall health based on sensor data
+            var healthFactors = new List<string>();
+
+            if (sensorHealth.IsPositionValid && sensorHealth.SatelliteCount.HasValue && sensorHealth.SatelliteCount > 0)
+            {
+                healthFactors.Add("GPS");
+            }
+
+            if (sensorHealth.BatteryVoltage.HasValue)
+            {
+                // Battery voltage check (typically 12-14V for vehicles)
+                if (sensorHealth.BatteryVoltage >= 12.0m && sensorHealth.BatteryVoltage <= 14.5m)
+                {
+                    healthFactors.Add("Battery");
+                }
+            }
+
+            if (healthFactors.Count >= 2)
+            {
+                sensorHealth.OverallHealth = "Good";
+            }
+            else if (healthFactors.Count == 1)
+            {
+                sensorHealth.OverallHealth = "Warning";
+            }
+            else if (sensorHealth.IsPositionValid)
+            {
+                sensorHealth.OverallHealth = "Warning";
+            }
+            else
+            {
+                sensorHealth.OverallHealth = "Unknown";
             }
         }
     }

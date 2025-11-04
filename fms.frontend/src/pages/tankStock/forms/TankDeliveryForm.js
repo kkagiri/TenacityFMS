@@ -1,13 +1,14 @@
 /**
  * File: TankDeliveryForm.js
- * Purpose: Capture tank delivery details while reusing parent-provided site/tank datasets and coordinating supplier lookups.
- * Dependencies: React, Redux Toolkit, DevExtreme Form components, siteActions, tankActions, SupplierActions
- * Last Modified: 2025-10-06
+ * Purpose: Capture tank delivery details, validate entries, and dispatch API calls to create deliveries in the backend
+ * Dependencies: React, Redux Toolkit, DevExtreme Form components, siteActions, tankActions, SupplierActions, DeliveryActions
+ * Last Modified: 2025-11-04
  *
  * Key Functions/Components:
- * - TankDeliveryForm: Main component orchestrating delivery data entry and validation
+ * - TankDeliveryForm: Main component orchestrating delivery data entry, validation, and submission
  * - handleSiteChange: Filters tanks by site with API fallback when local cache is empty
  * - handleChange: Syncs DevExtreme form changes with React state and parent callbacks
+ * - handleSubmit: Validates form and dispatches createDelivery Redux action to backend API
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,6 +28,7 @@ import {
   fetctTankbySiteId,
 } from "../../../redux/actions/tankActions";
 import { fetchSuppliers } from "../../../redux/actions/SupplierActions"; // Assuming you have this action
+import { createDelivery } from "../../../redux/actions/DeliveryActions";
 //import './deliveryForm.scss';
 import ScrollView from "devextreme-react/scroll-view";
 import LoadIndicator from "devextreme-react/load-indicator";
@@ -55,12 +57,14 @@ const TankDeliveryForm = ({
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [backendError, setBackendError] = useState(null);
 
   const usingPropSites = Array.isArray(sitesProp) && sitesProp.length > 0;
   const usingPropTanks = Array.isArray(tanksProp) && tanksProp.length > 0;
   const sitesAvailable = usingPropSites ? sitesProp : sitesState;
   const tanksAvailable = usingPropTanks ? tanksProp : tanksState;
-  const combinedLoading = isLoading || loading;
+  const combinedLoading = isLoading || loading || isSubmitting;
 
   // Future records validation hook
   const {
@@ -159,18 +163,22 @@ const TankDeliveryForm = ({
   const handleChange = useCallback(
     async (e) => {
       const { dataField, value } = e;
-      let updatedValue = value;
-
-      // Special handling for product field - convert ID to name for DTO
-      if (dataField === "product") {
-        updatedValue = Products.find((p) => p.id === value)?.name || "";
-      }
 
       setFormData((prev) => {
+        let updatedValue = value;
+
+        // Special handling for product field - store the product name string for backend
+        if (dataField === "product") {
+          const product = Products.find((p) => p.id === value);
+          updatedValue = product ? product.name : "";
+        }
+
         const updated = { ...prev, [dataField]: updatedValue };
+
         if (typeof updateFormData === "function") {
           updateFormData(updated);
         }
+
         return updated;
       });
 
@@ -221,13 +229,19 @@ const TankDeliveryForm = ({
     return errors;
   }, [formData]);
 
-  // Handle submit with validation
-  const handleSubmit = useCallback(() => {
+  // Handle submit with validation and API call
+  const handleSubmit = useCallback(async () => {
+    console.log("🚀 TankDeliveryForm - handleSubmit called");
+    console.log("📋 Form Data:", formData);
+
     setHasAttemptedSubmit(true);
     const errors = validateForm();
     setValidationErrors(errors);
 
+    console.log("✅ Validation errors:", errors);
+
     if (Object.keys(errors).length > 0) {
+      console.warn("❌ Validation failed - form has errors");
       notify({
         message: "Please fill in all required fields correctly",
         type: "error",
@@ -238,6 +252,7 @@ const TankDeliveryForm = ({
 
     // Check if we can submit based on future records validation
     if (!canSubmitForm) {
+      console.warn("⚠️ Cannot submit - future records validation not passed");
       notify({
         message: "Please resolve validation warnings before submitting",
         type: "warning",
@@ -246,10 +261,81 @@ const TankDeliveryForm = ({
       return;
     }
 
-    if (onSubmit) {
-      onSubmit(formData);
+    console.log("🔄 Starting API call...");
+    setIsSubmitting(true);
+    setBackendError(null);
+
+    try {
+      // Prepare the data in the format expected by the backend DTO
+      const deliveryDTO = {
+        tankId: formData.tankId,
+        deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate).toISOString() : null,
+        manualDeliveryAmount: formData.manualDeliveryAmount,
+        sensorDeliveryAmount: formData.sensorDeliveryAmount,
+        deliveryTemperature: formData.deliveryTemperature,
+        deliveryDensity: formData.deliveryDensity,
+        deliveryMass: formData.deliveryMass,
+        stockBeforeDelivery: formData.stockBeforeDelivery,
+        stockAfterDelivery: formData.stockAfterDelivery,
+        pricePerLiter: formData.pricePerLiter,
+        supplierId: formData.supplierId,
+        lponumber: formData.lponumber,
+        product: formData.product,
+      };
+
+      console.log("📤 Sending to API:", deliveryDTO);
+
+      // Dispatch the create delivery action
+      const response = await dispatch(createDelivery(deliveryDTO));
+
+      console.log("📥 API Response:", response);
+
+      // Check for success
+      if (response && response.success === true) {
+        console.log("✅ Delivery created successfully");
+        notify({
+          message: response.message || "Delivery created successfully",
+          type: "success",
+          displayTime: 3000,
+        });
+
+        // Close the form on success
+        if (onCancel) {
+          onCancel();
+        }
+        if (onSubmit) {
+          onSubmit(formData);
+        }
+      } else {
+        // Handle failure
+        console.error("❌ Delivery creation failed:", response);
+        const errorMessage = response?.message || "Failed to create delivery";
+        setBackendError({
+          message: errorMessage,
+          type: "error",
+        });
+        notify({
+          message: errorMessage,
+          type: "error",
+          displayTime: 4000,
+        });
+      }
+    } catch (error) {
+      console.error("💥 TankDeliveryForm - Error creating delivery:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Error creating delivery";
+      setBackendError({
+        message: errorMessage,
+        type: "error",
+      });
+      notify({
+        message: errorMessage,
+        type: "error",
+        displayTime: 4000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [formData, validateForm, onSubmit, canSubmitForm]);
+  }, [formData, validateForm, onSubmit, onCancel, canSubmitForm, dispatch]);
 
   const handleSiteChange = useCallback(
     async (e) => {
@@ -471,6 +557,7 @@ const TankDeliveryForm = ({
               items: Products,
               displayExpr: "name",
               valueExpr: "id",
+              value: Products.find(p => p.name === formData.product)?.id || null,
               width: "100%",
               placeholder: "Select product type",
               showClearButton: true,
@@ -636,6 +723,23 @@ const TankDeliveryForm = ({
             </div>
           )}
 
+          {/* Backend Error Display */}
+          {backendError && (
+            <div className="tw-mb-4 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-3">
+              <div className="tw-flex tw-items-start">
+                <i className="fa-light fa-circle-exclamation tw-text-red-600 tw-mt-0.5 tw-mr-3"></i>
+                <div className="tw-flex-1">
+                  <h4 className="tw-font-medium tw-text-red-800 tw-mb-1">
+                    Error Creating Delivery
+                  </h4>
+                  <p className="tw-text-red-700 tw-text-sm">
+                    {backendError.message}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
             <Button
@@ -644,21 +748,14 @@ const TankDeliveryForm = ({
               disabled={combinedLoading}
               className="tw-min-w-32"
               stylingMode="outlined"
-            >
-              <i className="fa-light fa-times tw-mr-2"></i>
-              Cancel
-            </Button>
+            />
             <Button
-              text="Save"
+              text={isSubmitting ? "Saving Delivery..." : "Save Delivery"}
               onClick={handleSubmit}
               disabled={combinedLoading || isValidating || !canSubmitForm}
-              loading={combinedLoading}
               className="tw-min-w-32"
               type="default"
-            >
-              <i className="fa-light fa-save tw-mr-2"></i>
-              Save Delivery
-            </Button>
+            />
           </div>
         </div>
       </ScrollView>

@@ -1,5 +1,10 @@
 // Volume History Reports Styles
 .volume-history-reports {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
   .report-type-tabs {
     .dx-tabs-wrapper {
       border-bottom: 2px solid #e5e7eb;
@@ -33,6 +38,8 @@
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     }
   }
+
+
 }
 
 // Loading states

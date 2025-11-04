@@ -18,9 +18,9 @@ import { DateBox } from 'devextreme-react/date-box';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
 
-import ImperativeDataGrid from './ImperativeDataGrid';
-import ConsumptionTrendChart from './ConsumptionTrendChart';
-import VehicleConsumptionHistoryDetails from './vehicleConsumptionHistoryDetails';
+import ImperativeDataGrid from './vehicleconsumption/ImperativeDataGrid';
+import ConsumptionTrendChart from './vehicleconsumption/ConsumptionTrendChart';
+import VehicleConsumptionHistoryDetails from './vehicleconsumption/vehicleConsumptionHistoryDetails';
 import { fetchVehicleConsumptionHistory, clearVehicleConsumptionHistory } from '../../../redux/actions/vehicleActions';
 
 
@@ -29,8 +29,7 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
 
   // Memoize selectors to prevent new array references
   const consumptionData = useSelector(
-    state => state.vehicle.consumptionHistory || [],
-    (prev, next) => prev === next
+    state => state.vehicle.consumptionHistory || []
   );
   const isLoading = useSelector(state => state.vehicle.consumptionHistoryLoading);
 
@@ -40,7 +39,12 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
       vehicleId,
       dataLength: consumptionData.length,
       isLoading,
-      consumptionDataRef: consumptionData
+      firstRecord: consumptionData[0],
+      lastRecord: consumptionData[consumptionData.length - 1],
+      dateRange: consumptionData.length > 0 ? {
+        first: consumptionData[0]?.date,
+        last: consumptionData[consumptionData.length - 1]?.date
+      } : null
     });
   });
 
@@ -241,8 +245,24 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
   useEffect(() => {
     const allKeys = (consumptionData || []).map(item => item.rowKey);
     const signature = `${allKeys.length}|${allKeys.join('|')}`;
-    if (!allKeys.length) return;
+
+    console.log('🔑 Auto-select check:', {
+      dataLength: consumptionData?.length,
+      keysLength: allKeys.length,
+      newSignature: signature,
+      oldSignature: dataSignatureRef.current,
+      willUpdate: signature !== dataSignatureRef.current
+    });
+
+    if (!allKeys.length) {
+      // Clear selection when no data
+      setSelectedRowKeys([]);
+      dataSignatureRef.current = '';
+      return;
+    }
+
     if (signature !== dataSignatureRef.current) {
+      console.log('✅ Updating selection with all keys');
       dataSignatureRef.current = signature;
       setSelectedRowKeys(allKeys);
     }
@@ -263,7 +283,15 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
 
       const diffTime = Math.abs(dateTo - dateFrom);
       const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const entry = Number.isFinite(days) ? Math.max(5, Math.min(30, days)) : 5;
+      const entry = Number.isFinite(days) ? Math.max(5, days) : 5; // Removed max limit
+
+      console.log('📅 Loading consumption history:', {
+        vehicleId,
+        dateFrom: dateFrom.toISOString(),
+        dateTo: dateTo.toISOString(),
+        days,
+        entry
+      });
 
       const response = await dispatch(
         fetchVehicleConsumptionHistory(
@@ -277,8 +305,15 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
         )
       );
 
+      console.log('✅ Response received:', {
+        success: response?.success,
+        dataLength: response?.data?.length
+      });
+
       if (!response?.success) {
         notify(response?.message || 'Failed to load consumption history', 'error', 3000);
+      } else {
+        notify(`Loaded ${response?.data?.length || 0} consumption records`, 'success', 2000);
       }
     } catch (error) {
       console.error('Error loading consumption history:', error);
@@ -334,15 +369,23 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
   }, [loadConsumptionHistory]);
 
   const handleApplyFilter = useCallback(() => {
+    console.log('🎯 Apply Filter clicked');
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
+
+    // Clear existing data first to show loading state
+    dispatch(clearVehicleConsumptionHistory());
+
     debounceRef.current = setTimeout(() => {
       if (!loadingRef.current) {
+        console.log('⏰ Executing loadConsumptionHistory after debounce');
         loadConsumptionHistory();
+      } else {
+        console.log('⚠️ Skipped load - already loading');
       }
     }, 200);
-  }, [loadConsumptionHistory]);
+  }, [loadConsumptionHistory, dispatch]);
 
   const handleRowClick = useCallback((e) => {
     setSelectedRecord(e.data);

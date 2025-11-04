@@ -46,11 +46,11 @@ const VehicleFleetPage = () => {
   };
 
   return (
-    <div className="tw-px-1 tw-pt-2 tw-pb-4 md:tw-p-6">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
-        <div className="fleet-header tw-flex tw-justify-between tw-items-center tw-mb-6">
+    <div className="tw-px-1 tw-pt-2 tw-pb-4 md:tw-p-3">
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-4">
+        <div className="fleet-header tw-flex tw-justify-between tw-items-center tw-mb-4">
           <div className="header-content">
-            <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">Vehicles</h2>
+            <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-1">Vehicles</h2>
             <p className="tw-text-gray-600">
               Manage your vehicle fleet, assignments, and operational status.
             </p>

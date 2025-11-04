@@ -11,7 +11,7 @@ import notify from 'devextreme/ui/notify';
 // Components
 import VehicleMetricsTiles from './component/VehicleMetricsTiles';
 import VehicleEditForm from './component/VehicleEditForm';
-import TagAssignmentPopup from './component/TagAssignmentPopup';
+import TagAssignmentPopup from './component/vehicledetails/TagAssignmentPopup';
 import VehicleConsumptionHistory from './component/VehicleConsumptionHistory';
 
 // Services

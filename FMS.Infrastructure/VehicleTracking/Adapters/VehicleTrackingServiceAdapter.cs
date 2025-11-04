@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Infrastructure.ExternalServices.GPS.GPSGate;
 using FMS.Infrastructure.VehicleTracking.Services;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -22,14 +23,17 @@ namespace FMS.Infrastructure.VehicleTracking.Adapters
         private readonly IVehicleTrackingService _trackingService;
         private readonly GpsdataContext _context;
         private readonly ILogger<VehicleTrackingServiceAdapter> _logger;
+        private readonly GPSGateService _gpsGateService;
 
         public VehicleTrackingServiceAdapter(
             IVehicleTrackingService trackingService,
             GpsdataContext context,
+            GPSGateService gpsGateService,
             ILogger<VehicleTrackingServiceAdapter> logger)
         {
             _trackingService = trackingService;
             _context = context;
+            _gpsGateService = gpsGateService;
             _logger = logger;
         }
 
@@ -298,6 +302,26 @@ namespace FMS.Infrastructure.VehicleTracking.Adapters
             {
                 _logger.LogError(ex, "Error validating GPS connection");
                 return FMSResponse<bool>.Failed($"Failed to validate connection: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get comprehensive GPS information including location and sensor data
+        /// </summary>
+        public async Task<FMSResponse<VehicleGPSInformationDTO>> GetVehicleGPSInformationAsync(int vehicleId)
+        {
+            try
+            {
+                _logger.LogDebug("Getting GPS information for vehicle {VehicleId}", vehicleId);
+
+                // Delegate to GPSGateService for GPS information as it contains provider-specific sensor data
+                // This method requires parsing variables from the GPSGate API response
+                return await _gpsGateService.GetVehicleGPSInformationAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting GPS information for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<VehicleGPSInformationDTO>.Failed($"Failed to get GPS information: {ex.Message}");
             }
         }
 

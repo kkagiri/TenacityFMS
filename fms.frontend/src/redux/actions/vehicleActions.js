@@ -175,29 +175,51 @@ export const fetchVehicleConsumptionHistory = ({ vehicleId, dateFrom, dateTo, en
     // Dispatch REQUEST action first
     dispatch({ type: FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST });
 
-    console.log('=== fetchVehicleConsumptionHistory called ===');
+    console.log('=== fetchVehicleConsumptionHistory called ===', {
+      vehicleId,
+      dateFrom,
+      dateTo,
+      entry
+    });
 
     const formattedDate = dateTo ? new Date(dateTo).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    const formattedFromDate = dateFrom ? new Date(dateFrom).toISOString().split('T')[0] : null;
 
     let days = entry;
     if (dateFrom && dateTo) {
       const diffTime = Math.abs(new Date(dateTo) - new Date(dateFrom));
       days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      days = Math.max(5, Math.min(30, days));
+      days = Math.max(5, days); // Removed max limit to support full year
     }
+
+    // Build params - only include dateFromString if it exists
+    const params = {
+      vehicleId,
+      datestring: formattedDate,
+      entry: days
+    };
+
+    if (formattedFromDate) {
+      params.dateFromString = formattedFromDate;
+    }
+
+    console.log('📡 API Request params:', params);
 
     const response = await axiosInstance.get(
       `/consumption/gethistoryconsumptionbyvehicle`,
       {
-        params: {
-          vehicleId,
-          datestring: formattedDate,
-          entry: days
-        },
+        params: params,
         // Pass through AbortController signal when provided
         signal: options.signal
       }
     );
+
+    console.log('📦 API Response:', {
+      status: response.status,
+      dataLength: response.data?.length || 0,
+      firstRecord: response.data?.[0],
+      lastRecord: response.data?.[response.data?.length - 1]
+    });
 
     // Process data with stable keys and serialize dates (avoid non-serializable Date objects in Redux state)
     const usedKeys = new Map();
