@@ -173,7 +173,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       console.log('Formatted pivot data:', formattedData);
       console.log('Fields configuration:', getFields());
 
-FIX      // Reset expand state when new data loads
+     // Reset expand state when new data loads
       setRowsExpanded(false);
       setColumnsExpanded(false);
 
