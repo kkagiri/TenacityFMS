@@ -14,7 +14,8 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
   const [pivotGridData, setPivotGridData] = useState([]);
   const [canRenderDevExtreme, setCanRenderDevExtreme] = useState(false);
   const [dataSource, setDataSource] = useState(null);
-  const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [rowsExpanded, setRowsExpanded] = useState(false);
+  const [columnsExpanded, setColumnsExpanded] = useState(false);
   const pivotGridRef = useRef(null);
 
   // Delay DevExtreme initialization until after React's commit phase
@@ -26,7 +27,39 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
   }, []);
 
   // Define fields configuration
-  const getFields = useCallback(() => ([
+  const getFields = useCallback(() => {
+    // Define the custom order for volume change reasons
+    // Supporting both formats: with spaces (display) and without spaces (backend enum)
+    // Order: Opening Stock → Dispensing → Transfer In → Transfer Out → Delivery → Others → Closing Stock (LAST)
+    const volumeChangeOrder = {
+      'OpeningStock': 1,
+      'Opening Stock': 1,
+      'Dispensing': 2,
+      'TransferIn': 3,
+      'Transfer In': 3,
+      'TransferOut': 4,
+      'Transfer Out': 4,
+      'Delivery': 5,
+      'Adjustment': 6,
+      'ManualRefill': 7,
+      'Manual Refill': 7,
+      'AutomatedDispensing': 8,
+      'Automated Dispensing': 8,
+      'Reconciliation': 9,
+      'AutomatedReconciliation': 10,
+      'Automated Reconciliation': 10,
+      'ClosingStock': 999,
+      'Closing Stock': 999
+    };
+
+    // Custom sort function for change reasons
+    const customChangeReasonSort = (a, b) => {
+      const orderA = volumeChangeOrder[a.value] || 500; // Unknown items appear before Closing Stock
+      const orderB = volumeChangeOrder[b.value] || 500;
+      return orderA - orderB;
+    };
+
+    return [
     {
       caption: 'Site',
       dataField: 'siteName',
@@ -60,6 +93,8 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       caption: 'Change Reason',
       dataField: 'changeReason',
       area: 'column',
+      sortOrder: 'asc',
+      sortingMethod: customChangeReasonSort,
       allowSorting: true,
       allowSortingBySummary: true,
       allowFiltering: true,
@@ -72,7 +107,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       summaryType: 'sum',
       format: {
         type: 'fixedPoint',
-        precision: 2
+        precision: 0
       },
       allowSorting: true,
       allowSortingBySummary: true
@@ -126,7 +161,8 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       allowSorting: true,
       allowFiltering: true
     }
-  ]), []);
+  ];
+  }, []);
 
   // Process data for pivot grid and create DevExtreme data source
   useEffect(() => {
@@ -137,6 +173,10 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       console.log('Formatted pivot data:', formattedData);
       console.log('Fields configuration:', getFields());
 
+FIX      // Reset expand state when new data loads
+      setRowsExpanded(false);
+      setColumnsExpanded(false);
+
       // Create DevExtreme PivotGridDataSource
       const pivotDataSource = new PivotGridDataSource({
         fields: getFields(),
@@ -146,6 +186,11 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       // Load the data source to initialize it properly
       pivotDataSource.load().then(() => {
         console.log('PivotGridDataSource loaded successfully');
+
+        // Collapse all by default to match the initial button state
+        pivotDataSource.collapseAll(0); // Collapse rows
+        pivotDataSource.collapseAll(1); // Collapse columns
+
         setDataSource(pivotDataSource);
       }).catch((error) => {
         console.error('Error loading PivotGridDataSource:', error);
@@ -232,85 +277,126 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
     }
   }, [reportType, pivotGridData, onExporting]);
 
-  // Expand/Collapse All functionality
-  const handleExpandCollapseAll = useCallback(() => {
+  // Expand/Collapse Rows functionality
+  const handleExpandCollapseRows = useCallback(() => {
     if (pivotGridRef.current && dataSource) {
       try {
         const pivotGrid = pivotGridRef.current.instance;
         const dataSourceInstance = pivotGrid.getDataSource();
 
-        if (isAllExpanded) {
-          // Collapse all - collapse both rows and columns
+        if (rowsExpanded) {
+          // Collapse rows
           dataSourceInstance.collapseAll(0); // Row area
-          dataSourceInstance.collapseAll(1); // Column area
-          console.log('Collapsed all');
+          console.log('Collapsed rows');
         } else {
-          // Expand all - expand both rows and columns
+          // Expand rows
           dataSourceInstance.expandAll(0); // Row area
-          dataSourceInstance.expandAll(1); // Column area
-          console.log('Expanded all');
+          console.log('Expanded rows');
         }
-        setIsAllExpanded(!isAllExpanded);
+        setRowsExpanded(!rowsExpanded);
       } catch (error) {
-        console.error('Error expanding/collapsing:', error);
+        console.error('Error expanding/collapsing rows:', error);
       }
     }
-  }, [isAllExpanded, dataSource]);
+  }, [rowsExpanded, dataSource]);
+
+  // Expand/Collapse Columns functionality
+  const handleExpandCollapseColumns = useCallback(() => {
+    if (pivotGridRef.current && dataSource) {
+      try {
+        const pivotGrid = pivotGridRef.current.instance;
+        const dataSourceInstance = pivotGrid.getDataSource();
+
+        if (columnsExpanded) {
+          // Collapse columns
+          dataSourceInstance.collapseAll(1); // Column area
+          console.log('Collapsed columns');
+        } else {
+          // Expand columns
+          dataSourceInstance.expandAll(1); // Column area
+          console.log('Expanded columns');
+        }
+        setColumnsExpanded(!columnsExpanded);
+      } catch (error) {
+        console.error('Error expanding/collapsing columns:', error);
+      }
+    }
+  }, [columnsExpanded, dataSource]);
 
   return (
     <div className="pivot-grid-report tw-bg-white tw-rounded-lg tw-shadow" style={{ display: visible ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div className="tw-flex tw-justify-between tw-items-center tw-p-4 tw-border-b">
-        <div>
+      <div className="tw-flex tw-flex-col md:tw-flex-row tw-justify-between tw-items-start md:tw-items-center tw-p-4 tw-border-b tw-bg-gray-50 tw-gap-3">
+        <div className="tw-flex-1">
           <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">
+            <i className="fa-light fa-table-pivot tw-mr-2 tw-text-blue-600"></i>
             Volume History Pivot Analysis - {reportType}
           </h3>
-          <p className="tw-text-sm tw-text-gray-600">
+          <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
+            <i className="fa-light fa-database tw-mr-1"></i>
             {pivotGridData.length} records • Interactive pivot table with drill-down capabilities
           </p>
         </div>
 
-        <div className="tw-flex tw-gap-2">
+        <div className="pivot-grid-report__action-buttons">
           <Button
-            text={isAllExpanded ? "Collapse All" : "Expand All"}
-            icon={isAllExpanded ? "fa-light fa-compress-arrows-alt" : "fa-light fa-expand-arrows-alt"}
+            text={rowsExpanded ? "Collapse Rows" : "Expand Rows"}
+            icon={rowsExpanded ? "fa-light fa-compress" : "fa-light fa-expand"}
             type="default"
-            onClick={handleExpandCollapseAll}
+            stylingMode="outlined"
+            onClick={handleExpandCollapseRows}
             disabled={!dataSource || pivotGridData.length === 0}
+            hint={rowsExpanded ? "Collapse all rows" : "Expand all rows"}
+            className="pivot-grid-report__action-btn pivot-grid-report__action-btn--first"
           />
 
           <Button
-            text="Export to Excel"
+            text={columnsExpanded ? "Collapse Columns" : "Expand Columns"}
+            icon={columnsExpanded ? "fa-light fa-compress" : "fa-light fa-expand"}
+            type="default"
+            stylingMode="outlined"
+            onClick={handleExpandCollapseColumns}
+            disabled={!dataSource || pivotGridData.length === 0}
+            hint={columnsExpanded ? "Collapse all columns" : "Expand all columns"}
+            className="pivot-grid-report__action-btn"
+          />
+
+          <Button
             icon="fa-light fa-file-excel"
             type="default"
+            stylingMode="contained"
             onClick={handleExportToExcel}
             disabled={pivotGridData.length === 0}
+            hint="Export pivot data to Excel"
+            className="pivot-grid-report__action-btn pivot-grid-report__action-btn--excel pivot-grid-report__action-btn--last"
           />
         </div>
       </div>
 
-      {loading && (
-        <div className="pivot-grid-loading tw-flex tw-justify-center tw-items-center tw-py-4">
-          <LoadIndicator visible={true} />
-          <span className="tw-ml-3 tw-text-gray-600">Loading pivot data...</span>
-        </div>
-      )}
-
-      {!loading && !pivotGridData.length && (
-        <div className="pivot-grid-no-data tw-bg-white tw-rounded-lg tw-shadow tw-p-8 tw-text-center">
-          <i key="no-data-icon" className="fa-light fa-table tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
-          <h3 className="tw-text-xl tw-font-semibold tw-text-gray-600 tw-mb-2">
-            No Pivot Data Available
-          </h3>
-          <p className="tw-text-gray-500">
-            Generate report data to view the pivot grid analysis.
-          </p>
-        </div>
-      )}
-
       {/* Pivot Grid */}
       <div className="pivot-grid-container tw-p-4 tw-overflow-hidden tw-flex tw-flex-col" style={{ flex: 1, minHeight: '800px' }}>
-        {canRenderDevExtreme && dataSource && (
+        {loading && (
+          <div className="pivot-grid-loading tw-flex tw-justify-center tw-items-center tw-h-full">
+            <div className="tw-text-center">
+              <LoadIndicator visible={true} />
+              <p className="tw-mt-3 tw-text-gray-600">Loading pivot data...</p>
+            </div>
+          </div>
+        )}
+
+        {!loading && !pivotGridData.length && (
+          <div className="pivot-grid-no-data tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-full">
+            <i className="fa-light fa-table tw-text-6xl tw-text-gray-300 tw-mb-4"></i>
+            <h3 className="tw-text-xl tw-font-semibold tw-text-gray-600 tw-mb-2">
+              No Pivot Data Available
+            </h3>
+            <p className="tw-text-gray-500">
+              Generate report data to view the pivot grid analysis.
+            </p>
+          </div>
+        )}
+
+        {canRenderDevExtreme && dataSource && !loading && pivotGridData.length > 0 && (
           <PivotGrid
             key={`pivot-grid-${reportType}-${pivotGridData.length}`}
             ref={pivotGridRef}
@@ -319,8 +405,9 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
             allowSorting={true}
             allowFiltering={true}
             allowExpanding={true}
+            showColumnGrandTotals={false}
             showBorders={true}
-            showColumnTotals={true}
+            showColumnTotals={false}
             showRowTotals={true}
             showRowGrandTotals={true}
             height="100%"
