@@ -48,6 +48,35 @@
     scrollbar-color: #9ca3af #f1f1f1;
   }
 
+  // Prevent overflow in validation/warning sections
+  .tw-bg-blue-50,
+  .tw-bg-red-50,
+  .tw-bg-yellow-50,
+  .tw-bg-green-50 {
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+    transition: all 0.3s ease-in-out;
+
+    p, div, span, strong {
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .tw-flex {
+      max-width: 100%;
+      min-width: 0;
+
+      .tw-flex-1 {
+        min-width: 0;
+        overflow: hidden;
+      }
+    }
+  }
+
   // Form styling
   .dx-form {
     .dx-field-label {
@@ -125,11 +154,6 @@
     }
   }
 
-  // Information notice panel
-  .tw-bg-blue-50 {
-    transition: all 0.3s ease-in-out;
-  }
-
   // Validation indicator
   .dx-loadindicator {
     .dx-loadindicator-icon {
@@ -167,6 +191,36 @@
 
     .tw-max-w-4xl {
       max-width: 100%;
+    }
+
+    // Reduce padding on validation sections for mobile
+    .tw-bg-blue-50,
+    .tw-bg-red-50,
+    .tw-bg-yellow-50,
+    .tw-bg-green-50 {
+      padding: 0.75rem !important;
+
+      .tw-text-sm {
+        font-size: 0.8125rem;
+      }
+
+      .tw-text-xs {
+        font-size: 0.6875rem;
+      }
+    }
+  }
+}
+
+// Extra small screens
+@media (max-width: 480px) {
+  .manual-refill-form {
+    .tw-bg-blue-50,
+    .tw-bg-red-50,
+    .tw-bg-yellow-50,
+    .tw-bg-green-50 {
+      padding: 0.5rem !important;
+      margin-left: 0.25rem !important;
+      margin-right: 0.25rem !important;
     }
   }
 }

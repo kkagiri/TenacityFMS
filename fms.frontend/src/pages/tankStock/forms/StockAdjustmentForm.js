@@ -11,6 +11,7 @@ import { useFutureRecordsValidation } from '../../../hooks/useFutureRecordsValid
 import FutureRecordsWarning from '../../../components/tank-stock/FutureRecordsWarning';
 import { VolumeChangeReasons } from '../../../services/tankStockFutureRecordsService';
 import notify from 'devextreme/ui/notify';
+import './StockAdjustmentForm.scss';
 
 const AdjustmentTypes = [
   { id: 0, name: 'Increase', icon: 'fa-light fa-arrow-up', color: '#28a745' },
@@ -40,6 +41,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
 
   //Cursor - Local saving state for the form only
   const [saving, setSaving] = useState(false);
+  const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
 
   // Future records validation hook
   const {
@@ -250,7 +252,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
   if (!isVisible) return null;
 
   return (
-    <div className="tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg">
+    <div className="stock-adjustment-form tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg">
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
         <div className="tw-flex tw-items-center">
           <i className="fa-light fa-clipboard-list tw-text-blue-600 tw-text-xl tw-mr-3"></i>
@@ -487,7 +489,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
       </div>
 
       {/* Historical Entry Information Notice */}
-      {formData.adjustmentDate && formData.tankId && !isValidating && !showWarning && !validationError && (
+      {formData.adjustmentDate && formData.tankId && !isValidating && !showWarning && !validationError && showHistoricalNotice && (
         (() => {
           const selectedDate = new Date(formData.adjustmentDate);
           const today = new Date();
@@ -496,19 +498,29 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
           if (isHistorical) {
             return (
               <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                <div className="tw-flex tw-items-start">
-                  <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                  <div className="tw-flex-1">
-                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                      Historical Entry Detected
-                    </h4>
-                    <p className="tw-text-blue-700 tw-text-sm">
-                      You are creating a stock adjustment for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
-                    </p>
-                    <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                      <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
-                    </p>
+                <div className="tw-flex tw-items-start tw-justify-between">
+                  <div className="tw-flex tw-items-start tw-flex-1">
+                    <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                    <div className="tw-flex-1">
+                      <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                        Historical Entry Detected
+                      </h4>
+                      <p className="tw-text-blue-700 tw-text-sm">
+                        You are creating a stock adjustment for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                      </p>
+                      <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                        <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setShowHistoricalNotice(false)}
+                    className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
+                    title="Dismiss"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px' }}
+                  >
+                    <i className="fa-light fa-times"></i>
+                  </button>
                 </div>
               </div>
             );

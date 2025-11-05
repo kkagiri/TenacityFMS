@@ -6,6 +6,34 @@
   flex-direction: column;
   background-color: #ffffff;
 
+  // Prevent overflow in validation/warning sections
+  .tw-bg-blue-50,
+  .tw-bg-red-50,
+  .tw-bg-yellow-50,
+  .tw-bg-green-50 {
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+
+    p, div, span, strong {
+      max-width: 100%;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .tw-flex {
+      max-width: 100%;
+      min-width: 0;
+
+      .tw-flex-1 {
+        min-width: 0;
+        overflow: hidden;
+      }
+    }
+  }
+
   .dx-form {
     .dx-field-label {
       color: #374151;
@@ -210,6 +238,41 @@
 
     i {
       margin-right: 0.5rem;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .tank-transfer-form {
+    // Reduce padding on validation sections for mobile
+    .tw-bg-blue-50,
+    .tw-bg-red-50,
+    .tw-bg-yellow-50,
+    .tw-bg-green-50 {
+      padding: 0.75rem !important;
+
+      .tw-text-sm {
+        font-size: 0.8125rem;
+      }
+
+      .tw-text-xs {
+        font-size: 0.6875rem;
+      }
+    }
+  }
+}
+
+// Extra small screens
+@media (max-width: 480px) {
+  .tank-transfer-form {
+    .tw-bg-blue-50,
+    .tw-bg-red-50,
+    .tw-bg-yellow-50,
+    .tw-bg-green-50 {
+      padding: 0.5rem !important;
+      margin-left: 0.25rem !important;
+      margin-right: 0.25rem !important;
     }
   }
 }

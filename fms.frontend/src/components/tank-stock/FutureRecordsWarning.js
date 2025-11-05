@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from 'devextreme-react';
 import ScrollView from 'devextreme-react/scroll-view';
 import './FutureRecordsWarning.scss';
@@ -13,6 +13,8 @@ const FutureRecordsWarning = ({
   isVisible = true,
   className = ''
 }) => {
+  const [showDetails, setShowDetails] = useState(false);
+
   if (!isVisible || !validationResult || !validationResult.config.showWarning) {
     return null;
   }
@@ -165,21 +167,39 @@ const FutureRecordsWarning = ({
             {formattedMessage}
           </p>
 
-          {/* Detailed warning with scroll view if available */}
+          {/* Detailed warning with collapsible toggle */}
           {detailedWarning && (
-            <div className="tw-bg-white tw-bg-opacity-50 tw-rounded tw-mb-3">
-              <div className="tw-font-medium tw-mb-1 tw-text-xs tw-px-3 tw-pt-2">Details:</div>
-              <ScrollView
-                className="tw-max-h-32"
-                showScrollbar="onHover"
-                scrollByContent={true}
-                scrollByThumb={true}
-                direction="vertical"
-              >
-                <div className="tw-px-3 tw-pb-2">
-                  {renderFormattedDetails(detailedWarning)}
+            <div className="tw-mb-3">
+              <Button
+                text={showDetails ? "Hide Details" : "View Details"}
+                icon={showDetails ? "fa-light fa-chevron-up" : "fa-light fa-chevron-down"}
+                onClick={() => setShowDetails(!showDetails)}
+                stylingMode="text"
+                className="tw-text-xs tw-mb-2 tw-px-0"
+                elementAttr={{
+                  style: {
+                    minHeight: '24px',
+                    height: '24px',
+                    padding: '0'
+                  }
+                }}
+              />
+
+              {showDetails && (
+                <div className="tw-bg-white tw-bg-opacity-50 tw-rounded tw-mt-2">
+                  <ScrollView
+                    className="tw-max-h-32"
+                    showScrollbar="onHover"
+                    scrollByContent={true}
+                    scrollByThumb={true}
+                    direction="vertical"
+                  >
+                    <div className="tw-px-3 tw-py-2">
+                      {renderFormattedDetails(detailedWarning)}
+                    </div>
+                  </ScrollView>
                 </div>
-              </ScrollView>
+              )}
             </div>
           )}
 

@@ -18,7 +18,7 @@ import DataGrid, {
   HeaderFilter,
   SearchPanel,
   Toolbar,
-  Item as TBItem,
+  // Item as TBItem, // COMMENTED OUT FOR NOW
   FilterRow,
   Column,
   Lookup,
@@ -30,8 +30,9 @@ import DataGrid, {
   TotalItem
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
+import { ScrollView } from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
-import { DropDownButton } from 'devextreme-react/drop-down-button';
+// import { DropDownButton } from 'devextreme-react/drop-down-button'; // COMMENTED OUT FOR NOW
 import Popup from 'devextreme-react/popup';
 import  notify  from 'devextreme/ui/notify';
 import { Workbook } from 'exceljs';
@@ -40,7 +41,7 @@ import { fetchTankVolumeHistoryFiltered } from '../../../../redux/actions/tankVo
 import { fetchTanks } from '../../../../redux/actions/tankActions';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
 import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
-import ChartView from './ChartView';
+// import ChartView from './ChartView'; // COMMENTED OUT FOR NOW
 import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
@@ -87,10 +88,13 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   // Local state
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
-  const [showChartPopup, setShowChartPopup] = useState(false);
-  const [selectedChartType, setSelectedChartType] = useState('candlestick');
+  const [isGroupsExpanded, setIsGroupsExpanded] = useState(false);
+  // const [showChartPopup, setShowChartPopup] = useState(false); // COMMENTED OUT FOR NOW
+  // const [selectedChartType, setSelectedChartType] = useState('candlestick'); // COMMENTED OUT FOR NOW
 
   // Chart type options for dropdown - simplified like stock management
+  // COMMENTED OUT FOR NOW
+  /*
   const chartTypeOptions = [
     {
       key: 'candlestick',
@@ -112,11 +116,17 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       text: '📉 OHLC Bars',
       icon: 'fa-light fa-chart-column'
     }
-  ];  // Function to handle chart type selection
+  ];
+  */
+
+  // Function to handle chart type selection
+  // COMMENTED OUT FOR NOW
+  /*
   const handleChartTypeSelection = useCallback((chartType) => {
     setSelectedChartType(chartType);
     setShowChartPopup(true);
   }, []);
+  */
 
   // TODO: Future implementation - Add chart grouping by site/tank with color-coded lines
   // const [chartGroupBy, setChartGroupBy] = useState('site'); // 'site' or 'tank'
@@ -126,6 +136,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     validationResult: null,
     isDeleting: false,
     showImpactDetails: false,
+    showDetails: false,
     deletionReason: '',
     userConfirmed: false
   });
@@ -247,14 +258,16 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       notify({
         message: 'Filters applied successfully!',
         type: 'success',
-        displayTime: 2000
+        displayTime: 2000,
+        position: 'top center'
       });
     } catch (error) {
       console.error('Error applying filters:', error);
       notify({
         message: 'Failed to load transaction data. Please try again.',
         type: 'error',
-        displayTime: 4000
+        displayTime: 4000,
+        position: 'top center'
       });
     }
   }, [loadTransactionData]);
@@ -267,14 +280,16 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       notify({
         message: 'Data refreshed successfully!',
         type: 'success',
-        displayTime: 2000
+        displayTime: 2000,
+        position: 'top center'
       });
     } catch (error) {
       console.error('Error refreshing data:', error);
       notify({
         message: 'Failed to refresh data. Please try again.',
         type: 'error',
-        displayTime: 3000
+        displayTime: 3000,
+        position: 'top center'
       });
     }
   }, [loadTransactionData, currentFilters]);
@@ -286,7 +301,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     notify({
       message: 'Manual refill recorded successfully',
       type: 'success',
-      displayTime: 3000
+      displayTime: 3000,
+      position: 'top center'
     });
   }, [handleRefresh]);
 
@@ -339,42 +355,40 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     notify({
       message: `Viewing transactions for ${dateStr}`,
       type: 'info',
-      displayTime: 1500
+      displayTime: 1500,
+      position: 'top center'
     });
   }, [currentFilters, handleApplyFilters]);
 
   const handleNextDay = useCallback(() => {
     if (!currentFilters.startDate || !currentFilters.endDate) return;
 
-    // Get the current start date and move it forward by 1 day
+    // Get the current start date
     const currentStart = new Date(currentFilters.startDate);
+    currentStart.setHours(0, 0, 0, 0);
+
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Don't allow going beyond today
-    const nextDay = new Date(currentStart);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    if (nextDay.toDateString() > today.toDateString()) {
+    // Don't allow if already at today or later
+    if (currentStart.getTime() >= today.getTime()) {
       notify({
         message: 'Cannot navigate beyond today',
         type: 'warning',
-        displayTime: 2000
+        displayTime: 2000,
+        position: 'top center'
       });
       return;
     }
 
-    const newStart = new Date(nextDay);
+    // Move forward by 1 day
+    const newStart = new Date(currentStart);
+    newStart.setDate(newStart.getDate() + 1);
     newStart.setHours(0, 0, 0, 0);
 
-    // Set end date to end of the same day, but don't go beyond today
+    // Set end date to end of the same day
     const newEnd = new Date(newStart);
     newEnd.setHours(23, 59, 59, 999);
-
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-    if (newEnd > todayEnd) {
-      newEnd.setTime(todayEnd.getTime());
-    }
 
     const updatedFilters = {
       ...currentFilters,
@@ -390,7 +404,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     notify({
       message: `Viewing transactions for ${isToday ? 'Today' : dateStr}`,
       type: 'info',
-      displayTime: 1500
+      displayTime: 1500,
+      position: 'top center'
     });
   }, [currentFilters, handleApplyFilters]);
 
@@ -398,13 +413,13 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     if (!currentFilters.startDate) return true;
 
     const currentStart = new Date(currentFilters.startDate);
-    const nextDay = new Date(currentStart);
-    nextDay.setDate(nextDay.getDate() + 1);
+    currentStart.setHours(0, 0, 0, 0);
 
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Disable if next day would be beyond today
-    return nextDay.toDateString() > today.toDateString();
+    // Disable if current date is today or later (can't go beyond today)
+    return currentStart.getTime() >= today.getTime();
   }, [currentFilters.startDate]);
 
   // Delete transaction handlers - FIXED VERSION with stable state management
@@ -418,6 +433,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       validationResult: null,
       isDeleting: false,
       showImpactDetails: false,
+      showDetails: false,
       deletionReason: '',
       userConfirmed: false
     });
@@ -448,7 +464,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         notify({
           message: `Failed to validate deletion: ${error.message}`,
           type: 'error',
-          displayTime: 4000
+          displayTime: 4000,
+          position: 'top center'
         });
 
         // Use timeout to ensure DOM stability before closing
@@ -459,6 +476,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             validationResult: null,
             isDeleting: false,
             showImpactDetails: false,
+            showDetails: false,
             deletionReason: '',
             userConfirmed: false
           });
@@ -485,7 +503,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         notify({
           message: 'Transaction deleted successfully!',
           type: 'success',
-          displayTime: 3000
+          displayTime: 3000,
+          position: 'top center'
         });
 
         // Close dialog with timeout for DOM stability
@@ -496,6 +515,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             validationResult: null,
             isDeleting: false,
             showImpactDetails: false,
+            showDetails: false,
             deletionReason: '',
             userConfirmed: false
           });
@@ -515,12 +535,28 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       notify({
         message: `Failed to delete transaction: ${error.message}`,
         type: 'error',
-        displayTime: 4000
+        displayTime: 4000,
+        position: 'top center'
       });
 
       setDeleteConfirmation(prev => ({ ...prev, isDeleting: false }));
     }
-  }, [deleteConfirmation, handleRefresh]);  const handleCancelDelete = useCallback(() => {
+  }, [deleteConfirmation, handleRefresh]);
+
+  // Toggle expand/collapse all groups
+  const handleToggleExpandGroups = useCallback(() => {
+    const dataGrid = dataGridRef.current?.instance;
+    if (dataGrid) {
+      if (isGroupsExpanded) {
+        dataGrid.collapseAll(-1); // Collapse all group levels
+      } else {
+        dataGrid.expandAll(-1); // Expand all group levels
+      }
+      setIsGroupsExpanded(!isGroupsExpanded);
+    }
+  }, [isGroupsExpanded]);
+
+  const handleCancelDelete = useCallback(() => {
     // Use timeout to ensure DOM stability before state change
     setTimeout(() => {
       setDeleteConfirmation({
@@ -529,6 +565,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         validationResult: null,
         isDeleting: false,
         showImpactDetails: false,
+        showDetails: false,
         deletionReason: '',
         userConfirmed: false
       });
@@ -537,7 +574,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
   // Stable dialog content with better key management
   const DeleteConfirmationContent = useCallback(() => {
-    const { validationResult, transaction, userConfirmed, isDeleting } = deleteConfirmation;
+    const { validationResult, transaction, userConfirmed, isDeleting, showDetails } = deleteConfirmation;
 
     // Loading state
     if (!validationResult) {
@@ -558,146 +595,162 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     const volumeChange = transaction?.volumeChange || 0;
 
     return (
-      <div key="content">
-        {/* Transaction Details */}
-        <div className="tw-mb-6">
-          <h4 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
-            Transaction to Delete
-          </h4>
-          <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-space-y-2">
-            <div className="tw-flex tw-justify-between">
-              <span className="tw-font-medium">Date:</span>
-              <span>{transactionDate}</span>
-            </div>
-            <div className="tw-flex tw-justify-between">
-              <span className="tw-font-medium">Type:</span>
-              <span>{transactionType}</span>
-            </div>
-            <div className="tw-flex tw-justify-between">
-              <span className="tw-font-medium">Volume Change:</span>
-              <span className={`tw-font-medium ${volumeChange >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
-                {volumeChange.toLocaleString()} L
-              </span>
-            </div>
-            <div className="tw-flex tw-justify-between">
-              <span className="tw-font-medium">Tank:</span>
-              <span>{tankName}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Validation Results */}
-        <div className="tw-mb-6">
-          {!validationResult.isAllowed ? (
-            <div key="blocked" className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
-                <div>
-                  <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
-                  <p className="tw-text-red-700">{validationResult.message || 'Cannot delete this transaction'}</p>
-                  {validationResult.detailedWarning && (
-                    <p className="tw-text-red-600 tw-text-sm tw-mt-2">
-                      {validationResult.detailedWarning}
-                    </p>
-                  )}
-                </div>
+      <ScrollView height="100%" width="100%" showScrollbar="onScroll">
+        <div key="content" className="tw-px-1">
+          {/* Transaction Summary - Always Visible */}
+          <div className="tw-mb-4">
+            <h4 className="tw-text-base tw-font-semibold tw-text-gray-800 tw-mb-2">
+              Transaction Summary
+            </h4>
+            <div className="tw-bg-gray-50 tw-p-3 tw-rounded-lg tw-text-sm tw-space-y-1">
+              <div className="tw-flex tw-justify-between">
+                <span className="tw-font-medium">Date:</span>
+                <span>{transactionDate}</span>
+              </div>
+              <div className="tw-flex tw-justify-between">
+                <span className="tw-font-medium">Type:</span>
+                <span>{transactionType}</span>
+              </div>
+              <div className="tw-flex tw-justify-between">
+                <span className="tw-font-medium">Volume Change:</span>
+                <span className={`tw-font-medium ${volumeChange >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
+                  {volumeChange.toLocaleString()} L
+                </span>
+              </div>
+              <div className="tw-flex tw-justify-between">
+                <span className="tw-font-medium">Tank:</span>
+                <span>{tankName}</span>
               </div>
             </div>
-          ) : validationResult.requiresUserConfirmation ? (
-            <div key="warning" className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
-                <div>
-                  <h5 className="tw-font-semibold tw-text-yellow-800 tw-mb-2">Warning: Future Records Detected</h5>
-                  <p className="tw-text-yellow-700 tw-mb-3">{validationResult.message || 'This action will affect future records'}</p>
+          </div>
 
-                  {validationResult.futureRecordsCount > 0 && (
-                    <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
-                      <div className="tw-text-sm tw-space-y-1">
-                        <div className="tw-flex tw-justify-between">
-                          <span>Future Records:</span>
-                          <span className="tw-font-medium">{validationResult.futureRecordsCount}</span>
-                        </div>
-                        {validationResult.earliestFutureRecord && (
-                          <div className="tw-flex tw-justify-between">
-                            <span>Earliest:</span>
-                            <span className="tw-font-medium">
-                              {new Date(validationResult.earliestFutureRecord).toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                        {validationResult.latestFutureRecord && (
-                          <div className="tw-flex tw-justify-between">
-                            <span>Latest:</span>
-                            <span className="tw-font-medium">
-                              {new Date(validationResult.latestFutureRecord).toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {validationResult.detailedWarning && (
-                    <p className="tw-text-yellow-600 tw-text-sm">
-                      {validationResult.detailedWarning}
-                    </p>
-                  )}
-
-                  <div className="tw-mt-4">
-                    <label className="tw-flex tw-items-center tw-space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={userConfirmed}
-                        onChange={(e) => setDeleteConfirmation(prev => ({
-                          ...prev,
-                          userConfirmed: e.target.checked
-                        }))}
-                        className="tw-w-4 tw-h-4"
-                      />
-                      <span className="tw-text-sm tw-text-gray-700">
-                        I understand the impact and want to proceed with the deletion
-                      </span>
-                    </label>
+          {/* Validation Results */}
+          <div className="tw-mb-6">
+            {!validationResult.isAllowed ? (
+              <div key="blocked" className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
+                  <div className="tw-flex-1">
+                    <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
+                    <p className="tw-text-red-700">{validationResult.message || 'Cannot delete this transaction'}</p>
+                    {validationResult.detailedWarning && (
+                      <p className="tw-text-red-600 tw-text-sm tw-mt-2">
+                        {validationResult.detailedWarning}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div key="safe" className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
-                <div>
-                  <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
-                  <p className="tw-text-green-700">{validationResult.message || 'This transaction can be safely deleted'}</p>
+            ) : validationResult.requiresUserConfirmation ? (
+              <div key="warning" className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
+                  <div className="tw-flex-1">
+                    <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
+                      <h5 className="tw-font-semibold tw-text-yellow-800">Warning: Future Records Detected</h5>
+                      <Button
+                        text={showDetails ? "Hide Details" : "View Details"}
+                        icon={showDetails ? "fa-light fa-chevron-up" : "fa-light fa-chevron-down"}
+                        stylingMode="text"
+                        onClick={() => setDeleteConfirmation(prev => ({
+                          ...prev,
+                          showDetails: !prev.showDetails
+                        }))}
+                        elementAttr={{
+                          style: { height: '24px', fontSize: '11px' }
+                        }}
+                      />
+                    </div>
+                    <p className="tw-text-yellow-700 tw-mb-3">{validationResult.message || 'This action will affect future records'}</p>
+
+                    {showDetails && validationResult.futureRecordsCount > 0 && (
+                      <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
+                        <div className="tw-text-sm tw-space-y-1">
+                          <div className="tw-flex tw-justify-between">
+                            <span>Future Records:</span>
+                            <span className="tw-font-medium">{validationResult.futureRecordsCount}</span>
+                          </div>
+                          {validationResult.earliestFutureRecord && (
+                            <div className="tw-flex tw-justify-between">
+                              <span>Earliest:</span>
+                              <span className="tw-font-medium">
+                                {new Date(validationResult.earliestFutureRecord).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          {validationResult.latestFutureRecord && (
+                            <div className="tw-flex tw-justify-between">
+                              <span>Latest:</span>
+                              <span className="tw-font-medium">
+                                {new Date(validationResult.latestFutureRecord).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {showDetails && validationResult.detailedWarning && (
+                      <p className="tw-text-yellow-600 tw-text-sm tw-mb-3">
+                        {validationResult.detailedWarning}
+                      </p>
+                    )}
+
+                    <div className="tw-mt-4">
+                      <label className="tw-flex tw-items-center tw-space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={userConfirmed}
+                          onChange={(e) => setDeleteConfirmation(prev => ({
+                            ...prev,
+                            userConfirmed: e.target.checked
+                          }))}
+                          className="tw-w-4 tw-h-4"
+                        />
+                        <span className="tw-text-sm tw-text-gray-700">
+                          I understand the impact and want to proceed with the deletion
+                        </span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div key="safe" className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
+                  <div className="tw-flex-1">
+                    <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
+                    <p className="tw-text-green-700">{validationResult.message || 'This transaction can be safely deleted'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-        {/* Action Buttons */}
-        <div className="tw-flex tw-justify-end tw-space-x-3">
-          <Button
-            text="Cancel"
-            onClick={handleCancelDelete}
-            stylingMode="outlined"
-            disabled={isDeleting}
-          />
-          {validationResult.isAllowed && (
+          {/* Action Buttons */}
+          <div className="tw-flex tw-justify-end tw-space-x-3 tw-pt-2">
             <Button
-              text={isDeleting ? "Deleting..." : "Delete Transaction"}
-              onClick={executeDelete}
-              type="default"
-              disabled={
-                isDeleting ||
-                (validationResult.requiresUserConfirmation && !userConfirmed)
-              }
-              className="tw-bg-red-600 hover:tw-bg-red-700"
+              text="Cancel"
+              onClick={handleCancelDelete}
+              stylingMode="outlined"
+              disabled={isDeleting}
             />
-          )}
+            {validationResult.isAllowed && (
+              <Button
+                text={isDeleting ? "Deleting..." : "Delete Transaction"}
+                onClick={executeDelete}
+                type="default"
+                disabled={
+                  isDeleting ||
+                  (validationResult.requiresUserConfirmation && !userConfirmed)
+                }
+                className="tw-bg-red-600 hover:tw-bg-red-700"
+              />
+            )}
+          </div>
         </div>
-      </div>
+      </ScrollView>
     );
   }, [deleteConfirmation, VolumeChangeReasonEnum, tanks, executeDelete, handleCancelDelete]);
 
@@ -799,22 +852,36 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 />
               </div>
 
-              {/* Filters and Refresh */}
-              <div className="tw-flex tw-gap-2 tw-flex-shrink-0">
+              {/* Segmented Button Group: Filters, Refresh, Export */}
+              <div className="transaction-hub__action-buttons">
                 <Button
                   text="Filters"
                   icon="fa-light fa-filter"
+                  type="default"
+                  stylingMode="contained"
                   onClick={() => setShowFilterPopup(true)}
-                  stylingMode="outlined"
-                  className="tw-flex-1 sm:tw-flex-initial tw-min-w-24"
+                  hint="Filter transactions"
+                  className="transaction-hub__action-btn transaction-hub__action-btn--first"
                 />
 
                 <Button
                   text="Refresh"
                   icon="fa-light fa-refresh"
-                  onClick={handleRefresh}
+                  type="default"
                   stylingMode="outlined"
-                  className="tw-flex-1 sm:tw-flex-initial"
+                  onClick={handleRefresh}
+                  hint="Refresh data"
+                  className="transaction-hub__action-btn"
+                />
+
+                <Button
+                  text="Export"
+                  icon="fa-light fa-file-excel"
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={onExporting}
+                  hint="Export to Excel"
+                  className="transaction-hub__action-btn transaction-hub__action-btn--excel transaction-hub__action-btn--last"
                 />
               </div>
             </div>
@@ -891,6 +958,31 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
       {/* Main content - Responsive padding */}
       <div className="tw-flex-1 tw-p-2 sm:tw-p-4 tw-overflow-hidden tw-flex tw-flex-col">
+        {/* Date Navigation - Above DataGrid */}
+        <div className="tw-mb-3">
+          <div className="transaction-hub__date-nav">
+            <Button
+              text="Previous Day"
+              icon="fa-light fa-chevron-left"
+              type="default"
+              stylingMode="outlined"
+              onClick={handlePreviousDay}
+              hint="Go to previous day"
+              className="transaction-hub__date-nav-btn transaction-hub__date-nav-btn--first"
+            />
+            <Button
+              text="Next Day"
+              icon="fa-light fa-chevron-right"
+              type="default"
+              stylingMode="outlined"
+              onClick={handleNextDay}
+              disabled={isNextDayDisabled()}
+              hint="Go to next day"
+              className="transaction-hub__date-nav-btn transaction-hub__date-nav-btn--last"
+            />
+          </div>
+        </div>
+
         {/* DataGrid Container */}
         <div className="tw-flex-1 tw-min-h-0">
           <DataGrid
@@ -905,11 +997,10 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             className="tw-h-full"
           >
           <FilterPanel visible={true} />
-          <GroupPanel visible={true} />
-          <Grouping visible={true} autoExpandAll={false} />
+          <GroupPanel visible={false} />
+          <Grouping visible={true} autoExpandAll={isGroupsExpanded} />
           <HeaderFilter visible={true} />
           <FilterRow visible={true} />
-          <SearchPanel visible={true} placeholder="Search transactions..." />
           <Paging enabled={true} defaultPageSize={100} />
           <Pager
             visible={true}
@@ -922,34 +1013,9 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
           <Selection mode="multiple" />
 
           <Toolbar>
+            {/* COMMENTED OUT FOR NOW - Chart Views Dropdown */}
+            {/*
             <TBItem
-              location="before"
-              widget="dxButton"
-              options={{
-                text: '← Previous Day',
-                onClick: handlePreviousDay,
-                stylingMode: 'outlined',
-                hint: 'Go to previous day',
-                elementAttr: {
-                  class: 'date-nav-btn date-nav-prev'
-                }
-              }}
-            />
-            <TBItem
-              location="before"
-              widget="dxButton"
-              options={{
-                text: 'Next Day →',
-                onClick: handleNextDay,
-                stylingMode: 'outlined',
-                hint: 'Go to next day',
-                disabled: isNextDayDisabled(),
-                elementAttr: {
-                  class: 'date-nav-btn date-nav-next'
-                }
-              }}
-            />
-                        <TBItem
               location="after"
               render={() => (
                 <DropDownButton
@@ -973,14 +1039,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 />
               )}
             />
-            <TBItem
-              location="after"
-              widget="dxButton"
-              options={{
-                text: 'Export',
-                onClick: onExporting
-              }}
-            />
+            */}
           </Toolbar>
 
           {/* Columns */}
@@ -1068,11 +1127,19 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         </DataGrid>
         </div>
 
-        {/* Volume Totals Tickers */}
-        <VolumeTotalsTickers
-          data={tankVolumeHistory}
-          isLoading={isLoading}
-        />
+        {/* Expand/Collapse Toggle Button */}
+        <div className="tw-mt-3 tw-flex tw-justify-start">
+          <Button
+            text={isGroupsExpanded ? "Collapse All Groups" : "Expand All Groups"}
+            icon={isGroupsExpanded ? "fa-light fa-compress" : "fa-light fa-expand"}
+            onClick={handleToggleExpandGroups}
+            stylingMode="outlined"
+            type="default"
+            elementAttr={{
+              class: 'tw-text-sm'
+            }}
+          />
+        </div>
       </div>
 
       {/* Manual Refill Popup */}
@@ -1108,19 +1175,19 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         onHiding={handleCancelDelete}
         showTitle={true}
         title="Delete Transaction"
-        width={600}
-        height="auto"
+        width={() => window.innerWidth <= 768 ? '98%' : 600}
+        height={500}
         showCloseButton={true}
         dragEnabled={true}
         hideOnOutsideClick={false}
       >
-        <div className="tw-p-6">
+        <div className="tw-h-full tw-flex tw-flex-col">
           <DeleteConfirmationContent />
         </div>
       </Popup>
 
-      {/* Chart View Component */}
-      <ChartView
+      {/* Chart View Component - COMMENTED OUT FOR NOW */}
+      {/* <ChartView
         visible={showChartPopup}
         onClose={() => setShowChartPopup(false)}
         tankVolumeHistory={tankVolumeHistory}
@@ -1128,7 +1195,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         sites={sites}
         currentFilters={currentFilters}
         selectedChartType={selectedChartType}
-      />
+      /> */}
 
       {/* Page-level LoadPanel */}
       <LoadPanel
