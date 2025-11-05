@@ -1,3 +1,15 @@
+//
+// File: PumpController.cs
+// Purpose: API endpoints for PTS pump operations; maps FMSResponse.ErrorType to appropriate HTTP status codes
+// Dependencies: MediatR, FMSResponse<T>, ASP.NET Core MVC, JWT Auth
+// Last Modified: 2025-11-05
+//
+// Key Endpoints:
+// - POST /api/pump/authorize: Authorize pump; returns typed FMSResponse
+// - GET /api/pump/{deviceId}/{pumpId}/state: Fetch pump state
+// - POST /api/pump/{deviceId}/{pumpId}/stop: Stop pump transaction
+// - GET /api/pump/{deviceId}/diagnostics: Device diagnostics
+
 using System.Linq;
 using System.Security.Claims;
 using FMS.Application.Command.PTSCommand.PumpCommands;
@@ -12,17 +24,20 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.WebClient.Controllers.PTSController {
+namespace FMS.WebClient.Controllers.PTSController
+{
     [ApiController]
-    [Route ("api/[controller]")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
-    public class PumpController : ControllerBase {
+    public class PumpController : ControllerBase
+    {
         private readonly IMediator _mediator;
         private readonly ILogger<PumpController> _logger;
         private readonly RedisCommandService _redisCommandService;
 
-        public PumpController (IMediator mediator, ILogger<PumpController> logger) {
+        public PumpController(IMediator mediator, ILogger<PumpController> logger)
+        {
             _mediator = mediator;
             _logger = logger;
         }
@@ -30,96 +45,118 @@ namespace FMS.WebClient.Controllers.PTSController {
         /// <summary>
         /// Authorizes a pump for refueling
         /// </summary>
-        [HttpPost ("authorize")]
-        public async Task<ActionResult<FMSResponse<PumpAuthorizeConfirmation>>> AuthorizePump ([FromBody] PumpAuthorizeCommand command) {
-            try {
-                if (!ModelState.IsValid) {
+        [HttpPost("authorize")]
+        public async Task<ActionResult<FMSResponse<PumpAuthorizeConfirmation>>> AuthorizePump([FromBody] PumpAuthorizeCommand command)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
                     var modelErrors = ModelState
-                        .Where (ms => ms.Value.Errors.Count > 0)
-                        .SelectMany (ms => ms.Value.Errors.Select (e => $"{ms.Key}: {e.ErrorMessage}"))
-                        .ToList ();
+                        .Where(ms => ms.Value.Errors.Count > 0)
+                        .SelectMany(ms => ms.Value.Errors.Select(e => $"{ms.Key}: {e.ErrorMessage}"))
+                        .ToList();
 
-                    _logger.LogWarning ("Model binding failed for pump authorization: {Errors}", string.Join ("; ", modelErrors));
-                    return BadRequest (FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed (modelErrors));
+                    _logger.LogWarning("Model binding failed for pump authorization: {Errors}", string.Join("; ", modelErrors));
+                    return BadRequest(FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(modelErrors));
                 }
 
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty (userId)) {
-                    return Unauthorized (FMSResponse<PumpAuthorizeConfirmation>.Failed ("User not authenticated"));
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(FMSResponse<PumpAuthorizeConfirmation>.Failed("User not authenticated"));
                 }
 
                 command = command with { UserId = userId };
 
-                var result = await _mediator.Send (command);
-                if (!result.IsSuccess) {
+                var result = await _mediator.Send(command);
+                if (!result.IsSuccess)
+                {
                     //Cursor: Return appropriate HTTP status based on error type
                     return result.ErrorType
-                    switch {
-                        ErrorType.Validation => BadRequest (result),
-                            ErrorType.Network => StatusCode (503, result), // Service Unavailable
-                            ErrorType.SystemError => StatusCode (500, result), // Internal Server Error
-                            ErrorType.DeviceError => BadRequest (result), // Bad Request for device-specific issues
-                            _ => BadRequest (result)
+                    switch
+                    {
+                        ErrorType.Validation => BadRequest(result),
+                        ErrorType.NetworkError => StatusCode(503, result), // Service Unavailable
+                        ErrorType.SystemError => StatusCode(500, result), // Internal Server Error
+                        ErrorType.DeviceError => BadRequest(result), // Bad Request for device-specific issues
+                        _ => BadRequest(result)
                     };
                 }
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Unexpected error in pump authorization controller: {Message}", ex.Message);
-                return StatusCode (500, FMSResponse<PumpAuthorizeConfirmation>.SystemError ($"Unexpected server error: {ex.Message}"));
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in pump authorization controller: {Message}", ex.Message);
+                return StatusCode(500, FMSResponse<PumpAuthorizeConfirmation>.SystemError($"Unexpected server error: {ex.Message}"));
             }
         }
 
         /// <summary>
         /// Gets the current state of a pump
         /// </summary>
-        [HttpGet ("{deviceId}/{pumpId}/state")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<string>> GetPumpState (string deviceId, int pumpId) {
-            try {
-                var command = new PumpStatusCommand (deviceId, pumpId);
-                var result = await _mediator.Send (command);
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting pump state");
-                return StatusCode (500, "Internal server error");
+        [HttpGet("{deviceId}/{pumpId}/state")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<string>> GetPumpState(string deviceId, int pumpId)
+        {
+            try
+            {
+                var command = new PumpStatusCommand(deviceId, pumpId);
+                var result = await _mediator.Send(command);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting pump state");
+                return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
         /// Stops an ongoing transaction
         /// </summary>
-        [HttpPost ("{deviceId}/{pumpId}/stop")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult> StopPump (string deviceId, int pumpId) {
-            try {
-                var command = new PumpStopCommand (deviceId, pumpId);
-                var result = await _mediator.Send (command);
-                if (!result.Success) {
-                    return BadRequest (result);
+        [HttpPost("{deviceId}/{pumpId}/stop")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult> StopPump(string deviceId, int pumpId)
+        {
+            try
+            {
+                var command = new PumpStopCommand(deviceId, pumpId);
+                var result = await _mediator.Send(command);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
                 }
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error stopping pump");
-                return StatusCode (500, "Internal server error");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error stopping pump");
+                return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
         /// Gets device configuration for fueling process
         /// </summary>
-        [HttpGet ("{deviceId}/config")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<PtsDeviceConfigDto>> GetDeviceConfig (string deviceId) {
-            try {
-                var query = new GetPTSDeviceConfigQuery (deviceId);
-                var result = await _mediator.Send (query);
-                if (result == null) {
-                    return NotFound (new { message = $"Device {deviceId} not found" });
+        [HttpGet("{deviceId}/config")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<PtsDeviceConfigDto>> GetDeviceConfig(string deviceId)
+        {
+            try
+            {
+                var query = new GetPTSDeviceConfigQuery(deviceId);
+                var result = await _mediator.Send(query);
+                if (result == null)
+                {
+                    return NotFound(new { message = $"Device {deviceId} not found" });
                 }
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting device configuration for device {DeviceId}", deviceId);
-                return StatusCode (500, new { message = "Internal server error" });
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
 
@@ -127,22 +164,27 @@ namespace FMS.WebClient.Controllers.PTSController {
         /// <summary>
         /// Diagnostic endpoint to check device status and connectivity
         /// </summary>
-        [HttpGet ("{deviceId}/diagnostics")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult> GetDeviceDiagnostics (string deviceId) {
-            try {
-                var deviceQuery = new GetPTSDeviceConfigQuery (deviceId);
-                var device = await _mediator.Send (deviceQuery);
+        [HttpGet("{deviceId}/diagnostics")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult> GetDeviceDiagnostics(string deviceId)
+        {
+            try
+            {
+                var deviceQuery = new GetPTSDeviceConfigQuery(deviceId);
+                var device = await _mediator.Send(deviceQuery);
 
-                if (device == null) {
-                    return NotFound (new {
+                if (device == null)
+                {
+                    return NotFound(new
+                    {
                         message = $"Device {deviceId} not found in database",
-                            deviceId = deviceId,
-                            timestamp = DateTime.UtcNow
+                        deviceId = deviceId,
+                        timestamp = DateTime.UtcNow
                     });
                 }
 
-                var diagnostics = new {
+                var diagnostics = new
+                {
                     DeviceId = deviceId,
                     IsActive = device.IsActive,
                     IsAuthenticated = device.IsAuthenticated,
@@ -150,7 +192,7 @@ namespace FMS.WebClient.Controllers.PTSController {
                     SiteId = device.SiteId,
                     AutoAssignUserMasterTag = device.AutoAssignUserMasterTag,
                     Timestamp = DateTime.UtcNow,
-                    TroubleshootingSteps = new [] {
+                    TroubleshootingSteps = new[] {
                     "1. Verify device is powered on and connected to network",
                     "2. Check device IP address and network connectivity",
                     "3. Verify device authentication credentials",
@@ -160,10 +202,12 @@ namespace FMS.WebClient.Controllers.PTSController {
                     }
                 };
 
-                return Ok (diagnostics);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error getting device diagnostics for device {DeviceId}", deviceId);
-                return StatusCode (500, new { message = "Internal server error" });
+                return Ok(diagnostics);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting device diagnostics for device {DeviceId}", deviceId);
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
     }
