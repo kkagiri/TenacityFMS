@@ -1,3 +1,12 @@
+/**
+ * File: IssuetrackerConfiguration.cs
+ * Purpose: Configures the EF Core mapping for the issuetracker entity including relationships and constraints.
+ * Dependencies: Microsoft.EntityFrameworkCore, FMS.Domain.Entities
+ * Last Modified: 2025-11-04
+ *
+ * Key Functions/Components:
+ * - Configure(): Applies entity configuration metadata for Issuetracker.
+ */
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
@@ -122,7 +131,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasConstraintName("issue_vehicle");
 
                 builder.HasOne(d => d.ActiveAlarm)
-                    .WithMany(p => p.Issuetrackers)
+                    .WithMany(p => p.IssueTrackers)
                     .HasForeignKey(d => d.ActiveAlarmId)
                     .OnDelete(DeleteBehavior.SetNull)
                     .HasConstraintName("issuetracker_activealarm");
