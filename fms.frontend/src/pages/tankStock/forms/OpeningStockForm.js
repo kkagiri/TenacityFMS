@@ -117,6 +117,7 @@ const OpeningStockForm = ({
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [backendError, setBackendError] = useState(null);
+  const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
 
   // ✅ FIX #1: Load sites and tanks on mount
   useEffect(() => {
@@ -855,7 +856,7 @@ const OpeningStockForm = ({
             </Form>
 
           {/* Historical Entry Information Notice */}
-          {formData.date && formData.tankId && !isValidating && !showWarning && !validationError && (
+          {formData.date && formData.tankId && !isValidating && !showWarning && !validationError && showHistoricalNotice && (
             (() => {
               const selectedDate = new Date(formData.date);
               const today = new Date();
@@ -864,19 +865,29 @@ const OpeningStockForm = ({
               if (isHistorical) {
                 return (
                   <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                    <div className="tw-flex tw-items-start">
-                      <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                      <div className="tw-flex-1">
-                        <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                          Historical Entry Detected
-                        </h4>
-                        <p className="tw-text-blue-700 tw-text-sm">
-                          You are creating an opening stock entry for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
-                        </p>
-                        <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                          <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
-                        </p>
+                    <div className="tw-flex tw-items-start tw-justify-between">
+                      <div className="tw-flex tw-items-start tw-flex-1">
+                        <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                        <div className="tw-flex-1">
+                          <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                            Historical Entry Detected
+                          </h4>
+                          <p className="tw-text-blue-700 tw-text-sm">
+                            You are creating an opening stock entry for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                          </p>
+                          <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                            <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                          </p>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => setShowHistoricalNotice(false)}
+                        className="tw-ml-2 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-flex-shrink-0"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0', fontSize: '16px' }}
+                        title="Dismiss"
+                      >
+                        <i className="fa-light fa-times"></i>
+                      </button>
                     </div>
                   </div>
                 );

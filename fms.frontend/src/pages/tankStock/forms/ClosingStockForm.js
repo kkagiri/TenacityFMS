@@ -106,6 +106,7 @@ const ClosingStockForm = ({
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showVolumeHistory, setShowVolumeHistory] = useState(true);
+  const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
 
   // Future records validation hook
   const {
@@ -802,7 +803,7 @@ const ClosingStockForm = ({
             </Form>
 
             {/* Historical Entry Information Notice */}
-            {formData.date && formData.tankId && !showWarning && !validationError && (
+            {formData.date && formData.tankId && !showWarning && !validationError && showHistoricalNotice && (
               (() => {
                 const selectedDate = new Date(formData.date);
                 const today = new Date();
@@ -811,19 +812,29 @@ const ClosingStockForm = ({
                 if (isHistorical) {
                   return (
                     <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                      <div className="tw-flex tw-items-start">
-                        <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                        <div className="tw-flex-1">
-                          <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                            Historical Entry Detected
-                          </h4>
-                          <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating a closing stock for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
-                          </p>
-                          <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
-                          </p>
+                      <div className="tw-flex tw-items-start tw-justify-between">
+                        <div className="tw-flex tw-items-start tw-flex-1">
+                          <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
+                          <div className="tw-flex-1">
+                            <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
+                              Historical Entry Detected
+                            </h4>
+                            <p className="tw-text-blue-700 tw-text-sm">
+                              You are creating a closing stock for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                            </p>
+                            <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
+                              <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                            </p>
+                          </div>
                         </div>
+                        <button
+                          onClick={() => setShowHistoricalNotice(false)}
+                          className="tw-ml-2 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-flex-shrink-0"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0', fontSize: '16px' }}
+                          title="Dismiss"
+                        >
+                          <i className="fa-light fa-times"></i>
+                        </button>
                       </div>
                     </div>
                   );
@@ -852,9 +863,9 @@ const ClosingStockForm = ({
 
             {/* Tank Volume History Section - Only show if tank is selected */}
             {formData.siteId > 0 && formData.tankId > 0 && showVolumeHistory && (
-              <div className="tw-mt-6 tw-mb-6">
+              <div className="tw-mt-1 tw-mb-5">
                 <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-shadow-sm">
-                  <div className="tw-p-4 tw-border-b tw-border-gray-200 tw-flex tw-items-start tw-justify-between">
+                  <div className="tw-p-2 tw-border-b tw-border-gray-200 tw-flex tw-items-start tw-justify-between">
                     <div className="tw-flex-1">
                       <h4 className="tw-font-semibold tw-text-gray-800">
                         <i className="fa-light fa-history tw-mr-2 tw-text-blue-600"></i>
@@ -890,7 +901,7 @@ const ClosingStockForm = ({
                     </button>
                   </div>
 
-                  <div className="tw-p-4">
+                  <div className="tw-p-2">
                     {Array.isArray(tankVolumeHistory) &&
                     tankVolumeHistory.length > 0 ? (
                       <DataGrid
@@ -907,13 +918,13 @@ const ClosingStockForm = ({
                         <Grouping autoExpandAll={false} />
                         {/* Search functionality */}
                         <SearchPanel
-                          visible={true}
+                          visible={false}
                           highlightCaseSensitive={true}
                         />
                         {/* Column chooser */}
-                        <ColumnChooser enabled={true} />
+                        <ColumnChooser enabled={false} />
                         {/* Header filter */}
-                        <HeaderFilter visible={true} />
+                        <HeaderFilter visible={false} />
                         {/* Filter row */}
                         <FilterRow visible={true} />{" "}
                         {/* Transaction Type Column */}

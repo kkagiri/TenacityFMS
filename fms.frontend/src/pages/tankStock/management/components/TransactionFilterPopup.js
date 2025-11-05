@@ -15,7 +15,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { Popup } from "devextreme-react/popup";
 import { Form, SimpleItem, Label } from "devextreme-react/form";
 import Button from "devextreme-react/button";
-import { ScrollView } from "devextreme-react/scroll-view";
 import { fetchUsersForFilter } from "../../../../redux/actions/userActions";
 
 const TransactionFilterPopup = ({
@@ -134,53 +133,115 @@ const TransactionFilterPopup = ({
       title="Filter Transaction History"
       width="100%"
       maxWidth={780}
-      height={600} // Increased height to enable more content visibility
+      height="90vh"
       showCloseButton={true}
       className="transaction-filter-popup"
     >
-      {/* Use ScrollView with fixed height, fallback to native scroll if needed */}
-      <ScrollView height={540}>
-        <div className="tw-p-4">
-          {/* Header */}
-          <div className="tw-mb-6">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2 tw-flex tw-items-center">
+      <div className="transaction-filter-popup__container">
+        {/* Fixed Header */}
+        <div className="transaction-filter-popup__header">
+          <div className="tw-mb-2">
+            <h3 className="tw-text-base tw-font-semibold tw-text-gray-800 tw-mb-0 tw-flex tw-items-center">
               <i className="fa-light fa-filter tw-mr-2 tw-text-blue-600"></i>
               Filter Options
             </h3>
-            <p className="tw-text-gray-600 tw-text-sm">
+            <p className="tw-text-gray-600 tw-text-xs tw-mt-0.5">
               Set filters to narrow down transaction history results
             </p>
           </div>
 
+          {/* Current Filter Summary - Fixed at top */}
+          {(filters.siteId ||
+            filters.tankId ||
+            filters.recordedBy ||
+            filters.startDate ||
+            filters.endDate) && (
+            <div className="tw-p-2 tw-bg-blue-50 tw-border tw-border-blue-100 tw-rounded-lg">
+              <h4 className="tw-text-xs tw-font-medium tw-text-blue-800 tw-mb-1">
+                Current Filters
+              </h4>
+              <div className="tw-flex tw-flex-wrap tw-gap-x-4 tw-gap-y-1 tw-text-xs tw-text-blue-700">
+                {filters.siteId && (
+                  <div>
+                    <span className="tw-font-semibold">Site:</span>{" "}
+                    {sites?.find((s) => s.id === filters.siteId)?.name ||
+                      "Unknown"}
+                  </div>
+                )}
+                {filters.tankId && (
+                  <div>
+                    <span className="tw-font-semibold">Tank:</span>{" "}
+                    {filteredTanks?.find((t) => t.id === filters.tankId)
+                      ?.name || "Unknown"}
+                  </div>
+                )}
+                {filters.recordedBy && (
+                  <div>
+                    <span className="tw-font-semibold">User:</span>{" "}
+                    {usersForFilter?.find((u) => u.id === filters.recordedBy)
+                      ?.userName || "Unknown"}
+                  </div>
+                )}
+                {filters.startDate && (
+                  <div>
+                    <span className="tw-font-semibold">From:</span>{" "}
+                    <span className="tw-text-blue-900">
+                      {filters.startDate.toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                {filters.endDate && (
+                  <div>
+                    <span className="tw-font-semibold">To:</span>{" "}
+                    <span className="tw-text-blue-900">
+                      {filters.endDate.toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="transaction-filter-popup__content">
           {/* Quick Date Filters */}
           <div className="tw-mb-6">
             <h4 className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">
               Quick Date Ranges
             </h4>
-            <div className="tw-flex tw-flex-wrap tw-gap-2">
+            <div className="transaction-filter-popup__quick-dates">
               <Button
                 text="Today"
-                onClick={() => handleQuickFilter(1)}
+                icon="fa-light fa-calendar-day"
+                type="default"
                 stylingMode="outlined"
-                className="tw-text-xs"
+                onClick={() => handleQuickFilter(1)}
+                className="transaction-filter-popup__quick-date-btn transaction-filter-popup__quick-date-btn--first"
               />
               <Button
                 text="Last 3 Days"
-                onClick={() => handleQuickFilter(3)}
+                icon="fa-light fa-calendar-days"
+                type="default"
                 stylingMode="outlined"
-                className="tw-text-xs"
+                onClick={() => handleQuickFilter(3)}
+                className="transaction-filter-popup__quick-date-btn"
               />
               <Button
                 text="Last Week"
-                onClick={() => handleQuickFilter(7)}
+                icon="fa-light fa-calendar-week"
+                type="default"
                 stylingMode="outlined"
-                className="tw-text-xs"
+                onClick={() => handleQuickFilter(7)}
+                className="transaction-filter-popup__quick-date-btn"
               />
               <Button
                 text="Last Month"
-                onClick={() => handleQuickFilter(30)}
+                icon="fa-light fa-calendar-range"
+                type="default"
                 stylingMode="outlined"
-                className="tw-text-xs"
+                onClick={() => handleQuickFilter(30)}
+                className="transaction-filter-popup__quick-date-btn transaction-filter-popup__quick-date-btn--last"
               />
             </div>
           </div>
@@ -275,77 +336,36 @@ const TransactionFilterPopup = ({
               <Label text="End Date" />
             </SimpleItem>
           </Form>
+        </div>
 
-          {/* Current Filter Summary */}
-          {(filters.siteId ||
-            filters.tankId ||
-            filters.recordedBy ||
-            filters.startDate ||
-            filters.endDate) && (
-            <div className="tw-mb-6 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
-              <h4 className="tw-text-sm tw-font-medium tw-text-blue-800 tw-mb-2">
-                Current Filters
-              </h4>
-              <div className="tw-text-xs tw-text-blue-700">
-                {filters.siteId && (
-                  <div>
-                    Site:{" "}
-                    {sites?.find((s) => s.id === filters.siteId)?.name ||
-                      "Unknown"}
-                  </div>
-                )}
-                {filters.tankId && (
-                  <div>
-                    Tank:{" "}
-                    {filteredTanks?.find((t) => t.id === filters.tankId)
-                      ?.name || "Unknown"}
-                  </div>
-                )}
-                {filters.startDate && (
-                  <div>From: {filters.startDate.toLocaleDateString()}</div>
-                )}
-                {filters.endDate && (
-                  <div>To: {filters.endDate.toLocaleDateString()}</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="tw-flex tw-justify-between tw-space-x-3">
+        {/* Fixed Footer with Action Buttons */}
+        <div className="transaction-filter-popup__footer">
+          <div className="tw-flex tw-gap-3 tw-flex-1">
+            <Button
+              text="Cancel"
+              icon="fa-light fa-times"
+              onClick={onHiding}
+              stylingMode="outlined"
+              className="tw-flex-1 tw-min-w-0"
+            />
             <Button
               text="Reset"
+              icon="fa-light fa-refresh"
               onClick={handleReset}
               stylingMode="outlined"
-              className="tw-min-w-24"
-            >
-              <i className="fa-light fa-refresh tw-mr-2"></i>
-              Reset
-            </Button>
-
-            <div className="tw-flex tw-space-x-3">
-              <Button
-                text="Cancel"
-                onClick={onHiding}
-                stylingMode="outlined"
-                className="tw-min-w-24"
-              >
-                <i className="fa-light fa-times tw-mr-2"></i>
-                Cancel
-              </Button>
-              <Button
-                text="Apply Filters"
-                onClick={handleApply}
-                type="default"
-                className="tw-min-w-32"
-              >
-                <i className="fa-light fa-check tw-mr-2"></i>
-                Apply
-              </Button>
-            </div>
+              className="tw-flex-1 tw-min-w-0"
+            />
           </div>
+
+          <Button
+            text="Apply Filters"
+            icon="fa-light fa-check"
+            onClick={handleApply}
+            type="default"
+            className="tw-flex-1 tw-min-w-0"
+          />
         </div>
-      </ScrollView>
+      </div>
     </Popup>
   );
 };
