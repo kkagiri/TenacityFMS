@@ -332,17 +332,17 @@ const ManualRefillForm = ({
     return errors;
   }, [formData]);
 
-  // Clear form data for new entry (preserve site and tank selections)
+  // Clear form data for new entry (preserve site, tank, and date selections)
   const clearFormData = useCallback(() => {
     setFormData((prevData) => ({
-      vehicleId: null,
+      vehicleId: null, // Clear vehicle
       manualFuelrefillAmount: null,
       previousMeterReading: null,
       currentMeterReading: null,
-      date: new Date().toISOString(),
+      date: prevData.date, // Preserve date from previous submission
       siteId: prevData.siteId, // Preserve site selection
       comment: "",
-      driverId: null,
+      driverId: null, // Clear driver
       fuelBy: currentUser?.userName || "",
       tankId: prevData.tankId, // Preserve tank selection
     }));

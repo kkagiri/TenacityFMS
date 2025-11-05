@@ -367,7 +367,21 @@ const OpeningStockForm = ({
     return errors;
   }, [formData]);
 
-  // Handle form submission
+  // Clear form data for new entry (preserve site and date)
+  const clearFormData = useCallback(() => {
+    setFormData((prevData) => ({
+      siteId: prevData.siteId, // Preserve site selection
+      tankId: null, // Clear tank
+      amount: null, // Clear physical stock amount
+      bookBalance: null,
+      physicalStockValue: null,
+      date: prevData.date, // Preserve date from previous submission
+    }));
+    setValidationErrors({});
+    resetValidation();
+  }, [resetValidation]);
+
+  // Handle form submission and close
   const handleSubmit = useCallback(async () => {
     console.log("Starting form submission...");
 
@@ -459,6 +473,95 @@ const OpeningStockForm = ({
     onSubmit,
     onCancel,
     showNotification,
+  ]);
+
+  // Handle save and new entry
+  const handleSaveAndNew = useCallback(async () => {
+    console.log("Starting form submission for save and new...");
+
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification("Please fill in all required fields correctly", "error", 4000);
+      return;
+    }
+
+    // Check if we can submit based on future records validation
+    if (!canSubmitForm) {
+      showNotification(
+        "Please resolve the validation warnings before submitting",
+        "warning",
+        4000
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Prepare the data in the format expected by the action
+      const preparedData = {
+        tankId: formData.tankId,
+        amount: formData.amount,
+        // Send ISO UTC to avoid server-side future-date rejections due to timezone
+        dateTime: formData.date ? new Date(formData.date).toISOString() : null,
+      };
+
+      const response = await dispatch(createOpeningStock(preparedData));
+
+      // Check for success - be more explicit about what constitutes success
+      if (response && response.success === true) {
+        showNotification(
+          response.message || "Opening stock created successfully. Form cleared for new entry.",
+          "success",
+          3000
+        );
+
+        // Clear any previous backend errors on success
+        setBackendError(null);
+
+        // Clear form for new entry (keeps site and date)
+        clearFormData();
+        setHasAttemptedSubmit(false); // Reset for new entry
+      } else {
+        // Handle both explicit failure and undefined success - including backend validation errors
+        const errorMessage =
+          response?.message || "Failed to create opening stock";
+        console.error("OpeningStockForm - Creation failed:", errorMessage, response);
+
+        // Set backend error for inline display instead of notification
+        setBackendError({
+          message: errorMessage,
+          type: "error",
+        });
+
+        // Form stays open so user can retry or make corrections
+      }
+    } catch (error) {
+      console.error("OpeningStockForm - Error creating opening stock:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "An unexpected error occurred";
+
+      // Set backend error for inline display instead of notification
+      setBackendError({
+        message: errorMessage,
+        type: "error",
+      });
+
+      // Form stays open on error
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    formData,
+    validateForm,
+    canSubmitForm,
+    dispatch,
+    showNotification,
+    clearFormData,
   ]);
 
   return (
@@ -886,7 +989,18 @@ const OpeningStockForm = ({
               Cancel
             </Button>
             <Button
-              text="Save"
+              text="Save and New"
+              onClick={handleSaveAndNew}
+              disabled={isSubmitting || !canSubmitForm || isValidating}
+              loading={isSubmitting}
+              className="tw-min-w-32"
+              stylingMode="outlined"
+            >
+              <i className="fa-light fa-plus tw-mr-2"></i>
+              Save and New
+            </Button>
+            <Button
+              text="Save and Close"
               onClick={handleSubmit}
               disabled={isSubmitting || !canSubmitForm || isValidating}
               loading={isSubmitting}
@@ -894,7 +1008,7 @@ const OpeningStockForm = ({
               type="default"
             >
               <i className="fa-light fa-save tw-mr-2"></i>
-              Save
+              Save and Close
             </Button>
           </div>
         </div>
