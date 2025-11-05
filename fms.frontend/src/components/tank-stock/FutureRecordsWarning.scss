@@ -1,6 +1,10 @@
 /* Future Records Warning Component Styles */
 .future-records-warning {
   animation: slideIn 0.3s ease-out;
+  overflow: hidden; /* Prevent content overflow */
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 @keyframes slideIn {
@@ -23,14 +27,57 @@
   padding: 4px 12px;
 }
 
+/* Details toggle button styling */
+.future-records-warning .dx-button.dx-button-mode-text {
+  min-height: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 500;
+
+  .dx-button-content {
+    padding: 0 8px;
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .dx-icon {
+    font-size: 10px;
+    margin-left: 4px;
+  }
+}
+
+/* Details expansion animation */
+.future-records-warning .tw-bg-white.tw-bg-opacity-50 {
+  animation: expandDetails 0.2s ease-out;
+  transform-origin: top;
+}
+
+@keyframes expandDetails {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
 /* Scroll view styles for detailed warnings */
 .future-records-warning .dx-scrollview {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .future-records-warning .dx-scrollview-content {
   padding: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .future-records-warning .dx-scrollable-scrollbar-horizontal,
@@ -44,10 +91,50 @@
   border-radius: 2px;
 }
 
+/* Text wrapping and overflow prevention for all content areas */
+.future-records-warning p,
+.future-records-warning div,
+.future-records-warning span,
+.future-records-warning pre {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Details section specific styling */
+.future-records-warning .tw-bg-white {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.future-records-warning .tw-bg-white .tw-px-3 {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Impact and details text styling */
+.future-records-warning .tw-text-xs,
+.future-records-warning .tw-text-sm {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Strong tags within warnings */
+.future-records-warning strong {
+  font-weight: 600;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .future-records-warning {
     @apply tw-mx-2;
+    max-width: calc(100% - 1rem); /* Account for margins */
   }
 
   .future-records-warning .tw-flex.tw-space-x-2 {
@@ -56,6 +143,47 @@
 
   /* Adjust scroll view height on mobile */
   .future-records-warning .tw-max-h-32 {
-    max-height: 6rem !important;
+    max-height: 8rem !important; /* Slightly taller for mobile */
   }
+
+  /* Reduce padding on mobile for more content space */
+  .future-records-warning {
+    @apply tw-p-3;
+  }
+
+  /* Smaller font sizes on mobile if needed */
+  .future-records-warning .tw-text-sm {
+    font-size: 0.8125rem;
+  }
+
+  .future-records-warning .tw-text-xs {
+    font-size: 0.6875rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .future-records-warning {
+    @apply tw-mx-1;
+    max-width: calc(100% - 0.5rem);
+  }
+
+  .future-records-warning .tw-max-h-32 {
+    max-height: 10rem !important; /* Even taller on very small screens */
+  }
+
+  .future-records-warning {
+    @apply tw-p-2;
+  }
+}
+
+/* Ensure flex containers don't cause overflow */
+.future-records-warning .tw-flex {
+  max-width: 100%;
+  min-width: 0; /* Allow flex items to shrink below content size */
+}
+
+.future-records-warning .tw-flex-1 {
+  min-width: 0; /* Critical for allowing text to wrap in flex containers */
+  overflow: hidden;
 }
