@@ -56,6 +56,20 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
 
                 var deliveryDate = request.DeliveryDTO.DeliveryDate ?? DateTime.Now;
 
+                // Prevent multiple deliveries on the same tank within the same calendar day
+                var deliveryExistsSameDay = await _context.Deliveries
+                    .AsNoTracking()
+                    .AnyAsync(
+                        d => d.TankId == request.DeliveryDTO.TankId &&
+                             d.DeliveryDate.Date == deliveryDate.Date,
+                        cancellationToken);
+
+                if (deliveryExistsSameDay)
+                {
+                    return new FMSResponseMessage(false,
+                        $"A delivery for tank {request.DeliveryDTO.TankId} already exists on {deliveryDate:yyyy-MM-dd}. Only one delivery per tank per day is allowed.");
+                }
+
                 // Validate historical entry against future records policy
                 if (deliveryDate.Date < DateTime.Now.Date)
                 {

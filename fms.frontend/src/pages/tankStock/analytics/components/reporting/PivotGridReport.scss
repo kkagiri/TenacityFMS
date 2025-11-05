@@ -4,6 +4,148 @@
   flex-direction: column;
   height: 100%;
 
+  // Action Buttons - Segmented Control Style (similar to VehicleDetails)
+  &__action-buttons {
+    display: inline-flex;
+    flex-direction: row;
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    align-self: flex-start;
+  }
+
+  &__action-btn {
+    min-width: auto !important;
+    width: auto !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 12px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    transition: all 0.2s ease !important;
+    position: relative;
+    white-space: nowrap;
+
+    // Vertical divider between buttons
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      background-color: #e5e7eb;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 1px;
+    }
+
+    .dx-button-content {
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .dx-icon {
+      font-size: 13px !important;
+      color: #374151 !important;
+      transition: color 0.2s ease;
+    }
+
+    .dx-button-text {
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      color: #374151 !important;
+      transition: color 0.2s ease;
+    }
+
+    &:hover {
+      background-color: #f3f4f6 !important;
+
+      .dx-icon,
+      .dx-button-text {
+        color: #1f2937 !important;
+      }
+    }
+
+    &:active {
+      background-color: #e5e7eb !important;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent !important;
+
+        .dx-icon,
+        .dx-button-text {
+          color: #374151 !important;
+        }
+      }
+    }
+
+    // First button - rounded corners on left edge
+    &--first {
+      border-top-left-radius: 8px !important;
+      border-bottom-left-radius: 8px !important;
+    }
+
+    // Last button - rounded corners on right edge
+    &--last {
+      border-top-right-radius: 8px !important;
+      border-bottom-right-radius: 8px !important;
+    }
+
+    // Excel button - green background like Excel
+    &--excel {
+      background-color: #217346 !important; // Excel green color
+      border: none !important;
+      padding: 0 14px !important; // Slightly wider for icon-only button
+
+      .dx-icon {
+        color: #ffffff !important;
+        font-size: 14px !important; // Slightly larger icon
+      }
+
+      &:hover {
+        background-color: #1e6b3f !important; // Darker green on hover
+
+        .dx-icon {
+          color: #ffffff !important;
+        }
+      }
+
+      &:active {
+        background-color: #1a5d36 !important; // Even darker green on active
+      }
+
+      &:disabled {
+        background-color: #9ca3af !important;
+        opacity: 0.6;
+
+        .dx-icon {
+          color: #ffffff !important;
+        }
+      }
+
+      // Hide text for icon-only button
+      .dx-button-text {
+        display: none !important;
+      }
+
+      // Center icon
+      .dx-button-content {
+        justify-content: center !important;
+      }
+    }
+  }
+
   .pivot-grid-container {
     flex: 1;
     display: flex;
@@ -70,23 +212,28 @@
   }
 }
 
-// Loading state
+// Loading state - now inside pivot grid container
 .pivot-grid-loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
-  background-color: #f9fafb;
+  flex: 1;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   border-radius: 8px;
+  border: 2px dashed #e5e7eb;
 }
 
-// No data state
+// No data state - now inside pivot grid container
 .pivot-grid-no-data {
-  min-height: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 1;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-radius: 8px;
+  border: 2px dashed #e5e7eb;
+  padding: 48px 24px;
 }
 
 // Responsive design
@@ -99,6 +246,28 @@
 
     .tw-grid-cols-4 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    // Mobile button adjustments
+    &__action-buttons {
+      width: 100%;
+      justify-content: stretch;
+    }
+
+    &__action-btn {
+      flex: 1;
+      min-width: 0 !important;
+      padding: 0 8px !important;
+      height: 30px !important;
+      min-height: 30px !important;
+
+      .dx-button-text {
+        font-size: 11px !important;
+      }
+
+      .dx-icon {
+        font-size: 12px !important;
+      }
     }
   }
 }
