@@ -1,4 +1,7 @@
 using System;
+using FMS.Application.Features.Vehicle.Services;
+using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
+using FMS.Infrastructure.Services;
 using FMS.Infrastructure.VehicleTracking.Factory;
 using FMS.Infrastructure.VehicleTracking.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +41,26 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.TryAddScoped<IProviderFactory, ProviderFactory>();
             services.TryAddScoped<IProviderConfigurationService, ProviderConfigurationService>();
             services.TryAddScoped<IVehicleTrackingService, VehicleTrackingService>();
+
+            // Register GPS domain-specific services (Phase 2 refactoring)
+            // GPSGate services organized by domain for better separation of concerns
+            services.AddHttpClient<IGPSGateLocationService, GPSGateLocationService>();
+            services.TryAddScoped<IGPSGateLocationService, GPSGateLocationService>();
+
+            services.AddHttpClient<IGPSGateSensorService, GPSGateSensorService>();
+            services.TryAddScoped<IGPSGateSensorService, GPSGateSensorService>();
+
+            services.AddHttpClient<IGPSGateGeofenceService, GPSGateGeofenceService>();
+            services.TryAddScoped<IGPSGateGeofenceService, GPSGateGeofenceService>();
+
+            services.AddHttpClient<IGPSGateEventService, GPSGateEventService>();
+            services.TryAddScoped<IGPSGateEventService, GPSGateEventService>();
+
+            services.AddHttpClient<IGPSGateHealthService, GPSGateHealthService>();
+            services.TryAddScoped<IGPSGateHealthService, GPSGateHealthService>();
+
+            // Register Vehicle Health Monitoring service
+            services.TryAddScoped<IVehicleHealthMonitorService, VehicleHealthMonitorService>();
 
             // Add memory cache if not already registered
             services.AddMemoryCache();

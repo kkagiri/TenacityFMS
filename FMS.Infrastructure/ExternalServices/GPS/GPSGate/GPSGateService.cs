@@ -1,557 +1,467 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
-using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
-using FMS.Persistence.DataAccess;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
 {
     /// <summary>
     /// GPSGate implementation of IGPSService for vehicle tracking
-    /// This service communicates with GPSGate API to retrieve real-time vehicle location,
-    /// odometer, and status information.
+    /// This service acts as a facade that delegates to domain-specific services
+    /// for better organization and separation of concerns.
+    ///
+    /// Architecture:
+    /// - GPSGateLocationService: Handles location tracking, routes, and distance calculations
+    /// - GPSGateSensorService: Handles sensor data (fuel, temperature, battery, etc.)
+    /// - GPSGateGeofenceService: Handles geofencing and boundary detection
+    /// - GPSGateEventService: Handles GPS events and alerts
+    /// - GPSGateHealthService: Handles system health monitoring
     /// </summary>
     public class GPSGateService : IGPSService
     {
-        private readonly GpsdataContext _context;
-        private readonly HttpClient _httpClient;
+        private readonly IGPSGateLocationService _locationService;
+        private readonly IGPSGateSensorService _sensorService;
+        private readonly IGPSGateGeofenceService _geofenceService;
+        private readonly IGPSGateEventService _eventService;
+        private readonly IGPSGateHealthService _healthService;
         private readonly ILogger<GPSGateService> _logger;
-        private readonly string _apiKey;
-        private readonly string _baseUrl;
-        private readonly int _applicationId;
 
         public GPSGateService(
-            GpsdataContext context,
-            HttpClient httpClient,
-            IConfiguration configuration,
+            IGPSGateLocationService locationService,
+            IGPSGateSensorService sensorService,
+            IGPSGateGeofenceService geofenceService,
+            IGPSGateEventService eventService,
+            IGPSGateHealthService healthService,
             ILogger<GPSGateService> logger)
         {
-            _context = context;
-            _httpClient = httpClient;
-            _logger = logger;
-
-            _apiKey = configuration["GPSGate:ApiKey"] ??
-                throw new ArgumentNullException("GPSGate:ApiKey not configured");
-            _baseUrl = configuration["GPSGate:BaseUrl"] ??
-                throw new ArgumentNullException("GPSGate:BaseUrl not configured");
-            _applicationId = int.Parse(configuration["GPSGate:ApplicationId"] ?? "1");
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", _apiKey);
+            _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+            _sensorService = sensorService ?? throw new ArgumentNullException(nameof(sensorService));
+            _geofenceService = geofenceService ?? throw new ArgumentNullException(nameof(geofenceService));
+            _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
+            _healthService = healthService ?? throw new ArgumentNullException(nameof(healthService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        #region IGPSService Implementation (Backward Compatibility)
+
+        /// <summary>
+        /// Get current location for a specific vehicle
+        /// Delegates to LocationService
+        /// </summary>
         public async Task<FMSResponse<VehicleLocationDTO>> GetVehicleLocationAsync(int vehicleId)
         {
             try
             {
-                // Get vehicle info from database first
-                var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
-                    .FirstOrDefaultAsync();
-
-                if (vehicle == null)
-                {
-                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
-                }
-
-                if (!vehicle.DeviceId.HasValue)
-                {
-                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
-                }
-
-                // Get user status from GPSGate API
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}/status");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Failed to get GPS data for vehicle {VehicleId}. Status: {StatusCode}",
-                        vehicleId, response.StatusCode);
-
-                    return FMSResponse<VehicleLocationDTO>.Failed("Failed to retrieve vehicle location from GPS provider");
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (gpsData?.Position == null)
-                {
-                    return FMSResponse<VehicleLocationDTO>.Success(new VehicleLocationDTO
-                    {
-                        VehicleId = vehicleId,
-                        VehicleName = vehicle.HyoungNo ?? string.Empty,
-                        NumberPlate = vehicle.NumberPlate,
-                        HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                        DeviceId = vehicle.DeviceId,
-                        IsOnline = false,
-                        LastUpdated = DateTime.UtcNow
-                    });
-                }
-
-                var locationDto = new VehicleLocationDTO
-                {
-                    VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
-                    NumberPlate = vehicle.NumberPlate,
-                    Latitude = (decimal)gpsData.Position.Latitude,
-                    Longitude = (decimal)gpsData.Position.Longitude,
-                    Altitude = gpsData.Position.Altitude.HasValue ? (decimal)gpsData.Position.Altitude : null,
-                    LastUpdated = DateTime.TryParse(gpsData.UTC, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
-                    Speed = gpsData.Velocity?.GroundSpeed.HasValue == true ? (decimal)gpsData.Velocity.GroundSpeed : null,
-                    Heading = gpsData.Velocity?.Heading.HasValue == true ? (decimal)gpsData.Velocity.Heading : null,
-                    IsOnline = true,
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId
-                };
-
-                return FMSResponse<VehicleLocationDTO>.Success(locationDto);
+                return await _locationService.GetVehicleLocationAsync(vehicleId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving vehicle location for {VehicleId}", vehicleId);
-                return FMSResponse<VehicleLocationDTO>.Failed($"Error retrieving vehicle location: {ex.Message}");
-            }
-        }
-
-        public async Task<FMSResponse<VehicleOdometerDTO>> GetVehicleOdometerAsync(int vehicleId)
-        {
-            try
-            {
-                // Get vehicle info from database
-                var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
-                    .FirstOrDefaultAsync();
-
-                if (vehicle == null)
-                {
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle not found or doesn't have GPS installed");
-                }
-
-                if (!vehicle.DeviceId.HasValue)
-                {
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
-                }
-
-                // Get accumulator data for odometer from GPSGate
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/accumulators?UserId={vehicle.DeviceId}");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Failed to get odometer data for vehicle {VehicleId}. Status: {StatusCode}",
-                        vehicleId, response.StatusCode);
-
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Failed to retrieve odometer data from GPS provider");
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                var accumulators = JsonSerializer.Deserialize<List<GPSGateAccumulator>>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                // Find odometer accumulator (usually type 1 for distance)
-                var odometerData = accumulators?.FirstOrDefault(a => a.AccumulatorTypeId == 1);
-
-                var odometerDto = new VehicleOdometerDTO
-                {
-                    VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
-                    NumberPlate = vehicle.NumberPlate,
-                    CurrentOdometer = odometerData?.Value.HasValue == true ? (decimal)odometerData.Value / 1000 : 0, // Convert meters to km
-                    TotalDistance = odometerData?.Value.HasValue == true ? (decimal)odometerData.Value / 1000 : 0,
-                    LastUpdated = DateTime.TryParse(odometerData?.Timestamp, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
-                    Unit = "km",
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId
-                };
-
-                return FMSResponse<VehicleOdometerDTO>.Success(odometerDto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving odometer data for vehicle {VehicleId}", vehicleId);
-                return FMSResponse<VehicleOdometerDTO>.Failed($"Error retrieving odometer data: {ex.Message}");
-            }
-        }
-
-        public async Task<FMSResponse<List<VehicleLocationDTO>>> GetAllVehicleLocationsAsync(bool onlineOnly = false, bool gpsEnabledOnly = true)
-        {
-            try
-            {
-                // Get vehicles from database
-                var vehiclesQuery = _context.Vehicles.AsQueryable();
-
-                if (gpsEnabledOnly)
-                {
-                    vehiclesQuery = vehiclesQuery.Where(v => v.HasGPSInstalled == 1 && v.DeviceId.HasValue);
-                }
-
-                var vehicles = await vehiclesQuery
-                    .Where(v => v.IsActive == 1)
-                    .ToListAsync();
-
-                if (!vehicles.Any())
-                {
-                    return FMSResponse<List<VehicleLocationDTO>>.Success(new List<VehicleLocationDTO>());
-                }
-
-                // Get all users status from GPSGate
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/usersstatus?PageSize=1000");
-
-                var locations = new List<VehicleLocationDTO>();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Failed to get GPS data for multiple vehicles. Status: {StatusCode}", response.StatusCode);
-
-                    // Return offline vehicles if GPS service is down
-                    foreach (var vehicle in vehicles)
-                    {
-                        locations.Add(new VehicleLocationDTO
-                        {
-                            VehicleId = vehicle.VehicleId,
-                            VehicleName = vehicle.HyoungNo ?? string.Empty,
-                            NumberPlate = vehicle.NumberPlate,
-                            HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                            DeviceId = vehicle.DeviceId,
-                            IsOnline = false,
-                            LastUpdated = DateTime.UtcNow
-                        });
-                    }
-                }
-                else
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var usersStatus = JsonSerializer.Deserialize<List<GPSGateUserStatus>>(content, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                    foreach (var vehicle in vehicles)
-                    {
-                        var userStatus = usersStatus?.FirstOrDefault(u => u.Id == vehicle.DeviceId);
-
-                        var location = new VehicleLocationDTO
-                        {
-                            VehicleId = vehicle.VehicleId,
-                            VehicleName = vehicle.HyoungNo ?? string.Empty,
-                            NumberPlate = vehicle.NumberPlate,
-                            HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                            DeviceId = vehicle.DeviceId,
-                            IsOnline = userStatus?.Position != null
-                        };
-
-                        if (userStatus?.Position != null)
-                        {
-                            location.Latitude = (decimal)userStatus.Position.Latitude;
-                            location.Longitude = (decimal)userStatus.Position.Longitude;
-                            location.Altitude = userStatus.Position.Altitude.HasValue ? (decimal)userStatus.Position.Altitude : null;
-                            location.Speed = userStatus.Velocity?.GroundSpeed.HasValue == true ? (decimal)userStatus.Velocity.GroundSpeed : null;
-                            location.Heading = userStatus.Velocity?.Heading.HasValue == true ? (decimal)userStatus.Velocity.Heading : null;
-                            location.LastUpdated = DateTime.TryParse(userStatus.UTC, out var lastUpdate) ? lastUpdate : DateTime.UtcNow;
-                        }
-                        else
-                        {
-                            location.LastUpdated = DateTime.UtcNow;
-                        }
-
-                        // Filter online only if requested
-                        if (!onlineOnly || location.IsOnline)
-                        {
-                            locations.Add(location);
-                        }
-                    }
-                }
-
-                return FMSResponse<List<VehicleLocationDTO>>.Success(locations);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving all vehicle locations");
-                return FMSResponse<List<VehicleLocationDTO>>.Failed($"Error retrieving vehicle locations: {ex.Message}");
-            }
-        }
-
-        public async Task<FMSResponse<bool>> IsVehicleOnlineAsync(int vehicleId)
-        {
-            try
-            {
-                var location = await GetVehicleLocationAsync(vehicleId);
-                return FMSResponse<bool>.Success(location.IsSuccess && location.Data?.IsOnline == true);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking vehicle online status for {VehicleId}", vehicleId);
-                return FMSResponse<bool>.Failed($"Error checking vehicle status: {ex.Message}");
-            }
-        }
-
-        public async Task<FMSResponse<bool>> ValidateConnectionAsync()
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"{_baseUrl}/applications/{_applicationId}");
-                return FMSResponse<bool>.Success(response.IsSuccessStatusCode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error validating GPS connection");
-                return FMSResponse<bool>.Failed($"Connection validation failed: {ex.Message}");
-            }
-        }
-
-        public async Task<FMSResponse<VehicleGPSInformationDTO>> GetVehicleGPSInformationAsync(int vehicleId)
-        {
-            try
-            {
-                // Get vehicle info from database first
-                var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
-                    .FirstOrDefaultAsync();
-
-                if (vehicle == null)
-                {
-                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
-                }
-
-
-
-                // Get user status from GPSGate API
-                var statusResponse = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}/status");
-
-                // Get device information
-                var deviceResponse = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}");
-
-                var gpsInfo = new VehicleGPSInformationDTO
-                {
-                    VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
-                    NumberPlate = vehicle.NumberPlate,
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId,
-                    IsOnline = false,
-                    SensorHealth = new SensorHealthDTO
-                    {
-                        OverallHealth = "Unknown",
-                        IsPositionValid = false
-                    }
-                };
-
-                // Parse user status
-                if (statusResponse.IsSuccessStatusCode)
-                {
-                    var statusContent = await statusResponse.Content.ReadAsStringAsync();
-                    var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(statusContent, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                    if (gpsData?.Position != null)
-                    {
-                        gpsInfo.Latitude = (decimal)gpsData.Position.Latitude;
-                        gpsInfo.Longitude = (decimal)gpsData.Position.Longitude;
-                        gpsInfo.Altitude = gpsData.Position.Altitude.HasValue ? (decimal)gpsData.Position.Altitude : null;
-                        gpsInfo.Speed = gpsData.Velocity?.GroundSpeed.HasValue == true ? (decimal)gpsData.Velocity.GroundSpeed : null;
-                        gpsInfo.Heading = gpsData.Velocity?.Heading.HasValue == true ? (decimal)gpsData.Velocity.Heading : null;
-                        gpsInfo.LastUpdated = DateTime.TryParse(gpsData.UTC, out var lastUpdate) ? lastUpdate : DateTime.UtcNow;
-                        gpsInfo.IsOnline = true;
-                        gpsInfo.SensorHealth.IsPositionValid = true;
-                        gpsInfo.SensorHealth.LastSensorUpdate = gpsInfo.LastUpdated;
-
-                        // Parse sensor variables if available
-                        if (gpsData.Variables != null && gpsData.Variables.Any())
-                        {
-                            ParseSensorVariables(gpsData.Variables, gpsInfo.SensorHealth);
-                        }
-                        else
-                        {
-                            // Default values if no variables
-                            gpsInfo.SensorHealth.GPSSignalStrength = "Unknown";
-                            gpsInfo.SensorHealth.OverallHealth = "Unknown";
-                        }
-                    }
-                }
-
-                // Parse device information
-                if (deviceResponse.IsSuccessStatusCode)
-                {
-                    var deviceContent = await deviceResponse.Content.ReadAsStringAsync();
-                    var deviceData = JsonSerializer.Deserialize<GPSGateUser>(deviceContent, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                    if (deviceData?.Devices != null && deviceData.Devices.Any())
-                    {
-                        var device = deviceData.Devices.FirstOrDefault();
-                        gpsInfo.DeviceIMEI = device?.IMEI;
-                        gpsInfo.DeviceName = device?.Name;
-                        gpsInfo.Protocol = device?.ProtocolID;
-                        gpsInfo.LastIP = device?.LastIP;
-                        gpsInfo.LastDeviceActivity = DateTime.TryParse(deviceData.DeviceActivity, out var activityTime) ? activityTime : null;
-                    }
-                }
-
-                // Set default values for missing sensor data
-                if (gpsInfo.SensorHealth != null)
-                {
-                    gpsInfo.SensorHealth.FuelLevelUnit = gpsInfo.SensorHealth.FuelLevelUnit ?? "Liters";
-
-                    // Determine overall health based on available sensor data
-                    if (gpsInfo.SensorHealth.OverallHealth == "Unknown")
-                    {
-                        if (gpsInfo.SensorHealth.IsPositionValid && gpsInfo.SensorHealth.SatelliteCount.HasValue && gpsInfo.SensorHealth.SatelliteCount > 0)
-                        {
-                            gpsInfo.SensorHealth.OverallHealth = "Good";
-                        }
-                        else if (gpsInfo.SensorHealth.IsPositionValid)
-                        {
-                            gpsInfo.SensorHealth.OverallHealth = "Warning";
-                        }
-                        else
-                        {
-                            gpsInfo.SensorHealth.OverallHealth = "Unknown";
-                        }
-                    }
-                }
-
-                return FMSResponse<VehicleGPSInformationDTO>.Success(gpsInfo);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving GPS information for vehicle {VehicleId}", vehicleId);
-                return FMSResponse<VehicleGPSInformationDTO>.Failed($"Error retrieving GPS information: {ex.Message}");
+                _logger.LogError(ex, "Error in GPSGateService.GetVehicleLocationAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<VehicleLocationDTO>.Failed($"Service error: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Parse sensor variables from GPSGate API response and populate sensor health
+        /// Get odometer reading for a specific vehicle
+        /// Delegates to LocationService
         /// </summary>
-        private void ParseSensorVariables(List<GPSGateVariable> variables, SensorHealthDTO sensorHealth)
+        public async Task<FMSResponse<VehicleOdometerDTO>> GetVehicleOdometerAsync(int vehicleId)
         {
-            foreach (var variable in variables)
+            try
             {
-                if (string.IsNullOrWhiteSpace(variable.Name) || string.IsNullOrWhiteSpace(variable.Value))
-                    continue;
-
-                var variableName = variable.Name.Trim();
-                var variableValue = variable.Value.Trim();
-                var variableType = variable.Type?.ToLower();
-
-                try
-                {
-                    switch (variableName.ToLower())
-                    {
-                        case "satellitecount":
-                            if (int.TryParse(variableValue, out var satelliteCount))
-                            {
-                                sensorHealth.SatelliteCount = satelliteCount;
-                                // Determine GPS signal strength based on satellite count
-                                sensorHealth.GPSSignalStrength = satelliteCount >= 8 ? "Strong" :
-                                                                 satelliteCount >= 4 ? "Moderate" :
-                                                                 satelliteCount > 0 ? "Weak" : "None";
-                            }
-                            break;
-
-                        case "batteryvoltage":
-                        case "voltage":
-                            if (decimal.TryParse(variableValue, out var batteryVoltage))
-                            {
-                                sensorHealth.BatteryVoltage = batteryVoltage;
-                            }
-                            break;
-
-                        case "fuel level":
-                        case "fuellevel":
-                        case "rawfuel":
-                            if (decimal.TryParse(variableValue, out var fuelLevel))
-                            {
-                                sensorHealth.FuelLevel = fuelLevel;
-                                sensorHealth.FuelLevelUnit = "Liters";
-                            }
-                            break;
-
-                        case "ignition":
-                            if (variableType == "boolean" && bool.TryParse(variableValue, out var ignition))
-                            {
-                                sensorHealth.IgnitionStatus = ignition;
-                            }
-                            break;
-
-                        case "engine":
-                        case "enginestatus":
-                            if (variableType == "boolean" && bool.TryParse(variableValue, out var engineStatus))
-                            {
-                                sensorHealth.EngineStatus = engineStatus;
-                            }
-                            break;
-
-                        case "enginetemperature":
-                        case "temperature":
-                        case "engtemp":
-                            if (decimal.TryParse(variableValue, out var engineTemp))
-                            {
-                                sensorHealth.EngineTemperature = engineTemp;
-                            }
-                            break;
-
-                            // Additional sensor variables can be added here
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error parsing sensor variable {VariableName} with value {Value}", variableName, variableValue);
-                }
+                return await _locationService.GetVehicleOdometerAsync(vehicleId);
             }
-
-            // Determine overall health based on sensor data
-            var healthFactors = new List<string>();
-
-            if (sensorHealth.IsPositionValid && sensorHealth.SatelliteCount.HasValue && sensorHealth.SatelliteCount > 0)
+            catch (Exception ex)
             {
-                healthFactors.Add("GPS");
-            }
-
-            if (sensorHealth.BatteryVoltage.HasValue)
-            {
-                // Battery voltage check (typically 12-14V for vehicles)
-                if (sensorHealth.BatteryVoltage >= 12.0m && sensorHealth.BatteryVoltage <= 14.5m)
-                {
-                    healthFactors.Add("Battery");
-                }
-            }
-
-            if (healthFactors.Count >= 2)
-            {
-                sensorHealth.OverallHealth = "Good";
-            }
-            else if (healthFactors.Count == 1)
-            {
-                sensorHealth.OverallHealth = "Warning";
-            }
-            else if (sensorHealth.IsPositionValid)
-            {
-                sensorHealth.OverallHealth = "Warning";
-            }
-            else
-            {
-                sensorHealth.OverallHealth = "Unknown";
+                _logger.LogError(ex, "Error in GPSGateService.GetVehicleOdometerAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<VehicleOdometerDTO>.Failed($"Service error: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Get locations for all vehicles
+        /// Delegates to LocationService
+        /// </summary>
+        public async Task<FMSResponse<List<VehicleLocationDTO>>> GetAllVehicleLocationsAsync(bool onlineOnly = false, bool gpsEnabledOnly = true)
+        {
+            try
+            {
+                return await _locationService.GetAllVehicleLocationsAsync(onlineOnly, gpsEnabledOnly);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetAllVehicleLocationsAsync");
+                return FMSResponse<List<VehicleLocationDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Check if a vehicle is currently online
+        /// Delegates to LocationService
+        /// </summary>
+        public async Task<FMSResponse<bool>> IsVehicleOnlineAsync(int vehicleId)
+        {
+            try
+            {
+                var location = await _locationService.GetVehicleLocationAsync(vehicleId);
+                return FMSResponse<bool>.Success(location.IsSuccess && location.Data?.IsOnline == true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.IsVehicleOnlineAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<bool>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Validate GPS provider connection
+        /// Delegates to HealthService
+        /// </summary>
+        public async Task<FMSResponse<bool>> ValidateConnectionAsync()
+        {
+            try
+            {
+                var health = await _healthService.CheckHealthAsync();
+                return FMSResponse<bool>.Success(health.IsSuccess && health.Data != null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.ValidateConnectionAsync");
+                return FMSResponse<bool>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get comprehensive GPS information for a vehicle including sensors
+        /// Delegates to SensorService
+        /// </summary>
+        public async Task<FMSResponse<VehicleGPSInformationDTO>> GetVehicleGPSInformationAsync(int vehicleId)
+        {
+            try
+            {
+                return await _sensorService.GetVehicleGPSInformationAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetVehicleGPSInformationAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<VehicleGPSInformationDTO>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Location & Tracking Services
+
+        /// <summary>
+        /// Get historical track data for a vehicle with distance calculations and stop detection
+        /// </summary>
+        public async Task<FMSResponse<VehicleTrackHistoryDTO>> GetTrackHistoryAsync(
+            int vehicleId, DateTime from, DateTime to, int maxPoints = 1000)
+        {
+            try
+            {
+                return await _locationService.GetTrackHistoryAsync(vehicleId, from, to, maxPoints);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetTrackHistoryAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<VehicleTrackHistoryDTO>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get track points for a vehicle within a time range
+        /// </summary>
+        public async Task<FMSResponse<List<TrackPointDTO>>> GetTrackPointsAsync(
+            int vehicleId, DateTime from, DateTime to, int maxPoints = 1000)
+        {
+            try
+            {
+                return await _locationService.GetTrackPointsAsync(vehicleId, from, to, maxPoints);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetTrackPointsAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<List<TrackPointDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Calculate distance between two GPS coordinates using Haversine formula
+        /// </summary>
+        public decimal CalculateDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
+        {
+            try
+            {
+                return _locationService.CalculateDistance(lat1, lon1, lat2, lon2);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.CalculateDistance");
+                return 0;
+            }
+        }
+
+        #endregion
+
+        #region Sensor Services
+
+        /// <summary>
+        /// Get current fuel level for a vehicle
+        /// </summary>
+        public async Task<FMSResponse<decimal?>> GetFuelLevelAsync(int vehicleId)
+        {
+            try
+            {
+                return await _sensorService.GetFuelLevelAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetFuelLevelAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<decimal?>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get current engine temperature for a vehicle
+        /// </summary>
+        public async Task<FMSResponse<decimal?>> GetEngineTemperatureAsync(int vehicleId)
+        {
+            try
+            {
+                return await _sensorService.GetEngineTemperatureAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetEngineTemperatureAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<decimal?>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get current battery voltage for a vehicle
+        /// </summary>
+        public async Task<FMSResponse<decimal?>> GetBatteryVoltageAsync(int vehicleId)
+        {
+            try
+            {
+                return await _sensorService.GetBatteryVoltageAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetBatteryVoltageAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<decimal?>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get ignition status for a vehicle
+        /// </summary>
+        public async Task<FMSResponse<bool?>> GetIgnitionStatusAsync(int vehicleId)
+        {
+            try
+            {
+                return await _sensorService.GetIgnitionStatusAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetIgnitionStatusAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<bool?>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get engine status for a vehicle
+        /// </summary>
+        public async Task<FMSResponse<bool?>> GetEngineStatusAsync(int vehicleId)
+        {
+            try
+            {
+                return await _sensorService.GetEngineStatusAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetEngineStatusAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<bool?>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Geofence Services
+
+        /// <summary>
+        /// Get all geofences for a vehicle
+        /// </summary>
+        public async Task<FMSResponse<List<GeofenceDTO>>> GetVehicleGeofencesAsync(int vehicleId)
+        {
+            try
+            {
+                return await _geofenceService.GetVehicleGeofencesAsync(vehicleId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetVehicleGeofencesAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<List<GeofenceDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Check if a vehicle is currently within a specific geofence
+        /// </summary>
+        public async Task<FMSResponse<bool>> IsVehicleInGeofenceAsync(int vehicleId, int geofenceId)
+        {
+            try
+            {
+                return await _geofenceService.IsVehicleInGeofenceAsync(vehicleId, geofenceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.IsVehicleInGeofenceAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<bool>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get all active geofences
+        /// </summary>
+        public async Task<FMSResponse<List<GeofenceDTO>>> GetAllGeofencesAsync()
+        {
+            try
+            {
+                return await _geofenceService.GetAllGeofencesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetAllGeofencesAsync");
+                return FMSResponse<List<GeofenceDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Check if a point is within a geofence
+        /// </summary>
+        public async Task<FMSResponse<bool>> IsPointInGeofenceAsync(decimal latitude, decimal longitude, int geofenceId)
+        {
+            try
+            {
+                return await _geofenceService.IsPointInGeofenceAsync(latitude, longitude, geofenceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.IsPointInGeofenceAsync");
+                return FMSResponse<bool>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Event Services
+
+        /// <summary>
+        /// Get GPS events for a specific vehicle within a time range
+        /// </summary>
+        public async Task<FMSResponse<List<GPSEventDTO>>> GetVehicleEventsAsync(int vehicleId, DateTime from, DateTime to)
+        {
+            try
+            {
+                return await _eventService.GetVehicleEventsAsync(vehicleId, from, to);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetVehicleEventsAsync for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<List<GPSEventDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get all GPS events within a time range
+        /// </summary>
+        public async Task<FMSResponse<List<GPSEventDTO>>> GetAllEventsAsync(DateTime from, DateTime to)
+        {
+            try
+            {
+                return await _eventService.GetAllEventsAsync(from, to);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetAllEventsAsync");
+                return FMSResponse<List<GPSEventDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get critical unacknowledged events (last 24 hours)
+        /// </summary>
+        public async Task<FMSResponse<List<GPSEventDTO>>> GetCriticalUnacknowledgedEventsAsync()
+        {
+            try
+            {
+                return await _eventService.GetCriticalUnacknowledgedEventsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.GetCriticalUnacknowledgedEventsAsync");
+                return FMSResponse<List<GPSEventDTO>>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Acknowledge a GPS event
+        /// </summary>
+        public async Task<FMSResponse<bool>> AcknowledgeEventAsync(int eventId, string acknowledgedBy)
+        {
+            try
+            {
+                return await _eventService.AcknowledgeEventAsync(eventId, acknowledgedBy);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.AcknowledgeEventAsync for event {EventId}", eventId);
+                return FMSResponse<bool>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Health & System Services
+
+        /// <summary>
+        /// Check overall health of GPS provider system
+        /// </summary>
+        public async Task<FMSResponse<GPSHealthStatusDTO>> CheckHealthAsync()
+        {
+            try
+            {
+                return await _healthService.CheckHealthAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.CheckHealthAsync");
+                return FMSResponse<GPSHealthStatusDTO>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Ping GPS provider to check connectivity
+        /// </summary>
+        public async Task<FMSResponse<bool>> PingAsync()
+        {
+            try
+            {
+                return await _healthService.PingAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GPSGateService.PingAsync");
+                return FMSResponse<bool>.Failed($"Service error: {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 }
