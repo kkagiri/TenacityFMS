@@ -43,6 +43,7 @@ import dashboardPreferencesReducer from "./dashboardPreferencesReducer";
 import dashboardLayoutReducer from "./dashboardLayoutReducer";
 import vehicleDocumentReducer from "./vehicleDocumentReducer";
 import providerReducer from "./providerReducer";
+import maintenanceReducer from "./maintenanceReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
