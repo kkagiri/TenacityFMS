@@ -10,5 +10,11 @@ namespace FMS.Infrastructure.VehicleTracking.Models.GPSGate
     {
         [JsonPropertyName("vertices")]
         public List<GPSGatePosition2D>? Vertices { get; set; }
+
+        [JsonIgnore]
+        public GPSGateShapeType Type => GPSGateShapeType.Polygon;
+
+        [JsonIgnore]
+        public List<GPSGatePosition2D>? Points => Vertices;
     }
 }

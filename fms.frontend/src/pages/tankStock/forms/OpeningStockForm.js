@@ -417,28 +417,29 @@ const OpeningStockForm = ({
 
       const response = await dispatch(createOpeningStock(preparedData));
 
-      // Check for success - be more explicit about what constitutes success
-      if (response && response.success === true) {
-        showNotification(
-          response.message || "Opening stock created successfully",
-          "success",
-          3000
-        );
+      console.log("OpeningStockForm - Response received:", response);
+
+      // Check for success - handle both direct response and unwrapped response
+      const isSuccess = response && (response.success === true || response.payload?.success === true);
+
+      if (isSuccess) {
+        const message = response.message || response.payload?.message || "Opening stock created successfully";
+        showNotification(message, "success", 3000);
 
         // Clear any previous backend errors on success
         setBackendError(null);
 
         // Only close form on successful creation
-        if (onCancel) {
-          onCancel();
-        }
         if (onSubmit) {
           onSubmit(preparedData);
+        }
+        if (onCancel) {
+          onCancel();
         }
       } else {
         // Handle both explicit failure and undefined success - including backend validation errors
         const errorMessage =
-          response?.message || "Failed to create opening stock";
+          response?.message || response?.payload?.message || "Failed to create opening stock";
         console.error("OpeningStockForm - Creation failed:", errorMessage, response);
 
         // Set backend error for inline display instead of notification
@@ -511,13 +512,14 @@ const OpeningStockForm = ({
 
       const response = await dispatch(createOpeningStock(preparedData));
 
-      // Check for success - be more explicit about what constitutes success
-      if (response && response.success === true) {
-        showNotification(
-          response.message || "Opening stock created successfully. Form cleared for new entry.",
-          "success",
-          3000
-        );
+      console.log("OpeningStockForm (Save and New) - Response received:", response);
+
+      // Check for success - handle both direct response and unwrapped response
+      const isSuccess = response && (response.success === true || response.payload?.success === true);
+
+      if (isSuccess) {
+        const message = response.message || response.payload?.message || "Opening stock created successfully. Form cleared for new entry.";
+        showNotification(message, "success", 3000);
 
         // Clear any previous backend errors on success
         setBackendError(null);
@@ -528,7 +530,7 @@ const OpeningStockForm = ({
       } else {
         // Handle both explicit failure and undefined success - including backend validation errors
         const errorMessage =
-          response?.message || "Failed to create opening stock";
+          response?.message || response?.payload?.message || "Failed to create opening stock";
         console.error("OpeningStockForm - Creation failed:", errorMessage, response);
 
         // Set backend error for inline display instead of notification

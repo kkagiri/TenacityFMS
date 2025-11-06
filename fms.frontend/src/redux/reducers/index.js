@@ -90,6 +90,7 @@ const rootReducer = combineReducers({
   dashboardPreferences: dashboardPreferencesReducer,
   dashboard: dashboardLayoutReducer,
   provider: providerReducer,
+  maintenance: maintenanceReducer,
 });
 
 export default rootReducer;

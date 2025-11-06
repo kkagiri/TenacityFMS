@@ -3,37 +3,26 @@ import { useDispatch, useSelector } from 'react-redux';
 import { DataGrid, Button, Popup } from 'devextreme-react';
 import { Column, Paging, SearchPanel, FilterRow, HeaderFilter, Export, Selection } from 'devextreme-react/data-grid';
 import { Form, SimpleItem, Label, RequiredRule } from 'devextreme-react/form';
-import { notify } from 'devextreme/ui/notify';
+import notify from 'devextreme/ui/notify';
+import { confirm } from 'devextreme/ui/dialog';
 import {
   fetchMaintenanceRecords,
   createMaintenanceRecord,
   updateMaintenanceRecord,
   deleteMaintenanceRecord,
 } from '../../../redux/actions/maintenanceActions';
-import maintenanceService from '../../../services/maintenanceService';
 
 const MaintenanceList = () => {
   const dispatch = useDispatch();
-  const { maintenanceRecords, loading } = useSelector((state) => state.maintenance);
+  const { maintenanceRecords } = useSelector((state) => state.maintenance || { maintenanceRecords: [] });
   const [showPopup, setShowPopup] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
-  const [vehicles, setVehicles] = useState([]);
 
   useEffect(() => {
-    loadData();
+    dispatch(fetchMaintenanceRecords());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadData = async () => {
-    try {
-      await dispatch(fetchMaintenanceRecords());
-      // Load vehicles for dropdown
-      // const vehicleData = await vehicleService.getVehicles();
-      // setVehicles(vehicleData);
-    } catch (error) {
-      notify('Error loading data', 'error', 3000);
-    }
-  };
 
   const handleAdd = () => {
     setFormData({
@@ -55,7 +44,12 @@ const MaintenanceList = () => {
   };
 
   const handleDelete = async (maintenanceId) => {
-    if (confirm('Are you sure you want to delete this maintenance record?')) {
+    const result = await confirm(
+      'Are you sure you want to delete this maintenance record?',
+      'Confirm Delete'
+    );
+
+    if (result) {
       try {
         await dispatch(deleteMaintenanceRecord(maintenanceId));
         notify('Maintenance record deleted successfully', 'success', 3000);
@@ -75,7 +69,7 @@ const MaintenanceList = () => {
         notify('Maintenance record created successfully', 'success', 3000);
       }
       setShowPopup(false);
-      loadData();
+      dispatch(fetchMaintenanceRecords());
     } catch (error) {
       notify('Error saving maintenance record', 'error', 3000);
     }

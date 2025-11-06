@@ -171,20 +171,6 @@ namespace FMS.Infrastructure.VehicleTracking.Interfaces
     }
 
     /// <summary>
-    /// Geofence data transfer object
-    /// </summary>
-    public class GeofenceDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string GeofenceType { get; set; } = "Circle"; // Circle, Polygon, etc.
-        public List<GeoPoint> Points { get; set; } = new();
-        public decimal? Radius { get; set; } // For circle geofences
-        public bool IsActive { get; set; }
-    }
-
-    /// <summary>
     /// Geographic point
     /// </summary>
     public class GeoPoint

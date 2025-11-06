@@ -108,7 +108,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 var events = gpsGateEvents?.Select(e =>
                 {
-                    var vehicleName = vehicles.ContainsKey(e.UserId ?? 0) ? vehicles[e.UserId ?? 0] : "Unknown";
+                    int userId = e.UserId;
+                    var vehicleName = vehicles.ContainsKey(userId) ? vehicles[userId] : "Unknown";
                     return MapToEventDTO(e, vehicleName);
                 }).ToList() ?? new List<GPSEventDTO>();
 
@@ -171,7 +172,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             return new GPSEventDTO
             {
                 Id = gpsGateEvent.Id,
-                VehicleId = gpsGateEvent.UserId ?? 0,
+                VehicleId = gpsGateEvent.UserId,
                 VehicleName = vehicleName,
                 EventType = gpsGateEvent.EventRule?.Name ?? "Unknown",
                 EventName = gpsGateEvent.Message ?? string.Empty,

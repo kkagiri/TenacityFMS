@@ -410,7 +410,22 @@ const ClosingStockForm = ({
     return errors;
   }, [formData]);
 
-  // Handle form submission
+  // Clear form data for new entry (preserve site and date)
+  const clearFormData = useCallback(() => {
+    setFormData((prev) => ({
+      siteId: prev.siteId, // Preserve site
+      tankId: null,
+      amount: null,
+      bookBalance: null,
+      physicalStockValue: null,
+      date: prev.date, // Preserve date
+    }));
+    setValidationErrors({});
+    setHasAttemptedSubmit(false);
+    resetValidation();
+  }, [resetValidation]);
+
+  // Handle form submission and close
   const handleSubmit = useCallback(async () => {
     setHasAttemptedSubmit(true);
     const errors = validateForm();
@@ -473,6 +488,65 @@ const ClosingStockForm = ({
     canSubmit,
     resetValidation,
     showNotification,
+  ]);
+
+  // Handle save and new entry
+  const handleSaveAndNew = useCallback(async () => {
+    setHasAttemptedSubmit(true);
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification("Please fill in all required fields correctly", "error", 3000);
+      return;
+    }
+
+    // Check if submission is allowed based on future records validation
+    if (!canSubmit) {
+      showNotification(
+        "Unable to submit due to future records policy. Please check the warnings above.",
+        "error",
+        5000
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const params = prepareOpeningClosingStockParams(formData);
+      const response = await dispatch(createClosingStock(params));
+
+      if (response.success) {
+        showNotification(
+          response.message || "Closing stock created successfully. Form cleared for new entry.",
+          "success",
+          3000
+        );
+        // Reset validation on success
+        resetValidation();
+        // Clear form for new entry (keeps site and date)
+        clearFormData();
+      } else {
+        showNotification(
+          response.message || "Failed to create closing stock",
+          "error",
+          5000
+        );
+      }
+    } catch (error) {
+      console.error("Error creating closing stock:", error);
+      showNotification("An unexpected error occurred", "error", 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    formData,
+    validateForm,
+    dispatch,
+    canSubmit,
+    resetValidation,
+    showNotification,
+    clearFormData,
   ]);
 
   return (
@@ -1004,7 +1078,18 @@ const ClosingStockForm = ({
                 Cancel
               </Button>
               <Button
-                text="Save"
+                text="Save and New"
+                onClick={handleSaveAndNew}
+                disabled={isSubmitting || !canSubmit}
+                loading={isSubmitting}
+                className="tw-min-w-32"
+                stylingMode="outlined"
+              >
+                <i className="fa-light fa-plus tw-mr-2"></i>
+                Save and New
+              </Button>
+              <Button
+                text="Save and Close"
                 onClick={handleSubmit}
                 disabled={isSubmitting || !canSubmit}
                 loading={isSubmitting}
@@ -1012,7 +1097,7 @@ const ClosingStockForm = ({
                 type="default"
               >
                 <i className="fa-light fa-save tw-mr-2"></i>
-                Save
+                Save and Close
               </Button>
             </div>
           </div>

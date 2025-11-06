@@ -12,5 +12,14 @@ namespace FMS.Infrastructure.VehicleTracking.Models.GPSGate
 
         [JsonPropertyName("radius")]
         public double Radius { get; set; }
+
+        [JsonIgnore]
+        public GPSGateShapeType Type => GPSGateShapeType.Circle;
+
+        [JsonIgnore]
+        public double Latitude => Center?.Latitude ?? 0;
+
+        [JsonIgnore]
+        public double Longitude => Center?.Longitude ?? 0;
     }
 }

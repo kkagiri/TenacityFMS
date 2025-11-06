@@ -77,7 +77,7 @@ namespace FMS.Infrastructure.VehicleTracking.Models
         /// <summary>
         /// Get a configuration value by key
         /// </summary>
-        public T GetValue<T>(string key, T defaultValue = default)
+        public T GetValue<T>(string key, T defaultValue = default!)
         {
             try
             {

@@ -38,5 +38,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         /// Get ignition status for a vehicle
         /// </summary>
         Task<FMSResponse<bool?>> GetIgnitionStatusAsync(int vehicleId);
+
+        /// <summary>
+        /// Get engine status for a vehicle
+        /// </summary>
+        Task<FMSResponse<bool?>> GetEngineStatusAsync(int vehicleId);
     }
 }

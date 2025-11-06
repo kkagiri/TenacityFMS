@@ -1,7 +1,9 @@
 using System;
 
-namespace FMS.Application.Features.Vehicle.DTOs {
-    public class VehicleLocationDTO {
+namespace FMS.Application.Features.Vehicle.DTOs
+{
+    public class VehicleLocationDTO
+    {
         public int VehicleId { get; set; }
         public string VehicleName { get; set; } = null!;
         public string? NumberPlate { get; set; }
@@ -11,6 +13,7 @@ namespace FMS.Application.Features.Vehicle.DTOs {
         public decimal? Speed { get; set; }
         public decimal? Heading { get; set; }
         public decimal? Altitude { get; set; }
+        public decimal? Odometer { get; set; }
         public bool IsOnline { get; set; }
         public string? Address { get; set; }
         public bool HasGPSInstalled { get; set; }

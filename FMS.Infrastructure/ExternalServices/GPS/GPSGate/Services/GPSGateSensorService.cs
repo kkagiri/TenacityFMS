@@ -231,6 +231,14 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 : FMSResponse<bool?>.Failed(gpsInfo.Message ?? "Failed to retrieve ignition status");
         }
 
+        public async Task<FMSResponse<bool?>> GetEngineStatusAsync(int vehicleId)
+        {
+            var gpsInfo = await GetVehicleGPSInformationAsync(vehicleId);
+            return gpsInfo.IsSuccess
+                ? FMSResponse<bool?>.Success(gpsInfo.Data?.SensorHealth?.EngineStatus)
+                : FMSResponse<bool?>.Failed(gpsInfo.Message ?? "Failed to retrieve engine status");
+        }
+
         private void ParseSensorVariables(List<GPSGateVariable> variables, SensorHealthDTO sensorHealth)
         {
             foreach (var variable in variables)

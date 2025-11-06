@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.Vehicle.DTOs;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 {
@@ -22,6 +23,11 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         /// Ping the GPSGate API
         /// </summary>
         Task<FMSResponse<double>> PingAsync();
+
+        /// <summary>
+        /// Check overall health status of the GPS system
+        /// </summary>
+        Task<FMSResponse<GPSHealthStatusDTO>> CheckHealthAsync();
     }
 
     public class SystemHealthStatusDTO

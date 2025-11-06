@@ -1,8 +1,10 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -127,6 +129,36 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             {
                 _logger.LogError(ex, "Error getting system health status");
                 return FMSResponse<SystemHealthStatusDTO>.Failed($"Error getting system health: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<GPSHealthStatusDTO>> CheckHealthAsync()
+        {
+            try
+            {
+                var systemHealth = await GetSystemHealthAsync();
+
+                if (!systemHealth.IsSuccess || systemHealth.Data == null)
+                {
+                    return FMSResponse<GPSHealthStatusDTO>.Failed("Failed to get system health");
+                }
+
+                var healthStatus = new GPSHealthStatusDTO
+                {
+                    IsHealthy = systemHealth.Data.IsApiAccessible && systemHealth.Data.Status != "Critical",
+                    StatusMessage = systemHealth.Data.Message,
+                    LastCheckTime = DateTime.UtcNow,
+                    TotalVehicles = systemHealth.Data.TotalVehicles,
+                    OnlineVehicles = systemHealth.Data.OnlineVehicles,
+                    ResponseTimeMs = (long)systemHealth.Data.ResponseTimeMs
+                };
+
+                return FMSResponse<GPSHealthStatusDTO>.Success(healthStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking GPS health");
+                return FMSResponse<GPSHealthStatusDTO>.Failed($"Error checking health: {ex.Message}");
             }
         }
     }

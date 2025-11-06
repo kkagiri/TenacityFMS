@@ -117,10 +117,10 @@ namespace FMS.Infrastructure.Services
                 latestHealth.UpdatedBy = updatedBy;
                 latestHealth.UpdatedAt = DateTime.UtcNow;
 
-                // Update vehicle.WorkingSite if provided
+                // Update vehicle.WorkingSiteId if provided
                 if (request.WorkingSiteId.HasValue)
                 {
-                    vehicle.WorkingSite = request.WorkingSiteId.Value;
+                    vehicle.WorkingSiteId = request.WorkingSiteId.Value;
                 }
 
                 await _context.SaveChangesAsync();
@@ -290,13 +290,13 @@ namespace FMS.Infrastructure.Services
                 latestHealth.UpdatedBy = updatedBy;
                 latestHealth.UpdatedAt = DateTime.UtcNow;
 
-                // Update vehicle.WorkingSite
+                // Update vehicle.WorkingSiteId
                 if (workingSiteId.HasValue)
                 {
                     var vehicle = await _context.Vehicles.FindAsync(vehicleId);
                     if (vehicle != null)
                     {
-                        vehicle.WorkingSite = workingSiteId.Value;
+                        vehicle.WorkingSiteId = workingSiteId.Value;
                     }
                 }
 

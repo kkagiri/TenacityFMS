@@ -559,7 +559,14 @@ const handleTankChange = (e) => {
                                 <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
                                     <RequiredRule />
                                 </FItem>
-                                <FItem dataField={'driverId'} editorType={'dxSelectBox'} editorOptions={{ dataSource: employees, valueExpr: 'id', displayExpr: 'fullName' }}>
+                                {/* Employee selection - shows ALL employees regardless of site selection */}
+                                <FItem dataField={'driverId'} editorType={'dxSelectBox'} editorOptions={{
+                                    dataSource: employees,
+                                    valueExpr: 'id',
+                                    displayExpr: 'fullName',
+                                    searchEnabled: true,
+                                    placeholder: 'Select employee'
+                                }}>
                                     <RequiredRule />
                                 </FItem>
                                 <FItem dataField="siteId" editorType="dxSelectBox" editorOptions={{

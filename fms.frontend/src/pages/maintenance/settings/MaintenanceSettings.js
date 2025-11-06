@@ -3,28 +3,21 @@ import { useDispatch, useSelector } from 'react-redux';
 import { DataGrid, Button, Popup } from 'devextreme-react';
 import { Column, Paging, SearchPanel } from 'devextreme-react/data-grid';
 import { Form, SimpleItem, Label, RequiredRule } from 'devextreme-react/form';
-import { notify } from 'devextreme/ui/notify';
+import notify from 'devextreme/ui/notify';
 import { fetchMaintenanceSchedules } from '../../../redux/actions/maintenanceActions';
 import maintenanceService from '../../../services/maintenanceService';
 
 const MaintenanceSettings = () => {
   const dispatch = useDispatch();
-  const { schedules, loading } = useSelector((state) => state.maintenance);
+  const { schedules } = useSelector((state) => state.maintenance || { schedules: [] });
   const [showPopup, setShowPopup] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
-    loadSchedules();
+    dispatch(fetchMaintenanceSchedules());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadSchedules = async () => {
-    try {
-      await dispatch(fetchMaintenanceSchedules());
-    } catch (error) {
-      notify('Error loading schedules', 'error', 3000);
-    }
-  };
 
   const handleAdd = () => {
     setFormData({
@@ -59,7 +52,7 @@ const MaintenanceSettings = () => {
         notify('Schedule created successfully', 'success', 3000);
       }
       setShowPopup(false);
-      loadSchedules();
+      dispatch(fetchMaintenanceSchedules());
     } catch (error) {
       notify('Error saving schedule', 'error', 3000);
     }

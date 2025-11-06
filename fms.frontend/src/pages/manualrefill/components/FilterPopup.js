@@ -89,13 +89,11 @@ const FilterPopup = ({
       visible={visible}
       onHiding={handleCancel}
       dragEnabled={false}
-      showCloseButton
-={true}
+      showCloseButton={true}
       showTitle={true}
       title="Filter Manual Fuel Refills"
       width={500}
       height='auto'
-      showCloseButton={true}
     >
       <Position
         my="center"

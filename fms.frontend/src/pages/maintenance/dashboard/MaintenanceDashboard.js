@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Chart, PieChart, DataGrid, LoadIndicator } from 'devextreme-react';
 import { Series, Label, Connector, Size, Export, Legend, Tooltip } from 'devextreme-react/chart';
@@ -7,8 +7,11 @@ import { fetchMaintenanceDashboard } from '../../../redux/actions/maintenanceAct
 
 const MaintenanceDashboard = () => {
   const dispatch = useDispatch();
-  const { dashboard, loading, error } = useSelector((state) => state.maintenance);
-  const [selectedView, setSelectedView] = useState('overview');
+  const { dashboard, loading, error } = useSelector((state) => state.maintenance || {
+    dashboard: null,
+    loading: { dashboard: false },
+    error: { dashboard: null }
+  });
 
   useEffect(() => {
     dispatch(fetchMaintenanceDashboard());

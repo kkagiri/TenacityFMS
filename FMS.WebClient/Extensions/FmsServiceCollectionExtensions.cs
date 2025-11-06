@@ -52,6 +52,7 @@ using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Application.CommonInterface;
 using FMS.Infrastructure.Services;
 using FMS.BackgroundServices.VehicleDocumentNotifier;
+using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 
 namespace FMS.WebClient.Extensions;
@@ -382,6 +383,7 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<SystemUserInitializationService>();
         services.AddHostedService<NotificationBackgroundService>();
         services.AddHostedService<VehicleDocumentExpiryNotifierService>();
+        services.AddHostedService<VehicleMaintenanceNotifierService>();
         services.AddHostedService<TankMonitoringService>();
         services.AddHostedService<AutomatedReconciliationBackgroundService>();
         services.AddHostedService<ActiveAlarmProcessingService>();

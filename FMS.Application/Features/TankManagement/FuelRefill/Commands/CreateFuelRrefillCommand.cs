@@ -128,35 +128,70 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 // Check if the tank is using book keeping
                 if (tank.UseBookKeeping == 1)
                 {
-                    // Always validate tank has fuel regardless of entry date
-                    if (tank.CurrentStock == null || tank.CurrentStock <= 0)
-                        return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
-
-                    if (tank.CurrentStock < fuelRefilDto.ManualFuelrefillAmount)
-                        return new FMSResponseMessage(false, $"Insufficient fuel in the tank. Current stock: {tank.CurrentStock}, Requested amount: {fuelRefilDto.ManualFuelrefillAmount}");
-
-                    // For past date entries, check available fuel on that date using TankVolumeHistory
-                    if (entryDate.Date < DateTime.Now.Date)
+                    // For current date entries, validate against tank's current stock
+                    if (entryDate.Date == DateTime.Now.Date)
                     {
-                        // Get all volume changes up to the entry date
-                        var volumeHistoryForDay = await _context.TankVolumeHistories
-                            .Where(x => x.TankId == tank.Id && x.Timestamp.Date <= entryDate.Date)
-                            .OrderByDescending(x => x.Timestamp)
-                            .FirstOrDefaultAsync(cancellationToken);
+                        if (tank.CurrentStock == null || tank.CurrentStock <= 0)
+                            return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
 
-                        if (volumeHistoryForDay != null)
-                        {
-                            decimal availableFuelOnDate = volumeHistoryForDay.NewVolume ?? 0;
-
-                            if (availableFuelOnDate <= 0)
-                                return new FMSResponseMessage(false, $"The tank was empty on {entryDate.Date:d}. Cannot record fuel dispensing.");
-
-                            if (availableFuelOnDate < fuelRefilDto.ManualFuelrefillAmount)
-                                return new FMSResponseMessage(false, $"Insufficient fuel in the tank on {entryDate.Date:d}. Available: {availableFuelOnDate}, Requested: {fuelRefilDto.ManualFuelrefillAmount}");
-                        }
+                        if (tank.CurrentStock < fuelRefilDto.ManualFuelrefillAmount)
+                            return new FMSResponseMessage(false, $"Insufficient fuel in the tank. Current stock: {tank.CurrentStock}, Requested amount: {fuelRefilDto.ManualFuelrefillAmount}");
                     }
-                }
 
+                    // TODO: Implement validation for past-date fuel refills
+                    // For past date entries, we need to check available fuel BEFORE this transaction timestamp
+                    // The validation should query TankVolumeHistory for the record immediately before this transaction
+                    // and verify sufficient fuel was available at that point in time
+                    // Currently commented out to allow historical entries without strict validation
+
+                    //else if (entryDate.Date < DateTime.Now.Date)
+                    //{
+                    //    // Get the volume history record immediately BEFORE this transaction's timestamp
+                    //    // This ensures we check the available fuel at the moment before this dispensing
+                    //    var volumeHistoryBeforeTransaction = await _context.TankVolumeHistories
+                    //        .Where(x => x.TankId == tank.Id &&
+                    //               x.Timestamp < fuelRefilDto.Date.Value &&
+                    //               (x.IsDeleted != true))
+                    //        .OrderByDescending(x => x.Timestamp)
+                    //        .ThenByDescending(x => x.Id)
+                    //        .FirstOrDefaultAsync(cancellationToken);
+
+                    //    if (volumeHistoryBeforeTransaction != null)
+                    //    {
+                    //        decimal availableFuelBeforeTransaction = volumeHistoryBeforeTransaction.NewVolume ?? 0;
+
+                    //        if (availableFuelBeforeTransaction <= 0)
+                    //        {
+                    //            return new FMSResponseMessage(false,
+                    //                $"The tank was empty before this transaction at {fuelRefilDto.Date.Value:g}. Cannot record fuel dispensing.");
+                    //        }
+
+                    //        if (availableFuelBeforeTransaction < fuelRefilDto.ManualFuelrefillAmount)
+                    //        {
+                    //            return new FMSResponseMessage(false,
+                    //                $"Insufficient fuel in the tank before this transaction at {fuelRefilDto.Date.Value:g}. " +
+                    //                $"Available: {availableFuelBeforeTransaction:F2}L, Requested: {fuelRefilDto.ManualFuelrefillAmount:F2}L");
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        // No history found before this transaction - check if there's an opening stock for the day
+                    //        var openingStockForDay = await _context.TankVolumeHistories
+                    //            .Where(x => x.TankId == tank.Id &&
+                    //                   x.Timestamp.Date == entryDate.Date &&
+                    //                   x.ChangeReason == VolumeChangeReasonEnum.OpeningStock &&
+                    //                   (x.IsDeleted != true))
+                    //            .OrderBy(x => x.Timestamp)
+                    //            .FirstOrDefaultAsync(cancellationToken);
+
+                    //        if (openingStockForDay == null)
+                    //        {
+                    //            return new FMSResponseMessage(false,
+                    //                $"No volume history found before {fuelRefilDto.Date.Value:g}. Ensure opening stock exists for {entryDate.Date:d}.");
+                    //        }
+                    //    }
+                    //}
+                }
                 var fuelByUser = await _context.Users.FindAsync(new object[] { fuelRefilDto.FuelBy }, cancellationToken);
                 if (fuelByUser == null) return new FMSResponseMessage(false, $"User with ID {fuelRefilDto.FuelBy} does not exist.");
 

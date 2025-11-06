@@ -297,22 +297,16 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 if (tracks != null && tracks.Any())
                 {
-                    foreach (var track in tracks)
+                    trackPoints = tracks.Select(track => new TrackPointDTO
                     {
-                        if (track.TrackPoints != null)
-                        {
-                            trackPoints.AddRange(track.TrackPoints.Select(point => new TrackPointDTO
-                            {
-                                Latitude = (decimal)point.Latitude,
-                                Longitude = (decimal)point.Longitude,
-                                Altitude = point.Altitude.HasValue ? (decimal)point.Altitude : null,
-                                Speed = point.Speed.HasValue ? (decimal)point.Speed : null,
-                                Heading = point.Heading.HasValue ? (decimal)point.Heading : null,
-                                Timestamp = point.Timestamp,
-                                Odometer = point.Odometer.HasValue ? (decimal)point.Odometer / 1000 : null // Convert to km
-                            }));
-                        }
-                    }
+                        Latitude = (decimal)(track.Position?.Latitude ?? 0.0),
+                        Longitude = (decimal)(track.Position?.Longitude ?? 0.0),
+                        Altitude = track.Position?.Altitude.HasValue == true ? (decimal?)track.Position.Altitude.Value : null,
+                        Speed = track.Velocity?.GroundSpeed.HasValue == true ? (decimal?)track.Velocity.GroundSpeed.Value : null,
+                        Heading = track.Velocity?.Heading.HasValue == true ? (decimal?)track.Velocity.Heading.Value : null,
+                        Timestamp = !string.IsNullOrEmpty(track.UTC) ? DateTime.Parse(track.UTC) : DateTime.UtcNow,
+                        Odometer = null // GPSGate track doesn't include odometer in basic track
+                    }).ToList();
                 }
 
                 return FMSResponse<List<TrackPointDTO>>.Success(trackPoints);
@@ -344,6 +338,32 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             // This would be implemented when real-time tracking is needed
             await Task.CompletedTask;
             return FMSResponse<bool>.Success(true);
+        }
+
+        public async Task<FMSResponse<decimal>> GetVehicleOdometerAsync(int vehicleId)
+        {
+            try
+            {
+                var location = await GetVehicleLocationAsync(vehicleId);
+                if (!location.IsSuccess || location.Data == null)
+                {
+                    return FMSResponse<decimal>.Failed("Failed to get vehicle location");
+                }
+
+                // GPSGate may provide odometer in the location data
+                // If not available, return 0 or calculate from track history
+                return FMSResponse<decimal>.Success(location.Data.Odometer ?? 0);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting odometer for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<decimal>.Failed($"Error getting odometer: {ex.Message}");
+            }
+        }
+
+        public decimal CalculateDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
+        {
+            return CalculateDistance((double)lat1, (double)lon1, (double)lat2, (double)lon2);
         }
 
         #region Helper Methods

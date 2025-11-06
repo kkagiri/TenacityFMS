@@ -28,7 +28,6 @@ import VehicleDashboard from "./pages/vehicles/vehicleDashboard";
 import MaintenanceAlertsPage from "./pages/vehicles/MaintenanceAlertsPage";
 import VehicleEdit from "./pages/vehicles/vehicleEdit";
 // Import Issue Tracker components
-import IssueTrackerPage from "./pages/issueTracker/IssueTrackerPage";
 import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
 // Import Active Alarm components
 import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
@@ -36,6 +35,8 @@ import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
 import ReportsMain from "./pages/reports/ReportsMain";
 // Import Provider Management main entry point (Phase 7)
 import ProviderManagementMain from "./pages/providermanagement/ProviderManagementMain";
+// Import Maintenance main entry point
+import { MaintenanceMain } from "./pages/maintenance";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -52,6 +53,8 @@ const resolvedComponents = (pageName) => {
       return AdminMain;
     case "reports":
       return ReportsMain;
+    case "maintenance":
+      return MaintenanceMain;
     case "active-alarms":
       return ActiveAlarmMain;
     case "issue-tracker":
@@ -97,16 +100,6 @@ const resolvedComponents = (pageName) => {
       return AutomatedReconciliationSystem;
     case "reconciliation-mission-control":
       return EnhancedAutomatedReconciliationSystem;
-
-    case "issue tracker":
-      return IssueTrackerMain;
-    case "device issues":
-    case "issue-tracker":
-    case "issues":
-      return IssueTrackerPage;
-
-    case "active-alarms":
-      return ActiveAlarmMain;
 
     case "unauthorized":
       return unauthorized;

@@ -1,5 +1,4 @@
 using FMS.Application.Features.VehicleMaintenance.DTOs;
-using FMS.Infrastructure.VehicleTracking.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -18,16 +17,13 @@ public record GetMaintenanceDashboardQuery() : IRequest<MaintenanceDashboardDTO>
 public class GetMaintenanceDashboardQueryHandler : IRequestHandler<GetMaintenanceDashboardQuery, MaintenanceDashboardDTO>
 {
     private readonly GpsdataContext _context;
-    private readonly IVehicleTrackingService _trackingService;
     private readonly ILogger<GetMaintenanceDashboardQueryHandler> _logger;
 
     public GetMaintenanceDashboardQueryHandler(
         GpsdataContext context,
-        IVehicleTrackingService trackingService,
         ILogger<GetMaintenanceDashboardQueryHandler> logger)
     {
         _context = context;
-        _trackingService = trackingService;
         _logger = logger;
     }
 

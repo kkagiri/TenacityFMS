@@ -46,11 +46,12 @@ const EmployeeSearchableSelector = ({
     console.log('Performing employee search for:', term);
     setIsLoading(true);
     try {
+      // Search ALL employees without site filtering
       const response = await axiosInstance.get('/employee/search', {
         params: {
           searchTerm: term,
           active: activeOnly,
-          siteId: siteId ?? undefined,
+          // siteId intentionally NOT included - show all employees
           limit: 50
         }
       });
@@ -73,7 +74,7 @@ const EmployeeSearchableSelector = ({
     } finally {
       setIsLoading(false);
     }
-  }, [activeOnly, siteId]);
+  }, [activeOnly]); // siteId removed - we don't filter by site
 
   const handleSearchTermChange = useCallback((inputValue) => {
     console.log('Employee search term changed:', inputValue);

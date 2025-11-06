@@ -66,14 +66,27 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         }
 
         /// <summary>
-        /// Get odometer reading for a specific vehicle
+        /// Get vehicle odometer reading
         /// Delegates to LocationService
         /// </summary>
         public async Task<FMSResponse<VehicleOdometerDTO>> GetVehicleOdometerAsync(int vehicleId)
         {
             try
             {
-                return await _locationService.GetVehicleOdometerAsync(vehicleId);
+                var odometerResult = await _locationService.GetVehicleOdometerAsync(vehicleId);
+                if (odometerResult.IsSuccess)
+                {
+                    var odometerDto = new VehicleOdometerDTO
+                    {
+                        VehicleId = vehicleId,
+                        CurrentOdometer = odometerResult.Data,
+                        TotalDistance = odometerResult.Data,
+                        LastUpdated = DateTime.UtcNow,
+                        Unit = "km"
+                    };
+                    return FMSResponse<VehicleOdometerDTO>.Success(odometerDto);
+                }
+                return FMSResponse<VehicleOdometerDTO>.Failed(odometerResult.Message);
             }
             catch (Exception ex)
             {
@@ -453,7 +466,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         {
             try
             {
-                return await _healthService.PingAsync();
+                var pingResult = await _healthService.PingAsync();
+                if (pingResult.IsSuccess)
+                {
+                    return FMSResponse<bool>.Success(true, $"Ping successful: {pingResult.Data}ms");
+                }
+                return FMSResponse<bool>.Failed(pingResult.Message);
             }
             catch (Exception ex)
             {

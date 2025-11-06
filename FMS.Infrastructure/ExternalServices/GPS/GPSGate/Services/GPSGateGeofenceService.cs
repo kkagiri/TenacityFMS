@@ -68,6 +68,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
         }
 
+        public async Task<FMSResponse<List<GeofenceDTO>>> GetAllGeofencesAsync()
+        {
+            // Delegate to GetGeofencesAsync - they're the same operation
+            return await GetGeofencesAsync();
+        }
+
         public async Task<FMSResponse<GeofenceDTO>> GetGeofenceByIdAsync(int geofenceId)
         {
             try
@@ -138,6 +144,39 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             {
                 _logger.LogError(ex, "Error checking if vehicle {VehicleId} is in geofence {GeofenceId}",
                     vehicleId, geofenceId);
+                return FMSResponse<bool>.Failed($"Error checking geofence: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<bool>> IsPointInGeofenceAsync(decimal latitude, decimal longitude, int geofenceId)
+        {
+            try
+            {
+                // Get geofence
+                var geofenceResponse = await GetGeofenceByIdAsync(geofenceId);
+                if (!geofenceResponse.IsSuccess || geofenceResponse.Data == null)
+                    return FMSResponse<bool>.Failed("Failed to get geofence");
+
+                var geofence = geofenceResponse.Data;
+
+                // Check if point is inside geofence
+                bool isInside = geofence.Type switch
+                {
+                    GeofenceType.Circle => IsPointInCircle(
+                        (double)latitude, (double)longitude,
+                        geofence.Coordinates.FirstOrDefault(), (double)(geofence.Radius ?? 0)),
+                    GeofenceType.Polygon => IsPointInPolygon(
+                        (double)latitude, (double)longitude,
+                        geofence.Coordinates),
+                    _ => false
+                };
+
+                return FMSResponse<bool>.Success(isInside);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking if point ({Latitude}, {Longitude}) is in geofence {GeofenceId}",
+                    latitude, longitude, geofenceId);
                 return FMSResponse<bool>.Failed($"Error checking geofence: {ex.Message}");
             }
         }

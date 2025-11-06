@@ -174,6 +174,16 @@ export default function Content() {
           element={React.createElement(resolvedComponents("reports"))}
         />
 
+        {/* Maintenance System Routes - Handle all maintenance sub-routes internally */}
+        <Route
+          path="/maintenance"
+          element={React.createElement(resolvedComponents("maintenance"))}
+        />
+        <Route
+          path="/maintenance/*"
+          element={React.createElement(resolvedComponents("maintenance"))}
+        />
+
         {/* Provider Management System Routes - Handle all providermanagement sub-routes internally */}
         <Route
           path="/providermanagement"
@@ -226,7 +236,7 @@ export default function Content() {
         >
           <div>
             Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
-            Version:2.0.14
+            Version:2.1.0
             <br />
             Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
             trademarks are property of Hyoung EA Co. Ltd.

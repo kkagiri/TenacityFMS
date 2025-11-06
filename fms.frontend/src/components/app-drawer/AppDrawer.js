@@ -100,6 +100,14 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       route: "/active-alarms",
       color: "#e74856",
       roles: ["admin", "management", "user","poweruser"] // All roles should see alarms
+    },
+    {
+      id: 11,
+      name: "Maintenance",
+      icon: "fa-light fa-wrench",
+      route: "/maintenance",
+      color: "#ea580c",
+      roles: ["admin", "management", "user", "poweruser"] // All users can access maintenance
     }
   ];
 
