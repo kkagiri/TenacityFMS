@@ -83,6 +83,11 @@ public static class FmsServiceCollectionExtensions
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // Server waits 60s for client ping before disconnect
             options.KeepAliveInterval = TimeSpan.FromSeconds(15); // Server sends keep-alive ping every 15s
             options.HandshakeTimeout = TimeSpan.FromSeconds(15); // Handshake timeout
+        })
+        .AddJsonProtocol(options =>
+        {
+            options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
 
         // Add Redis backplane for cross-process SignalR communication (WebClient ↔ Windows Service)

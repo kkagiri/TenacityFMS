@@ -57,31 +57,45 @@ const deviceConnectionReducer = (state = initialState, action) => {
       const newStatuses = {};
 
       webSocketConnections.forEach((conn) => {
-        newStatuses[conn.deviceId] = {
-          status: mapStatus(conn.status),
-          connectionType: "WebSocket",
-          lastActivity: conn.lastMessageAt,
-          ipAddress: conn.ipAddress,
-          timestamp: summaryTimestamp,
-        };
+        // Handle both camelCase and PascalCase property names from SignalR
+        const deviceId = conn.deviceId || conn.DeviceId;
+        const status = conn.status !== undefined ? conn.status : conn.Status;
+        const lastMessageAt = conn.lastMessageAt || conn.LastMessageAt;
+        const ipAddress = conn.ipAddress || conn.IpAddress;
+
+        if (deviceId) {
+          newStatuses[deviceId] = {
+            status: mapStatus(status),
+            connectionType: "WebSocket",
+            lastActivity: lastMessageAt,
+            ipAddress: ipAddress,
+            timestamp: summaryTimestamp,
+          };
+        }
       });
 
       httpConnections.forEach((conn) => {
-        if (!newStatuses[conn.deviceId]) {
+        // Handle both camelCase and PascalCase property names from SignalR
+        const deviceId = conn.deviceId || conn.DeviceId;
+        const lastStatusUpdate = conn.lastStatusUpdate || conn.LastStatusUpdate;
+        const lastPollTime = conn.lastPollTime || conn.LastPollTime;
+        const lastKnownIp = conn.lastKnownIp || conn.LastKnownIp;
+
+        if (deviceId && !newStatuses[deviceId]) {
           const lastHttpActivity =
-            conn.lastStatusUpdate > conn.lastPollTime
-              ? conn.lastStatusUpdate
-              : conn.lastPollTime;
+            lastStatusUpdate > lastPollTime
+              ? lastStatusUpdate
+              : lastPollTime;
           const httpTimeoutMinutes = 15.0;
           const isStale =
             (Date.now() - new Date(lastHttpActivity).getTime()) / (1000 * 60) >
             httpTimeoutMinutes;
 
-          newStatuses[conn.deviceId] = {
+          newStatuses[deviceId] = {
             status: isStale ? "Disconnected" : "Active",
             connectionType: "HTTP",
             lastActivity: lastHttpActivity,
-            ipAddress: conn.lastKnownIp,
+            ipAddress: lastKnownIp,
             timestamp: summaryTimestamp,
           };
         }
@@ -97,7 +111,11 @@ const deviceConnectionReducer = (state = initialState, action) => {
     case UPDATE_SINGLE_DEVICE_STATUS:
       console.log(
         "[DeviceConnectionReducer] Processing single device update:",
-        action.payload.deviceId
+        action.payload.deviceId,
+        "Status value:",
+        action.payload.connectionStatus,
+        "Full payload:",
+        action.payload
       );
       const {
         deviceId,
@@ -119,12 +137,17 @@ const deviceConnectionReducer = (state = initialState, action) => {
         return state;
       }
 
+      const mappedStatus = mapStatus(connectionStatus);
+      console.log(
+        `[DeviceConnectionReducer] Mapping status for ${deviceId}: "${connectionStatus}" → "${mappedStatus}"`
+      );
+
       return {
         ...state,
         connectionStatuses: {
           ...state.connectionStatuses,
           [deviceId]: {
-            status: mapStatus(connectionStatus),
+            status: mappedStatus,
             connectionType,
             lastActivity,
             ipAddress,

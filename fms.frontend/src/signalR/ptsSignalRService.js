@@ -371,16 +371,27 @@ class PTSSignalRService {
       "DeviceStatusUpdate",
       (data) => {
         if (data && data.deviceId) {
+          console.log("[PTS SignalR] DeviceStatusUpdate RAW:", {
+            deviceId: data.deviceId,
+            status: data.status,
+            connectionStatus: data.connectionStatus,
+            Status: data.Status,
+            ConnectionStatus: data.ConnectionStatus,
+            fullData: data,
+          });
+
           this.notifyListeners("deviceStatusUpdate", data);
+
           if (store) {
             store.dispatch({
               type: "UPDATE_SINGLE_DEVICE_STATUS",
               payload: {
-                deviceId: data.deviceId,
-                connectionStatus: data.connectionStatus,
-                connectionType: data.connectionType,
-                lastActivity: data.lastActivity,
-                ipAddress: data.ipAddress,
+                deviceId: data.deviceId || data.DeviceId,
+                // Backend sends 'status' (lowercase), not 'connectionStatus'
+                connectionStatus: data.connectionStatus || data.ConnectionStatus || data.status || data.Status,
+                connectionType: data.connectionType || data.ConnectionType,
+                lastActivity: data.lastActivity || data.LastActivity,
+                ipAddress: data.ipAddress || data.IpAddress,
                 timestamp: Date.now(),
               },
             });

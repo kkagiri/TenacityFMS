@@ -65,20 +65,44 @@ namespace FMS.Application.Handlers.Common
                     var handler = _handlerRegistry.GetHandler(packet.Type);
                     if (handler == null) throw new NotSupportedException($"No handler found for message type {packet.Type}");
 
+                    // CRITICAL: Use Task.Run with timeout to prevent blocking other packets
+                    // This ensures that slow/hung handlers don't block UploadStatus or other critical packets
+                    var handlerTask = Task.Run(async () => await handler.HandlePacketAsync(deviceId, packet));
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(30)); // 30 second timeout per packet
 
-                    var responsePacket = await handler.HandlePacketAsync(deviceId, packet);
+                    var completedTask = await Task.WhenAny(handlerTask, timeoutTask);
 
-                    // Correct packet IDs if needed.
-                    if (responsePacket.Id != originalPacketId)
+                    Packet responsePacket;
+                    if (completedTask == timeoutTask)
                     {
-                        _logger.LogError("Handler response ID mismatch. Expected: {ExpectedId}, Actual: {ActualId}", originalPacketId, responsePacket.Id);
-                        responsePacket.Id = originalPacketId;
+                        // Handler timed out - return error but continue processing other packets
+                        _logger.LogError("Handler timeout for packet {PacketId} of type {PacketType} for device {DeviceId}",
+                            packet.Id, packet.Type, deviceId);
+
+                        responsePacket = new Packet
+                        {
+                            Id = originalPacketId,
+                            Type = packet.Type,
+                            Error = true,
+                            Code = 408, // Request Timeout
+                            Message = "Handler processing timeout"
+                        };
                     }
-                    // Optionally remove or modify fields for WebSocket.
-                    if (string.IsNullOrEmpty(responsePacket.SetRequestType))
+                    else
                     {
-                        responsePacket.Data = null;  // Will be excluded from serialization
+                        responsePacket = await handlerTask;
 
+                        // Correct packet IDs if needed.
+                        if (responsePacket.Id != originalPacketId)
+                        {
+                            _logger.LogError("Handler response ID mismatch. Expected: {ExpectedId}, Actual: {ActualId}", originalPacketId, responsePacket.Id);
+                            responsePacket.Id = originalPacketId;
+                        }
+                        // Optionally remove or modify fields for WebSocket.
+                        if (string.IsNullOrEmpty(responsePacket.SetRequestType))
+                        {
+                            responsePacket.Data = null;  // Will be excluded from serialization
+                        }
                     }
 
                     responseMessage.Packets.Add(responsePacket);
@@ -94,7 +118,8 @@ namespace FMS.Application.Handlers.Common
                         Id = packet.Id,
                         Type = packet.Type,
                         Error = true,
-                        Code = MapExceptionToErrorCode(ex)
+                        Code = MapExceptionToErrorCode(ex),
+                        Message = GetUserFriendlyErrorMessage(ex, packet.Type)
                     };
                     responseMessage.Packets.Add(errorPacket);
                 }
@@ -119,17 +144,26 @@ namespace FMS.Application.Handlers.Common
 
             var jObject = JObject.FromObject(response);
 
-            // For each packet, you can remove fields conditionally
+            // For each packet, remove fields conditionally based on packet type
             var packets = jObject["Packets"] as JArray;
             if (packets != null)
             {
                 foreach (var p in packets)
                 {
+                    // Always remove these internal fields
                     p["SetRequestType"]?.Parent?.Remove();
-                    p["Data"]?.Parent?.Remove();
-                    p["Error"]?.Parent?.Remove();
-                    p["Code"]?.Parent?.Remove();
 
+                    // Only remove Data if it's null/empty (keep it for responses that need data)
+                    var dataToken = p["Data"];
+                    if (dataToken == null || dataToken.Type == JTokenType.Null)
+                    {
+                        dataToken?.Parent?.Remove();
+                    }
+
+                    // Keep Error and Code fields for acknowledgment messages
+                    // These are required for device to confirm receipt (especially for PumpTransaction)
+                    // p["Error"]?.Parent?.Remove();  // Don't remove - device needs this
+                    // p["Code"]?.Parent?.Remove();   // Don't remove - device needs this
                 }
             }
 
@@ -160,6 +194,19 @@ namespace FMS.Application.Handlers.Common
                 NotSupportedException => 415,
                 TimeoutException => 408,
                 _ => 500
+            };
+        }
+
+        private string GetUserFriendlyErrorMessage(Exception ex, string packetType)
+        {
+            // Provide device-friendly error messages without exposing internal details
+            return ex switch
+            {
+                ArgumentException => "Invalid data format",
+                UnauthorizedAccessException => "Unauthorized",
+                NotSupportedException => $"Packet type '{packetType}' not supported",
+                TimeoutException => "Processing timeout",
+                _ => "Processing error"
             };
         }
 
