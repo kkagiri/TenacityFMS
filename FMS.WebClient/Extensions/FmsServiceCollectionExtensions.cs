@@ -90,7 +90,7 @@ public static class FmsServiceCollectionExtensions
         {
             signalRBuilder.AddStackExchangeRedis(redisConn, options =>
             {
-                options.Configuration.ChannelPrefix = RedisChannel.Literal("fms-signalr"); // Namespace SignalR channels
+                options.Configuration.ChannelPrefix = "fms-signalr"; // Namespace SignalR channels
             });
             Log.Information("SignalR Redis backplane configured for cross-process communication");
         }

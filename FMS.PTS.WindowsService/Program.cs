@@ -403,7 +403,7 @@ namespace FMS.PTS.WindowsService
                 {
                     signalRBuilder.AddStackExchangeRedis(redisConnectionString, options =>
                     {
-                        options.Configuration.ChannelPrefix = RedisChannel.Literal("fms-signalr"); // Must match WebClient configuration
+                        options.Configuration.ChannelPrefix = "fms-signalr"; // Must match WebClient configuration
                     });
                     Log.Information("SignalR Redis backplane configured - Windows Service can now communicate with WebClient hubs");
                 }
