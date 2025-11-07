@@ -74,8 +74,9 @@ public static class FmsServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
 
-        // Real-time hubs with CORS support
-        services.AddSignalR(options =>
+        // Real-time hubs with CORS support and Redis backplane for cross-process communication
+        var redisConn = Environment.GetEnvironmentVariable("ConnectionStrings__RedisConnection", EnvironmentVariableTarget.Machine);
+        var signalRBuilder = services.AddSignalR(options =>
         {
             options.EnableDetailedErrors = true; // For debugging
             options.MaximumReceiveMessageSize = 102400000; // 100MB
@@ -83,6 +84,20 @@ public static class FmsServiceCollectionExtensions
             options.KeepAliveInterval = TimeSpan.FromSeconds(15); // Server sends keep-alive ping every 15s
             options.HandshakeTimeout = TimeSpan.FromSeconds(15); // Handshake timeout
         });
+
+        // Add Redis backplane for cross-process SignalR communication (WebClient ↔ Windows Service)
+        if (!string.IsNullOrEmpty(redisConn))
+        {
+            signalRBuilder.AddStackExchangeRedis(redisConn, options =>
+            {
+                options.Configuration.ChannelPrefix = "fms-signalr"; // Namespace SignalR channels
+            });
+            Log.Information("SignalR Redis backplane configured for cross-process communication");
+        }
+        else
+        {
+            Log.Warning("SignalR Redis backplane not configured - cross-process hub context will not work");
+        }
 
         RegisterCors(services);
         RegisterMediatR(services);

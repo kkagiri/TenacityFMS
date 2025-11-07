@@ -190,7 +190,7 @@ namespace FMS.PTS.WindowsService
             services.AddSingleton<DeviceConnectionTracker>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<DeviceConnectionTracker>>();
-                var hubContext = sp.GetRequiredService<IHubContext<FrontEndHub>>();
+                var hubContext = sp.GetRequiredService<IHubContext<PTSHub>>();
                 var redisConnection = sp.GetRequiredService<IConnectionMultiplexer>();
                 return new DeviceConnectionTracker(logger, hubContext, redisConnection);
             }); //Cursor
@@ -387,17 +387,33 @@ namespace FMS.PTS.WindowsService
 
             try
             {
-                // Register SignalR core services needed to inject and use IHubContext
-                services.AddSignalR();
+                // Get Redis connection string from configuration for SignalR backplane
+                var redisConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__RedisConnection", EnvironmentVariableTarget.Machine);
 
-                // No need for AddStackExchangeRedis() here if this service
-                // is only PUBLISHING via IHubContext and not HOSTING a hub endpoint.
-                // The IHubContext will use the backplane configured on the actual hub host (WebClient).
+                // Register SignalR core services with Redis backplane for cross-process communication
+                var signalRBuilder = services.AddSignalR(options =>
+                {
+                    options.EnableDetailedErrors = true; // For debugging
+                });
+
+                // Add Redis backplane to enable IHubContext to communicate with WebClient's SignalR hubs
+                if (!string.IsNullOrEmpty(redisConnectionString))
+                {
+                    signalRBuilder.AddStackExchangeRedis(redisConnectionString, options =>
+                    {
+                        options.Configuration.ChannelPrefix = "fms-signalr"; // Must match WebClient configuration
+                    });
+                    Log.Information("SignalR Redis backplane configured - Windows Service can now communicate with WebClient hubs");
+                }
+                else
+                {
+                    Log.Warning("SignalR Redis backplane not configured - IHubContext broadcasts will not reach WebClient clients");
+                }
 
                 // Existing communication services...
                 services.AddHostedService(sp => sp.GetRequiredService<PTSWebSocketListenerService>());
 
-                Log.Information("Communication services configured (SignalR Core added, no server-side backplane)");
+                Log.Information("Communication services configured successfully");
             }
             catch (Exception ex)
             {
