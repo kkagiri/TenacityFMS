@@ -17,7 +17,7 @@
     <PackageReference Include="MediatR" Version="12.5.0" />
     <PackageReference Include="NLog" Version="5.1.5" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.35.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
     <PackageReference Include="system.servicemodel.duplex" Version="4.7.0" />
     <PackageReference Include="system.servicemodel.http" Version="4.7.0" />
     <PackageReference Include="system.servicemodel.netTcp" Version="4.7.0" />

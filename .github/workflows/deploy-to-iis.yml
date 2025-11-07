@@ -4,59 +4,35 @@ on:
   push:
     branches: [productionv1, main, master]
   workflow_dispatch:
+    inputs:
+      rebuild_frontend:
+        description: 'Rebuild frontend (npm install & build)?'
+        required: false
+        type: boolean
+        default: false
+      skip_backend:
+        description: 'Skip backend deployment?'
+        required: false
+        type: boolean
+        default: false
+      skip_frontend:
+        description: 'Skip frontend deployment?'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy:
     runs-on: self-hosted
 
     steps:
-      - name: 🧹 Pre-Deployment Cleanup
-        continue-on-error: true
-        run: |
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "  Pre-Deployment Cleanup" -ForegroundColor Cyan
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host ""
-
-          # Define workspace path
-          $workspacePath = "C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS"
-
-          # Stop any running Node.js processes from previous builds
-          Write-Host "Stopping Node.js processes..." -ForegroundColor Yellow
-          $nodeProcesses = Get-Process -Name "node" -ErrorAction SilentlyContinue
-          if ($nodeProcesses) {
-            $nodeProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-            Write-Host "  Stopped $($nodeProcesses.Count) Node.js process(es)" -ForegroundColor Green
-          } else {
-            Write-Host "  No Node.js processes found" -ForegroundColor Green
-          }
-
-          # Wait for file handles to be released
-          Start-Sleep -Seconds 5
-
-          # Try to remove problematic directories
-          $dirsToClean = @(
-            "fms.frontend\node_modules",
-            "fms.frontend\build"
-          )
-
-          foreach ($dir in $dirsToClean) {
-            $fullPath = Join-Path $workspacePath $dir
-            if (Test-Path $fullPath) {
-              Write-Host "Removing $dir..." -ForegroundColor Yellow
-              Remove-Item $fullPath -Recurse -Force -ErrorAction SilentlyContinue
-            }
-          }
-
-          Write-Host ""
-          Write-Host "Cleanup completed" -ForegroundColor Green
-          Write-Host ""
-        shell: powershell
+      # ========================================
+      # CHECKOUT & SETUP
+      # ========================================
 
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: false
           fetch-depth: 0
 
       - name: 🔧 Setup .NET
@@ -64,70 +40,353 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      # ========================================
+      # CONDITIONAL FRONTEND BUILD CHECK
+      # ========================================
+
+      - name: 🔍 Check if frontend rebuild is needed
+        id: check_frontend
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Frontend Build Decision" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
+
+          $rebuildFrontend = $false
+          $reason = ""
+
+          # Check 1: Manual workflow dispatch input
+          if ("${{ github.event.inputs.rebuild_frontend }}" -eq "true") {
+            $rebuildFrontend = $true
+            $reason = "Manual workflow input requested rebuild"
+          }
+
+          # Check 2: Commit message contains [rebuild-frontend]
+          $commitMessage = "${{ github.event.head_commit.message }}"
+          if ($commitMessage -match '\[rebuild-frontend\]' -or $commitMessage -match '\[rebuild-npm\]' -or $commitMessage -match '\[npm-build\]') {
+            $rebuildFrontend = $true
+            $reason = "Commit message contains rebuild flag"
+          }
+
+          # Check 3: Check if frontend files changed (package.json, src/)
+          $changed_files = git diff --name-only HEAD~1 HEAD
+          $frontend_changed = $changed_files | Where-Object { $_ -match '^fms\.frontend/(src/|package\.json|package-lock\.json)' }
+          if ($frontend_changed) {
+            $rebuildFrontend = $true
+            $reason = "Frontend source files changed"
+          }
+
+          # Output decision
+          if ($rebuildFrontend) {
+            Write-Host "✅ Frontend WILL be rebuilt" -ForegroundColor Green
+            Write-Host "   Reason: $reason" -ForegroundColor Yellow
+            echo "rebuild=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "⏭️  Frontend rebuild SKIPPED" -ForegroundColor Yellow
+            Write-Host "   Using existing build from fms.frontend/build" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "💡 To force rebuild, use one of:" -ForegroundColor Cyan
+            Write-Host "   - Commit message: [rebuild-frontend]" -ForegroundColor Gray
+            Write-Host "   - Manual workflow: Check 'Rebuild frontend'" -ForegroundColor Gray
+            echo "rebuild=false" >> $env:GITHUB_OUTPUT
+          }
+
+          Write-Host ""
+        shell: powershell
+
+      # ========================================
+      # NODE.JS SETUP (CONDITIONAL)
+      # ========================================
+
       - name: 🔧 Setup Node.js
+        if: steps.check_frontend.outputs.rebuild == 'true'
         uses: actions/setup-node@v3
         with:
           node-version: "18"
           cache: "npm"
           cache-dependency-path: "fms.frontend/package-lock.json"
 
-      # ========================================
-      # RUN DEPLOYMENT SCRIPT
-      # ========================================
-
-      - name: 🚀 Deploy to IIS (Using Proven Script)
+      - name: 📦 Install npm dependencies
+        if: steps.check_frontend.outputs.rebuild == 'true'
         run: |
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "  Running Deployment Script" -ForegroundColor Cyan
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host ""
-
-          # Ensure npm dependencies are installed
           Write-Host "Installing npm dependencies..." -ForegroundColor Yellow
           Push-Location "fms.frontend"
+
+          # Clean install for reproducible builds
           if (Test-Path "node_modules") {
             Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
           }
-          npm ci
-          Pop-Location
 
-          Write-Host ""
-          Write-Host "Running deploy-alternative.ps1..." -ForegroundColor Yellow
-          Write-Host ""
-
-          # Run the proven deployment script
-          .\scripts\deploy-alternative.ps1
+          npm ci --legacy-peer-deps
 
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "Deployment script failed"
+            Write-Error "npm install failed"
             exit 1
           }
+
+          Pop-Location
+          Write-Host "✅ npm dependencies installed" -ForegroundColor Green
+        shell: powershell
+
+      - name: 🏗️ Build React App
+        if: steps.check_frontend.outputs.rebuild == 'true'
+        run: |
+          Write-Host "Building React application..." -ForegroundColor Yellow
+          Push-Location "fms.frontend"
+
+          npm run build
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "npm build failed"
+            Pop-Location
+            exit 1
+          }
+
+          Pop-Location
+          Write-Host "✅ React app built successfully" -ForegroundColor Green
+          Write-Host "   Build output: fms.frontend/build" -ForegroundColor Gray
         shell: powershell
 
       # ========================================
-      # POST-DEPLOYMENT
+      # BACKEND DEPLOYMENT
+      # ========================================
+
+      - name: 🚀 Deploy Backend API
+        if: github.event.inputs.skip_backend != 'true'
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Backend API Deployment" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
+
+          $backendPath = "C:\inetpub\wwwroot\hyoungFMS\webAPI"
+          $backendPool = "HyoungFMS.WebAPI"
+          $backendProject = "FMS.WebClient\FMS.WebClient.csproj"
+          $tempPath = "$backendPath`_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
+          $oldPath = "$backendPath`_old"
+
+          Import-Module WebAdministration -ErrorAction Stop
+
+          try {
+            # Build to temporary location
+            Write-Host "🔨 Building backend to temporary location..." -ForegroundColor Yellow
+            dotnet publish $backendProject `
+              --configuration Release `
+              --output $tempPath `
+              --verbosity minimal `
+              /p:EnvironmentName=Production
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Backend build failed"
+            }
+            Write-Host "✅ Backend built successfully" -ForegroundColor Green
+            Write-Host ""
+
+            # Note: web.config is now included in build from source (FMS.WebClient\web.config)
+            Write-Host "ℹ️  web.config preserved from source" -ForegroundColor Cyan
+
+            # Stop IIS App Pool
+            Write-Host "⏸️  Stopping IIS App Pool: $backendPool" -ForegroundColor Yellow
+            Stop-WebAppPool -Name $backendPool -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 10
+            Write-Host "✅ App pool stopped" -ForegroundColor Green
+
+            # Remove old backup if exists
+            if (Test-Path $oldPath) {
+              Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+
+            # Swap folders
+            Write-Host "🔄 Swapping deployment folders..." -ForegroundColor Yellow
+            if (Test-Path $backendPath) {
+              Rename-Item $backendPath $oldPath -Force
+            }
+            Rename-Item $tempPath $backendPath -Force
+            Write-Host "✅ Deployment folder swapped" -ForegroundColor Green
+
+          } catch {
+            Write-Host "❌ Backend deployment failed: $_" -ForegroundColor Red
+
+            # Rollback
+            if (Test-Path $tempPath) {
+              Remove-Item $tempPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            if ((Test-Path $oldPath) -and (-not (Test-Path $backendPath))) {
+              Rename-Item $oldPath $backendPath -Force
+              Write-Host "↩️  Rolled back to previous version" -ForegroundColor Yellow
+            }
+
+            throw
+          } finally {
+            # Always restart app pool
+            Write-Host "▶️  Starting IIS App Pool: $backendPool" -ForegroundColor Yellow
+            Start-WebAppPool -Name $backendPool -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 5
+
+            $status = (Get-WebAppPoolState -Name $backendPool -ErrorAction SilentlyContinue).Value
+            Write-Host "✅ App pool status: $status" -ForegroundColor Green
+          }
+
+          # Cleanup old deployment
+          if (Test-Path $oldPath) {
+            Write-Host "🧹 Cleaning up old deployment..." -ForegroundColor Yellow
+            Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+          Write-Host ""
+          Write-Host "✅ Backend deployment complete!" -ForegroundColor Green
+          Write-Host ""
+        shell: powershell
+
+      # ========================================
+      # FRONTEND DEPLOYMENT
+      # ========================================
+
+      - name: 🚀 Deploy Frontend React App
+        if: github.event.inputs.skip_frontend != 'true'
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Frontend React App Deployment" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
+
+          $frontendPath = "C:\inetpub\wwwroot\hyoungFMS\reactApp"
+          $frontendPool = "HyoungFMS.ReactApp"
+          $buildPath = "fms.frontend\build"
+          $tempPath = "$frontendPath`_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
+          $oldPath = "$frontendPath`_old"
+
+          Import-Module WebAdministration -ErrorAction Stop
+
+          # Verify build exists
+          if (-not (Test-Path $buildPath)) {
+            Write-Error "Build folder not found at $buildPath. Run 'npm run build' first or enable 'rebuild_frontend' option."
+            exit 1
+          }
+
+          try {
+            # Copy build to temporary location
+            Write-Host "📦 Copying build to temporary location..." -ForegroundColor Yellow
+            Copy-Item -Path $buildPath -Destination $tempPath -Recurse -Force
+            Write-Host "✅ Build copied to $tempPath" -ForegroundColor Green
+            Write-Host ""
+
+            # Note: web.config is now included in build from source (fms.frontend\public\web.config)
+            Write-Host "ℹ️  web.config preserved from source (fms.frontend/public/web.config)" -ForegroundColor Cyan
+
+            # Stop IIS App Pool
+            Write-Host "⏸️  Stopping IIS App Pool: $frontendPool" -ForegroundColor Yellow
+            Stop-WebAppPool -Name $frontendPool -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 10
+            Write-Host "✅ App pool stopped" -ForegroundColor Green
+
+            # Remove old backup if exists
+            if (Test-Path $oldPath) {
+              Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+
+            # Swap folders
+            Write-Host "🔄 Swapping deployment folders..." -ForegroundColor Yellow
+            if (Test-Path $frontendPath) {
+              Rename-Item $frontendPath $oldPath -Force
+            }
+            Rename-Item $tempPath $frontendPath -Force
+            Write-Host "✅ Deployment folder swapped" -ForegroundColor Green
+
+          } catch {
+            Write-Host "❌ Frontend deployment failed: $_" -ForegroundColor Red
+
+            # Rollback
+            if (Test-Path $tempPath) {
+              Remove-Item $tempPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            if ((Test-Path $oldPath) -and (-not (Test-Path $frontendPath))) {
+              Rename-Item $oldPath $frontendPath -Force
+              Write-Host "↩️  Rolled back to previous version" -ForegroundColor Yellow
+            }
+
+            throw
+          } finally {
+            # Always restart app pool
+            Write-Host "▶️  Starting IIS App Pool: $frontendPool" -ForegroundColor Yellow
+            Start-WebAppPool -Name $frontendPool -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 5
+
+            $status = (Get-WebAppPoolState -Name $frontendPool -ErrorAction SilentlyContinue).Value
+            Write-Host "✅ App pool status: $status" -ForegroundColor Green
+          }
+
+          # Cleanup old deployment
+          if (Test-Path $oldPath) {
+            Write-Host "🧹 Cleaning up old deployment..." -ForegroundColor Yellow
+            Remove-Item $oldPath -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+          Write-Host ""
+          Write-Host "✅ Frontend deployment complete!" -ForegroundColor Green
+          Write-Host ""
+        shell: powershell
+
+      # ========================================
+      # DEPLOYMENT SUMMARY
+      # ========================================
+
+      - name: 📊 Deployment Summary
+        if: always()
+        run: |
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host "     DEPLOYMENT SUMMARY" -ForegroundColor Green
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host ""
+
+          Import-Module WebAdministration -ErrorAction Stop
+
+          # Check app pool status
+          $backendStatus = "N/A"
+          $frontendStatus = "N/A"
+
+          try {
+            $backendStatus = (Get-WebAppPoolState -Name "HyoungFMS.WebAPI" -ErrorAction SilentlyContinue).Value
+          } catch { }
+
+          try {
+            $frontendStatus = (Get-WebAppPoolState -Name "HyoungFMS.ReactApp" -ErrorAction SilentlyContinue).Value
+          } catch { }
+
+          Write-Host "App Pool Status:" -ForegroundColor Cyan
+          Write-Host "  Backend API:  $backendStatus" -ForegroundColor $(if ($backendStatus -eq "Started") { "Green" } else { "Red" })
+          Write-Host "  Frontend App: $frontendStatus" -ForegroundColor $(if ($frontendStatus -eq "Started") { "Green" } else { "Red" })
+
+          Write-Host ""
+          Write-Host "Access URLs:" -ForegroundColor Cyan
+          Write-Host "  Backend:  http://localhost:7009" -ForegroundColor Gray
+          Write-Host "  Frontend: http://localhost:80" -ForegroundColor Gray
+
+          Write-Host ""
+          Write-Host "Commit: ${{ github.sha }}" -ForegroundColor Gray
+          Write-Host "Branch: ${{ github.ref_name }}" -ForegroundColor Gray
+          Write-Host ""
+        shell: powershell
+
+      # ========================================
+      # POST-DEPLOYMENT CLEANUP
       # ========================================
 
       - name: 🧹 Post-Deployment Cleanup
         if: always()
         continue-on-error: true
         run: |
-          Write-Host ""
-          Write-Host "========================================" -ForegroundColor Yellow
-          Write-Host "  Post-Deployment Cleanup" -ForegroundColor Yellow
-          Write-Host "========================================" -ForegroundColor Yellow
-          Write-Host ""
+          Write-Host "Cleaning up temporary files..." -ForegroundColor Yellow
 
-          # Stop any lingering Node.js processes
-          $nodeProcesses = Get-Process -Name "node" -ErrorAction SilentlyContinue
-          if ($nodeProcesses) {
-            $nodeProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-            Write-Host "Stopped $($nodeProcesses.Count) Node.js process(es)" -ForegroundColor Green
+          # Stop any lingering Node.js processes (if npm was used)
+          if ("${{ steps.check_frontend.outputs.rebuild }}" -eq "true") {
+            $nodeProcesses = Get-Process -Name "node" -ErrorAction SilentlyContinue
+            if ($nodeProcesses) {
+              $nodeProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+              Write-Host "Stopped $($nodeProcesses.Count) Node.js process(es)" -ForegroundColor Green
+            }
           }
 
-          # Clean npm cache
-          npm cache clean --force 2>$null
-
-          Write-Host "Cleanup completed" -ForegroundColor Green
-          Write-Host ""
+          Write-Host "✅ Cleanup completed" -ForegroundColor Green
         shell: powershell

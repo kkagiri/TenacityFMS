@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-WindowsOptionalFeature -Online -FeatureName IIS-WebSockets\")",
+      "Bash(dir \"C:\\inetpub\\wwwroot\\hyoungFMS\" /s /b)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Get-WebConfigurationProperty -pspath ''MACHINE/WEBROOT/APPHOST'' -filter ''system.webServer/proxy'' -name ''enabled'' 2>&1\")",
+      "Bash(powershell:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

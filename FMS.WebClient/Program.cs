@@ -4,6 +4,7 @@ using System.Net;
 using FMS.Persistence.DataAccess;
 
 using Serilog;
+using Microsoft.AspNetCore.HttpOverrides;
 
 using FMS.WebClient.Extensions; // Added for AddFms* and UseFmsPipeline extensions
 //using FMS.Application.Extensions;
@@ -109,6 +110,12 @@ public class Program
             Log.Information("Environment: {Environment} (self-host) - Using URL configuration: http://{IP}:7009 and http://localhost:7009", currentEnvironment, bindingIP); //Cursor
         }
         var app = builder.Build();
+
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        });
+
         try
         {
             using (var scope = app.Services.CreateScope())
