@@ -20,6 +20,8 @@ using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
+using FMS.Application.CommonInterface;
+using FMS.Infrastructure.Services;
 using FMS.Application.Util;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
@@ -401,7 +403,7 @@ namespace FMS.PTS.WindowsService
                 {
                     signalRBuilder.AddStackExchangeRedis(redisConnectionString, options =>
                     {
-                        options.Configuration.ChannelPrefix = "fms-signalr"; // Must match WebClient configuration
+                        options.Configuration.ChannelPrefix = RedisChannel.Literal("fms-signalr"); // Must match WebClient configuration
                     });
                     Log.Information("SignalR Redis backplane configured - Windows Service can now communicate with WebClient hubs");
                 }
@@ -446,13 +448,17 @@ namespace FMS.PTS.WindowsService
             //Cursor: Register missing configuration and alarm services
             services.AddScoped<ISystemConfigurationService, SystemConfigurationService>(); //Cursor
             services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService>(); //Cursor
-            services.AddScoped<IAlarmHandlerService, AlarmHandlerService>(); //Cursor
+            // IAlarmHandlerService is obsolete but still used by some handlers - keep registration
+            services.AddScoped<FMS.Application.Services.IAlarmHandlerService, FMS.Application.Services.AlarmHandlerService>();
             services.AddScoped<PumpTransactionIntegrationService>(); //Cursor
             services.AddScoped<AutomatedReconciliationService>(); //Cursor
             services.AddScoped<DiscrepancyDetectionService>(); //Cursor on changes to code
-            services.AddScoped<IPolicyEvaluationEngine, PolicyEvaluationEngine>();
+            services.AddScoped<PolicyEvaluationEngine>(); // No interface needed
             services.AddScoped<DailyReconciliationPolicyService>();
             services.AddSingleton<IPTSConnectionManager, PTSConnectionManager>();
+
+            // Register file handling service
+            services.AddScoped<FMS.Application.CommonInterface.IFileHandlingService, FMS.Infrastructure.Services.FileHandlingService>();
 
             // Vehicle Tracking System - Phase 4 Migration
             // OLD: Legacy GPSGateService - Now replaced by pluggable providers

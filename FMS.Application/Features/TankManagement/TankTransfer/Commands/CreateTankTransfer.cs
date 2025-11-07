@@ -138,25 +138,34 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                         if (sourceTank.CurrentStock == null || sourceTank.CurrentStock < transferAmount)
                             return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank. Current stock: {sourceTank.CurrentStock}, Requested amount: {transferAmount}", null);
                     }
-                    // For past dates, check available stock on that date using TankVolumeHistory
-                    else if (transferDate.Date < DateTime.Now.Date)
-                    {
-                        var volumeHistoryForDay = await _context.TankVolumeHistories
-                            .Where(x => x.TankId == sourceTank.Id && x.Timestamp.Date <= transferDate.Date)
-                            .OrderByDescending(x => x.Timestamp)
-                            .FirstOrDefaultAsync(cancellationToken);
 
-                        if (volumeHistoryForDay != null)
-                        {
-                            decimal availableStockOnDate = volumeHistoryForDay.NewVolume ?? 0;
+                    // TODO: Implement validation for past-date tank transfers
+                    // For past date entries, we need to check available stock BEFORE this transaction timestamp
+                    // The validation should query TankVolumeHistory for the record immediately before this transaction
+                    // and verify sufficient stock was available in the source tank at that point in time
+                    // Currently commented out to allow historical entries without strict validation
 
-                            if (availableStockOnDate <= 0)
-                                return new FMSResponseMessage<TankTransferDTO>(false, $"The source tank was empty on {transferDate.Date:yyyy-MM-dd}. Cannot record transfer.", null);
+                    //else if (transferDate.Date < DateTime.Now.Date)
+                    //{
+                    //    var volumeHistoryBeforeTransaction = await _context.TankVolumeHistories
+                    //        .Where(x => x.TankId == sourceTank.Id &&
+                    //               x.Timestamp < transferDate &&
+                    //               (x.IsDeleted != true))
+                    //        .OrderByDescending(x => x.Timestamp)
+                    //        .ThenByDescending(x => x.Id)
+                    //        .FirstOrDefaultAsync(cancellationToken);
 
-                            if (availableStockOnDate < transferAmount)
-                                return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank on {transferDate.Date:yyyy-MM-dd}. Available: {availableStockOnDate}, Requested: {transferAmount}", null);
-                        }
-                    }
+                    //    if (volumeHistoryBeforeTransaction != null)
+                    //    {
+                    //        decimal availableStockBeforeTransaction = volumeHistoryBeforeTransaction.NewVolume ?? 0;
+
+                    //        if (availableStockBeforeTransaction <= 0)
+                    //            return new FMSResponseMessage<TankTransferDTO>(false, $"The source tank was empty before this transaction at {transferDate:g}. Cannot record transfer.", null);
+
+                    //        if (availableStockBeforeTransaction < transferAmount)
+                    //            return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank before this transaction at {transferDate:g}. Available: {availableStockBeforeTransaction:F2}L, Requested: {transferAmount:F2}L", null);
+                    //    }
+                    //}
                 }
 
                 var tankTransfer = _mapper.Map<TankTransfer>(request.TankTransferDTO);
