@@ -5,18 +5,13 @@ on:
     branches: [productionv1, main, master]
   workflow_dispatch:
     inputs:
-      rebuild_frontend:
-        description: 'Rebuild frontend (npm install & build)?'
-        required: false
-        type: boolean
-        default: false
       skip_backend:
-        description: 'Skip backend deployment?'
+        description: "Skip backend deployment?"
         required: false
         type: boolean
         default: false
       skip_frontend:
-        description: 'Skip frontend deployment?'
+        description: "Skip frontend deployment?"
         required: false
         type: boolean
         default: false
@@ -41,98 +36,28 @@ jobs:
           dotnet-version: "8.0.x"
 
       # ========================================
-      # CONDITIONAL FRONTEND BUILD CHECK
+      # FRONTEND BUILD (NO INSTALL)
       # ========================================
 
-      - name: 🔍 Check if frontend rebuild is needed
-        id: check_frontend
+      - name: 🏗️ Build React App (using existing node_modules)
+        if: github.event.inputs.skip_frontend != 'true'
         run: |
           Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "  Frontend Build Decision" -ForegroundColor Cyan
+          Write-Host "  Building React App" -ForegroundColor Cyan
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
-          $rebuildFrontend = $false
-          $reason = ""
-
-          # Check 1: Manual workflow dispatch input
-          if ("${{ github.event.inputs.rebuild_frontend }}" -eq "true") {
-            $rebuildFrontend = $true
-            $reason = "Manual workflow input requested rebuild"
-          }
-
-          # Check 2: Commit message contains [rebuild-frontend]
-          $commitMessage = "${{ github.event.head_commit.message }}"
-          if ($commitMessage -match '\[rebuild-frontend\]' -or $commitMessage -match '\[rebuild-npm\]' -or $commitMessage -match '\[npm-build\]') {
-            $rebuildFrontend = $true
-            $reason = "Commit message contains rebuild flag"
-          }
-
-          # Check 3: Check if frontend files changed (package.json, src/)
-          $changed_files = git diff --name-only HEAD~1 HEAD
-          $frontend_changed = $changed_files | Where-Object { $_ -match '^fms\.frontend/(src/|package\.json|package-lock\.json)' }
-          if ($frontend_changed) {
-            $rebuildFrontend = $true
-            $reason = "Frontend source files changed"
-          }
-
-          # Output decision
-          if ($rebuildFrontend) {
-            Write-Host "✅ Frontend WILL be rebuilt" -ForegroundColor Green
-            Write-Host "   Reason: $reason" -ForegroundColor Yellow
-            echo "rebuild=true" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Host "⏭️  Frontend rebuild SKIPPED" -ForegroundColor Yellow
-            Write-Host "   Using existing build from fms.frontend/build" -ForegroundColor Gray
-            Write-Host ""
-            Write-Host "💡 To force rebuild, use one of:" -ForegroundColor Cyan
-            Write-Host "   - Commit message: [rebuild-frontend]" -ForegroundColor Gray
-            Write-Host "   - Manual workflow: Check 'Rebuild frontend'" -ForegroundColor Gray
-            echo "rebuild=false" >> $env:GITHUB_OUTPUT
-          }
-
-          Write-Host ""
-        shell: powershell
-
-      # ========================================
-      # NODE.JS SETUP (CONDITIONAL)
-      # ========================================
-
-      - name: 🔧 Setup Node.js
-        if: steps.check_frontend.outputs.rebuild == 'true'
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-          cache: "npm"
-          cache-dependency-path: "fms.frontend/package-lock.json"
-
-      - name: 📦 Install npm dependencies
-        if: steps.check_frontend.outputs.rebuild == 'true'
-        run: |
-          Write-Host "Installing npm dependencies..." -ForegroundColor Yellow
           Push-Location "fms.frontend"
 
-          # Clean install for reproducible builds
-          if (Test-Path "node_modules") {
-            Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
-          }
-
-          npm ci --legacy-peer-deps
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "npm install failed"
+          # Verify node_modules exists
+          if (-not (Test-Path "node_modules")) {
+            Write-Error "node_modules not found! Please run 'npm install' locally first."
+            Pop-Location
             exit 1
           }
 
-          Pop-Location
-          Write-Host "✅ npm dependencies installed" -ForegroundColor Green
-        shell: powershell
-
-      - name: 🏗️ Build React App
-        if: steps.check_frontend.outputs.rebuild == 'true'
-        run: |
-          Write-Host "Building React application..." -ForegroundColor Yellow
-          Push-Location "fms.frontend"
+          Write-Host "📦 Using existing node_modules..." -ForegroundColor Green
+          Write-Host "🏗️  Building React application..." -ForegroundColor Yellow
 
           npm run build
 
@@ -145,6 +70,7 @@ jobs:
           Pop-Location
           Write-Host "✅ React app built successfully" -ForegroundColor Green
           Write-Host "   Build output: fms.frontend/build" -ForegroundColor Gray
+          Write-Host ""
         shell: powershell
 
       # ========================================
@@ -260,7 +186,7 @@ jobs:
 
           # Verify build exists
           if (-not (Test-Path $buildPath)) {
-            Write-Error "Build folder not found at $buildPath. Run 'npm run build' first or enable 'rebuild_frontend' option."
+            Write-Error "Build folder not found at $buildPath. The build step should have created this."
             exit 1
           }
 
@@ -378,15 +304,5 @@ jobs:
         continue-on-error: true
         run: |
           Write-Host "Cleaning up temporary files..." -ForegroundColor Yellow
-
-          # Stop any lingering Node.js processes (if npm was used)
-          if ("${{ steps.check_frontend.outputs.rebuild }}" -eq "true") {
-            $nodeProcesses = Get-Process -Name "node" -ErrorAction SilentlyContinue
-            if ($nodeProcesses) {
-              $nodeProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-              Write-Host "Stopped $($nodeProcesses.Count) Node.js process(es)" -ForegroundColor Green
-            }
-          }
-
           Write-Host "✅ Cleanup completed" -ForegroundColor Green
         shell: powershell
