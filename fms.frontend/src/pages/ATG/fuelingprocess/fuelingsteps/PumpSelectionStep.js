@@ -45,62 +45,85 @@ const PumpSelectionStep = memo(
                         isActive ? "currently-active" : ""
                       }`}
                       style={{
-                        padding: "15px",
-                        borderRadius: "8px",
+                        padding: "16px",
+                        borderRadius: "12px",
                         height: "100%",
                         border: isActive
                           ? "2px solid #4caf50"
                           : isSelectable
-                          ? "1px solid #198754"
-                          : "1px solid #ddd",
-                        backgroundColor: isClickable ? "#f8f8f8" : "#eee",
-                        opacity: isClickable ? 1 : 0.6,
+                          ? "2px solid #198754"
+                          : "1px solid #dee2e6",
+                        backgroundColor: isClickable ? "#ffffff" : "#f8f9fa",
+                        opacity: isClickable ? 1 : 0.7,
                         cursor: isClickable ? "pointer" : "not-allowed",
+                        boxShadow: isClickable
+                          ? "0 2px 4px rgba(0,0,0,0.1)"
+                          : "none",
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      <div className="pump-icon-container">
-                        <PumpIcon
-                          className="pump-icon"
-                          color={
-                            isSelectable
-                              ? "#198754"
-                              : item.status === "offline"
-                              ? "#dc3545"
-                              : isActive
-                              ? "#4caf50"
-                              : "#6c757d"
-                          }
-                        />
+                      {/* Header with pump icon and badge */}
+                      <div className="tw-flex tw-justify-between tw-items-start tw-mb-3">
+                        <div className="pump-icon-container tw-relative">
+                          <PumpIcon
+                            className="pump-icon"
+                            style={{ width: "56px", height: "56px" }}
+                            color={
+                              isSelectable
+                                ? "#198754"
+                                : item.status === "offline"
+                                ? "#dc3545"
+                                : isActive
+                                ? "#4caf50"
+                                : "#6c757d"
+                            }
+                          />
+                        </div>
                         {isActive && (
-                          <div className="active-indicator-badge">
-                            <i className="fas fa-circle"></i> Busy
-                          </div>
+                          <span className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-green-100 tw-text-green-800 tw-rounded-full tw-text-xs tw-font-semibold">
+                            <i className="fas fa-circle tw-text-[6px]"></i> Busy
+                          </span>
                         )}
                         {item.status === "offline" && (
-                          <div className="offline-indicator-badge">
-                            <i className="fas fa-triangle-exclamation"></i>{" "}
-                            Offline
-                          </div>
+                          <span className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-red-100 tw-text-red-800 tw-rounded-full tw-text-xs tw-font-semibold">
+                            <i className="fas fa-triangle-exclamation tw-text-xs"></i> Offline
+                          </span>
                         )}
                       </div>
-                      <h4>{item.name}</h4>
-                      <p>
-                        Status:{" "}
+
+                      {/* Pump Name */}
+                      <h4 className="tw-text-lg tw-font-bold tw-mb-2 tw-text-gray-800">
+                        {item.name}
+                      </h4>
+
+                      {/* Status Badge */}
+                      <div className="tw-mb-3">
                         <span
-                          style={{
-                            fontWeight: "bold",
-                            color:
-                              item.status === "idle"
-                                ? "green"
-                                : item.status === "nozzleUp"
-                                ? "orange"
-                                : item.status === "fueling"
-                                ? "blue"
-                                : item.status === "endOfTransaction"
-                                ? "#6f42c1"
-                                : "red",
-                          }}
+                          className={`tw-inline-flex tw-items-center tw-px-3 tw-py-1 tw-rounded-md tw-text-sm tw-font-medium ${
+                            item.status === "idle"
+                              ? "tw-bg-green-100 tw-text-green-800"
+                              : item.status === "nozzleUp"
+                              ? "tw-bg-orange-100 tw-text-orange-800"
+                              : item.status === "fueling"
+                              ? "tw-bg-blue-100 tw-text-blue-800"
+                              : item.status === "endOfTransaction"
+                              ? "tw-bg-purple-100 tw-text-purple-800"
+                              : "tw-bg-red-100 tw-text-red-800"
+                          }`}
                         >
+                          <i
+                            className={`fas ${
+                              item.status === "idle"
+                                ? "fa-check-circle"
+                                : item.status === "nozzleUp"
+                                ? "fa-arrow-up"
+                                : item.status === "fueling"
+                                ? "fa-fire-flame-curved"
+                                : item.status === "endOfTransaction"
+                                ? "fa-flag-checkered"
+                                : "fa-times-circle"
+                            } tw-mr-1 tw-text-xs`}
+                          ></i>
                           {item.status === "idle"
                             ? "Available"
                             : item.status === "nozzleUp"
@@ -113,31 +136,34 @@ const PumpSelectionStep = memo(
                             ? "Offline"
                             : item.status}
                         </span>
-                      </p>
+                      </div>
 
+                      {/* Last Transaction Info */}
                       {item.lastTransaction > 0 && (
-                        <div className="last-transaction">
-                          <small>
-                            <i className="fas fa-receipt"></i> Last:
+                        <div className="tw-bg-gray-50 tw-rounded-lg tw-p-2 tw-mb-3">
+                          <div className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-gray-600">
+                            <i className="fas fa-receipt tw-text-gray-500"></i>
+                            <span className="tw-font-medium">Last Transaction:</span>
+                          </div>
+                          <div className="tw-flex tw-items-center tw-gap-2 tw-mt-1">
                             {item.lastAmount > 0 && (
-                              <span className="last-amount">
-                                {" "}
+                              <span className="tw-text-sm tw-font-semibold tw-text-gray-800">
                                 ${item.lastAmount.toFixed(2)}
                               </span>
                             )}
                             {item.lastVolume > 0 && (
-                              <span className="last-volume">
-                                {" "}
+                              <span className="tw-text-xs tw-text-gray-600">
                                 ({item.lastVolume.toFixed(2)}L)
                               </span>
                             )}
-                          </small>
+                          </div>
                         </div>
                       )}
 
+                      {/* Active Pump View Button */}
                       {isActive && (
                         <div
-                          className="button-container"
+                          className="tw-mt-auto"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
@@ -153,7 +179,6 @@ const PumpSelectionStep = memo(
                               setShowFuelingPopup(true);
                             }}
                             icon="fas fa-eye"
-                            className="view-fueling-btn"
                           />
                         </div>
                       )}

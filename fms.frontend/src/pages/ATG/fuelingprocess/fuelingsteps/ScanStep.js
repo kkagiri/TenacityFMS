@@ -1,11 +1,11 @@
 //Cursor
 import React, { memo, useCallback, useMemo } from "react";
 import { Button } from "devextreme-react/button";
-import { Lookup } from "devextreme-react/lookup";
 import { RadioGroup } from "devextreme-react/radio-group";
 import LoadIndicator from "devextreme-react/load-indicator";
 import ProgressBar from "devextreme-react/progress-bar";
 import notify from "devextreme/ui/notify";
+import VehicleSearchableSelector from "../../../../components/selectors/VehicleSearchableSelector";
 
 //Cursor: Memoized ScanStep component - Redesigned to prevent UI overlays
 const ScanStep = memo(
@@ -261,36 +261,23 @@ const ScanStep = memo(
           {/* LOOKUP MODE */}
           {isLookupSelected && (
             <div className="lookup-mode-content">
-              {/* Vehicle Lookup Dropdown */}
+              {/* Vehicle Search Selector */}
               {!vehicleInfo && (
                 <div className="tw-mb-4">
                   <label className="tw-block tw-mb-2 tw-font-medium tw-text-gray-700 tw-text-sm">
                     Select Company Vehicle
                   </label>
-                  <div className="vehicle-lookup-wrapper tw-relative">
-                    <Lookup
-                      dataSource={vehicles}
-                      value={selectedVehicleId}
-                      onValueChanged={handleVehicleLookupChange}
-                      displayExpr={vehicleDisplayExpr}
-                      valueExpr="vehicleId"
-                      placeholder="Search or select a vehicle..."
-                      searchEnabled={true}
-                      disabled={isLoadingVehicles}
-                      showClearButton={true}
-                      height={40}
-                      className="tw-w-full"
-                    />
-                    {isLoadingVehicles && (
-                      <div className="tw-absolute tw-right-10 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none">
-                        <LoadIndicator width={20} height={20} />
-                      </div>
-                    )}
-                  </div>
+                  <VehicleSearchableSelector
+                    value={selectedVehicleId}
+                    onValueChanged={handleVehicleLookupChange}
+                    placeholder="Search and select a vehicle..."
+                    disabled={isLoadingVehicles}
+                    width="100%"
+                  />
                   {!selectedVehicleId && !isLoadingVehicles && (
                     <small className="tw-text-gray-500 tw-block tw-mt-2 tw-text-xs">
                       <i className="fas fa-info-circle tw-mr-1"></i>
-                      Please select a company vehicle from the list above.
+                      Type at least 2 characters to search for a vehicle.
                     </small>
                   )}
                 </div>
