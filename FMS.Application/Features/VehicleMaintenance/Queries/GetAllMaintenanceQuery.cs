@@ -12,7 +12,13 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Features.VehicleMaintenance.Queries;
 
-public record GetAllMaintenanceQuery(int? VehicleId = null, string? Status = null) : IRequest<List<VehicleMaintenanceDTO>>;
+public record GetAllMaintenanceQuery(
+    int? VehicleId = null,
+    string? Status = null,
+    int? SiteId = null,
+    int? VehicleTypeId = null,
+    int? VehicleModelId = null
+) : IRequest<List<VehicleMaintenanceDTO>>;
 
 public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQuery, List<VehicleMaintenanceDTO>>
 {
@@ -48,6 +54,24 @@ public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQu
             if (!string.IsNullOrEmpty(request.Status))
             {
                 query = query.Where(m => m.Status == request.Status);
+            }
+
+            // Filter by site if specified
+            if (request.SiteId.HasValue)
+            {
+                query = query.Where(m => m.Vehicle != null && m.Vehicle.SiteId == request.SiteId.Value);
+            }
+
+            // Filter by vehicle type if specified
+            if (request.VehicleTypeId.HasValue)
+            {
+                query = query.Where(m => m.Vehicle != null && m.Vehicle.VehicleTypeId == request.VehicleTypeId.Value);
+            }
+
+            // Filter by vehicle model if specified
+            if (request.VehicleModelId.HasValue)
+            {
+                query = query.Where(m => m.Vehicle != null && m.Vehicle.VehicleModelId == request.VehicleModelId.Value);
             }
 
             var maintenanceRecords = await query

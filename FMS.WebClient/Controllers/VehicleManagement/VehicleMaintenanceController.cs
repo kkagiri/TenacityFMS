@@ -32,9 +32,14 @@ public class VehicleMaintenanceController : ControllerBase
     /// Get all maintenance records with optional filters
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAllMaintenance([FromQuery] int? vehicleId = null, [FromQuery] string? status = null)
+    public async Task<IActionResult> GetAllMaintenance(
+        [FromQuery] int? vehicleId = null,
+        [FromQuery] string? status = null,
+        [FromQuery] int? siteId = null,
+        [FromQuery] int? vehicleTypeId = null,
+        [FromQuery] int? vehicleModelId = null)
     {
-        var cacheKey = $"Maintenance:All:{vehicleId}:{status}";
+        var cacheKey = $"Maintenance:All:{vehicleId}:{status}:{siteId}:{vehicleTypeId}:{vehicleModelId}";
         var cachedData = await _cache.GetStringAsync(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedData))
@@ -43,7 +48,7 @@ public class VehicleMaintenanceController : ControllerBase
             return Ok(cachedRecords);
         }
 
-        var query = new GetAllMaintenanceQuery(vehicleId, status);
+        var query = new GetAllMaintenanceQuery(vehicleId, status, siteId, vehicleTypeId, vehicleModelId);
         var maintenanceRecords = await _mediator.Send(query);
 
         // Cache for 5 minutes

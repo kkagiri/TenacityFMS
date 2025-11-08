@@ -88,6 +88,12 @@ public class VehicleMaintenance
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Issue note - specific notes about any issues encountered during maintenance
+    /// </summary>
+    [MaxLength(2000)]
+    public string? IssueNote { get; set; }
+
+    /// <summary>
     /// Priority level (1=Low, 2=Normal, 3=High, 4=Critical)
     /// </summary>
     public int Priority { get; set; } = 2;

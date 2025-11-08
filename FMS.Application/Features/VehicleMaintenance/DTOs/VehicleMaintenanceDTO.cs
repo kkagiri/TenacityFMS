@@ -24,6 +24,7 @@ public class VehicleMaintenanceDTO
     public string? ServiceProvider { get; set; }
     public string? Description { get; set; }
     public string? Notes { get; set; }
+    public string? IssueNote { get; set; }
     public int Priority { get; set; } = 2;
     public bool IsOverdue { get; set; } = false;
     public string? CreatedBy { get; set; }

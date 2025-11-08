@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DataGrid, Button, Popup } from 'devextreme-react';
+import { DataGrid, Button, Popup, ScrollView } from 'devextreme-react';
 import { Column, Paging, SearchPanel, FilterRow, HeaderFilter, Export, Selection } from 'devextreme-react/data-grid';
-import { Form, SimpleItem, Label, RequiredRule } from 'devextreme-react/form';
+import { Form, SimpleItem, Label, RequiredRule, GroupItem } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
 import {
@@ -11,16 +11,36 @@ import {
   updateMaintenanceRecord,
   deleteMaintenanceRecord,
 } from '../../../redux/actions/maintenanceActions';
+import { fetchVehicleList } from '../../../redux/actions/vehicleActions';
 
 const MaintenanceList = () => {
   const dispatch = useDispatch();
   const { maintenanceRecords } = useSelector((state) => state.maintenance || { maintenanceRecords: [] });
+  const vehicles = useSelector((state) => state.vehicle.vehicles || []);
   const [showPopup, setShowPopup] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
+  const [loadingGpsData, setLoadingGpsData] = useState(false);
+
+  // Maintenance types - can be fetched from backend or defined here
+  const maintenanceTypes = [
+    'Oil Change',
+    'Tire Rotation',
+    'Brake Service',
+    'Engine Service',
+    'Transmission Service',
+    'Battery Replacement',
+    'Air Filter Replacement',
+    'Spark Plug Replacement',
+    'Coolant Service',
+    'Inspection',
+    'General Repair',
+    'Other'
+  ];
 
   useEffect(() => {
     dispatch(fetchMaintenanceRecords());
+    dispatch(fetchVehicleList());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -32,6 +52,8 @@ const MaintenanceList = () => {
       scheduledDate: new Date(),
       priority: 2,
       notes: '',
+      issueNote: '',
+      description: '',
     });
     setEditMode(false);
     setShowPopup(true);
@@ -72,6 +94,41 @@ const MaintenanceList = () => {
       dispatch(fetchMaintenanceRecords());
     } catch (error) {
       notify('Error saving maintenance record', 'error', 3000);
+    }
+  };
+
+  // Fetch odometer reading from GPS
+  const handleFetchOdometerFromGPS = async () => {
+    if (!formData.vehicleId) {
+      notify('Please select a vehicle first', 'warning', 3000);
+      return;
+    }
+
+    try {
+      setLoadingGpsData(true);
+      // Call the GPS tracking API to get vehicle location with odometer
+      const response = await fetch(`/api/v1/tracking/vehicles/${formData.vehicleId}/location`);
+
+      if (response.ok) {
+        const locationData = await response.json();
+
+        if (locationData && locationData.odometer !== null && locationData.odometer !== undefined) {
+          setFormData({
+            ...formData,
+            odometerAtSchedule: locationData.odometer,
+          });
+          notify(`Odometer reading updated: ${locationData.odometer} km`, 'success', 3000);
+        } else {
+          notify('Odometer data not available from GPS', 'warning', 3000);
+        }
+      } else {
+        notify('Failed to fetch GPS data', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error fetching GPS data:', error);
+      notify('Error fetching odometer from GPS', 'error', 3000);
+    } finally {
+      setLoadingGpsData(false);
     }
   };
 
@@ -176,8 +233,6 @@ const MaintenanceList = () => {
           />
           <Column dataField="scheduledDate" caption="Scheduled Date" width={120} dataType="date" />
           <Column dataField="completedDate" caption="Completed Date" width={120} dataType="date" />
-          <Column dataField="cost" caption="Cost" width={100} dataType="number" format="currency" />
-          <Column dataField="serviceProvider" caption="Service Provider" width={150} />
           <Column
             caption="Actions"
             width={120}
@@ -187,59 +242,159 @@ const MaintenanceList = () => {
           />
         </DataGrid>
 
-        {/* Add/Edit Popup */}
+        {/* Add/Edit Popup - Full Screen & Mobile Friendly */}
         <Popup
           visible={showPopup}
           onHiding={() => setShowPopup(false)}
           title={editMode ? 'Edit Maintenance Record' : 'Add Maintenance Record'}
-          width={600}
-          height="auto"
+          width="95%"
+          height="95%"
+          maxWidth={1200}
+          showCloseButton={true}
+          closeOnOutsideClick={false}
         >
-          <Form formData={formData} onFieldDataChanged={(e) => setFormData({ ...formData, [e.dataField]: e.value })}>
-            <SimpleItem dataField="vehicleId" editorType="dxSelectBox">
-              <Label text="Vehicle" />
-              <RequiredRule message="Vehicle is required" />
-            </SimpleItem>
-            <SimpleItem dataField="maintenanceType" editorType="dxTextBox">
-              <Label text="Maintenance Type" />
-              <RequiredRule message="Maintenance type is required" />
-            </SimpleItem>
-            <SimpleItem dataField="status" editorType="dxSelectBox" editorOptions={{
-              items: ['Scheduled', 'In Progress', 'Completed', 'Cancelled'],
-            }}>
-              <Label text="Status" />
-            </SimpleItem>
-            <SimpleItem dataField="scheduledDate" editorType="dxDateBox">
-              <Label text="Scheduled Date" />
-            </SimpleItem>
-            <SimpleItem dataField="priority" editorType="dxSelectBox" editorOptions={{
-              items: [
-                { value: 1, text: 'Low' },
-                { value: 2, text: 'Normal' },
-                { value: 3, text: 'Medium' },
-                { value: 4, text: 'High' },
-                { value: 5, text: 'Critical' },
-              ],
-              displayExpr: 'text',
-              valueExpr: 'value',
-            }}>
-              <Label text="Priority" />
-            </SimpleItem>
-            <SimpleItem dataField="cost" editorType="dxNumberBox">
-              <Label text="Cost" />
-            </SimpleItem>
-            <SimpleItem dataField="serviceProvider" editorType="dxTextBox">
-              <Label text="Service Provider" />
-            </SimpleItem>
-            <SimpleItem dataField="notes" editorType="dxTextArea" editorOptions={{ height: 100 }}>
-              <Label text="Notes" />
-            </SimpleItem>
-          </Form>
+          <ScrollView width="100%" height="100%">
+            <div className="tw-p-4">
+              <Form
+                formData={formData}
+                onFieldDataChanged={(e) => setFormData({ ...formData, [e.dataField]: e.value })}
+                labelLocation="top"
+                colCount={1}
+              >
+                <GroupItem caption="Vehicle Information" colSpan={1}>
+                  <SimpleItem
+                    dataField="vehicleId"
+                    editorType="dxSelectBox"
+                    editorOptions={{
+                      dataSource: vehicles,
+                      valueExpr: 'vehicleId',
+                      displayExpr: 'hyoungNo',
+                      searchEnabled: true,
+                      placeholder: 'Select vehicle',
+                      showClearButton: true,
+                    }}
+                  >
+                    <Label text="Vehicle" />
+                    <RequiredRule message="Vehicle is required" />
+                  </SimpleItem>
 
-          <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-4">
-            <Button text="Cancel" onClick={() => setShowPopup(false)} />
-            <Button text="Save" type="success" onClick={handleSave} />
-          </div>
+                  <SimpleItem
+                    dataField="maintenanceType"
+                    editorType="dxSelectBox"
+                    editorOptions={{
+                      dataSource: maintenanceTypes,
+                      searchEnabled: true,
+                      placeholder: 'Select maintenance type',
+                      showClearButton: true,
+                    }}
+                  >
+                    <Label text="Maintenance Type" />
+                    <RequiredRule message="Maintenance type is required" />
+                  </SimpleItem>
+                </GroupItem>
+
+                <GroupItem caption="Scheduling" colSpan={1}>
+                  <SimpleItem
+                    dataField="status"
+                    editorType="dxSelectBox"
+                    editorOptions={{
+                      items: ['Scheduled', 'In Progress', 'Completed', 'Cancelled'],
+                    }}
+                  >
+                    <Label text="Status" />
+                  </SimpleItem>
+
+                  <SimpleItem dataField="scheduledDate" editorType="dxDateBox">
+                    <Label text="Scheduled Date" />
+                  </SimpleItem>
+
+                  <SimpleItem
+                    dataField="priority"
+                    editorType="dxSelectBox"
+                    editorOptions={{
+                      items: [
+                        { value: 1, text: 'Low' },
+                        { value: 2, text: 'Normal' },
+                        { value: 3, text: 'Medium' },
+                        { value: 4, text: 'High' },
+                        { value: 5, text: 'Critical' },
+                      ],
+                      displayExpr: 'text',
+                      valueExpr: 'value',
+                    }}
+                  >
+                    <Label text="Priority" />
+                  </SimpleItem>
+                </GroupItem>
+
+                <GroupItem caption="Odometer Reading" colSpan={1}>
+                  <div className="tw-mb-2">
+                    <Button
+                      text="Pull Odometer from GPS"
+                      icon="download"
+                      type="default"
+                      onClick={handleFetchOdometerFromGPS}
+                      disabled={!formData.vehicleId || loadingGpsData}
+                      hint="Fetch current odometer reading from GPS tracking"
+                    />
+                    {loadingGpsData && (
+                      <span className="tw-ml-2 tw-text-sm tw-text-gray-600">Loading...</span>
+                    )}
+                  </div>
+
+                  <SimpleItem
+                    dataField="odometerAtSchedule"
+                    editorType="dxNumberBox"
+                    editorOptions={{
+                      placeholder: 'Enter or pull from GPS'
+                    }}
+                  >
+                    <Label text="Odometer at Schedule (km)" />
+                  </SimpleItem>
+                </GroupItem>
+
+                <GroupItem caption="Details" colSpan={1}>
+                  <SimpleItem
+                    dataField="description"
+                    editorType="dxTextArea"
+                    editorOptions={{
+                      height: 100,
+                      placeholder: 'Describe the maintenance work'
+                    }}
+                  >
+                    <Label text="Description" />
+                  </SimpleItem>
+
+                  <SimpleItem
+                    dataField="notes"
+                    editorType="dxTextArea"
+                    editorOptions={{
+                      height: 100,
+                      placeholder: 'Additional notes'
+                    }}
+                  >
+                    <Label text="Notes" />
+                  </SimpleItem>
+
+                  <SimpleItem
+                    dataField="issueNote"
+                    editorType="dxTextArea"
+                    editorOptions={{
+                      height: 100,
+                      placeholder: 'Note any issues encountered'
+                    }}
+                  >
+                    <Label text="Issue Note" />
+                  </SimpleItem>
+                </GroupItem>
+              </Form>
+
+              <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6 tw-pb-4">
+                <Button text="Cancel" onClick={() => setShowPopup(false)} stylingMode="outlined" />
+                <Button text="Save" type="success" onClick={handleSave} />
+              </div>
+            </div>
+          </ScrollView>
         </Popup>
       </div>
     </div>
