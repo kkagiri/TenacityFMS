@@ -1,26 +1,19 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import TankStockReportsService from '../../../../../services/tankStockReportsService';
 import PivotGridReport from './PivotGridReport';
+import FuelAnalysisSummary from './FuelAnalysisSummary';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { DateBox } from 'devextreme-react/date-box';
 import { SelectBox } from 'devextreme-react/select-box';
+import { TagBox } from 'devextreme-react/tag-box';
 import { Button } from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
+import { fetchSiteList } from '../../../../../redux/actions/siteActions';
 import './VolumeHistoryReports.scss';
 
-const MAX_DAILY_RANGE_DAYS = 7;
-
-const calculateDayDifference = (start, end) => {
-  if (!start || !end) return 0;
-
-  const normalizedStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const normalizedEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-
-  const diffMs = normalizedEnd.getTime() - normalizedStart.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1; // inclusive day count
-};
-
 const VolumeHistoryReports = () => {
+  const dispatch = useDispatch();
   const [pivotData, setPivotData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +21,13 @@ const VolumeHistoryReports = () => {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)); // 30 days ago
   const [endDate, setEndDate] = useState(new Date());
   const [groupByPeriod, setGroupByPeriod] = useState('month');
+  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
+
+  // Analysis component state
+  const [analysisGroupBy, setAnalysisGroupBy] = useState('day');
+
+  // Redux selectors
+  const sites = useSelector((state) => state.site?.sites || []);
 
   const periodOptions = [
     { value: 'day', text: 'Daily' },
@@ -37,6 +37,11 @@ const VolumeHistoryReports = () => {
   ];
 
   const initialFetchDone = useRef(false);
+
+  // Load sites on mount
+  useEffect(() => {
+    dispatch(fetchSiteList());
+  }, [dispatch]);
 
   const loadReportData = useCallback(async () => {
     if (!startDate || !endDate) {
@@ -48,7 +53,8 @@ const VolumeHistoryReports = () => {
       console.log('[VolumeHistoryReports] loadReportData called with params:', {
         startDate,
         endDate,
-        groupByPeriod
+        groupByPeriod,
+        selectedSiteIds
       });
     }
     try {
@@ -58,7 +64,8 @@ const VolumeHistoryReports = () => {
       const params = {
         startDate: startDateStr,
         endDate: endDateStr,
-        groupByPeriod
+        groupByPeriod,
+        siteIds: selectedSiteIds.length > 0 ? selectedSiteIds : undefined
       };
 
       // Load only pivot data
@@ -89,7 +96,7 @@ const VolumeHistoryReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, groupByPeriod]);
+  }, [startDate, endDate, groupByPeriod, selectedSiteIds]);
 
   // Apply filters and load data
   const handleApplyFilters = useCallback(() => {
@@ -109,18 +116,6 @@ const VolumeHistoryReports = () => {
         displayTime: 3000
       });
       return;
-    }
-
-    if (groupByPeriod === 'day') {
-      const diff = calculateDayDifference(startDate, endDate);
-      if (diff > MAX_DAILY_RANGE_DAYS) {
-        notify({
-          message: `Daily analysis supports a maximum range of ${MAX_DAILY_RANGE_DAYS} days. Adjust the dates to continue.`,
-          type: 'warning',
-          displayTime: 4000
-        });
-        return;
-      }
     }
 
     loadReportData();
@@ -147,23 +142,8 @@ const VolumeHistoryReports = () => {
         type: 'warning',
         displayTime: 3000
       });
-      return;
     }
-
-    if (groupByPeriod === 'day') {
-      const diff = calculateDayDifference(startDate, endDate);
-      if (diff > MAX_DAILY_RANGE_DAYS) {
-        const adjustedStart = new Date(endDate);
-        adjustedStart.setDate(adjustedStart.getDate() - (MAX_DAILY_RANGE_DAYS - 1));
-        setStartDate(adjustedStart);
-        notify({
-          message: `Daily analysis supports a maximum range of ${MAX_DAILY_RANGE_DAYS} days. Dates adjusted; click Apply Filters to refresh.`,
-          type: 'warning',
-          displayTime: 4000
-        });
-      }
-    }
-  }, [groupByPeriod, startDate, endDate]);
+  }, [startDate, endDate]);
 
   return (
     <div className="volume-history-reports tw-p-4 tw-flex tw-flex-col" style={{ height: '100%', minHeight: 0 }}>
@@ -236,6 +216,26 @@ const VolumeHistoryReports = () => {
             />
           </div>
         </div>
+
+        {/* Site Filter Row */}
+        <div className="tw-grid tw-grid-cols-1 tw-gap-4">
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Filter by Site <span className="tw-text-gray-500 tw-text-xs">(Leave empty for all sites)</span>
+            </label>
+            <TagBox
+              value={selectedSiteIds}
+              onValueChanged={(e) => setSelectedSiteIds(e.value)}
+              dataSource={sites}
+              displayExpr="siteName"
+              valueExpr="siteId"
+              placeholder="Select sites to filter..."
+              showClearButton={true}
+              searchEnabled={true}
+              width="100%"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Loading Indicator */}
@@ -244,6 +244,15 @@ const VolumeHistoryReports = () => {
           <LoadIndicator visible={true} />
           <span className="tw-ml-3 tw-text-gray-600">Loading pivot data...</span>
         </div>
+      )}
+
+      {/* Fuel Analysis Summary */}
+      {!loading && pivotData?.data?.length > 0 && (
+        <FuelAnalysisSummary
+          data={pivotData}
+          analysisGroupBy={analysisGroupBy}
+          onAnalysisGroupByChange={setAnalysisGroupBy}
+        />
       )}
 
       {/* Pivot Grid Only */}
