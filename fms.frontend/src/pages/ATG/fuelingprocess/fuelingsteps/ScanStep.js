@@ -7,7 +7,7 @@ import LoadIndicator from "devextreme-react/load-indicator";
 import ProgressBar from "devextreme-react/progress-bar";
 import notify from "devextreme/ui/notify";
 
-//Cursor: Memoized ScanStep component
+//Cursor: Memoized ScanStep component - Redesigned to prevent UI overlays
 const ScanStep = memo(
   ({
     isScanning,
@@ -87,28 +87,158 @@ const ScanStep = memo(
       handleVehicleSelected(null);
     }, [handleVehicleSelected]);
 
-    //Cursor: Memoize accept scan result handler
-    const handleAcceptScanResult = useCallback(() => {
-      acceptScanResult(vehicleInfo);
-    }, [acceptScanResult, vehicleInfo]);
-
-    //Cursor: Memoize accept lookup result handler
-    const handleAcceptLookupResult = useCallback(() => {
-      console.log("handleAcceptLookupResult", vehicleInfo);
+    //Cursor: Memoize accept handler (unified for both scan and lookup)
+    const handleAcceptVehicle = useCallback(() => {
+      console.log("handleAcceptVehicle", vehicleInfo);
       acceptScanResult(vehicleInfo);
     }, [acceptScanResult, vehicleInfo]);
 
     // Check if vehicle info is being loaded (selectedVehicleId exists but vehicleInfo doesn't)
     const isLoadingVehicleInfo = selectedVehicleId && !vehicleInfo;
 
+    // Render vehicle information card (shared between scan and lookup)
+    const renderVehicleInfoCard = useCallback(() => {
+      if (!vehicleInfo) return null;
+
+      return (
+        <div className="vehicle-info-card tw-border tw-rounded-lg tw-p-4 tw-bg-white tw-shadow tw-mb-4">
+          <div className="vehicle-header tw-flex tw-items-center tw-mb-3 tw-pb-3 tw-border-b">
+            <i className="fas fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
+            <h4 className="tw-text-lg tw-font-semibold tw-m-0">
+              {vehicleInfo.hyoungNo || "N/A"}
+            </h4>
+            {scanResult && (
+              <span className="tag-id tw-ml-auto tw-font-mono tw-text-xs tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded">
+                Tag: {scanResult}
+              </span>
+            )}
+          </div>
+
+          <div className="vehicle-basic-info tw-mb-4">
+            <div className="tw-grid tw-grid-cols-2 tw-gap-2 tw-text-sm">
+              {vehicleInfo.vehicleId && (
+                <div className="detail-item">
+                  <span className="detail-label tw-font-medium tw-text-gray-600 tw-block">
+                    Vehicle ID:
+                  </span>
+                  <span className="detail-value tw-text-gray-900">
+                    {vehicleInfo.vehicleId}
+                  </span>
+                </div>
+              )}
+              {vehicleInfo.vehicleType && (
+                <div className="detail-item">
+                  <span className="detail-label tw-font-medium tw-text-gray-600 tw-block">
+                    Type:
+                  </span>
+                  <span className="detail-value tw-text-gray-900">
+                    {vehicleInfo.vehicleType}
+                  </span>
+                </div>
+              )}
+              {vehicleInfo.numberPlate && (
+                <div className="detail-item">
+                  <span className="detail-label tw-font-medium tw-text-gray-600 tw-block">
+                    Plate:
+                  </span>
+                  <span className="detail-value tw-text-gray-900">
+                    {vehicleInfo.numberPlate}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fueling Limits Section */}
+          {(vehicleInfo.dailyLimit !== undefined ||
+            vehicleInfo.monthlyLimit !== undefined ||
+            vehicleInfo.fuelingLimit !== undefined) && (
+            <div className="vehicle-limits tw-border-t tw-pt-3">
+              <h5 className="tw-text-base tw-font-medium tw-mb-3 tw-flex tw-items-center">
+                <i className="fas fa-gas-pump tw-text-blue-600 tw-mr-2"></i>
+                Fueling Limits
+              </h5>
+
+              <div className="tw-space-y-3">
+                {/* Daily Limit */}
+                {vehicleInfo.dailyLimit !== undefined &&
+                  vehicleInfo.dailyLimit > 0 && (
+                    <div className="limit-item">
+                      <div className="tw-flex tw-justify-between tw-mb-1">
+                        <span className="tw-text-xs tw-font-medium tw-text-gray-700">
+                          Daily Limit
+                        </span>
+                        <span className="tw-text-xs tw-font-semibold tw-text-gray-900">
+                          {vehicleInfo.dailyUsed || 0} /{" "}
+                          {vehicleInfo.dailyLimit} L
+                        </span>
+                      </div>
+                      <ProgressBar
+                        min={0}
+                        max={vehicleInfo.dailyLimit}
+                        value={vehicleInfo.dailyUsed || 0}
+                        className="tw-h-2"
+                      />
+                    </div>
+                  )}
+
+                {/* Monthly Limit */}
+                {vehicleInfo.monthlyLimit !== undefined &&
+                  vehicleInfo.monthlyLimit > 0 && (
+                    <div className="limit-item">
+                      <div className="tw-flex tw-justify-between tw-mb-1">
+                        <span className="tw-text-xs tw-font-medium tw-text-gray-700">
+                          Monthly Limit
+                        </span>
+                        <span className="tw-text-xs tw-font-semibold tw-text-gray-900">
+                          {vehicleInfo.monthlyUsed || 0} /{" "}
+                          {vehicleInfo.monthlyLimit} L
+                        </span>
+                      </div>
+                      <ProgressBar
+                        min={0}
+                        max={vehicleInfo.monthlyLimit}
+                        value={vehicleInfo.monthlyUsed || 0}
+                        className="tw-h-2"
+                      />
+                    </div>
+                  )}
+
+                {/* Transaction Limit */}
+                {vehicleInfo.fuelingLimit !== undefined &&
+                  vehicleInfo.fuelingLimit > 0 && (
+                    <div className="limit-item tw-p-2 tw-bg-gray-50 tw-rounded">
+                      <div className="tw-flex tw-items-center tw-justify-between tw-text-xs">
+                        <span className="tw-font-medium tw-text-gray-700">
+                          <i className="fas fa-tint tw-text-blue-500 tw-mr-1"></i>
+                          Transaction Limit
+                        </span>
+                        <span className="tw-font-semibold tw-text-gray-900">
+                          {vehicleInfo.fuelingLimit} L per fueling
+                        </span>
+                      </div>
+                    </div>
+                  )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }, [vehicleInfo, scanResult]);
+
     return (
       <div className="dx-card responsive-paddings">
-        <h3>
-          <i className="fas fa-id-card-alt tw-mr-2"></i>Vehicle Identification
-        </h3>
+        {/* Header */}
+        <div className="tw-mb-6">
+          <h3 className="tw-flex tw-items-center tw-text-xl tw-font-semibold tw-m-0">
+            <i className="fas fa-id-card-alt tw-mr-2 tw-text-blue-600"></i>
+            Vehicle Identification
+          </h3>
+        </div>
 
-        <div className="method-selection tw-mb-4 tw-p-3 tw-bg-gray-50 tw-rounded-md">
-          <label className="tw-block tw-mb-2 tw-font-medium tw-text-gray-700">
+        {/* Method Selection */}
+        <div className="method-selection tw-mb-6 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
+          <label className="tw-block tw-mb-3 tw-font-medium tw-text-gray-700 tw-text-sm">
             Choose Identification Method:
           </label>
           <RadioGroup
@@ -118,364 +248,225 @@ const ScanStep = memo(
             layout="horizontal"
             valueExpr="id"
             itemRender={(item) => (
-              <div className="tw-flex tw-items-center">
-                <i className={`${item.icon} tw-mr-2 tw-text-base`}></i>
-                <span>{item.text}</span>
+              <div className="tw-flex tw-items-center tw-gap-2">
+                <i className={`${item.icon} tw-text-base`}></i>
+                <span className="tw-text-sm">{item.text}</span>
               </div>
             )}
           />
         </div>
 
-        <div
-          className={`lookup-section tw-mb-4 ${
-            !isLookupSelected ? "tw-hidden" : "tw-block"
-          }`}
-        >
-          <label className="tw-block tw-mb-1 tw-font-medium">
-            Select Company Vehicle
-          </label>
-          <div className="vehicle-lookup tw-relative">
-            <Lookup
-              dataSource={vehicles}
-              value={selectedVehicleId}
-              onValueChanged={handleVehicleLookupChange}
-              displayExpr={vehicleDisplayExpr}
-              valueExpr="vehicleId"
-              placeholder="Search or select a vehicle..."
-              searchEnabled={true}
-              disabled={isLoadingVehicles || !isLookupSelected}
-              showClearButton={true}
-              height={40}
-              className="tw-w-full"
-            />
-            {isLoadingVehicles && isLookupSelected && (
-              <LoadIndicator
-                width={20}
-                height={20}
-                className="select-loader tw-absolute tw-right-10 tw-top-1/2 tw--translate-y-1/2"
-              />
-            )}
-          </div>
-          {isLookupSelected && !selectedVehicleId && !isLoadingVehicles && (
-            <small className="select-hint tw-text-gray-600 tw-block tw-mt-1 tw-text-xs">
-              <i className="fas fa-info-circle tw-mr-1"></i> Please select a
-              company vehicle from the list above.
-            </small>
-          )}
-        </div>
-
-        <div
-          className={`scan-section ${
-            !isScanSelected ? "tw-hidden" : "tw-block"
-          }`}
-        >
-          {isScanning && !scanResult && (
-            <div className="scanning-container tw-text-center tw-my-5">
-              <div className="scanning-animation">
-                <i className="fas fa-wifi tw-text-blue-500 tw-text-4xl"></i>
-                <div className="scanning-waves"></div>
-              </div>
-              <p className="scanning-text tw-text-lg tw-font-medium tw-mt-3">
-                Scanning RFID tag...
-              </p>
-              <p className="scanning-instruction tw-text-gray-600">
-                Please hold the tag near the scanner.
-              </p>
-              <Button
-                text="Cancel Scan"
-                type="danger"
-                stylingMode="outlined"
-                onClick={cancelScan}
-                className="tw-mt-4"
-                icon="fas fa-times"
-              />
-            </div>
-          )}
-
-          {scanResult && !vehicleInfo && !isScanning && (
-            <div className="scan-result-container tw-text-center tw-my-5">
-              <div className="scan-success tw-mb-3">
-                <i className="fas fa-check-circle tw-text-green-500 tw-text-2xl"></i>
-                <p className="tw-text-lg tw-font-medium tw-mt-1">
-                  Tag scanned successfully
-                </p>
-              </div>
-              <div className="tag-info">
-                <p className="tag-id tw-font-mono tw-bg-gray-100 tw-p-2 tw-rounded tw-inline-block">
-                  Tag ID: {scanResult}
-                </p>
-                <div className="tw-flex tw-items-center tw-justify-center tw-mt-3 tw-text-gray-600">
-                  <LoadIndicator width={20} height={20} className="tw-mr-2" />
-                  <p className="fetching-info tw-m-0">
-                    Validating tag and fetching vehicle information...
-                  </p>
-                </div>
-              </div>
-              <Button
-                text="Cancel Validation"
-                type="danger"
-                stylingMode="outlined"
-                onClick={cancelScan}
-                className="tw-mt-4"
-                icon="fas fa-times"
-              />
-            </div>
-          )}
-
-          {vehicleInfo && scanResult && !isScanning && (
-            <div className="vehicle-details-container tw-my-3">
-              <div className="scan-success tw-mb-3 tw-text-center">
-                <i className="fas fa-check-circle tw-text-green-500 tw-text-2xl"></i>
-                <p className="tw-text-lg tw-font-medium tw-mt-1">
-                  Tag Validated & Vehicle Info Retrieved
-                </p>
-              </div>
-
-              <div className="vehicle-info-card tw-border tw-rounded-lg tw-p-4 tw-bg-white tw-shadow">
-                <div className="vehicle-header tw-flex tw-items-center tw-mb-3">
-                  <i className="fas fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
-                  <h4 className="tw-text-lg tw-font-semibold tw-m-0">
-                    {vehicleInfo.hyoungNo || "N/A"}
-                  </h4>
-                  <span className="tag-id tw-ml-auto tw-font-mono tw-text-xs tw-bg-gray-100 tw-p-1 tw-rounded">
-                    Tag: {scanResult}
-                  </span>
-                </div>
-
-                <div className="vehicle-details tw-grid tw-grid-cols-2 tw-gap-2 tw-mb-4 tw-text-sm">
-                  <div className="detail-item">
-                    <span className="detail-label tw-font-medium tw-text-gray-600">
-                      Type:
-                    </span>
-                    <span className="detail-value tw-ml-1">
-                      {vehicleInfo.vehicleType || "N/A"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="vehicle-limits">
-                  <h5 className="tw-text-base tw-font-medium tw-mb-2 tw-border-t tw-pt-3">
-                    Fueling Limits
-                  </h5>
-
-                  {vehicleInfo && (
-                    <>
-                      {/* Show monthly limits if available */}
-                      {vehicleInfo.monthlyLimit !== undefined &&
-                        vehicleInfo.monthlyLimit !== null &&
-                        vehicleInfo.monthlyLimit > 0 && (
-                          <div className="limit-item tw-mb-2">
-                            {/* Monthly limit display code */}
-                          </div>
-                        )}
-
-                      {/* Show daily limits if available */}
-                      {vehicleInfo.dailyLimit !== undefined &&
-                        vehicleInfo.dailyLimit !== null &&
-                        vehicleInfo.dailyLimit > 0 && (
-                          <div className="limit-item tw-mb-2">
-                            {/* Daily limit display code */}
-                          </div>
-                        )}
-
-                      {/* Show transaction limit if available */}
-                      <div className="limit-item tw-text-sm">
-                        {/* Transaction limit display code */}
+        {/* Main Content Area - Only one section visible at a time */}
+        <div className="content-area tw-min-h-[300px]">
+          {/* LOOKUP MODE */}
+          {isLookupSelected && (
+            <div className="lookup-mode-content">
+              {/* Vehicle Lookup Dropdown */}
+              {!vehicleInfo && (
+                <div className="tw-mb-4">
+                  <label className="tw-block tw-mb-2 tw-font-medium tw-text-gray-700 tw-text-sm">
+                    Select Company Vehicle
+                  </label>
+                  <div className="vehicle-lookup-wrapper tw-relative">
+                    <Lookup
+                      dataSource={vehicles}
+                      value={selectedVehicleId}
+                      onValueChanged={handleVehicleLookupChange}
+                      displayExpr={vehicleDisplayExpr}
+                      valueExpr="vehicleId"
+                      placeholder="Search or select a vehicle..."
+                      searchEnabled={true}
+                      disabled={isLoadingVehicles}
+                      showClearButton={true}
+                      height={40}
+                      className="tw-w-full"
+                    />
+                    {isLoadingVehicles && (
+                      <div className="tw-absolute tw-right-10 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none">
+                        <LoadIndicator width={20} height={20} />
                       </div>
-                    </>
+                    )}
+                  </div>
+                  {!selectedVehicleId && !isLoadingVehicles && (
+                    <small className="tw-text-gray-500 tw-block tw-mt-2 tw-text-xs">
+                      <i className="fas fa-info-circle tw-mr-1"></i>
+                      Please select a company vehicle from the list above.
+                    </small>
                   )}
                 </div>
-              </div>
+              )}
 
-              <div className="scan-actions tw-flex tw-justify-between tw-mt-4">
-                <Button
-                  text="Back"
-                  type="normal"
-                  stylingMode="outlined"
-                  icon="fas fa-chevron-left"
-                  onClick={cancelScan}
-                />
-                <Button
-                  text="Scan Again"
-                  type="default"
-                  stylingMode="outlined"
-                  icon="fas fa-redo"
-                  onClick={startScan}
-                />
-                <Button
-                  text="Accept & Continue"
-                  type="success"
-                  stylingMode="contained"
-                  icon="fas fa-check"
-                  onClick={handleAcceptScanResult}
-                />
-              </div>
+              {/* Loading State */}
+              {isLoadingVehicleInfo && (
+                <div className="tw-text-center tw-py-8">
+                  <LoadIndicator width={40} height={40} />
+                  <p className="tw-mt-3 tw-text-gray-600 tw-text-sm">
+                    Loading vehicle information...
+                  </p>
+                </div>
+              )}
+
+              {/* Vehicle Info Display */}
+              {vehicleInfo && !isLoadingVehicleInfo && (
+                <div className="vehicle-info-wrapper">
+                  <div className="tw-text-center tw-mb-4">
+                    <i className="fas fa-check-circle tw-text-green-500 tw-text-3xl"></i>
+                    <p className="tw-text-lg tw-font-medium tw-mt-2 tw-text-gray-800">
+                      Vehicle Selected
+                    </p>
+                    <p className="tw-text-sm tw-text-gray-500">
+                      Vehicle information retrieved from company fleet
+                    </p>
+                  </div>
+                  {renderVehicleInfoCard()}
+                  {/* Action Buttons */}
+                  <div className="tw-flex tw-gap-3 tw-mt-4">
+                    <Button
+                      text="Change Vehicle"
+                      type="normal"
+                      stylingMode="outlined"
+                      icon="fas fa-exchange-alt"
+                      onClick={handleClearSelection}
+                      className="tw-flex-1"
+                    />
+                    <Button
+                      text="Accept & Continue"
+                      type="success"
+                      stylingMode="contained"
+                      icon="fas fa-check"
+                      onClick={handleAcceptVehicle}
+                      className="tw-flex-1"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {!isScanning && !scanResult && !vehicleInfo && (
-            <div className="initial-scan-action tw-mt-4 tw-text-center">
-              <Button
-                text="Start Scan"
-                width="80%"
-                height={50}
-                stylingMode="contained"
-                type="default"
-                icon="fas fa-tag"
-                onClick={startScan}
-                className="tw-text-lg"
-              />
-              <p className="tw-text-sm tw-text-gray-500 tw-mt-2">
-                Click the button above to initiate RFID tag scanning.
-              </p>
+          {/* SCAN MODE */}
+          {isScanSelected && (
+            <div className="scan-mode-content">
+              {/* Initial Scan State */}
+              {!isScanning && !scanResult && !vehicleInfo && (
+                <div className="tw-text-center tw-py-8">
+                  <div className="tw-mb-6">
+                    <i className="fas fa-tag tw-text-gray-400 tw-text-5xl"></i>
+                  </div>
+                  <Button
+                    text="Start Scanning"
+                    width="80%"
+                    height={50}
+                    stylingMode="contained"
+                    type="default"
+                    icon="fas fa-wifi"
+                    onClick={startScan}
+                    className="tw-text-base"
+                  />
+                  <p className="tw-text-sm tw-text-gray-500 tw-mt-3">
+                    Click the button above to start RFID tag scanning
+                  </p>
+                </div>
+              )}
+
+              {/* Scanning in Progress */}
+              {isScanning && !scanResult && (
+                <div className="tw-text-center tw-py-8">
+                  <div className="scanning-animation tw-mb-4">
+                    <i className="fas fa-wifi tw-text-blue-500 tw-text-5xl"></i>
+                    <div className="scanning-waves"></div>
+                  </div>
+                  <p className="tw-text-lg tw-font-medium tw-text-gray-800">
+                    Scanning for RFID tag...
+                  </p>
+                  <p className="tw-text-sm tw-text-gray-600 tw-mb-6">
+                    Please hold the tag near the scanner
+                  </p>
+                  <Button
+                    text="Cancel Scan"
+                    type="danger"
+                    stylingMode="outlined"
+                    onClick={cancelScan}
+                    icon="fas fa-times"
+                  />
+                </div>
+              )}
+
+              {/* Tag Scanned, Validating */}
+              {scanResult && !vehicleInfo && !isScanning && (
+                <div className="tw-text-center tw-py-8">
+                  <div className="tw-mb-4">
+                    <i className="fas fa-check-circle tw-text-green-500 tw-text-4xl"></i>
+                  </div>
+                  <p className="tw-text-lg tw-font-medium tw-text-gray-800 tw-mb-2">
+                    Tag Scanned Successfully
+                  </p>
+                  <div className="tw-inline-block tw-bg-gray-100 tw-px-4 tw-py-2 tw-rounded-lg tw-mb-6">
+                    <p className="tw-font-mono tw-text-sm tw-text-gray-700 tw-m-0">
+                      Tag ID: {scanResult}
+                    </p>
+                  </div>
+                  <div className="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-text-gray-600 tw-mb-6">
+                    <LoadIndicator width={20} height={20} />
+                    <p className="tw-text-sm tw-m-0">
+                      Validating tag and retrieving vehicle information...
+                    </p>
+                  </div>
+                  <Button
+                    text="Cancel"
+                    type="danger"
+                    stylingMode="outlined"
+                    onClick={cancelScan}
+                    icon="fas fa-times"
+                  />
+                </div>
+              )}
+
+              {/* Vehicle Info Retrieved */}
+              {vehicleInfo && scanResult && !isScanning && (
+                <div className="vehicle-info-wrapper">
+                  <div className="tw-text-center tw-mb-4">
+                    <i className="fas fa-check-circle tw-text-green-500 tw-text-3xl"></i>
+                    <p className="tw-text-lg tw-font-medium tw-mt-2 tw-text-gray-800">
+                      Tag Validated Successfully
+                    </p>
+                    <p className="tw-text-sm tw-text-gray-500">
+                      Vehicle information retrieved
+                    </p>
+                  </div>
+                  {renderVehicleInfoCard()}
+                  {/* Action Buttons */}
+                  <div className="tw-flex tw-gap-2 tw-mt-4">
+                    <Button
+                      text="Cancel"
+                      type="normal"
+                      stylingMode="outlined"
+                      icon="fas fa-times"
+                      onClick={cancelScan}
+                    />
+                    <Button
+                      text="Scan Again"
+                      type="default"
+                      stylingMode="outlined"
+                      icon="fas fa-redo"
+                      onClick={startScan}
+                    />
+                    <Button
+                      text="Accept & Continue"
+                      type="success"
+                      stylingMode="contained"
+                      icon="fas fa-check"
+                      onClick={handleAcceptVehicle}
+                      className="tw-flex-1"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Loading state for vehicle info */}
-        {isLookupSelected && isLoadingVehicleInfo && (
-          <div className="tw-text-center tw-my-5">
-            <LoadIndicator width={40} height={40} />
-            <p className="tw-mt-3 tw-text-gray-600">
-              Loading vehicle information...
-            </p>
-          </div>
-        )}
-
-        {isLookupSelected &&
-          selectedVehicleId &&
-          vehicleInfo &&
-          !isLoadingVehicles && (
-            <div className="vehicle-details-container tw-my-3">
-              <div className="selection-success tw-mb-3 tw-text-center">
-                <i className="fas fa-check-circle tw-text-green-500 tw-text-2xl"></i>
-                <p className="tw-text-lg tw-font-medium tw-mt-1">
-                  Vehicle Selected
-                </p>
-              </div>
-
-              <div className="selected-vehicle-card tw-border tw-rounded-lg tw-p-4 tw-bg-white tw-shadow">
-                <div className="vehicle-header tw-flex tw-items-center tw-mb-3">
-                  <i className="fas fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
-                  <h4 className="tw-text-lg tw-font-semibold tw-m-0">
-                    {vehicleInfo.hyoungNo || "N/A"}
-                  </h4>
-                </div>
-
-                <div className="vehicle-details tw-text-sm">
-                  <p className="tw-mb-3 tw-text-gray-600">
-                    Vehicle selected from company fleet.
-                  </p>
-
-                  {/* Vehicle validation result details */}
-                  <div className="tw-grid tw-grid-cols-2 tw-gap-2 tw-mb-4">
-                    <div className="detail-item">
-                      <span className="detail-label tw-font-medium tw-text-gray-600">
-                        Vehicle ID:
-                      </span>
-                      <span className="detail-value tw-ml-1">
-                        {vehicleInfo.vehicleId || "N/A"}
-                      </span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label tw-font-medium tw-text-gray-600">
-                        Hyoung No:
-                      </span>
-                      <span className="detail-value tw-ml-1">
-                        {vehicleInfo.hyoungNo || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Fueling Limits Section */}
-                  <div className="vehicle-limits tw-border-t tw-pt-3">
-                    <h5 className="tw-text-base tw-font-medium tw-mb-2">
-                      Fueling Limits
-                    </h5>
-
-                    <div className="tw-grid tw-grid-cols-2 tw-gap-3">
-                      {/* Daily Limit */}
-                      {vehicleInfo.dailyLimit !== undefined && (
-                        <div className="limit-item">
-                          <div className="tw-flex tw-justify-between tw-mb-1">
-                            <span className="tw-text-xs tw-font-medium">
-                              Daily Limit:
-                            </span>
-                            <span className="tw-text-xs">
-                              {vehicleInfo.dailyUsed || 0} /{" "}
-                              {vehicleInfo.dailyLimit || 0} L
-                            </span>
-                          </div>
-                          <ProgressBar
-                            min={0}
-                            max={vehicleInfo.dailyLimit || 100}
-                            value={vehicleInfo.dailyUsed || 0}
-                            className="tw-h-2"
-                          />
-                        </div>
-                      )}
-
-                      {/* Monthly Limit */}
-                      {vehicleInfo.monthlyLimit !== undefined && (
-                        <div className="limit-item">
-                          <div className="tw-flex tw-justify-between tw-mb-1">
-                            <span className="tw-text-xs tw-font-medium">
-                              Monthly Limit:
-                            </span>
-                            <span className="tw-text-xs">
-                              {vehicleInfo.monthlyUsed || 0} /{" "}
-                              {vehicleInfo.monthlyLimit || 0} L
-                            </span>
-                          </div>
-                          <ProgressBar
-                            min={0}
-                            max={vehicleInfo.monthlyLimit || 100}
-                            value={vehicleInfo.monthlyUsed || 0}
-                            className="tw-h-2"
-                          />
-                        </div>
-                      )}
-
-                      {/* Transaction Limit if available */}
-                      {vehicleInfo.fuelingLimit !== undefined && (
-                        <div className="limit-item tw-col-span-2">
-                          <div className="tw-flex tw-items-center tw-text-xs">
-                            <i className="fas fa-gas-pump tw-text-gray-600 tw-mr-1"></i>
-                            <span className="tw-font-medium">
-                              Transaction Limit:
-                            </span>
-                            <span className="tw-ml-2">
-                              {vehicleInfo.fuelingLimit || 0} L per fueling
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="selection-actions tw-flex tw-justify-between tw-mt-4">
-                <Button
-                  text="Change Selection"
-                  type="normal"
-                  stylingMode="outlined"
-                  icon="fas fa-times"
-                  onClick={handleClearSelection}
-                />
-                <Button
-                  text="Accept & Continue"
-                  type="success"
-                  stylingMode="contained"
-                  icon="fas fa-check"
-                  onClick={handleAcceptLookupResult}
-                  disabled={!selectedVehicleId}
-                />
-              </div>
-            </div>
-          )}
-
-        <div className="navigation-buttons tw-flex tw-justify-start tw-mt-6 tw-pt-4 tw-border-t">
+        {/* Bottom Navigation - Always visible at bottom with proper spacing */}
+        <div className="tw-mt-8 tw-pt-4 tw-border-t tw-border-gray-200">
           <Button
             text="Back to Nozzles"
             type="normal"
