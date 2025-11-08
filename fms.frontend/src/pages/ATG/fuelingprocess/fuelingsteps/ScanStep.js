@@ -227,17 +227,19 @@ const ScanStep = memo(
     }, [vehicleInfo, scanResult]);
 
     return (
-      <div className="dx-card responsive-paddings">
+      <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
         {/* Header */}
-        <div className="tw-mb-6">
+        <div className="tw-mb-4 tw-flex-shrink-0">
           <h3 className="tw-flex tw-items-center tw-text-xl tw-font-semibold tw-m-0">
             <i className="fas fa-id-card-alt tw-mr-2 tw-text-blue-600"></i>
             Vehicle Identification
           </h3>
         </div>
 
-        {/* Method Selection */}
-        <div className="method-selection tw-mb-6 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
+        {/* Scrollable Content Wrapper */}
+        <div className="tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
+          {/* Method Selection */}
+          <div className="method-selection tw-mb-6 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200">
           <label className="tw-block tw-mb-3 tw-font-medium tw-text-gray-700 tw-text-sm">
             Choose Identification Method:
           </label>
@@ -450,10 +452,11 @@ const ScanStep = memo(
               )}
             </div>
           )}
+          </div>
         </div>
 
         {/* Bottom Navigation - Always visible at bottom with proper spacing */}
-        <div className="tw-mt-8 tw-pt-4 tw-border-t tw-border-gray-200">
+        <div className="tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200 tw-flex-shrink-0">
           <Button
             text="Back to Nozzles"
             type="normal"

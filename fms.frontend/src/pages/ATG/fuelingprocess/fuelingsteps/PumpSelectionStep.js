@@ -15,11 +15,11 @@ const PumpSelectionStep = memo(
     setShowFuelingPopup,
   }) => {
     return (
-      <div className="dx-card responsive-paddings">
-        <h3>
+      <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
+        <h3 className="tw-flex-shrink-0 tw-mb-4">
           <i className="fas fa-gas-pump tw-mr-2"></i>Select Pump
         </h3>
-        <div className="pump-selection-container">
+        <div className="pump-selection-container tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
           {availablePumps && availablePumps.length > 0 ? (
             <div className="dx-fieldset">
               <TileView

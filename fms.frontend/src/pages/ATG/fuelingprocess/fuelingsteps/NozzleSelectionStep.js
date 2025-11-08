@@ -7,11 +7,11 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
   const hasNozzles = nozzles && nozzles.length > 0;
 
   return (
-    <div className="dx-card responsive-paddings">
-      <h3>
+    <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
+      <h3 className="tw-flex-shrink-0 tw-mb-4">
         <i className="fas fa-filter tw-mr-2"></i>Select Nozzle
       </h3>
-      <div className="nozzle-selection-container">
+      <div className="nozzle-selection-container tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
         {hasNozzles ? (
           <div className="dx-fieldset">
             <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
@@ -174,14 +174,15 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
           </div>
         )}
       </div>
-      <Button
-        text="Back to Pumps"
-        type="normal"
-        icon="fas fa-chevron-left"
-        stylingMode="outlined"
-        onClick={() => setStep("pump")}
-        className="tw-mt-4"
-      />
+      <div className="tw-flex-shrink-0 tw-mt-4">
+        <Button
+          text="Back to Pumps"
+          type="normal"
+          icon="fas fa-chevron-left"
+          stylingMode="outlined"
+          onClick={() => setStep("pump")}
+        />
+      </div>
     </div>
   );
 });
