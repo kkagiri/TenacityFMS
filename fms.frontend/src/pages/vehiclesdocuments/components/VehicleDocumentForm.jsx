@@ -1,14 +1,8 @@
-import React from "react";
-import {
-  Popup,
-  Form,
-  TextBox,
-  DateBox,
-  SelectBox,
-  Button,
-  FileUploader,
-} from "devextreme-react";
-import { RequiredRule } from "devextreme-react/form";
+import React, { useState } from "react";
+import { Popup, ScrollView } from "devextreme-react";
+import { Form, SimpleItem, Label, RequiredRule, GroupItem } from "devextreme-react/form";
+import { Button } from "devextreme-react/button";
+import VehicleSearchableSelector from "../../../components/selectors/VehicleSearchableSelector";
 
 const VehicleDocumentForm = ({
   visible,
@@ -17,15 +11,34 @@ const VehicleDocumentForm = ({
   documentData,
   vehicles,
 }) => {
+  const [formData, setFormData] = useState(documentData || {});
+  const [file, setFile] = useState(null);
+
   const documentTypes = [
-    { id: 1, name: "Insurance" },
-    { id: 2, name: "RoadPermit" },
-    { id: 3, name: "NTSAInspection" },
+    { id: 0, name: "Insurance" },
+    { id: 1, name: "RoadPermit" },
+    { id: 2, name: "NTSAInspection" },
   ];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(documentData);
+  const handleFieldChange = (field, value) => {
+    setFormData({
+      ...formData,
+      [field]: value,
+    });
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.value && e.value.length > 0 ? e.value[0] : null;
+    setFile(selectedFile);
+    handleFieldChange('documentFile', selectedFile);
+  };
+
+  const handleSubmit = () => {
+    const submitData = {
+      ...formData,
+      documentFile: file ? [file] : null,
+    };
+    onSave(submitData);
   };
 
   return (
@@ -33,69 +46,161 @@ const VehicleDocumentForm = ({
       visible={visible}
       onHiding={onHide}
       dragEnabled={false}
-      closeOnOutsideClick={true}
+      closeOnOutsideClick={false}
       showTitle={true}
       title={
         documentData?.id ? "Edit Vehicle Document" : "Add Vehicle Document"
       }
-      width={600}
-      height="auto"
+      width="95%"
+      height="95%"
+      maxWidth={800}
+      showCloseButton={true}
     >
-      <form onSubmit={handleSubmit}>
-        <Form formData={documentData}>
-          <SelectBox
-            dataSource={vehicles}
-            valueExpr="id"
-            displayExpr="registrationNumber"
-            name="vehicleId"
-            label="Vehicle"
-            searchEnabled={true}
+      <ScrollView width="100%" height="100%">
+        <div className="tw-p-4">
+          <Form
+            formData={formData}
+            onFieldDataChanged={(e) => handleFieldChange(e.dataField, e.value)}
+            labelLocation="top"
+            colCount={1}
           >
-            <RequiredRule message="Vehicle is required" />
-          </SelectBox>
+            <GroupItem caption="Vehicle Information" colSpan={1}>
+              <SimpleItem
+                dataField="vehicleId"
+                editorType="dxSelectBox"
+                render={() => (
+                  <div>
+                    <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                      Vehicle <span className="tw-text-red-500">*</span>
+                    </label>
+                    <VehicleSearchableSelector
+                      value={formData.vehicleId}
+                      onValueChanged={(e) => handleFieldChange('vehicleId', e.value)}
+                      placeholder="Search and select vehicle..."
+                      width="100%"
+                    />
+                  </div>
+                )}
+              />
+            </GroupItem>
 
-          <SelectBox
-            dataSource={documentTypes}
-            valueExpr="id"
-            displayExpr="name"
-            name="documentType"
-            label="Document Type"
-          >
-            <RequiredRule message="Document type is required" />
-          </SelectBox>
+            <GroupItem caption="Document Details" colSpan={1}>
+              <SimpleItem
+                dataField="documentType"
+                editorType="dxSelectBox"
+                editorOptions={{
+                  dataSource: documentTypes,
+                  valueExpr: 'id',
+                  displayExpr: 'name',
+                  placeholder: 'Select document type',
+                }}
+              >
+                <Label text="Document Type" />
+                <RequiredRule message="Document type is required" />
+              </SimpleItem>
 
-          <TextBox name="documentNumber" label="Document Number">
-            <RequiredRule message="Document number is required" />
-          </TextBox>
+              <SimpleItem
+                dataField="documentNumber"
+                editorType="dxTextBox"
+                editorOptions={{
+                  placeholder: 'Enter document number',
+                  maxLength: 100,
+                }}
+              >
+                <Label text="Document Number" />
+                <RequiredRule message="Document number is required" />
+              </SimpleItem>
 
-          <DateBox name="issueDate" label="Issue Date" type="date">
-            <RequiredRule message="Issue date is required" />
-          </DateBox>
+              <SimpleItem
+                dataField="issuingAuthority"
+                editorType="dxTextBox"
+                editorOptions={{
+                  placeholder: 'Enter issuing authority',
+                  maxLength: 200,
+                }}
+              >
+                <Label text="Issuing Authority" />
+                <RequiredRule message="Issuing authority is required" />
+              </SimpleItem>
+            </GroupItem>
 
-          <DateBox name="expiryDate" label="Expiry Date" type="date">
-            <RequiredRule message="Expiry date is required" />
-          </DateBox>
+            <GroupItem caption="Dates" colSpan={1}>
+              <SimpleItem
+                dataField="issueDate"
+                editorType="dxDateBox"
+                editorOptions={{
+                  displayFormat: 'dd/MM/yyyy',
+                  placeholder: 'Select issue date',
+                }}
+              >
+                <Label text="Issue Date" />
+                <RequiredRule message="Issue date is required" />
+              </SimpleItem>
 
-          <TextBox name="issuingAuthority" label="Issuing Authority" />
+              <SimpleItem
+                dataField="expiryDate"
+                editorType="dxDateBox"
+                editorOptions={{
+                  displayFormat: 'dd/MM/yyyy',
+                  placeholder: 'Select expiry date',
+                }}
+              >
+                <Label text="Expiry Date" />
+                <RequiredRule message="Expiry date is required" />
+              </SimpleItem>
+            </GroupItem>
 
-          <FileUploader
-            selectButtonText="Select document"
-            labelText=""
-            accept="application/pdf,image/*"
-            uploadMode="useForm"
-            name="documentFile"
-          />
+            <GroupItem caption="Document File" colSpan={1}>
+              <SimpleItem
+                dataField="documentFile"
+                editorType="dxFileUploader"
+                editorOptions={{
+                  selectButtonText: 'Select Document',
+                  labelText: '',
+                  accept: 'application/pdf,image/*',
+                  uploadMode: 'useForm',
+                  onValueChanged: handleFileChange,
+                }}
+              >
+                <Label text="Upload Document" />
+                <RequiredRule message="Document file is required" />
+              </SimpleItem>
+              <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                Accepted formats: PDF, Images (JPG, PNG). Max size: 10MB
+              </div>
+            </GroupItem>
 
-          <TextBox name="notes" label="Notes" />
+            <GroupItem caption="Additional Information" colSpan={1}>
+              <SimpleItem
+                dataField="notes"
+                editorType="dxTextArea"
+                editorOptions={{
+                  height: 100,
+                  placeholder: 'Enter any additional notes',
+                  maxLength: 1000,
+                }}
+              >
+                <Label text="Notes" />
+              </SimpleItem>
+            </GroupItem>
+          </Form>
 
-          <Button
-            text="Save"
-            type="success"
-            useSubmitBehavior={true}
-            className="tw-mt-4"
-          />
-        </Form>
-      </form>
+          <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pb-4 tw-border-t tw-border-gray-200 tw-pt-4">
+            <Button
+              text="Cancel"
+              onClick={onHide}
+              stylingMode="outlined"
+            />
+            <Button
+              text="Save Document"
+              icon="save"
+              onClick={handleSubmit}
+              type="success"
+              stylingMode="contained"
+            />
+          </div>
+        </div>
+      </ScrollView>
     </Popup>
   );
 };

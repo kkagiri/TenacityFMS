@@ -6,7 +6,7 @@ import Tabs from "devextreme-react/tabs";
 import Button from "devextreme-react/button";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
-import { Popup } from "devextreme-react/popup";
+import { Popup, ScrollView } from "devextreme-react";
 
 // Import tab components
 import VehicleEditForm from "./component/VehicleEditForm";
@@ -572,20 +572,26 @@ const VehicleDetails = () => {
         dragEnabled={false}
         showTitle={true}
         title={`Assign RFID Tag to ${vehicle.hyoungNo}`}
-        width="auto"
+        width="90%"
         height="auto"
+        maxWidth={600}
+        maxHeight="90%"
         showCloseButton={true}
         position={{ my: "center", at: "center", of: window }}
       >
-        <TagAssignmentForm
-          vehicle={vehicle}
-          tags={tags}
-          onClose={() => setShowTagPopup(false)}
-          onSuccess={() => {
-            setShowTagPopup(false);
-            notify("Tag assigned successfully", "success", 3000);
-          }}
-        />
+        <ScrollView width="100%" height="100%">
+          <div className="tw-p-4">
+            <TagAssignmentForm
+              vehicle={vehicle}
+              tags={tags}
+              onClose={() => setShowTagPopup(false)}
+              onSuccess={() => {
+                setShowTagPopup(false);
+                notify("Tag assigned successfully", "success", 3000);
+              }}
+            />
+          </div>
+        </ScrollView>
       </Popup>
 
       <Popup
@@ -596,45 +602,51 @@ const VehicleDetails = () => {
         title={`Change Working Site for ${vehicle.hyoungNo}`}
         width="90%"
         height="auto"
+        maxWidth={600}
+        maxHeight="90%"
         showCloseButton={true}
       >
-        <div className="tw-p-6 tw-text-center">
-          <i className="fa-light fa-wrench tw-text-4xl tw-text-yellow-500 tw-mb-4"></i>
-          <h3 className="tw-text-lg tw-font-semibold tw-mb-2">
-            Site Assignment Form
-          </h3>
-          <p className="tw-text-gray-600 tw-mb-4">
-            This feature is under development.
-          </p>
-          <p className="tw-text-gray-500 tw-mb-4">
-            Site assignment will allow changing the working site for this
-            vehicle.
-          </p>
+        <ScrollView width="100%" height="100%">
+          <div className="tw-p-4">
+            <div className="tw-text-center">
+              <i className="fa-light fa-wrench tw-text-4xl tw-text-yellow-500 tw-mb-4"></i>
+              <h3 className="tw-text-lg tw-font-semibold tw-mb-2">
+                Site Assignment Form
+              </h3>
+              <p className="tw-text-gray-600 tw-mb-4">
+                This feature is under development.
+              </p>
+              <p className="tw-text-gray-500 tw-mb-4">
+                Site assignment will allow changing the working site for this
+                vehicle.
+              </p>
 
-          {/* Available Sites Display */}
-          <div className="tw-mb-4 tw-text-left tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-bg-gray-50">
-            <h4 className="tw-font-semibold tw-mb-2">
-              Available Sites ({sites.length})
-            </h4>
-            <ul className="tw-space-y-1 tw-max-h-40 tw-overflow-y-auto">
-              {sites.map((site) => (
-                <li
-                  key={site.id}
-                  className="tw-p-2 tw-border-b tw-border-gray-200"
-                >
-                  {site.name}
-                </li>
-              ))}
-            </ul>
+              {/* Available Sites Display */}
+              <div className="tw-mb-4 tw-text-left tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-bg-gray-50">
+                <h4 className="tw-font-semibold tw-mb-2">
+                  Available Sites ({sites.length})
+                </h4>
+                <ul className="tw-space-y-1 tw-max-h-40 tw-overflow-y-auto">
+                  {sites.map((site) => (
+                    <li
+                      key={site.id}
+                      className="tw-p-2 tw-border-b tw-border-gray-200"
+                    >
+                      {site.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <Button
+                text="Close"
+                type="default"
+                stylingMode="contained"
+                onClick={() => setShowSitePopup(false)}
+              />
+            </div>
           </div>
-
-          <Button
-            text="Close"
-            type="default"
-            stylingMode="contained"
-            onClick={() => setShowSitePopup(false)}
-          />
-        </div>
+        </ScrollView>
         {/* Uncomment when SiteAssignmentForm is implemented
         <SiteAssignmentForm
           vehicle={vehicle}
@@ -655,18 +667,24 @@ const VehicleDetails = () => {
         showTitle={true}
         title={`Set Expected Average for ${vehicle.hyoungNo}`}
         width="90%"
-        height={"400"}
+        height="auto"
+        maxWidth={600}
+        maxHeight="90%"
         showCloseButton={true}
       >
-        <ExpectedAverageForm
-          vehicle={vehicle}
-          onClose={() => setShowExpectedAvgPopup(false)}
-          onSuccess={(newAverage) => {
-            setVehicle({ ...vehicle, defaultExptdAvgid: newAverage });
-            setShowExpectedAvgPopup(false);
-            notify("Expected average updated successfully", "success", 3000);
-          }}
-        />
+        <ScrollView width="100%" height="100%">
+          <div className="tw-p-4">
+            <ExpectedAverageForm
+              vehicle={vehicle}
+              onClose={() => setShowExpectedAvgPopup(false)}
+              onSuccess={(newAverage) => {
+                setVehicle({ ...vehicle, defaultExptdAvgid: newAverage });
+                setShowExpectedAvgPopup(false);
+                notify("Expected average updated successfully", "success", 3000);
+              }}
+            />
+          </div>
+        </ScrollView>
       </Popup>
     </div>
   );
