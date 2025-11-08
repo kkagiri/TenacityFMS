@@ -117,7 +117,7 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
     }
 
     return (
-      <div className="fueling-rule-popup-content tw-p-4">
+      <div className="fueling-rule-popup-content tw-p-4 tw-max-h-[70vh] tw-overflow-y-auto">
         {/* Vehicle Info Section */}
         <div className="vehicle-info tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-mb-6">
           <div className="tw-flex tw-items-center tw-mb-2">

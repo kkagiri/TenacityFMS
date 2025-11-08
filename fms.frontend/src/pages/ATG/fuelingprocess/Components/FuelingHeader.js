@@ -261,7 +261,7 @@ const FuelingHeader = ({
           </div>
         </div>
 
-        {/* Right header section with system status */}
+        {/* Right header section with system status and connection indicator */}
         <div className={`header-right ${isSmall ? "tw-w-full" : ""}`}>
           <div className={`system-status-icons ${isSmall ? "tw-justify-start tw-flex-wrap" : ""}`}>
             <div className="status-icon tw-text-center" title="Battery Status">
@@ -319,6 +319,69 @@ const FuelingHeader = ({
                 </span>
               </div>
             )}
+
+            {/* Connection Status Indicator */}
+            <div
+              className="status-icon tw-text-center"
+              title={
+                connectionStatus === "connected"
+                  ? "Device Connected"
+                  : connectionStatus === "connecting"
+                  ? "Connecting to Device"
+                  : connectionStatus === "delayed"
+                  ? "Connection Delayed"
+                  : "Device Disconnected"
+              }
+            >
+              {isSmall ? (
+                // Mobile: Show only colored icon
+                <i
+                  className={`fa-solid fa-circle tw-text-lg ${
+                    connectionStatus === "connected"
+                      ? "tw-text-green-500"
+                      : connectionStatus === "connecting"
+                      ? "tw-text-yellow-500"
+                      : connectionStatus === "delayed"
+                      ? "tw-text-yellow-500"
+                      : "tw-text-red-500"
+                  }`}
+                ></i>
+              ) : (
+                // Desktop: Show icon with text
+                <>
+                  <i
+                    className={`fa-solid ${
+                      connectionStatus === "connected"
+                        ? "fa-signal"
+                        : connectionStatus === "connecting"
+                        ? "fa-spinner fa-spin"
+                        : connectionStatus === "delayed"
+                        ? "fa-clock"
+                        : "fa-plug"
+                    } tw-text-lg`}
+                    style={{
+                      color:
+                        connectionStatus === "connected"
+                          ? "#198754"
+                          : connectionStatus === "connecting"
+                          ? "#6c757d"
+                          : connectionStatus === "delayed"
+                          ? "#ffc107"
+                          : "#dc3545",
+                    }}
+                  ></i>
+                  <span className="status-value tw-text-xs tw-mt-1">
+                    {connectionStatus === "connected"
+                      ? "Connected"
+                      : connectionStatus === "connecting"
+                      ? "Connecting"
+                      : connectionStatus === "delayed"
+                      ? "Delayed"
+                      : "Disconnected"}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

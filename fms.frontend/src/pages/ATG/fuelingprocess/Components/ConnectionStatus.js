@@ -169,22 +169,9 @@ const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
 
   return (
     <div className="connection-status">
-      <div className="status-indicator" style={{ color }}>
-        <i className={icon}></i>
-        <span className="status-text">{text}</span>
-        {gracePeriodActive && (
-          <span className="tw-ml-1 tw-text-xs tw-text-yellow-600" title="Grace period active - brief disconnection">
-            (grace)
-          </span>
-        )}
-      </div>
-      <div className="last-update tw-text-xs tw-whitespace-nowrap">
-        Last update: {lastUpdateText}
-      </div>
-
-      {/* Display connection type and IP from Redis data */}
+      {/* Connection type icon only */}
       {deviceConnectionStatus && (
-        <div className="connection-details tw-flex tw-gap-2 tw-text-xs tw-mt-1 tw-flex-wrap">
+        <div className="connection-details tw-flex tw-items-center tw-gap-2 tw-text-xs">
           <div className="connection-type tw-flex tw-items-center tw-gap-1">
             {deviceConnectionStatus.connectionType === "WebSocket" ? (
               <i className="fa-solid fa-wifi" title="WebSocket connection"></i>
@@ -193,13 +180,6 @@ const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
             )}
             <span className="tw-hidden md:tw-inline">{deviceConnectionStatus.connectionType || "Unknown"}</span>
           </div>
-          {deviceConnectionStatus.ipAddress && (
-            <div className="connection-ip tw-flex tw-items-center">
-              <span title="IP Address" className="tw-text-xs tw-text-gray-600">
-                {deviceConnectionStatus.ipAddress}
-              </span>
-            </div>
-          )}
         </div>
       )}
     </div>

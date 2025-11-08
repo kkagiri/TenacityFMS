@@ -92,11 +92,11 @@ const FuelingDetailsStep = memo(
       (isVolumeValid || isFullTankValid) && !isPumpNozzleBusy;
 
     return (
-      <div className="dx-card responsive-paddings">
-        <h3>
+      <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
+        <h3 className="tw-flex-shrink-0 tw-mb-4">
           <i className="fas fa-check-circle tw-mr-2"></i>Fueling Authorization
         </h3>
-        <div className="dx-fieldset">
+        <div className="dx-fieldset tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
           <div className="dx-field tw-mb-4">
             <div className="dx-field-label tw-font-semibold tw-mb-2">
               Authorization Type
@@ -326,17 +326,18 @@ const FuelingDetailsStep = memo(
             )}
           </div>
         </div>
-        <Button
-          text="Back"
-          type="normal"
-          icon="fas fa-chevron-left"
-          stylingMode="outlined"
-          onClick={() => {
-            setStep("scan");
-          }}
-          className="tw-mt-3"
-          width="100%"
-        />
+        <div className="tw-flex-shrink-0 tw-mt-3">
+          <Button
+            text="Back"
+            type="normal"
+            icon="fas fa-chevron-left"
+            stylingMode="outlined"
+            onClick={() => {
+              setStep("scan");
+            }}
+            width="100%"
+          />
+        </div>
       </div>
     );
   }
