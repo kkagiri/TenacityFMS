@@ -5,7 +5,8 @@
       "Bash(dir \"C:\\inetpub\\wwwroot\\hyoungFMS\" /s /b)",
       "Bash(findstr:*)",
       "Bash(powershell -Command \"Get-WebConfigurationProperty -pspath ''MACHINE/WEBROOT/APPHOST'' -filter ''system.webServer/proxy'' -name ''enabled'' 2>&1\")",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\FMS.Application\\Features\\TankManagement\\TankStock\" /s /b)"
     ],
     "deny": [],
     "ask": []

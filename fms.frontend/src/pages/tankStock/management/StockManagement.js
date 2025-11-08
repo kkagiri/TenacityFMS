@@ -8,6 +8,7 @@ import AdjustmentCenter from './components/AdjustmentCenter';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import PumpTransactionManager from './components/PumpTransactionManager';
 import TransactionHub from './components/TransactionHub';
+import DispensingManager from './components/DispensingManager';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import Tabs from 'devextreme-react/tabs';
 import './StockManagement.scss';
@@ -45,6 +46,7 @@ const StockManagement = () => {
     { text: "Transaction Hub", icon: "fa-light fa-exchange-alt" },
     // { text: "Stock Adjustment Dashboard", icon: "fa-light fa-adjust" },
     { text: "Pump Transactions", icon: "fa-light fa-gas-pump" },
+    { text: "Dispensing Volumes", icon: "fa-light fa-tint" },
     // { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
     // { text: "Configuration", icon: "fa-light fa-cog" }
   ];
@@ -92,6 +94,13 @@ const StockManagement = () => {
       case 1:
         return loadedTabs.has(1) && (
           <PumpTransactionManager
+            selectedSite={selectedSite}
+            dateRange={dateRange}
+          />
+        );
+      case 2:
+        return loadedTabs.has(2) && (
+          <DispensingManager
             selectedSite={selectedSite}
             dateRange={dateRange}
           />

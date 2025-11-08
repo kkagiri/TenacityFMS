@@ -10,16 +10,16 @@ import "./../fuelingprocess.scss";
 const formatCurrency = (value) => {
   const num = Number(value);
   if (!isNaN(num) && typeof num === "number") {
-    return `$${num.toFixed(2)}`;
+    return `KES${num.toFixed(0)}`;
   }
-  return "$0.00"; // Fallback for invalid numbers
+  return "KES 0.00"; // Fallback for invalid numbers
 };
 
 // Helper function to safely format volume
 const formatVolume = (value) => {
   const num = Number(value);
   if (!isNaN(num) && typeof num === "number") {
-    return `${num.toFixed(2)} L`;
+    return `${num.toFixed(1)} L`;
   }
   return "0.00 L"; // Fallback for invalid numbers
 };
@@ -81,7 +81,7 @@ const FuelingPopupRenderer = {
             </div>
 
             <div className="metric-card">
-              <i className="fa-solid fa-dollar-sign"></i>
+              <i className="fa-solid fa-money-bill-wave"></i>
               <div className="metric-label">Amount</div>
               <div className="metric-value">{formatCurrency(fuelingCost)}</div>
             </div>
@@ -108,7 +108,7 @@ const FuelingPopupRenderer = {
             onClick={stopFueling}
             width="100%"
             className="stop-button"
-            icon="fas fa-hand-paper"
+            icon="fa-light fa-hand-paper"
           />
 
           <Button
@@ -118,7 +118,7 @@ const FuelingPopupRenderer = {
             onClick={() => setShowFuelingPopup(false)}
             width="100%"
             className="minimize-button"
-            icon="fas fa-minus"
+            icon="fa-light fa-minus"
           />
         </div>
       </Popup>
@@ -379,7 +379,7 @@ const FuelingPopupRenderer = {
                       console.warn("Could not find pump details for", process);
                     }
                   }}
-                  icon="fas fa-eye"
+                  icon="fa-light fa-eye"
                   disabled={process.status !== "fueling"}
                 />
               </div>

@@ -94,7 +94,7 @@ const FuelingDetailsStep = memo(
     return (
       <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
         <h3 className="tw-flex-shrink-0 tw-mb-4">
-          <i className="fas fa-check-circle tw-mr-2"></i>Fueling Authorization
+          <i className="fa-light fa-check-circle tw-mr-2"></i>Fueling Authorization
         </h3>
         <div className="dx-fieldset tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
           <div className="dx-field tw-mb-4">
@@ -114,7 +114,7 @@ const FuelingDetailsStep = memo(
                     setAmount("");
                   }}
                 >
-                  <i className="fas fa-fill-drip tw-text-3xl tw-mb-2"></i>
+                  <i className="fa-light fa-fill-drip tw-text-3xl tw-mb-2"></i>
                   <span className="tw-font-medium">By Volume</span>
                 </button>
                 <button
@@ -129,7 +129,7 @@ const FuelingDetailsStep = memo(
                     setVolume("");
                   }}
                 >
-                  <i className="fas fa-gas-pump tw-text-3xl tw-mb-2"></i>
+                  <i className="fa-light fa-gas-pump tw-text-3xl tw-mb-2"></i>
                   <span className="tw-font-medium">Full Tank</span>
                 </button>
               </div>
@@ -175,7 +175,7 @@ const FuelingDetailsStep = memo(
             {selectedType === "FullTank" && (
               <div className="full-tank-message tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded">
                 <div className="full-tank-info tw-flex tw-items-start">
-                  <i className="fas fa-info-circle tw-text-blue-500 tw-mr-2 tw-mt-1"></i>
+                  <i className="fa-light fa-info-circle tw-text-blue-500 tw-mr-2 tw-mt-1"></i>
                   <span className="tw-text-sm tw-text-blue-700">
                     Tank will be filled to capacity or until the maximum allowed
                     limit (per transaction, daily, or monthly) is reached.
@@ -189,14 +189,14 @@ const FuelingDetailsStep = memo(
 
           <div className="fueling-details-card tw-border tw-rounded-lg tw-p-3 tw-bg-gray-50 tw-shadow-sm tw-mb-3">
             <h4 className="tw-text-base tw-font-medium tw-mb-3">
-              <i className="fas fa-clipboard-list tw-mr-2"></i> Authorization
+              <i className="fa-light fa-clipboard-list tw-mr-2"></i> Authorization
               Summary
             </h4>
 
             <div className="summary-table tw-w-full tw-text-sm">
               <div className="tw-flex tw-items-center tw-mb-2">
                 <div className="tw-w-6 tw-flex tw-justify-center">
-                  <i className="fas fa-tag tw-text-gray-500"></i>
+                  <i className="fa-light fa-tag tw-text-gray-500"></i>
                 </div>
                 <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                   Auth Tag:
@@ -211,7 +211,7 @@ const FuelingDetailsStep = memo(
               <div className="tw-flex tw-items-center tw-mb-2">
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-gas-pump tw-text-gray-500"></i>
+                    <i className="fa-light fa-gas-pump tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Pump:
@@ -221,7 +221,7 @@ const FuelingDetailsStep = memo(
 
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-filter tw-text-gray-500"></i>
+                    <i className="fa-light fa-filter tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Nozzle:
@@ -233,7 +233,7 @@ const FuelingDetailsStep = memo(
               <div className="tw-flex tw-items-center tw-mb-2">
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-oil-can tw-text-gray-500"></i>
+                    <i className="fa-light fa-oil-can tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Fuel:
@@ -245,7 +245,7 @@ const FuelingDetailsStep = memo(
 
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-car tw-text-gray-500"></i>
+                    <i className="fa-light fa-car tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Vehicle:
@@ -258,7 +258,7 @@ const FuelingDetailsStep = memo(
                 <div className="tw-flex tw-items-center tw-mb-1">
                   <div className="tw-flex tw-items-center tw-w-1/2">
                     <div className="tw-w-6 tw-flex tw-justify-center">
-                      <i className="fas fa-calendar-day tw-text-gray-500"></i>
+                      <i className="fa-light fa-calendar-day tw-text-gray-500"></i>
                     </div>
                     <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                       Daily:
@@ -271,7 +271,7 @@ const FuelingDetailsStep = memo(
 
                   <div className="tw-flex tw-items-center tw-w-1/2">
                     <div className="tw-w-6 tw-flex tw-justify-center">
-                      <i className="fas fa-calendar-week tw-text-gray-500"></i>
+                      <i className="fa-light fa-calendar-week tw-text-gray-500"></i>
                     </div>
                     <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                       Monthly:
@@ -289,7 +289,7 @@ const FuelingDetailsStep = memo(
           <div className="dx-field tw-mt-4">
             {isPumpNozzleBusy ? (
               <div className="already-fueling-message tw-text-center tw-p-3 tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-text-yellow-800 tw-rounded">
-                <i className="fas fa-exclamation-triangle tw-mr-2"></i>
+                <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
                 <span>
                   This pump and nozzle combination is currently busy (fueling or
                   completing). Please select another or wait.
@@ -321,7 +321,7 @@ const FuelingDetailsStep = memo(
                   }
                 }}
                 disabled={isAuthorizing || !canAuthorize}
-                icon={isAuthorizing ? "fas fa-spinner fa-spin" : "fas fa-play"}
+                icon={isAuthorizing ? "fa-light fa-spinner fa-spin" : "fa-light fa-play"}
               />
             )}
           </div>
@@ -330,7 +330,7 @@ const FuelingDetailsStep = memo(
           <Button
             text="Back"
             type="normal"
-            icon="fas fa-chevron-left"
+            icon="fa-light fa-chevron-left"
             stylingMode="outlined"
             onClick={() => {
               setStep("scan");

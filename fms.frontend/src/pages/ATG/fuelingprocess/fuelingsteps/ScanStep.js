@@ -19,13 +19,12 @@ const ScanStep = memo(
     setStep,
     selectionMethod,
     setSelectionMethod,
-    vehicles = [],
     isLoadingVehicles = false,
     selectedVehicleId = null,
     handleVehicleSelected = () => {},
-    vehicleReg = "",
     selectedNozzle,
     setScanResult,
+    onConfigureRules, // Add callback for configuring rules
   }) => {
     //Cursor: Memoize selection methods
     const selectionMethods = useMemo(
@@ -33,9 +32,9 @@ const ScanStep = memo(
         {
           id: "lookup",
           text: "Select Company Vehicle",
-          icon: "fas fa-list-ul",
+          icon: "fa-light fa-list-ul",
         },
-        { id: "scan", text: "Scan RFID Tag", icon: "fas fa-tag" },
+        { id: "scan", text: "Scan RFID Tag", icon: "fa-light fa-tag" },
       ],
       []
     );
@@ -62,20 +61,18 @@ const ScanStep = memo(
     //Cursor: Memoize vehicle lookup handler
     const handleVehicleLookupChange = useCallback(
       (e) => {
-        const vehicle = vehicles.find((v) => v.vehicleId === e.value);
-        handleVehicleSelected(vehicle || null);
+        // VehicleSearchableSelector passes { value: vehicleId }
+        const vehicleId = e.value;
+        if (vehicleId) {
+          // Pass the vehicleId to parent to trigger validation
+          handleVehicleSelected({ vehicleId });
+        } else {
+          // Clear selection
+          handleVehicleSelected(null);
+        }
       },
-      [vehicles, handleVehicleSelected]
+      [handleVehicleSelected]
     );
-
-    //Cursor: Memoize vehicle display expression
-    const vehicleDisplayExpr = useCallback((item) => {
-      return item
-        ? `${item.hyoungNo || "Unknown Vehicle"} (${
-            item.numberPlate || "No Plate"
-          })`
-        : "";
-    }, []);
 
     //Cursor: Memoize back button handler
     const handleBack = useCallback(() => {
@@ -103,7 +100,7 @@ const ScanStep = memo(
       return (
         <div className="vehicle-info-card tw-border tw-rounded-lg tw-p-4 tw-bg-white tw-shadow tw-mb-4">
           <div className="vehicle-header tw-flex tw-items-center tw-mb-3 tw-pb-3 tw-border-b">
-            <i className="fas fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
+            <i className="fa-light fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
             <h4 className="tw-text-lg tw-font-semibold tw-m-0">
               {vehicleInfo.hyoungNo || "N/A"}
             </h4>
@@ -155,7 +152,7 @@ const ScanStep = memo(
             vehicleInfo.fuelingLimit !== undefined) && (
             <div className="vehicle-limits tw-border-t tw-pt-3">
               <h5 className="tw-text-base tw-font-medium tw-mb-3 tw-flex tw-items-center">
-                <i className="fas fa-gas-pump tw-text-blue-600 tw-mr-2"></i>
+                <i className="fa-light fa-gas-pump tw-text-blue-600 tw-mr-2"></i>
                 Fueling Limits
               </h5>
 
@@ -210,7 +207,7 @@ const ScanStep = memo(
                     <div className="limit-item tw-p-2 tw-bg-gray-50 tw-rounded">
                       <div className="tw-flex tw-items-center tw-justify-between tw-text-xs">
                         <span className="tw-font-medium tw-text-gray-700">
-                          <i className="fas fa-tint tw-text-blue-500 tw-mr-1"></i>
+                          <i className="fa-light fa-tint tw-text-blue-500 tw-mr-1"></i>
                           Transaction Limit
                         </span>
                         <span className="tw-font-semibold tw-text-gray-900">
@@ -231,7 +228,7 @@ const ScanStep = memo(
         {/* Header */}
         <div className="tw-mb-4 tw-flex-shrink-0">
           <h3 className="tw-flex tw-items-center tw-text-xl tw-font-semibold tw-m-0">
-            <i className="fas fa-id-card-alt tw-mr-2 tw-text-blue-600"></i>
+            <i className="fa-solid fa-id-card-alt tw-mr-2 tw-text-blue-600"></i>
             Vehicle Identification
           </h3>
         </div>
@@ -263,8 +260,8 @@ const ScanStep = memo(
           {/* LOOKUP MODE */}
           {isLookupSelected && (
             <div className="lookup-mode-content">
-              {/* Vehicle Search Selector */}
-              {!vehicleInfo && (
+              {/* Vehicle Search Selector - Always show, hide only during loading */}
+              {!isLoadingVehicleInfo && (
                 <div className="tw-mb-4">
                   <label className="tw-block tw-mb-2 tw-font-medium tw-text-gray-700 tw-text-sm">
                     Select Company Vehicle
@@ -276,10 +273,16 @@ const ScanStep = memo(
                     disabled={isLoadingVehicles}
                     width="100%"
                   />
-                  {!selectedVehicleId && !isLoadingVehicles && (
+                  {!selectedVehicleId && !isLoadingVehicles && !vehicleInfo && (
                     <small className="tw-text-gray-500 tw-block tw-mt-2 tw-text-xs">
-                      <i className="fas fa-info-circle tw-mr-1"></i>
+                      <i className="fa-light fa-info-circle tw-mr-1"></i>
                       Type at least 2 characters to search for a vehicle.
+                    </small>
+                  )}
+                  {vehicleInfo && (
+                    <small className="tw-text-green-600 tw-block tw-mt-2 tw-text-xs">
+                      <i className="fa-light fa-check-circle tw-mr-1"></i>
+                      Vehicle validated and ready
                     </small>
                   )}
                 </div>
@@ -289,8 +292,11 @@ const ScanStep = memo(
               {isLoadingVehicleInfo && (
                 <div className="tw-text-center tw-py-8">
                   <LoadIndicator width={40} height={40} />
-                  <p className="tw-mt-3 tw-text-gray-600 tw-text-sm">
-                    Loading vehicle information...
+                  <p className="tw-mt-3 tw-text-gray-600 tw-text-sm tw-font-medium">
+                    Validating vehicle...
+                  </p>
+                  <p className="tw-mt-1 tw-text-gray-500 tw-text-xs">
+                    Please wait while we verify vehicle information
                   </p>
                 </div>
               )}
@@ -299,7 +305,7 @@ const ScanStep = memo(
               {vehicleInfo && !isLoadingVehicleInfo && (
                 <div className="vehicle-info-wrapper">
                   <div className="tw-text-center tw-mb-4">
-                    <i className="fas fa-check-circle tw-text-green-500 tw-text-3xl"></i>
+                    <i className="fa-light fa-check-circle tw-text-green-500 tw-text-3xl"></i>
                     <p className="tw-text-lg tw-font-medium tw-mt-2 tw-text-gray-800">
                       Vehicle Selected
                     </p>
@@ -309,23 +315,39 @@ const ScanStep = memo(
                   </div>
                   {renderVehicleInfoCard()}
                   {/* Action Buttons */}
-                  <div className="tw-flex tw-gap-3 tw-mt-4">
-                    <Button
-                      text="Change Vehicle"
-                      type="normal"
-                      stylingMode="outlined"
-                      icon="fas fa-exchange-alt"
-                      onClick={handleClearSelection}
-                      className="tw-flex-1"
-                    />
-                    <Button
-                      text="Accept & Continue"
-                      type="success"
-                      stylingMode="contained"
-                      icon="fas fa-check"
-                      onClick={handleAcceptVehicle}
-                      className="tw-flex-1"
-                    />
+                  <div className="tw-flex tw-flex-col tw-gap-2 tw-mt-4">
+                    {/* Configure Rules Button */}
+                    {onConfigureRules && (
+                      <Button
+                        text="Configure Fuel Rules"
+                        type="default"
+                        stylingMode="outlined"
+                        icon="fa-light fa-cog"
+                        onClick={() => onConfigureRules(vehicleInfo)}
+                        width="100%"
+                        hint="Set up or modify fueling rules for this vehicle"
+                      />
+                    )}
+
+                    {/* Main Action Buttons */}
+                    <div className="tw-flex tw-gap-3">
+                      <Button
+                        text="Change Vehicle"
+                        type="normal"
+                        stylingMode="outlined"
+                        icon="fa-light fa-exchange-alt"
+                        onClick={handleClearSelection}
+                        className="tw-flex-1"
+                      />
+                      <Button
+                        text="Accept & Continue"
+                        type="success"
+                        stylingMode="contained"
+                        icon="fa-light fa-check"
+                        onClick={handleAcceptVehicle}
+                        className="tw-flex-1"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -339,7 +361,7 @@ const ScanStep = memo(
               {!isScanning && !scanResult && !vehicleInfo && (
                 <div className="tw-text-center tw-py-8">
                   <div className="tw-mb-6">
-                    <i className="fas fa-tag tw-text-gray-400 tw-text-5xl"></i>
+                    <i className="fa-light fa-tag tw-text-gray-400 tw-text-5xl"></i>
                   </div>
                   <Button
                     text="Start Scanning"
@@ -347,7 +369,7 @@ const ScanStep = memo(
                     height={50}
                     stylingMode="contained"
                     type="default"
-                    icon="fas fa-wifi"
+                    icon="fa-light fa-wifi"
                     onClick={startScan}
                     className="tw-text-base"
                   />
@@ -361,7 +383,7 @@ const ScanStep = memo(
               {isScanning && !scanResult && (
                 <div className="tw-text-center tw-py-8">
                   <div className="scanning-animation tw-mb-4">
-                    <i className="fas fa-wifi tw-text-blue-500 tw-text-5xl"></i>
+                    <i className="fa-light fa-wifi tw-text-blue-500 tw-text-5xl"></i>
                     <div className="scanning-waves"></div>
                   </div>
                   <p className="tw-text-lg tw-font-medium tw-text-gray-800">
@@ -375,7 +397,7 @@ const ScanStep = memo(
                     type="danger"
                     stylingMode="outlined"
                     onClick={cancelScan}
-                    icon="fas fa-times"
+                    icon="fa-light fa-times"
                   />
                 </div>
               )}
@@ -384,7 +406,7 @@ const ScanStep = memo(
               {scanResult && !vehicleInfo && !isScanning && (
                 <div className="tw-text-center tw-py-8">
                   <div className="tw-mb-4">
-                    <i className="fas fa-check-circle tw-text-green-500 tw-text-4xl"></i>
+                    <i className="fa-light fa-check-circle tw-text-green-500 tw-text-4xl"></i>
                   </div>
                   <p className="tw-text-lg tw-font-medium tw-text-gray-800 tw-mb-2">
                     Tag Scanned Successfully
@@ -394,18 +416,21 @@ const ScanStep = memo(
                       Tag ID: {scanResult}
                     </p>
                   </div>
-                  <div className="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-text-gray-600 tw-mb-6">
-                    <LoadIndicator width={20} height={20} />
-                    <p className="tw-text-sm tw-m-0">
-                      Validating tag and retrieving vehicle information...
-                    </p>
+                  <div className="tw-mb-4">
+                    <LoadIndicator width={40} height={40} />
                   </div>
+                  <p className="tw-text-gray-600 tw-font-medium tw-mb-1">
+                    Validating vehicle...
+                  </p>
+                  <p className="tw-text-gray-500 tw-text-xs tw-mb-6">
+                    Please wait while we verify vehicle information
+                  </p>
                   <Button
                     text="Cancel"
                     type="danger"
                     stylingMode="outlined"
                     onClick={cancelScan}
-                    icon="fas fa-times"
+                    icon="fa-light fa-times"
                   />
                 </div>
               )}
@@ -414,7 +439,7 @@ const ScanStep = memo(
               {vehicleInfo && scanResult && !isScanning && (
                 <div className="vehicle-info-wrapper">
                   <div className="tw-text-center tw-mb-4">
-                    <i className="fas fa-check-circle tw-text-green-500 tw-text-3xl"></i>
+                    <i className="fa-light fa-check-circle tw-text-green-500 tw-text-3xl"></i>
                     <p className="tw-text-lg tw-font-medium tw-mt-2 tw-text-gray-800">
                       Tag Validated Successfully
                     </p>
@@ -424,29 +449,45 @@ const ScanStep = memo(
                   </div>
                   {renderVehicleInfoCard()}
                   {/* Action Buttons */}
-                  <div className="tw-flex tw-gap-2 tw-mt-4">
-                    <Button
-                      text="Cancel"
-                      type="normal"
-                      stylingMode="outlined"
-                      icon="fas fa-times"
-                      onClick={cancelScan}
-                    />
-                    <Button
-                      text="Scan Again"
-                      type="default"
-                      stylingMode="outlined"
-                      icon="fas fa-redo"
-                      onClick={startScan}
-                    />
-                    <Button
-                      text="Accept & Continue"
-                      type="success"
-                      stylingMode="contained"
-                      icon="fas fa-check"
-                      onClick={handleAcceptVehicle}
-                      className="tw-flex-1"
-                    />
+                  <div className="tw-flex tw-flex-col tw-gap-2 tw-mt-4">
+                    {/* Configure Rules Button */}
+                    {onConfigureRules && (
+                      <Button
+                        text="Configure Fuel Rules"
+                        type="default"
+                        stylingMode="outlined"
+                        icon="fa-light fa-cog"
+                        onClick={() => onConfigureRules(vehicleInfo)}
+                        width="100%"
+                        hint="Set up or modify fueling rules for this vehicle"
+                      />
+                    )}
+
+                    {/* Main Action Buttons */}
+                    <div className="tw-flex tw-gap-2">
+                      <Button
+                        text="Cancel"
+                        type="normal"
+                        stylingMode="outlined"
+                        icon="fa-light fa-times"
+                        onClick={cancelScan}
+                      />
+                      <Button
+                        text="Scan Again"
+                        type="default"
+                        stylingMode="outlined"
+                        icon="fa-light fa-redo"
+                        onClick={startScan}
+                      />
+                      <Button
+                        text="Accept & Continue"
+                        type="success"
+                        stylingMode="contained"
+                        icon="fa-light fa-check"
+                        onClick={handleAcceptVehicle}
+                        className="tw-flex-1"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -460,7 +501,7 @@ const ScanStep = memo(
           <Button
             text="Back to Nozzles"
             type="normal"
-            icon="fas fa-chevron-left"
+            icon="fa-light fa-chevron-left"
             stylingMode="outlined"
             onClick={handleBack}
           />

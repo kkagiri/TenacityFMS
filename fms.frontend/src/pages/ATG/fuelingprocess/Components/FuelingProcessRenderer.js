@@ -30,7 +30,7 @@ const FuelingProcessRenderer = {
       <div className="dx-card responsive-paddings">
         <h3>
           {/* Cursor: Use Font Awesome full package icon */}
-          <i className="fas fa-gas-pump tw-mr-2"></i>Select Pump
+          <i className="fa-light fa-gas-pump tw-mr-2"></i>Select Pump
         </h3>
         <div className="pump-selection-container">
           {availablePumps && availablePumps.length > 0 ? (
@@ -89,13 +89,13 @@ const FuelingProcessRenderer = {
                         {isActive && (
                           <div className="active-indicator-badge">
                             {/* Cursor: Use Font Awesome full package icon */}
-                            <i className="fas fa-circle"></i> Busy
+                            <i className="fa-light fa-circle"></i> Busy
                           </div>
                         )}
                         {item.status === "offline" && (
                           <div className="offline-indicator-badge">
                             {/* Cursor: Use Font Awesome full package icon */}
-                            <i className="fas fa-triangle-exclamation"></i>{" "}
+                            <i className="fa-light fa-triangle-exclamation"></i>{" "}
                             Offline
                           </div>
                         )}
@@ -138,7 +138,7 @@ const FuelingProcessRenderer = {
                         <div className="last-transaction">
                           <small>
                             {/* Cursor: Use Font Awesome full package icon */}
-                            <i className="fas fa-receipt"></i> Last:
+                            <i className="fa-light fa-receipt"></i> Last:
                             {item.lastAmount > 0 && (
                               <span className="last-amount">
                                 {" "}
@@ -175,7 +175,7 @@ const FuelingProcessRenderer = {
                               setShowFuelingPopup(true); // Show the progress/complete popup
                             }}
                             // Cursor: Use Font Awesome full package icon
-                            icon="fas fa-eye"
+                            icon="fa-light fa-eye"
                             className="view-fueling-btn"
                           />
                         </div>
@@ -218,7 +218,7 @@ const FuelingProcessRenderer = {
               <div className="no-data-icon">
                 {/* Cursor: Use Font Awesome full package icon */}
                 <i className="fa-light fa-gas-pump"></i>
-                <i className="fas fa-slash"></i>
+                <i className="fa-light fa-slash"></i>
               </div>
               <p>No pumps are available for this device.</p>
               <p className="no-data-subtext">
@@ -239,7 +239,7 @@ const FuelingProcessRenderer = {
       <div className="dx-card responsive-paddings">
         <h3>
           {/* Cursor: Use Font Awesome full package icon */}
-          <i className="fas fa-filter tw-mr-2"></i>Select Nozzle
+          <i className="fa-light fa-filter tw-mr-2"></i>Select Nozzle
         </h3>
         <div className="nozzle-selection-container">
           {hasNozzles ? (
@@ -304,7 +304,7 @@ const FuelingProcessRenderer = {
                             {item.fuelType &&
                             item.fuelType.toLowerCase().includes("diesel") ? (
                               <i
-                                className="fas fa-truck-monster tw-text-2xl"
+                                className="fa-light fa-truck-monster tw-text-2xl"
                                 style={{
                                   color: isClickable ? fuelColor : "#6c757d",
                                 }}
@@ -314,14 +314,14 @@ const FuelingProcessRenderer = {
                                 .toLowerCase()
                                 .includes("premium") ? (
                               <i
-                                className="fas fa-tachometer-alt tw-text-2xl"
+                                className="fa-light fa-tachometer-alt tw-text-2xl"
                                 style={{
                                   color: isClickable ? fuelColor : "#6c757d",
                                 }}
                               ></i>
                             ) : (
                               <i
-                                className="fas fa-gas-pump tw-text-2xl"
+                                className="fa-light fa-gas-pump tw-text-2xl"
                                 style={{
                                   color: isClickable ? fuelColor : "#6c757d",
                                 }}
@@ -361,7 +361,7 @@ const FuelingProcessRenderer = {
                         <div className="tw-mt-auto">
                           <div className="tw-flex tw-items-center tw-text-sm tw-text-gray-600">
                             <i
-                              className="fas fa-fill tw-mr-2"
+                              className="fa-light fa-fill tw-mr-2"
                               style={{
                                 color: isClickable ? fuelColor : "#6c757d",
                               }}
@@ -381,7 +381,7 @@ const FuelingProcessRenderer = {
             <div className="no-nozzles-message">
               <div className="no-data-icon">
                 <i className="fa-light fa-filter"></i>
-                <i className="fas fa-slash"></i>
+                <i className="fa-light fa-slash"></i>
               </div>
               <p>No nozzles found for the selected pump.</p>
               <p className="no-data-subtext">
@@ -393,7 +393,7 @@ const FuelingProcessRenderer = {
         <Button
           text="Back to Pumps"
           type="normal"
-          icon="fas fa-chevron-left"
+          icon="fa-light fa-chevron-left"
           stylingMode="outlined"
           onClick={() => setStep("pump")}
           className="tw-mt-4"
@@ -407,7 +407,7 @@ const FuelingProcessRenderer = {
       <div className="dx-card responsive-paddings">
         <h3>
           {/* Cursor: Use Font Awesome full package icon */}
-          <i className="fas fa-id-card-alt tw-mr-2"></i>Vehicle Identification
+          <i className="fa-light fa-id-card-alt tw-mr-2"></i>Vehicle Identification
         </h3>
         <div className="dx-fieldset">
           <div className="dx-field">
@@ -420,7 +420,7 @@ const FuelingProcessRenderer = {
               onClick={() => {
                 setStep("scan");
               }}
-              icon="fas fa-arrow-right"
+              icon="fa-light fa-arrow-right"
               className="tw-text-lg"
             />
           </div>
@@ -428,7 +428,7 @@ const FuelingProcessRenderer = {
         <Button
           text="Back to Nozzles"
           type="normal"
-          icon="fas fa-chevron-left"
+          icon="fa-light fa-chevron-left"
           stylingMode="outlined"
           onClick={() => setStep("nozzle")}
           className="tw-mt-4"
@@ -461,8 +461,8 @@ const FuelingProcessRenderer = {
     });
 
     const selectionMethods = [
-      { id: "lookup", text: "Select Company Vehicle", icon: "fas fa-list-ul" },
-      { id: "scan", text: "Scan RFID Tag", icon: "fas fa-tag" },
+      { id: "lookup", text: "Select Company Vehicle", icon: "fa-light fa-list-ul" },
+      { id: "scan", text: "Scan RFID Tag", icon: "fa-light fa-tag" },
     ];
 
     const isLookupSelected = selectionMethod === "lookup";
@@ -511,7 +511,7 @@ const FuelingProcessRenderer = {
       <div className="dx-card responsive-paddings">
         <h3>
           {/* Cursor: Use Font Awesome full package icon */}
-          <i className="fas fa-id-card-alt tw-mr-2"></i>Vehicle Identification
+          <i className="fa-light fa-id-card-alt tw-mr-2"></i>Vehicle Identification
         </h3>
 
         <div className="method-selection tw-mb-4 tw-p-3 tw-bg-gray-50 tw-rounded-md">
@@ -574,7 +574,7 @@ const FuelingProcessRenderer = {
           </div>
           {isLookupSelected && !selectedVehicleId && !isLoadingVehicles && (
             <small className="select-hint tw-text-gray-600 tw-block tw-mt-1 tw-text-xs">
-              <i className="fas fa-info-circle tw-mr-1"></i> Please select a
+              <i className="fa-light fa-info-circle tw-mr-1"></i> Please select a
               company vehicle from the list above.
             </small>
           )}
@@ -588,7 +588,7 @@ const FuelingProcessRenderer = {
           {isScanning && !scanResult && (
             <div className="scanning-container tw-text-center tw-my-5">
               <div className="scanning-animation">
-                <i className="fas fa-wifi tw-text-blue-500 tw-text-4xl"></i>
+                <i className="fa-light fa-wifi tw-text-blue-500 tw-text-4xl"></i>
                 <div className="scanning-waves"></div>
               </div>
               <p className="scanning-text tw-text-lg tw-font-medium tw-mt-3">
@@ -603,7 +603,7 @@ const FuelingProcessRenderer = {
                 stylingMode="outlined"
                 onClick={cancelScan}
                 className="tw-mt-4"
-                icon="fas fa-times"
+                icon="fa-light fa-times"
               />
             </div>
           )}
@@ -611,7 +611,7 @@ const FuelingProcessRenderer = {
           {scanResult && !vehicleInfo && !isScanning && (
             <div className="scan-result-container tw-text-center tw-my-5">
               <div className="scan-success tw-mb-3">
-                <i className="fas fa-check-circle tw-text-green-500 tw-text-2xl"></i>
+                <i className="fa-light fa-check-circle tw-text-green-500 tw-text-2xl"></i>
                 <p className="tw-text-lg tw-font-medium tw-mt-1">
                   Tag scanned successfully
                 </p>
@@ -633,7 +633,7 @@ const FuelingProcessRenderer = {
                 stylingMode="outlined"
                 onClick={cancelScan}
                 className="tw-mt-4"
-                icon="fas fa-times"
+                icon="fa-light fa-times"
               />
             </div>
           )}
@@ -641,7 +641,7 @@ const FuelingProcessRenderer = {
           {vehicleInfo && scanResult && !isScanning && (
             <div className="vehicle-details-container tw-my-3">
               <div className="scan-success tw-mb-3 tw-text-center">
-                <i className="fas fa-check-circle tw-text-green-500 tw-text-2xl"></i>
+                <i className="fa-light fa-check-circle tw-text-green-500 tw-text-2xl"></i>
                 <p className="tw-text-lg tw-font-medium tw-mt-1">
                   Tag Validated & Vehicle Info Retrieved
                 </p>
@@ -649,7 +649,7 @@ const FuelingProcessRenderer = {
 
               <div className="vehicle-info-card tw-border tw-rounded-lg tw-p-4 tw-bg-white tw-shadow">
                 <div className="vehicle-header tw-flex tw-items-center tw-mb-3">
-                  <i className="fas fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
+                  <i className="fa-light fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
                   <h4 className="tw-text-lg tw-font-semibold tw-m-0">
                     {vehicleInfo.regNumber || "N/A"}
                   </h4>
@@ -735,21 +735,21 @@ const FuelingProcessRenderer = {
                   text="Back"
                   type="normal"
                   stylingMode="outlined"
-                  icon="fas fa-chevron-left"
+                  icon="fa-light fa-chevron-left"
                   onClick={cancelScan}
                 />
                 <Button
                   text="Scan Again"
                   type="default"
                   stylingMode="outlined"
-                  icon="fas fa-redo"
+                  icon="fa-light fa-redo"
                   onClick={startScan}
                 />
                 <Button
                   text="Accept & Continue"
                   type="success"
                   stylingMode="contained"
-                  icon="fas fa-check"
+                  icon="fa-light fa-check"
                   onClick={() => acceptScanResult(vehicleInfo)}
                 />
               </div>
@@ -764,7 +764,7 @@ const FuelingProcessRenderer = {
                 height={50}
                 stylingMode="contained"
                 type="default"
-                icon="fas fa-tag"
+                icon="fa-light fa-tag"
                 onClick={startScan}
                 className="tw-text-lg"
               />
@@ -778,7 +778,7 @@ const FuelingProcessRenderer = {
         {isLookupSelected && selectedVehicleId && !isLoadingVehicles && (
           <div className="vehicle-details-container tw-my-3">
             <div className="selection-success tw-mb-3 tw-text-center">
-              <i className="fas fa-check-circle tw-text-green-500 tw-text-2xl"></i>
+              <i className="fa-light fa-check-circle tw-text-green-500 tw-text-2xl"></i>
               <p className="tw-text-lg tw-font-medium tw-mt-1">
                 Vehicle Selected
               </p>
@@ -786,7 +786,7 @@ const FuelingProcessRenderer = {
 
             <div className="selected-vehicle-card tw-border tw-rounded-lg tw-p-4 tw-bg-white tw-shadow">
               <div className="vehicle-header tw-flex tw-items-center tw-mb-3">
-                <i className="fas fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
+                <i className="fa-light fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
                 <h4 className="tw-text-lg tw-font-semibold tw-m-0">
                   {vehicleReg ||
                     vehicles.find((v) => v.vehicleId === selectedVehicleId)
@@ -805,7 +805,7 @@ const FuelingProcessRenderer = {
                 text="Change Selection"
                 type="normal"
                 stylingMode="outlined"
-                icon="fas fa-times"
+                icon="fa-light fa-times"
                 onClick={() => {
                   handleVehicleSelected(null);
                 }}
@@ -814,7 +814,7 @@ const FuelingProcessRenderer = {
                 text="Accept & Continue"
                 type="success"
                 stylingMode="contained"
-                icon="fas fa-check"
+                icon="fa-light fa-check"
                 onClick={() => acceptScanResult(null)}
                 disabled={!selectedVehicleId}
               />
@@ -826,7 +826,7 @@ const FuelingProcessRenderer = {
           <Button
             text="Back to Nozzles"
             type="normal"
-            icon="fas fa-chevron-left"
+            icon="fa-light fa-chevron-left"
             stylingMode="outlined"
             onClick={() => setStep("nozzle")}
           />
@@ -923,7 +923,7 @@ const FuelingProcessRenderer = {
     return (
       <div className="dx-card responsive-paddings">
         <h3>
-          <i className="fas fa-check-circle tw-mr-2"></i>Fueling Authorization
+          <i className="fa-light fa-check-circle tw-mr-2"></i>Fueling Authorization
         </h3>
         <div className="dx-fieldset">
           <div className="dx-field tw-mb-4">
@@ -943,7 +943,7 @@ const FuelingProcessRenderer = {
                     setAmount("");
                   }}
                 >
-                  <i className="fas fa-fill-drip tw-text-3xl tw-mb-2"></i>
+                  <i className="fa-light fa-fill-drip tw-text-3xl tw-mb-2"></i>
                   <span className="tw-font-medium">By Volume</span>
                 </button>
                 <button
@@ -958,7 +958,7 @@ const FuelingProcessRenderer = {
                     setVolume("");
                   }}
                 >
-                  <i className="fas fa-gas-pump tw-text-3xl tw-mb-2"></i>
+                  <i className="fa-light fa-gas-pump tw-text-3xl tw-mb-2"></i>
                   <span className="tw-font-medium">Full Tank</span>
                 </button>
               </div>
@@ -1004,7 +1004,7 @@ const FuelingProcessRenderer = {
             {selectedType === "FullTank" && (
               <div className="full-tank-message tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded">
                 <div className="full-tank-info tw-flex tw-items-start">
-                  <i className="fas fa-info-circle tw-text-blue-500 tw-mr-2 tw-mt-1"></i>
+                  <i className="fa-light fa-info-circle tw-text-blue-500 tw-mr-2 tw-mt-1"></i>
                   <span className="tw-text-sm tw-text-blue-700">
                     Tank will be filled to capacity or until the maximum allowed
                     limit (per transaction, daily, or monthly) is reached.
@@ -1018,14 +1018,14 @@ const FuelingProcessRenderer = {
 
           <div className="fueling-details-card tw-border tw-rounded-lg tw-p-3 tw-bg-gray-50 tw-shadow-sm tw-mb-3">
             <h4 className="tw-text-base tw-font-medium tw-mb-3">
-              <i className="fas fa-clipboard-list tw-mr-2"></i> Authorization
+              <i className="fa-light fa-clipboard-list tw-mr-2"></i> Authorization
               Summary
             </h4>
 
             <div className="summary-table tw-w-full tw-text-sm">
               <div className="tw-flex tw-items-center tw-mb-2">
                 <div className="tw-w-6 tw-flex tw-justify-center">
-                  <i className="fas fa-tag tw-text-gray-500"></i>
+                  <i className="fa-light fa-tag tw-text-gray-500"></i>
                 </div>
                 <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                   Auth Tag:
@@ -1040,7 +1040,7 @@ const FuelingProcessRenderer = {
               <div className="tw-flex tw-items-center tw-mb-2">
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-gas-pump tw-text-gray-500"></i>
+                    <i className="fa-light fa-gas-pump tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Pump:
@@ -1050,7 +1050,7 @@ const FuelingProcessRenderer = {
 
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-filter tw-text-gray-500"></i>
+                    <i className="fa-light fa-filter tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Nozzle:
@@ -1062,7 +1062,7 @@ const FuelingProcessRenderer = {
               <div className="tw-flex tw-items-center tw-mb-2">
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-oil-can tw-text-gray-500"></i>
+                    <i className="fa-light fa-oil-can tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Fuel:
@@ -1074,7 +1074,7 @@ const FuelingProcessRenderer = {
 
                 <div className="tw-flex tw-items-center tw-w-1/2">
                   <div className="tw-w-6 tw-flex tw-justify-center">
-                    <i className="fas fa-car tw-text-gray-500"></i>
+                    <i className="fa-light fa-car tw-text-gray-500"></i>
                   </div>
                   <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                     Vehicle:
@@ -1087,7 +1087,7 @@ const FuelingProcessRenderer = {
                 <div className="tw-flex tw-items-center tw-mb-1">
                   <div className="tw-flex tw-items-center tw-w-1/2">
                     <div className="tw-w-6 tw-flex tw-justify-center">
-                      <i className="fas fa-calendar-day tw-text-gray-500"></i>
+                      <i className="fa-light fa-calendar-day tw-text-gray-500"></i>
                     </div>
                     <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                       Daily:
@@ -1100,7 +1100,7 @@ const FuelingProcessRenderer = {
 
                   <div className="tw-flex tw-items-center tw-w-1/2">
                     <div className="tw-w-6 tw-flex tw-justify-center">
-                      <i className="fas fa-calendar-week tw-text-gray-500"></i>
+                      <i className="fa-light fa-calendar-week tw-text-gray-500"></i>
                     </div>
                     <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
                       Monthly:
@@ -1118,7 +1118,7 @@ const FuelingProcessRenderer = {
           <div className="dx-field tw-mt-4">
             {isPumpNozzleBusy ? (
               <div className="already-fueling-message tw-text-center tw-p-3 tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-text-yellow-800 tw-rounded">
-                <i className="fas fa-exclamation-triangle tw-mr-2"></i>
+                <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
                 <span>
                   This pump and nozzle combination is currently busy (fueling or
                   completing). Please select another or wait.
@@ -1150,7 +1150,7 @@ const FuelingProcessRenderer = {
                   }
                 }}
                 disabled={isAuthorizing || !canAuthorize}
-                icon={isAuthorizing ? "fas fa-spinner fa-spin" : "fas fa-play"}
+                icon={isAuthorizing ? "fa-light fa-spinner fa-spin" : "fa-light fa-play"}
               />
             )}
           </div>
@@ -1158,7 +1158,7 @@ const FuelingProcessRenderer = {
         <Button
           text="Back"
           type="normal"
-          icon="fas fa-chevron-left"
+          icon="fa-light fa-chevron-left"
           stylingMode="outlined"
           onClick={() => {
             setStep("scan");

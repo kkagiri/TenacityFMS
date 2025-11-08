@@ -146,6 +146,25 @@ export const assignRuleSetToTag = (ruleSetId, tagId) => async (dispatch) => {
   }
 };
 
+// =========== ASSIGN RULE SET TO VEHICLE ===========
+export const assignRuleSetToVehicle = (ruleSetId, vehicleId) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.post(
+      `/fuelingrule/rulesets/${ruleSetId}/assign-to-vehicle/${vehicleId}`
+    );
+    dispatch({
+      type: FUELING_RULE_ACTIONS.ASSIGN_RULESET_SUCCESS,
+      payload: response.data,
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data || "Failed to assign rule set to vehicle",
+    };
+  }
+};
+
 // =========== DAILY / MONTHLY LIMIT RULES ===========
 export const createDailyMonthlyRule =
   (ruleSetId, ruleData) => async (dispatch) => {

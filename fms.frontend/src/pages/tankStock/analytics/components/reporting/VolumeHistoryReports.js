@@ -23,9 +23,6 @@ const VolumeHistoryReports = () => {
   const [groupByPeriod, setGroupByPeriod] = useState('month');
   const [selectedSiteIds, setSelectedSiteIds] = useState([]);
 
-  // Analysis component state
-  const [analysisGroupBy, setAnalysisGroupBy] = useState('day');
-
   // Redux selectors
   const sites = useSelector((state) => state.site?.sites || []);
 
@@ -119,7 +116,7 @@ const VolumeHistoryReports = () => {
     }
 
     loadReportData();
-  }, [startDate, endDate, groupByPeriod, loadReportData]);
+  }, [startDate, endDate, loadReportData]);
 
   // Initialize component and load data once
   useEffect(() => {
@@ -227,8 +224,8 @@ const VolumeHistoryReports = () => {
               value={selectedSiteIds}
               onValueChanged={(e) => setSelectedSiteIds(e.value)}
               dataSource={sites}
-              displayExpr="siteName"
-              valueExpr="siteId"
+              displayExpr="name"
+              valueExpr="id"
               placeholder="Select sites to filter..."
               showClearButton={true}
               searchEnabled={true}
@@ -246,16 +243,7 @@ const VolumeHistoryReports = () => {
         </div>
       )}
 
-      {/* Fuel Analysis Summary */}
-      {!loading && pivotData?.data?.length > 0 && (
-        <FuelAnalysisSummary
-          data={pivotData}
-          analysisGroupBy={analysisGroupBy}
-          onAnalysisGroupByChange={setAnalysisGroupBy}
-        />
-      )}
-
-      {/* Pivot Grid Only */}
+      {/* Pivot Grid First */}
       <div className="tw-space-y-6 tw-flex tw-flex-col" style={{ flex: 1, minHeight: 0 }}>
         <PivotGridReport
           key="pivot-grid-report"
@@ -266,6 +254,13 @@ const VolumeHistoryReports = () => {
           minHeight={500}
         />
       </div>
+
+      {/* Fuel Analysis Summary Below Pivot Grid */}
+      {!loading && pivotData?.data?.length > 0 && (
+        <FuelAnalysisSummary
+          data={pivotData}
+        />
+      )}
 
       {/* No Data Message */}
       {!loading && !pivotData?.data?.length && (

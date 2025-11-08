@@ -138,12 +138,16 @@ public class VehicleMaintenanceConfiguration : EntityTypeConfiguration<VehicleMa
             builder.HasOne(d => d.CreatedByNavigation)
                 .WithMany()
                 .HasForeignKey(d => d.CreatedBy)
+                .HasPrincipalKey(u => u.Id)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_maintenance_created_by");
 
             builder.HasOne(d => d.ModifiedByNavigation)
                 .WithMany()
                 .HasForeignKey(d => d.ModifiedBy)
+                .HasPrincipalKey(u => u.Id)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_maintenance_modified_by");
 

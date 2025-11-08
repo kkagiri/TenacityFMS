@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import DataGrid, { Column, Scrolling, Paging, FilterRow, SearchPanel, HeaderFilter, Export } from 'devextreme-react/data-grid';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -7,12 +7,19 @@ import Button from 'devextreme-react/button';
 import { useNavigate } from 'react-router-dom';
 import { fetchMaintenanceAlerts } from '../../redux/actions/vehicleDashboardActions';
 import { fetchSiteList } from '../../redux/actions/siteActions';
-import { fetchVehicleTypes } from '../../redux/actions/vehicleActions';
+// Use the correct actions module for vehicle types
+import { fetchVehicleTypes } from '../../redux/actions/vehicleTypeActions';
 
 const MaintenanceAlertsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const maintenanceAlerts = useSelector((state) => state.vehicleDashboard.maintenanceAlerts || []);
+  // Normalize maintenanceAlerts: API may return an FMSResponse wrapper or null before load
+  const rawMaintenanceAlerts = useSelector((state) => state.vehicleDashboard.maintenanceAlerts);
+  const maintenanceAlerts = useMemo(() => {
+    if (Array.isArray(rawMaintenanceAlerts)) return rawMaintenanceAlerts;
+    if (rawMaintenanceAlerts && Array.isArray(rawMaintenanceAlerts.data)) return rawMaintenanceAlerts.data;
+    return [];
+  }, [rawMaintenanceAlerts]);
   const loading = useSelector((state) => state.vehicleDashboard.loading?.maintenanceAlerts);
   const errors = useSelector((state) => state.vehicleDashboard.errors?.maintenanceAlerts);
   const sites = useSelector((state) => state.site?.sites || []);
@@ -30,7 +37,9 @@ const MaintenanceAlertsPage = () => {
 
   useEffect(() => {
     // Apply filters
-    let filtered = [...maintenanceAlerts];
+  // Guard against non-iterable values
+  const base = Array.isArray(maintenanceAlerts) ? maintenanceAlerts : [];
+  let filtered = [...base];
 
     if (selectedSite) {
       filtered = filtered.filter(alert => alert.siteId === selectedSite);

@@ -98,7 +98,7 @@ const pumpControlService = {
    */
   validateTag: async (deviceId, tag) => {
     try {
-      const response = await axiosInstance.post(`/tag/validate`, {
+      const response = await axiosInstance.post(`/FuelTag/validate`, {
         deviceId,
         tag,
       });

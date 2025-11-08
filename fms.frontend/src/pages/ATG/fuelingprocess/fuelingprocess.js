@@ -117,6 +117,7 @@ const FuelingProcess = () => {
   const [amount, setAmount] = useState(""); // Preset Amount input
   const [volume, setVolume] = useState(""); // Preset Volume input
   const [showFuelingPopup, setShowFuelingPopup] = useState(false); // Controls visibility of progress popup
+  const [isFuelingPopupMinimized, setIsFuelingPopupMinimized] = useState(false); // Tracks if user minimized the popup
   const [showAllFuelingPopup, setShowAllFuelingPopup] = useState(false);
   const [currentTransactionId, setCurrentTransactionId] = useState(null); // Store ID from authorize/status
   const [activePumpForPopup, setActivePumpForPopup] = useState(null); // Pump currently shown *in the progress popup*
@@ -235,28 +236,32 @@ const FuelingProcess = () => {
       : null;
 
     if (pumpDetails?.status === "fueling") {
-      // Pump for popup is fueling -> show popup, update details
-      setShowFuelingPopup(true);
+      // Pump for popup is fueling -> show popup only if not minimized by user
+      if (!isFuelingPopupMinimized) {
+        setShowFuelingPopup(true);
+      }
       setFuelingComplete(false);
       if (!currentTransactionId && pumpDetails.currentTransaction) {
         setCurrentTransactionId(pumpDetails.currentTransaction);
       }
     } else if (pumpDetails?.status === "endOfTransaction") {
-      // Pump for popup just finished -> hide progress, show completion
+      // Pump for popup just finished -> hide progress, show completion, reset minimized state
       setShowFuelingPopup(false);
+      setIsFuelingPopupMinimized(false); // Reset for next fueling session
       setFuelingComplete(true); // Trigger completion popup
       if (!currentTransactionId && pumpDetails.transaction) {
         setCurrentTransactionId(pumpDetails.transaction); // Capture final transaction ID
       }
     } else {
       // Pump for popup is idle, offline, nozzleUp, or not selected
-      // Hide the progress popup if it was showing for this pump
+      // Hide the progress popup if it was showing for this pump and reset minimized state
       if (showFuelingPopup && activePumpForPopup?.id === pumpDetails?.id) {
         setShowFuelingPopup(false);
+        setIsFuelingPopupMinimized(false); // Reset for next fueling session
       }
       // Don't automatically hide completion popup here, let user dismiss it via 'completeFueling'
     }
-  }, [devicePumpStatus, activePumpForPopup, getPumpDetails, showFuelingPopup]); // Dependency: Redux state & popup context
+  }, [devicePumpStatus, activePumpForPopup, getPumpDetails, showFuelingPopup, currentTransactionId, isFuelingPopupMinimized]); // Dependency: Redux state & popup context
 
   // --- Effect to Dispatch Fueling Events for FuelingEventsList ---
   useEffect(() => {
@@ -546,6 +551,7 @@ const FuelingProcess = () => {
         // Set the context for which pump/nozzle we expect fueling to start on
         setActivePumpForPopup(selectedPump);
         setActiveNozzleForPopup(selectedNozzle);
+        setIsFuelingPopupMinimized(false); // Reset minimized state for new fueling session
 
         // Cursor: Show transaction monitoring after successful authorization
         if (response.transactionId) {
@@ -822,15 +828,48 @@ const FuelingProcess = () => {
           // Store the vehicle info from validation result
           setVehicleInfo(validationResult.vehicleInfo);
         } else {
-          notify(
-            `Vehicle validation failed: ${
-              validationResult?.message || "Unknown error"
-            }`,
-            "error",
-            3000
-          );
-          // Clear selected vehicle ID on validation failure
-          setSelectedVehicleId(null);
+          const errorMessage = validationResult?.message || "Unknown error";
+
+          // Check if the error is about missing fuel rules
+          if (errorMessage.toLowerCase().includes("no fuel rules") ||
+              errorMessage.toLowerCase().includes("fuel rules before vehicle")) {
+            // Store the vehicle info even though validation failed
+            // This allows the vehicle to remain selected in the UI
+            if (validationResult?.vehicleInfo) {
+              setVehicleInfo(validationResult.vehicleInfo);
+            }
+
+            // Show notification with option to configure rules
+            notify(
+              `${errorMessage}\n\nOpening fuel rules configuration...`,
+              "warning",
+              5000
+            );
+
+            // Automatically show the fueling rules popup after a brief delay
+            setTimeout(() => {
+              setVehicleForRules({
+                vehicleId: vehicle.vehicleId,
+                regNumber: validationResult?.vehicleInfo?.numberPlate ||
+                          validationResult?.vehicleInfo?.hyoungNo ||
+                          "Unknown",
+                isCompanyVehicle: validationResult?.vehicleInfo?.isCompanyVehicle || false,
+              });
+              setShowFuelingRulePopup(true);
+            }, 1000);
+
+            // DON'T clear the selected vehicle ID for fuel rules errors
+            // Keep it so the vehicle remains selected
+          } else {
+            // Show regular error notification
+            notify(
+              `Vehicle validation failed: ${errorMessage}`,
+              "error",
+              3000
+            );
+            // Clear selected vehicle ID on validation failure
+            setSelectedVehicleId(null);
+          }
         }
       } catch (error) {
         console.error("[Vehicle Selection] Error during validation:", error);
@@ -979,7 +1018,7 @@ const FuelingProcess = () => {
 
   // Modified to accept vehicle info directly
   const acceptScanResult = (validatedVehicleInfo) => {
-    console.log("acceptScanResult", validatedVehicleInfo);
+    console.log("acceptScanResult - received:", validatedVehicleInfo);
 
     // Handle master tag case first
     if (validatedVehicleInfo?.isMasterTag) {
@@ -989,15 +1028,27 @@ const FuelingProcess = () => {
       return;
     }
 
-    // Handle vehicle info case
-    const reg = validatedVehicleInfo?.hyoungNo;
-    if (reg) {
-      console.log(`[Scan] Accepted tag for vehicle: ${reg}`);
-      setVehicleReg(reg); // Set registration number
-      setVehicleInfo(validatedVehicleInfo); // Ensure full info is stored
-      setStep("details"); // Move to fueling details step
+    // Handle vehicle info case - check multiple possible fields for vehicle identification
+    const reg = validatedVehicleInfo?.hyoungNo ||
+                validatedVehicleInfo?.numberPlate ||
+                validatedVehicleInfo?.registrationNumber;
+
+    if (validatedVehicleInfo && (reg || validatedVehicleInfo?.vehicleId)) {
+      console.log(`[Scan] Accepted vehicle: ${reg || validatedVehicleInfo.vehicleId}`);
+
+      // Set registration number (use hyoungNo if available, otherwise try other fields)
+      if (reg) {
+        setVehicleReg(reg);
+      }
+
+      // Ensure full info is stored
+      setVehicleInfo(validatedVehicleInfo);
+
+      // Move to fueling details step
+      setStep("details");
     } else {
-      notify("No valid vehicle registration found.", "error", 3000);
+      console.error("[Scan] Invalid vehicle info:", validatedVehicleInfo);
+      notify("No valid vehicle information found. Please try again.", "error", 3000);
       // Stay on current step
     }
   };
@@ -1139,6 +1190,14 @@ const FuelingProcess = () => {
             selectedNozzle={selectedNozzle}
             setScanResult={setScanResult}
             ptsId={ptsId}
+            onConfigureRules={(vehicleData) => {
+              setVehicleForRules({
+                vehicleId: vehicleData?.vehicleId,
+                regNumber: vehicleData?.numberPlate || vehicleData?.hyoungNo || "Unknown",
+                isCompanyVehicle: vehicleData?.isCompanyVehicle || false,
+              });
+              setShowFuelingRulePopup(true);
+            }}
           />
         );
       case "details":
@@ -1294,7 +1353,10 @@ const FuelingProcess = () => {
         popupCost, // Use derived cost
         tagForPopups, // Use the calculated tagForPopups
         stopFueling,
-        () => setShowFuelingPopup(false)
+        () => {
+          setShowFuelingPopup(false);
+          setIsFuelingPopupMinimized(true); // Mark as minimized by user
+        }
       )}
 
       {FuelingPopupRenderer.renderFuelingCompletePopup(
@@ -1345,6 +1407,7 @@ const FuelingProcess = () => {
 
             // Show the individual progress popup
             setShowFuelingPopup(true); // Show progress popup (useEffect will manage based on status)
+            setIsFuelingPopupMinimized(false); // Reset minimized state when viewing details
             setShowAllFuelingPopup(false); // Hide the list popup
             setStep("pump"); // Go back to base step view behind the popup
           }
@@ -1355,8 +1418,35 @@ const FuelingProcess = () => {
       {/* Add the FuelingRulePopup */}
       <FuelingRulePopup
         isVisible={showFuelingRulePopup}
-        onClose={() => setShowFuelingRulePopup(false)}
+        onClose={() => {
+          setShowFuelingRulePopup(false);
+          setVehicleForRules(null);
+        }}
         vehicleData={vehicleForRules}
+        onRulesAssigned={async (vehicle) => {
+          // Re-validate the vehicle after rules are assigned
+          if (vehicle?.vehicleId) {
+            try {
+              const validationResult = await dispatch(
+                validateVehicle(vehicle.vehicleId)
+              );
+
+              if (validationResult && validationResult.isValid) {
+                setVehicleInfo(validationResult.vehicleInfo);
+                setSelectedVehicleId(vehicle.vehicleId);
+                notify("Vehicle rules configured! Click 'Accept & Continue' to proceed.", "success", 4000);
+              } else {
+                notify(
+                  `Validation still failed: ${validationResult?.message || "Unknown error"}`,
+                  "warning",
+                  3000
+                );
+              }
+            } catch (error) {
+              console.error("Error re-validating vehicle:", error);
+            }
+          }
+        }}
       />
 
       {/* Cursor: Add Transaction Monitoring Status */}

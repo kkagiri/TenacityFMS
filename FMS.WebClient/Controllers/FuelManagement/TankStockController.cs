@@ -345,6 +345,104 @@ public class TankStockController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Creates a new dispensing volume record (bulk entry)
+    /// </summary>
+    [HttpPost("dispensing")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> CreateDispensingVolume([FromQuery] int tankId, decimal dispensedVolume, DateTimeOffset entryDate, string? notes = null)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Create_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (tankId <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid Tank ID"));
+        if (dispensedVolume <= 0) return BadRequest(FMSResponse.FailedResponse("Dispensed volume should be greater than 0"));
+
+        DateTime entryDateUtc = entryDate.UtcDateTime;
+
+        Claim? userIdClaim = User.Claims.FirstOrDefault(c =>
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+            Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null)
+        {
+            return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
+        }
+
+        FMSResponseMessage result = await _mediator.Send(new CreateDispensingVolumeCommand(tankId, dispensedVolume, userIdClaim.Value, entryDateUtc, notes));
+
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets dispensing volume records with optional filtering
+    /// </summary>
+    [HttpGet("dispensing")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetDispensingVolumes(
+        [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] string? recordedBy = null,
+        [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+
+        var result = await _mediator.Send(new GetDispensingVolumesQuery(siteId, tankId, recordedBy, startDate, endDate));
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Updates an existing dispensing volume record
+    /// </summary>
+    [HttpPut("dispensing/{entryId}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> UpdateDispensingVolume(int entryId, [FromQuery] decimal dispensedVolume, DateTimeOffset entryDate, string? notes = null)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (entryId <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid Entry ID"));
+        if (dispensedVolume <= 0) return BadRequest(FMSResponse.FailedResponse("Dispensed volume should be greater than 0"));
+
+        DateTime entryDateUtc = entryDate.UtcDateTime;
+
+        FMSResponseMessage result = await _mediator.Send(new UpdateDispensingVolumeCommand(entryId, dispensedVolume, entryDateUtc, notes));
+
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Deletes a dispensing volume record
+    /// </summary>
+    [HttpDelete("dispensing/{entryId}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> DeleteDispensingVolume(int entryId)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Delete_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (entryId <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid Entry ID"));
+
+        FMSResponseMessage result = await _mediator.Send(new DeleteDispensingVolumeCommand(entryId));
+
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
 }
 
 /// <summary>

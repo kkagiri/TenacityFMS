@@ -2,13 +2,32 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid } from 'devextreme-react/data-grid';
 import { Column, Paging, FilterRow, SearchPanel, Export, Selection, LoadPanel } from 'devextreme-react/data-grid';
 import Button from 'devextreme-react/button';
+import { Popup, ScrollView } from 'devextreme-react';
+import { Form, SimpleItem, Label, RequiredRule, GroupItem } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
-import { useNavigate } from 'react-router-dom';
 
 const VehicleMaintenanceHistory = ({ vehicleId }) => {
-  const navigate = useNavigate();
   const [maintenanceData, setMaintenanceData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [loadingGpsData, setLoadingGpsData] = useState(false);
+
+  // Maintenance types - aligned with MaintenanceList
+  const maintenanceTypes = [
+    'Oil Change',
+    'Tire Rotation',
+    'Brake Service',
+    'Engine Service',
+    'Transmission Service',
+    'Battery Replacement',
+    'Air Filter Replacement',
+    'Spark Plug Replacement',
+    'Coolant Service',
+    'Inspection',
+    'General Repair',
+    'Other'
+  ];
 
   const loadMaintenanceHistory = useCallback(async () => {
     if (!vehicleId) return;
@@ -48,20 +67,85 @@ const VehicleMaintenanceHistory = ({ vehicleId }) => {
   }, [loadMaintenanceHistory]);
 
   const handleAddMaintenance = () => {
-    // Navigate to maintenance list page
-    navigate('/maintenance/records');
+    if (!vehicleId) {
+      notify('Vehicle context missing. Please open from a specific vehicle.', 'warning', 3000);
+      return;
+    }
+
+    setFormData({
+      vehicleId: vehicleId,
+      maintenanceType: '',
+      status: 'Scheduled',
+      scheduledDate: new Date(),
+      priority: 2,
+      notes: '',
+      issueNote: '',
+      description: '',
+      odometerAtSchedule: null,
+    });
+    setShowPopup(true);
   };
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value || 0);
+  // Fetch odometer reading from GPS
+  const handleFetchOdometerFromGPS = async () => {
+    if (!formData.vehicleId) {
+      notify('Please select a vehicle first', 'warning', 3000);
+      return;
+    }
+
+    try {
+      setLoadingGpsData(true);
+      const response = await fetch(`/api/v1/tracking/vehicles/${formData.vehicleId}/location`);
+
+      if (response.ok) {
+        const locationData = await response.json();
+
+        if (locationData && locationData.odometer !== null && locationData.odometer !== undefined) {
+          setFormData(prev => ({
+            ...prev,
+            odometerAtSchedule: locationData.odometer,
+          }));
+          notify(`Odometer reading updated: ${locationData.odometer} km`, 'success', 3000);
+        } else {
+          notify('Odometer data not available from GPS', 'warning', 3000);
+        }
+      } else {
+        notify('Failed to fetch GPS data', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error fetching GPS data:', error);
+      notify('Error fetching odometer from GPS', 'error', 3000);
+    } finally {
+      setLoadingGpsData(false);
+    }
   };
 
-  const formatDate = (value) => {
-    return value ? new Date(value).toLocaleDateString() : '';
+  const handleSave = async () => {
+    try {
+      const response = await fetch('/api/v1/VehicleMaintenance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || 'Failed to create maintenance record');
+      }
+
+      notify('Maintenance record created successfully', 'success', 3000);
+      setShowPopup(false);
+      // Refresh history
+      loadMaintenanceHistory();
+    } catch (error) {
+      console.error('Error saving maintenance record:', error);
+      notify(error.message || 'Error saving maintenance record', 'error', 3000);
+    }
   };
+
+  // Removed unused formatCurrency and formatDate helpers (were not used in this component)
 
   const getStatusColor = (status) => {
     const colors = {
@@ -103,11 +187,12 @@ const VehicleMaintenanceHistory = ({ vehicleId }) => {
             Maintenance History
           </h3>
           <Button
-            text="Go to Maintenance"
-            icon="fa-light fa-external-link"
+            text="Add Maintenance"
+            icon="fa-light fa-plus"
             onClick={handleAddMaintenance}
             type="default"
             stylingMode="contained"
+            disabled={!vehicleId}
           />
         </div>
       </div>
@@ -203,6 +288,156 @@ const VehicleMaintenanceHistory = ({ vehicleId }) => {
         <Export enabled={true} fileName="vehicle-maintenance-history" />
         <Selection mode="single" />
       </DataGrid>
+
+      {/* Add Maintenance Popup */}
+      <Popup
+        visible={showPopup}
+        onHiding={() => setShowPopup(false)}
+        title={'Add Maintenance Record'}
+        width="95%"
+        height="95%"
+        maxWidth={1200}
+        showCloseButton={true}
+        closeOnOutsideClick={false}
+      >
+        <ScrollView width="100%" height="100%">
+          <div className="tw-p-4">
+            <Form
+              formData={formData}
+              onFieldDataChanged={(e) => setFormData({ ...formData, [e.dataField]: e.value })}
+              labelLocation="top"
+              colCount={1}
+            >
+              <GroupItem caption="Vehicle Information" colSpan={1}>
+                <SimpleItem
+                  dataField="vehicleId"
+                  editorType="dxTextBox"
+                  editorOptions={{
+                    readOnly: true,
+                  }}
+                >
+                  <Label text="Vehicle ID" />
+                  <RequiredRule message="Vehicle is required" />
+                </SimpleItem>
+
+                <SimpleItem
+                  dataField="maintenanceType"
+                  editorType="dxSelectBox"
+                  editorOptions={{
+                    dataSource: maintenanceTypes,
+                    searchEnabled: true,
+                    placeholder: 'Select maintenance type',
+                    showClearButton: true,
+                  }}
+                >
+                  <Label text="Maintenance Type" />
+                  <RequiredRule message="Maintenance type is required" />
+                </SimpleItem>
+              </GroupItem>
+
+              <GroupItem caption="Scheduling" colSpan={1}>
+                <SimpleItem
+                  dataField="status"
+                  editorType="dxSelectBox"
+                  editorOptions={{
+                    items: ['Scheduled', 'In Progress', 'Completed', 'Cancelled'],
+                  }}
+                >
+                  <Label text="Status" />
+                </SimpleItem>
+
+                <SimpleItem dataField="scheduledDate" editorType="dxDateBox">
+                  <Label text="Scheduled Date" />
+                </SimpleItem>
+
+                <SimpleItem
+                  dataField="priority"
+                  editorType="dxSelectBox"
+                  editorOptions={{
+                    items: [
+                      { value: 1, text: 'Low' },
+                      { value: 2, text: 'Normal' },
+                      { value: 3, text: 'Medium' },
+                      { value: 4, text: 'High' },
+                      { value: 5, text: 'Critical' },
+                    ],
+                    displayExpr: 'text',
+                    valueExpr: 'value',
+                  }}
+                >
+                  <Label text="Priority" />
+                </SimpleItem>
+              </GroupItem>
+
+              <GroupItem caption="Odometer Reading" colSpan={1}>
+                <div className="tw-mb-2">
+                  <Button
+                    text="Pull Odometer from GPS"
+                    icon="download"
+                    type="default"
+                    onClick={handleFetchOdometerFromGPS}
+                    disabled={!formData.vehicleId || loadingGpsData}
+                    hint="Fetch current odometer reading from GPS tracking"
+                  />
+                  {loadingGpsData && (
+                    <span className="tw-ml-2 tw-text-sm tw-text-gray-600">Loading...</span>
+                  )}
+                </div>
+
+                <SimpleItem
+                  dataField="odometerAtSchedule"
+                  editorType="dxNumberBox"
+                  editorOptions={{
+                    placeholder: 'Enter or pull from GPS'
+                  }}
+                >
+                  <Label text="Odometer at Schedule (km)" />
+                </SimpleItem>
+              </GroupItem>
+
+              <GroupItem caption="Details" colSpan={1}>
+                <SimpleItem
+                  dataField="description"
+                  editorType="dxTextArea"
+                  editorOptions={{
+                    height: 100,
+                    placeholder: 'Describe the maintenance work'
+                  }}
+                >
+                  <Label text="Description" />
+                </SimpleItem>
+
+                <SimpleItem
+                  dataField="notes"
+                  editorType="dxTextArea"
+                  editorOptions={{
+                    height: 100,
+                    placeholder: 'Additional notes'
+                  }}
+                >
+                  <Label text="Notes" />
+                </SimpleItem>
+
+                <SimpleItem
+                  dataField="issueNote"
+                  editorType="dxTextArea"
+                  editorOptions={{
+                    height: 100,
+                    placeholder: 'Note any issues encountered'
+                  }}
+                >
+                  <Label text="Issue Note" />
+                </SimpleItem>
+              </GroupItem>
+            </Form>
+
+            <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6 tw-pb-4">
+              <Button text="Cancel" onClick={() => setShowPopup(false)} stylingMode="outlined" />
+              <Button text="Save" type="success" onClick={handleSave} />
+            </div>
+          </div>
+        </ScrollView>
+      </Popup>
 
       {/* Summary Cards */}
       <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4 tw-mt-6">

@@ -52,13 +52,23 @@ const VehicleSearchableSelector = ({
     console.log('Vehicle search term changed:', inputValue);
     setSearchTerm(inputValue);
 
+    // Show dropdown immediately when user starts typing (2+ chars)
+    if (inputValue && inputValue.length >= 2) {
+      setShowDropdown(true);
+      setIsLoading(true);
+    } else {
+      setShowDropdown(false);
+      setIsLoading(false);
+    }
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
+    // Reduced debounce delay for faster response
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(inputValue);
-    }, 300);
+    }, 200);
   }, [performSearch]);
 
   const handleVehicleSelect = useCallback((vehicle) => {
@@ -98,7 +108,6 @@ const VehicleSearchableSelector = ({
 
   const handleInputChange = useCallback((e) => {
     const inputValue = e.target.value;
-    handleSearchTermChange(inputValue);
 
     // Clear selection if user is typing and input doesn't match selected vehicle
     if (selectedVehicle) {
@@ -110,13 +119,21 @@ const VehicleSearchableSelector = ({
         }
       }
     }
+
+    // Trigger search with improved UX
+    handleSearchTermChange(inputValue);
   }, [selectedVehicle, onValueChanged, handleSearchTermChange]);
 
   const handleInputFocus = useCallback(() => {
+    // Show dropdown immediately if we have enough characters
     if (searchTerm.length >= 2) {
-      performSearch(searchTerm);
+      setShowDropdown(true);
+      // Only perform search if we don't already have results
+      if (vehicles.length === 0 && !isLoading) {
+        performSearch(searchTerm);
+      }
     }
-  }, [searchTerm, performSearch]);
+  }, [searchTerm, vehicles.length, isLoading, performSearch]);
 
   // Handle click outside
   useEffect(() => {
@@ -298,7 +315,22 @@ const VehicleSearchableSelector = ({
                             fontStyle: 'italic',
                             fontSize: '13px'
                           }}>
-                            {isLoading ? 'Searching...' : searchTerm.length < 2 ? 'Type to search vehicles' : 'No vehicles found'}
+                            {isLoading ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <div className="dx-loadindicator dx-widget dx-loadindicator-16">
+                                  <div className="dx-loadindicator-wrapper">
+                                    <div className="dx-loadindicator-content">
+                                      <div className="dx-loadindicator-icon"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <span>Searching vehicles...</span>
+                              </div>
+                            ) : searchTerm.length < 2 ? (
+                              'Type at least 2 characters to search'
+                            ) : (
+                              'No vehicles found matching your search'
+                            )}
                           </div>
                         </div>
                       )}

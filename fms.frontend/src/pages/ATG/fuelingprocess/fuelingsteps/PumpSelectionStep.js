@@ -146,16 +146,12 @@ const PumpSelectionStep = memo(
                             <span className="tw-font-medium">Last Transaction:</span>
                           </div>
                           <div className="tw-flex tw-items-center tw-gap-2 tw-mt-1">
-                            {item.lastAmount > 0 && (
-                              <span className="tw-text-sm tw-font-semibold tw-text-gray-800">
-                                ${item.lastAmount.toFixed(2)}
-                              </span>
-                            )}
                             {item.lastVolume > 0 && (
-                              <span className="tw-text-xs tw-text-gray-600">
-                                ({item.lastVolume.toFixed(2)}L)
+                              <span className="tw-text-sm tw-font-semibold tw-text-gray-800">
+                                ${item.lastVolume.toFixed(2)}
                               </span>
                             )}
+
                           </div>
                         </div>
                       )}

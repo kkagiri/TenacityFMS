@@ -205,7 +205,7 @@ const FuelingHeader = ({
             <div className={`action-buttons ${isSmall ? "tw-w-full tw-flex-col" : ""}`}>
               {isDeviceDisconnected && hasDeviceSettingsPermission && (
                 <Button
-                  icon="fas fa-cog"
+                  icon="fa-light fa-cog"
                   text={isSmall ? "Settings" : "Check Device Settings"}
                   type="danger"
                   stylingMode="outlined"
@@ -222,7 +222,7 @@ const FuelingHeader = ({
                 activeFuelingProcesses &&
                 activeFuelingProcesses.length > 0 && (
                   <Button
-                    icon="fas fa-list"
+                    icon="fa-light fa-list"
                     text={`Active (${activeFuelingProcesses.length})`}
                     type="default"
                     stylingMode="outlined"

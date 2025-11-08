@@ -413,10 +413,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
             height="100%"
             width="100%"
             onExporting={onExporting}
-            onCellClick={(e) => {
-              // Handle cell click for drill-down functionality
-              console.log('Pivot cell clicked:', e);
-            }}
+
             onCellPrepared={(e) => {
               // Custom cell styling
               if (e.area === 'data' && e.cell.value < 0) {

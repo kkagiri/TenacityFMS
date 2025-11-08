@@ -45,6 +45,23 @@ export const GENERATE_STOCK_REPORT_FAILURE = 'GENERATE_STOCK_REPORT_FAILURE';
 
 export const FETCH_TANK_STOCKS_REQUEST = 'FETCH_TANK_STOCKS_REQUEST';
 
+// Dispensing Volume action types
+export const CREATE_DISPENSING_VOLUME_REQUEST = 'CREATE_DISPENSING_VOLUME_REQUEST';
+export const CREATE_DISPENSING_VOLUME_SUCCESS = 'CREATE_DISPENSING_VOLUME_SUCCESS';
+export const CREATE_DISPENSING_VOLUME_FAILURE = 'CREATE_DISPENSING_VOLUME_FAILURE';
+
+export const FETCH_DISPENSING_VOLUMES_REQUEST = 'FETCH_DISPENSING_VOLUMES_REQUEST';
+export const FETCH_DISPENSING_VOLUMES_SUCCESS = 'FETCH_DISPENSING_VOLUMES_SUCCESS';
+export const FETCH_DISPENSING_VOLUMES_FAILURE = 'FETCH_DISPENSING_VOLUMES_FAILURE';
+
+export const UPDATE_DISPENSING_VOLUME_REQUEST = 'UPDATE_DISPENSING_VOLUME_REQUEST';
+export const UPDATE_DISPENSING_VOLUME_SUCCESS = 'UPDATE_DISPENSING_VOLUME_SUCCESS';
+export const UPDATE_DISPENSING_VOLUME_FAILURE = 'UPDATE_DISPENSING_VOLUME_FAILURE';
+
+export const DELETE_DISPENSING_VOLUME_REQUEST = 'DELETE_DISPENSING_VOLUME_REQUEST';
+export const DELETE_DISPENSING_VOLUME_SUCCESS = 'DELETE_DISPENSING_VOLUME_SUCCESS';
+export const DELETE_DISPENSING_VOLUME_FAILURE = 'DELETE_DISPENSING_VOLUME_FAILURE';
+
 const formatDateTime = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -359,6 +376,129 @@ export const generateStockReport = (reportParams) => async (dispatch) => {
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || 'Error generating stock report';
     dispatch({ type: GENERATE_STOCK_REPORT_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+// =========================
+// Dispensing Volume Actions
+// =========================
+
+export const createDispensingVolume = (params) => async (dispatch) => {
+  try {
+    dispatch({ type: CREATE_DISPENSING_VOLUME_REQUEST });
+
+    const { tankId, dispensedVolume, entryDate, notes } = params;
+    const formattedDate = entryDate instanceof Date ? formatDateTime(entryDate) : entryDate;
+
+    const queryParams = new URLSearchParams();
+    queryParams.append('tankId', tankId);
+    queryParams.append('dispensedVolume', dispensedVolume);
+    queryParams.append('entryDate', formattedDate);
+    if (notes) queryParams.append('notes', notes);
+
+    const response = await axiosInstance.post(`/tankstock/dispensing?${queryParams.toString()}`);
+
+    if (response.data.success === true || response.data.isSuccess === true) {
+      dispatch({ type: CREATE_DISPENSING_VOLUME_SUCCESS, payload: response.data });
+      return {
+        success: true,
+        message: response.data.message || 'Dispensing volume recorded successfully',
+        data: response.data
+      };
+    } else {
+      const errorMessage = response.data.message || response.data.error || 'Failed to create dispensing volume';
+      dispatch({ type: CREATE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
+      return {
+        success: false,
+        message: errorMessage,
+        data: response.data
+      };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error creating dispensing volume';
+    dispatch({ type: CREATE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
+    return {
+      success: false,
+      message: errorMessage
+    };
+  }
+};
+
+export const fetchDispensingVolumes = (filters = {}) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_DISPENSING_VOLUMES_REQUEST });
+
+    const params = new URLSearchParams();
+    if (filters.siteId) params.append('siteId', filters.siteId);
+    if (filters.tankId) params.append('tankId', filters.tankId);
+    if (filters.recordedBy) params.append('recordedBy', filters.recordedBy);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+
+    const response = await axiosInstance.get(`/tankstock/dispensing?${params.toString()}`);
+
+    dispatch({ type: FETCH_DISPENSING_VOLUMES_SUCCESS, payload: response.data });
+    return { success: true, data: response.data };
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching dispensing volumes';
+    dispatch({ type: FETCH_DISPENSING_VOLUMES_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+export const updateDispensingVolume = (params) => async (dispatch) => {
+  try {
+    dispatch({ type: UPDATE_DISPENSING_VOLUME_REQUEST });
+
+    const { entryId, dispensedVolume, entryDate, notes } = params;
+    const formattedDate = entryDate instanceof Date ? formatDateTime(entryDate) : entryDate;
+
+    const queryParams = new URLSearchParams();
+    queryParams.append('dispensedVolume', dispensedVolume);
+    queryParams.append('entryDate', formattedDate);
+    if (notes) queryParams.append('notes', notes);
+
+    const response = await axiosInstance.put(`/tankstock/dispensing/${entryId}?${queryParams.toString()}`);
+
+    if (response.data.success === true || response.data.isSuccess === true) {
+      dispatch({ type: UPDATE_DISPENSING_VOLUME_SUCCESS, payload: response.data });
+      return {
+        success: true,
+        message: response.data.message || 'Dispensing volume updated successfully'
+      };
+    } else {
+      const errorMessage = response.data.message || 'Failed to update dispensing volume';
+      dispatch({ type: UPDATE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error updating dispensing volume';
+    dispatch({ type: UPDATE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+export const deleteDispensingVolume = (entryId) => async (dispatch) => {
+  try {
+    dispatch({ type: DELETE_DISPENSING_VOLUME_REQUEST });
+
+    const response = await axiosInstance.delete(`/tankstock/dispensing/${entryId}`);
+
+    if (response.data.success === true || response.data.isSuccess === true) {
+      dispatch({ type: DELETE_DISPENSING_VOLUME_SUCCESS, payload: entryId });
+      return {
+        success: true,
+        message: response.data.message || 'Dispensing volume deleted successfully'
+      };
+    } else {
+      const errorMessage = response.data.message || 'Failed to delete dispensing volume';
+      dispatch({ type: DELETE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error deleting dispensing volume';
+    dispatch({ type: DELETE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
   }
 };

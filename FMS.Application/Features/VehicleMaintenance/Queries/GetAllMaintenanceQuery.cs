@@ -1,4 +1,16 @@
+/**
+ * File: GetAllMaintenanceQuery.cs
+ * Purpose: Query and handler to retrieve vehicle maintenance records with optional filters,
+ *          following CQRS and standardized FMSResponse<T> response pattern.
+ * Dependencies: MediatR, EF Core (GpsdataContext), AutoMapper, FMSResponse
+ * Last Modified: 2025-11-08
+ *
+ * Key Elements:
+ * - GetAllMaintenanceQuery: Filter inputs (VehicleId, Status, SiteId, VehicleTypeId, VehicleModelId)
+ * - GetAllMaintenanceQueryHandler: Builds EF query, applies filters, maps to DTOs, wraps in FMSResponse
+ */
 using AutoMapper;
+using FMS.Application.Common; // For FMSResponse
 using FMS.Application.Features.VehicleMaintenance.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -12,15 +24,21 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Features.VehicleMaintenance.Queries;
 
+/// <summary>
+/// Query to retrieve vehicle maintenance records with optional filtering.
+/// </summary>
 public record GetAllMaintenanceQuery(
     int? VehicleId = null,
     string? Status = null,
     int? SiteId = null,
     int? VehicleTypeId = null,
     int? VehicleModelId = null
-) : IRequest<List<VehicleMaintenanceDTO>>;
+) : IRequest<FMSResponse<List<VehicleMaintenanceDTO>>>;
 
-public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQuery, List<VehicleMaintenanceDTO>>
+/// <summary>
+/// Handler for <see cref="GetAllMaintenanceQuery"/> implementing filtering logic and mapping to DTOs.
+/// </summary>
+public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQuery, FMSResponse<List<VehicleMaintenanceDTO>>>
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
@@ -33,13 +51,13 @@ public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQu
         _logger = logger;
     }
 
-    public async Task<List<VehicleMaintenanceDTO>> Handle(GetAllMaintenanceQuery request, CancellationToken cancellationToken)
+    public async Task<FMSResponse<List<VehicleMaintenanceDTO>>> Handle(GetAllMaintenanceQuery request, CancellationToken cancellationToken)
     {
         try
         {
             var query = _context.Set<Domain.Entities.Features.VehicleManagement.VehicleMaintenance>()
                 .AsNoTracking()
-                .Include(m => m.Vehicle)
+                .Include(m => m.Vehicle) // corrected navigation property name
                 .Include(m => m.MaintenanceSchedule)
                 .Include(m => m.Issues)
                 .AsQueryable();
@@ -59,7 +77,7 @@ public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQu
             // Filter by site if specified
             if (request.SiteId.HasValue)
             {
-                query = query.Where(m => m.Vehicle != null && m.Vehicle.SiteId == request.SiteId.Value);
+                query = query.Where(m => m.Vehicle != null && m.Vehicle.WorkingSite.Id == request.SiteId.Value);
             }
 
             // Filter by vehicle type if specified
@@ -78,12 +96,13 @@ public class GetAllMaintenanceQueryHandler : IRequestHandler<GetAllMaintenanceQu
                 .OrderByDescending(m => m.DateCreated)
                 .ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<VehicleMaintenanceDTO>>(maintenanceRecords);
+            var dtoList = _mapper.Map<List<VehicleMaintenanceDTO>>(maintenanceRecords);
+            return FMSResponse<List<VehicleMaintenanceDTO>>.Success(dtoList, "Maintenance records retrieved successfully");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving maintenance records");
-            return new List<VehicleMaintenanceDTO>();
+            return FMSResponse<List<VehicleMaintenanceDTO>>.Failed("Failed to retrieve maintenance records");
         }
     }
 }

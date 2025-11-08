@@ -14,7 +14,8 @@ import VehicleConsumptionPage from "./VehicleConsumptionPage";
 import MaintenanceAlertsPage from "./MaintenanceAlertsPage";
 import VehicleReportsPage from "./VehicleReportsPage";
 import VehicleSettingsPage from "./VehicleSettingsPage";
-import VehicleDocumentsList from "./maintenance/documents/VehicleDocumentsList";
+// Correct import path for vehicle documents list (was pointing to non-existent maintenance/documents folder)
+import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
 
 const VehicleMain = () => {
   const location = useLocation();

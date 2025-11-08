@@ -7,6 +7,7 @@ using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Domain.Entities.Reports;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using FMS.Domain.Entities.Features.VehicleManagement;
 
 namespace FMS.Domain.Entities;
 
@@ -43,7 +44,8 @@ public partial class User : IdentityUser
     public virtual ICollection<Loginactivity> Loginactivities { get; set; } = new List<Loginactivity>();
 
     public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
-
+    //public virtual ICollection<VehicleMaintenance> VehicleMaintenanceCreated { get; set; } = new List<VehicleMaintenance>();
+    // public virtual ICollection<VehicleMaintenance> VehicleMaintenanceModified { get; set; } = new List<VehicleMaintenance>();
     public virtual ICollection<UserActivity> UserActivities { get; set; } = new List<UserActivity>();
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 

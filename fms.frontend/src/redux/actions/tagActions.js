@@ -26,7 +26,7 @@ export const TAG_ACTIONS = {
 export const fetchTags = () => async (dispatch) => {
   dispatch({ type: TAG_ACTIONS.FETCH_TAGS_REQUEST });
   try {
-    const response = await axiosInstance.get("/tag");
+    const response = await axiosInstance.get("/FuelTag");
     dispatch({ type: TAG_ACTIONS.FETCH_TAGS_SUCCESS, payload: response.data });
   } catch (error) {
     dispatch({
@@ -44,7 +44,7 @@ export const setSelectedTag = (tag) => ({
 export const fetchTagsByVehicleId = (vehicleId) => async (dispatch) => {
   dispatch({ type: TAG_ACTIONS.FETCH_TAGS_BY_VEHICLE_REQUEST });
   try {
-    const response = await axiosInstance.get(`/tag/by-vehicle/${vehicleId}`);
+    const response = await axiosInstance.get(`/FuelTag/by-vehicle/${vehicleId}`);
     dispatch({
       type: TAG_ACTIONS.FETCH_TAGS_BY_VEHICLE_SUCCESS,
       payload: { vehicleId, tags: response.data },
@@ -62,7 +62,7 @@ export const fetchTagsByVehicleId = (vehicleId) => async (dispatch) => {
 export const fetchTagDetails = (tagName) => async (dispatch) => {
   dispatch({ type: TAG_ACTIONS.FETCH_TAG_DETAILS_REQUEST });
   try {
-    const response = await axiosInstance.get(`/tag/details/${tagName}`);
+    const response = await axiosInstance.get(`/FuelTag/details/${tagName}`);
     dispatch({
       type: TAG_ACTIONS.FETCH_TAG_DETAILS_SUCCESS,
       payload: response.data,
@@ -80,9 +80,9 @@ export const fetchTagDetails = (tagName) => async (dispatch) => {
 export const validateVehicle = (vehicleId) => async (dispatch) => {
   dispatch({ type: TAG_ACTIONS.VALIDATE_VEHICLE_REQUEST });
   try {
-    //Cursor: Use correct URL format for vehicle validation
+    // Fixed: Use correct controller name - FuelTag instead of tag
     const response = await axiosInstance.get(
-      `/tag/validate-vehicle/${vehicleId}`
+      `/FuelTag/validate-vehicle/${vehicleId}`
     );
     dispatch({
       type: TAG_ACTIONS.VALIDATE_VEHICLE_SUCCESS,
@@ -101,7 +101,7 @@ export const validateVehicle = (vehicleId) => async (dispatch) => {
 export const validateTag = (tagId) => async (dispatch) => {
   dispatch({ type: TAG_ACTIONS.VALIDATE_TAG_REQUEST });
   try {
-    const response = await axiosInstance.post("/tag/validate", {
+    const response = await axiosInstance.post("/FuelTag/validate", {
       tagId,
     });
     dispatch({
@@ -120,7 +120,7 @@ export const validateTag = (tagId) => async (dispatch) => {
 
 export const createTag = (tagData) => async (dispatch) => {
   try {
-    const response = await axiosInstance.post("/tag", tagData);
+    const response = await axiosInstance.post("/FuelTag", tagData);
     dispatch({ type: TAG_ACTIONS.CREATE_TAG_SUCCESS, payload: response.data });
     return { success: true };
   } catch (error) {
@@ -133,7 +133,7 @@ export const createTag = (tagData) => async (dispatch) => {
 
 export const updateTag = (id, tagData) => async (dispatch) => {
   try {
-    await axiosInstance.put(`/tag/${id}`, tagData);
+    await axiosInstance.put(`/FuelTag/${id}`, tagData);
     dispatch({ type: TAG_ACTIONS.UPDATE_TAG_SUCCESS, payload: tagData });
     return { success: true };
   } catch (error) {
@@ -146,7 +146,7 @@ export const updateTag = (id, tagData) => async (dispatch) => {
 
 export const deleteTag = (id) => async (dispatch) => {
   try {
-    await axiosInstance.delete(`/tag/${id}`);
+    await axiosInstance.delete(`/FuelTag/${id}`);
     dispatch({ type: TAG_ACTIONS.DELETE_TAG_SUCCESS, payload: id });
     return { success: true };
   } catch (error) {
@@ -160,7 +160,7 @@ export const deleteTag = (id) => async (dispatch) => {
 export const assignTagToVehicle = (assignData) => async (dispatch) => {
   try {
     const response = await axiosInstance.post(
-      "/tag/assign-to-vehicle",
+      "/FuelTag/assign-to-vehicle",
       assignData
     );
     dispatch({ type: TAG_ACTIONS.ASSIGN_TAG_SUCCESS, payload: response.data });

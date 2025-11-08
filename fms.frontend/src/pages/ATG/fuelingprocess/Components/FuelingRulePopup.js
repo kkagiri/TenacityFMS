@@ -10,12 +10,13 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAllRuleSets,
   assignRuleSetToTag,
+  assignRuleSetToVehicle,
   createRuleSet,
   createDailyMonthlyRule,
 } from "../../../../redux/actions/fuelingRuleActions";
 import { fetchTagsByVehicleId } from "../../../../redux/actions/tagActions";
 
-const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
+const FuelingRulePopup = ({ isVisible, onClose, vehicleData, onRulesAssigned }) => {
   const dispatch = useDispatch();
   const ruleSets = useSelector((state) => state.fuelingRule.ruleSets);
   const loading = useSelector((state) => state.fuelingRule.loading);
@@ -62,36 +63,53 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
     }
   };
 
-  // Handle assign rule set to vehicle's tag
+  // Handle assign rule set to vehicle's tag or directly to vehicle
   const handleAssignRuleSet = async () => {
     if (!selectedRuleSet) {
       notify("Please select a rule set", "warning", 3000);
       return;
     }
 
+    if (!vehicleData || !vehicleData.vehicleId) {
+      notify("Vehicle information is missing", "error", 3000);
+      return;
+    }
+
     try {
       setIsAssigning(true);
 
+      let result;
+
       // If vehicle has a tag, assign rule set to that tag
       if (vehicleHasTag && vehicleTagId) {
-        const result = await dispatch(
+        console.log(`Assigning rule set ${selectedRuleSet} to tag ${vehicleTagId}`);
+        result = await dispatch(
           assignRuleSetToTag(selectedRuleSet, vehicleTagId)
         );
-
-        if (result.success) {
-          notify("Fueling rule set assigned successfully", "success", 3000);
-          onClose();
-        } else {
-          throw new Error(result.error || "Failed to assign rule set");
-        }
       } else {
-        // If no tag, notify about using master tag for authorization
+        // If no tag (company vehicle or no tag assigned), assign rules directly to vehicle
+        console.log(`Assigning rule set ${selectedRuleSet} directly to vehicle ${vehicleData.vehicleId}`);
+        result = await dispatch(
+          assignRuleSetToVehicle(selectedRuleSet, vehicleData.vehicleId)
+        );
+      }
+
+      if (result.success) {
+        const assignmentMethod = vehicleHasTag && vehicleTagId ? "tag" : "vehicle";
         notify(
-          "Vehicle has no tag. Using master tag for authorization.",
-          "warning",
+          `Fueling rule set assigned successfully to ${assignmentMethod}`,
+          "success",
           3000
         );
+
+        // Notify parent component if callback provided
+        if (onRulesAssigned) {
+          onRulesAssigned(vehicleData);
+        }
+
         onClose();
+      } else {
+        throw new Error(result.error || "Failed to assign rule set");
       }
     } catch (error) {
       console.error("Error assigning rule set:", error);
@@ -109,7 +127,7 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
   const renderContent = () => {
     if (loading || isLoadingTags) {
       return (
-        <div className="loading-container tw-flex tw-justify-center tw-items-center tw-flex-col tw-p-6">
+        <div className="loading-container tw-flex tw-justify-center tw-items-center tw-flex-col tw-p-6 tw-h-full">
           <LoadIndicator width={40} height={40} />
           <p className="tw-mt-3">Loading data...</p>
         </div>
@@ -117,25 +135,25 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
     }
 
     return (
-      <div className="fueling-rule-popup-content tw-p-4 tw-max-h-[70vh] tw-overflow-y-auto">
+      <div className="fueling-rule-popup-content tw-p-3 sm:tw-p-4 tw-h-full tw-overflow-y-auto tw-overflow-x-hidden">
         {/* Vehicle Info Section */}
-        <div className="vehicle-info tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-mb-6">
+        <div className="vehicle-info tw-bg-gray-50 tw-rounded-lg tw-p-3 sm:tw-p-4 tw-mb-4">
           <div className="tw-flex tw-items-center tw-mb-2">
-            <i className="fa-solid fa-car tw-text-primary tw-mr-2"></i>
-            <h4 className="tw-text-lg tw-font-medium tw-m-0">
+            <i className="fa-light fa-car tw-text-primary tw-mr-2"></i>
+            <h4 className="tw-text-base sm:tw-text-lg tw-font-medium tw-m-0">
               Vehicle Information
             </h4>
           </div>
 
-          <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mt-2">
-            <div>
+          <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 tw-gap-2 sm:tw-gap-4 tw-mt-2">
+            <div className="tw-text-sm">
               <span className="tw-text-gray-500">Registration:</span>
-              <span className="tw-font-medium tw-ml-2">
+              <span className="tw-font-medium tw-ml-2 tw-break-all">
                 {vehicleData?.regNumber || "N/A"}
               </span>
             </div>
 
-            <div>
+            <div className="tw-text-sm">
               <span className="tw-text-gray-500">Vehicle Type:</span>
               <span className="tw-font-medium tw-ml-2">
                 {vehicleData?.isCompanyVehicle
@@ -144,7 +162,7 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
               </span>
             </div>
 
-            <div className="tw-col-span-2">
+            <div className="tw-col-span-1 sm:tw-col-span-2 tw-text-sm">
               <span className="tw-text-gray-500">Tag Status:</span>
               <span
                 className={`tw-font-medium tw-ml-2 ${
@@ -158,9 +176,9 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
         </div>
 
         {/* Assign Rule Set Section */}
-        <div className="assign-ruleset-section tw-space-y-6">
+        <div className="assign-ruleset-section tw-space-y-4">
           <div className="form-group">
-            <label className="tw-block tw-mb-2 tw-font-medium">
+            <label className="tw-block tw-mb-2 tw-font-medium tw-text-sm sm:tw-text-base">
               Select Rule Set
             </label>
             <SelectBox
@@ -172,19 +190,44 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
               onValueChanged={(e) => setSelectedRuleSet(e.value)}
               showClearButton={true}
               searchEnabled={true}
+              height={44}
+              dropDownOptions={{
+                width: "auto",
+                minWidth: 250,
+                maxHeight: 300,
+                shading: true,
+                shadingColor: "rgba(0, 0, 0, 0.3)",
+                closeOnOutsideClick: true,
+                position: {
+                  my: "top",
+                  at: "bottom",
+                  collision: "flip"
+                }
+              }}
+              itemRender={(item) => (
+                <div style={{
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  minHeight: '44px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  {item.name}
+                </div>
+              )}
             />
 
             {selectedRuleSet &&
               ruleSets.find((r) => r.id === selectedRuleSet) && (
-                <div className="rule-details tw-mt-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg">
-                  <h4 className="tw-text-md tw-font-medium tw-mb-3">
+                <div className="rule-details tw-mt-3 tw-p-3 sm:tw-p-4 tw-bg-gray-50 tw-rounded-lg">
+                  <h4 className="tw-text-sm sm:tw-text-md tw-font-medium tw-mb-2">
                     Rule Set Details
                   </h4>
-                  <div className="rule-details-grid tw-space-y-2">
+                  <div className="rule-details-grid tw-space-y-2 tw-text-sm">
                     {ruleSets.find((r) => r.id === selectedRuleSet)
                       .dailyMonthlyLimitRule && (
                       <>
-                        <div className="detail-row tw-grid tw-grid-cols-2">
+                        <div className="detail-row tw-flex tw-justify-between">
                           <span className="label tw-text-gray-600">
                             Daily Limit:
                           </span>
@@ -196,7 +239,7 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
                             L
                           </span>
                         </div>
-                        <div className="detail-row tw-grid tw-grid-cols-2">
+                        <div className="detail-row tw-flex tw-justify-between">
                           <span className="label tw-text-gray-600">
                             Monthly Limit:
                           </span>
@@ -208,7 +251,7 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
                             L
                           </span>
                         </div>
-                        <div className="detail-row tw-grid tw-grid-cols-2">
+                        <div className="detail-row tw-flex tw-justify-between">
                           <span className="label tw-text-gray-600">
                             Transaction Limit:
                           </span>
@@ -227,7 +270,7 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
               )}
           </div>
 
-          <div className="actions tw-mt-6">
+          <div className="actions tw-mt-4">
             <Button
               text="Assign Rule Set"
               type="success"
@@ -235,28 +278,29 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
               onClick={handleAssignRuleSet}
               disabled={!selectedRuleSet || isAssigning}
               width="100%"
-              icon="fa-solid fa-check"
+              height={44}
+              icon="fa-light fa-check"
             >
               {isAssigning && <LoadIndicator width={20} height={20} />}
             </Button>
           </div>
 
           {(!vehicleHasTag || vehicleData?.isCompanyVehicle) && (
-            <div className="master-tag-note tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-p-3 tw-mt-4">
+            <div className="master-tag-note tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-mt-3">
               <div className="tw-flex tw-items-start">
-                <i className="fa-solid fa-info-circle tw-text-amber-500 tw-mr-2 tw-mt-1"></i>
-                <div>
-                  <h5 className="tw-text-amber-700 tw-font-medium tw-text-sm tw-m-0">
-                    Using Master Tag
+                <i className="fa-light fa-info-circle tw-text-blue-500 tw-mr-2 tw-mt-1 tw-flex-shrink-0"></i>
+                <div className="tw-flex-1">
+                  <h5 className="tw-text-blue-700 tw-font-medium tw-text-xs sm:tw-text-sm tw-m-0">
+                    {vehicleHasTag ? "Company Vehicle" : "Direct Rule Assignment"}
                   </h5>
-                  <p className="tw-text-amber-600 tw-text-sm tw-mt-1 tw-mb-0">
-                    {vehicleData?.isCompanyVehicle
-                      ? "This is a company vehicle. When no tag is available, the system will use the master tag for authorization."
-                      : "This vehicle has no assigned tag. The system will use the master tag for fueling authorization."}
+                  <p className="tw-text-blue-600 tw-text-xs sm:tw-text-sm tw-mt-1 tw-mb-0">
+                    {vehicleHasTag
+                      ? "Rules will be assigned to the vehicle's tag. When no tag is scanned, the system will use the master tag for authorization."
+                      : "This vehicle has no assigned tag. Rules will be assigned directly to the vehicle. The system will use the master tag for fueling authorization."}
                   </p>
-                  <p className="tw-text-amber-600 tw-text-sm tw-mt-1 tw-mb-0">
+                  <p className="tw-text-blue-600 tw-text-xs sm:tw-text-sm tw-mt-1 tw-mb-0">
                     Master Tag ID:{" "}
-                    <span className="tw-font-semibold">{masterTag}</span>
+                    <span className="tw-font-semibold tw-break-all">{masterTag}</span>
                   </p>
                 </div>
               </div>
@@ -273,11 +317,18 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData }) => {
       onHiding={onClose}
       title="Vehicle Fueling Rules"
       showCloseButton={true}
-      width={600}
-      height="auto"
+      width="95%"
+      maxWidth={600}
+      height="85vh"
+      maxHeight={700}
       className="fueling-rule-popup"
+      wrapperAttr={{
+        class: 'fueling-rule-popup-wrapper'
+      }}
     >
-      {renderContent()}
+      <div className="tw-h-full tw-flex tw-flex-col tw-overflow-hidden">
+        {renderContent()}
+      </div>
     </Popup>
   );
 };
