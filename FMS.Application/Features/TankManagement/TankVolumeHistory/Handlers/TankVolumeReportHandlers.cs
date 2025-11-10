@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
+using FMS.Domain.Entities;
+using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -572,29 +574,81 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
         {
             try
             {
-                var query = _context.TankVolumeHistories
-                    .Include(tvh => tvh.Tank)
-                    .ThenInclude(t => t.Site)
-                    .Where(tvh => tvh.Timestamp >= request.StartDate && tvh.Timestamp <= request.EndDate);
+                List<TankVolumeReportDTO> groupedData;
 
-                // Apply filters
-                if (request.SiteIds?.Any() == true)
-                    query = query.Where(tvh => request.SiteIds.Contains(tvh.Tank.SiteId));
-
-                if (request.TankIds?.Any() == true)
-                    query = query.Where(tvh => request.TankIds.Contains(tvh.TankId ?? 0));
-
-                var data = await query.ToListAsync(cancellationToken);
-
-                // Group data based on the GroupBy parameter
-                var groupedData = request.GroupBy.ToLower() switch
+                if (request.UseManualDispensing)
                 {
-                    "month" => GroupByMonth(data),
-                    "quarter" => GroupByQuarter(data),
-                    "week" => GroupByWeek(data),
-                    "day" => GroupByDay(data),
-                    _ => GroupByMonth(data)
-                };
+                    // Use manual aggregate dispensing from TankStock
+                    // Get all non-dispensing data from TankVolumeHistory
+                    var volumeHistoryQuery = _context.TankVolumeHistories
+                        .Include(tvh => tvh.Tank)
+                        .ThenInclude(t => t.Site)
+                        .Where(tvh => tvh.Timestamp >= request.StartDate && tvh.Timestamp <= request.EndDate)
+                        .Where(tvh => tvh.ChangeReason != VolumeChangeReasonEnum.Dispensing
+                                   && tvh.ChangeReason != VolumeChangeReasonEnum.AutomatedDispensing);
+
+                    // Apply filters to volume history
+                    if (request.SiteIds?.Any() == true)
+                        volumeHistoryQuery = volumeHistoryQuery.Where(tvh => request.SiteIds.Contains(tvh.Tank.SiteId));
+
+                    if (request.TankIds?.Any() == true)
+                        volumeHistoryQuery = volumeHistoryQuery.Where(tvh => request.TankIds.Contains(tvh.TankId ?? 0));
+
+                    var volumeHistoryData = await volumeHistoryQuery.ToListAsync(cancellationToken);
+
+                    // Get manual dispensing data from TankStock
+                    var tankStockQuery = _context.Tankstocks
+                        .Include(ts => ts.Tank)
+                        .ThenInclude(t => t.Site)
+                        .Where(ts => ts.EntryDate >= request.StartDate && ts.EntryDate <= request.EndDate)
+                        .Where(ts => ts.EntryType == VolumeChangeReasonEnum.Dispensing);
+
+                    // Apply filters to tank stock
+                    if (request.SiteIds?.Any() == true)
+                        tankStockQuery = tankStockQuery.Where(ts => request.SiteIds.Contains(ts.Tank.SiteId));
+
+                    if (request.TankIds?.Any() == true)
+                        tankStockQuery = tankStockQuery.Where(ts => request.TankIds.Contains(ts.TankId));
+
+                    var tankStockData = await tankStockQuery.ToListAsync(cancellationToken);
+
+                    // Group both datasets and combine
+                    groupedData = request.GroupBy.ToLower() switch
+                    {
+                        "month" => CombineMonthlyData(volumeHistoryData, tankStockData),
+                        "quarter" => CombineQuarterlyData(volumeHistoryData, tankStockData),
+                        "week" => CombineWeeklyData(volumeHistoryData, tankStockData),
+                        "day" => CombineDailyData(volumeHistoryData, tankStockData),
+                        _ => CombineMonthlyData(volumeHistoryData, tankStockData)
+                    };
+                }
+                else
+                {
+                    // Use sensor dispensing from TankVolumeHistory (current behavior)
+                    var query = _context.TankVolumeHistories
+                        .Include(tvh => tvh.Tank)
+                        .ThenInclude(t => t.Site)
+                        .Where(tvh => tvh.Timestamp >= request.StartDate && tvh.Timestamp <= request.EndDate);
+
+                    // Apply filters
+                    if (request.SiteIds?.Any() == true)
+                        query = query.Where(tvh => request.SiteIds.Contains(tvh.Tank.SiteId));
+
+                    if (request.TankIds?.Any() == true)
+                        query = query.Where(tvh => request.TankIds.Contains(tvh.TankId ?? 0));
+
+                    var data = await query.ToListAsync(cancellationToken);
+
+                    // Group data based on the GroupBy parameter
+                    groupedData = request.GroupBy.ToLower() switch
+                    {
+                        "month" => GroupByMonth(data),
+                        "quarter" => GroupByQuarter(data),
+                        "week" => GroupByWeek(data),
+                        "day" => GroupByDay(data),
+                        _ => GroupByMonth(data)
+                    };
+                }
 
                 // Calculate totals for pivot
                 var totals = groupedData
@@ -758,6 +812,184 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     TransactionCount = g.Count(),
                     AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
+                })
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ToList();
+        }
+
+        // Methods for combining TankVolumeHistory (non-dispensing) with TankStock (manual dispensing)
+        private List<TankVolumeReportDTO> CombineMonthlyData(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByMonth(volumeHistory);
+            var tankStockGrouped = GroupTankStockByMonth(tankStock);
+            return volumeHistoryGrouped.Concat(tankStockGrouped).ToList();
+        }
+
+        private List<TankVolumeReportDTO> CombineQuarterlyData(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByQuarter(volumeHistory);
+            var tankStockGrouped = GroupTankStockByQuarter(tankStock);
+            return volumeHistoryGrouped.Concat(tankStockGrouped).ToList();
+        }
+
+        private List<TankVolumeReportDTO> CombineWeeklyData(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByWeek(volumeHistory);
+            var tankStockGrouped = GroupTankStockByWeek(tankStock);
+            return volumeHistoryGrouped.Concat(tankStockGrouped).ToList();
+        }
+
+        private List<TankVolumeReportDTO> CombineDailyData(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByDay(volumeHistory);
+            var tankStockGrouped = GroupTankStockByDay(tankStock);
+            return volumeHistoryGrouped.Concat(tankStockGrouped).ToList();
+        }
+
+        // Methods for grouping TankStock manual dispensing data
+        private List<TankVolumeReportDTO> GroupTankStockByMonth(List<Tankstock> data)
+        {
+            return data
+                .GroupBy(ts => new
+                {
+                    Year = ts.EntryDate.Year,
+                    Month = ts.EntryDate.Month,
+                    SiteId = ts.Tank.SiteId,
+                    SiteName = ts.Tank.Site.Name ?? "Unknown",
+                    TankId = ts.TankId,
+                    TankName = ts.Tank.Name ?? "Unknown",
+                    ChangeReason = ts.EntryType
+                })
+                .Select(g => new TankVolumeReportDTO
+                {
+                    SiteId = g.Key.SiteId,
+                    SiteName = g.Key.SiteName,
+                    TankId = g.Key.TankId,
+                    TankName = g.Key.TankName,
+                    TimePeriod = $"{g.Key.Year}-{g.Key.Month:D2}",
+                    PeriodStart = new DateTime(g.Key.Year, g.Key.Month, 1),
+                    PeriodEnd = new DateTime(g.Key.Year, g.Key.Month, DateTime.DaysInMonth(g.Key.Year, g.Key.Month)),
+                    ChangeReason = g.Key.ChangeReason,
+                    ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
+                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    TransactionCount = g.Count(),
+                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    ReferenceType = "TankStock"
+                })
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ToList();
+        }
+
+        private List<TankVolumeReportDTO> GroupTankStockByQuarter(List<Tankstock> data)
+        {
+            return data
+                .GroupBy(ts => new
+                {
+                    Year = ts.EntryDate.Year,
+                    Quarter = (ts.EntryDate.Month - 1) / 3 + 1,
+                    SiteId = ts.Tank.SiteId,
+                    SiteName = ts.Tank.Site.Name ?? "Unknown",
+                    TankId = ts.TankId,
+                    TankName = ts.Tank.Name ?? "Unknown",
+                    ChangeReason = ts.EntryType
+                })
+                .Select(g => new TankVolumeReportDTO
+                {
+                    SiteId = g.Key.SiteId,
+                    SiteName = g.Key.SiteName,
+                    TankId = g.Key.TankId,
+                    TankName = g.Key.TankName,
+                    TimePeriod = $"{g.Key.Year}-Q{g.Key.Quarter}",
+                    PeriodStart = new DateTime(g.Key.Year, (g.Key.Quarter - 1) * 3 + 1, 1),
+                    PeriodEnd = new DateTime(g.Key.Year, g.Key.Quarter * 3, DateTime.DaysInMonth(g.Key.Year, g.Key.Quarter * 3)),
+                    ChangeReason = g.Key.ChangeReason,
+                    ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
+                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    TransactionCount = g.Count(),
+                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    ReferenceType = "TankStock"
+                })
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ToList();
+        }
+
+        private List<TankVolumeReportDTO> GroupTankStockByWeek(List<Tankstock> data)
+        {
+            var calendar = new GregorianCalendar();
+            return data
+                .GroupBy(ts => new
+                {
+                    Year = ts.EntryDate.Year,
+                    Week = calendar.GetWeekOfYear(ts.EntryDate, CalendarWeekRule.FirstDay, DayOfWeek.Monday),
+                    SiteId = ts.Tank.SiteId,
+                    SiteName = ts.Tank.Site.Name ?? "Unknown",
+                    TankId = ts.TankId,
+                    TankName = ts.Tank.Name ?? "Unknown",
+                    ChangeReason = ts.EntryType
+                })
+                .Select(g => new TankVolumeReportDTO
+                {
+                    SiteId = g.Key.SiteId,
+                    SiteName = g.Key.SiteName,
+                    TankId = g.Key.TankId,
+                    TankName = g.Key.TankName,
+                    TimePeriod = $"{g.Key.Year}-W{g.Key.Week:D2}",
+                    PeriodStart = GetFirstDateOfWeek(g.Key.Year, g.Key.Week),
+                    PeriodEnd = GetFirstDateOfWeek(g.Key.Year, g.Key.Week).AddDays(6),
+                    ChangeReason = g.Key.ChangeReason,
+                    ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
+                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    TransactionCount = g.Count(),
+                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    ReferenceType = "TankStock"
+                })
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ToList();
+        }
+
+        private List<TankVolumeReportDTO> GroupTankStockByDay(List<Tankstock> data)
+        {
+            return data
+                .GroupBy(ts => new
+                {
+                    Date = ts.EntryDate.Date,
+                    SiteId = ts.Tank.SiteId,
+                    SiteName = ts.Tank.Site.Name ?? "Unknown",
+                    TankId = ts.TankId,
+                    TankName = ts.Tank.Name ?? "Unknown",
+                    ChangeReason = ts.EntryType
+                })
+                .Select(g => new TankVolumeReportDTO
+                {
+                    SiteId = g.Key.SiteId,
+                    SiteName = g.Key.SiteName,
+                    TankId = g.Key.TankId,
+                    TankName = g.Key.TankName,
+                    TimePeriod = g.Key.Date.ToString("yyyy-MM-dd"),
+                    PeriodStart = g.Key.Date,
+                    PeriodEnd = g.Key.Date.AddDays(1).AddTicks(-1),
+                    ChangeReason = g.Key.ChangeReason,
+                    ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
+                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    TransactionCount = g.Count(),
+                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    ReferenceType = "TankStock"
                 })
                 .OrderBy(x => x.PeriodStart)
                 .ThenBy(x => x.SiteName)

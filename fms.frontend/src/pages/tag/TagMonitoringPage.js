@@ -22,7 +22,7 @@ const TagMonitoringPage = () => {
   return (
     <div className="tw-p-6">
       <h2 className="tw-text-xl tw-font-bold tw-mb-4">
-        <i className="fas fa-tags tw-mr-2"></i>Tag Monitoring Configurations
+        <i className="fa-light fa-tags tw-mr-2"></i>Tag Monitoring Configurations
       </h2>
       {loading && <div>Loading...</div>}
       <table className="tw-table-auto tw-w-full tw-mb-8">
@@ -51,7 +51,7 @@ const TagMonitoringPage = () => {
                     className="tw-text-red-500 tw-mr-2"
                     onClick={() => dispatch(deleteTagConfig(cfg.id))}
                   >
-                    <i className="fas fa-trash"></i>
+                    <i className="fa-light fa-trash"></i>
                   </button>
                   {/* You can add edit functionality here */}
                 </td>
@@ -61,7 +61,7 @@ const TagMonitoringPage = () => {
       </table>
 
       <h2 className="tw-text-xl tw-font-bold tw-mb-4">
-        <i className="fas fa-history tw-mr-2"></i>Tag Change Logs
+        <i className="fa-light fa-history tw-mr-2"></i>Tag Change Logs
       </h2>
       <table className="tw-table-auto tw-w-full">
         <thead>

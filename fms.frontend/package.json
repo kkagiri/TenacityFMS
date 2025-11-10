@@ -46,11 +46,11 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
-    "build:dev": "env-cmd -f .env.development npx craco build",
-    "build:prod": "env-cmd -f .env.production npx craco build",
-    "test": "npx craco test",
+  "start": "node ./node_modules/@craco/craco/dist/scripts/start.js",
+  "build": "node ./node_modules/@craco/craco/dist/scripts/build.js",
+  "build:dev": "env-cmd -f .env.development node ./node_modules/@craco/craco/dist/scripts/build.js",
+  "build:prod": "env-cmd -f .env.production node ./node_modules/@craco/craco/dist/scripts/build.js",
+  "test": "node ./node_modules/@craco/craco/dist/scripts/test.js",
     "eject": "react-scripts eject",
     "build-themes": "devextreme build",
     "postinstall": "npm run build-themes"

@@ -43,7 +43,7 @@ const TagList = ({ tags, onTagSelect, onEditTag }) => {
 
     return (
       <Button
-        icon="fas fa-edit"
+        icon="fa-light fa-edit"
         onClick={() => onEditTag(cellData.data)}
         stylingMode="text"
       />

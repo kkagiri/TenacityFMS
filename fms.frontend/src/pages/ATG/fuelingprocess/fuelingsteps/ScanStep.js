@@ -4,7 +4,6 @@ import { Button } from "devextreme-react/button";
 import { RadioGroup } from "devextreme-react/radio-group";
 import LoadIndicator from "devextreme-react/load-indicator";
 import ProgressBar from "devextreme-react/progress-bar";
-import notify from "devextreme/ui/notify";
 import VehicleSearchableSelector from "../../../../components/selectors/VehicleSearchableSelector";
 
 //Cursor: Memoized ScanStep component - Redesigned to prevent UI overlays
@@ -262,11 +261,12 @@ const ScanStep = memo(
             <div className="lookup-mode-content">
               {/* Vehicle Search Selector - Always show, hide only during loading */}
               {!isLoadingVehicleInfo && (
-                <div className="tw-mb-4">
+                <div className="tw-mb-4" style={{ position: 'relative', zIndex: 10 }}>
                   <label className="tw-block tw-mb-2 tw-font-medium tw-text-gray-700 tw-text-sm">
                     Select Company Vehicle
                   </label>
                   <VehicleSearchableSelector
+                    key={`vehicle-selector-${selectedVehicleId || 'empty'}`}
                     value={selectedVehicleId}
                     onValueChanged={handleVehicleLookupChange}
                     placeholder="Search and select a vehicle..."
@@ -316,7 +316,9 @@ const ScanStep = memo(
                   {renderVehicleInfoCard()}
                   {/* Action Buttons */}
                   <div className="tw-flex tw-flex-col tw-gap-2 tw-mt-4">
-                    {/* Configure Rules Button */}
+                    {/* TODO: FUELING RULE FEATURE - Re-enable Configure Rules Button when feature is ready */}
+                    {/* Configure Rules Button - Disabled until fueling rules feature is implemented */}
+                    {/*
                     {onConfigureRules && (
                       <Button
                         text="Configure Fuel Rules"
@@ -328,6 +330,7 @@ const ScanStep = memo(
                         hint="Set up or modify fueling rules for this vehicle"
                       />
                     )}
+                    */}
 
                     {/* Main Action Buttons */}
                     <div className="tw-flex tw-gap-3">
@@ -450,7 +453,9 @@ const ScanStep = memo(
                   {renderVehicleInfoCard()}
                   {/* Action Buttons */}
                   <div className="tw-flex tw-flex-col tw-gap-2 tw-mt-4">
-                    {/* Configure Rules Button */}
+                    {/* TODO: FUELING RULE FEATURE - Re-enable Configure Rules Button when feature is ready */}
+                    {/* Configure Rules Button - Disabled until fueling rules feature is implemented */}
+                    {/*
                     {onConfigureRules && (
                       <Button
                         text="Configure Fuel Rules"
@@ -462,6 +467,7 @@ const ScanStep = memo(
                         hint="Set up or modify fueling rules for this vehicle"
                       />
                     )}
+                    */}
 
                     {/* Main Action Buttons */}
                     <div className="tw-flex tw-gap-2">

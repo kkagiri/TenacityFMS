@@ -6,6 +6,7 @@ export const adminRoutes = {
   roles: '/admin/roles',
   permissions: '/admin/permissions',
   navigation: '/admin/navigation',
+  taskManagement: '/admin/task-management',
   tags: '/admin/tags',
   sites: '/admin/sites',
   tanks: '/admin/tanks',

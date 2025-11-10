@@ -200,30 +200,79 @@ const TagRuleAssignment = ({ isVisible, onClose, tags, ruleSets }) => {
           />
 
           {selectedRuleSetDetails && (
-            <div className="selected-rule-details card">
-              <h4>Selected Rule Set Details</h4>
-              <div className="rule-detail-item">
-                <span className="detail-label">Name:</span>
-                <span className="detail-value">
-                  {selectedRuleSetDetails.name || "N/A"}
-                </span>
+            <div className="selected-rule-details tw-mt-3 tw-p-4 tw-bg-gradient-to-br tw-from-blue-50 tw-to-indigo-50 tw-rounded-lg tw-border tw-border-blue-200">
+              <div className="tw-flex tw-items-center tw-gap-2 tw-mb-3">
+                <i className="fa-light fa-list-check tw-text-blue-600"></i>
+                <h4 className="tw-text-base tw-font-semibold tw-text-blue-900 tw-m-0">
+                  Selected Rule Set
+                </h4>
               </div>
-              <div className="rule-detail-item">
-                <span className="detail-label">Description:</span>
-                <span className="detail-value">
-                  {selectedRuleSetDetails.description || "No description"}
-                </span>
+
+              <div className="tw-space-y-2 tw-mb-3">
+                <div className="rule-detail-item">
+                  <span className="tw-text-xs tw-text-gray-600 tw-block">Name:</span>
+                  <span className="tw-text-sm tw-font-medium tw-text-gray-900">
+                    {selectedRuleSetDetails.name || "N/A"}
+                  </span>
+                </div>
+                {selectedRuleSetDetails.description && (
+                  <div className="rule-detail-item">
+                    <span className="tw-text-xs tw-text-gray-600 tw-block">Description:</span>
+                    <span className="tw-text-sm tw-text-gray-700">
+                      {selectedRuleSetDetails.description}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="rule-detail-item">
-                <span className="detail-label">Rules:</span>
-                <span className="detail-value">
-                  {selectedRuleSetDetails.rules &&
-                  Array.isArray(selectedRuleSetDetails.rules)
-                    ? selectedRuleSetDetails.rules.length
-                    : 0}{" "}
-                  rule(s)
-                </span>
-              </div>
+
+              {selectedRuleSetDetails.rules && selectedRuleSetDetails.rules.length > 0 ? (
+                <div className="tw-space-y-2">
+                  <h5 className="tw-text-xs tw-font-semibold tw-text-gray-700 tw-mb-2 tw-uppercase tw-tracking-wide">
+                    Rules in this set ({selectedRuleSetDetails.rules.length})
+                  </h5>
+                  {selectedRuleSetDetails.rules.map((rule, idx) => (
+                    <div key={idx} className="rule-preview tw-p-2 tw-bg-white tw-rounded tw-border tw-border-blue-100">
+                      <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1">
+                        <i className={`${
+                          rule.discriminator === 'DailyMonthlyLimitRule' ? 'fa-light fa-gauge-high tw-text-green-600' :
+                          rule.discriminator === 'NoOfRefillRule' ? 'fa-light fa-hashtag tw-text-amber-600' :
+                          'fa-light fa-clock tw-text-purple-600'
+                        } tw-text-sm`}></i>
+                        <span className="tw-font-medium tw-text-xs tw-text-gray-800">
+                          {rule.ruleName || 'Unnamed Rule'}
+                        </span>
+                      </div>
+
+                      {rule.discriminator === 'DailyMonthlyLimitRule' && (
+                        <div className="tw-text-xs tw-text-gray-600 tw-ml-5 tw-space-y-0.5">
+                          {rule.dailyLimit > 0 && <div>Daily: {rule.dailyLimit}L</div>}
+                          {rule.monthlyLimit > 0 && <div>Monthly: {rule.monthlyLimit}L</div>}
+                          {rule.fuelingLimit > 0 && <div>Per Transaction: {rule.fuelingLimit}L</div>}
+                        </div>
+                      )}
+
+                      {rule.discriminator === 'NoOfRefillRule' && (
+                        <div className="tw-text-xs tw-text-gray-600 tw-ml-5 tw-space-y-0.5">
+                          {rule.maxRefillsPerDay > 0 && <div>Daily: {rule.maxRefillsPerDay}x refills</div>}
+                          {rule.maxRefillsPerWeek > 0 && <div>Weekly: {rule.maxRefillsPerWeek}x refills</div>}
+                          {rule.maxRefillsPerMonth > 0 && <div>Monthly: {rule.maxRefillsPerMonth}x refills</div>}
+                        </div>
+                      )}
+
+                      {rule.discriminator === 'TimeWindowRule' && (
+                        <div className="tw-text-xs tw-text-gray-600 tw-ml-5">
+                          {rule.startTime} - {rule.endTime}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="tw-text-xs tw-text-amber-600 tw-italic tw-flex tw-items-center tw-gap-1">
+                  <i className="fa-light fa-exclamation-triangle"></i>
+                  <span>This rule set has no configured rules</span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -328,7 +377,7 @@ const TagRuleAssignment = ({ isVisible, onClose, tags, ruleSets }) => {
               selectedTagIds.length === 0 ||
               loading
             }
-            icon="fas fa-link"
+            icon="fa-light fa-link"
           />
         </div>
       </div>

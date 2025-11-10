@@ -8,6 +8,7 @@ import { DateBox } from 'devextreme-react/date-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TagBox } from 'devextreme-react/tag-box';
 import { Button } from 'devextreme-react/button';
+import { CheckBox } from 'devextreme-react/check-box';
 import notify from 'devextreme/ui/notify';
 import { fetchSiteList } from '../../../../../redux/actions/siteActions';
 import './VolumeHistoryReports.scss';
@@ -22,6 +23,7 @@ const VolumeHistoryReports = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [groupByPeriod, setGroupByPeriod] = useState('month');
   const [selectedSiteIds, setSelectedSiteIds] = useState([]);
+  const [useManualDispensing, setUseManualDispensing] = useState(false); // New state for manual dispensing toggle
 
   // Redux selectors
   const sites = useSelector((state) => state.site?.sites || []);
@@ -62,7 +64,8 @@ const VolumeHistoryReports = () => {
         startDate: startDateStr,
         endDate: endDateStr,
         groupByPeriod,
-        siteIds: selectedSiteIds.length > 0 ? selectedSiteIds : undefined
+        siteIds: selectedSiteIds.length > 0 ? selectedSiteIds : undefined,
+        useManualDispensing // Include manual dispensing toggle
       };
 
       // Load only pivot data
@@ -93,7 +96,7 @@ const VolumeHistoryReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, groupByPeriod, selectedSiteIds]);
+  }, [startDate, endDate, groupByPeriod, selectedSiteIds, useManualDispensing]);
 
   // Apply filters and load data
   const handleApplyFilters = useCallback(() => {
@@ -231,6 +234,25 @@ const VolumeHistoryReports = () => {
               searchEnabled={true}
               width="100%"
             />
+          </div>
+        </div>
+
+        {/* Dispensing Data Source Option */}
+        <div className="tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
+          <div className="tw-flex tw-items-center tw-gap-3">
+            <CheckBox
+              value={useManualDispensing}
+              onValueChanged={(e) => setUseManualDispensing(e.value)}
+              text="Use Manual Aggregate Dispensing"
+            />
+            <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-600">
+              <i className="fa-light fa-info-circle"></i>
+              <span>
+                {useManualDispensing
+                  ? 'Showing bulk dispensing entries from stock records'
+                  : 'Showing individual sensor-based dispensing transactions'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

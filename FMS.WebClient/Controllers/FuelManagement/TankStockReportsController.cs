@@ -176,7 +176,12 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("pivot-data")]
         public async Task<IActionResult> GetPivotData(
-            [FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] string groupByPeriod = "month", [FromQuery] int[]? siteIds = null, [FromQuery] int[]? tankIds = null)
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] string groupByPeriod = "month",
+            [FromQuery] int[]? siteIds = null,
+            [FromQuery] int[]? tankIds = null,
+            [FromQuery] bool useManualDispensing = false)
         {
             var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
             if (!hasPermission)
@@ -197,7 +202,8 @@ namespace FMS.WebClient.Controllers
                 var query = new GetPivotDataQuery(startDate, endDate, groupByPeriod)
                 {
                     SiteIds = siteIds?.ToList(),
-                    TankIds = tankIds?.ToList()
+                    TankIds = tankIds?.ToList(),
+                    UseManualDispensing = useManualDispensing
                 };
 
                 var result = await _mediator.Send(query);

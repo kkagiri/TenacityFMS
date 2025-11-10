@@ -161,6 +161,11 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     return FMSResponse<PumpAuthorizeConfirmation>.Success(null!, "Pump already authorized");
                 }
 
+                // TODO: FUELING RULE FEATURE - Re-enable tag authentication and fueling rule validation when feature is ready
+                // The following section authenticates tags and validates fueling rules (dose limits) for tags.
+                // This is currently disabled to allow the fueling process to proceed without tag rule checks.
+
+                /*
                 //3. Aunthicate the tag if Provide
 
                 decimal? effectiveDoseForAuthTracking = null;
@@ -190,7 +195,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         request = request with { Dose = (double)tagAuthentication.dose };
                     }
                 }
+                */
 
+                // TODO: FUELING RULE FEATURE - Auto-assign master tag feature also disabled (depends on tag authentication)
+                // When fueling rule feature is re-enabled, uncomment this section along with tag authentication above.
+
+                /*
                 // Cursor: Auto-assign user master tag if vehicle-only and feature enabled on device
                 // Get device configuration for auto-assign setting
                 var device = await _context.Ptsdevices.FirstOrDefaultAsync(d => d.Ptsid == request.DeviceId);
@@ -258,7 +268,13 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     // Log when auto-assign is not enabled but could be useful
                     _logger.LogInformation("Vehicle-only authorization attempted on device {DeviceId}, but auto-assign master tag feature is disabled for this device", request.DeviceId);
                 }
+                */
 
+                // TODO: FUELING RULE FEATURE - Re-enable vehicle fuel rule validation when feature is ready
+                // The following section validates vehicle fuel limits based on configured fueling rules.
+                // This is currently disabled to allow vehicle selection to proceed directly to fueling details.
+
+                /*
                 //Cursor: 4. Validate vehicle fuel limits if VehicleId is provided (after tag authentication and auto-assignment)
                 VehicleValidationResultDTO vehicleValidation = null;
                 if (request.VehicleId.HasValue)
@@ -287,8 +303,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         return FMSResponse<PumpAuthorizeConfirmation>.Failed("Error during vehicle validation");
                     }
                 }
+                */
 
-                //Cursor: 5. Calculate final dose considering both tag and vehicle limits
+                //Cursor: 5. Calculate final dose considering both tag and vehicle limits (DISABLED - See TODO above)
+                // TODO: FUELING RULE FEATURE - Re-enable dose calculation with vehicle limits when feature is ready
+
+                /*
                 if (request.VehicleId.HasValue && vehicleValidation != null && vehicleValidation.IsValid)
                 {
                     // Calculate remaining daily and monthly vehicle limits
@@ -318,6 +338,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                             vehicleLowestRemaining, request.VehicleId.Value, request.DeviceId, request.PumpId);
                     }
                 }
+                */
 
                 // Cursor: **TRANSACTION ID STRATEGY**: We let the PTS device generate transaction IDs
                 // instead of generating them locally. This prevents issues with:
@@ -550,6 +571,14 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 }
             }
 
+            // TODO: FUELING RULE FEATURE - Re-enable tag and vehicle business rule validation when feature is ready
+            // The following business rules are disabled to allow flexible vehicle and tag combinations:
+            // - Tag/Vehicle combination rules
+            // - Master tag requirements
+            // - Fueling rule checks
+            // Currently, only basic existence checks are performed below.
+
+            /*
             // Cursor: Validate Tag and Vehicle combination business rules using device settings
             bool hasTag = !string.IsNullOrEmpty(request.Tag);
             bool hasVehicleId = request.VehicleId.HasValue && request.VehicleId.Value > 0;
@@ -597,6 +626,29 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 {
                     _logger.LogError(ex, "Error validating tag {TagName}", request.Tag);
                     validationErrors.Add("Error validating tag");
+                }
+            }
+            */
+
+            // Basic existence checks (non-fueling rule related)
+            bool hasTag = !string.IsNullOrEmpty(request.Tag);
+            bool hasVehicleId = request.VehicleId.HasValue && request.VehicleId.Value > 0;
+
+            // Simplified: Just check if tag exists if provided
+            if (hasTag)
+            {
+                try
+                {
+                    var tag = await _context.FuelTags.FirstOrDefaultAsync(t => t.Name == request.Tag);
+                    if (tag == null)
+                    {
+                        validationErrors.Add("Tag not found in database");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error checking tag existence {TagName}", request.Tag);
+                    validationErrors.Add("Error checking tag existence");
                 }
             }
 

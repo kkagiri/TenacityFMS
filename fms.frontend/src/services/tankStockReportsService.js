@@ -194,7 +194,8 @@ class TankStockReportsService {
         endDate,
         groupByPeriod = 'month',
         siteIds = null,
-        tankIds = null
+        tankIds = null,
+        useManualDispensing = false
       } = params;
 
       const queryParams = new URLSearchParams();
@@ -203,6 +204,7 @@ class TankStockReportsService {
       queryParams.append('groupByPeriod', groupByPeriod);
       if (siteIds?.length) siteIds.forEach(id => queryParams.append('siteIds', id));
       if (tankIds?.length) tankIds.forEach(id => queryParams.append('tankIds', id));
+      queryParams.append('useManualDispensing', useManualDispensing);
 
       const response = await axiosInstance.get(`${this.baseUrl}/pivot-data?${queryParams}`);
 

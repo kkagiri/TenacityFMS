@@ -207,6 +207,17 @@ export default function Content() {
           path="/issue-tracker/*"
           element={React.createElement(resolvedComponents("issue tracker"))}
         />
+
+        {/* Task Management System Routes - Handle all task-management sub-routes internally */}
+        <Route
+          path="/task-management"
+          element={React.createElement(resolvedComponents("task management"))}
+        />
+        <Route
+          path="/task-management/*"
+          element={React.createElement(resolvedComponents("task management"))}
+        />
+
         <Route
           path="/active-alarms"
           element={React.createElement(resolvedComponents("active-alarms"))}

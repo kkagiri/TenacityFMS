@@ -177,102 +177,171 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData, onRulesAssigned }) 
 
         {/* Assign Rule Set Section */}
         <div className="assign-ruleset-section tw-space-y-4">
-          <div className="form-group">
-            <label className="tw-block tw-mb-2 tw-font-medium tw-text-sm sm:tw-text-base">
-              Select Rule Set
-            </label>
-            <SelectBox
-              dataSource={ruleSets}
-              displayExpr="name"
-              valueExpr="id"
-              placeholder="Select a rule set"
-              value={selectedRuleSet}
-              onValueChanged={(e) => setSelectedRuleSet(e.value)}
-              showClearButton={true}
-              searchEnabled={true}
-              height={44}
-              dropDownOptions={{
-                width: "auto",
-                minWidth: 250,
-                maxHeight: 300,
-                shading: true,
-                shadingColor: "rgba(0, 0, 0, 0.3)",
-                closeOnOutsideClick: true,
-              }}
-              itemRender={(item) => (
-                <div>
-                  {item.name}
-                </div>
-              )}
-            />
+          {!ruleSets || ruleSets.length === 0 ? (
+            <div className="no-rules-warning tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-p-4 tw-text-center">
+              <i className="fa-light fa-exclamation-triangle tw-text-amber-500 tw-text-3xl tw-mb-2"></i>
+              <h4 className="tw-text-base tw-font-semibold tw-text-amber-800 tw-mb-2">
+                No Rule Sets Available
+              </h4>
+              <p className="tw-text-sm tw-text-amber-700 tw-mb-3">
+                You need to create fueling rule sets before assigning them to vehicles.
+              </p>
+              <p className="tw-text-xs tw-text-amber-600">
+                Go to Tag Management → Fueling Rules to create rule sets.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="tw-block tw-mb-2 tw-font-medium tw-text-sm sm:tw-text-base">
+                  Select Rule Set
+                </label>
+                <SelectBox
+                  dataSource={ruleSets}
+                  displayExpr="name"
+                  valueExpr="id"
+                  placeholder="Select a rule set"
+                  value={selectedRuleSet}
+                  onValueChanged={(e) => setSelectedRuleSet(e.value)}
+                  showClearButton={true}
+                  searchEnabled={true}
+                  height={44}
+                  dropDownOptions={{
+                    width: "auto",
+                    minWidth: 250,
+                    maxHeight: 300,
+                    shading: true,
+                    shadingColor: "rgba(0, 0, 0, 0.3)",
+                    closeOnOutsideClick: true,
+                  }}
+                  itemRender={(item) => (
+                    <div className="tw-py-2">
+                      <div className="tw-font-medium">{item.name}</div>
+                      {item.description && (
+                        <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                          {item.description}
+                        </div>
+                      )}
+                      <div className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                        {item.rules?.length || 0} rule(s)
+                      </div>
+                    </div>
+                  )}
+                />
 
-            {selectedRuleSet &&
-              ruleSets.find((r) => r.id === selectedRuleSet) && (
-                <div className="rule-details tw-mt-3 tw-p-3 sm:tw-p-4 tw-bg-gray-50 tw-rounded-lg">
-                  <h4 className="tw-text-sm sm:tw-text-md tw-font-medium tw-mb-2">
-                    Rule Set Details
-                  </h4>
-                  <div className="rule-details-grid tw-space-y-2 tw-text-sm">
-                    {ruleSets.find((r) => r.id === selectedRuleSet)
-                      .dailyMonthlyLimitRule && (
-                      <>
-                        <div className="detail-row tw-flex tw-justify-between">
-                          <span className="label tw-text-gray-600">
-                            Daily Limit:
-                          </span>
-                          <span className="value tw-font-medium">
-                            {
-                              ruleSets.find((r) => r.id === selectedRuleSet)
-                                .dailyMonthlyLimitRule.dailyLimit
-                            }
-                            L
-                          </span>
-                        </div>
-                        <div className="detail-row tw-flex tw-justify-between">
-                          <span className="label tw-text-gray-600">
-                            Monthly Limit:
-                          </span>
-                          <span className="value tw-font-medium">
-                            {
-                              ruleSets.find((r) => r.id === selectedRuleSet)
-                                .dailyMonthlyLimitRule.monthlyLimit
-                            }
-                            L
-                          </span>
-                        </div>
-                        <div className="detail-row tw-flex tw-justify-between">
-                          <span className="label tw-text-gray-600">
-                            Transaction Limit:
-                          </span>
-                          <span className="value tw-font-medium">
-                            {
-                              ruleSets.find((r) => r.id === selectedRuleSet)
-                                .dailyMonthlyLimitRule.fuelingLimit
-                            }
-                            L
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-          </div>
+                {selectedRuleSet &&
+                  ruleSets.find((r) => r.id === selectedRuleSet) && (
+                    <div className="rule-details tw-mt-3 tw-p-3 sm:tw-p-4 tw-bg-gradient-to-br tw-from-blue-50 tw-to-indigo-50 tw-rounded-lg tw-border tw-border-blue-200">
+                      <div className="tw-flex tw-items-center tw-gap-2 tw-mb-3">
+                        <i className="fa-light fa-list-check tw-text-blue-600"></i>
+                        <h4 className="tw-text-sm sm:tw-text-md tw-font-semibold tw-text-blue-900 tw-m-0">
+                          Rule Set Preview
+                        </h4>
+                      </div>
 
-          <div className="actions tw-mt-4">
-            <Button
-              text="Assign Rule Set"
-              type="success"
-              stylingMode="contained"
-              onClick={handleAssignRuleSet}
-              disabled={!selectedRuleSet || isAssigning}
-              width="100%"
-              height={44}
-              icon="fa-light fa-check"
-            >
-              {isAssigning && <LoadIndicator width={20} height={20} />}
-            </Button>
-          </div>
+                      {(() => {
+                        const selectedSet = ruleSets.find((r) => r.id === selectedRuleSet);
+                        const hasRules = selectedSet.rules && selectedSet.rules.length > 0;
+
+                        if (!hasRules) {
+                          return (
+                            <p className="tw-text-sm tw-text-gray-500 tw-italic">
+                              This rule set has no configured rules.
+                            </p>
+                          );
+                        }
+
+                        return (
+                          <div className="rule-details-grid tw-space-y-3 tw-text-sm">
+                            {selectedSet.rules.map((rule, idx) => (
+                              <div key={idx} className="rule-item tw-p-2 tw-bg-white tw-rounded tw-border tw-border-blue-100">
+                                <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                                  <i className={`${
+                                    rule.discriminator === 'DailyMonthlyLimitRule' ? 'fa-light fa-gauge-high tw-text-green-600' :
+                                    rule.discriminator === 'NoOfRefillRule' ? 'fa-light fa-hashtag tw-text-amber-600' :
+                                    'fa-light fa-clock tw-text-purple-600'
+                                  }`}></i>
+                                  <span className="tw-font-semibold tw-text-gray-800 tw-text-xs">
+                                    {rule.ruleName || 'Unnamed Rule'}
+                                  </span>
+                                </div>
+
+                                {rule.discriminator === 'DailyMonthlyLimitRule' && (
+                                  <div className="tw-space-y-1 tw-text-xs tw-ml-6">
+                                    {rule.dailyLimit > 0 && (
+                                      <div className="tw-flex tw-justify-between">
+                                        <span className="tw-text-gray-600">Daily:</span>
+                                        <span className="tw-font-medium tw-text-gray-900">{rule.dailyLimit}L</span>
+                                      </div>
+                                    )}
+                                    {rule.monthlyLimit > 0 && (
+                                      <div className="tw-flex tw-justify-between">
+                                        <span className="tw-text-gray-600">Monthly:</span>
+                                        <span className="tw-font-medium tw-text-gray-900">{rule.monthlyLimit}L</span>
+                                      </div>
+                                    )}
+                                    {rule.fuelingLimit > 0 && (
+                                      <div className="tw-flex tw-justify-between">
+                                        <span className="tw-text-gray-600">Per Transaction:</span>
+                                        <span className="tw-font-medium tw-text-gray-900">{rule.fuelingLimit}L</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {rule.discriminator === 'NoOfRefillRule' && (
+                                  <div className="tw-space-y-1 tw-text-xs tw-ml-6">
+                                    {rule.maxRefillsPerDay > 0 && (
+                                      <div className="tw-flex tw-justify-between">
+                                        <span className="tw-text-gray-600">Daily Refills:</span>
+                                        <span className="tw-font-medium tw-text-gray-900">{rule.maxRefillsPerDay}x</span>
+                                      </div>
+                                    )}
+                                    {rule.maxRefillsPerWeek > 0 && (
+                                      <div className="tw-flex tw-justify-between">
+                                        <span className="tw-text-gray-600">Weekly Refills:</span>
+                                        <span className="tw-font-medium tw-text-gray-900">{rule.maxRefillsPerWeek}x</span>
+                                      </div>
+                                    )}
+                                    {rule.maxRefillsPerMonth > 0 && (
+                                      <div className="tw-flex tw-justify-between">
+                                        <span className="tw-text-gray-600">Monthly Refills:</span>
+                                        <span className="tw-font-medium tw-text-gray-900">{rule.maxRefillsPerMonth}x</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {rule.discriminator === 'TimeWindowRule' && (
+                                  <div className="tw-text-xs tw-ml-6 tw-text-gray-700">
+                                    {rule.startTime} - {rule.endTime}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+              </div>
+
+              <div className="actions tw-mt-4">
+                <Button
+                  text={isAssigning ? "Assigning..." : "Assign Rule Set"}
+                  type="success"
+                  stylingMode="contained"
+                  onClick={handleAssignRuleSet}
+                  disabled={!selectedRuleSet || isAssigning}
+                  width="100%"
+                  height={44}
+                  icon={isAssigning ? null : "fa-light fa-check"}
+                >
+                  {isAssigning && <LoadIndicator width={20} height={20} />}
+                </Button>
+              </div>
+            </>
+          )}
 
           {(!vehicleHasTag || vehicleData?.isCompanyVehicle) && (
             <div className="master-tag-note tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-mt-3">

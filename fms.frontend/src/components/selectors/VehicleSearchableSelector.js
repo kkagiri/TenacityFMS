@@ -207,10 +207,13 @@ const VehicleSearchableSelector = ({
             className="dx-texteditor-input"
             autoComplete="off"
             style={{
-              backgroundColor: disabled ? '#f8f9fa' : 'transparent',
+              backgroundColor: disabled ? '#f8f9fa' : 'white',
               paddingRight: '40px',
               border: 'none',
-              outline: 'none'
+              outline: 'none',
+              pointerEvents: 'auto',
+              cursor: disabled ? 'not-allowed' : 'text',
+              zIndex: 1
             }}
           />
           <div className="dx-texteditor-buttons-container">

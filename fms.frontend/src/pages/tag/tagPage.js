@@ -126,8 +126,8 @@ const TagPage = () => {
 
   // Tab data
   const tabData = [
-    { text: "Tag Management", icon: "fas fa-tags" },
-    { text: "Fueling Rules", icon: "fas fa-gas-pump" },
+    { text: "Tag Management", icon: "fa-light fa-tags" },
+    { text: "Fueling Rules", icon: "fa-light fa-gas-pump" },
   ];
 
   // Cursor: Define a custom tab item renderer to fix duplication issue
@@ -158,7 +158,7 @@ const TagPage = () => {
                 text="Add Tag"
                 type="default"
                 stylingMode="contained"
-                icon="fas fa-plus"
+                icon="fa-light fa-plus"
                 onClick={handleAddTag}
               />
             </div>

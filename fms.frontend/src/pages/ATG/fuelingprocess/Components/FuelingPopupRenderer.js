@@ -10,7 +10,7 @@ import "./../fuelingprocess.scss";
 const formatCurrency = (value) => {
   const num = Number(value);
   if (!isNaN(num) && typeof num === "number") {
-    return `KES${num.toFixed(0)}`;
+    return `KES ${num.toFixed(0)}`;
   }
   return "KES 0.00"; // Fallback for invalid numbers
 };
@@ -139,8 +139,7 @@ const FuelingPopupRenderer = {
       <Popup
         visible={fuelingComplete}
         dragEnabled={false}
-        showCloseButton
-={false}
+        showCloseButton={true}
         showTitle={true}
         title="Fueling Complete"
         width={500}
@@ -248,7 +247,7 @@ const FuelingPopupRenderer = {
         visible={showNavigationDialog}
         dragEnabled={false}
         showCloseButton
-={false}
+={true}
         showTitle={true}
         title="Fueling in Progress"
         width={400}

@@ -19,6 +19,7 @@ import SystemConfiguration from './systemConfig/SystemConfigPage';
 import PTSServiceControl from './ptsService/PTSServiceControl';
 import NotificationSettings from './notification-settings/NotificationSettings';
 import ProviderManagementMain from '../providermanagement/ProviderManagementMain';
+import TaskManagement from '../taskManagement';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -41,6 +42,8 @@ const AdminMain = () => {
         <Route path="navigation/*" element={<NavigationPage />} />
         <Route path="notifications" element={<NotificationSettings />} />
         <Route path="notifications/*" element={<NotificationSettings />} />
+        <Route path="task-management" element={<TaskManagement />} />
+        <Route path="task-management/*" element={<TaskManagement />} />
 
     {/* Provider Management */}
     <Route path="providers" element={<ProviderManagementMain />} />

@@ -14,18 +14,20 @@ import notify from "devextreme/ui/notify";
 import "./fuelingprocess.scss"; //claude import scss file
 import FuelingPopupRenderer from "./Components/FuelingPopupRenderer";
 import FuelingHeader from "./Components/FuelingHeader";
-import FuelingRulePopup from "./Components/FuelingRulePopup"; //Cursor
+// TODO: FUELING RULE FEATURE - Re-enable FuelingRulePopup import when feature is ready
+// import FuelingRulePopup from "./Components/FuelingRulePopup"; //Cursor
 import PumpTransactionPopup from "../../../components/PumpTransactionPopup/PumpTransactionPopup";
 
 // Import custom hooks
 import { useDeviceData } from "../../../hooks/useDeviceData";
 import pumpControlService from "../../../services/pumpControlService";
 import { createFuelingEvent } from "../../../redux/actions/fuelingEventActions";
-import { fetchVehicleList } from "../../../redux/actions/vehicleActions"; //Cursor
 import {
   validateTag,
-  validateVehicle,
+  // TODO: FUELING RULE FEATURE - Re-enable validateVehicle import when feature is ready
+  // validateVehicle,
 } from "../../../redux/actions/tagActions"; //Cursor
+import { getVehicleById } from "../../../redux/actions/vehicleActions"; //Cursor: Add for direct vehicle fetch without validation
 import { fetchSiteList } from "../../../redux/actions/siteActions"; //Cursor
 import { authorizePump } from "../../../redux/actions/ptsActions/ptspumpActions"; //Cursor: Add for enhanced authorization
 import ptsSignalRService from "../../../signalR/ptsSignalRService"; // PTS-specific SignalR service
@@ -85,10 +87,9 @@ const FuelingProcess = () => {
 
   // Get vehicles from Redux store
   const vehicles = useSelector((state) => state.vehicle.vehicles);
-  //Cursor: Ensure isLoadingVehicles defaults to false if state path is missing
-  const isLoadingVehicles = useSelector(
-    (state) => state.vehicle?.loading ?? false
-  );
+  //Cursor: No longer using bulk vehicle loading - VehicleSearchableSelector loads on-demand
+  // So isLoadingVehicles is always false
+  const isLoadingVehicles = false;
 
   // Get tag-related data from Redux using vehicleId from state
   const vehicleTags = useSelector((state) => {
@@ -125,10 +126,11 @@ const FuelingProcess = () => {
   const [tagDetails, setTagDetails] = useState(null); // Details for selected/scanned tag
   const [selectedTag, setSelectedTag] = useState(null); // Currently selected tag
 
+  // TODO: FUELING RULE FEATURE - Re-enable fueling rule state variables when feature is ready
   // Add the company vehicle checkbox state and rule popup state
-  const [isCompanyVehicle, setIsCompanyVehicle] = useState(false); //Cursor
-  const [showFuelingRulePopup, setShowFuelingRulePopup] = useState(false); //Cursor
-  const [vehicleForRules, setVehicleForRules] = useState(null); //Cursor
+  // const [isCompanyVehicle, setIsCompanyVehicle] = useState(false); //Cursor
+  // const [showFuelingRulePopup, setShowFuelingRulePopup] = useState(false); //Cursor
+  // const [vehicleForRules, setVehicleForRules] = useState(null); //Cursor
 
   // Add state for connection status
   const [deviceConnectionStatus, setDeviceConnectionStatus] =
@@ -157,9 +159,8 @@ const FuelingProcess = () => {
   // Pump transaction popup state
   const [showPumpTransactionPopup, setShowPumpTransactionPopup] = useState(false);
 
-  // Fetch vehicles and sites when component mounts //Cursor
+  // Fetch sites when component mounts //Cursor
   useEffect(() => {
-    dispatch(fetchVehicleList());
     dispatch(fetchSiteList());
   }, [dispatch]);
 
@@ -817,62 +818,43 @@ const FuelingProcess = () => {
         // Show loading state by clearing vehicleInfo first
         setVehicleInfo(null);
 
-        // Validate the vehicle
-        const validationResult = await dispatch(
-          validateVehicle(vehicle.vehicleId)
+        // TODO: FUELING RULE FEATURE - Validation disabled, just fetch vehicle data
+        // Fetch vehicle data directly without validation (no fueling rule checks)
+        const vehicleResult = await dispatch(
+          getVehicleById(vehicle.vehicleId)
         );
 
-        console.log("[Vehicle Selection] Validation result:", validationResult);
+        console.log("[Vehicle Selection] Vehicle data fetched:", vehicleResult);
 
-        if (validationResult && validationResult.isValid) {
-          // Store the vehicle info from validation result
-          setVehicleInfo(validationResult.vehicleInfo);
+        if (vehicleResult && vehicleResult.success && vehicleResult.data) {
+          // Map vehicle data to expected format
+          const vehicleData = vehicleResult.data;
+          setVehicleInfo({
+            vehicleId: vehicleData.vehicleId,
+            hyoungNo: vehicleData.hyoungNo,
+            numberPlate: vehicleData.numberPlate,
+            vehicleType: vehicleData.vehicleType,
+            isCompanyVehicle: vehicleData.isCompanyVehicle || false,
+            // TODO: FUELING RULE FEATURE - These limit fields will be populated when validation is re-enabled
+            // For now, they remain undefined so the UI won't display limit sections
+            // dailyLimit: undefined,
+            // monthlyLimit: undefined,
+            // dailyUsed: undefined,
+            // monthlyUsed: undefined,
+            // fuelingLimit: undefined,
+          });
         } else {
-          const errorMessage = validationResult?.message || "Unknown error";
-
-          // Check if the error is about missing fuel rules
-          if (errorMessage.toLowerCase().includes("no fuel rules") ||
-              errorMessage.toLowerCase().includes("fuel rules before vehicle")) {
-            // Store the vehicle info even though validation failed
-            // This allows the vehicle to remain selected in the UI
-            if (validationResult?.vehicleInfo) {
-              setVehicleInfo(validationResult.vehicleInfo);
-            }
-
-            // Show notification with option to configure rules
-            notify(
-              `${errorMessage}\n\nOpening fuel rules configuration...`,
-              "warning",
-              5000
-            );
-
-            // Automatically show the fueling rules popup after a brief delay
-            setTimeout(() => {
-              setVehicleForRules({
-                vehicleId: vehicle.vehicleId,
-                regNumber: validationResult?.vehicleInfo?.numberPlate ||
-                          validationResult?.vehicleInfo?.hyoungNo ||
-                          "Unknown",
-                isCompanyVehicle: validationResult?.vehicleInfo?.isCompanyVehicle || false,
-              });
-              setShowFuelingRulePopup(true);
-            }, 1000);
-
-            // DON'T clear the selected vehicle ID for fuel rules errors
-            // Keep it so the vehicle remains selected
-          } else {
-            // Show regular error notification
-            notify(
-              `Vehicle validation failed: ${errorMessage}`,
-              "error",
-              3000
-            );
-            // Clear selected vehicle ID on validation failure
-            setSelectedVehicleId(null);
-          }
+          // Show error notification
+          notify(
+            `Failed to fetch vehicle data`,
+            "error",
+            3000
+          );
+          // Clear selected vehicle ID on fetch failure
+          setSelectedVehicleId(null);
         }
       } catch (error) {
-        console.error("[Vehicle Selection] Error during validation:", error);
+        console.error("[Vehicle Selection] Error fetching vehicle:", error);
         notify(
           `Error during vehicle validation: ${
             error.message || "Unknown error"
@@ -1053,11 +1035,14 @@ const FuelingProcess = () => {
     }
   };
 
+  // TODO: FUELING RULE FEATURE - Re-enable openFuelingRulePopup function when feature is ready
   // Add a function to open the fueling rule popup
+  /*
   const openFuelingRulePopup = (vehicleData) => {
     setVehicleForRules(vehicleData);
     setShowFuelingRulePopup(true);
   };
+  */
 
   // Cursor: Add transaction completion handlers
   const handleCancelTransaction = async (transactionId, reason) => {
@@ -1190,6 +1175,8 @@ const FuelingProcess = () => {
             selectedNozzle={selectedNozzle}
             setScanResult={setScanResult}
             ptsId={ptsId}
+            // TODO: FUELING RULE FEATURE - Re-enable onConfigureRules callback when feature is ready
+            /*
             onConfigureRules={(vehicleData) => {
               setVehicleForRules({
                 vehicleId: vehicleData?.vehicleId,
@@ -1198,6 +1185,7 @@ const FuelingProcess = () => {
               });
               setShowFuelingRulePopup(true);
             }}
+            */
           />
         );
       case "details":
@@ -1415,7 +1403,9 @@ const FuelingProcess = () => {
         setShowAllFuelingPopup
       )}
 
-      {/* Add the FuelingRulePopup */}
+      {/* TODO: FUELING RULE FEATURE - Re-enable FuelingRulePopup when feature is ready */}
+      {/* Add the FuelingRulePopup - Currently disabled as fuel rule validation is not active */}
+      {/*
       <FuelingRulePopup
         isVisible={showFuelingRulePopup}
         onClose={() => {
@@ -1448,6 +1438,7 @@ const FuelingProcess = () => {
           }
         }}
       />
+      */}
 
       {/* Cursor: Add Transaction Monitoring Status */}
       <TransactionMonitoringStatus
