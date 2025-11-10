@@ -192,29 +192,20 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData, onRulesAssigned }) 
               searchEnabled={true}
               height={44}
               dropDownOptions={{
-                width: "auto",
-                minWidth: 250,
-                maxHeight: 300,
+                width: 400,
+                height: 'auto',
+                maxHeight: 400,
                 shading: true,
-                shadingColor: "rgba(0, 0, 0, 0.3)",
+                shadingColor: "rgba(0, 0, 0, 0.4)",
                 closeOnOutsideClick: true,
+                container: ".fueling-rule-popup-wrapper",
                 position: {
-                  my: "top",
-                  at: "bottom",
-                  collision: "flip"
+                  my: "top left",
+                  at: "bottom left",
+                  collision: "flip fit",
+                  offset: "0 4"
                 }
               }}
-              itemRender={(item) => (
-                <div style={{
-                  padding: '10px 12px',
-                  cursor: 'pointer',
-                  minHeight: '44px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  {item.name}
-                </div>
-              )}
             />
 
             {selectedRuleSet &&

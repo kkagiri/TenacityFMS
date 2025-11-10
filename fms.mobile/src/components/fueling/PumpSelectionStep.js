@@ -54,6 +54,15 @@ const PumpSelectionStep = ({
         </Text>
 
         {/* Additional info */}
+        {pump.status === 'idle' && pump.lastVolume > 0 && (
+          <View style={styles.lastTransactionInfo}>
+            <Text style={styles.lastTransactionLabel}>Last Transaction:</Text>
+            <Text style={styles.lastTransactionText}>
+              {FuelingUtils.formatVolume(pump.lastVolume)}
+            </Text>
+          </View>
+        )}
+
         {pump.status === 'fueling' && (
           <View style={styles.fuelingInfo}>
             <Text style={styles.fuelingText}>
@@ -66,9 +75,16 @@ const PumpSelectionStep = ({
         )}
 
         {pump.status === 'nozzleUp' && (
-          <Text style={styles.nozzleUpText}>
-            Nozzle {pump.nozzleUp} Up
-          </Text>
+          <View style={styles.nozzleUpContainer}>
+            <Text style={styles.nozzleUpText}>
+              Nozzle {pump.nozzleUp} Up
+            </Text>
+            {pump.lastVolume > 0 && (
+              <Text style={styles.lastTransactionText}>
+                {FuelingUtils.formatVolume(pump.lastVolume)}
+              </Text>
+            )}
+          </View>
         )}
 
         {pump.status === 'endOfTransaction' && (
@@ -219,6 +235,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 8,
   },
+  lastTransactionInfo: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  lastTransactionLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginBottom: 2,
+  },
+  lastTransactionText: {
+    fontSize: 12,
+    color: '#10b981',
+    fontWeight: '600',
+  },
   fuelingInfo: {
     alignItems: 'center',
   },
@@ -227,10 +257,14 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 2,
   },
+  nozzleUpContainer: {
+    alignItems: 'center',
+  },
   nozzleUpText: {
     fontSize: 12,
     color: '#f59e0b',
     fontWeight: '500',
+    marginBottom: 4,
   },
   completedInfo: {
     alignItems: 'center',
