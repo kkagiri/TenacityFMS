@@ -20,6 +20,8 @@ import DataGrid, {
   Export
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
+import { SelectBox } from 'devextreme-react/select-box';
+import { DateBox } from 'devextreme-react/date-box';
 import Button from 'devextreme-react/button';
 import Popup from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
@@ -38,7 +40,7 @@ import { usePermissions } from '../../../../hooks/usePermissions';
 import DispensingForm from './DispensingForm';
 import './DispensingManager.scss';
 
-const DispensingManager = ({ selectedSite, dateRange }) => {
+const DispensingManager = () => {
   const dispatch = useDispatch();
   const dataGridRef = useRef(null);
 
@@ -60,22 +62,34 @@ const DispensingManager = ({ selectedSite, dateRange }) => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Default to today's data with ALL sites
-  const [currentFilters, setCurrentFilters] = useState(() => {
+  // Filter state - default to today's data with ALL sites
+  const [filterSiteId, setFilterSiteId] = useState(null);
+  const [filterTankId, setFilterTankId] = useState(null);
+  const [filterUserId, setFilterUserId] = useState(null);
+  const [filterStartDate, setFilterStartDate] = useState(() => {
     const today = new Date();
-    const startOfDay = new Date(today);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    return {
-      siteId: null,
-      tankId: null,
-      recordedBy: null,
-      startDate: startOfDay.toISOString(),
-      endDate: endOfDay.toISOString()
-    };
+    today.setHours(0, 0, 0, 0);
+    return today;
   });
+  const [filterEndDate, setFilterEndDate] = useState(() => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return today;
+  });
+
+  // Computed filters object
+  const currentFilters = {
+    siteId: filterSiteId,
+    tankId: filterTankId,
+    recordedBy: filterUserId,
+    startDate: filterStartDate?.toISOString(),
+    endDate: filterEndDate?.toISOString()
+  };
+
+  // Filtered tanks based on selected site
+  const filteredTanks = filterSiteId
+    ? tanks.filter(tank => tank.siteId === filterSiteId)
+    : tanks;
 
   // Load data with filters
   const loadDispensingData = useCallback(async (filters) => {
@@ -108,6 +122,11 @@ const DispensingManager = ({ selectedSite, dateRange }) => {
     }
   }, [dispatch, isInitialized, currentFilters, loadDispensingData]);
 
+  // Handle filter apply
+  const handleApplyFilters = useCallback(() => {
+    loadDispensingData(currentFilters);
+  }, [loadDispensingData, currentFilters]);
+
   // Handle refresh
   const handleRefresh = useCallback(async () => {
     await loadDispensingData(currentFilters);
@@ -117,6 +136,20 @@ const DispensingManager = ({ selectedSite, dateRange }) => {
       displayTime: 2000
     });
   }, [loadDispensingData, currentFilters]);
+
+  // Handle clear filters
+  const handleClearFilters = useCallback(() => {
+    setFilterSiteId(null);
+    setFilterTankId(null);
+    setFilterUserId(null);
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+    setFilterStartDate(startOfDay);
+    setFilterEndDate(endOfDay);
+  }, []);
 
   // Handle create
   const handleCreate = useCallback(() => {
@@ -276,30 +309,115 @@ const DispensingManager = ({ selectedSite, dateRange }) => {
           </div>
         </div>
 
-        {/* Active Filters Display */}
-        <div className="tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
-          <div className="tw-flex tw-items-center tw-text-sm tw-text-blue-800 tw-gap-2">
-            <i className="fa-light fa-info-circle"></i>
-            <span className="tw-font-medium">Active Filters:</span>
-            <div className="tw-flex tw-flex-wrap tw-gap-2">
-              {currentFilters.siteId ? (
-                <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                  Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
-                </span>
-              ) : (
-                <span className="tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                  All Sites
-                </span>
-              )}
-              {currentFilters.tankId && (
-                <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                  Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
-                </span>
-              )}
-              <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs">
-                {new Date(currentFilters.startDate).toLocaleDateString()} - {new Date(currentFilters.endDate).toLocaleDateString()}
-              </span>
+        {/* Independent Filter Controls */}
+        <div className="tw-mt-4 tw-p-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg">
+          <div className="tw-flex tw-items-center tw-mb-3">
+            <i className="fa-light fa-filter tw-mr-2 tw-text-blue-600"></i>
+            <span className="tw-font-semibold tw-text-gray-700">Filters</span>
+          </div>
+
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-5 tw-gap-4">
+            {/* Site Filter */}
+            <div>
+              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                Site
+              </label>
+              <SelectBox
+                dataSource={sites}
+                displayExpr="name"
+                valueExpr="id"
+                value={filterSiteId}
+                onValueChanged={(e) => {
+                  setFilterSiteId(e.value);
+                  // Clear tank filter if site changes
+                  if (filterTankId && e.value) {
+                    const tankExists = tanks.some(t => t.id === filterTankId && t.siteId === e.value);
+                    if (!tankExists) setFilterTankId(null);
+                  }
+                }}
+                placeholder="All Sites"
+                searchEnabled={true}
+                showClearButton={true}
+              />
             </div>
+
+            {/* Tank Filter */}
+            <div>
+              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                Tank
+              </label>
+              <SelectBox
+                dataSource={filteredTanks}
+                displayExpr="name"
+                valueExpr="id"
+                value={filterTankId}
+                onValueChanged={(e) => setFilterTankId(e.value)}
+                placeholder="All Tanks"
+                searchEnabled={true}
+                showClearButton={true}
+              />
+            </div>
+
+            {/* User Filter */}
+            <div>
+              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                Recorded By
+              </label>
+              <SelectBox
+                dataSource={usersForFilter}
+                displayExpr="userName"
+                valueExpr="userId"
+                value={filterUserId}
+                onValueChanged={(e) => setFilterUserId(e.value)}
+                placeholder="All Users"
+                searchEnabled={true}
+                showClearButton={true}
+              />
+            </div>
+
+            {/* Start Date Filter */}
+            <div>
+              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                Start Date
+              </label>
+              <DateBox
+                value={filterStartDate}
+                onValueChanged={(e) => setFilterStartDate(e.value)}
+                type="date"
+                displayFormat="dd/MM/yyyy"
+              />
+            </div>
+
+            {/* End Date Filter */}
+            <div>
+              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                End Date
+              </label>
+              <DateBox
+                value={filterEndDate}
+                onValueChanged={(e) => setFilterEndDate(e.value)}
+                type="date"
+                displayFormat="dd/MM/yyyy"
+              />
+            </div>
+          </div>
+
+          {/* Filter Action Buttons */}
+          <div className="tw-flex tw-gap-2 tw-mt-4">
+            <Button
+              text="Apply Filters"
+              icon="fa-light fa-search"
+              type="default"
+              stylingMode="contained"
+              onClick={handleApplyFilters}
+            />
+            <Button
+              text="Clear Filters"
+              icon="fa-light fa-times"
+              type="normal"
+              stylingMode="outlined"
+              onClick={handleClearFilters}
+            />
           </div>
         </div>
       </div>

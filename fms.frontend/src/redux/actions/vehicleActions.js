@@ -29,6 +29,11 @@ export const DELETE_VEHICLE_SCHEDULE_FAILURE = "DELETE_VEHICLE_SCHEDULE_FAILURE"
 export const FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST = 'FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST';
 export const CLEAR_VEHICLE_CONSUMPTION_HISTORY = 'CLEAR_VEHICLE_CONSUMPTION_HISTORY';
 
+// Vehicle consumption comparison action types
+export const FETCH_VEHICLE_CONSUMPTION_COMPARISON_REQUEST = 'FETCH_VEHICLE_CONSUMPTION_COMPARISON_REQUEST';
+export const FETCH_VEHICLE_CONSUMPTION_COMPARISON_SUCCESS = 'FETCH_VEHICLE_CONSUMPTION_COMPARISON_SUCCESS';
+export const FETCH_VEHICLE_CONSUMPTION_COMPARISON_FAILURE = 'FETCH_VEHICLE_CONSUMPTION_COMPARISON_FAILURE';
+
 // Thunk action for fetching vehicles
 export const fetchVehicleList = () => async (dispatch) => {
   try {
@@ -597,3 +602,111 @@ export const deleteVehicleSchedule = (vehicleId, scheduleId) => async (dispatch)
     };
   }
 };
+
+// =============================================================================
+// Vehicle Consumption Comparison Actions
+// =============================================================================
+
+/**
+ * Fetch vehicle consumption comparison data across multiple vehicles/sites
+ * @param {Object} params - Filter parameters
+ * @param {string} params.dateFrom - Start date (ISO format)
+ * @param {string} params.dateTo - End date (ISO format)
+ * @param {Array<number>} params.siteIds - Array of site IDs to filter
+ * @param {Array<number>} params.vehicleIds - Array of vehicle IDs to filter (optional)
+ * @param {string} params.groupBy - Group by: 'vehicle', 'site', or 'date'
+ */
+export const fetchVehicleConsumptionComparison = (params) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_VEHICLE_CONSUMPTION_COMPARISON_REQUEST });
+
+    console.log('=== fetchVehicleConsumptionComparison called ===', params);
+
+    // Build query parameters
+    const queryParams = {
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+      groupBy: params.groupBy || 'vehicle'
+    };
+
+    // Add site IDs if provided
+    if (params.siteIds && params.siteIds.length > 0) {
+      queryParams.siteIds = params.siteIds.join(',');
+    }
+
+    // Add vehicle IDs if provided
+    if (params.vehicleIds && params.vehicleIds.length > 0) {
+      queryParams.vehicleIds = params.vehicleIds.join(',');
+    }
+
+    console.log('📡 API Request params:', queryParams);
+
+    const response = await axiosInstance.get(
+      `/consumption/comparison`,
+      { params: queryParams }
+    );
+
+    console.log('📦 API Response:', {
+      status: response.status,
+      dataLength: response.data?.length || 0,
+      sample: response.data?.[0]
+    });
+
+    // Normalize the response data
+    const normalizedData = (response.data || []).map((item, index) => ({
+      vehicleId: item.vehicleId || item.VehicleId,
+      vehicleNo: item.vehicleNo || item.VehicleNo || item.hyoungNo || item.HyoungNo,
+      siteId: item.siteId || item.SiteId,
+      site: item.site || item.siteName || item.SiteName,
+      date: item.date || item.Date,
+      fuelType: item.fuelType || item.FuelType || 'Diesel',
+      totalDistance: parseFloat(item.totalDistance || item.TotalDistance || 0),
+      totalFuel: parseFloat(item.totalFuel || item.TotalFuel || 0),
+      engHours: parseFloat(item.engHours || item.EngHours || 0),
+      fuelLost: parseFloat(item.fuelLost || item.FuelLost || 0),
+      excessFuel: parseFloat(item.excessFuel || item.ExcessFuel || 0),
+      stockReceived: parseFloat(item.stockReceived || item.StockReceived || 0),
+      openingMeter: parseFloat(item.openingMeter || item.OpeningMeter || 0),
+      closingMeter: parseFloat(item.closingMeter || item.ClosingMeter || 0),
+      openingFuelLevel: parseFloat(item.openingFuelLevel || item.OpeningFuelLevel || 0),
+      closingFuelLevel: parseFloat(item.closingFuelLevel || item.ClosingFuelLevel || 0),
+      isAverageKm: item.isAverageKm !== undefined ? item.isAverageKm :
+                   item.IsAverageKm !== undefined ? item.IsAverageKm : true,
+      employee: item.employee || item.Employee || item.driverName || item.DriverName || 'N/A',
+      remarks: item.remarks || item.Remarks || '',
+      rowKey: `comp-${item.vehicleId}-${item.siteId}-${item.date}-${index}`
+    }));
+
+    dispatch({
+      type: FETCH_VEHICLE_CONSUMPTION_COMPARISON_SUCCESS,
+      payload: normalizedData
+    });
+
+    return {
+      success: true,
+      data: normalizedData,
+      message: 'Comparison data loaded successfully'
+    };
+
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load comparison data';
+
+    console.error('❌ fetchVehicleConsumptionComparison error:', {
+      message: errorMessage,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
+    dispatch({
+      type: FETCH_VEHICLE_CONSUMPTION_COMPARISON_FAILURE,
+      payload: errorMessage
+    });
+
+    return {
+      success: false,
+      data: [],
+      message: errorMessage
+    };
+  }
+};
+

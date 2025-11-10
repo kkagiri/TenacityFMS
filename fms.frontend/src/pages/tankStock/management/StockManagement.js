@@ -100,10 +100,7 @@ const StockManagement = () => {
         );
       case 2:
         return loadedTabs.has(2) && (
-          <DispensingManager
-            selectedSite={selectedSite}
-            dateRange={dateRange}
-          />
+          <DispensingManager />
         );
       // case 3:
       //   return loadedTabs.has(3) && (

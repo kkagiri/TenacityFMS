@@ -188,54 +188,54 @@ const FuelingDetailsStep = memo(
           </div>
 
           <div className="fueling-details-card tw-border tw-rounded-lg tw-p-3 tw-bg-gray-50 tw-shadow-sm tw-mb-3">
-            <h4 className="tw-text-base tw-font-medium tw-mb-3">
+            <h4 className="tw-text-sm sm:tw-text-base tw-font-medium tw-mb-3">
               <i className="fa-light fa-clipboard-list tw-mr-2"></i> Authorization
               Summary
             </h4>
 
-            <div className="summary-table tw-w-full tw-text-sm">
+            <div className="summary-table tw-w-full tw-text-xs sm:tw-text-sm">
               <div className="tw-flex tw-items-center tw-mb-2">
-                <div className="tw-w-6 tw-flex tw-justify-center">
+                <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                   <i className="fa-light fa-tag tw-text-gray-500"></i>
                 </div>
-                <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                   Auth Tag:
                 </div>
-                <div className="tw-flex-1 tw-font-mono">
+                <div className="tw-flex-1 tw-font-mono tw-truncate">
                   {useMasterTag
                     ? `${userMasterTag} (Master)`
                     : tagBeingUsed || vehicleReg || "None"}
                 </div>
               </div>
 
-              <div className="tw-flex tw-items-center tw-mb-2">
-                <div className="tw-flex tw-items-center tw-w-1/2">
-                  <div className="tw-w-6 tw-flex tw-justify-center">
+              <div className="tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-mb-2 tw-gap-2 sm:tw-gap-0">
+                <div className="tw-flex tw-items-center tw-w-full sm:tw-w-1/2">
+                  <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                     <i className="fa-light fa-gas-pump tw-text-gray-500"></i>
                   </div>
-                  <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                  <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                     Pump:
                   </div>
                   <div className="tw-flex-1">{selectedPump?.name}</div>
                 </div>
 
-                <div className="tw-flex tw-items-center tw-w-1/2">
-                  <div className="tw-w-6 tw-flex tw-justify-center">
+                <div className="tw-flex tw-items-center tw-w-full sm:tw-w-1/2">
+                  <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                     <i className="fa-light fa-filter tw-text-gray-500"></i>
                   </div>
-                  <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                  <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                     Nozzle:
                   </div>
-                  <div className="tw-flex-1 ">{selectedNozzle?.name}</div>
+                  <div className="tw-flex-1">{selectedNozzle?.name}</div>
                 </div>
               </div>
 
-              <div className="tw-flex tw-items-center tw-mb-2">
-                <div className="tw-flex tw-items-center tw-w-1/2">
-                  <div className="tw-w-6 tw-flex tw-justify-center">
+              <div className="tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-mb-2 tw-gap-2 sm:tw-gap-0">
+                <div className="tw-flex tw-items-center tw-w-full sm:tw-w-1/2">
+                  <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                     <i className="fa-light fa-oil-can tw-text-gray-500"></i>
                   </div>
-                  <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                  <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                     Fuel:
                   </div>
                   <div className="tw-flex-1">
@@ -243,24 +243,24 @@ const FuelingDetailsStep = memo(
                   </div>
                 </div>
 
-                <div className="tw-flex tw-items-center tw-w-1/2">
-                  <div className="tw-w-6 tw-flex tw-justify-center">
+                <div className="tw-flex tw-items-center tw-w-full sm:tw-w-1/2">
+                  <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                     <i className="fa-light fa-car tw-text-gray-500"></i>
                   </div>
-                  <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                  <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                     Vehicle:
                   </div>
-                  <div className="tw-flex-1">{vehicleReg || "N/A"}</div>
+                  <div className="tw-flex-1 tw-truncate">{vehicleReg || "N/A"}</div>
                 </div>
               </div>
 
               {displayDetails && (
-                <div className="tw-flex tw-items-center tw-mb-1">
-                  <div className="tw-flex tw-items-center tw-w-1/2">
-                    <div className="tw-w-6 tw-flex tw-justify-center">
+                <div className="tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-mb-1 tw-gap-2 sm:tw-gap-0">
+                  <div className="tw-flex tw-items-center tw-w-full sm:tw-w-1/2">
+                    <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                       <i className="fa-light fa-calendar-day tw-text-gray-500"></i>
                     </div>
-                    <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                    <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                       Daily:
                     </div>
                     <div className="tw-flex-1">
@@ -269,11 +269,11 @@ const FuelingDetailsStep = memo(
                     </div>
                   </div>
 
-                  <div className="tw-flex tw-items-center tw-w-1/2">
-                    <div className="tw-w-6 tw-flex tw-justify-center">
+                  <div className="tw-flex tw-items-center tw-w-full sm:tw-w-1/2">
+                    <div className="tw-w-6 tw-flex tw-justify-center tw-flex-shrink-0">
                       <i className="fa-light fa-calendar-week tw-text-gray-500"></i>
                     </div>
-                    <div className="tw-w-[80px] tw-font-medium tw-text-gray-600">
+                    <div className="tw-w-[60px] sm:tw-w-[80px] tw-font-medium tw-text-gray-600 tw-flex-shrink-0">
                       Monthly:
                     </div>
                     <div className="tw-flex-1">

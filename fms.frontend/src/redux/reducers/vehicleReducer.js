@@ -17,6 +17,10 @@ import {
   // New action types for consumption history state management
   FETCH_VEHICLE_CONSUMPTION_HISTORY_REQUEST,
   CLEAR_VEHICLE_CONSUMPTION_HISTORY,
+  // Vehicle consumption comparison actions
+  FETCH_VEHICLE_CONSUMPTION_COMPARISON_REQUEST,
+  FETCH_VEHICLE_CONSUMPTION_COMPARISON_SUCCESS,
+  FETCH_VEHICLE_CONSUMPTION_COMPARISON_FAILURE,
   // Vehicle Schedule Actions
   FETCH_VEHICLE_SCHEDULES_SUCCESS,
   FETCH_VEHICLE_SCHEDULES_FAILURE,
@@ -38,6 +42,10 @@ const initialState = {
   maintenanceHistory: [],
   // Vehicle schedules data
   schedules: [],
+  // Vehicle consumption comparison
+  comparisonData: [],
+  comparisonLoading: false,
+  comparisonError: null,
   // Loading states for different operations
   loadingStates: {
     consumptionHistory: false,
@@ -366,6 +374,28 @@ case CLEAR_VEHICLE_CONSUMPTION_HISTORY:
           ...state.errors,
           schedules: action.payload,
         },
+      };
+
+    // Vehicle Consumption Comparison
+    case FETCH_VEHICLE_CONSUMPTION_COMPARISON_REQUEST:
+      return {
+        ...state,
+        comparisonLoading: true,
+        comparisonError: null,
+      };
+    case FETCH_VEHICLE_CONSUMPTION_COMPARISON_SUCCESS:
+      return {
+        ...state,
+        comparisonData: action.payload,
+        comparisonLoading: false,
+        comparisonError: null,
+      };
+    case FETCH_VEHICLE_CONSUMPTION_COMPARISON_FAILURE:
+      return {
+        ...state,
+        comparisonData: [],
+        comparisonLoading: false,
+        comparisonError: action.payload,
       };
 
     default:

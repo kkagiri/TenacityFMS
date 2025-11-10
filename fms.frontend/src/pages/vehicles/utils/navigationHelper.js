@@ -5,6 +5,7 @@ export const vehicleRoutes = {
   fleet: '/vehicles/fleet',
   maintenance: '/vehicles/maintenance',
   consumption: '/vehicles/consumption',
+  consumptionComparison: '/vehicles/consumption-comparison',
   tracking: '/vehicles/tracking',
   reports: '/vehicles/reports',
   documents: '/vehicles/documents',
@@ -63,6 +64,12 @@ export const navigationGroups = {
       title: 'Fuel Consumption',
       icon: 'fa-light fa-gas-pump',
       path: vehicleRoutes.consumption,
+    },
+    {
+      id: 'consumption-comparison',
+      title: 'Consumption Comparison',
+      icon: 'fa-light fa-chart-mixed',
+      path: vehicleRoutes.consumptionComparison,
     },
     {
       id: 'maintenance',

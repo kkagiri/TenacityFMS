@@ -11,6 +11,7 @@ import VehicleConsumptionDetails from "./vehicleConsumptionDetails";
 import VehicleFleetPage from "./VehicleFleetPage";
 import VehicleTrackingPage from "./VehicleTrackingPage";
 import VehicleConsumptionPage from "./VehicleConsumptionPage";
+import VehicleConsumptionComparisonPage from "./VehicleConsumptionComparisonPage";
 import MaintenanceAlertsPage from "./MaintenanceAlertsPage";
 import VehicleReportsPage from "./VehicleReportsPage";
 import VehicleSettingsPage from "./VehicleSettingsPage";
@@ -29,6 +30,7 @@ const VehicleMain = () => {
         <Route path="fleet" element={<VehicleFleetPage />} />
         <Route path="tracking" element={<VehicleTrackingPage />} />
         <Route path="consumption" element={<VehicleConsumptionPage />} />
+        <Route path="consumption-comparison" element={<VehicleConsumptionComparisonPage />} />
         <Route path="maintenance" element={<MaintenanceAlertsPage />} />
         <Route path="documents" element={<VehicleDocumentsList />} />
         <Route
