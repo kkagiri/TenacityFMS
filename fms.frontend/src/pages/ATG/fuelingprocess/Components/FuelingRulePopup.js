@@ -190,6 +190,20 @@ const FuelingRulePopup = ({ isVisible, onClose, vehicleData, onRulesAssigned }) 
               onValueChanged={(e) => setSelectedRuleSet(e.value)}
               showClearButton={true}
               searchEnabled={true}
+              height={44}
+              dropDownOptions={{
+                width: "auto",
+                minWidth: 250,
+                maxHeight: 300,
+                shading: true,
+                shadingColor: "rgba(0, 0, 0, 0.3)",
+                closeOnOutsideClick: true,
+              }}
+              itemRender={(item) => (
+                <div>
+                  {item.name}
+                </div>
+              )}
             />
 
             {selectedRuleSet &&
