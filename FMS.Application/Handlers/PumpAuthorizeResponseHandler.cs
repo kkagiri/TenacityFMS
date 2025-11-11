@@ -44,8 +44,8 @@ namespace FMS.Application.Handlers
                 {
                     DeviceId = deviceId,
                     PacketId = packet.Id,
-                    PumpId = packet.Data?["Pump"]?.Value<int>(),
-                    TransactionId = packet.Data?["Transaction"]?.Value<int>(),
+                    PumpId = packet.Data?["Pump"]?.ToObject<int?>(),
+                    TransactionId = packet.Data?["Transaction"]?.ToObject<int?>(),
                     Timestamp = DateTime.UtcNow,
                     RawData = packet.Data
                 };
