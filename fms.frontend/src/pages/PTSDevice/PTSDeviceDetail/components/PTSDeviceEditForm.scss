@@ -1,0 +1,9 @@
+.pts-device-edit-form {
+  .form-header {
+    @apply tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200;
+  }
+
+  .form-actions {
+    @apply tw-flex tw-justify-end tw-gap-3 tw-mt-6;
+  }
+}

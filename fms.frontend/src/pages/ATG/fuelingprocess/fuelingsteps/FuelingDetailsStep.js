@@ -1,7 +1,6 @@
 import React, { memo } from "react";
 import { Button } from "devextreme-react/button";
 import { NumberBox } from "devextreme-react/number-box";
-import ProgressBar from "devextreme-react/progress-bar";
 import notify from "devextreme/ui/notify";
 
 //Cursor: Memoized FuelingDetailsStep component
@@ -84,12 +83,13 @@ const FuelingDetailsStep = memo(
     }
 
     const isVolumeValid =
-      selectedType !== "Volume" ||
-      (volume > 0 &&
-        (effectiveVolumeLimit === null || volume <= effectiveVolumeLimit));
+      selectedType === "Volume" &&
+      volume > 0 &&
+      (effectiveVolumeLimit === null || volume <= effectiveVolumeLimit);
     const isFullTankValid = selectedType === "FullTank";
+    const isTypeSelected = selectedType !== null && selectedType !== undefined;
     const canAuthorize =
-      (isVolumeValid || isFullTankValid) && !isPumpNozzleBusy;
+      isTypeSelected && (isVolumeValid || isFullTankValid) && !isPumpNozzleBusy;
 
     return (
       <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
@@ -97,78 +97,81 @@ const FuelingDetailsStep = memo(
           <i className="fa-light fa-check-circle tw-mr-2"></i>Fueling Authorization
         </h3>
         <div className="dx-fieldset tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
-          <div className="dx-field tw-mb-4">
-            <div className="dx-field-label tw-font-semibold tw-mb-2">
-              Authorization Type
+          {/* Authorization Type Section */}
+          <div className="tw-mb-4">
+            <div className="tw-font-semibold tw-mb-3 tw-text-center">
+              Authorization Type <span className="tw-text-red-500">*</span>
             </div>
-            <div className="dx-field-value">
-              <div className="auth-type-buttons tw-flex tw-justify-center tw-gap-4">
-                <button
-                  className={`auth-type-btn tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-rounded-lg tw-border tw-w-1/2 ${
-                    selectedType === "Volume"
-                      ? "tw-bg-blue-50 tw-border-blue-400 tw-text-blue-700"
-                      : "tw-bg-gray-50 tw-border-gray-200 tw-text-gray-700"
-                  }`}
-                  onClick={() => {
-                    setSelectedType("Volume");
-                    setAmount("");
-                  }}
-                >
-                  <i className="fa-light fa-fill-drip tw-text-3xl tw-mb-2"></i>
-                  <span className="tw-font-medium">By Volume</span>
-                </button>
-                <button
-                  className={`auth-type-btn tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-rounded-lg tw-border tw-w-1/2 ${
-                    selectedType === "FullTank"
-                      ? "tw-bg-green-50 tw-border-green-400 tw-text-green-700"
-                      : "tw-bg-gray-50 tw-border-gray-200 tw-text-gray-700"
-                  }`}
-                  onClick={() => {
-                    setSelectedType("FullTank");
-                    setAmount("");
-                    setVolume("");
-                  }}
-                >
-                  <i className="fa-light fa-gas-pump tw-text-3xl tw-mb-2"></i>
-                  <span className="tw-font-medium">Full Tank</span>
-                </button>
-              </div>
+            <div className="auth-type-buttons tw-flex tw-justify-center tw-gap-4">
+              <button
+                className={`auth-type-btn tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-rounded-lg tw-border tw-w-1/2 tw-transition-all ${
+                  selectedType === "Volume"
+                    ? "tw-bg-blue-50 tw-border-blue-400 tw-text-blue-700 tw-shadow-md"
+                    : "tw-bg-gray-50 tw-border-gray-200 tw-text-gray-700 hover:tw-border-blue-300 hover:tw-bg-blue-50"
+                }`}
+                onClick={() => {
+                  setSelectedType("Volume");
+                  setAmount("");
+                }}
+              >
+                <i className="fa-light fa-fill-drip tw-text-3xl tw-mb-2"></i>
+                <span className="tw-font-medium">By Volume</span>
+              </button>
+              <button
+                className={`auth-type-btn tw-flex tw-flex-col tw-items-center tw-justify-center tw-p-4 tw-rounded-lg tw-border tw-w-1/2 tw-transition-all ${
+                  selectedType === "FullTank"
+                    ? "tw-bg-green-50 tw-border-green-400 tw-text-green-700 tw-shadow-md"
+                    : "tw-bg-gray-50 tw-border-gray-200 tw-text-gray-700 hover:tw-border-green-300 hover:tw-bg-green-50"
+                }`}
+                onClick={() => {
+                  setSelectedType("FullTank");
+                  setAmount("");
+                  setVolume("");
+                }}
+              >
+                <i className="fa-light fa-gas-pump tw-text-3xl tw-mb-2"></i>
+                <span className="tw-font-medium">Full Tank</span>
+              </button>
             </div>
+            {!isTypeSelected && (
+              <small className="tw-text-orange-600 tw-block tw-mt-2 tw-text-center">
+                <i className="fa-light fa-info-circle tw-mr-1"></i>
+                Please select an authorization type to continue
+              </small>
+            )}
           </div>
 
           <div className="authorization-inputs tw-mb-4">
             {selectedType === "Volume" && (
-              <div className="dx-field">
-                <div className="dx-field-label tw-mb-1">Volume (L)</div>
-                <div className="dx-field-value">
-                  <NumberBox
-                    value={volume}
-                    onValueChanged={(e) => setVolume(e.value)}
-                    placeholder="Enter desired volume"
-                    format="#,##0.00"
-                    showSpinButtons={true}
-                    min={0.01}
-                    max={
-                      effectiveVolumeLimit !== null
-                        ? effectiveVolumeLimit
-                        : undefined
-                    }
-                    height={40}
-                  />
-                  {effectiveVolumeLimit !== null && (
-                    <small className="tw-text-gray-500 tw-block tw-mt-1">
-                      Max allowed: {effectiveVolumeLimit.toFixed(2)} L (based on
-                      transaction/daily/monthly limits)
+              <div className="tw-mb-4">
+                <div className="tw-font-semibold tw-mb-3 tw-text-center sm:tw-text-left">Volume (L)</div>
+                <NumberBox
+                  value={volume}
+                  onValueChanged={(e) => setVolume(e.value)}
+                  placeholder="Enter desired volume"
+                  format="#,##0.00"
+                  showSpinButtons={true}
+                  min={0.01}
+                  max={
+                    effectiveVolumeLimit !== null
+                      ? effectiveVolumeLimit
+                      : undefined
+                  }
+                  height={40}
+                />
+                {effectiveVolumeLimit !== null && (
+                  <small className="tw-text-gray-500 tw-block tw-mt-1">
+                    Max allowed: {effectiveVolumeLimit.toFixed(2)} L (based on
+                    transaction/daily/monthly limits)
+                  </small>
+                )}
+                {volume > 0 &&
+                  effectiveVolumeLimit !== null &&
+                  volume > effectiveVolumeLimit && (
+                    <small className="tw-text-red-500 tw-block tw-mt-1">
+                      Entered volume exceeds the maximum allowed limit.
                     </small>
                   )}
-                  {volume > 0 &&
-                    effectiveVolumeLimit !== null &&
-                    volume > effectiveVolumeLimit && (
-                      <small className="tw-text-red-500 tw-block tw-mt-1">
-                        Entered volume exceeds the maximum allowed limit.
-                      </small>
-                    )}
-                </div>
               </div>
             )}
 
@@ -305,8 +308,15 @@ const FuelingDetailsStep = memo(
                 width="100%"
                 height={50}
                 onClick={() => {
-                  if (canAuthorize) {
+                  if (!isTypeSelected) {
+                    notify("Please select an authorization type first.", "warning", 2000);
+                  } else if (canAuthorize) {
                     startFueling();
+                  } else if (
+                    selectedType === "Volume" &&
+                    (!volume || volume <= 0)
+                  ) {
+                    notify("Please enter a valid volume amount.", "warning", 2000);
                   } else if (
                     selectedType === "Volume" &&
                     volume > effectiveVolumeLimit
@@ -314,8 +324,8 @@ const FuelingDetailsStep = memo(
                     notify("Volume exceeds allowed limit.", "error", 3000);
                   } else {
                     notify(
-                      "Please select type and enter a valid value.",
-                      "error",
+                      "Please complete the authorization details.",
+                      "warning",
                       2000
                     );
                   }
@@ -333,6 +343,10 @@ const FuelingDetailsStep = memo(
             icon="fa-light fa-chevron-left"
             stylingMode="outlined"
             onClick={() => {
+              // Reset type selection when going back
+              setSelectedType(null);
+              setVolume("");
+              setAmount("");
               setStep("scan");
             }}
             width="100%"

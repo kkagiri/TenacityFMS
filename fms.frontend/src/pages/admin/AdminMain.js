@@ -13,6 +13,7 @@ import Tagpage from '../tag/tagPage';
 import SitePage from '../site/sitePage';
 import TankPage from '../tank/tankPage';
 import DeviceDashboard from '../PTSDevice/DeviceDashboard';
+import PTSDeviceDetailPage from '../PTSDevice/PTSDeviceDetail/PTSDeviceDetailPage';
 import PTSAutomationConfigPage from '../PTSAutomationConfig/PTSAutomationConfigPage';
 import ConfigurationPage from './configuration';
 import SystemConfiguration from './systemConfig/SystemConfigPage';
@@ -57,6 +58,7 @@ const AdminMain = () => {
         <Route path="tanks" element={<TankPage />} />
         <Route path="tanks/*" element={<TankPage />} />
         <Route path="ptsdevice" element={<DeviceDashboard />} />
+        <Route path="ptsdevice/:deviceid" element={<PTSDeviceDetailPage />} />
         <Route path="ptsdevice/*" element={<DeviceDashboard />} />
         <Route path="ptsconfig" element={<PTSAutomationConfigPage />} />
         <Route path="ptsconfig/*" element={<PTSAutomationConfigPage />} />

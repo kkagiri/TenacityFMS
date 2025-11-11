@@ -1,7 +1,6 @@
 import React from "react";
-import { Tabs, Tab } from "devextreme-react/tabs";
+import { Tabs } from "devextreme-react/tabs";
 import { Button } from "devextreme-react/button";
-import { CircularGauge } from "devextreme-react/circular-gauge";
 import "./PTSDeviceDetails.scss";
 
 const PTSDeviceDetails = ({ device }) => {
@@ -38,37 +37,41 @@ const PTSDeviceDetails = ({ device }) => {
   // Render system information panel
   const renderSystemInfo = () => {
     return (
-      <div className="system-info-panel">
-        <h4>System Information</h4>
+      <div className="tw-p-4 system-info-panel">
+        <h4 className="tw-text-lg tw-font-semibold tw-mb-4">System Information</h4>
         <div className="info-grid">
           <div className="info-box">
-            <h5>Hardware</h5>
+            <h5 className="tw-text-md tw-font-semibold tw-mb-3">Hardware</h5>
             <div className="info-details">
               <div className="info-item">
-                <label>Battery</label>
+                <label className="tw-text-xs tw-text-gray-600">Battery</label>
                 <span
-                  className={device.batteryVoltage < 11 ? "text-danger" : ""}
+                  className={`tw-text-sm tw-font-medium ${
+                    (device.batteryVoltage || 0) < 11 ? "tw-text-red-600" : ""
+                  }`}
                 >
-                  {device.batteryVoltage}V
+                  {device.batteryVoltage ? `${device.batteryVoltage}V` : "N/A"}
                 </span>
               </div>
               <div className="info-item">
-                <label>CPU Temperature</label>
+                <label className="tw-text-xs tw-text-gray-600">CPU Temperature</label>
                 <span
-                  className={device.cpuTemperature > 50 ? "text-danger" : ""}
+                  className={`tw-text-sm tw-font-medium ${
+                    (device.cpuTemperature || 0) > 50 ? "tw-text-red-600" : ""
+                  }`}
                 >
-                  {device.cpuTemperature}°C
+                  {device.cpuTemperature ? `${device.cpuTemperature}°C` : "N/A"}
                 </span>
               </div>
               <div className="info-item">
-                <label>Power Status</label>
-                <div className="status-indicator">
+                <label className="tw-text-xs tw-text-gray-600">Power Status</label>
+                <div className="tw-flex tw-items-center">
                   <span
-                    className={`status-dot ${
-                      device.ptsPowerDownDetected ? "bg-danger" : "bg-success"
+                    className={`tw-w-2 tw-h-2 tw-rounded-full tw-mr-2 ${
+                      device.ptsPowerDownDetected ? "tw-bg-red-500" : "tw-bg-green-500"
                     }`}
                   ></span>
-                  <span>
+                  <span className="tw-text-sm">
                     {device.ptsPowerDownDetected
                       ? "Power Down Detected"
                       : "Normal"}
@@ -76,40 +79,42 @@ const PTSDeviceDetails = ({ device }) => {
                 </div>
               </div>
               <div className="info-item">
-                <label>SD Card</label>
-                <div className="status-indicator">
+                <label className="tw-text-xs tw-text-gray-600">SD Card</label>
+                <div className="tw-flex tw-items-center">
                   <span
-                    className={`status-dot ${
-                      device.sdMounted ? "bg-success" : "bg-danger"
+                    className={`tw-w-2 tw-h-2 tw-rounded-full tw-mr-2 ${
+                      device.sdMounted ? "tw-bg-green-500" : "tw-bg-red-500"
                     }`}
                   ></span>
-                  <span>{device.sdMounted ? "Mounted" : "Not Mounted"}</span>
+                  <span className="tw-text-sm">{device.sdMounted ? "Mounted" : "Not Mounted"}</span>
                 </div>
               </div>
             </div>
           </div>
           <div className="info-box">
-            <h5>Software</h5>
+            <h5 className="tw-text-md tw-font-semibold tw-mb-3">Software</h5>
             <div className="info-details">
               <div className="info-item">
-                <label>Configuration ID</label>
-                <span>{device.configurationId}</span>
+                <label className="tw-text-xs tw-text-gray-600">Configuration ID</label>
+                <span className="tw-text-sm tw-font-medium">{device.configurationId || "N/A"}</span>
               </div>
               <div className="info-item">
-                <label>Firmware Date</label>
-                <span>
-                  {device.firmwareDateTime instanceof Date
-                    ? device.firmwareDateTime.toLocaleDateString()
-                    : new Date(device.firmwareDateTime).toLocaleDateString()}
+                <label className="tw-text-xs tw-text-gray-600">Firmware Date</label>
+                <span className="tw-text-sm tw-font-medium">
+                  {device.firmwareDateTime
+                    ? device.firmwareDateTime instanceof Date
+                      ? device.firmwareDateTime.toLocaleDateString()
+                      : new Date(device.firmwareDateTime).toLocaleDateString()
+                    : "N/A"}
                 </span>
               </div>
               <div className="info-item">
-                <label>Startup Time</label>
-                <span>{formatUptime(device.startupSeconds)}</span>
+                <label className="tw-text-xs tw-text-gray-600">Startup Time</label>
+                <span className="tw-text-sm tw-font-medium">{formatUptime(device.startupSeconds)}</span>
               </div>
               <div className="info-item">
-                <label>Last Updated</label>
-                <span>{device.lastUpdated}</span>
+                <label className="tw-text-xs tw-text-gray-600">Last Updated</label>
+                <span className="tw-text-sm tw-font-medium">{device.lastUpdated || "N/A"}</span>
               </div>
             </div>
           </div>
@@ -593,4 +598,14 @@ const PTSDeviceDetails = ({ device }) => {
   );
 };
 
-export default PTSDeviceDetails;
+// Memoize the component to prevent unnecessary re-renders
+export default React.memo(PTSDeviceDetails, (prevProps, nextProps) => {
+  // Only re-render if device data actually changed
+  return (
+    prevProps.device?.id === nextProps.device?.id &&
+    prevProps.device?.lastUpdated === nextProps.device?.lastUpdated &&
+    prevProps.device?.status === nextProps.device?.status &&
+    prevProps.device?.batteryVoltage === nextProps.device?.batteryVoltage &&
+    prevProps.device?.cpuTemperature === nextProps.device?.cpuTemperature
+  );
+});

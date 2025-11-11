@@ -1,0 +1,60 @@
+.pts-device-terminal {
+  @apply tw-flex tw-flex-col tw-h-full;
+
+  .terminal-header {
+    @apply tw-flex tw-justify-between tw-items-center tw-mb-4 tw-pb-3 tw-border-b tw-border-gray-200;
+
+    i {
+      @apply tw-text-blue-600;
+    }
+  }
+
+  .terminal-body {
+    @apply tw-flex-1 tw-bg-gray-900 tw-text-green-400 tw-p-4 tw-rounded tw-font-mono tw-text-sm;
+    @apply tw-overflow-y-auto tw-min-h-[400px] tw-max-h-[600px];
+
+    .terminal-empty {
+      @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-full tw-text-gray-600;
+    }
+
+    .terminal-line {
+      @apply tw-mb-2 tw-flex tw-gap-2;
+
+      .timestamp {
+        @apply tw-text-gray-500 tw-shrink-0;
+      }
+
+      .message {
+        @apply tw-flex-1;
+      }
+
+      &.info {
+        @apply tw-text-green-400;
+      }
+
+      &.command {
+        @apply tw-text-yellow-400;
+      }
+
+      &.error {
+        @apply tw-text-red-400;
+      }
+
+      &.warning {
+        @apply tw-text-orange-400;
+      }
+    }
+  }
+
+  .terminal-input {
+    @apply tw-flex tw-gap-2 tw-mt-4;
+  }
+
+  .terminal-info {
+    @apply tw-flex tw-items-center tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded;
+
+    i {
+      @apply tw-text-blue-600;
+    }
+  }
+}

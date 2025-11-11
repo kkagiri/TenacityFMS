@@ -1,0 +1,71 @@
+.pts-device-live-info {
+  .info-card {
+    @apply tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-overflow-hidden;
+
+    .card-header {
+      @apply tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-3 tw-bg-gray-50 tw-border-b tw-border-gray-200;
+
+      i {
+        @apply tw-text-blue-600;
+      }
+
+      h4 {
+        @apply tw-text-sm tw-font-semibold tw-text-gray-700;
+      }
+    }
+
+    .card-body {
+      @apply tw-p-4;
+
+      .info-row {
+        @apply tw-flex tw-justify-between tw-items-center tw-py-2 tw-border-b tw-border-gray-100;
+
+        &:last-child {
+          @apply tw-border-b-0;
+        }
+
+        label {
+          @apply tw-text-sm tw-text-gray-600;
+        }
+
+        .value {
+          @apply tw-text-sm tw-font-semibold tw-text-gray-900;
+        }
+
+        .status-badge {
+          @apply tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium;
+
+          &.success {
+            @apply tw-bg-green-100 tw-text-green-700;
+          }
+
+          &.error {
+            @apply tw-bg-red-100 tw-text-red-700;
+          }
+
+          &.warning {
+            @apply tw-bg-yellow-100 tw-text-yellow-700;
+          }
+        }
+      }
+    }
+  }
+
+  .live-indicator {
+    @apply tw-flex tw-items-center tw-justify-center;
+
+    .pulse-dot {
+      @apply tw-w-3 tw-h-3 tw-bg-green-500 tw-rounded-full;
+      animation: pulse 2s infinite;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}

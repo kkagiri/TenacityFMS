@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { TickerCard } from "../../components/TickerCard/tickerCard";
 import PTSDeviceList from "../../components/PTSDevice/PTSDeviceList";
+import PTSDeviceForm from "../../components/PTSDevice/PTSDeviceForm/PTSDeviceForm";
 import {
   fetchDashboardMetrics,
   fetchPTSDeviceList,
@@ -20,19 +21,31 @@ const PTSDashboard = () => {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingDeviceId, setEditingDeviceId] = useState(null);
 
   // Handle actions for PTS device
   const handleAddPTS = useCallback(() => {
     console.log("Add PTS clicked");
-    navigate("/ptsdevice/edit/new");
-  }, [navigate]);
+    setEditingDeviceId(null);
+    setFormVisible(true);
+  }, []);
+
+  const handleViewDetails = useCallback(
+    (deviceId) => {
+      console.log("View details clicked", deviceId);
+      navigate(`/admin/ptsdevice/${deviceId}`);
+    },
+    [navigate]
+  );
 
   const handleEditDevice = useCallback(
     (deviceId) => {
       console.log("Edit device clicked", deviceId);
-      navigate(`/admin/ptsdevice/edit/${deviceId}`);
+      setEditingDeviceId(deviceId);
+      setFormVisible(true);
     },
-    [navigate]
+    []
   );
 
   const handlePumpService = useCallback(
@@ -114,17 +127,31 @@ const PTSDashboard = () => {
       }
     );
 
-    // Use a less frequent refresh interval for metrics to prevent too many re-renders
+    // Subscribe to dashboard metrics updates via SignalR
+    const unsubscribeMetrics = ptsSignalRService.on(
+      "DashboardMetricsUpdate",
+      (metrics) => {
+        console.log("[PTSDashboard] Received dashboard metrics update via SignalR:", metrics);
+        // Update Redux state directly with SignalR data instead of polling
+        dispatch({
+          type: "FETCH_DASHBOARD_METRICS_SUCCESS",
+          payload: metrics,
+        });
+      }
+    );
+
+    // Reduced refresh interval - rely primarily on SignalR for updates
     const refreshInterval = setInterval(() => {
-      // Just refresh metrics, let SignalR handle device updates
-      if (realtimeStatus.isLiveDataEnabled) {
+      // Only refresh if live data is disabled or as a fallback
+      if (!realtimeStatus.isLiveDataEnabled) {
         dispatch(fetchDashboardMetrics());
       }
-    }, 30000); // Increased to 30 seconds to rely more on SignalR
+    }, 60000); // Increased to 60 seconds since SignalR handles real-time updates
 
     return () => {
       unsubscribeConnectedDevices();
       unsubscribeDeviceList();
+      unsubscribeMetrics();
       clearInterval(refreshInterval);
       // Note: We don't stop ptsSignalRService here as it may be used by other components
     };
@@ -132,7 +159,11 @@ const PTSDashboard = () => {
 
   // Get metrics from state
   const dashboardMetrics = deviceData?.dashboardMetrics || {};
-  const ptsDeviceList = deviceData?.ptsDeviceList || [];
+
+  // Memoize ptsDeviceList to prevent unnecessary re-renders
+  const ptsDeviceList = React.useMemo(() => {
+    return deviceData?.ptsDeviceList || [];
+  }, [deviceData?.ptsDeviceList]);
 
   // Prepare devices data with correct structure for the detail view
   const formattedDevices = useMemo(() => {
@@ -157,7 +188,7 @@ const PTSDashboard = () => {
       const formattedDevice = {
         id: deviceId, // Ensure consistent ID field for the keyExpr
         ptsid: device.ptsid,
-        siteName: device.site?.name || "Unknown Site",
+        siteName: device.siteNavigation?.name || device.site?.name || "Unknown Site",
         status: device.isActive ? "online" : "offline",
         lastUpdated: device.lastActivity
           ? new Date(device.lastActivity).toLocaleString()
@@ -219,6 +250,19 @@ const PTSDashboard = () => {
     realtimeStatus.isLiveDataEnabled,
   ]);
 
+  // Handle form save
+  const handleFormSave = useCallback(() => {
+    // Refresh device list after save
+    dispatch(fetchPTSDeviceList());
+    dispatch(fetchDashboardMetrics());
+  }, [dispatch]);
+
+  // Handle form close
+  const handleFormClose = useCallback(() => {
+    setFormVisible(false);
+    setEditingDeviceId(null);
+  }, []);
+
   return (
     <div className="pts-dashboard content-block">
       <div className="dashboard-header">
@@ -274,9 +318,18 @@ const PTSDashboard = () => {
         isLoading={isLoading}
         onRefresh={handleRefresh}
         onAddDevice={handleAddPTS}
+        onViewDetails={handleViewDetails}
         onEdit={handleEditDevice}
         onPumpService={handlePumpService}
         onDiagnose={handleDiagnose}
+      />
+
+      {/* PTS Device Form Popup */}
+      <PTSDeviceForm
+        visible={formVisible}
+        onClose={handleFormClose}
+        deviceId={editingDeviceId}
+        onSave={handleFormSave}
       />
     </div>
   );

@@ -1,0 +1,55 @@
+.pts-device-detail-page {
+  @apply tw-p-6;
+
+  .device-detail-header {
+    @apply tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200;
+    @apply tw-flex tw-justify-between tw-items-start;
+
+    .connection-status {
+      @apply tw-inline-flex tw-items-center tw-text-sm;
+
+      &.connected {
+        @apply tw-text-green-600;
+      }
+
+      &.disconnected {
+        @apply tw-text-gray-500;
+      }
+    }
+
+    .device-quick-info {
+      @apply tw-flex tw-gap-6;
+
+      .quick-info-item {
+        @apply tw-flex tw-flex-col;
+
+        label {
+          @apply tw-text-xs tw-text-gray-500 tw-mb-1;
+        }
+
+        span {
+          @apply tw-text-sm tw-font-medium;
+        }
+      }
+    }
+  }
+
+  .device-detail-tabs {
+    @apply tw-mb-4;
+  }
+
+  .device-detail-content {
+    @apply tw-bg-white tw-rounded-lg tw-p-6 tw-min-h-[500px];
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .device-detail-header {
+      @apply tw-flex-col tw-gap-4;
+
+      .device-quick-info {
+        @apply tw-flex-col tw-gap-2;
+      }
+    }
+  }
+}

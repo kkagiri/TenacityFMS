@@ -28,8 +28,9 @@ namespace FMS.Application.Features.PTSDevice.Queries
         {
             try
             {
-
+                // Include Site navigation to get site name
                 return await _context.Ptsdevices
+                    .Include(p => p.SiteNavigation)
                     .ToListAsync(cancellationToken);
             }
             catch (Exception ex)

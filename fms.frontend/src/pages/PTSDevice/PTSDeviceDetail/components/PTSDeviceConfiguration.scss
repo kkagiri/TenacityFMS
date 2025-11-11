@@ -1,0 +1,83 @@
+.pts-device-configuration {
+  .config-header {
+    @apply tw-flex tw-justify-between tw-items-start tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200;
+
+    .connection-badge {
+      @apply tw-flex tw-items-center tw-px-3 tw-py-1 tw-bg-green-100 tw-text-green-700 tw-rounded-full tw-text-sm tw-font-medium;
+    }
+  }
+
+  .info-banner {
+    @apply tw-flex tw-gap-4 tw-p-4 tw-mb-6 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg;
+
+    i {
+      @apply tw-text-blue-600 tw-text-2xl tw-mt-1;
+    }
+  }
+
+  .config-sections {
+    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-6;
+
+    .config-card {
+      @apply tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-flex tw-gap-4;
+
+      .card-icon {
+        @apply tw-flex tw-items-center tw-justify-center tw-w-12 tw-h-12 tw-bg-blue-100 tw-rounded-lg tw-shrink-0;
+
+        i {
+          @apply tw-text-blue-600 tw-text-xl;
+        }
+      }
+
+      .card-content {
+        @apply tw-flex-1;
+
+        .status-badge {
+          @apply tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium;
+
+          &.planned {
+            @apply tw-bg-gray-100 tw-text-gray-600;
+          }
+        }
+      }
+
+      .card-actions {
+        @apply tw-flex tw-items-center;
+      }
+    }
+  }
+
+  .config-footer {
+    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6 tw-mb-6 tw-p-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg;
+
+    .footer-section {
+      h4 {
+        @apply tw-flex tw-items-center;
+
+        i {
+          @apply tw-text-gray-600;
+        }
+      }
+    }
+  }
+
+  .current-config {
+    @apply tw-p-4 tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg;
+
+    .config-grid {
+      @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4;
+
+      .config-item {
+        @apply tw-flex tw-flex-col tw-p-3 tw-bg-gray-50 tw-rounded;
+
+        label {
+          @apply tw-text-xs tw-text-gray-500 tw-mb-1;
+        }
+
+        span {
+          @apply tw-text-sm tw-font-semibold tw-text-gray-900;
+        }
+      }
+    }
+  }
+}

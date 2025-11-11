@@ -541,10 +541,14 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 validationErrors.Add("Tank ID must be greater than 0 when provided");
             }
 
+            // TODO: FUELING RULE FEATURE - Re-enable dose validation when feature is ready
+            // For FullTank type, dose is 0 which is valid, so this validation needs to consider the authorization type
+            /*
             if (request.Dose.HasValue && request.Dose.Value <= 0)
             {
                 validationErrors.Add("Dose must be greater than 0 when provided");
             }
+            */
 
             // Get device configuration including auto-assign setting
             Ptsdevice? device = null;
@@ -634,6 +638,9 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             bool hasTag = !string.IsNullOrEmpty(request.Tag);
             bool hasVehicleId = request.VehicleId.HasValue && request.VehicleId.Value > 0;
 
+            // TODO: FUELING RULE FEATURE - Re-enable tag existence validation when feature is ready
+            // Currently commented out to allow authorization without tag validation
+            /*
             // Simplified: Just check if tag exists if provided
             if (hasTag)
             {
@@ -651,6 +658,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     validationErrors.Add("Error checking tag existence");
                 }
             }
+            */
 
             // Rule 3: Vehicle existence check only (fuel limits are validated in main flow after tag authentication)
             if (hasVehicleId)

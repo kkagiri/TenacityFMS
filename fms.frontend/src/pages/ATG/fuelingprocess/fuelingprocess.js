@@ -114,7 +114,7 @@ const FuelingProcess = () => {
   const [vehicleInfo, setVehicleInfo] = useState(null); // Info from tag validation
   const [fuelingComplete, setFuelingComplete] = useState(false); // Controls completion popup visibility
   const [fuelPrice, setFuelPrice] = useState(3.99); // TODO: Get from FuelGrade status in Redux
-  const [selectedType, setSelectedType] = useState("Amount"); // Preset type (Amount/Volume/Full)
+  const [selectedType, setSelectedType] = useState(null); // User must select type (Volume/FullTank)
   const [amount, setAmount] = useState(""); // Preset Amount input
   const [volume, setVolume] = useState(""); // Preset Volume input
   const [showFuelingPopup, setShowFuelingPopup] = useState(false); // Controls visibility of progress popup
@@ -524,11 +524,19 @@ const FuelingProcess = () => {
         deviceConfig: deviceConfig
       });
 
+      // Map frontend type values to backend enum values
+      // Backend expects numeric values: VOLUME=0, AMOUNT=1, FULLTANK=2
+      const typeMapping = {
+        "Volume": 0,    // VOLUME
+        "Amount": 1,    // AMOUNT
+        "FullTank": 2   // FULLTANK
+      };
+
       const authParams = {
         deviceId: ptsId, // Add deviceId
         pumpId: selectedPump.id,
         nozzle: selectedNozzle.id,
-        type: selectedType, // Amount, Volume, Full
+        type: typeMapping[selectedType] ?? selectedType, // Map to backend enum numeric value
         dose:
           selectedType === "Amount"
             ? parseFloat(amount) || 0 // Ensure valid number

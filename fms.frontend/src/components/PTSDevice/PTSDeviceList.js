@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useRef } from "react";
 import DataGrid, {
   Column,
   MasterDetail,
@@ -13,7 +12,6 @@ import DataGrid, {
 } from "devextreme-react/data-grid";
 import { DropDownButton } from "devextreme-react/drop-down-button";
 import { Button } from "devextreme-react/button";
-import { Tooltip } from "devextreme-react/tooltip";
 import PTSDeviceDetails from "./PTSDeviceDetails/PTSDeviceDetails";
 import LiveStatusControl from "../LiveStatus/LiveStatusControl";
 import "./PTSDeviceList.scss";
@@ -22,64 +20,36 @@ const PTSDeviceList = ({
   devices = [],
   isLoading = false,
   onRefresh,
+  onViewDetails,
   onEdit,
   onDiagnose,
   onPumpService,
   onAddDevice,
 }) => {
-  const navigate = useNavigate();
-  const [expandedRows, setExpandedRows] = useState({});
   const dataGridRef = useRef(null);
 
-  // Store device IDs to maintain expanded state
-  useEffect(() => {
-    if (dataGridRef.current) {
-      // If we have saved expanded rows, restore them after data loads
-      if (Object.keys(expandedRows).length > 0) {
-        const expandedDeviceIds = Object.keys(expandedRows).filter(
-          (key) => expandedRows[key]
-        );
-
-        expandedDeviceIds.forEach((id) => {
-          const rowIndex = devices.findIndex(
-            (device) => (device.id || device.ptsid) === id
-          );
-          if (rowIndex !== -1) {
-            dataGridRef.current.instance.expandRow(id);
-          }
-        });
-      }
-    }
-  }, [devices, expandedRows]);
-
-  // Handle row expansion toggle
-  const toggleRowExpanded = (key) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [key]: !prev[key],
+  // Memoize devices to prevent unnecessary re-renders
+  const stableDevices = React.useMemo(() => {
+    return devices.map(device => ({
+      ...device,
+      // Ensure stable ID
+      id: device.id || device.ptsid
     }));
-  };
-
-  // Explicitly handle row expansion
-  const handleRowExpanding = (e) => {
-    toggleRowExpanded(e.key);
-  };
-
-  // Explicitly handle row collapse
-  const handleRowCollapsing = (e) => {
-    toggleRowExpanded(e.key);
-  };
+  }, [devices]);
 
   // Handle actions for the dropdown menu
   const handleItemClick = (e, deviceId) => {
     switch (e.itemData.id) {
-      case 1: // Edit
+      case 1: // View Details
+        if (onViewDetails) onViewDetails(deviceId);
+        break;
+      case 2: // Edit
         if (onEdit) onEdit(deviceId);
         break;
-      case 2: // Pump Service
+      case 3: // Pump Service
         if (onPumpService) onPumpService(deviceId);
         break;
-      case 3: // Diagnose
+      case 4: // Diagnose
         if (onDiagnose) onDiagnose(deviceId);
         break;
       default:
@@ -97,11 +67,12 @@ const PTSDeviceList = ({
         icon="overflow"
         displayExpr="text"
         keyExpr="id"
-        width={150}
+        width={180}
         items={[
-          { id: 1, text: "Edit" },
-          { id: 2, text: "Pump Service"},
-          { id: 3, text: "Diagnose" },
+          { id: 1, text: "View Details", icon: "fa-light fa-eye" },
+          { id: 2, text: "Edit", icon: "fa-light fa-edit" },
+          { id: 3, text: "Pump Service", icon: "fa-light fa-gas-pump" },
+          { id: 4, text: "Diagnose", icon: "fa-light fa-stethoscope" },
         ]}
         onItemClick={(e) => handleItemClick(e, deviceId)}
         stylingMode="contained"
@@ -173,18 +144,16 @@ const PTSDeviceList = ({
 
       <DataGrid
         ref={dataGridRef}
-        dataSource={devices}
+        dataSource={stableDevices}
         showBorders={true}
         columnAutoWidth={true}
         rowAlternationEnabled={true}
         allowColumnResizing={true}
-
+        repaintChangesOnly={true}
         height="auto"
         width="100%"
         loadPanel={{ enabled: isLoading }}
-        onRowExpanding={handleRowExpanding}
-        onRowCollapsing={handleRowCollapsing}
-        keyExpr="id" // Use a stable ID
+        keyExpr="id"
       >
         <Selection mode="single" />
         <Paging defaultPageSize={10} />
@@ -202,7 +171,7 @@ const PTSDeviceList = ({
           dataField="id"
           caption="PTS ID"
           width={120}
-          cellRender={(data) => data.data.id || data.data.ptsid}
+          cellRender={(data) => data.data.ptsid || data.data.id}
         />
         <Column dataField="siteName" caption="Site Name" minWidth={150} />
         <Column
