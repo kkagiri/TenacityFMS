@@ -154,6 +154,12 @@ export default function Content() {
           )}
         />
 
+        {/* PTS Terminal Test Page - ISOLATED for debugging */}
+        <Route
+          path="/pts-terminal-test"
+          element={React.createElement(resolvedComponents("pts-terminal-test"))}
+        />
+
         {/* Vehicle Management System Routes - Handle all vehicle sub-routes internally */}
         <Route
           path="/vehicles"

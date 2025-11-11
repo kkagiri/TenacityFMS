@@ -195,6 +195,42 @@ const pumpControlService = {
         throw error;
       }
     },
+
+    /**
+     * Get active transactions for a device - Diagnostic/Admin //Cursor
+     * Returns all currently active transactions stored in Redis
+     * Used for monitoring and troubleshooting stuck transactions
+     */
+    getActiveTransactions: async (deviceId) => {
+      try {
+        const response = await axiosInstance.get(`/pump/${deviceId}/active-transactions`);
+        return response.data;
+      } catch (error) {
+        console.error("Get active transactions error:", error);
+        throw error;
+      }
+    },
+
+    /**
+     * Clear stuck transactions - Emergency cleanup //Cursor
+     * Forcibly removes stuck transaction context from Redis
+     * @param {string} deviceId - PTS device ID
+     * @param {number|null} pumpId - Specific pump ID, or null for all pumps
+     * @returns {Promise<object>} - Response with cleanup details
+     */
+    clearStuckTransactions: async (deviceId, pumpId = null) => {
+      try {
+        const url = pumpId
+          ? `/pump/${deviceId}/stuck-transactions?pumpId=${pumpId}`
+          : `/pump/${deviceId}/stuck-transactions`;
+
+        const response = await axiosInstance.delete(url);
+        return response.data;
+      } catch (error) {
+        console.error("Clear stuck transactions error:", error);
+        throw error;
+      }
+    },
   },
 };
 

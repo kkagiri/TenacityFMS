@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import DataGrid, {
   Column,
-  MasterDetail,
   Paging,
   Pager,
   FilterRow,
@@ -10,9 +10,7 @@ import DataGrid, {
   Export,
   Selection,
 } from "devextreme-react/data-grid";
-import { DropDownButton } from "devextreme-react/drop-down-button";
 import { Button } from "devextreme-react/button";
-import PTSDeviceDetails from "./PTSDeviceDetails/PTSDeviceDetails";
 import LiveStatusControl from "../LiveStatus/LiveStatusControl";
 import "./PTSDeviceList.scss";
 
@@ -20,13 +18,13 @@ const PTSDeviceList = ({
   devices = [],
   isLoading = false,
   onRefresh,
-  onViewDetails,
   onEdit,
   onDiagnose,
   onPumpService,
   onAddDevice,
 }) => {
   const dataGridRef = useRef(null);
+  const navigate = useNavigate();
 
   // Memoize devices to prevent unnecessary re-renders
   const stableDevices = React.useMemo(() => {
@@ -37,46 +35,46 @@ const PTSDeviceList = ({
     }));
   }, [devices]);
 
-  // Handle actions for the dropdown menu
-  const handleItemClick = (e, deviceId) => {
-    switch (e.itemData.id) {
-      case 1: // View Details
-        if (onViewDetails) onViewDetails(deviceId);
-        break;
-      case 2: // Edit
-        if (onEdit) onEdit(deviceId);
-        break;
-      case 3: // Pump Service
-        if (onPumpService) onPumpService(deviceId);
-        break;
-      case 4: // Diagnose
-        if (onDiagnose) onDiagnose(deviceId);
-        break;
-      default:
-        break;
-    }
+  // Handle row click - navigate to device detail page
+  const handleRowClick = (e) => {
+    const deviceId = e.data.id || e.data.ptsid;
+    navigate(`/admin/ptsdevice/${deviceId}`);
   };
 
-  // Render the action cell with dropdown
+  // Render the action buttons
   const renderActionCell = (cellData) => {
     const deviceId = cellData.data.id || cellData.data.ptsid;
 
     return (
-      <DropDownButton
-        text=""
-        icon="overflow"
-        displayExpr="text"
-        keyExpr="id"
-        width={180}
-        items={[
-          { id: 1, text: "View Details", icon: "fa-light fa-eye" },
-          { id: 2, text: "Edit", icon: "fa-light fa-edit" },
-          { id: 3, text: "Pump Service", icon: "fa-light fa-gas-pump" },
-          { id: 4, text: "Diagnose", icon: "fa-light fa-stethoscope" },
-        ]}
-        onItemClick={(e) => handleItemClick(e, deviceId)}
-        stylingMode="contained"
-      />
+      <div className="tw-flex tw-gap-2 tw-justify-center">
+        <Button
+          icon="fa-light fa-edit"
+          hint="Edit Device"
+          onClick={(e) => {
+            e.event.stopPropagation();
+            if (onEdit) onEdit(deviceId);
+          }}
+          stylingMode="text"
+        />
+        <Button
+          icon="fa-light fa-gas-pump"
+          hint="Pump Service"
+          onClick={(e) => {
+            e.event.stopPropagation();
+            if (onPumpService) onPumpService(deviceId);
+          }}
+          stylingMode="text"
+        />
+        <Button
+          icon="fa-light fa-stethoscope"
+          hint="Diagnose"
+          onClick={(e) => {
+            e.event.stopPropagation();
+            if (onDiagnose) onDiagnose(deviceId);
+          }}
+          stylingMode="text"
+        />
+      </div>
     );
   };
 
@@ -124,11 +122,6 @@ const PTSDeviceList = ({
     );
   };
 
-  // Custom template for master row
-  const renderDetail = (props) => {
-    return <PTSDeviceDetails device={props.data} />;
-  };
-
   return (
     <div className="pts-device-list">
       <div className="device-list-toolbar">
@@ -154,6 +147,8 @@ const PTSDeviceList = ({
         width="100%"
         loadPanel={{ enabled: isLoading }}
         keyExpr="id"
+        onRowClick={handleRowClick}
+        hoverStateEnabled={true}
       >
         <Selection mode="single" />
         <Paging defaultPageSize={10} />
@@ -221,19 +216,13 @@ const PTSDeviceList = ({
         />
         <Column
           caption="Actions"
-          width={120}
+          width={150}
           alignment="center"
           cellRender={renderActionCell}
           fixed={true}
           fixedPosition="right"
           allowFiltering={false}
           allowSorting={false}
-        />
-
-        <MasterDetail
-          enabled={true}
-          component={renderDetail}
-          autoExpandAll={false}
         />
       </DataGrid>
     </div>

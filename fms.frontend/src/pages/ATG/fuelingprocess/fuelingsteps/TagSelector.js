@@ -30,7 +30,7 @@ const TagSelector = ({
   return (
     <div className="tag-selection">
       <div className="tag-header">
-        <i className="fa-solid fa-tag"></i>
+        <i className="fa-light fa-tag"></i>
         <h5>Select Vehicle Tag</h5>
       </div>
 

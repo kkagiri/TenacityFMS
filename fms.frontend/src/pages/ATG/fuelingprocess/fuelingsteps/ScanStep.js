@@ -227,7 +227,7 @@ const ScanStep = memo(
         {/* Header */}
         <div className="tw-mb-4 tw-flex-shrink-0">
           <h3 className="tw-flex tw-items-center tw-text-xl tw-font-semibold tw-m-0">
-            <i className="fa-solid fa-id-card-alt tw-mr-2 tw-text-blue-600"></i>
+            <i className="fa-light fa-id-card-alt tw-mr-2 tw-text-blue-600"></i>
             Vehicle Identification
           </h3>
         </div>

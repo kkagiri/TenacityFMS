@@ -9,7 +9,7 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
   return (
     <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
       <h3 className="tw-flex-shrink-0 tw-mb-4">
-        <i className="fas fa-filter tw-mr-2"></i>Select Nozzle
+        <i className="fa-light fa-filter tw-mr-2"></i>Select Nozzle
       </h3>
       <div className="nozzle-selection-container tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
         {hasNozzles ? (
@@ -71,7 +71,7 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
                           {item.fuelType &&
                           item.fuelType.toLowerCase().includes("diesel") ? (
                             <i
-                              className="fas fa-truck-monster tw-text-3xl"
+                              className="fa-light fa-truck-monster tw-text-3xl"
                               style={{
                                 color: isClickable ? fuelColor : "#6c757d",
                               }}
@@ -79,14 +79,14 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
                           ) : item.fuelType &&
                             item.fuelType.toLowerCase().includes("premium") ? (
                             <i
-                              className="fas fa-tachometer-alt tw-text-3xl"
+                              className="fa-light fa-tachometer-alt tw-text-3xl"
                               style={{
                                 color: isClickable ? fuelColor : "#6c757d",
                               }}
                             ></i>
                           ) : (
                             <i
-                              className="fas fa-gas-pump tw-text-3xl"
+                              className="fa-light fa-gas-pump tw-text-3xl"
                               style={{
                                 color: isClickable ? fuelColor : "#6c757d",
                               }}
@@ -150,7 +150,7 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
                         </div>
                         {isClickable && (
                           <div className="tw-mt-2 tw-text-xs tw-text-gray-500 tw-flex tw-items-center tw-gap-1">
-                            <i className="fas fa-hand-pointer tw-text-blue-500"></i>
+                            <i className="fa-light fa-hand-pointer tw-text-blue-500"></i>
                             <span>Click to select</span>
                           </div>
                         )}
@@ -165,7 +165,7 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
           <div className="no-nozzles-message">
             <div className="no-data-icon">
               <i className="fa-light fa-filter"></i>
-              <i className="fas fa-slash"></i>
+              <i className="fa-light fa-slash"></i>
             </div>
             <p>No nozzles found for the selected pump.</p>
             <p className="no-data-subtext">
@@ -178,7 +178,7 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
         <Button
           text="Back to Pumps"
           type="normal"
-          icon="fas fa-chevron-left"
+          icon="fa-light fa-chevron-left"
           stylingMode="outlined"
           onClick={() => setStep("pump")}
         />

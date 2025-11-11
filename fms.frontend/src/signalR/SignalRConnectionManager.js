@@ -26,6 +26,7 @@ const ROUTE_PATTERNS = {
     /^\/reader/,
     /^\/fueling/,
     /^\/atg/,
+    /^\/admin\/ptsdevice/, // PTS Device management pages
   ],
   BUSINESS: [
     /^\/tankstock/,
@@ -54,6 +55,7 @@ const ROUTE_PATTERNS = {
     /^\/admin\/users/,
     /^\/admin\/roles/,
     /^\/admin\/permissions/,
+    /^\/pts-terminal-test/, // Test page has its own connection
   ],
   ADMIN: [/^\/admin/],
 };

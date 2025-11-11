@@ -60,7 +60,7 @@ const FuelingPopupRenderer = {
           <div className="fueling-status">
             <span>Fueling in progress...</span>
             <div className="status-badge active">
-              <i className="fa-solid fa-circle"></i> Active
+              <i className="fa-light fa-circle"></i> Active
             </div>
           </div>
 
@@ -75,13 +75,13 @@ const FuelingPopupRenderer = {
 
           <div className="fueling-metrics">
             <div className="metric-card">
-              <i className="fa-solid fa-tint"></i>
+              <i className="fa-light fa-tint"></i>
               <div className="metric-label">Volume</div>
               <div className="metric-value">{formatVolume(fuelingVolume)}</div>
             </div>
 
             <div className="metric-card">
-              <i className="fa-solid fa-money-bill-wave"></i>
+              <i className="fa-light fa-money-bill-wave"></i>
               <div className="metric-label">Amount</div>
               <div className="metric-value">{formatCurrency(fuelingCost)}</div>
             </div>
@@ -89,14 +89,14 @@ const FuelingPopupRenderer = {
 
           <div className="fueling-details">
             <div className="detail-row">
-              <i className="fa-solid fa-gas-pump"></i>
+              <i className="fa-light fa-gas-pump"></i>
               <span>
                 Pump #{activePump?.id || "N/A"} -{" "}
                 {activeNozzle?.fuelType || "Unknown Fuel"}
               </span>
             </div>
             <div className="detail-row">
-              <i className="fa-solid fa-car"></i>
+              <i className="fa-light fa-car"></i>
               <span>{vehicleOrTag || "No Vehicle/Tag"}</span>
             </div>
           </div>
@@ -147,20 +147,20 @@ const FuelingPopupRenderer = {
       >
         <div className="modern-fueling-complete">
           <div className="complete-icon">
-            <i className="fa-solid fa-check-circle"></i>
+            <i className="fa-light fa-check-circle"></i>
           </div>
 
           <h3>Transaction Complete</h3>
 
           <div className="transaction-metrics">
             <div className="metric-card">
-              <i className="fa-solid fa-tint"></i>
+              <i className="fa-light fa-tint"></i>
               <div className="metric-label">Volume</div>
               <div className="metric-value">{formatVolume(fuelingVolume)}</div>
             </div>
 
             <div className="metric-card">
-              <i className="fa-solid fa-dollar-sign"></i>
+              <i className="fa-light fa-dollar-sign"></i>
               <div className="metric-label">Amount</div>
               <div className="metric-value">{formatCurrency(fuelingCost)}</div>
             </div>
@@ -306,7 +306,7 @@ const FuelingPopupRenderer = {
               >
                 <div className="process-header">
                   <h4>
-                    <i className="fa-solid fa-gas-pump"></i>
+                    <i className="fa-light fa-gas-pump"></i>
                     {process.pumpName || `Pump ${process.pumpId}`}
                     {process.nozzleId ? ` - Nozzle ${process.nozzleId}` : ""}
                   </h4>
@@ -316,7 +316,7 @@ const FuelingPopupRenderer = {
                     }`}
                   >
                     <i
-                      className={`fa-solid ${
+                      className={`fa-light ${
                         process.status === "fueling" ? "fa-circle" : "fa-check"
                       }`}
                     ></i>
@@ -353,11 +353,11 @@ const FuelingPopupRenderer = {
                   </div>
                   <div className="progress-metrics">
                     <div className="metric">
-                      <i className="fa-solid fa-tint"></i>
+                      <i className="fa-light fa-tint"></i>
                       <span>{formatVolume(process.volume)}</span>
                     </div>
                     <div className="metric">
-                      <i className="fa-solid fa-dollar-sign"></i>
+                      <i className="fa-light fa-dollar-sign"></i>
                       <span>{formatCurrency(process.cost)}</span>
                     </div>
                   </div>

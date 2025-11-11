@@ -109,6 +109,19 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         {
             try
             {
+                // **CRITICAL CHECK** - Prevent authorization if pump has stuck transaction //Cursor
+                var stuckTransaction = await CheckForStuckTransaction(request.DeviceId!, request.PumpId);
+                if (stuckTransaction != null)
+                {
+                    _logger.LogWarning("[PumpAuth] **STUCK TRANSACTION** - Cannot authorize pump {PumpId} on device {DeviceId} - stuck transaction {TransactionId} detected (age: {Age})",
+                        request.PumpId, request.DeviceId, stuckTransaction.TransactionId, stuckTransaction.Age);
+
+                    return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                        new List<string>
+                        {
+                            $"Pump {request.PumpId} has a stuck transaction ({stuckTransaction.TransactionId}) that must be cleared first. Please contact support or use the emergency cleanup feature."
+                        });
+                }
 
                 // Determine NozzleOrFuelIdSelector based on provided inputs
                 if (request.Nozzle > 0)
@@ -417,6 +430,10 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     //Cursor: Start monitoring the transaction after successful authorization
                     await _transactionMonitoringService.StartMonitoringTransaction(request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
 
+                    // Populate additional data in confirmation for frontend
+                    confirmation.ConnectionType = connectionType;
+                    confirmation.NozzleId = request.Nozzle;
+
                     return FMSResponse<PumpAuthorizeConfirmation>.Success(confirmation, "Pump authorized");
                 }
 
@@ -467,10 +484,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 var redisKey = $"device:{deviceId}:transaction:{transactionId}";
                 var contextJson = JsonSerializer.Serialize(transactionContext);
 
-                // Store with 24 hour expiry to ensure it doesn't stay forever if transaction never completes
-                await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromHours(24));
+                // **AGGRESSIVE CLEANUP** - Store with 10 minute expiry (reduced from 24 hours)
+                // Most transactions complete in 1-2 minutes, so 10 minutes is generous buffer
+                // This prevents stuck transactions from accumulating in Redis indefinitely
+                await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromMinutes(10));
 
-                _logger.LogInformation("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, connection: {ConnectionType}",
+                _logger.LogInformation("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, connection: {ConnectionType}, expiry: 10min",
                     deviceId, pumpId, transactionId, vehicleId, tankId, connectionType);
             }
             catch (Exception ex)
@@ -711,6 +730,83 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             }
 
             return FMSResponse.SuccessResponse("Validation passed");
+        }
+
+        // **NEW METHOD** - Check for stuck transactions before authorizing pump //Cursor
+        private async Task<StuckTransactionInfo?> CheckForStuckTransaction(string deviceId, int pumpId)
+        {
+            try
+            {
+                // Check Redis for active transaction contexts for this device
+                var pattern = $"device:{deviceId}:transaction:*";
+                var server = _redisDb.Multiplexer.GetServer(_redisDb.Multiplexer.GetEndPoints()[0]);
+                var keys = server.Keys(pattern: pattern);
+
+                foreach (var key in keys)
+                {
+                    try
+                    {
+                        var contextJson = await _redisDb.StringGetAsync(key);
+                        if (contextJson.IsNullOrEmpty) continue;
+
+                        var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+
+                        // Check if this transaction belongs to the pump being authorized
+                        var contextPumpId = context.TryGetProperty("PumpId", out var pumpProp) ? pumpProp.GetInt32() : 0;
+                        if (contextPumpId != pumpId) continue; // Different pump, skip
+
+                        var transactionId = context.TryGetProperty("TransactionId", out var transProp) ? transProp.GetInt32() : 0;
+                        var startTimeStr = context.TryGetProperty("StartTime", out var startProp) ? startProp.GetString() : null;
+
+                        if (transactionId > 0 && DateTime.TryParse(startTimeStr, out var startTime))
+                        {
+                            var age = DateTime.UtcNow - startTime;
+
+                            // **STUCK THRESHOLD** - Consider stuck if >2 minutes old (same as UploadStatusCommand)
+                            if (age.TotalMinutes > 2)
+                            {
+                                _logger.LogWarning("[PumpAuth] **STUCK DETECTED** - Found stuck transaction {TransactionId} for pump {PumpId} on device {DeviceId}, age: {Age:F1} minutes",
+                                    transactionId, pumpId, deviceId, age.TotalMinutes);
+
+                                return new StuckTransactionInfo
+                                {
+                                    TransactionId = transactionId,
+                                    PumpId = pumpId,
+                                    DeviceId = deviceId,
+                                    StartTime = startTime,
+                                    Age = age
+                                };
+                            }
+                            else
+                            {
+                                _logger.LogDebug("[PumpAuth] Active transaction {TransactionId} found for pump {PumpId} but not stuck yet (age: {Age:F1} minutes)",
+                                    transactionId, pumpId, age.TotalMinutes);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug("[PumpAuth] Error parsing transaction key {Key}: {Error}", key, ex.Message);
+                    }
+                }
+
+                return null; // No stuck transaction found
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[PumpAuth] Error checking for stuck transactions on device {DeviceId}, pump {PumpId}", deviceId, pumpId);
+                return null; // Don't block authorization on error, just log
+            }
+        }
+
+        // **HELPER CLASS** - Information about stuck transaction //Cursor
+        private class StuckTransactionInfo
+        {
+            public int TransactionId { get; set; }
+            public int PumpId { get; set; }
+            public string DeviceId { get; set; } = string.Empty;
+            public DateTime StartTime { get; set; }
+            public TimeSpan Age { get; set; }
         }
     }
 }

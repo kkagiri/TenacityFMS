@@ -1,60 +1,97 @@
 .pts-device-terminal {
-  @apply tw-flex tw-flex-col tw-h-full;
+  @apply tw-flex tw-flex-col tw-h-full tw-bg-gray-900 tw-rounded-lg tw-overflow-hidden tw-shadow-lg;
 
   .terminal-header {
-    @apply tw-flex tw-justify-between tw-items-center tw-mb-4 tw-pb-3 tw-border-b tw-border-gray-200;
+    @apply tw-flex tw-justify-between tw-items-center tw-p-4 tw-bg-gray-800 tw-border-b tw-border-gray-700;
 
     i {
-      @apply tw-text-blue-600;
+      @apply tw-text-green-400;
+    }
+
+    .dx-button {
+      @apply tw-text-gray-100;
     }
   }
 
   .terminal-body {
-    @apply tw-flex-1 tw-bg-gray-900 tw-text-green-400 tw-p-4 tw-rounded tw-font-mono tw-text-sm;
-    @apply tw-overflow-y-auto tw-min-h-[400px] tw-max-h-[600px];
+    @apply tw-flex-1 tw-bg-gray-900 tw-text-gray-300 tw-p-4 tw-font-mono tw-text-sm;
+    @apply tw-overflow-y-auto;
+    height: 500px;
+    max-height: 70vh;
 
-    .terminal-empty {
-      @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-full tw-text-gray-600;
+    /* Custom scrollbar for dark theme */
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      @apply tw-bg-gray-800;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      @apply tw-bg-gray-600 tw-rounded;
+
+      &:hover {
+        @apply tw-bg-gray-500;
+      }
     }
 
     .terminal-line {
-      @apply tw-mb-2 tw-flex tw-gap-2;
+      @apply tw-mb-2 tw-border-l-2 tw-border-gray-700 tw-pl-3 tw-py-2;
+      @apply hover:tw-bg-gray-800 tw-transition-colors tw-rounded-r;
 
       .timestamp {
-        @apply tw-text-gray-500 tw-shrink-0;
+        @apply tw-text-gray-500 tw-text-xs;
       }
 
-      .message {
-        @apply tw-flex-1;
+      pre {
+        @apply tw-text-xs tw-text-gray-300 tw-whitespace-pre-wrap tw-break-words;
+        @apply tw-mt-1 tw-p-2 tw-bg-gray-800 tw-rounded;
       }
 
-      &.info {
-        @apply tw-text-green-400;
-      }
-
-      &.command {
-        @apply tw-text-yellow-400;
-      }
-
-      &.error {
-        @apply tw-text-red-400;
-      }
-
-      &.warning {
-        @apply tw-text-orange-400;
+      &:hover {
+        @apply tw-border-blue-500;
       }
     }
   }
 
-  .terminal-input {
-    @apply tw-flex tw-gap-2 tw-mt-4;
-  }
-
-  .terminal-info {
-    @apply tw-flex tw-items-center tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded;
+  .terminal-footer {
+    @apply tw-p-3 tw-bg-gray-800 tw-border-t tw-border-gray-700;
+    @apply tw-flex tw-flex-wrap tw-items-center tw-gap-4 tw-text-xs tw-text-gray-400;
 
     i {
-      @apply tw-text-blue-600;
+      @apply tw-mr-1;
+    }
+  }
+
+  // DevExtreme button overrides for dark theme
+  .dx-button {
+    &.dx-button-mode-outlined {
+      @apply tw-border-gray-600 tw-text-gray-300;
+
+      &:hover {
+        @apply tw-bg-gray-700;
+      }
+    }
+
+    &.dx-button-danger {
+      @apply tw-border-red-500 tw-text-red-400;
+
+      &:hover {
+        @apply tw-bg-red-900 tw-bg-opacity-30;
+      }
+    }
+  }
+
+  // DevExtreme SelectBox overrides for dark theme
+  .dx-selectbox {
+    .dx-texteditor-input {
+      @apply tw-text-gray-300;
+    }
+
+    .dx-dropdowneditor-icon {
+      @apply tw-text-gray-400;
     }
   }
 }
+

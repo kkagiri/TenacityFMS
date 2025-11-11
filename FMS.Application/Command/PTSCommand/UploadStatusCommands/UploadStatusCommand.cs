@@ -900,7 +900,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             return activeTransactions;
         }
 
-        // **NEW METHOD** - Check if transaction should be forcibly completed //Cursor
+        // **ENHANCED** - Aggressively check if transaction should be forcibly completed //Cursor
         private async Task CheckForForcedCompletion(string deviceId, int pumpId, int transactionId)
         {
             try
@@ -911,7 +911,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                 if (contextJson.IsNullOrEmpty)
                 {
-                    _logger.LogDebug("[UploadStatus] **NO CONTEXT** - No transaction context found for {DeviceId}:{TransactionId}",
+                    _logger.LogDebug("[UploadStatus] **NO CONTEXT** - No transaction context found for {DeviceId}:{TransactionId}, may have been cleaned up",
                         deviceId, transactionId);
                     return;
                 }
@@ -923,15 +923,29 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 {
                     var elapsed = DateTime.UtcNow - startTime;
 
-                    // **TIMEOUT CONDITION** - Transaction running for more than X minutes without completion
-                    if (elapsed.TotalMinutes > 5) // Configurable timeout
+                    // **AGGRESSIVE TIMEOUT** - Reduced from 5 minutes to 2 minutes for faster cleanup
+                    // Most legitimate fueling operations complete within 1-2 minutes
+                    if (elapsed.TotalMinutes > 2) // REDUCED threshold for faster cleanup
                     {
-                        _logger.LogWarning("[UploadStatus] **TIMEOUT DETECTED** - Transaction {TransactionId} on device {DeviceId} running for {Minutes} minutes without EndOfTransaction",
+                        _logger.LogWarning("[UploadStatus] **TIMEOUT DETECTED** - Transaction {TransactionId} on device {DeviceId} running for {Minutes:F1} minutes without EndOfTransaction - FORCING COMPLETION",
                             transactionId, deviceId, elapsed.TotalMinutes);
 
                         // **FORCE COMPLETION** - Trigger completion based on last known status
-                        await ForceTransactionCompletion(deviceId, pumpId, transactionId, "Timeout");
+                        await ForceTransactionCompletion(deviceId, pumpId, transactionId, $"Timeout-{elapsed.TotalMinutes:F1}min");
                     }
+                    else
+                    {
+                        _logger.LogDebug("[UploadStatus] **PENDING** - Transaction {TransactionId} on device {DeviceId} running for {Minutes:F1} minutes (threshold: 2min)",
+                            transactionId, deviceId, elapsed.TotalMinutes);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("[UploadStatus] **NO START TIME** - Transaction {TransactionId} context has no StartTime, cannot determine timeout",
+                        transactionId);
+
+                    // **FALLBACK** - If no start time, assume stuck and force completion
+                    await ForceTransactionCompletion(deviceId, pumpId, transactionId, "NoStartTime");
                 }
             }
             catch (Exception ex)
@@ -941,7 +955,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             }
         }
 
-        // **NEW METHOD** - Force completion when EndOfTransaction is missing //Cursor
+        // **ENHANCED** - Force completion when EndOfTransaction is missing with aggressive cleanup //Cursor
         private async Task ForceTransactionCompletion(string deviceId, int pumpId, int transactionId, string reason)
         {
             try
@@ -955,6 +969,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                 decimal? lastVolume = null;
                 decimal? lastAmount = null;
+                int? nozzleId = null;
+                int? fuelGradeId = null;
+                string? fuelGradeName = null;
 
                 if (!statusJson.IsNullOrEmpty)
                 {
@@ -966,11 +983,26 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         if (lastStatus.TryGetProperty("Pumps", out var pumpsElement) &&
                             pumpsElement.TryGetProperty("IdleStatus", out var idleElement))
                         {
+                            if (idleElement.TryGetProperty("LastTransactions", out var transactionsElement) &&
+                                transactionsElement.ValueKind == JsonValueKind.Array)
+                            {
+                                var transactions = transactionsElement.EnumerateArray().ToList();
+                                if (transactions.Count >= pumpId) // Find matching pump
+                                {
+                                    var foundTransactionId = transactions[pumpId - 1].GetInt32();
+                                    if (foundTransactionId == transactionId)
+                                    {
+                                        _logger.LogInformation("[UploadStatus] **MATCHING TX** - Found matching transaction {TransactionId} in IdleStatus for pump {PumpId}",
+                                            transactionId, pumpId);
+                                    }
+                                }
+                            }
+
                             if (idleElement.TryGetProperty("LastVolumes", out var volumesElement) &&
                                 volumesElement.ValueKind == JsonValueKind.Array)
                             {
                                 var volumes = volumesElement.EnumerateArray().ToList();
-                                if (volumes.Count > pumpId - 1) // PumpId is 1-based
+                                if (volumes.Count >= pumpId) // PumpId is 1-based
                                 {
                                     lastVolume = volumes[pumpId - 1].GetDecimal();
                                 }
@@ -980,51 +1012,122 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                 amountsElement.ValueKind == JsonValueKind.Array)
                             {
                                 var amounts = amountsElement.EnumerateArray().ToList();
-                                if (amounts.Count > pumpId - 1) // PumpId is 1-based
+                                if (amounts.Count >= pumpId) // PumpId is 1-based
                                 {
                                     lastAmount = amounts[pumpId - 1].GetDecimal();
+                                }
+                            }
+
+                            if (idleElement.TryGetProperty("LastNozzles", out var nozzlesElement) &&
+                                nozzlesElement.ValueKind == JsonValueKind.Array)
+                            {
+                                var nozzles = nozzlesElement.EnumerateArray().ToList();
+                                if (nozzles.Count >= pumpId)
+                                {
+                                    nozzleId = nozzles[pumpId - 1].GetInt32();
+                                }
+                            }
+
+                            if (idleElement.TryGetProperty("LastFuelGradeIds", out var gradeIdsElement) &&
+                                gradeIdsElement.ValueKind == JsonValueKind.Array)
+                            {
+                                var gradeIds = gradeIdsElement.EnumerateArray().ToList();
+                                if (gradeIds.Count >= pumpId)
+                                {
+                                    fuelGradeId = gradeIds[pumpId - 1].GetInt32();
+                                }
+                            }
+
+                            if (idleElement.TryGetProperty("LastFuelGradeNames", out var gradeNamesElement) &&
+                                gradeNamesElement.ValueKind == JsonValueKind.Array)
+                            {
+                                var gradeNames = gradeNamesElement.EnumerateArray().ToList();
+                                if (gradeNames.Count >= pumpId)
+                                {
+                                    fuelGradeName = gradeNames[pumpId - 1].GetString();
                                 }
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogDebug("Error parsing last status for forced completion: {Error}", ex.Message);
+                        _logger.LogWarning(ex, "[UploadStatus] **PARSE ERROR** - Error parsing last status for forced completion, using default values");
                     }
                 }
 
-                _logger.LogInformation("[UploadStatus] **FORCE VALUES** - Using last known values - Volume: {Volume}L, Amount: ${Amount}",
-                    lastVolume, lastAmount);
+                _logger.LogInformation("[UploadStatus] **FORCE VALUES** - Using last known values - Volume: {Volume}L, Amount: ${Amount}, Nozzle: {Nozzle}, FuelGrade: {GradeId} ({GradeName})",
+                    lastVolume, lastAmount, nozzleId, fuelGradeId, fuelGradeName);
 
-                // **CREATE SYNTHETIC EOT** - Create a synthetic EndOfTransaction status for processing
+                // **GET CONTEXT DATA** - Retrieve authorization context for enrichment
+                var transactionKey = $"device:{deviceId}:transaction:{transactionId}";
+                var contextJson = await _redisDb.StringGetAsync(transactionKey);
+
+                int? tankId = null;
+                int? vehicleId = null;
+                string? tagId = null;
+                string? connectionType = "Unknown";
+
+                if (!contextJson.IsNullOrEmpty)
+                {
+                    try
+                    {
+                        var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+                        tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
+                        vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
+                        connectionType = context.TryGetProperty("ConnectionType", out var connProp) ? connProp.GetString() : "Unknown";
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug("[UploadStatus] **CONTEXT PARSE ERROR** - Error parsing context: {Error}", ex.Message);
+                    }
+                }
+
+                // Get tag from authorization tracker
+                var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                if (authState != null)
+                {
+                    tagId = authState.TagId;
+                    _logger.LogInformation("[UploadStatus] **AUTH STATE** - Found authorization state with tag: {Tag}", tagId);
+                }
+
+                // **CREATE SYNTHETIC EOT** - Create a comprehensive synthetic EndOfTransaction status
                 var syntheticStatusData = new JObject
                 {
                     ["Pump"] = pumpId,
                     ["Transaction"] = transactionId,
-                    ["Volume"] = lastVolume,
-                    ["Amount"] = lastAmount,
+                    ["Volume"] = lastVolume ?? 0, // Default to 0 if no data
+                    ["Amount"] = lastAmount ?? 0,
+                    ["Nozzle"] = nozzleId,
+                    ["FuelGradeId"] = fuelGradeId,
+                    ["FuelGradeName"] = fuelGradeName,
+                    ["TankId"] = tankId,
+                    ["VehicleId"] = vehicleId,
+                    ["Tag"] = tagId,
+                    ["ConnectionType"] = connectionType,
                     ["DateTime"] = DateTime.UtcNow,
                     ["ForcedCompletion"] = true,
-                    ["CompletionReason"] = reason
+                    ["CompletionReason"] = reason,
+                    ["DetectedVia"] = "ForcedTimeout"
                 };
 
-                // **TRIGGER COMPLETION** - Process through auto-completion service
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _autoCompletionService.ProcessEndOfTransactionAsync(
-                            deviceId, pumpId, transactionId, syntheticStatusData);
+                _logger.LogWarning("[UploadStatus] **FORCE TRIGGER** - Synthetic EOT data: Tank={TankId}, Vehicle={VehicleId}, Tag={Tag}, Volume={Volume}L, Amount=${Amount}",
+                    tankId, vehicleId, tagId, lastVolume, lastAmount);
 
-                        _logger.LogInformation("[UploadStatus] **FORCE SUCCESS** - Forced completion successful for {DeviceId}:{TransactionId}",
-                            deviceId, transactionId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "[UploadStatus] **FORCE FAILED** - Forced completion failed for {DeviceId}:{TransactionId}",
-                            deviceId, transactionId);
-                    }
-                });
+                // **TRIGGER COMPLETION** - Process through auto-completion service
+                await _autoCompletionService.ProcessEndOfTransactionAsync(
+                    deviceId, pumpId, transactionId, syntheticStatusData);
+
+                _logger.LogInformation("[UploadStatus] **FORCE SUCCESS** - Forced completion triggered for {DeviceId}:{TransactionId}",
+                    deviceId, transactionId);
+
+                // **CLEANUP REDIS** - Immediately delete transaction context to prevent re-processing
+                await _redisDb.KeyDeleteAsync(transactionKey);
+                _logger.LogInformation("[UploadStatus] **REDIS CLEANUP** - Deleted transaction key: {Key}", transactionKey);
+
+                // **CLEAR AUTHORIZATION** - Clear authorization state
+                await _authTracker.ClearAuthorization(deviceId, pumpId);
+                _logger.LogInformation("[UploadStatus] **AUTH CLEARED** - Cleared authorization for device {DeviceId}, pump {PumpId}",
+                    deviceId, pumpId);
             }
             catch (Exception ex)
             {

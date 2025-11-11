@@ -17,7 +17,7 @@ const PumpSelectionStep = memo(
     return (
       <div className="dx-card responsive-paddings tw-flex tw-flex-col tw-max-h-screen">
         <h3 className="tw-flex-shrink-0 tw-mb-4">
-          <i className="fas fa-gas-pump tw-mr-2"></i>Select Pump
+          <i className="fa-light fa-gas-pump tw-mr-2"></i>Select Pump
         </h3>
         <div className="pump-selection-container tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
           {availablePumps && availablePumps.length > 0 ? (
@@ -81,12 +81,12 @@ const PumpSelectionStep = memo(
                         </div>
                         {isActive && (
                           <span className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-green-100 tw-text-green-800 tw-rounded-full tw-text-xs tw-font-semibold">
-                            <i className="fas fa-circle tw-text-[6px]"></i> Busy
+                            <i className="fa-light fa-circle tw-text-[6px]"></i> Busy
                           </span>
                         )}
                         {item.status === "offline" && (
                           <span className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-red-100 tw-text-red-800 tw-rounded-full tw-text-xs tw-font-semibold">
-                            <i className="fas fa-triangle-exclamation tw-text-xs"></i> Offline
+                            <i className="fa-light fa-triangle-exclamation tw-text-xs"></i> Offline
                           </span>
                         )}
                       </div>
@@ -112,7 +112,7 @@ const PumpSelectionStep = memo(
                           }`}
                         >
                           <i
-                            className={`fas ${
+                            className={`fa-light ${
                               item.status === "idle"
                                 ? "fa-check-circle"
                                 : item.status === "nozzleUp"
@@ -142,7 +142,7 @@ const PumpSelectionStep = memo(
                       {item.lastTransaction > 0 && (
                         <div className="tw-bg-gray-50 tw-rounded-lg tw-p-2 tw-mb-3">
                           <div className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-gray-600">
-                            <i className="fas fa-receipt tw-text-gray-500"></i>
+                            <i className="fa-light fa-receipt tw-text-gray-500"></i>
                             <span className="tw-font-medium">Last Transaction:</span>
                           </div>
                           <div className="tw-flex tw-items-center tw-gap-2 tw-mt-1">
@@ -174,7 +174,7 @@ const PumpSelectionStep = memo(
                               setActivePump(item);
                               setShowFuelingPopup(true);
                             }}
-                            icon="fas fa-eye"
+                            icon="fa-light fa-eye"
                           />
                         </div>
                       )}
@@ -212,7 +212,7 @@ const PumpSelectionStep = memo(
             <div className="no-pumps-message">
               <div className="no-data-icon">
                 <i className="fa-light fa-gas-pump"></i>
-                <i className="fas fa-slash"></i>
+                <i className="fa-light fa-slash"></i>
               </div>
               <p>No pumps are available for this device.</p>
               <p className="no-data-subtext">

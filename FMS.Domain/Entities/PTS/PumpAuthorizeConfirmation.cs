@@ -10,5 +10,7 @@ namespace FMS.Domain.Entities.PTS
     {
         public int Pump { get; set; }
         public int Transaction { get; set; }
+        public string? ConnectionType { get; set; }
+        public int? NozzleId { get; set; }
     }
 }

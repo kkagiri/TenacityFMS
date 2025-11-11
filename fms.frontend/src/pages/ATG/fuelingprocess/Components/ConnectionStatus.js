@@ -138,27 +138,27 @@ const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
   }, [deviceConnectionStatus?.lastSeen, lastUpdated]);  // Status icon and color mapping
   const statusConfig = {
     connecting: {
-      icon: "fa-solid fa-spinner fa-spin",
+      icon: "fa-light fa-spinner fa-spin",
       color: "#6c757d",
       text: "Connecting...",
     },
     connected: {
-      icon: "fa-solid fa-signal",
+      icon: "fa-light fa-signal",
       color: "#198754",
       text: "Connected",
     },
     delayed: {
-      icon: "fa-solid fa-clock",
+      icon: "fa-light fa-clock",
       color: "#ffc107",
       text: gracePeriodActive ? "Reconnecting..." : "Delayed",
     },
     disconnected: {
-      icon: "fa-solid fa-plug",
+      icon: "fa-light fa-plug",
       color: "#dc3545",
       text: "Disconnected",
     },
     paused: {
-      icon: "fa-solid fa-pause",
+      icon: "fa-light fa-pause",
       color: "#6c757d",
       text: "Paused",
     },
@@ -174,9 +174,9 @@ const ConnectionStatus = ({ deviceId, lastUpdated, onStatusChange }) => {
         <div className="connection-details tw-flex tw-items-center tw-gap-2 tw-text-xs">
           <div className="connection-type tw-flex tw-items-center tw-gap-1">
             {deviceConnectionStatus.connectionType === "WebSocket" ? (
-              <i className="fa-solid fa-wifi" title="WebSocket connection"></i>
+              <i className="fa-light fa-wifi" title="WebSocket connection"></i>
             ) : (
-              <i className="fa-solid fa-ethernet" title="HTTP connection"></i>
+              <i className="fa-light fa-ethernet" title="HTTP connection"></i>
             )}
             <span className="tw-hidden md:tw-inline">{deviceConnectionStatus.connectionType || "Unknown"}</span>
           </div>

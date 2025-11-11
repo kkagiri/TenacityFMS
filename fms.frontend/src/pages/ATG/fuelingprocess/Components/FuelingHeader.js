@@ -193,7 +193,7 @@ const FuelingHeader = ({
                       title={`Pump ${process.pumpId} is actively fueling`}
                     >
                       <i
-                        className="fa-solid fa-fire-flame-curved"
+                        className="fa-light fa-fire-flame-curved"
                         style={{ marginRight: "4px" }}
                       ></i>
                       Pump {process.pumpId}: Busy
@@ -241,6 +241,24 @@ const FuelingHeader = ({
                 hint="View pump transaction history"
               />
 
+              {/* Stuck Transaction Manager Button - Admin/Diagnostic */}
+              {!isDeviceDisconnected && hasDeviceSettingsPermission && (
+                <Button
+                  icon="fa-light fa-exclamation-triangle"
+                  text={isSmall ? "Stuck TX" : "Stuck Transactions"}
+                  type="danger"
+                  stylingMode="outlined"
+                  width={isSmall ? "100%" : undefined}
+                  onClick={() => {
+                    // Trigger callback to parent to open stuck transaction manager
+                    if (window.openStuckTransactionManager) {
+                      window.openStuckTransactionManager();
+                    }
+                  }}
+                  hint="View and clear stuck transactions (Admin only)"
+                />
+              )}
+
               <Button
                 icon="plus"
                 text="New Fueling"
@@ -265,13 +283,13 @@ const FuelingHeader = ({
         <div className={`header-right ${isSmall ? "tw-w-full" : ""}`}>
           <div className={`system-status-icons ${isSmall ? "tw-justify-start tw-flex-wrap" : ""}`}>
             <div className="status-icon tw-text-center" title="Battery Status">
-              <i className="fa-solid fa-battery-full tw-text-lg"></i>
+              <i className="fa-light fa-battery-full tw-text-lg"></i>
               <span className="status-value tw-text-xs tw-mt-1">
                 {getStatusValue("batteryVoltage", "V", 1)}
               </span>
             </div>
             <div className="status-icon tw-text-center" title="CPU Temperature">
-              <i className="fa-solid fa-temperature-high tw-text-lg"></i>
+              <i className="fa-light fa-temperature-high tw-text-lg"></i>
               <span className="status-value tw-text-xs tw-mt-1">
                 {getStatusValue("cpuTemperature", "°C")}
               </span>
@@ -282,7 +300,7 @@ const FuelingHeader = ({
               }`}
               title="Power Status"
             >
-              <i className="fa-solid fa-plug tw-text-lg"></i>
+              <i className="fa-light fa-plug tw-text-lg"></i>
               <span className="status-value tw-text-xs tw-mt-1">
                 {rawUploadStatus?.ptsPowerDownDetected ? "Power Loss" : "Normal"}
               </span>
@@ -293,7 +311,7 @@ const FuelingHeader = ({
               }`}
               title="Storage Status"
             >
-              <i className="fa-solid fa-sd-card tw-text-lg"></i>
+              <i className="fa-light fa-sd-card tw-text-lg"></i>
               <span className="status-value tw-text-xs tw-mt-1">
                 {rawUploadStatus?.sdMounted ? "Mounted" : "Not Mounted"}
               </span>
@@ -312,7 +330,7 @@ const FuelingHeader = ({
                   )
                   .join(", ")}
               >
-                <i className="fa-solid fa-triangle-exclamation tw-text-lg"></i>
+                <i className="fa-light fa-triangle-exclamation tw-text-lg"></i>
                 <span className="status-value tw-text-xs tw-mt-1">
                   {systemAlerts.length}{" "}
                   {systemAlerts.length === 1 ? "Alert" : "Alerts"}
@@ -336,7 +354,7 @@ const FuelingHeader = ({
               {isSmall ? (
                 // Mobile: Show only colored icon
                 <i
-                  className={`fa-solid fa-circle tw-text-lg ${
+                  className={`fa-light fa-circle tw-text-lg ${
                     connectionStatus === "connected"
                       ? "tw-text-green-500"
                       : connectionStatus === "connecting"
@@ -350,7 +368,7 @@ const FuelingHeader = ({
                 // Desktop: Show icon with text
                 <>
                   <i
-                    className={`fa-solid ${
+                    className={`fa-light ${
                       connectionStatus === "connected"
                         ? "fa-signal"
                         : connectionStatus === "connecting"
@@ -406,7 +424,7 @@ const FuelingHeader = ({
           role="alert"
         >
           <strong className="tw-font-bold">
-            <i className="fa-solid fa-wifi tw-mr-2"></i>
+            <i className="fa-light fa-wifi tw-mr-2"></i>
             Connection Unstable
           </strong>
           <span className="tw-block sm:tw-inline tw-ml-2">

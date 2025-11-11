@@ -37,6 +37,8 @@ import ReportsMain from "./pages/reports/ReportsMain";
 import ProviderManagementMain from "./pages/providermanagement/ProviderManagementMain";
 // Import Maintenance main entry point
 import { MaintenanceMain } from "./pages/maintenance";
+// Import PTS Device Terminal Test Page (isolated testing)
+import PTSDeviceTerminalTestPage from "./pages/PTSDevice/PTSDeviceTerminalTestPage";
 
 const resolvedComponents = (pageName) => {
   switch (pageName.toLowerCase()) {
@@ -51,6 +53,8 @@ const resolvedComponents = (pageName) => {
       return TankStockMain;
     case "admin":
       return AdminMain;
+    case "pts-terminal-test":
+      return PTSDeviceTerminalTestPage;
     case "reports":
       return ReportsMain;
     case "maintenance":
