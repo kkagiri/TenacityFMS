@@ -38,7 +38,8 @@ export const fetchTankVolumeHistoryFiltered = (filters = {}) => async (dispatch)
       recordedBy: null,    // null = all users
       startDate: null,     // null = last 1 day (handled by backend)
       endDate: null,       // null = now (handled by backend)
-      includeVehicleNames: true
+      includeVehicleNames: true,
+      useManualDispensing: false  // false = sensor dispensing (default), true = manual dispensing from TankStock
     };
 
     const queryParams = { ...defaultFilters, ...filters };
@@ -52,6 +53,7 @@ export const fetchTankVolumeHistoryFiltered = (filters = {}) => async (dispatch)
     if (queryParams.startDate) params.append('startDate', queryParams.startDate);
     if (queryParams.endDate) params.append('endDate', queryParams.endDate);
     if (queryParams.includeVehicleNames !== undefined) params.append('includeVehicleNames', queryParams.includeVehicleNames);
+    if (queryParams.useManualDispensing !== undefined) params.append('useManualDispensing', queryParams.useManualDispensing);
 
     console.log('Fetching tank volume history with URL:', `/tankvolumehistory/filtered?${params.toString()}`);
 

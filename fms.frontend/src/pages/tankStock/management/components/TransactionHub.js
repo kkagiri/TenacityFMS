@@ -32,6 +32,7 @@ import DataGrid, {
 import { LoadPanel } from 'devextreme-react/load-panel';
 import { ScrollView } from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
+import CheckBox from 'devextreme-react/check-box';
 // import { DropDownButton } from 'devextreme-react/drop-down-button'; // COMMENTED OUT FOR NOW
 import Popup from 'devextreme-react/popup';
 import  notify  from 'devextreme/ui/notify';
@@ -155,7 +156,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       recordedBy: null,
       startDate: startOfDay.toISOString(),
       endDate: endOfDay.toISOString(),
-      includeVehicleNames: true
+      includeVehicleNames: true,
+      useManualDispensing: false // Default to sensor dispensing
     };
   });
   const [isInitialized, setIsInitialized] = useState(false);
@@ -209,7 +211,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         recordedBy: null,
         startDate: startOfDay.toISOString(),
         endDate: endOfDay.toISOString(),
-        includeVehicleNames: true
+        includeVehicleNames: true,
+        useManualDispensing: false
       };
 
       setCurrentFilters(defaultFilters);
@@ -321,11 +324,22 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       recordedBy: null,
       startDate: startOfDay.toISOString(),
       endDate: endOfDay.toISOString(),
-      includeVehicleNames: true
+      includeVehicleNames: true,
+      useManualDispensing: false
     };
 
     handleApplyFilters(defaultFilters);
   }, [handleApplyFilters]);
+
+  // Toggle manual dispensing
+  const handleToggleManualDispensing = useCallback((value) => {
+    const updatedFilters = {
+      ...currentFilters,
+      useManualDispensing: value
+    };
+    setCurrentFilters(updatedFilters);
+    loadTransactionData(updatedFilters);
+  }, [currentFilters, loadTransactionData]);
 
   // Date navigation functions - Enhanced to work with any date range
   // This allows cycling through single days even when a custom date range was previously selected
@@ -892,14 +906,14 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         <div className="tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
           <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center sm:tw-justify-between tw-gap-3">
             {/* Active filters info */}
-            <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-text-sm tw-text-blue-800 tw-gap-2">
+            <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-text-sm tw-text-blue-800 tw-gap-2 tw-flex-1">
               <div className="tw-flex tw-items-center tw-flex-shrink-0">
                 <i className="fa-light fa-info-circle tw-mr-2"></i>
                 <span className="tw-font-medium">Active Filters:</span>
               </div>
 
               {/* Filter tags - responsive wrapping */}
-              <div className="tw-flex tw-flex-wrap tw-gap-2">
+              <div className="tw-flex tw-flex-wrap tw-gap-2 tw-flex-1">
                 {currentFilters.siteId ? (
                   <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                     Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
@@ -941,6 +955,16 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                   )}
                 </span>
               </div>
+            </div>
+
+            {/* Manual Dispensing Toggle */}
+            <div className="tw-flex tw-items-center tw-gap-2 tw-flex-shrink-0">
+              <CheckBox
+                text="Use Manual Dispensing"
+                value={currentFilters.useManualDispensing}
+                onValueChanged={(e) => handleToggleManualDispensing(e.value)}
+                hint="Show manual dispensing from TankStock instead of sensor dispensing"
+              />
             </div>
 
             {/* Reset button */}

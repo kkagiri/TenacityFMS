@@ -175,6 +175,7 @@ export const useFuelingActions = ({
         state.setActivePumpForPopup(state.selectedPump);
         state.setActiveNozzleForPopup(state.selectedNozzle);
         state.setIsFuelingPopupMinimized(false);
+        state.setIsAuthorized(true); // Mark as authorized - waiting for physical fueling to start
 
         // Store transaction data but don't show separate monitoring widget
         // The fueling progress popup handles real-time updates
@@ -290,6 +291,7 @@ export const useFuelingActions = ({
     state.setAmount("");
     state.setVolume("");
     state.setScanResult(null);
+    state.setIsAuthorized(false); // Reset authorization status
     state.setStep("pump");
   }, [state]);
 

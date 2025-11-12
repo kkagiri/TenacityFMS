@@ -48,6 +48,8 @@ const FuelingProcess = () => {
     setVehicleReg,
     isAuthorizing,
     setIsAuthorizing,
+    isAuthorized,
+    setIsAuthorized,
     isScanning,
     setIsScanning,
     scanResult,
@@ -290,6 +292,8 @@ const FuelingProcess = () => {
             vehicleReg={vehicleReg}
             displayDetails={displayDetails}
             isAuthorizing={isAuthorizing}
+            isAuthorized={isAuthorized}
+            currentTransactionId={currentTransactionId}
             startFueling={startFueling}
             setStep={handleStepChange}
             useMasterTag={useMasterTag}

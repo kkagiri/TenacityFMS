@@ -109,7 +109,44 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         {
             try
             {
-                // **CRITICAL CHECK** - Prevent authorization if pump has stuck transaction //Cursor
+                // **STEP 1: NOZZLE STATE VALIDATION** - Ensure nozzle is lifted before authorization
+                _logger.LogInformation("[PumpAuth] **STEP 1** - Checking nozzle state for device {DeviceId}, pump {PumpId}",
+                    request.DeviceId, request.PumpId);
+
+                var nozzleStateQuery = new Features.PTS.Queries.GetPumpNozzleStateQuery(request.DeviceId!, request.PumpId);
+                var nozzleStateResult = await _mediator.Send(nozzleStateQuery, cancellationToken);
+
+                if (!nozzleStateResult.IsSuccess)
+                {
+                    _logger.LogWarning("[PumpAuth] **NOZZLE CHECK FAILED** - {Message}",
+                        nozzleStateResult.Message);
+                    return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                        new List<string> { nozzleStateResult.Message ?? "Unable to verify nozzle state" }
+                    );
+                }
+
+                var nozzleState = nozzleStateResult.Data!;
+
+                if (!nozzleState.IsNozzleUp)
+                {
+                    _logger.LogWarning("[PumpAuth] **NOZZLE DOWN** - Device {DeviceId}, Pump {PumpId}, Status: {Status}",
+                        request.DeviceId, request.PumpId, nozzleState.Status);
+
+                    return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                        new List<string>
+                        {
+                            "⚠️ Nozzle must be lifted before starting fueling",
+                            "Please lift the nozzle from the pump and try again",
+                            $"Current status: {nozzleState.Message}"
+                        });
+                }
+
+                _logger.LogInformation("[PumpAuth] **NOZZLE UP** ✅ - Device {DeviceId}, Pump {PumpId}, Nozzle {NozzleNumber}",
+                    request.DeviceId, request.PumpId, nozzleState.NozzleNumber);
+
+                // **STEP 2: STUCK TRANSACTION CHECK** - Prevent authorization if pump has stuck transaction
+                _logger.LogInformation("[PumpAuth] **STEP 2** - Checking for stuck transactions");
+
                 var stuckTransaction = await CheckForStuckTransaction(request.DeviceId!, request.PumpId);
                 if (stuckTransaction != null)
                 {
@@ -430,9 +467,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     //Cursor: Start monitoring the transaction after successful authorization
                     await _transactionMonitoringService.StartMonitoringTransaction(request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
 
-                    // Populate additional data in confirmation for frontend
-                    confirmation.ConnectionType = connectionType;
-                    confirmation.NozzleId = request.Nozzle;
+                    // Note: PumpAuthorizeConfirmation only contains Pump and Transaction from device
+                    // ConnectionType and NozzleId are stored in Redis transaction context
 
                     return FMSResponse<PumpAuthorizeConfirmation>.Success(confirmation, "Pump authorized");
                 }

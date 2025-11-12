@@ -13,186 +13,212 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.WebClient.Controllers {
-    [Route ("api/v1/[controller]")]
+namespace FMS.WebClient.Controllers
+{
+    [Route("api/v1/[controller]")]
     [ApiController]
     [Authorize]
-    public class TankVolumeHistoryController : ControllerBase {
+    public class TankVolumeHistoryController : ControllerBase
+    {
         private readonly IMediator _mediator;
 
-        public TankVolumeHistoryController (IMediator mediator) {
+        public TankVolumeHistoryController(IMediator mediator)
+        {
             _mediator = mediator;
         }
 
         [HttpGet]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetTankVolumeHistory () {
-            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistory()
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
-            var result = await _mediator.Send (new GetTankVolumeHistoryQuery ());
-            if (result == null) return NoContent ();
-            return Ok (result);
+            var result = await _mediator.Send(new GetTankVolumeHistoryQuery());
+            if (result == null) return NoContent();
+            return Ok(result);
         }
 
-        [HttpGet ("filtered")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetTankVolumeHistoryFiltered (
-            [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] string? recordedBy = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? take = 100, [FromQuery] bool? includeVehicleNames = true) {
-            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpGet("filtered")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistoryFiltered(
+            [FromQuery] int? siteId = null,
+            [FromQuery] int? tankId = null,
+            [FromQuery] string? recordedBy = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int? take = 100,
+            [FromQuery] bool? includeVehicleNames = true,
+            [FromQuery] bool? useManualDispensing = false)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
             // Validate parameters
             if (take.HasValue && take.Value <= 0)
-                return BadRequest ("Take parameter must be greater than 0");
+                return BadRequest("Take parameter must be greater than 0");
 
             if (startDate.HasValue && endDate.HasValue && startDate.Value > endDate.Value)
-                return BadRequest ("Start date cannot be greater than end date");
+                return BadRequest("Start date cannot be greater than end date");
 
-            var query = new GetTankVolumeHistoryFilteredQuery {
+            var query = new GetTankVolumeHistoryFilteredQuery
+            {
                 SiteId = siteId,
                 TankId = tankId,
                 RecordedBy = recordedBy,
                 StartDate = startDate,
                 EndDate = endDate,
                 Take = take,
-                IncludeVehicleNames = includeVehicleNames
+                IncludeVehicleNames = includeVehicleNames,
+                UseManualDispensing = useManualDispensing
             };
 
-            var result = await _mediator.Send (query);
+            var result = await _mediator.Send(query);
 
             if (!result.IsSuccess)
-                return BadRequest (result.Message);
+                return BadRequest(result.Message);
 
-            return Ok (result.Data);
+            return Ok(result.Data);
         }
 
-        [HttpGet ("byTankAndDateRange")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetTankVolumeHistoryById (DateTime startDate, DateTime endDate, int TankId) {
-            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpGet("byTankAndDateRange")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate, DateTime endDate, int TankId)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
-            if (TankId <= 0) return BadRequest ("Invalid ID");
-            if (startDate == default || endDate == default) return BadRequest ("Invalid Date Range");
+            if (TankId <= 0) return BadRequest("Invalid ID");
+            if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
-            var result = await _mediator.Send (new GetTankVolumeHistoryByTankIdQuery (startDate, endDate, TankId));
-            if (result == null) return NotFound ();
-            if (result.Success == false) return BadRequest (result.Message);
+            var result = await _mediator.Send(new GetTankVolumeHistoryByTankIdQuery(startDate, endDate, TankId));
+            if (result == null) return NotFound();
+            if (result.Success == false) return BadRequest(result.Message);
 
-            return Ok (result.Data);
+            return Ok(result.Data);
         }
 
-        [HttpGet ("byDateRange")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetTankVolumeHistoryByDateRange (DateTime StartDate, DateTime EndDate) {
-            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpGet("byDateRange")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistoryByDateRange(DateTime StartDate, DateTime EndDate)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
-            if (StartDate == default || EndDate == default) return BadRequest ("Invalid Date Range");
-            var result = await _mediator.Send (new GetTankVolumeHistoryByDateRangeQuery (StartDate, EndDate));
-            if (result == null) return NotFound ();
-            return Ok (result);
+            if (StartDate == default || EndDate == default) return BadRequest("Invalid Date Range");
+            var result = await _mediator.Send(new GetTankVolumeHistoryByDateRangeQuery(StartDate, EndDate));
+            if (result == null) return NotFound();
+            return Ok(result);
         }
 
-        [HttpGet ("bySite")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetTankVolumeHistoryBySite (DateTime startDate, DateTime endDate, int siteId) {
-            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpGet("bySite")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTankVolumeHistoryBySite(DateTime startDate, DateTime endDate, int siteId)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
-            if (siteId <= 0) return BadRequest ("Invalid Site ID");
-            if (startDate == default || endDate == default) return BadRequest ("Invalid Date Range");
+            if (siteId <= 0) return BadRequest("Invalid Site ID");
+            if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
-            var result = await _mediator.Send (new GetTankVolumeHistoryBySiteQuery (startDate, endDate, siteId));
-            if (result == null) return NotFound ();
+            var result = await _mediator.Send(new GetTankVolumeHistoryBySiteQuery(startDate, endDate, siteId));
+            if (result == null) return NotFound();
 
-            return Ok (result);
+            return Ok(result);
         }
 
-        [HttpGet ("users")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetUsersForFilter () {
-            var hasPermission = User.HasClaim ("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpGet("users")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetUsersForFilter()
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
-            var result = await _mediator.Send (new GetAllUsersForFilterQuery ());
+            var result = await _mediator.Send(new GetAllUsersForFilterQuery());
 
             if (!result.IsSuccess)
-                return BadRequest (result.Message);
+                return BadRequest(result.Message);
 
-            return Ok (result.Data);
+            return Ok(result.Data);
         }
 
         /// <summary>
         /// Validates if a transaction can be deleted based on future records policy
         /// </summary>
-        [HttpPost ("validate-delete")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> ValidateDelete ([FromBody] ValidateDeleteRequest request) {
-            var hasPermission = User.HasClaim ("permissions", "_Delete_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpPost("validate-delete")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> ValidateDelete([FromBody] ValidateDeleteRequest request)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Delete_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
             // Input validation
             if (request.TankId <= 0)
-                return BadRequest ("Invalid tank ID");
+                return BadRequest("Invalid tank ID");
 
             if (request.EntryDate == default)
-                return BadRequest ("Invalid entry date");
+                return BadRequest("Invalid entry date");
 
-            if (!Enum.IsDefined (typeof (VolumeChangeReasonEnum), request.EntryType))
-                return BadRequest ("Invalid entry type");
+            if (!Enum.IsDefined(typeof(VolumeChangeReasonEnum), request.EntryType))
+                return BadRequest("Invalid entry type");
 
-            try {
-                var futureRecordsService = new TankStockFutureRecordsService (
-                    HttpContext.RequestServices.GetService<GpsdataContext> (),
-                    HttpContext.RequestServices.GetService<ISystemConfigurationService> (),
-                    HttpContext.RequestServices.GetService<ILogger<TankStockFutureRecordsService>> ());
+            try
+            {
+                var futureRecordsService = new TankStockFutureRecordsService(
+                    HttpContext.RequestServices.GetService<GpsdataContext>(),
+                    HttpContext.RequestServices.GetService<ISystemConfigurationService>(),
+                    HttpContext.RequestServices.GetService<ILogger<TankStockFutureRecordsService>>());
 
-                var result = await futureRecordsService.ValidateHistoricalEntryAsync (
+                var result = await futureRecordsService.ValidateHistoricalEntryAsync(
                     request.TankId,
                     request.EntryDate,
                     request.EntryType);
 
-                return Ok (result);
-            } catch (Exception ex) {
-                return BadRequest ($"Validation failed: {ex.Message}");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Validation failed: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Deletes a tank volume history transaction
         /// </summary>
-        [HttpDelete ("{id}")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> DeleteTransaction (int id, [FromQuery] bool userConfirmed = false) {
-            var hasPermission = User.HasClaim ("permissions", "_Delete_tankVolumeHistory");
-            if (!hasPermission) return Forbid ();
+        [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> DeleteTransaction(int id, [FromQuery] bool userConfirmed = false)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Delete_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
 
             if (id <= 0)
-                return BadRequest ("Invalid transaction ID");
+                return BadRequest("Invalid transaction ID");
 
-            try {
+            try
+            {
                 // Get the current user identifier
-                var userIdClaim = User.Claims.FirstOrDefault (c =>
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
                     c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse (c.Value, out _));
+                    Guid.TryParse(c.Value, out _));
 
                 var deletedBy = userIdClaim?.Value;
 
-                var command = new DeleteTankVolumeHistoryCommand (
+                var command = new DeleteTankVolumeHistoryCommand(
                     DeletedBy: deletedBy,
                     Id: id,
                     ValidateFutureRecords: !userConfirmed);
 
-                var result = await _mediator.Send (command);
+                var result = await _mediator.Send(command);
 
                 if (!result.Success)
-                    return BadRequest (result.Message);
+                    return BadRequest(result.Message);
 
-                return Ok (result);
-            } catch (Exception ex) {
-                return BadRequest ($"Delete failed: {ex.Message}");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Delete failed: {ex.Message}");
             }
         }
     }
@@ -200,7 +226,8 @@ namespace FMS.WebClient.Controllers {
     /// <summary>
     /// Request model for delete validation
     /// </summary>
-    public class ValidateDeleteRequest {
+    public class ValidateDeleteRequest
+    {
         public int TankId { get; set; }
         public DateTime EntryDate { get; set; }
         public VolumeChangeReasonEnum EntryType { get; set; }
@@ -209,7 +236,8 @@ namespace FMS.WebClient.Controllers {
     /// <summary>
     /// Request model for transaction deletion
     /// </summary>
-    public class DeleteTransactionRequest {
+    public class DeleteTransactionRequest
+    {
         public string? DeletionReason { get; set; }
         public bool UserConfirmed { get; set; }
     }

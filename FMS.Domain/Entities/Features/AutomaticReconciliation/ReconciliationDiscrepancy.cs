@@ -2,14 +2,16 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Domain.Entities {
+namespace FMS.Domain.Entities
+{
     /// <summary>
     /// Represents a detected discrepancy during automated reconciliation
     /// </summary>
-    public class ReconciliationDiscrepancy {
+    public class ReconciliationDiscrepancy
+    {
         public int Id { get; set; }
 
-        public int PolicyExecutionId { get; set; }
+        public int? PolicyExecutionId { get; set; }
 
         public int TankId { get; set; }
 
@@ -53,13 +55,13 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// Method used to resolve the discrepancy
         /// </summary>
-        [MaxLength (100)]
+        [MaxLength(100)]
         public string? ResolutionMethod { get; set; }
 
         /// <summary>
         /// Additional analysis or notes about the discrepancy
         /// </summary>
-        [MaxLength (500)]
+        [MaxLength(500)]
         public string? AnalysisNotes { get; set; }
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace FMS.Domain.Entities {
         public decimal? BusinessImpactScore { get; set; }
 
         // Navigation properties
-        public virtual ReconciliationPolicyExecution PolicyExecution { get; set; } = null!;
+        public virtual ReconciliationPolicyExecution? PolicyExecution { get; set; }
         public virtual Tank Tank { get; set; } = null!;
     }
 }

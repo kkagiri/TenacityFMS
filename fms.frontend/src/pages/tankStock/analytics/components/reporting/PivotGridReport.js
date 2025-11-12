@@ -374,7 +374,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
       </div>
 
       {/* Pivot Grid */}
-      <div className="pivot-grid-container tw-p-4 tw-overflow-hidden tw-flex tw-flex-col" style={{ flex: 1, minHeight: '800px' }}>
+      <div className="pivot-grid-container tw-flex tw-flex-col" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {loading && (
           <div className="pivot-grid-loading tw-flex tw-justify-center tw-items-center tw-h-full">
             <div className="tw-text-center">
@@ -397,34 +397,36 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
         )}
 
         {canRenderDevExtreme && dataSource && !loading && pivotGridData.length > 0 && (
-          <PivotGrid
-            key={`pivot-grid-${reportType}-${pivotGridData.length}`}
-            ref={pivotGridRef}
-            dataSource={dataSource}
-            allowSortingBySummary={true}
-            allowSorting={true}
-            allowFiltering={true}
-            allowExpanding={true}
-            showColumnGrandTotals={false}
-            showBorders={true}
-            showColumnTotals={false}
-            showRowTotals={true}
-            showRowGrandTotals={true}
-            height="100%"
-            width="100%"
-            onExporting={onExporting}
+          <div style={{ flex: 1, minHeight: 0, width: '100%', height: '100%' }}>
+            <PivotGrid
+              key={`pivot-grid-${reportType}-${pivotGridData.length}`}
+              ref={pivotGridRef}
+              dataSource={dataSource}
+              allowSortingBySummary={true}
+              allowSorting={true}
+              allowFiltering={true}
+              allowExpanding={true}
+              showColumnGrandTotals={false}
+              showBorders={true}
+              showColumnTotals={false}
+              showRowTotals={true}
+              showRowGrandTotals={true}
+              height="100%"
+              width="100%"
+              onExporting={onExporting}
 
-            onCellPrepared={(e) => {
-              // Custom cell styling
-              if (e.area === 'data' && e.cell.value < 0) {
-                e.cellElement.style.color = '#d73527';
-                e.cellElement.style.fontWeight = 'bold';
-              }
-            }}
-          >
-            <FieldChooser enabled={true} />
-            <Export enabled={true} />
-          </PivotGrid>
+              onCellPrepared={(e) => {
+                // Custom cell styling
+                if (e.area === 'data' && e.cell.value < 0) {
+                  e.cellElement.style.color = '#d73527';
+                  e.cellElement.style.fontWeight = 'bold';
+                }
+              }}
+            >
+              <FieldChooser enabled={true} />
+              <Export enabled={true} />
+            </PivotGrid>
+          </div>
         )}
       </div>
 

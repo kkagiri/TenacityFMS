@@ -257,7 +257,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                         var discrepancy = new ReconciliationDiscrepancy
                         {
-                            PolicyExecutionId = 0, // Since this is not policy-driven, set to 0 or create a default policy execution
+                            PolicyExecutionId = null, // Manual closing stock discrepancy, not policy-driven
                             TankId = tankId,
                             DetectedAt = DateTime.UtcNow,
                             CurrentStock = actualClosingStock,
@@ -482,7 +482,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                     var discrepancy = new ReconciliationDiscrepancy
                     {
-                        PolicyExecutionId = 0, // Manual entry discrepancy
+                        PolicyExecutionId = null, // Manual entry discrepancy
                         TankId = tankId,
                         DetectedAt = DateTime.UtcNow,
                         CurrentStock = manualClosingStock,

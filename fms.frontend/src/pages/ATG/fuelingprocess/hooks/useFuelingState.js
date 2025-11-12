@@ -43,6 +43,7 @@ export const useFuelingState = () => {
 
   // --- Transaction State ---
   const [isAuthorizing, setIsAuthorizing] = useState(false); // API call in progress
+  const [isAuthorized, setIsAuthorized] = useState(false); // Pump authorized and waiting for physical fueling to start
   const [currentTransactionId, setCurrentTransactionId] = useState(null); // Store ID from authorize/status
 
   // --- Fueling Type & Amounts ---
@@ -118,6 +119,8 @@ export const useFuelingState = () => {
     // Transaction State
     isAuthorizing,
     setIsAuthorizing,
+    isAuthorized,
+    setIsAuthorized,
     currentTransactionId,
     setCurrentTransactionId,
 

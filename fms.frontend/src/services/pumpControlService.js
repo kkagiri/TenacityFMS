@@ -139,6 +139,24 @@ const pumpControlService = {
    */
   api: {
     /**
+     * Get nozzle state (up/down) for a pump - NEW //Cursor
+     * Returns current nozzle status from latest UploadStatus
+     * Used to validate nozzle is lifted before authorization
+     * @param {string} deviceId - PTS device ID
+     * @param {number} pumpId - Pump ID to check
+     * @returns {Promise<object>} - Response with nozzle state {isNozzleUp, nozzleNumber, status, message}
+     */
+    getNozzleState: async (deviceId, pumpId) => {
+      try {
+        const response = await axiosInstance.get(`/pump/${deviceId}/${pumpId}/nozzle-state`);
+        return response.data;
+      } catch (error) {
+        console.error("Get nozzle state error:", error);
+        throw error;
+      }
+    },
+
+    /**
      * Get device connection status - one-time check
      */
     getDeviceStatus: async (deviceId) => {

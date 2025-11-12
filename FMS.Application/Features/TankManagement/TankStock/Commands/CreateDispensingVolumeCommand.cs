@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -6,6 +7,7 @@ using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand;
@@ -44,6 +46,36 @@ public class CreateDispensingVolumeCommandHandler : IRequestHandler<CreateDispen
             if (request.DispensedVolume <= 0)
             {
                 return new FMSResponseMessage(false, "Dispensed volume should be greater than 0");
+            }
+
+            var entryDate = request.EntryDate;
+
+            // Validation: Check if there is opening stock for the tank on the entry day
+            var existingOpeningStock = await _context.TankVolumeHistories
+                .Where(x => x.TankId == request.TankId &&
+                    x.Timestamp.Date == entryDate.Date &&
+                    x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                .OrderByDescending(x => x.Timestamp)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingOpeningStock == null)
+            {
+                return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.");
+            }
+
+            // Validation: Check for duplicate entries
+            var existingDispensingEntry = await _context.Tankstocks
+                .FirstOrDefaultAsync(t =>
+                    t.TankId == request.TankId &&
+                    t.EntryDate.Date == entryDate.Date &&
+                    t.EntryType == VolumeChangeReasonEnum.Dispensing &&
+                    t.ManualAmount == request.DispensedVolume &&
+                    t.RecordedBy == request.RecordedBy,
+                    cancellationToken);
+
+            if (existingDispensingEntry != null)
+            {
+                return new FMSResponseMessage(false, "Duplicate entry: A dispensing volume with the same details already exists for this tank on the specified date.");
             }
 
             // Create simple TankStock entry for bulk dispensing record

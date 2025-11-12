@@ -170,6 +170,36 @@ namespace FMS.WebClient.Controllers.PTSController
             }
         }
 
+        /// <summary>
+        /// Get the current nozzle state for a pump (lifted/down)
+        /// Used by frontend to validate nozzle is up before authorizing
+        /// </summary>
+        [HttpGet("{deviceId}/{pumpId}/nozzle-state")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<FMSResponse<FMS.Application.Features.PTS.Queries.PumpNozzleStateDto>>> GetNozzleState(
+            string deviceId,
+            int pumpId)
+        {
+            try
+            {
+                var query = new FMS.Application.Features.PTS.Queries.GetPumpNozzleStateQuery(deviceId, pumpId);
+                var result = await _mediator.Send(query);
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting nozzle state for device {DeviceId}, pump {PumpId}", deviceId, pumpId);
+                return StatusCode(500, FMS.Application.Common.FMSResponse<FMS.Application.Features.PTS.Queries.PumpNozzleStateDto>
+                    .SystemError("Error getting nozzle state"));
+            }
+        }
+
         //Cursor: Add diagnostic endpoint for troubleshooting device issues
         /// <summary>
         /// Diagnostic endpoint to check device status and connectivity

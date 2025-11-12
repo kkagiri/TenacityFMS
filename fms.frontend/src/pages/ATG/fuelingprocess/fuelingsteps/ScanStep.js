@@ -1,10 +1,13 @@
 //Cursor
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState, useEffect } from "react";
 import { Button } from "devextreme-react/button";
 import { RadioGroup } from "devextreme-react/radio-group";
 import LoadIndicator from "devextreme-react/load-indicator";
 import ProgressBar from "devextreme-react/progress-bar";
 import VehicleSearchableSelector from "../../../../components/selectors/VehicleSearchableSelector";
+import pumpControlService from "../../../../services/pumpControlService";
+import ptsSignalRService from "../../../../signalR/ptsSignalRService";
+import notify from "devextreme/ui/notify";
 
 //Cursor: Memoized ScanStep component - Redesigned to prevent UI overlays
 const ScanStep = memo(
@@ -24,7 +27,144 @@ const ScanStep = memo(
     selectedNozzle,
     setScanResult,
     onConfigureRules, // Add callback for configuring rules
+    ptsId, // Device ID for nozzle state check
   }) => {
+    //Cursor: Nozzle state monitoring - NEW
+    const [nozzleState, setNozzleState] = useState({
+      isUp: false,
+      nozzleNumber: null,
+      status: "Unknown",
+      message: "Checking nozzle status...",
+      lastUpdated: null,
+    });
+    const [isCheckingNozzle, setIsCheckingNozzle] = useState(true);
+
+    //Cursor: Initial nozzle state check on mount
+    useEffect(() => {
+      const checkInitialNozzleState = async () => {
+        if (!ptsId || !selectedNozzle?.id) {
+          setIsCheckingNozzle(false);
+          return;
+        }
+
+        try {
+          setIsCheckingNozzle(true);
+          const response = await pumpControlService.api.getNozzleState(
+            ptsId,
+            selectedNozzle.id
+          );
+
+          if (response.isSuccess && response.data) {
+            setNozzleState({
+              isUp: response.data.isNozzleUp || false,
+              nozzleNumber: response.data.nozzleNumber,
+              status: response.data.status || "Unknown",
+              message:
+                response.data.message || "Nozzle state retrieved successfully",
+              lastUpdated: new Date(),
+            });
+          } else {
+            setNozzleState({
+              isUp: false,
+              nozzleNumber: selectedNozzle.nozzleNumber,
+              status: "Unknown",
+              message: response.message || "Unable to determine nozzle state",
+              lastUpdated: new Date(),
+            });
+          }
+        } catch (error) {
+          console.error("[ScanStep] Error checking nozzle state:", error);
+          setNozzleState({
+            isUp: false,
+            nozzleNumber: selectedNozzle.nozzleNumber,
+            status: "Error",
+            message: "Failed to check nozzle state",
+            lastUpdated: new Date(),
+          });
+        } finally {
+          setIsCheckingNozzle(false);
+        }
+      };
+
+      checkInitialNozzleState();
+    }, [ptsId, selectedNozzle]);
+
+    //Cursor: Real-time nozzle state monitoring via SignalR
+    useEffect(() => {
+      if (!ptsId || !selectedNozzle?.id) return;
+
+      const handleUploadStatusUpdate = (data) => {
+        try {
+          console.log("[ScanStep] UploadStatusUpdate received:", data);
+
+          // Check if this update is for our device
+          if (data?.deviceId !== ptsId) {
+            console.log("[ScanStep] Update for different device, ignoring");
+            return;
+          }
+
+          // Parse UploadStatus data structure from data.status
+          const uploadStatus = data?.status;
+          if (!uploadStatus) {
+            console.log("[ScanStep] No status in update");
+            return;
+          }
+
+          const idleStatus = uploadStatus?.pumps?.idleStatus;
+          if (!idleStatus || !idleStatus.ids || !idleStatus.nozzlesUp) {
+            console.log("[ScanStep] No IdleStatus in update");
+            return;
+          }
+
+          // Find pump index in Ids array
+          const pumpIndex = idleStatus.ids.findIndex(
+            (id) => id === selectedNozzle.id
+          );
+          if (pumpIndex === -1) {
+            console.log("[ScanStep] Pump not in idle state");
+            return;
+          }
+
+          // Check nozzle state from NozzlesUp array
+          const nozzleValue = idleStatus.nozzlesUp[pumpIndex];
+          const isNozzleUp = nozzleValue > 0;
+
+          console.log("[ScanStep] Nozzle state:", { pumpIndex, nozzleValue, isNozzleUp });
+
+          setNozzleState((prev) => ({
+            ...prev,
+            isUp: isNozzleUp,
+            nozzleNumber: nozzleValue > 0 ? nozzleValue : prev.nozzleNumber,
+            status: isNozzleUp ? "Up" : "Down",
+            message: isNozzleUp
+              ? `✅ Nozzle ${nozzleValue} is UP - Ready to fuel`
+              : "⚠️ Please lift nozzle from pump",
+            lastUpdated: new Date(),
+          }));
+        } catch (error) {
+          console.error(
+            "[ScanStep] Error parsing uploadStatusUpdate:",
+            error
+          );
+        }
+      };
+
+      // Subscribe to uploadStatusUpdate events using the .on() method
+      console.log("[ScanStep] Subscribing to uploadStatusUpdate for device:", ptsId);
+      const unsubscribe = ptsSignalRService.on(
+        "uploadStatusUpdate",
+        handleUploadStatusUpdate
+      );
+
+      // Cleanup subscription on unmount
+      return () => {
+        console.log("[ScanStep] Unsubscribing from uploadStatusUpdate");
+        if (unsubscribe && typeof unsubscribe === "function") {
+          unsubscribe();
+        }
+      };
+    }, [ptsId, selectedNozzle]);
+
     //Cursor: Memoize selection methods
     const selectionMethods = useMemo(
       () => [
@@ -83,11 +223,26 @@ const ScanStep = memo(
       handleVehicleSelected(null);
     }, [handleVehicleSelected]);
 
-    //Cursor: Memoize accept handler (unified for both scan and lookup)
+    //Cursor: Memoize accept handler (unified for both scan and lookup) - UPDATED with nozzle validation
     const handleAcceptVehicle = useCallback(() => {
-      console.log("handleAcceptVehicle", vehicleInfo);
+      // Validate nozzle is UP before proceeding
+      if (!nozzleState.isUp) {
+        notify(
+          {
+            message:
+              "⚠️ Please lift the nozzle from the pump before starting fueling",
+            type: "warning",
+            displayTime: 4000,
+            position: { at: "top center", my: "top center" },
+          },
+          { direction: "down-push" }
+        );
+        return;
+      }
+
+      console.log("handleAcceptVehicle - Nozzle UP, proceeding", vehicleInfo);
       acceptScanResult(vehicleInfo);
-    }, [acceptScanResult, vehicleInfo]);
+    }, [acceptScanResult, vehicleInfo, nozzleState.isUp]);
 
     // Check if vehicle info is being loaded (selectedVehicleId exists but vehicleInfo doesn't)
     const isLoadingVehicleInfo = selectedVehicleId && !vehicleInfo;
@@ -232,6 +387,69 @@ const ScanStep = memo(
           </h3>
         </div>
 
+        {/* Nozzle State Indicator - NEW */}
+        <div
+          className={`tw-mb-4 tw-p-4 tw-rounded-lg tw-border-2 tw-flex tw-items-center tw-justify-between tw-transition-all ${
+            isCheckingNozzle
+              ? "tw-border-gray-300 tw-bg-gray-50"
+              : nozzleState.isUp
+              ? "tw-border-green-500 tw-bg-green-50"
+              : "tw-border-orange-500 tw-bg-orange-50"
+          }`}
+        >
+          <div className="tw-flex tw-items-center tw-gap-3">
+            {isCheckingNozzle ? (
+              <>
+                <LoadIndicator width={24} height={24} />
+                <div>
+                  <p className="tw-font-semibold tw-text-gray-700 tw-mb-0">
+                    Checking nozzle status...
+                  </p>
+                  <p className="tw-text-xs tw-text-gray-600 tw-mb-0 tw-mt-1">
+                    Please wait
+                  </p>
+                </div>
+              </>
+            ) : nozzleState.isUp ? (
+              <>
+                <i className="fa-light fa-gas-pump tw-text-green-600 tw-text-3xl"></i>
+                <div>
+                  <p className="tw-font-semibold tw-text-green-700 tw-mb-0 tw-flex tw-items-center">
+                    <i className="fa-light fa-check-circle tw-mr-2"></i>
+                    Nozzle {nozzleState.nozzleNumber} is UP
+                  </p>
+                  <p className="tw-text-xs tw-text-green-600 tw-mb-0 tw-mt-1">
+                    ✅ Ready to fuel - You may proceed
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <i className="fa-light fa-gas-pump tw-text-orange-600 tw-text-3xl"></i>
+                <div>
+                  <p className="tw-font-semibold tw-text-orange-700 tw-mb-0 tw-flex tw-items-center">
+                    <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
+                    Nozzle Down
+                  </p>
+                  <p className="tw-text-xs tw-text-orange-600 tw-mb-0 tw-mt-1">
+                    ⚠️ Please lift the nozzle from the pump before continuing
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          {nozzleState.lastUpdated && !isCheckingNozzle && (
+            <div className="tw-text-right">
+              <p className="tw-text-xs tw-text-gray-500 tw-mb-0">
+                Last updated
+              </p>
+              <p className="tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-0">
+                {nozzleState.lastUpdated.toLocaleTimeString()}
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Scrollable Content Wrapper */}
         <div className="tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-pr-2 tw--mr-2">
           {/* Method Selection */}
@@ -349,6 +567,12 @@ const ScanStep = memo(
                         icon="fa-light fa-check"
                         onClick={handleAcceptVehicle}
                         className="tw-flex-1"
+                        disabled={!nozzleState.isUp}
+                        hint={
+                          !nozzleState.isUp
+                            ? "⚠️ Please lift the nozzle before continuing"
+                            : "Proceed to fueling details"
+                        }
                       />
                     </div>
                   </div>
@@ -492,6 +716,12 @@ const ScanStep = memo(
                         icon="fa-light fa-check"
                         onClick={handleAcceptVehicle}
                         className="tw-flex-1"
+                        disabled={!nozzleState.isUp}
+                        hint={
+                          !nozzleState.isUp
+                            ? "⚠️ Please lift the nozzle before continuing"
+                            : "Proceed to fueling details"
+                        }
                       />
                     </div>
                   </div>
