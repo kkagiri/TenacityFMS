@@ -291,61 +291,6 @@ const FuelingDetailsStep = memo(
             </div>
           </div>
 
-          {/* Authorization Success - Ready to Fuel State */}
-          {isAuthorized && currentTransactionId && (
-            <div className="authorization-success tw-mb-4 tw-p-4 tw-bg-green-50 tw-border-2 tw-border-green-400 tw-rounded-lg tw-animate-pulse">
-              <div className="tw-flex tw-items-center tw-mb-3">
-                <i className="fa-light fa-check-circle tw-text-green-600 tw-text-3xl tw-mr-3"></i>
-                <div>
-                  <h4 className="tw-text-lg tw-font-bold tw-text-green-800 tw-mb-1">
-                    Authorization Successful!
-                  </h4>
-                  <p className="tw-text-sm tw-text-green-700">
-                    Transaction ID: <span className="tw-font-mono tw-font-semibold">{currentTransactionId}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="tw-bg-white tw-border tw-border-green-300 tw-rounded-lg tw-p-3 tw-mb-3">
-                <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2 tw-flex tw-items-center">
-                  <i className="fa-light fa-info-circle tw-mr-2"></i>
-                  Ready to Start Fueling
-                </h5>
-                <ol className="tw-list-decimal tw-list-inside tw-space-y-2 tw-text-sm tw-text-gray-700">
-                  <li className="tw-flex tw-items-start">
-                    <span className="tw-mr-2">1.</span>
-                    <span className="tw-flex-1">
-                      <strong>Lift Nozzle {selectedNozzle?.id || selectedNozzle?.name}</strong> from Pump {selectedPump?.id || selectedPump?.name}
-                    </span>
-                  </li>
-                  <li className="tw-flex tw-items-start">
-                    <span className="tw-mr-2">2.</span>
-                    <span className="tw-flex-1">
-                      <strong>Insert nozzle</strong> into vehicle fuel tank
-                    </span>
-                  </li>
-                  <li className="tw-flex tw-items-start">
-                    <span className="tw-mr-2">3.</span>
-                    <span className="tw-flex-1">
-                      <strong>Pull trigger</strong> to start fuel flow - counter will begin automatically
-                    </span>
-                  </li>
-                  <li className="tw-flex tw-items-start">
-                    <span className="tw-mr-2">4.</span>
-                    <span className="tw-flex-1">
-                      <strong>Monitor progress</strong> on screen - transaction will complete when nozzle clicks off or you release trigger
-                    </span>
-                  </li>
-                </ol>
-              </div>
-
-              <div className="tw-flex tw-items-center tw-justify-center tw-text-xs tw-text-green-600 tw-italic">
-                <i className="fa-light fa-hourglass-half tw-mr-2 tw-animate-spin"></i>
-                Waiting for physical fueling to begin...
-              </div>
-            </div>
-          )}
-
           <div className="dx-field tw-mt-4">
             {isPumpNozzleBusy ? (
               <div className="already-fueling-message tw-text-center tw-p-3 tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-text-yellow-800 tw-rounded">
@@ -354,14 +299,6 @@ const FuelingDetailsStep = memo(
                   This pump and nozzle combination is currently busy (fueling or
                   completing). Please select another or wait.
                 </span>
-              </div>
-            ) : isAuthorized ? (
-              <div className="authorization-pending tw-text-center tw-p-3 tw-bg-blue-50 tw-border-2 tw-border-blue-400 tw-text-blue-800 tw-rounded">
-                <i className="fa-light fa-pump-medical tw-mr-2 tw-text-2xl"></i>
-                <div className="tw-font-semibold tw-text-lg">Pump Authorized - Waiting for Fueling</div>
-                <div className="tw-text-sm tw-mt-2">
-                  Lift the nozzle and pull the trigger to start. Transaction will appear automatically.
-                </div>
               </div>
             ) : (
               <Button

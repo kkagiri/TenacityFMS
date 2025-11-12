@@ -15,6 +15,7 @@ import ScanStep from "./fuelingsteps/ScanStep";
 import PumpSelectionStep from "./fuelingsteps/PumpSelectionStep";
 import NozzleSelectionStep from "./fuelingsteps/NozzleSelectionStep";
 import FuelingDetailsStep from "./fuelingsteps/FuelingDetailsStep";
+import AuthorizationSuccessStep from "./fuelingsteps/AuthorizationSuccessStep";
 import TransactionMonitoringStatus from "./TransactionMonitoringStatus";
 
 // Import custom hooks
@@ -50,6 +51,8 @@ const FuelingProcess = () => {
     setIsAuthorizing,
     isAuthorized,
     setIsAuthorized,
+    eotDetected,
+    setEotDetected,
     isScanning,
     setIsScanning,
     scanResult,
@@ -105,6 +108,13 @@ const FuelingProcess = () => {
     setShowStuckTransactionManager,
     selectedVehicleId,
     setSelectedVehicleId,
+    // Tank selection state
+    selectedTankId,
+    setSelectedTankId,
+    availableTanks,
+    setAvailableTanks,
+    isLoadingTanks,
+    setIsLoadingTanks,
   } = state;
 
   // Use device data hook
@@ -302,6 +312,17 @@ const FuelingProcess = () => {
             scanResult={scanResult}
           />
         );
+      case "authorization":
+        return (
+          <AuthorizationSuccessStep
+            currentTransactionId={currentTransactionId}
+            selectedPump={selectedPump}
+            selectedNozzle={selectedNozzle}
+            eotDetected={eotDetected}
+            onStartNew={startNewFueling}
+            displayDetails={displayDetails}
+          />
+        );
       default:
         return <div>Invalid step: {step}</div>;
     }
@@ -377,6 +398,13 @@ const FuelingProcess = () => {
         siteName={siteName()} // Use the siteName function to get the site name
         onConnectionStatusChange={handleConnectionStatusChange} // New prop
         handleViewPumpTransactions={handleViewPumpTransactions} // Add pump transactions handler
+        // Tank selection props
+        selectedTankId={selectedTankId}
+        setSelectedTankId={setSelectedTankId}
+        availableTanks={availableTanks}
+        setAvailableTanks={setAvailableTanks}
+        isLoadingTanks={isLoadingTanks}
+        setIsLoadingTanks={setIsLoadingTanks}
       />
 
       {/* Main Content - Disable interaction when disconnected */}

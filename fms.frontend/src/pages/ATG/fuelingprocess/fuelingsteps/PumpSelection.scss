@@ -1,0 +1,375 @@
+// Pump Selection Step Styles
+
+// Global pump tile styles (must be outside .main-content for DevExtreme TileView)
+.pump-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &.active {
+    border-color: #007bff;
+  }
+
+  &.disabled {
+    pointer-events: none;
+  }
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+
+  p {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+}
+
+.nozzle-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  text-align: center;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .nozzle-icon-container {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+
+    .nozzle-icon {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #333;
+  }
+
+  .nozzle-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      i {
+        font-size: 1rem;
+      }
+    }
+
+    .fuel-type {
+      color: #666;
+
+      i {
+        color: #ffa500;
+      }
+    }
+
+    .status {
+      i {
+        color: #4caf50;
+      }
+    }
+  }
+
+  &.dx-state-active {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+  }
+
+  &.dx-state-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+// These styles need to be nested inside .main-content in the parent
+.fueling-process-container .main-content {
+  .pump-selection-container {
+    margin-top: 15px;
+  }
+
+  .nozzle-selection-container {
+    margin-top: 15px;
+  }
+
+  .pump-tile,
+  .nozzle-tile {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+  }
+
+  .pump-icon-container,
+  .nozzle-icon-container {
+    position: relative;
+    margin-bottom: 10px;
+  }
+
+  .pump-icon,
+  .nozzle-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+  }
+
+  .active-indicator-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #4caf50;
+    color: white;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+  }
+
+  .offline-indicator-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #dc3545;
+    color: white;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+  }
+
+  .last-transaction {
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  .nozzle-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: auto;
+    margin-bottom: 10px;
+  }
+
+  .fuel-type,
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+}
+
+// Center the pump and nozzle tiles
+.dx-tileview {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0 auto;
+
+  // Fix for DevExtreme TileView wrapper width issue
+  .dx-scrollview-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 15px;
+  }
+
+  .dx-tileview-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 15px;
+  }
+
+  .dx-tile {
+    position: static !important;
+    margin: 15px !important;
+  }
+}
+
+.pump-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &.active {
+    border-color: #007bff;
+  }
+
+  &.disabled {
+    pointer-events: none;
+  }
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+
+  p {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+}
+
+.nozzle-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  text-align: center;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .nozzle-icon-container {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+
+    .nozzle-icon {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #333;
+  }
+
+  .nozzle-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      i {
+        font-size: 1rem;
+      }
+    }
+
+    .fuel-type {
+      color: #666;
+
+      i {
+        color: #ffa500;
+      }
+    }
+
+    .status {
+      i {
+        color: #4caf50;
+      }
+    }
+  }
+
+  &.dx-state-active {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+  }
+
+  &.dx-state-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+// No pumps message
+.no-pumps-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.no-data-icon {
+  position: relative;
+  font-size: 64px;
+  color: #dee2e6;
+}
+
+.no-data-icon .fa-slash {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.no-pumps-message p {
+  font-size: 18px;
+  margin: 10px 0 0 0;
+}
+
+.no-data-subtext {
+  font-size: 14px;
+  color: #adb5bd;
+}

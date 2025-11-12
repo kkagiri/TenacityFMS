@@ -51,10 +51,12 @@ const FuelingPopupRenderer = {
         title={`Pump ${activePump?.id || "N/A"} - Nozzle ${
           activeNozzle?.id || "N/A"
         } - Fueling`}
-        width={500}
+        width="auto"
+        maxWidth="95%"
         height={"auto"}
         showCloseButton={true}
         onHiding={() => setShowFuelingPopup(false)}
+        wrapperAttr={{ class: 'fueling-popup-wrapper' }}
       >
         <div className="modern-fueling-progress">
           <div className="fueling-status">
@@ -142,8 +144,10 @@ const FuelingPopupRenderer = {
         showCloseButton={true}
         showTitle={true}
         title="Fueling Complete"
-        width={500}
+        width="auto"
+        maxWidth="95%"
         height={"auto"}
+        wrapperAttr={{ class: 'fueling-complete-popup-wrapper' }}
       >
         <div className="modern-fueling-complete">
           <div className="complete-icon">
@@ -246,12 +250,13 @@ const FuelingPopupRenderer = {
       <Popup
         visible={showNavigationDialog}
         dragEnabled={false}
-        showCloseButton
-={true}
+        showCloseButton={true}
         showTitle={true}
         title="Fueling in Progress"
-        width={400}
-        height={200}
+        width="auto"
+        maxWidth="95%"
+        height="auto"
+        wrapperAttr={{ class: 'navigation-dialog-popup-wrapper' }}
       >
         <div className="navigation-dialog">
           <p>
@@ -291,11 +296,12 @@ const FuelingPopupRenderer = {
         showCloseButton={true}
         showTitle={true}
         title="Active Fueling Processes"
-        width={600}
+        width="auto"
         height="auto"
-        maxWidth="90%"
+        maxWidth="95%"
         maxHeight="80vh"
         onHiding={() => setShowAllFuelingPopup(false)}
+        wrapperAttr={{ class: 'all-fueling-popup-wrapper' }}
       >
         <div className="all-fueling-processes">
           {activeFuelingProcesses && activeFuelingProcesses.length > 0 ? (

@@ -1,0 +1,225 @@
+// Shared Styles for Fueling Process
+// Common styles, animations, and utilities used across multiple components
+
+// Common container styles
+.dx-card.responsive-paddings {
+  padding: 24px;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+}
+
+// DevExtreme fieldset styles
+.dx-fieldset {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+
+  .dx-field {
+    margin-bottom: 20px;
+
+    .dx-field-label {
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .dx-field-value {
+      .dx-radiogroup {
+        display: flex;
+        gap: 20px;
+      }
+
+      .dx-numberbox {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Update existing container styles
+.vehicle-registration-container,
+.scanning-container,
+.scan-result-container,
+.vehicle-details-container,
+.fueling-details-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+}
+
+// Fueling details card
+.fueling-details-card {
+  margin: 20px 0;
+  padding: 20px;
+  border-radius: 8px;
+
+  h4 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #333;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e9ecef;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .label {
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .value {
+      color: #212529;
+      font-weight: 600;
+    }
+  }
+}
+
+// Update existing styles for better integration
+.dx-fieldset {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+}
+
+// Fueling Details Messages
+.already-fueling-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  padding: 15px;
+  margin-top: 10px;
+  color: #856404;
+
+  i {
+    font-size: 20px;
+    color: #f39c12;
+  }
+
+  span {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+// Disconnection overlay styles
+.disconnection-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.disconnection-message {
+  background-color: white;
+  border-radius: 6px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+
+  h3 {
+    color: #dc3545;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      margin-right: 10px;
+      font-size: 1.5em;
+    }
+  }
+}
+
+// Disabled UI when disconnected
+.disconnected-ui {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(30%);
+  transition: all 0.3s ease;
+}
+
+// Connection status banner
+.connection-status-banner {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+
+  i {
+    margin-right: 8px;
+    font-size: 1.2em;
+  }
+
+  &.warning {
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+  }
+
+  &.info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+  }
+}
+
+// Animations
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reconnecting-pulse {
+  animation: pulse 2s infinite;
+}

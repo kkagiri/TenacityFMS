@@ -155,6 +155,7 @@ export const useFuelingActions = ({
             : 0,
         price: fuelPrice,
         fuelGradeId: fuelGradeId,
+        tankId: state.selectedTankId, // Add tankId for tank selection
         tag: state.useMasterTag ? userMasterTag : tagToUse,
         vehicleId: hasVehicleInfo ? (state.vehicleInfo?.vehicleId || state.selectedVehicleId) : null,
       };
@@ -176,6 +177,10 @@ export const useFuelingActions = ({
         state.setActiveNozzleForPopup(state.selectedNozzle);
         state.setIsFuelingPopupMinimized(false);
         state.setIsAuthorized(true); // Mark as authorized - waiting for physical fueling to start
+        state.setEotDetected(false); // Reset EOT detection for new transaction
+
+        // Navigate to authorization success step
+        state.setStep("authorization");
 
         // Store transaction data but don't show separate monitoring widget
         // The fueling progress popup handles real-time updates
@@ -292,6 +297,8 @@ export const useFuelingActions = ({
     state.setVolume("");
     state.setScanResult(null);
     state.setIsAuthorized(false); // Reset authorization status
+    state.setEotDetected(false); // Reset EOT detection
+    state.setSelectedTankId(null); // Reset tank selection
     state.setStep("pump");
   }, [state]);
 

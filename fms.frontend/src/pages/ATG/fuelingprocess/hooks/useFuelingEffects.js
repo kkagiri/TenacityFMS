@@ -137,6 +137,7 @@ export const useFuelingEffects = ({
       state.setShowFuelingPopup(false);
       state.setIsFuelingPopupMinimized(false);
       state.setFuelingComplete(true);
+      state.setEotDetected(true); // Mark EOT detected for authorization step
       if (!state.currentTransactionId && pumpDetails.transaction) {
         state.setCurrentTransactionId(pumpDetails.transaction);
       }

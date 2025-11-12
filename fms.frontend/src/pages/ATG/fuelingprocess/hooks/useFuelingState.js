@@ -37,6 +37,11 @@ export const useFuelingState = () => {
   const [useMasterTag, setUseMasterTag] = useState(false);
   const [selectionMethod, setSelectionMethod] = useState("lookup"); // "lookup", "scan", or "master"
 
+  // --- Tank Selection State ---
+  const [selectedTankId, setSelectedTankId] = useState(null); // ID of selected tank
+  const [availableTanks, setAvailableTanks] = useState([]); // Tanks available for this site
+  const [isLoadingTanks, setIsLoadingTanks] = useState(false); // Tank loading state
+
   // --- Scan State ---
   const [isScanning, setIsScanning] = useState(false); // Scan API call in progress
   const [scanResult, setScanResult] = useState(null); // Tag read during scan
@@ -45,6 +50,7 @@ export const useFuelingState = () => {
   const [isAuthorizing, setIsAuthorizing] = useState(false); // API call in progress
   const [isAuthorized, setIsAuthorized] = useState(false); // Pump authorized and waiting for physical fueling to start
   const [currentTransactionId, setCurrentTransactionId] = useState(null); // Store ID from authorize/status
+  const [eotDetected, setEotDetected] = useState(false); // End of Transaction detected (nozzle replaced)
 
   // --- Fueling Type & Amounts ---
   const [selectedType, setSelectedType] = useState(null); // User must select type (Volume/FullTank)
@@ -123,6 +129,8 @@ export const useFuelingState = () => {
     setIsAuthorized,
     currentTransactionId,
     setCurrentTransactionId,
+    eotDetected,
+    setEotDetected,
 
     // Fueling Type & Amounts
     selectedType,
@@ -163,6 +171,14 @@ export const useFuelingState = () => {
     setDeviceConnectionType,
     transactionMonitoringData,
     setTransactionMonitoringData,
+
+    // Tank Selection State
+    selectedTankId,
+    setSelectedTankId,
+    availableTanks,
+    setAvailableTanks,
+    isLoadingTanks,
+    setIsLoadingTanks,
   };
 };
 

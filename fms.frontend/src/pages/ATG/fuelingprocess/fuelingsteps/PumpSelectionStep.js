@@ -148,7 +148,7 @@ const PumpSelectionStep = memo(
                           <div className="tw-flex tw-items-center tw-gap-2 tw-mt-1">
                             {item.lastVolume > 0 && (
                               <span className="tw-text-sm tw-font-semibold tw-text-gray-800">
-                                ${item.lastVolume.toFixed(2)}
+                                  {item.lastVolume.toFixed(2)} Liters
                               </span>
                             )}
 
