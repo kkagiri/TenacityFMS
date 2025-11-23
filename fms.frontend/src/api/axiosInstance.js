@@ -220,7 +220,23 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Track if we're currently refreshing to prevent multiple refresh requests
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+// Response interceptor with automatic token refresh
 axiosInstance.interceptors.response.use(
   (response) => {
     if (process.env.NODE_ENV === "development") {
@@ -232,18 +248,22 @@ axiosInstance.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     // Handle network errors (often CORS related)
     if (error.code === "ECONNABORTED") {
       console.error(
         "Request timeout - server may be slow or unreachable. Consider checking server status:",
         error
       );
+      return Promise.reject(error);
     } else if (error.message === "Network Error") {
       console.error(
         "Network error - check CORS configuration or server connection:",
         error
       );
+      return Promise.reject(error);
     }
 
     // Log error responses
@@ -255,19 +275,82 @@ axiosInstance.interceptors.response.use(
         baseURL: error.config?.baseURL,
       });
 
-      // Handle authentication errors
-      if (error.response.status === 401) {
-        const token = localStorage.getItem('token');
+      // Handle authentication errors with token refresh
+      if (error.response.status === 401 && !originalRequest._retry) {
+        const refreshToken = localStorage.getItem("refreshToken");
 
-        // Only log and clear if we actually had a token (i.e., it's expired)
-        // Don't log 401 errors when there's no token (unauthenticated state is expected)
-        if (token) {
-          console.error("🚫 Authentication error - token may be expired or invalid");
+        // If this is the refresh-token endpoint failing, don't retry
+        if (originalRequest.url?.includes("/User/refresh-token")) {
+          console.error("🚫 Refresh token invalid or expired - logging out");
           localStorage.removeItem("token");
-          // window.location.href = '/login'; // Uncomment if you want automatic redirect
-        } else {
-          console.debug("ℹ️ 401 response (no token present - expected on login page)");
+          localStorage.removeItem("refreshToken");
+          window.location.href = "/login";
+          return Promise.reject(error);
         }
+
+        // If no refresh token, just logout
+        if (!refreshToken) {
+          console.error("🚫 No refresh token available - logging out");
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+          return Promise.reject(error);
+        }
+
+        // Try to refresh the token
+        if (isRefreshing) {
+          // If already refreshing, queue this request
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers["Authorization"] = "Bearer " + token;
+              return axiosInstance(originalRequest);
+            })
+            .catch((err) => {
+              return Promise.reject(err);
+            });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        return new Promise((resolve, reject) => {
+          axiosInstance
+            .post("/User/refresh-token", { refreshToken })
+            .then((response) => {
+              const responseData = response.data.Data || response.data.data || response.data;
+              const { Token: newToken, RefreshToken: newRefreshToken } = responseData;
+
+              if (!newToken) {
+                throw new Error("No token received from refresh");
+              }
+
+              // Update tokens in localStorage
+              localStorage.setItem("token", newToken);
+              if (newRefreshToken) {
+                localStorage.setItem("refreshToken", newRefreshToken);
+              }
+
+              // Update Authorization header
+              axiosInstance.defaults.headers.common["Authorization"] = "Bearer " + newToken;
+              originalRequest.headers["Authorization"] = "Bearer " + newToken;
+
+              console.log("✅ Token refreshed successfully");
+              processQueue(null, newToken);
+              resolve(axiosInstance(originalRequest));
+            })
+            .catch((err) => {
+              console.error("❌ Token refresh failed - logging out", err);
+              processQueue(err, null);
+              localStorage.removeItem("token");
+              localStorage.removeItem("refreshToken");
+              window.location.href = "/login";
+              reject(err);
+            })
+            .finally(() => {
+              isRefreshing = false;
+            });
+        });
       }
 
       // Handle not found errors

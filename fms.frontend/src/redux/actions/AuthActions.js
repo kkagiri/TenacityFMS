@@ -18,7 +18,7 @@ export const loadUser = () => async (dispatch) => {
     if (!token) {
         console.log('⚠️ No token found, skipping user load');
         dispatch({ type: AUTH_ERROR, payload: 'No authentication token' });
-        return;
+        return { success: false, error: 'No authentication token' };
     }
 
     dispatch({ type: AUTH_REQUEST });
@@ -38,20 +38,29 @@ export const loadUser = () => async (dispatch) => {
             id: user.Id || user.id
         };
 
+        console.log('✅ User data loaded successfully');
         dispatch({ type: USER_LOADED, payload: normalizedUser });
+        return { success: true, user: normalizedUser };
     } catch (error) {
-        console.error('Load user error:', error);
+        console.error('❌ Load user error:', error);
 
         //Cursor: Handle network errors and invalid tokens
         if (error.message === "Network Error" || error.code === 'ERR_NETWORK') {
-            console.error('Network error - login service cannot be found');
+            console.error('🌐 Network error - cannot reach server');
+            // Don't remove token on network errors - server might be temporarily down
+            dispatch({ type: AUTH_ERROR, payload: 'Network error' });
+            return { success: false, error: 'Network error' };
         } else if (error.response && error.response.status === 401) {
-            // Token is invalid, remove it
-            console.warn('🚫 Invalid token detected, clearing authentication');
+            // Token is invalid or expired - clear everything and force logout
+            console.warn('🚫 Token expired or invalid - clearing authentication');
             localStorage.removeItem('token');
+            dispatch({ type: LOGOUT });
+            return { success: false, error: 'Token expired' };
         }
 
+        // Other errors
         dispatch({ type: AUTH_ERROR, payload: error.message });
+        return { success: false, error: error.message };
     }
 };
 
@@ -64,19 +73,39 @@ export const signIn = (username, password) => async (dispatch) => {
         // Use correct endpoint with proper casing - backend expects /User/Login (capital U)
         const response = await axiosInstance.post(`/User/Login`, { username, password });
 
-        const { token } = response.data; // Backend returns { token: "..." } (lowercase)
+        // Backend now returns FMSResponse with { Data: { Token, RefreshToken, User } }
+        const responseData = response.data.Data || response.data.data || response.data;
+        const { Token: token, RefreshToken: refreshToken, User: user } = responseData;
 
         if (!token) {
             throw new Error('No token received from server');
         }
 
+        if (!refreshToken) {
+            throw new Error('No refresh token received from server');
+        }
+
+        if (!user) {
+            throw new Error('No user data received from server');
+        }
+
+        // Store both access token and refresh token
         localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', refreshToken);
 
-        dispatch({ type: LOGIN_SUCCESS, payload: { token } });
+        console.log('✅ Login successful - token, refresh token, and user data received');
 
-        // Load user details after successful login
-        console.log('Login successful, loading user details...');
-        dispatch(loadUser());
+        // Dispatch success with both token and user
+        dispatch({
+            type: LOGIN_SUCCESS,
+            payload: { token, user }
+        });
+
+        // Also dispatch USER_LOADED to set user in state
+        dispatch({
+            type: USER_LOADED,
+            payload: user
+        });
 
         // Load configurations after successful login
         try {
@@ -210,9 +239,10 @@ export const logout = () => async (dispatch) => {
             // Don't fail logout if SignalR disconnect fails
         }
 
-        // 2. Clear authentication token
+        // 2. Clear authentication tokens (both access and refresh)
         localStorage.removeItem('token');
-        console.log('✅ Token removed');
+        localStorage.removeItem('refreshToken');
+        console.log('✅ Tokens removed (access and refresh)');
 
         // 3. Clear user-specific localStorage data (but keep system preferences)
         const keysToRemove = [
@@ -267,6 +297,7 @@ export const logout = () => async (dispatch) => {
 
         // Even if logout fails, clear critical data
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         dispatch({ type: LOGOUT });
 
         // Force redirect to login page

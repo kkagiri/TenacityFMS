@@ -18,6 +18,7 @@ using Serilog;
 using StackExchange.Redis;
 using System.Text;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Infrastructure.Authorization;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget services
 using FMS.Application.Services;
@@ -174,6 +175,10 @@ public static class FmsServiceCollectionExtensions
                 .RequireAuthenticatedUser()
                 .Build();
         });
+
+        // Register custom policy provider for permission-based authorization
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         return services;

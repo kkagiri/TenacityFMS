@@ -5,17 +5,27 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Dtos.UserManagement;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement {
-    public record LoginCommand (string Username, string Password) : IRequest<string>;
+    // Updated to return LoginResponseDto instead of just string token
+    public record LoginCommand (string Username, string Password) : IRequest<LoginResponseDto>;
 
-    public class LoginCommandHandler : IRequestHandler<LoginCommand, string> {
+    // DTO for login response
+    public class LoginResponseDto {
+        public string Token { get; set; }
+        public string RefreshToken { get; set; }
+        public UserDetailDto User { get; set; }
+    }
+
+    public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDto> {
         private readonly UserManager<User> _userManager;
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
         private readonly GpsdataContext _context;
@@ -29,7 +39,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement {
             _httpContextAccessor = httpContextAccessor;
             _memoryCache = memoryCache;
         }
-        public async Task<string> Handle (LoginCommand request, CancellationToken cancellationToken) {
+        public async Task<LoginResponseDto> Handle (LoginCommand request, CancellationToken cancellationToken) {
             const int MaxLoginAttempts = 5;
             const int LockoutDuration = 45; // in seconds
 
@@ -86,15 +96,89 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement {
             _memoryCache.Remove (cacheKey);
             _memoryCache.Remove (cacheTimeKey);
 
+            // Log successful login activity
+            var successfulLoginActivity = new Loginactivity {
+                UserId = user.Id,
+                Timestamp = DateTime.UtcNow,
+                IpAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString (),
+                IsSuccessful = true
+            };
+            _context.Loginactivities.Add (successfulLoginActivity);
+            await _context.SaveChangesAsync (cancellationToken);
+
             // Get user roles
             var userRoles = await _userManager.GetRolesAsync (user);
 
-            // Create token using the new JWT token generator with permissions included
-            return await _jwtTokenGenerator.GenerateTokenWithPermissions (
+            // Create access token (JWT) with permissions
+            var token = await _jwtTokenGenerator.GenerateTokenWithPermissions (
                 user.Id,
                 user.UserName,
                 user.Email ?? string.Empty,
                 userRoles);
+
+            // Generate refresh token
+            var refreshToken = _jwtTokenGenerator.GenerateRefreshToken ();
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays (30); // 30 days validity
+
+            // Get client IP address
+            var ipAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString ();
+
+            // Revoke all existing refresh tokens for this user (optional - for single-device login)
+            // Comment out if you want to allow multiple devices
+            /*
+            var existingTokens = await _context.RefreshTokens
+                .Where (rt => rt.UserId == user.Id && rt.IsActive)
+                .ToListAsync (cancellationToken);
+            foreach (var existingToken in existingTokens) {
+                existingToken.IsRevoked = true;
+                existingToken.RevokedAt = DateTime.UtcNow;
+                existingToken.RevocationReason = "New login - previous token invalidated";
+            }
+            */
+
+            // Store refresh token in database
+            var refreshTokenEntity = new FMS.Domain.Entities.Features.UserManagement.RefreshToken {
+                Token = refreshToken,
+                UserId = user.Id,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = refreshTokenExpiry,
+                IsRevoked = false,
+                CreatedByIp = ipAddress,
+                LastUsedAt = DateTime.UtcNow,
+                LastUsedByIp = ipAddress
+            };
+
+            _context.RefreshTokens.Add (refreshTokenEntity);
+            await _context.SaveChangesAsync (cancellationToken);
+
+            // Get master tag information
+            var masterTag = user.MasterRFIDTag.HasValue ?
+                await _context.FuelTags.FirstOrDefaultAsync (t => t.Id == user.MasterRFIDTag, cancellationToken) : null;
+
+            // Build user detail DTO (matching GetUserByIdQuery output)
+            var userDetail = new UserDetailDto {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                IsDeleted = user.IsDeleted ?? false,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                MasterRFIDTag = user.MasterRFIDTag ?? 0,
+
+                // Master Tag Information
+                HasMasterTag = user.MasterRFIDTag.HasValue,
+                MasterTagName = masterTag?.Name,
+                MasterTagIsEnabled = masterTag?.IsEnabled,
+
+                // Include roles
+                Roles = userRoles.ToList ()
+            };
+
+            // Return access token, refresh token, and user data
+            return new LoginResponseDto {
+                Token = token,
+                RefreshToken = refreshToken,
+                User = userDetail
+            };
         }
     }
 }

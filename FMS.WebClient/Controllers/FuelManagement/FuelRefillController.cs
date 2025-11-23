@@ -29,10 +29,8 @@ public class FuelRefillController : ControllerBase {
 
     //api: Post fuelrefill
     [HttpPost]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize (Policy = "Permission._createFuelRefill")]
     public async Task<IActionResult> CreateFuelRefil ([FromBody] FuelRefilDTO fuelRefilDTO) {
-        var hasPermission = User.HasClaim ("permissions", "_createFuelRefill");
-        if (!hasPermission) return Forbid ();
         if (!ModelState.IsValid) return BadRequest (ModelState);
 
         var userIdClaim = User.Claims.FirstOrDefault (c =>
@@ -51,6 +49,7 @@ public class FuelRefillController : ControllerBase {
     }
 
     [HttpGet ("{id}")]
+    [Authorize (Policy = "Permission._readFuelRefill")]
     public async Task<IActionResult> GetFuelRefil (int id) {
         var FuelRefill = await _mediator.Send (new FuelRefillGetbyIDQuery (id));
         if (FuelRefill == null) {
@@ -60,11 +59,8 @@ public class FuelRefillController : ControllerBase {
     }
 
     [HttpGet ("summary")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize (Policy = "Permission._readFuelRefill")]
     public async Task<IActionResult> GetFuelRefillSummary ([FromQuery] DateTime startDate, [FromQuery] DateTime endDate) {
-        var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
-        if (!hasPermission) return Forbid ();
-
         var summary = await _mediator.Send (new FuelRefillSummaryQuery (startDate, endDate, null));
 
         if (summary == null || !summary.Any ()) {
@@ -75,11 +71,8 @@ public class FuelRefillController : ControllerBase {
     }
 
     [HttpGet ("summary/{siteId}")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize (Policy = "Permission._readFuelRefill")]
     public async Task<IActionResult> GetFuelRefillSummaryBySite ([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId) {
-        var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
-        if (!hasPermission) return Forbid ();
-
         var summary = await _mediator.Send (new FuelRefillSummaryQuery (startDate, endDate, siteId));
 
         if (summary == null || !summary.Any ()) {
@@ -91,13 +84,10 @@ public class FuelRefillController : ControllerBase {
 
     //Cursor - Enhanced GetFuelRefilList with filtering support
     [HttpGet]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize (Policy = "Permission._readFuelRefill")]
     public async Task<IActionResult> GetFuelRefilList (
         int take = 100,
         int skip = 0, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? siteId = null) {
-
-        var hasPermission = User.HasClaim ("permissions", "_readFuelRefill");
-        if (!hasPermission) return Forbid ();
 
         var fuelRefil = await _mediator.Send (new FuelRefillGetListQuery (take, skip, startDate, endDate, siteId));
         if (fuelRefil == null) return NoContent ();

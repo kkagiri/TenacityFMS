@@ -46,12 +46,10 @@ public class TankStockController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> GetTankStocks()
     {
-        return User.HasClaim("permissions", "_Read_tankStock") ?
-            Ok(await _mediator.Send(new GetTankStockListQuery())) :
-            Forbid();
+        return Ok(await _mediator.Send(new GetTankStockListQuery()));
     }
 
     /// <summary>
@@ -60,12 +58,9 @@ public class TankStockController : ControllerBase
     /// <param name="request">Historical entry validation request</param>
     /// <returns>Validation result with policy decision and warning messages</returns>
     [HttpPost("validate-historical-entry")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> ValidateHistoricalEntry([FromBody] HistoricalEntryValidationRequest request)
     {
-        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-        if (!hasPermission) return Forbid();
-
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -99,12 +94,9 @@ public class TankStockController : ControllerBase
     /// </summary>
     /// <returns>Current policy configuration</returns>
     [HttpGet("future-records-policy")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme),]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> GetFutureRecordsPolicy()
     {
-        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-        if (!hasPermission) return Forbid();
-
         try
         {
             // Get policy configuration from the future records service
@@ -127,11 +119,9 @@ public class TankStockController : ControllerBase
     }
 
     [HttpGet("details/{id:int}")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> GetTankStockById(int id)
     {
-        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-        if (!hasPermission) return Forbid();
         if (id <= 0) return BadRequest("Invalid ID");
 
         var result = await _mediator.Send(new GetTankStockByIdQuery(id));
@@ -143,16 +133,9 @@ public class TankStockController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Create_tankStock")]
     public async Task<IActionResult> CreateTankStock([FromBody] TankStockDTO tankStockDTO)
     {
-        //check if user has "_create_tankStock" permission
-        var hasPermission = User.HasClaim("permissions", "_Create_tankStock");
-        if (!hasPermission)
-        {
-            return Forbid();
-        }
-
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
@@ -282,12 +265,9 @@ public class TankStockController : ControllerBase
     /// Creates a new stock adjustment
     /// </summary>
     [HttpPost("adjustments")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Create_tankStock")]
     public async Task<IActionResult> CreateStockAdjustment([FromBody] StockAdjustmentDTO adjustmentDTO)
     {
-        var hasPermission = User.HasClaim("permissions", "_Create_tankStock");
-        if (!hasPermission) return Forbid();
-
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var userIdClaim = User.Claims.FirstOrDefault(c =>
@@ -311,13 +291,10 @@ public class TankStockController : ControllerBase
     /// Gets stock adjustments with optional filtering
     /// </summary>
     [HttpGet("adjustments")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> GetStockAdjustments(
         [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
-        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-        if (!hasPermission) return Forbid();
-
         var result = await _mediator.Send(new GetStockAdjustmentsQuery(siteId, tankId, startDate, endDate));
 
         if (!result.IsSuccess)
@@ -330,13 +307,10 @@ public class TankStockController : ControllerBase
     /// Gets stock discrepancies for reconciliation dashboard
     /// </summary>
     [HttpGet("discrepancies")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> GetStockDiscrepancies(
         [FromQuery] int? siteId = null, [FromQuery] decimal threshold = 10)
     {
-        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-        if (!hasPermission) return Forbid();
-
         var result = await _mediator.Send(new GetStockDiscrepanciesQuery(siteId, threshold));
 
         if (!result.IsSuccess)
@@ -349,12 +323,9 @@ public class TankStockController : ControllerBase
     /// Creates a new dispensing volume record (bulk entry)
     /// </summary>
     [HttpPost("dispensing")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Create_tankStock")]
     public async Task<IActionResult> CreateDispensingVolume([FromQuery] int tankId, decimal dispensedVolume, DateTimeOffset entryDate, string? notes = null)
     {
-        var hasPermission = User.HasClaim("permissions", "_Create_tankStock");
-        if (!hasPermission) return Forbid();
-
         if (tankId <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid Tank ID"));
         if (dispensedVolume <= 0) return BadRequest(FMSResponse.FailedResponse("Dispensed volume should be greater than 0"));
 
@@ -383,14 +354,11 @@ public class TankStockController : ControllerBase
     /// Gets dispensing volume records with optional filtering
     /// </summary>
     [HttpGet("dispensing")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Read_tankStock")]
     public async Task<IActionResult> GetDispensingVolumes(
         [FromQuery] int? siteId = null, [FromQuery] int? tankId = null, [FromQuery] string? recordedBy = null,
         [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
-        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-        if (!hasPermission) return Forbid();
-
         var result = await _mediator.Send(new GetDispensingVolumesQuery(siteId, tankId, recordedBy, startDate, endDate));
 
         return Ok(result);
@@ -400,12 +368,9 @@ public class TankStockController : ControllerBase
     /// Updates an existing dispensing volume record
     /// </summary>
     [HttpPut("dispensing/{entryId}")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Update_tankStock")]
     public async Task<IActionResult> UpdateDispensingVolume(int entryId, [FromQuery] decimal dispensedVolume, DateTimeOffset entryDate, string? notes = null)
     {
-        var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
-        if (!hasPermission) return Forbid();
-
         if (entryId <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid Entry ID"));
         if (dispensedVolume <= 0) return BadRequest(FMSResponse.FailedResponse("Dispensed volume should be greater than 0"));
 
@@ -425,12 +390,9 @@ public class TankStockController : ControllerBase
     /// Deletes a dispensing volume record
     /// </summary>
     [HttpDelete("dispensing/{entryId}")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Policy = "Permission._Delete_tankStock")]
     public async Task<IActionResult> DeleteDispensingVolume(int entryId)
     {
-        var hasPermission = User.HasClaim("permissions", "_Delete_tankStock");
-        if (!hasPermission) return Forbid();
-
         if (entryId <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid Entry ID"));
 
         FMSResponseMessage result = await _mediator.Send(new DeleteDispensingVolumeCommand(entryId));
