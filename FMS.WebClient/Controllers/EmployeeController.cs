@@ -30,11 +30,9 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._createEmployee")]
         public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDto employeeDto)
         {
-            var hasPermission = User.HasClaim("permissions", "_createEmployee");
-
             var userIdClaim = User.Claims.FirstOrDefault(c =>
                 c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
                 Guid.TryParse(c.Value, out _));
@@ -42,7 +40,6 @@ namespace FMS.WebClient.Controllers
 
             employeeDto.CreatedBy = userIdClaim.Value;
 
-            if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var command = new EmployeeCreateCmd { EmployeeDto = employeeDto };
             var result = await _mediator.Send(command);
@@ -51,11 +48,9 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("site/{siteId}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._readEmployee")]
         public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
         {
-            var hasPermission = User.HasClaim("permissions", "_readEmployee");
-            if (!hasPermission) return Forbid();
             if (siteId <= 0) return BadRequest("Invalid ID");
             var query = new GetEmployeeBySiteIdQuery { SiteId = siteId };
             var employees = await _mediator.Send(query);
@@ -63,25 +58,18 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._readEmployee")]
         public async Task<IActionResult> GetEmployeeList([FromQuery] bool? active)
         {
-            var hasPermission = User.HasClaim("permissions", "_readEmployee");
-            var permissionlist = User.Claims.ToList();
-
-            if (!hasPermission) return Forbid();
-
             var query = new GetEmployeeQuery(active ?? true);
             var employees = await _mediator.Send(query);
             return Ok(employees);
         }
 
         [HttpGet("{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._readEmployee")]
         public async Task<IActionResult> GetEmployee(int id)
         {
-            var hasPermission = User.HasClaim("permissions", "_readEmployee");
-            if (!hasPermission) return Forbid();
             if (id <= 0) return BadRequest("Invalid ID");
 
             // Try cache first
@@ -109,12 +97,9 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-
+        [Authorize(Policy = "Permission._editEmployee")]
         public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeDto employeeDto)
         {
-            var hasPermission = User.HasClaim("permissions", "_editEmployee");
-            if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (id <= 0) return BadRequest("Invalid ID");
             if (id != employeeDto.Id) return BadRequest("ID mismatch");
@@ -133,15 +118,12 @@ namespace FMS.WebClient.Controllers
             if (!result.Success) return BadRequest(result.Message);
 
             return Ok(result);
-
         }
 
         [HttpDelete("{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._deleteEmployee")]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
-            var hasPermission = User.HasClaim("permissions", "_deleteEmployee");
-            if (!hasPermission) return Forbid();
             if (id <= 0) return BadRequest("Invalid ID");
 
             var command = new EmployeeDeleteCmd(id);
@@ -153,7 +135,7 @@ namespace FMS.WebClient.Controllers
 
         // Employee Search Endpoints
         [HttpGet("search")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._readEmployee")]
         public async Task<IActionResult> SearchEmployees([FromQuery] string searchTerm, [FromQuery] int? limit = 50, [FromQuery] bool? active = true, [FromQuery] int? siteId = null)
         {
             try
@@ -211,7 +193,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("quick-search")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._readEmployee")]
         public async Task<IActionResult> QuickSearchEmployees([FromQuery] string searchTerm, [FromQuery] int limit = 10, [FromQuery] bool? active = true)
         {
             try
@@ -268,7 +250,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("debug-search")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(Policy = "Permission._readEmployee")]
         public async Task<IActionResult> DebugSearchEmployees([FromQuery] string searchTerm, [FromQuery] int? limit = 50, [FromQuery] bool? active = true, [FromQuery] int? siteId = null)
         {
             try

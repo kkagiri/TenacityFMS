@@ -15,7 +15,6 @@ namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class TankStockReportsController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -31,13 +30,10 @@ namespace FMS.WebClient.Controllers
         /// Get tank volume history grouped by month
         /// </summary>
         [HttpGet("volume-history-summary/by-month")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public async Task<IActionResult> GetVolumeHistoryByMonth(
             [FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] int[]? siteIds = null, [FromQuery] int[]? tankIds = null, [FromQuery] bool includeCumulative = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 if (startDate == default || endDate == default)
@@ -67,13 +63,10 @@ namespace FMS.WebClient.Controllers
         /// Get tank volume history grouped by quarter
         /// </summary>
         [HttpGet("volume-history-summary/by-quarter")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public async Task<IActionResult> GetVolumeHistoryByQuarter(
             [FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] int[]? siteIds = null, [FromQuery] int[]? tankIds = null, [FromQuery] bool includeCumulative = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 if (startDate == default || endDate == default)
@@ -103,13 +96,10 @@ namespace FMS.WebClient.Controllers
         /// Get tank volume history grouped by week
         /// </summary>
         [HttpGet("volume-history-summary/by-week")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public async Task<IActionResult> GetVolumeHistoryByWeek(
             [FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] int[]? siteIds = null, [FromQuery] int[]? tankIds = null, [FromQuery] bool includeCumulative = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 if (startDate == default || endDate == default)
@@ -139,13 +129,10 @@ namespace FMS.WebClient.Controllers
         /// Get tank volume history for custom date ranges
         /// </summary>
         [HttpGet("volume-history-summary/custom")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public async Task<IActionResult> GetVolumeHistoryCustom(
             [FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] string groupByPeriod = "Day", [FromQuery] int[]? siteIds = null, [FromQuery] int[]? tankIds = null, [FromQuery] bool includeCumulative = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 if (startDate == default || endDate == default)
@@ -175,6 +162,7 @@ namespace FMS.WebClient.Controllers
         /// Get pivot data for DevExtreme PivotGrid
         /// </summary>
         [HttpGet("pivot-data")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public async Task<IActionResult> GetPivotData(
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
@@ -183,10 +171,6 @@ namespace FMS.WebClient.Controllers
             [FromQuery] int[]? tankIds = null,
             [FromQuery] bool useManualDispensing = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 if (startDate == default || endDate == default)
@@ -220,12 +204,9 @@ namespace FMS.WebClient.Controllers
         /// Get all available volume change reasons for filtering
         /// </summary>
         [HttpGet("volume-change-reasons")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public IActionResult GetVolumeChangeReasons()
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 var reasons = Enum.GetValues(typeof(VolumeChangeReasonEnum))
@@ -250,12 +231,9 @@ namespace FMS.WebClient.Controllers
         /// Export report data to PDF/Excel
         /// </summary>
         [HttpPost("export")]
+        [Authorize(Policy = "Permission._Read_tankStock")]
         public async Task<IActionResult> ExportReport([FromBody] ExportRequestDTO request)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 if (request == null)
