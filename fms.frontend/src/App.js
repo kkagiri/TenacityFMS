@@ -33,7 +33,7 @@ import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthenticated, loading } = useSelector((state) => state.auth);
+  const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const [isApiInitialized, setIsApiInitialized] = useState(false);
 
   useEffect(() => {
@@ -48,7 +48,12 @@ function App() {
         const token = localStorage.getItem('token');
         if (token) {
           console.log('🔑 Token found, loading user data...');
-          dispatch(loadUser());
+          const result = await dispatch(loadUser());
+
+          // If token is invalid or expired, loadUser will handle cleanup
+          if (!result || !result.success) {
+            console.log('⚠️ Token validation failed - user will be logged out');
+          }
         } else {
           console.log('🔓 No token found, skipping user load');
         }
@@ -68,7 +73,18 @@ function App() {
     return <LoadPanel visible={true} />;
   }
 
-  return isAuthenticated ? <Content /> : <UnauthenticatedContent />;
+  // CRITICAL FIX: Check for BOTH token AND user data
+  // This prevents the "app loads but no user in header" issue
+  const isFullyAuthenticated = isAuthenticated && user;
+
+  if (isAuthenticated && !user) {
+    console.warn('⚠️ Token exists but no user data - redirecting to login');
+    // Token exists but no user = invalid state, force logout
+    localStorage.removeItem('token');
+    return <UnauthenticatedContent />;
+  }
+
+  return isFullyAuthenticated ? <Content /> : <UnauthenticatedContent />;
 }
 export default function Root() {
   const screenSizeClass = useScreenSizeClass();
