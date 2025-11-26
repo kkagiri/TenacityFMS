@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using FMS.BackgroundServices.TankManagement;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface; // For IPermissionAuthorizationService
 using FMS.Application.Features.GPSGate.DTOs;
 using FMS.Application.Features.GPSGate.Queries;
 using Microsoft.IdentityModel.Tokens;
@@ -45,6 +46,7 @@ using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Infrastructure.Services; // For PermissionAuthorizationService implementation
 
 using FMS.Application.Command.PTSCommand.Common;
 // Removed incorrect Tracker namespace import; DeviceConnectionTracker lives directly under FMS.Application.Communication
@@ -381,6 +383,10 @@ public static class FmsServiceCollectionExtensions
     {
         // Moved bulk registration from original Program.cs (abbreviated to essentials to keep file lean)
         services.AddMemoryCache();
+
+        // Authorization & Permission Services (database-driven with caching)
+        services.AddScoped<IPermissionAuthorizationService, PermissionAuthorizationService>();
+
         services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher>();
         services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService>();
         services.AddSingleton<IPTSConnectionManager, PTSConnectionManager>();
