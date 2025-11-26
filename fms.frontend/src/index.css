@@ -236,3 +236,33 @@ div[id*="tooltip"],
 .dx-form .datebox-full-width .dx-datebox {
   width: 100% !important;
 }
+
+/* ========================================================================== */
+/* GLOBAL FIX: Confirm/Alert Dialog Width Constraint */
+/* ========================================================================== */
+/* Prevents confirm/alert dialogs from expanding to full screen width */
+/* DevExtreme dialog fix - applies to all confirm() and alert() dialogs */
+
+.dx-dialog {
+  max-width: 600px !important;
+  width: auto !important;
+}
+
+.dx-dialog.dx-overlay-wrapper {
+  max-width: 600px !important;
+}
+
+.dx-dialog .dx-popup-content {
+  max-width: 600px !important;
+  width: auto !important;
+}
+
+/* Ensure dialog wrapper respects max-width */
+.dx-overlay-wrapper.dx-dialog-wrapper {
+  max-width: 600px !important;
+}
+
+.dx-overlay-wrapper.dx-dialog-wrapper .dx-popup-content {
+  max-width: 600px !important;
+  width: auto !important;
+}

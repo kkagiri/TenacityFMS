@@ -88,6 +88,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'System Configuration',
         subtitle: 'Manage system-wide configuration settings'
       };
+    } else if (pathname.includes('/logs')) {
+      return {
+        title: 'Log Management',
+        subtitle: 'Download, view, and manage system log files'
+      };
     } else {
       return {
         title: 'Admin Dashboard',
@@ -190,6 +195,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: 'System Config',
       icon: 'fa-light fa-sliders',
       path: adminRoutes.systemconfig,
+    },
+    {
+      id: 'logs',
+      title: 'Log Management',
+      icon: 'fa-light fa-file-lines',
+      path: adminRoutes.logs,
     }
 
   ];

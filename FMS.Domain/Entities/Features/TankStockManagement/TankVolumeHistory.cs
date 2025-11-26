@@ -10,7 +10,8 @@ namespace FMS.Domain.Entities.Features.TankStockManagement
     /// <summary>
     /// Provides a detailed, chronological record of all volume changes in a tank.
     /// </summary>
-    public partial class TankVolumeHistory {
+    public partial class TankVolumeHistory
+    {
         /// <summary>
         /// Gets or sets the unique identifier for the volume history record.
         /// </summary>

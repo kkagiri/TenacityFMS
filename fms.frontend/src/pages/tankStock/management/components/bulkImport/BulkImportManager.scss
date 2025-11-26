@@ -1,0 +1,200 @@
+.bulk-import-manager {
+  @apply tw-p-6;
+
+  .import-step {
+    @apply tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-p-6 tw-mb-6;
+
+    .step-header {
+      @apply tw-flex tw-items-center tw-gap-3 tw-mb-4 tw-pb-4 tw-border-b tw-border-gray-200;
+
+      .step-number {
+        @apply tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-8 tw-rounded-full tw-bg-blue-500 tw-text-white tw-font-bold tw-text-sm;
+      }
+
+      h3 {
+        @apply tw-text-lg tw-font-semibold tw-text-gray-800 tw-m-0;
+      }
+    }
+
+    .step-content {
+      @apply tw-space-y-4;
+    }
+
+    &.completed {
+      .step-number {
+        @apply tw-bg-green-500;
+      }
+    }
+
+    &.error {
+      .step-number {
+        @apply tw-bg-red-500;
+      }
+    }
+  }
+
+  .file-upload-zone {
+    @apply tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-8 tw-text-center;
+    @apply hover:tw-border-blue-400 tw-transition-colors;
+
+    &.has-file {
+      @apply tw-border-green-400 tw-bg-green-50;
+    }
+
+    .upload-icon {
+      @apply tw-text-4xl tw-text-gray-400 tw-mb-3;
+    }
+
+    .upload-text {
+      @apply tw-text-sm tw-text-gray-600;
+
+      strong {
+        @apply tw-text-blue-600;
+      }
+    }
+  }
+
+  .template-download-section {
+    @apply tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-flex tw-items-center tw-justify-between;
+
+    .template-info {
+      @apply tw-flex tw-items-center tw-gap-3;
+
+      i {
+        @apply tw-text-2xl tw-text-blue-600;
+      }
+
+      .template-text {
+        h4 {
+          @apply tw-font-semibold tw-text-blue-900 tw-m-0 tw-mb-1;
+        }
+
+        p {
+          @apply tw-text-sm tw-text-blue-700 tw-m-0;
+        }
+      }
+    }
+  }
+
+  .options-grid {
+    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4;
+  }
+
+  .option-card {
+    @apply tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4;
+
+    label {
+      @apply tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2;
+    }
+
+    .help-text {
+      @apply tw-text-xs tw-text-gray-500 tw-mt-2;
+    }
+  }
+
+  .action-buttons {
+    @apply tw-flex tw-items-center tw-justify-end tw-gap-3 tw-pt-4 tw-border-t tw-border-gray-200;
+
+    .dx-button {
+      @apply tw-min-w-[120px];
+    }
+  }
+
+  .info-banner {
+    @apply tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-flex tw-items-start tw-gap-3;
+
+    i {
+      @apply tw-text-blue-600 tw-text-lg tw-mt-0.5;
+    }
+
+    .banner-content {
+      @apply tw-flex-1;
+
+      h4 {
+        @apply tw-font-semibold tw-text-blue-900 tw-m-0 tw-mb-2;
+      }
+
+      ul {
+        @apply tw-list-disc tw-list-inside tw-text-sm tw-text-blue-800 tw-space-y-1 tw-m-0;
+      }
+    }
+  }
+
+  .warning-banner {
+    @apply tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4 tw-flex tw-items-start tw-gap-3;
+
+    i {
+      @apply tw-text-yellow-600 tw-text-lg tw-mt-0.5;
+    }
+
+    .banner-content {
+      @apply tw-flex-1;
+
+      h4 {
+        @apply tw-font-semibold tw-text-yellow-900 tw-m-0 tw-mb-2;
+      }
+
+      p {
+        @apply tw-text-sm tw-text-yellow-800 tw-m-0;
+      }
+    }
+  }
+
+  .success-banner {
+    @apply tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4 tw-flex tw-items-start tw-gap-3;
+
+    i {
+      @apply tw-text-green-600 tw-text-lg tw-mt-0.5;
+    }
+
+    .banner-content {
+      @apply tw-flex-1;
+
+      h4 {
+        @apply tw-font-semibold tw-text-green-900 tw-m-0 tw-mb-2;
+      }
+
+      p {
+        @apply tw-text-sm tw-text-green-800 tw-m-0;
+      }
+    }
+  }
+
+  // Mobile responsive
+  @media (max-width: 768px) {
+    padding: 1rem;
+
+    .import-step {
+      padding: 1rem;
+    }
+
+    .options-grid {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    .action-buttons {
+      flex-direction: column;
+
+      .dx-button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.validation-report-panel {
+  @apply tw-space-y-4;
+
+  // Override default grid styles for better mobile responsiveness
+  .dx-datagrid {
+    @apply tw-border tw-border-gray-200 tw-rounded-lg;
+
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+    }
+
+    .dx-row-alt {
+      @apply tw-bg-gray-50;
+    }
+  }
+}

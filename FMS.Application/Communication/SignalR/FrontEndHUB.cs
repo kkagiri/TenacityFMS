@@ -260,5 +260,65 @@ namespace FMS.Application.Communication.SignalR
                 _logger.LogError(ex, "Error broadcasting bulk provider assignment progress");
             }
         }
+
+        // Method to broadcast GPS fetch progress updates
+        public async Task BroadcastGpsFetchProgress(string jobId, string status, int progressPercent, string message)
+        {
+            try
+            {
+                await Clients.All.SendAsync("GpsFetchProgress", new
+                {
+                    jobId,
+                    status,
+                    progressPercent,
+                    message,
+                    timestamp = DateTime.UtcNow
+                });
+                _logger.LogDebug("GPS fetch progress update: Job {JobId} - {Status} ({Percent}%): {Message}",
+                    jobId, status, progressPercent, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting GPS fetch progress for job {JobId}", jobId);
+            }
+        }
+
+        // Method to broadcast GPS fetch completion
+        public async Task BroadcastGpsFetchCompleted(string jobId, object result)
+        {
+            try
+            {
+                await Clients.All.SendAsync("GpsFetchCompleted", new
+                {
+                    jobId,
+                    result,
+                    timestamp = DateTime.UtcNow
+                });
+                _logger.LogInformation("GPS fetch completed: Job {JobId}", jobId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting GPS fetch completion for job {JobId}", jobId);
+            }
+        }
+
+        // Method to broadcast GPS fetch errors
+        public async Task BroadcastGpsFetchError(string jobId, string error)
+        {
+            try
+            {
+                await Clients.All.SendAsync("GpsFetchError", new
+                {
+                    jobId,
+                    error,
+                    timestamp = DateTime.UtcNow
+                });
+                _logger.LogError("GPS fetch error: Job {JobId} - {Error}", jobId, error);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting GPS fetch error for job {JobId}", jobId);
+            }
+        }
     }
 }

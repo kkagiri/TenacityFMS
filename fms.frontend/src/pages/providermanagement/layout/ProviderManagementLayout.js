@@ -15,6 +15,7 @@ const ProviderManagementLayout = ({ children }) => {
       { id: "dashboard", text: "Dashboard", path: "/admin/providers/dashboard" },
       { id: "configuration", text: "Configuration", path: "/admin/providers/configuration" },
       { id: "assignments", text: "Vehicle Assignments", path: "/admin/providers/assignments" },
+      { id: "map-devices", text: "Map GPS Devices", path: "/admin/providers/map-devices" },
     ],
     []
   );

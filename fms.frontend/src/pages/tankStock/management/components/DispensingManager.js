@@ -282,12 +282,12 @@ const DispensingManager = () => {
           <div className="tw-flex tw-gap-2">
             {canCreate && (
               <Button
-                text="Add Dispensing"
+                text="Add Aggregate Dispensing"
                 icon="fa-light fa-plus"
                 type="default"
                 stylingMode="contained"
                 onClick={handleCreate}
-                hint="Add new dispensing record"
+                hint="Add new aggregate dispensing record"
               />
             )}
             <Button

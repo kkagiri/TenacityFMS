@@ -12,13 +12,16 @@
  */
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useStockFilters } from '../../shared/context/StockFilterContext';
 import DataGrid, {
   Paging,
   Pager,
   HeaderFilter,
-  SearchPanel,
   Toolbar,
   // Item as TBItem, // COMMENTED OUT FOR NOW
+  ColumnChooser,
+  Position,
+  ColumnChooserSelection,
   FilterRow,
   Column,
   Lookup,
@@ -27,17 +30,20 @@ import DataGrid, {
   GroupPanel,
   Grouping,
   Summary,
-  TotalItem
+  TotalItem,
+  GroupItem
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
 import { ScrollView } from 'devextreme-react/scroll-view';
 import Button from 'devextreme-react/button';
 import CheckBox from 'devextreme-react/check-box';
+import SelectBox from 'devextreme-react/select-box';
+import DateBox from 'devextreme-react/date-box';
 // import { DropDownButton } from 'devextreme-react/drop-down-button'; // COMMENTED OUT FOR NOW
 import Popup from 'devextreme-react/popup';
 import  notify  from 'devextreme/ui/notify';
-import { Workbook } from 'exceljs';
-import { exportDataGrid } from 'devextreme/excel_exporter';
+import { exportTransactionsToExcel } from '../utils/transactionExportUtils';
+import { exportAnalysisReport } from '../utils/transactionAnalysisExportUtils';
 import { fetchTankVolumeHistoryFiltered } from '../../../../redux/actions/tankVolumeHistoryActions';
 import { fetchTanks } from '../../../../redux/actions/tankActions';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
@@ -46,9 +52,7 @@ import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
 import { fetchEmployees } from '../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
 import ManualRefillForm from '../../forms/ManualRefillForm';
-import TransactionFilterPopup from './TransactionFilterPopup';
 import QuickActions from '../../components/QuickActions';
-import VolumeTotalsTickers from './VolumeTotalsTickers';
 import { usePermissions } from '../../../../hooks/usePermissions';
 import './TransactionHub.scss';
 
@@ -73,23 +77,80 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
   const dispatch = useDispatch();
   const dataGridRef = useRef(null);
 
+  // Get shared filters from header (site, tank, dates)
+  const { startDate: headerStartDate, endDate: headerEndDate, selectedSiteIds, selectedTankIds } = useStockFilters();
+
   // Permission checks using JWT token
   const { hasPermission } = usePermissions();
   const canReadTankVolumeHistory = hasPermission('_Read_tankVolumeHistory');
   const canDeleteTankVolumeHistory = hasPermission('_Delete_tankVolumeHistory');
 
   // Redux state
-  const tankVolumeHistory = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
+  const tankVolumeHistoryRaw = useSelector((state) => state.tankVolumeHistory.tankVolumeHistory);
   const tanks = useSelector((state) => state.tank.tanks);
   const sites = useSelector((state) => state.site.sites);
   const isLoading = useSelector((state) => state.tankVolumeHistory.isLoading);
   const usersForFilter = useSelector((state) => state.user.usersForFilter);
   const user = useSelector((state) => state.auth.user);
 
+  /**
+   * Sort transactions in logical order per day per tank:
+   * Date ASC -> Tank -> OpeningStock -> Operations (by timestamp) -> ClosingStock
+   * This fixes legacy data where timestamps may be out of order
+   * and ensures each tank's transactions are grouped together within a day
+   */
+  const tankVolumeHistory = useMemo(() => {
+    if (!tankVolumeHistoryRaw || tankVolumeHistoryRaw.length === 0) return [];
+
+    // Priority mapping: OpeningStock first, ClosingStock last
+    const getTypePriority = (changeReason) => {
+      switch (changeReason) {
+        case 0: return 0;  // OpeningStock - Always first
+        case 2: return 1;  // Delivery
+        case 3: return 2;  // TransferIn
+        case 4: return 3;  // TransferOut
+        case 5: return 4;  // Adjustment
+        case 6: return 5;  // Dispensing
+        case 7: return 6;  // AutomatedDispensing
+        case 8: return 7;  // Reconciliation
+        case 9: return 8;  // AutomatedReconciliation
+        case 1: return 99; // ClosingStock - Always last
+        default: return 50;
+      }
+    };
+
+    return [...tankVolumeHistoryRaw].sort((a, b) => {
+      // 1. First sort by date (day only)
+      const dateA = new Date(a.timestamp).toISOString().split('T')[0];
+      const dateB = new Date(b.timestamp).toISOString().split('T')[0];
+
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+
+      // 2. Same day - sort by tank ID to group all tank transactions together
+      if (a.tankId !== b.tankId) {
+        return a.tankId - b.tankId;
+      }
+
+      // 3. Same tank - sort by transaction type priority
+      const priorityA = getTypePriority(a.changeReason);
+      const priorityB = getTypePriority(b.changeReason);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // 4. Same type - sort by timestamp
+      return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+  }, [tankVolumeHistoryRaw]);
+
   // Local state
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
-  const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [isGroupsExpanded, setIsGroupsExpanded] = useState(false);
+  const [groupBy, setGroupBy] = useState({ date: false, site: false, tank: false }); // Multi-select grouping
+  const [showDispensingTotal, setShowDispensingTotal] = useState(true); // Toggle for dispensing summary
   // const [showChartPopup, setShowChartPopup] = useState(false); // COMMENTED OUT FOR NOW
   // const [selectedChartType, setSelectedChartType] = useState('candlestick'); // COMMENTED OUT FOR NOW
 
@@ -142,25 +203,31 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     userConfirmed: false
   });
 
-  // Default to today's data only - ALWAYS start with ALL sites
-  const [currentFilters, setCurrentFilters] = useState(() => {
-    const today = new Date();
-    const startOfDay = new Date(today);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    return {
-      siteId: null, // Always start with ALL sites
-      tankId: null,
-      recordedBy: null,
-      startDate: startOfDay.toISOString(),
-      endDate: endOfDay.toISOString(),
-      includeVehicleNames: true,
-      useManualDispensing: false // Default to sensor dispensing
-    };
-  });
+  // Local filter state - only for user and manual dispensing (site/tank/dates from header)
+  const [filterUserId, setFilterUserId] = useState(null);
+  const [useManualDispensing, setUseManualDispensing] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Computed filters object - uses header filters for site/tank/dates
+  const currentFilters = useMemo(() => ({
+    siteId: selectedSiteIds.length === 1 ? selectedSiteIds[0] : null, // Single site or null for all
+    tankId: selectedTankIds.length === 1 ? selectedTankIds[0] : null, // Single tank or null for all
+    siteIds: selectedSiteIds.length > 0 ? selectedSiteIds : null, // Multi-site support
+    tankIds: selectedTankIds.length > 0 ? selectedTankIds : null, // Multi-tank support
+    recordedBy: filterUserId,
+    startDate: headerStartDate?.toISOString(),
+    endDate: headerEndDate?.toISOString(),
+    includeVehicleNames: true,
+    useManualDispensing: useManualDispensing
+  }), [selectedSiteIds, selectedTankIds, filterUserId, headerStartDate, headerEndDate, useManualDispensing]);
+
+  // Filtered tanks based on selected sites from header
+  const filteredTanks = useMemo(() =>
+    selectedSiteIds.length > 0
+      ? tanks.filter(tank => selectedSiteIds.includes(tank.siteId))
+      : tanks,
+    [selectedSiteIds, tanks]
+  );
 
   // Volume Change Reason Enum mapping
   const VolumeChangeReasonEnum = useMemo(() => [
@@ -198,28 +265,20 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
       dispatch(fetchEmployees());
       dispatch(fetchUsersForFilter());
 
-      // Create default filters inline - ALWAYS start with ALL sites
-      const today = new Date();
-      const startOfDay = new Date(today);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const defaultFilters = {
-        siteId: null, // Always start with ALL sites
-        tankId: null,
-        recordedBy: null,
-        startDate: startOfDay.toISOString(),
-        endDate: endOfDay.toISOString(),
-        includeVehicleNames: true,
-        useManualDispensing: false
-      };
-
-      setCurrentFilters(defaultFilters);
-      dispatch(fetchTankVolumeHistoryFiltered(defaultFilters));
+      // Load initial data with default filters (already set by useState)
+      dispatch(fetchTankVolumeHistoryFiltered(currentFilters));
       setIsInitialized(true);
     }
-  }, [dispatch, isInitialized]); // Remove selectedSite dependency
+  }, [dispatch, isInitialized, currentFilters]);
+
+  // React to header filter changes and reload data
+  useEffect(() => {
+    if (isInitialized) {
+      console.log('Header filters changed, reloading data with:', currentFilters);
+      dispatch(fetchTankVolumeHistoryFiltered(currentFilters));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headerStartDate, headerEndDate, selectedSiteIds, selectedTankIds, isInitialized]);
 
   // Handle prop changes separately to avoid infinite loops
   useEffect(() => {
@@ -248,16 +307,12 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSite, isInitialized]);
 
-  // Apply filters from popup
-  const handleApplyFilters = useCallback(async (filters) => {
-    console.log('Applying new filters:', filters);
-    setCurrentFilters(filters);
+  // Apply filters
+  const handleApplyFilters = useCallback(async () => {
+    console.log('Applying filters:', currentFilters);
 
     try {
-      await loadTransactionData(filters);
-      console.log('Filters applied successfully');
-
-      // Show success notification
+      await loadTransactionData(currentFilters);
       notify({
         message: 'Filters applied successfully!',
         type: 'success',
@@ -273,7 +328,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         position: 'top center'
       });
     }
-  }, [loadTransactionData]);
+  }, [loadTransactionData, currentFilters]);
 
   // Manual refresh function
   const handleRefresh = useCallback(async () => {
@@ -309,132 +364,18 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     });
   }, [handleRefresh]);
 
-  // Clear all filters and reset to today with ALL sites
+  // Clear local filters only (site/tank/dates are in header)
   const handleClearFilters = useCallback(() => {
-    // Create default filters inline - ALWAYS reset to ALL sites (null)
-    const today = new Date();
-    const startOfDay = new Date(today);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const defaultFilters = {
-      siteId: null, // Always reset to ALL sites
-      tankId: null,
-      recordedBy: null,
-      startDate: startOfDay.toISOString(),
-      endDate: endOfDay.toISOString(),
-      includeVehicleNames: true,
-      useManualDispensing: false
-    };
-
-    handleApplyFilters(defaultFilters);
-  }, [handleApplyFilters]);
+    setFilterUserId(null);
+    setUseManualDispensing(false);
+  }, []);
 
   // Toggle manual dispensing
   const handleToggleManualDispensing = useCallback((value) => {
-    const updatedFilters = {
-      ...currentFilters,
-      useManualDispensing: value
-    };
-    setCurrentFilters(updatedFilters);
-    loadTransactionData(updatedFilters);
-  }, [currentFilters, loadTransactionData]);
+    setUseManualDispensing(value);
+  }, []);
 
-  // Date navigation functions - Enhanced to work with any date range
-  // This allows cycling through single days even when a custom date range was previously selected
-  const handlePreviousDay = useCallback(() => {
-    if (!currentFilters.startDate || !currentFilters.endDate) return;
-
-    // Get the current start date and move it back by 1 day
-    const currentStart = new Date(currentFilters.startDate);
-    const newStart = new Date(currentStart);
-    newStart.setDate(newStart.getDate() - 1);
-    newStart.setHours(0, 0, 0, 0);
-
-    // Set end date to end of the same day
-    const newEnd = new Date(newStart);
-    newEnd.setHours(23, 59, 59, 999);
-
-    const updatedFilters = {
-      ...currentFilters,
-      startDate: newStart.toISOString(),
-      endDate: newEnd.toISOString()
-    };
-
-    handleApplyFilters(updatedFilters);
-
-    // Show feedback notification
-    const dateStr = newStart.toLocaleDateString();
-    notify({
-      message: `Viewing transactions for ${dateStr}`,
-      type: 'info',
-      displayTime: 1500,
-      position: 'top center'
-    });
-  }, [currentFilters, handleApplyFilters]);
-
-  const handleNextDay = useCallback(() => {
-    if (!currentFilters.startDate || !currentFilters.endDate) return;
-
-    // Get the current start date
-    const currentStart = new Date(currentFilters.startDate);
-    currentStart.setHours(0, 0, 0, 0);
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Don't allow if already at today or later
-    if (currentStart.getTime() >= today.getTime()) {
-      notify({
-        message: 'Cannot navigate beyond today',
-        type: 'warning',
-        displayTime: 2000,
-        position: 'top center'
-      });
-      return;
-    }
-
-    // Move forward by 1 day
-    const newStart = new Date(currentStart);
-    newStart.setDate(newStart.getDate() + 1);
-    newStart.setHours(0, 0, 0, 0);
-
-    // Set end date to end of the same day
-    const newEnd = new Date(newStart);
-    newEnd.setHours(23, 59, 59, 999);
-
-    const updatedFilters = {
-      ...currentFilters,
-      startDate: newStart.toISOString(),
-      endDate: newEnd.toISOString()
-    };
-
-    handleApplyFilters(updatedFilters);
-
-    // Show feedback notification
-    const dateStr = newStart.toLocaleDateString();
-    const isToday = newStart.toDateString() === new Date().toDateString();
-    notify({
-      message: `Viewing transactions for ${isToday ? 'Today' : dateStr}`,
-      type: 'info',
-      displayTime: 1500,
-      position: 'top center'
-    });
-  }, [currentFilters, handleApplyFilters]);
-
-  const isNextDayDisabled = useCallback(() => {
-    if (!currentFilters.startDate) return true;
-
-    const currentStart = new Date(currentFilters.startDate);
-    currentStart.setHours(0, 0, 0, 0);
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Disable if current date is today or later (can't go beyond today)
-    return currentStart.getTime() >= today.getTime();
-  }, [currentFilters.startDate]);
+  // Date navigation removed - dates now controlled by header filters
 
   // Delete transaction handlers - FIXED VERSION with stable state management
   const handleDeleteTransaction = useCallback(async (transaction) => {
@@ -570,7 +511,67 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     }
   }, [isGroupsExpanded]);
 
-  const handleCancelDelete = useCallback(() => {
+  // Handle grouping change - stable version
+  const handleGroupByChange = useCallback((groupType) => {
+    setGroupBy(prev => {
+      const newValue = !prev[groupType];
+      // Only update if value actually changed
+      if (prev[groupType] === newValue) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [groupType]: newValue
+      };
+    });
+  }, []);
+
+  // Calculate group indices based on active groupings (site > tank > date hierarchy)
+  const getGroupIndex = useCallback((columnType) => {
+    const activeGroups = [];
+    // Order: site first, then tank, then date (date is always last)
+    if (groupBy.site) activeGroups.push('site');
+    if (groupBy.tank) activeGroups.push('tank');
+    if (groupBy.date) activeGroups.push('date');
+
+    const index = activeGroups.indexOf(columnType);
+    return index >= 0 ? index : undefined;
+  }, [groupBy.site, groupBy.tank, groupBy.date]);
+
+  // Check if any grouping is active
+  const hasActiveGrouping = useMemo(() => {
+    return groupBy.date || groupBy.site || groupBy.tank;
+  }, [groupBy.date, groupBy.site, groupBy.tank]);
+
+  // Create a stable key for DataGrid to force remount when grouping changes
+  const dataGridKey = useMemo(() => {
+    const parts = [];
+    if (groupBy.site) parts.push('site');
+    if (groupBy.tank) parts.push('tank');
+    if (groupBy.date) parts.push('date');
+    return parts.length > 0 ? parts.join('-') : 'no-grouping';
+  }, [groupBy.site, groupBy.tank, groupBy.date]);
+
+  // Handle row click to prevent errors with group rows
+  const onRowClick = useCallback((e) => {
+    // Only process clicks on data rows, not group rows
+    if (e.rowType === 'group') {
+      // Let DevExtreme handle group row expansion
+      return;
+    }
+    // For data rows, you can add custom logic here if needed
+  }, []);
+
+  // Clear all groupings - stable version that prevents infinite loops
+  const handleClearGrouping = useCallback(() => {
+    setGroupBy(prev => {
+      // Only update if there's actually something to clear
+      if (!prev.date && !prev.site && !prev.tank) {
+        return prev;
+      }
+      return { date: false, site: false, tank: false };
+    });
+  }, []);  const handleCancelDelete = useCallback(() => {
     // Use timeout to ensure DOM stability before state change
     setTimeout(() => {
       setDeleteConfirmation({
@@ -768,59 +769,110 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
     );
   }, [deleteConfirmation, VolumeChangeReasonEnum, tanks, executeDelete, handleCancelDelete]);
 
-  // Format timestamp for display
+  // Format timestamp for display (full date and time)
   const formatTime = (cellInfo) => {
+    if (!cellInfo.value) return '';
     const date = new Date(cellInfo.value);
-    return date.toLocaleString();
+    return isNaN(date.getTime()) ? cellInfo.value : date.toLocaleString();
   };
 
-  // Render change reason with additional info
+  // Format date only (for grouping) - returns just the date part
+  const formatDateOnly = (cellInfo) => {
+    if (!cellInfo.value) return '';
+    const date = new Date(cellInfo.value);
+    if (isNaN(date.getTime())) return cellInfo.value;
+
+    // Format as YYYY-MM-DD for consistent grouping
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Calculate date group value (for grouping by date)
+  const calculateDateGroupValue = (rowData) => {
+    if (!rowData.timestamp) return '';
+    const date = new Date(rowData.timestamp);
+    if (isNaN(date.getTime())) return '';
+
+    // Return YYYY-MM-DD format for consistent grouping
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Format time only (for time column when grouped by date)
+  const formatTimeOnly = (cellInfo) => {
+    if (!cellInfo.value) return '';
+    const date = new Date(cellInfo.value);
+    if (isNaN(date.getTime())) return cellInfo.value;
+    return date.toLocaleTimeString();
+  };
+
+  // Render change reason - just the reason type, no vehicle info
   const changeReasonCellRender = (cellInfo) => {
     const reason = VolumeChangeReasonEnum.find(r => r.id === cellInfo.value);
-    if (reason) {
-      if (reason.name === 'Dispensing' && cellInfo.data.vehicleName) {
-        return `${reason.name} - ${cellInfo.data.vehicleName}`;
-      }
-      return reason.name;
-    }
-    return cellInfo.value;
+    return reason ? reason.name : cellInfo.value;
   };
 
-  // Export functionality
-  const onExporting = useCallback((e) => {
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Transaction History');
-
-    exportDataGrid({
-      component: dataGridRef.current.instance,
-      worksheet: worksheet,
-      autoFilterEnabled: true,
-      customizeCell: ({ gridCell, excelCell }) => {
-        if (gridCell.column.dataField === 'changeReason') {
-          const reason = VolumeChangeReasonEnum.find(r => r.id === gridCell.value);
-          if (reason) {
-            excelCell.value = reason.name;
-          }
-        }
-        if (gridCell.column.dataField === 'timestamp') {
-          if (gridCell.value instanceof Date) {
-            excelCell.value = gridCell.value.toLocaleString();
-          }
-        }
-      }
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `transaction_history_${new Date().toISOString().split('T')[0]}.xlsx`;
-        link.click();
-        URL.revokeObjectURL(url);
+  // Export functionality using external utility
+  const onExporting = useCallback(async () => {
+    try {
+      await exportTransactionsToExcel({
+        dataGridInstance: dataGridRef.current?.instance,
+        startDate: headerStartDate,
+        endDate: headerEndDate,
+        userName: user?.userName || user?.username || 'Unknown User',
+        volumeChangeReasonEnum: VolumeChangeReasonEnum
       });
-    });
-    e.cancel = true;
-  }, [VolumeChangeReasonEnum]);
+
+      notify({
+        message: 'Export completed successfully!',
+        type: 'success',
+        displayTime: 2000,
+        position: 'top center'
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      notify({
+        message: 'Failed to export data. Please try again.',
+        type: 'error',
+        displayTime: 3000,
+        position: 'top center'
+      });
+    }
+  }, [headerStartDate, headerEndDate, user, VolumeChangeReasonEnum]);
+
+  // AI Analysis Report Export
+  const onExportingAnalysis = useCallback(async () => {
+    try {
+      await exportAnalysisReport({
+        transactions: tankVolumeHistory,
+        tanks: tanks,
+        sites: sites,
+        startDate: headerStartDate,
+        endDate: headerEndDate,
+        volumeChangeReasonEnum: VolumeChangeReasonEnum,
+        userName: user?.userName || user?.username || 'Unknown User'
+      });
+
+      notify({
+        message: 'AI-Style Analysis Report generated successfully!',
+        type: 'success',
+        displayTime: 3000,
+        position: 'top center'
+      });
+    } catch (error) {
+      console.error('Analysis export failed:', error);
+      notify({
+        message: 'Failed to generate analysis report. Please try again.',
+        type: 'error',
+        displayTime: 3000,
+        position: 'top center'
+      });
+    }
+  }, [tankVolumeHistory, tanks, sites, headerStartDate, headerEndDate, VolumeChangeReasonEnum, user]);
 
   // Early return if no read permission (after all hooks are defined)
   if (!canReadTankVolumeHistory) {
@@ -866,18 +918,8 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                 />
               </div>
 
-              {/* Segmented Button Group: Filters, Refresh, Export */}
+              {/* Segmented Button Group: Refresh, Export */}
               <div className="transaction-hub__action-buttons">
-                <Button
-                  text="Filters"
-                  icon="fa-light fa-filter"
-                  type="default"
-                  stylingMode="contained"
-                  onClick={() => setShowFilterPopup(true)}
-                  hint="Filter transactions"
-                  className="transaction-hub__action-btn transaction-hub__action-btn--first"
-                />
-
                 <Button
                   text="Refresh"
                   icon="fa-light fa-refresh"
@@ -885,7 +927,7 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                   stylingMode="outlined"
                   onClick={handleRefresh}
                   hint="Refresh data"
-                  className="transaction-hub__action-btn"
+                  className="transaction-hub__action-btn transaction-hub__action-btn--first"
                 />
 
                 <Button
@@ -895,14 +937,74 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                   stylingMode="outlined"
                   onClick={onExporting}
                   hint="Export to Excel"
-                  className="transaction-hub__action-btn transaction-hub__action-btn--excel transaction-hub__action-btn--last"
+                  className="transaction-hub__action-btn transaction-hub__action-btn--excel"
+                />
+
+                <Button
+                  text="Analysis Report"
+                  icon="fa-light fa-chart-mixed"
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={onExportingAnalysis}
+                  hint="Generate AI-style site analysis report"
+                  className="transaction-hub__action-btn transaction-hub__action-btn--analysis transaction-hub__action-btn--last"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Current Filters Display - Mobile Responsive */}
+        {/* Inline Filter Panel - Only User and Manual Dispensing (Site/Tank/Dates in header) */}
+        <div className="tw-mt-4 tw-p-3 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg">
+          <div className="tw-flex tw-items-center tw-gap-4">
+            {/* User Filter */}
+            <div style={{ width: '200px' }}>
+              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                Recorded By
+              </label>
+              <SelectBox
+                dataSource={usersForFilter}
+                displayExpr="userName"
+                valueExpr="userId"
+                value={filterUserId}
+                onValueChanged={(e) => setFilterUserId(e.value)}
+                placeholder="All Users"
+                searchEnabled={true}
+                showClearButton={true}
+              />
+            </div>
+
+            {/* Manual Dispensing Checkbox */}
+            <div className="tw-flex tw-items-end tw-pb-1">
+              <CheckBox
+                text="Use Manual Dispensing"
+                value={currentFilters.useManualDispensing}
+                onValueChanged={(e) => handleToggleManualDispensing(e.value)}
+                hint="Show manual dispensing from TankStock instead of sensor dispensing"
+              />
+            </div>
+
+            {/* Filter Action Buttons */}
+            <div className="tw-flex tw-gap-2 tw-items-end">
+              <Button
+                text="Apply"
+                icon="fa-light fa-search"
+                type="default"
+                stylingMode="contained"
+                onClick={handleApplyFilters}
+              />
+              <Button
+                text="Clear"
+                icon="fa-light fa-times"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleClearFilters}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Current Filters Display - Shows header filters + tab filters */}
         <div className="tw-mt-3 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
           <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center sm:tw-justify-between tw-gap-3">
             {/* Active filters info */}
@@ -914,32 +1016,49 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
               {/* Filter tags - responsive wrapping */}
               <div className="tw-flex tw-flex-wrap tw-gap-2 tw-flex-1">
-                {currentFilters.siteId ? (
-                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
-                    Site: {sites?.find(s => s.id === currentFilters.siteId)?.name || 'Unknown'}
-                  </span>
+                {/* Site filter from header */}
+                {selectedSiteIds && selectedSiteIds.length > 0 ? (
+                  selectedSiteIds.length === 1 ? (
+                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
+                      Site: {sites?.find(s => s.id === selectedSiteIds[0])?.name || 'Unknown'}
+                    </span>
+                  ) : (
+                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
+                      Sites: {selectedSiteIds.length} selected
+                    </span>
+                  )
                 ) : (
                   <span className="tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
                     All Sites
                   </span>
                 )}
-                {currentFilters.tankId && (
-                  <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
-                    Tank: {tanks?.find(t => t.id === currentFilters.tankId)?.name || 'Unknown'}
-                  </span>
+
+                {/* Tank filter from header */}
+                {selectedTankIds && selectedTankIds.length > 0 && (
+                  selectedTankIds.length === 1 ? (
+                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
+                      Tank: {tanks?.find(t => t.id === selectedTankIds[0])?.name || 'Unknown'}
+                    </span>
+                  ) : (
+                    <span className="tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
+                      Tanks: {selectedTankIds.length} selected
+                    </span>
+                  )
                 )}
-                {currentFilters.recordedBy && (
+
+                {/* User filter - tab specific */}
+                {filterUserId && (
                   <span className="tw-bg-purple-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
-                    User: {usersForFilter?.find(u => u.id === currentFilters.recordedBy)?.userName || 'Unknown'}
+                    User: {usersForFilter?.find(u => u.userId === filterUserId)?.userName || 'Unknown'}
                   </span>
                 )}
+
+                {/* Date range from header */}
                 <span className="tw-bg-green-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
-                  {currentFilters.startDate && currentFilters.endDate ? (
+                  {headerStartDate && headerEndDate ? (
                     (() => {
-                      const startDate = new Date(currentFilters.startDate);
-                      const endDate = new Date(currentFilters.endDate);
-                      const startDay = startDate.toLocaleDateString();
-                      const endDay = endDate.toLocaleDateString();
+                      const startDay = headerStartDate.toLocaleDateString();
+                      const endDay = headerEndDate.toLocaleDateString();
 
                       // Check if it's the same day (single day filter)
                       if (startDay === endDay) {
@@ -954,23 +1073,20 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
                     '📅 Today'
                   )}
                 </span>
+
+                {/* Manual Dispensing indicator */}
+                {useManualDispensing && (
+                  <span className="tw-bg-yellow-100 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-whitespace-nowrap">
+                    Manual Dispensing
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Manual Dispensing Toggle */}
-            <div className="tw-flex tw-items-center tw-gap-2 tw-flex-shrink-0">
-              <CheckBox
-                text="Use Manual Dispensing"
-                value={currentFilters.useManualDispensing}
-                onValueChanged={(e) => handleToggleManualDispensing(e.value)}
-                hint="Show manual dispensing from TankStock instead of sensor dispensing"
-              />
-            </div>
-
-            {/* Reset button */}
+            {/* Reset tab filters button */}
             <div className="tw-flex-shrink-0">
               <Button
-                text="Reset to All Sites"
+                text="Clear Tab Filters"
                 onClick={handleClearFilters}
                 stylingMode="text"
                 className="tw-text-xs tw-text-blue-600 tw-w-full sm:tw-w-auto"
@@ -982,34 +1098,12 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
 
       {/* Main content - Responsive padding */}
       <div className="tw-flex-1 tw-p-2 sm:tw-p-4 tw-overflow-hidden tw-flex tw-flex-col">
-        {/* Date Navigation - Above DataGrid */}
-        <div className="tw-mb-3">
-          <div className="transaction-hub__date-nav">
-            <Button
-              text="Previous Day"
-              icon="fa-light fa-chevron-left"
-              type="default"
-              stylingMode="outlined"
-              onClick={handlePreviousDay}
-              hint="Go to previous day"
-              className="transaction-hub__date-nav-btn transaction-hub__date-nav-btn--first"
-            />
-            <Button
-              text="Next Day"
-              icon="fa-light fa-chevron-right"
-              type="default"
-              stylingMode="outlined"
-              onClick={handleNextDay}
-              disabled={isNextDayDisabled()}
-              hint="Go to next day"
-              className="transaction-hub__date-nav-btn transaction-hub__date-nav-btn--last"
-            />
-          </div>
-        </div>
+        {/* Date navigation removed - dates now controlled by header filters */}
 
         {/* DataGrid Container */}
         <div className="tw-flex-1 tw-min-h-0">
           <DataGrid
+            key={dataGridKey}
             dataSource={tankVolumeHistory}
             keyExpr="id"
             showBorders={true}
@@ -1019,10 +1113,11 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             allowColumnResizing={true}
             showColumnHeaders={true}
             className="tw-h-full"
+            onRowClick={onRowClick}
           >
           <FilterPanel visible={true} />
           <GroupPanel visible={false} />
-          <Grouping visible={true} autoExpandAll={isGroupsExpanded} />
+          <Grouping visible={true} autoExpandAll={isGroupsExpanded} allowCollapsing={true} />
           <HeaderFilter visible={true} />
           <FilterRow visible={true} />
           <Paging enabled={true} defaultPageSize={100} />
@@ -1070,13 +1165,37 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
           <Column dataField="id" caption="ID" visible={false} defaultSortOrder="desc" />
           <Column
             dataField="timestamp"
-            caption="Date & Time"
-            cellRender={formatTime}
+            caption={groupBy.date ? 'Date' : 'Date & Time'}
+            cellRender={groupBy.date ? formatDateOnly : formatTime}
             minWidth={150}
-            sortOrder="desc"
+            defaultSortOrder="desc"
+            sortIndex={0}
+            groupIndex={getGroupIndex('date')}
+            calculateGroupValue={groupBy.date ? calculateDateGroupValue : undefined}
+            allowGrouping={true}
           />
-          <Column dataField="site" caption="Site" groupIndex={0} />
-          <Column dataField="tankId" caption="Tank" groupIndex={1}>
+          {groupBy.date && (
+            <Column
+              dataField="timestamp"
+              caption="Time"
+              cellRender={formatTimeOnly}
+              minWidth={100}
+              allowGrouping={false}
+              allowFiltering={false}
+            />
+          )}
+          <Column
+            dataField="site"
+            caption="Site"
+            groupIndex={getGroupIndex('site')}
+            allowGrouping={true}
+          />
+          <Column
+            dataField="tankId"
+            caption="Tank"
+            groupIndex={getGroupIndex('tank')}
+            allowGrouping={true}
+          >
             <Lookup dataSource={tanks} valueExpr="id" displayExpr="name" />
           </Column>
           <Column
@@ -1084,9 +1203,22 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             caption="Transaction Type"
             minWidth={130}
             cellRender={changeReasonCellRender}
+            allowGrouping={true}
           >
             <Lookup dataSource={VolumeChangeReasonEnum} valueExpr="id" displayExpr="name" />
           </Column>
+          <Column
+            dataField="vehicleName"
+            caption="Vehicle"
+            minWidth={120}
+            visible={true}
+          />
+          <Column
+            dataField="vehicleType"
+            caption="Vehicle Type"
+            minWidth={120}
+            visible={true}
+          />
           <Column
             dataField="volumeChange"
             caption="Volume Change (L)"
@@ -1104,6 +1236,21 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
             caption="Recorded By"
             minWidth={120}
           />
+             <ColumnChooser
+          height='340px'
+          enabled={true}
+          mode='selection'
+        >
+             <ColumnChooserSelection
+            allowSelectAll={true}
+            selectByClick={true}
+            recursive= 'true' />
+           <Position
+            my="right top"
+            at="right bottom"
+            of=".dx-datagrid-column-chooser-button"
+          />
+        </ColumnChooser>
 
           {/* Actions Column */}
           <Column
@@ -1135,13 +1282,61 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
           />
 
           {/* Summary for grouped data */}
-          <Summary>
+          <Summary calculateCustomSummary={(options) => {
+            // Custom summary calculation for dispensing in groups and totals
+            if (showDispensingTotal && (options.name === 'GroupDispensing' || options.name === 'TotalDispensing')) {
+              if (options.summaryProcess === 'start') {
+                options.totalValue = 0;
+              } else if (options.summaryProcess === 'calculate') {
+                // Only sum dispensing transactions (changeReason === 6)
+                if (options.value.changeReason === 6) {
+                  options.totalValue += Math.abs(options.value.volumeChange || 0);
+                }
+              }
+            }
+          }}>
+            {/* Group-level summaries (shown in each group footer) */}
+            {/* <GroupItem
+              column="volumeChange"
+              summaryType="sum"
+              valueFormat="#,##0"
+              displayFormat="Dispense: {0}L"
+              alignByColumn={true}
+            /> */}
+            {showDispensingTotal && (
+              <GroupItem
+                name="GroupDispensing"
+                summaryType="custom"
+                customizeText={(data) => {
+                  return `Dispensing: ${data.value?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'} L`;
+                }}
+                alignByColumn={true}
+                showInGroupFooter={false}
+              />
+            )}
+            <GroupItem
+              column="id"
+              summaryType="count"
+              displayFormat="Transactions: {0}"
+              alignByColumn={true}
+            />
+
+            {/* Total-level summaries (shown at the bottom of entire grid) */}
             <TotalItem
               column="volumeChange"
               summaryType="sum"
               valueFormat="#,##0.00"
               displayFormat="Total Volume Change: {0}L"
             />
+            {showDispensingTotal && (
+              <TotalItem
+                name="TotalDispensing"
+                summaryType="custom"
+                customizeText={(data) => {
+                  return `Total Dispensing: ${data.value?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}L`;
+                }}
+              />
+            )}
             <TotalItem
               column="id"
               summaryType="count"
@@ -1151,18 +1346,112 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
         </DataGrid>
         </div>
 
-        {/* Expand/Collapse Toggle Button */}
-        <div className="tw-mt-3 tw-flex tw-justify-start">
-          <Button
-            text={isGroupsExpanded ? "Collapse All Groups" : "Expand All Groups"}
-            icon={isGroupsExpanded ? "fa-light fa-compress" : "fa-light fa-expand"}
-            onClick={handleToggleExpandGroups}
-            stylingMode="outlined"
-            type="default"
-            elementAttr={{
-              class: 'tw-text-sm'
-            }}
-          />
+        {/* Group Control Buttons */}
+        <div className="tw-mt-3 tw-p-3 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg">
+          <div className="tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-center tw-gap-3">
+            {/* Grouping Options */}
+            <div className="tw-flex tw-items-center tw-gap-4">
+              <label className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-flex tw-items-center">
+                <i className="fa-light fa-layer-group tw-mr-2"></i>
+                Group By:
+              </label>
+
+              {/* Date Checkbox */}
+              <div className="tw-flex tw-items-center">
+                <CheckBox
+                  text="Date"
+                  value={groupBy.date}
+                  onValueChanged={() => handleGroupByChange('date')}
+                  elementAttr={{
+                    class: 'tw-flex tw-items-center'
+                  }}
+                />
+                <i className="fa-light fa-calendar tw-ml-1 tw-text-gray-500"></i>
+              </div>
+
+              {/* Site Checkbox */}
+              <div className="tw-flex tw-items-center">
+                <CheckBox
+                  text="Site"
+                  value={groupBy.site}
+                  onValueChanged={() => handleGroupByChange('site')}
+                  elementAttr={{
+                    class: 'tw-flex tw-items-center'
+                  }}
+                />
+                <i className="fa-light fa-building tw-ml-1 tw-text-gray-500"></i>
+              </div>
+
+              {/* Tank Checkbox */}
+              <div className="tw-flex tw-items-center">
+                <CheckBox
+                  text="Tank"
+                  value={groupBy.tank}
+                  onValueChanged={() => handleGroupByChange('tank')}
+                  elementAttr={{
+                    class: 'tw-flex tw-items-center'
+                  }}
+                />
+                <i className="fa-light fa-gas-pump tw-ml-1 tw-text-gray-500"></i>
+              </div>
+
+              {/* Clear Grouping Button */}
+              {hasActiveGrouping && (
+                <Button
+                  text="Clear"
+                  icon="fa-light fa-times"
+                  onClick={handleClearGrouping}
+                  stylingMode="text"
+                  type="danger"
+                  elementAttr={{
+                    class: 'tw-text-sm'
+                  }}
+                  hint="Clear all groupings"
+                />
+              )}
+            </div>
+
+            {/* Group Controls */}
+            {hasActiveGrouping && (
+              <div className="tw-flex tw-items-center tw-gap-2 tw-border-l tw-border-gray-300 tw-pl-4">
+                <Button
+                  text={isGroupsExpanded ? "Collapse All" : "Expand All"}
+                  icon={isGroupsExpanded ? "fa-light fa-compress" : "fa-light fa-expand"}
+                  onClick={handleToggleExpandGroups}
+                  stylingMode="outlined"
+                  type="default"
+                  elementAttr={{
+                    class: 'tw-text-sm'
+                  }}
+                />
+                <Button
+                  text={showDispensingTotal ? "Hide Dispensing" : "Show Dispensing"}
+                  icon={showDispensingTotal ? "fa-light fa-eye-slash" : "fa-light fa-eye"}
+                  onClick={() => setShowDispensingTotal(!showDispensingTotal)}
+                  stylingMode="outlined"
+                  type="default"
+                  elementAttr={{
+                    class: 'tw-text-sm'
+                  }}
+                  hint={showDispensingTotal ? "Hide dispensing totals in summaries" : "Show dispensing totals in summaries"}
+                />
+              </div>
+            )}
+
+            {/* Active Grouping Indicator */}
+            {hasActiveGrouping && (
+              <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-blue-600 tw-ml-auto">
+                <i className="fa-light fa-info-circle"></i>
+                <span>
+                  Grouped by: {[
+                    groupBy.date && 'Date',
+                    groupBy.site && 'Site',
+                    groupBy.tank && 'Tank'
+                  ].filter(Boolean).join(' → ')}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1184,14 +1473,6 @@ const TransactionHub = ({ selectedSite, dateRange }) => {
           onSuccess={handleManualRefillSuccess}
         />
       </Popup>
-
-      {/* Transaction Filter Popup */}
-      <TransactionFilterPopup
-        visible={showFilterPopup}
-        onHiding={() => setShowFilterPopup(false)}
-        currentFilters={currentFilters}
-        onApplyFilters={handleApplyFilters}
-      />
 
       {/* Delete Confirmation Dialog - FIXED VERSION */}
       <Popup

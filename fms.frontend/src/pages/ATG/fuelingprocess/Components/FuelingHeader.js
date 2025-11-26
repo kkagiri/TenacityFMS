@@ -36,20 +36,59 @@ const FuelingHeader = ({
     (state) => state.auth?.user?.permissions || []
   );
 
-  // Load tanks when component mounts or site changes (ONLY when site ID changes)
+  // Get localStorage key for this device's tank selection
+  const getStorageKey = () => {
+    const deviceId = ptsDevice?.ptsid || ptsDevice?.deviceId;
+    return `fuelingTankSelection_${deviceId}`;
+  };
+
+  // Load selected tank from localStorage on mount
+  useEffect(() => {
+    if (ptsDevice?.ptsid || ptsDevice?.deviceId) {
+      const storageKey = getStorageKey();
+      const savedTankId = localStorage.getItem(storageKey);
+
+      if (savedTankId) {
+        const parsedTankId = parseInt(savedTankId, 10);
+        if (!isNaN(parsedTankId)) {
+          console.log("[FuelingHeader] Restored tank selection from localStorage:", parsedTankId);
+          setSelectedTankId(parsedTankId);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ptsDevice?.ptsid, ptsDevice?.deviceId]); // Load once when device ID is available
+
+  // Save selected tank to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedTankId && (ptsDevice?.ptsid || ptsDevice?.deviceId)) {
+      const storageKey = getStorageKey();
+      localStorage.setItem(storageKey, selectedTankId.toString());
+      console.log("[FuelingHeader] Saved tank selection to localStorage:", selectedTankId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTankId, ptsDevice?.ptsid, ptsDevice?.deviceId]); // Save whenever tank selection changes
+
+  // Load ALL tanks when component mounts (for tank transfer across sites)
   useEffect(() => {
     const loadTanks = async () => {
-      if (!ptsDevice?.site) {
-        console.log("[FuelingHeader] No site ID found on device");
-        return;
-      }
-
-      console.log("[FuelingHeader] Loading tanks for site:", ptsDevice.site);
+      console.log("[FuelingHeader] Loading all tanks for transfer operations");
       setIsLoadingTanks(true);
       try {
-        const tanks = await tankService.getTanksBySite(ptsDevice.site);
-        console.log("[FuelingHeader] Tanks loaded:", tanks);
+        const tanks = await tankService.getAllTanks();
+        console.log("[FuelingHeader] All tanks loaded:", tanks);
         setAvailableTanks(Array.isArray(tanks) ? tanks : []);
+
+        // Validate that saved tank still exists in the loaded tanks
+        if (selectedTankId) {
+          const tankExists = tanks.some(t => t.id === selectedTankId);
+          if (!tankExists) {
+            console.log("[FuelingHeader] Previously selected tank no longer exists, clearing selection");
+            setSelectedTankId(null);
+            const storageKey = getStorageKey();
+            localStorage.removeItem(storageKey);
+          }
+        }
       } catch (error) {
         console.error("[FuelingHeader] Error loading tanks:", error);
         setAvailableTanks([]);
@@ -60,21 +99,17 @@ const FuelingHeader = ({
 
     loadTanks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ptsDevice?.site]); // Only reload when site ID actually changes
+  }, []); // Load once on mount
 
   // Enrich tanks with real-time probe data whenever uploadStatus updates
   useEffect(() => {
     // Add debouncing to prevent rapid updates
     const timeoutId = setTimeout(() => {
       if (availableTanks && availableTanks.length > 0) {
-        // Filter out tanks starting with "FT"
-        const filteredTanks = availableTanks.filter(
-          tank => !tank.name?.toUpperCase().startsWith('FT')
-        );
-
+        // Show all tanks (no filtering)
         const enriched = tankService.enrichTanksWithProbeData(
           rawUploadStatus,
-          filteredTanks
+          availableTanks
         );
         setTanksWithProbeData(enriched);
       } else {
@@ -322,7 +357,7 @@ const FuelingHeader = ({
               {isLoadingTanks ? (
                 <div className="tw-flex tw-items-center tw-gap-2 tw-p-3 tw-bg-gray-50 tw-rounded tw-border tw-border-gray-200" key="loading">
                   <i className="fa-light fa-spinner fa-spin tw-text-blue-500" key="spinner-icon"></i>
-                  <span className="tw-text-xs tw-text-gray-600">Loading tanks for site {ptsDevice.site}...</span>
+                  <span className="tw-text-xs tw-text-gray-600">Loading all tanks...</span>
                 </div>
               ) : tanksWithProbeData && tanksWithProbeData.length > 0 ? (
                 <div key="tank-select-wrapper">
@@ -369,11 +404,11 @@ const FuelingHeader = ({
                   <div className="tw-flex tw-items-center tw-gap-2">
                     <i className="fa-light fa-triangle-exclamation tw-text-yellow-600" key="warning-icon"></i>
                     <span className="tw-text-xs tw-font-medium tw-text-yellow-800">
-                      No tanks configured for site {ptsDevice.site}
+                      No tanks available in the system
                     </span>
                   </div>
                   <span className="tw-text-xs tw-text-yellow-700">
-                    Please configure tanks in Tank Management for this site.
+                    Please configure tanks in Tank Management.
                   </span>
                 </div>
               )}

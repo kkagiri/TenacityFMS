@@ -2,6 +2,8 @@
 
 export const reportsRoutes = {
   dashboard: '/reports',
+  gallery: '/reports/gallery',
+  tankVolumeHistory: '/reports/tank-volume-history',
   fuelImporter: '/reports/fuel-importer',
   consumptionRefills: '/reports/consumption-refills',
 };

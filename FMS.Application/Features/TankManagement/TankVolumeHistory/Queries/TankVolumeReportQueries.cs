@@ -77,6 +77,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
         public List<int>? TankIds { get; set; }
         public bool IncludeCumulative { get; set; } = false;
         public bool UseManualDispensing { get; set; } = false; // Use manual aggregate dispensing from TankStock instead of sensor dispensing
+        public bool UseCombinedDispensing { get; set; } = false; // Combine both: use TankVolumeHistory where available, fill gaps with TankStock manual dispensing
 
         public GetPivotDataQuery(DateTime startDate, DateTime endDate, string groupBy = "Month")
         {

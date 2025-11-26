@@ -4,6 +4,7 @@ import ProviderManagementLayout from "./layout/ProviderManagementLayout";
 import ProviderDashboard from "./dashboard/ProviderDashboard";
 import ProviderConfiguration from "./configuration/ProviderConfiguration";
 import VehicleAssignments from "./assignments/VehicleAssignments";
+import MapGPSDevices from "./assignments/MapGPSDevices";
 
 /**
  * Provider Management Main Component
@@ -17,6 +18,7 @@ const ProviderManagementMain = () => {
         <Route path="dashboard" element={<ProviderDashboard />} />
         <Route path="configuration" element={<ProviderConfiguration />} />
         <Route path="assignments" element={<VehicleAssignments />} />
+        <Route path="map-devices" element={<MapGPSDevices />} />
         <Route
           path="*"
           element={<Navigate to="/admin/providers" replace />}

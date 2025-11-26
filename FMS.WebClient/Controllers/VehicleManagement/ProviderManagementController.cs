@@ -1,8 +1,16 @@
 using FMS.Application.Communication.SignalR;
+using FMS.Application.Features.VehicleTracking.Commands.AssignVehicleToProvider;
+using FMS.Application.Features.VehicleTracking.Commands.BulkAssignVehiclesToProvider;
+using FMS.Application.Features.VehicleTracking.Commands.BulkUnassignVehiclesFromProvider;
+using FMS.Application.Features.VehicleTracking.Commands.MapVehicleToDevice;
+using FMS.Application.Features.VehicleTracking.Commands.UnassignVehicleFromProvider;
+using FMS.Application.Features.VehicleTracking.DTOs;
+using FMS.Application.Features.VehicleTracking.Queries.GetVehicleProviderMappings;
 using FMS.Infrastructure.VehicleTracking.Models;
 using FMS.Infrastructure.VehicleTracking.Services;
 using FMS.Infrastructure.VehicleTracking.Factory;
 using FMS.Persistence.DataAccess;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +28,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     [Route("api/v1/providers")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ProviderManagementController(
+        IMediator mediator,
         IVehicleTrackingService trackingService,
         IProviderConfigurationService configService,
         IProviderFactory providerFactory,
@@ -27,6 +36,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         IServiceScopeFactory serviceScopeFactory,
         IHubContext<FrontEndHub> hubContext) : ControllerBase
     {
+        private readonly IMediator _mediator = mediator;
         private readonly IVehicleTrackingService _trackingService = trackingService;
         private readonly IProviderConfigurationService _configService = configService;
         private readonly IProviderFactory _providerFactory = providerFactory;
@@ -551,98 +561,24 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         {
             try
             {
-                _logger.LogInformation("Getting vehicle-provider mappings with device info");
+                _logger.LogInformation("Getting vehicle-provider mappings{Filter}",
+                    vehicleId.HasValue ? $" for vehicle {vehicleId}" : "");
 
-                if (vehicleId.HasValue)
+                var query = new GetVehicleProviderMappingsQuery { VehicleId = vehicleId };
+                var result = await _mediator.Send(query);
+
+                if (!result.IsSuccess)
                 {
-                    // Single vehicle mapping with full details
-                    ProviderConfiguration? config = await _configService.GetForVehicleAsync(vehicleId.Value);
-
-                    // Get full mapping details from database
-                    using var scope = _serviceScopeFactory.CreateScope();
-                    var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-
-                    var mapping = await context.VehicleProviderMappings
-                        .Include(m => m.ProviderConfiguration)
-                        .Include(m => m.Vehicle)
-                        .ThenInclude(v => v.VehicleType)
-                        .Where(m => m.VehicleId == vehicleId.Value && m.IsActive)
-                        .FirstOrDefaultAsync();
-
-                    if (mapping == null)
-                    {
-                        return Ok(new
-                        {
-                            Success = true,
-                            Data = new List<object>(),
-                            Count = 0,
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-
-                    var data = new
-                    {
-                        VehicleId = mapping.VehicleId,
-                        VehicleName = mapping.Vehicle?.HyoungNo,
-                        NumberPlate = mapping.Vehicle?.NumberPlate,
-                        VehicleType = mapping.Vehicle?.VehicleType?.Name,
-                        ProviderId = mapping.ProviderConfigId,
-                        ProviderName = mapping.ProviderConfiguration?.Name,
-                        ExternalDeviceId = mapping.ExternalDeviceId,
-                        DeviceIMEI = mapping.DeviceIMEI,
-                        DeviceName = mapping.DeviceName,
-                        DeviceType = mapping.DeviceType,
-                        IsActive = mapping.IsActive,
-                        MappedAt = mapping.CreatedAt,
-                        MappedBy = mapping.CreatedBy
-                    };
-
-                    return Ok(new
-                    {
-                        Success = true,
-                        Data = new[] { data },
-                        Count = 1,
-                        Timestamp = DateTime.UtcNow
-                    });
+                    return BadRequest(result);
                 }
-                else
+
+                return Ok(new
                 {
-                    // All mappings with full details
-                    using var scope = _serviceScopeFactory.CreateScope();
-                    var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-
-                    var mappings = await context.VehicleProviderMappings
-                        .Include(m => m.ProviderConfiguration)
-                        .Include(m => m.Vehicle)
-                        .ThenInclude(v => v.VehicleType)
-                        .Where(m => m.IsActive)
-                        .ToListAsync();
-
-                    var result = mappings.Select(m => new
-                    {
-                        VehicleId = m.VehicleId,
-                        VehicleName = m.Vehicle?.HyoungNo,
-                        NumberPlate = m.Vehicle?.NumberPlate,
-                        VehicleType = m.Vehicle?.VehicleType?.Name,
-                        ProviderId = m.ProviderConfigId,
-                        ProviderName = m.ProviderConfiguration?.Name,
-                        ExternalDeviceId = m.ExternalDeviceId,
-                        DeviceIMEI = m.DeviceIMEI,
-                        DeviceName = m.DeviceName,
-                        DeviceType = m.DeviceType,
-                        IsActive = m.IsActive,
-                        MappedAt = m.CreatedAt,
-                        MappedBy = m.CreatedBy
-                    }).ToList();
-
-                    return Ok(new
-                    {
-                        Success = true,
-                        Data = result,
-                        Count = result.Count,
-                        Timestamp = DateTime.UtcNow
-                    });
-                }
+                    Success = true,
+                    Data = result.Data,
+                    Count = result.Data?.Count ?? 0,
+                    Timestamp = DateTime.UtcNow
+                });
             }
             catch (Exception ex)
             {
@@ -657,14 +593,14 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Bulk assignment request</param>
         /// <returns>Job initiation result with job ID</returns>
         [HttpPost("mappings/bulk")]
-        public async Task<IActionResult> BulkAssignVehiclesToProvider([FromBody] BulkVehicleProviderAssignmentRequest request)
+        public async Task<IActionResult> BulkAssignVehiclesToProvider([FromBody] BulkAssignmentRequestDTO request)
         {
             try
             {
                 _logger.LogInformation("Initiating bulk assignment of {Count} vehicles to provider {ProviderId}",
                     request.VehicleIds.Count, request.ProviderId);
 
-                System.Security.Claims.Claim? userIdClaim = User.Claims.FirstOrDefault(c =>
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
                             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
                             Guid.TryParse(c.Value, out _));
 
@@ -673,140 +609,28 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                     return BadRequest("Invalid User ID");
                 }
 
-                // Look up provider by ID
-                ProviderConfiguration? provider = await _configService.GetByIdAsync(request.ProviderId);
-                if (provider == null)
+                var command = new BulkAssignVehiclesToProviderCommand
                 {
-                    return NotFound(new { Success = false, Message = $"Provider {request.ProviderId} not found" });
+                    ProviderId = request.ProviderId,
+                    VehicleIds = request.VehicleIds,
+                    UserId = userIdClaim.Value
+                };
+
+                var result = await _mediator.Send(command);
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
                 }
-
-                // Generate job ID
-                string jobId = Guid.NewGuid().ToString("N");
-
-                // Start background task (fire and forget) with proper scoping
-                _ = Task.Run(async () =>
-                {
-                    int successCount = 0;
-                    int failCount = 0;
-                    List<string> errors = [];
-
-                    try
-                    {
-                        // Create a new scope for this background task
-                        using var scope = _serviceScopeFactory.CreateScope();
-                        var scopedConfigService = scope.ServiceProvider.GetRequiredService<IProviderConfigurationService>();
-                        var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<ProviderManagementController>>();
-
-                        var startTime = DateTime.UtcNow;
-
-                        foreach (int vehicleId in request.VehicleIds)
-                        {
-                            try
-                            {
-                                bool ok = await scopedConfigService.MapVehicleToProviderAsync(vehicleId, provider.Name, userIdClaim.Value);
-                                if (ok)
-                                {
-                                    successCount++;
-                                }
-                                else
-                                {
-                                    failCount++;
-                                    errors.Add($"Vehicle {vehicleId}: Mapping failed");
-                                }
-
-                                var processedCount = successCount + failCount;
-
-                                // Broadcast progress every 50 vehicles or on completion
-                                if (processedCount % 50 == 0 || processedCount == request.VehicleIds.Count)
-                                {
-                                    var progressPercentage = (int)Math.Round((double)processedCount / request.VehicleIds.Count * 100);
-                                    var elapsed = (DateTime.UtcNow - startTime).TotalSeconds;
-                                    var rate = processedCount / elapsed;
-                                    var remainingSeconds = (int)Math.Ceiling((request.VehicleIds.Count - processedCount) / rate);
-
-                                    await _hubContext.Clients.All.SendAsync("BulkProviderAssignmentProgress", new
-                                    {
-                                        JobId = jobId,
-                                        Operation = "BulkAssign",
-                                        ProviderId = request.ProviderId,
-                                        ProviderName = provider.DisplayName,
-                                        TotalVehicles = request.VehicleIds.Count,
-                                        ProcessedVehicles = processedCount,
-                                        SuccessCount = successCount,
-                                        FailCount = failCount,
-                                        ProgressPercentage = progressPercentage,
-                                        EstimatedRemainingSeconds = remainingSeconds,
-                                        IsComplete = processedCount == request.VehicleIds.Count,
-                                        Timestamp = DateTime.UtcNow
-                                    });
-
-                                    scopedLogger.LogInformation(
-                                        "Job {JobId}: Processed {Count}/{Total} vehicles ({SuccessCount} succeeded, {FailCount} failed) - {Percentage}% complete",
-                                        jobId, processedCount, request.VehicleIds.Count, successCount, failCount, progressPercentage);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                failCount++;
-                                errors.Add($"Vehicle {vehicleId}: {ex.Message}");
-                                scopedLogger.LogError(ex, "Job {JobId}: Error assigning vehicle {VehicleId} to provider {ProviderName}",
-                                    jobId, vehicleId, provider.Name);
-                            }
-                        }
-
-                        scopedLogger.LogInformation("Job {JobId} completed: {SuccessCount} succeeded, {FailCount} failed",
-                            jobId, successCount, failCount);
-
-                        // Send final completion message
-                        await _hubContext.Clients.All.SendAsync("BulkProviderAssignmentProgress", new
-                        {
-                            JobId = jobId,
-                            Operation = "BulkAssign",
-                            ProviderId = request.ProviderId,
-                            ProviderName = provider.DisplayName,
-                            TotalVehicles = request.VehicleIds.Count,
-                            ProcessedVehicles = request.VehicleIds.Count,
-                            SuccessCount = successCount,
-                            FailCount = failCount,
-                            ProgressPercentage = 100,
-                            EstimatedRemainingSeconds = 0,
-                            IsComplete = true,
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Job {JobId}: Fatal error during bulk assignment", jobId);
-
-                        // Send error notification
-                        await _hubContext.Clients.All.SendAsync("BulkProviderAssignmentProgress", new
-                        {
-                            JobId = jobId,
-                            Operation = "BulkAssign",
-                            ProviderId = request.ProviderId,
-                            ProviderName = provider.DisplayName,
-                            TotalVehicles = request.VehicleIds.Count,
-                            ProcessedVehicles = successCount + failCount,
-                            SuccessCount = successCount,
-                            FailCount = failCount,
-                            ProgressPercentage = 0,
-                            EstimatedRemainingSeconds = 0,
-                            IsComplete = true,
-                            Error = ex.Message,
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-                });
 
                 // Return immediately with job ID
                 return Accepted(new
                 {
                     Success = true,
-                    Message = $"Bulk assignment job started for {request.VehicleIds.Count} vehicles",
-                    JobId = jobId,
+                    Message = result.Message,
+                    JobId = result.Data,
                     VehicleCount = request.VehicleIds.Count,
-                    ProviderName = provider.DisplayName,
-                    EstimatedSeconds = request.VehicleIds.Count * 0.5, // Rough estimate
+                    EstimatedSeconds = request.VehicleIds.Count * 0.5,
                     Timestamp = DateTime.UtcNow
                 });
             }
@@ -827,140 +651,37 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         {
             try
             {
-                _logger.LogInformation("Initiating bulk unassignment of {Count} vehicles from providers",
-                    request.VehicleIds.Count);
-
-                System.Security.Claims.Claim? userIdClaim = User.Claims.FirstOrDefault(c =>
-                            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                            Guid.TryParse(c.Value, out _));
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse(c.Value, out _));
 
                 if (userIdClaim == null)
                 {
                     return BadRequest("Invalid User ID");
                 }
 
-                // Generate job ID
-                string jobId = Guid.NewGuid().ToString("N");
+                // Use MediatR command
+                var command = new BulkUnassignVehiclesFromProviderCommand(
+                    request.VehicleIds,
+                    userIdClaim.Value);
 
-                // Start background task (fire and forget) with proper scoping
-                _ = Task.Run(async () =>
+                var result = await _mediator.Send(command);
+
+                if (!result.IsSuccess)
                 {
-                    int successCount = 0;
-                    int failCount = 0;
-
-                    try
+                    return StatusCode(500, new
                     {
-                        // Create a new scope for this background task
-                        using var scope = _serviceScopeFactory.CreateScope();
-                        var scopedConfigService = scope.ServiceProvider.GetRequiredService<IProviderConfigurationService>();
-                        var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<ProviderManagementController>>();
-
-                        var startTime = DateTime.UtcNow;
-
-                        foreach (int vehicleId in request.VehicleIds)
-                        {
-                            try
-                            {
-                                // Remove mapping by setting to inactive
-                                bool ok = await scopedConfigService.UnmapVehicleFromProviderAsync(vehicleId, userIdClaim.Value);
-                                if (ok)
-                                {
-                                    successCount++;
-                                }
-                                else
-                                {
-                                    failCount++;
-                                }
-
-                                var processedCount = successCount + failCount;
-
-                                // Broadcast progress every 50 vehicles or on completion
-                                if (processedCount % 50 == 0 || processedCount == request.VehicleIds.Count)
-                                {
-                                    var progressPercentage = (int)Math.Round((double)processedCount / request.VehicleIds.Count * 100);
-                                    var elapsed = (DateTime.UtcNow - startTime).TotalSeconds;
-                                    var rate = processedCount / elapsed;
-                                    var remainingSeconds = (int)Math.Ceiling((request.VehicleIds.Count - processedCount) / rate);
-
-                                    await _hubContext.Clients.All.SendAsync("BulkProviderAssignmentProgress", new
-                                    {
-                                        JobId = jobId,
-                                        Operation = "BulkUnassign",
-                                        ProviderId = (int?)null,
-                                        ProviderName = "None",
-                                        TotalVehicles = request.VehicleIds.Count,
-                                        ProcessedVehicles = processedCount,
-                                        SuccessCount = successCount,
-                                        FailCount = failCount,
-                                        ProgressPercentage = progressPercentage,
-                                        EstimatedRemainingSeconds = remainingSeconds,
-                                        IsComplete = processedCount == request.VehicleIds.Count,
-                                        Timestamp = DateTime.UtcNow
-                                    });
-
-                                    scopedLogger.LogInformation(
-                                        "Job {JobId}: Unassigned {Count}/{Total} vehicles ({SuccessCount} succeeded, {FailCount} failed) - {Percentage}% complete",
-                                        jobId, processedCount, request.VehicleIds.Count, successCount, failCount, progressPercentage);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                failCount++;
-                                scopedLogger.LogError(ex, "Job {JobId}: Error unassigning vehicle {VehicleId}",
-                                    jobId, vehicleId);
-                            }
-                        }
-
-                        scopedLogger.LogInformation("Job {JobId} completed: {SuccessCount} unassigned, {FailCount} failed",
-                            jobId, successCount, failCount);
-
-                        // Send final completion message
-                        await _hubContext.Clients.All.SendAsync("BulkProviderAssignmentProgress", new
-                        {
-                            JobId = jobId,
-                            Operation = "BulkUnassign",
-                            ProviderId = (int?)null,
-                            ProviderName = "None",
-                            TotalVehicles = request.VehicleIds.Count,
-                            ProcessedVehicles = request.VehicleIds.Count,
-                            SuccessCount = successCount,
-                            FailCount = failCount,
-                            ProgressPercentage = 100,
-                            EstimatedRemainingSeconds = 0,
-                            IsComplete = true,
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Job {JobId}: Fatal error during bulk unassignment", jobId);
-
-                        // Send error notification
-                        await _hubContext.Clients.All.SendAsync("BulkProviderAssignmentProgress", new
-                        {
-                            JobId = jobId,
-                            Operation = "BulkUnassign",
-                            ProviderId = (int?)null,
-                            ProviderName = "None",
-                            TotalVehicles = request.VehicleIds.Count,
-                            ProcessedVehicles = successCount + failCount,
-                            SuccessCount = successCount,
-                            FailCount = failCount,
-                            ProgressPercentage = 0,
-                            EstimatedRemainingSeconds = 0,
-                            IsComplete = true,
-                            Error = ex.Message,
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-                });
+                        Success = false,
+                        Message = result.Message
+                    });
+                }
 
                 // Return immediately with job ID
                 return Accepted(new
                 {
                     Success = true,
-                    Message = $"Bulk unassignment job started for {request.VehicleIds.Count} vehicles",
-                    JobId = jobId,
+                    Message = result.Message,
+                    JobId = result.Data,
                     VehicleCount = request.VehicleIds.Count,
                     EstimatedSeconds = request.VehicleIds.Count * 0.3, // Unassign is faster
                     Timestamp = DateTime.UtcNow
@@ -989,46 +710,38 @@ namespace FMS.WebClient.Controllers.VehicleManagement
 
                 if (userIdClaim == null) return BadRequest("Invalid User ID");
 
-                // Look up provider by ID or name
-                ProviderConfiguration? provider = request.ProviderId.HasValue
-                    ? await _configService.GetByIdAsync(request.ProviderId.Value)
-                    : await _configService.GetByNameAsync(request.ProviderName ?? "");
-
-                if (provider == null)
+                // Use MediatR command
+                var command = new MapVehicleToDeviceCommand
                 {
-                    return NotFound(new
+                    VehicleId = request.VehicleId,
+                    ProviderId = request.ProviderId,
+                    ProviderName = request.ProviderName,
+                    ExternalDeviceId = request.ExternalDeviceId ?? string.Empty,
+                    DeviceIMEI = request.DeviceIMEI,
+                    DeviceName = request.DeviceName,
+                    DeviceType = request.DeviceType,
+                    Metadata = request.Metadata,
+                    UserId = userIdClaim.Value
+                };
+
+                var result = await _mediator.Send(command);
+
+                if (!result.IsSuccess)
+                {
+                    return StatusCode(500, new
                     {
                         Success = false,
-                        Message = request.ProviderId.HasValue
-                            ? $"Provider {request.ProviderId} not found"
-                            : $"Provider '{request.ProviderName}' not found"
+                        Message = result.Message
                     });
-                }
-
-                // Map with device metadata
-                bool ok = await _configService.MapVehicleToProviderAsync(
-                    request.VehicleId,
-                    provider.Name,
-                    request.ExternalDeviceId,
-                    request.DeviceIMEI,
-                    request.DeviceName,
-                    request.DeviceType,
-                    request.Metadata,
-                    userIdClaim.Value);
-
-                if (!ok)
-                {
-                    return StatusCode(500, new { Success = false, Message = "Failed to map vehicle to device" });
                 }
 
                 return Ok(new
                 {
                     Success = true,
-                    Message = $"Vehicle {request.VehicleId} mapped to device {request.ExternalDeviceId} successfully",
+                    Message = result.Message,
                     Data = new
                     {
                         VehicleId = request.VehicleId,
-                        ProviderName = provider.Name,
                         ExternalDeviceId = request.ExternalDeviceId,
                         DeviceIMEI = request.DeviceIMEI,
                         DeviceName = request.DeviceName,
@@ -1060,23 +773,30 @@ namespace FMS.WebClient.Controllers.VehicleManagement
 
                 if (userIdClaim == null) return BadRequest("Invalid User ID");
 
-                // Look up provider by ID to get its name (service expects providerName)
-                ProviderConfiguration? provider = await _configService.GetByIdAsync(request.ProviderId);
-                if (provider == null)
+                // Use MediatR command
+                var command = new AssignVehicleToProviderCommand
                 {
-                    return NotFound(new { Success = false, Message = $"Provider {request.ProviderId} not found" });
-                }
+                    VehicleId = request.VehicleId,
+                    ProviderId = request.ProviderId,
+                    UserId = userIdClaim.Value
+                };
 
-                bool ok = await _configService.MapVehicleToProviderAsync(request.VehicleId, provider.Name, currentUser: userIdClaim.Value);
-                if (!ok)
+                var result = await _mediator.Send(command);
+
+                if (!result.IsSuccess)
                 {
-                    return StatusCode(500, new { Success = false, Message = "Failed to assign vehicle" });
+                    return StatusCode(500, new
+                    {
+                        Success = false,
+                        Message = result.Message
+                    });
                 }
 
                 return Ok(new
                 {
                     Success = true,
-                    Message = $"Vehicle {request.VehicleId} assigned to provider successfully",
+                    Message = result.Message,
+                    Data = result.Data,
                     Timestamp = DateTime.UtcNow
                 });
             }

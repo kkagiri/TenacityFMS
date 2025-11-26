@@ -1,0 +1,16 @@
+// Settings Modal Styles
+
+.settings-modal {
+  @apply tw-p-4;
+
+  // DevExtreme component overrides for consistency
+  .dx-numberbox,
+  .dx-selectbox {
+    @apply tw-w-full;
+  }
+
+  // Color reference box hover effect
+  .tw-bg-gray-50:hover {
+    @apply tw-bg-gray-100;
+  }
+}

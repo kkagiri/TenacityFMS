@@ -8,6 +8,7 @@ using FMS.Application.Features.ATG.Common;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.TankStock; //Cursor: Add for tank transfer service
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
 using FMS.Domain.Entities.PTS.PTSStatus;
@@ -60,6 +61,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly ITransactionMonitoringService _transactionMonitoringService; //Cursor: Add for enhanced monitoring
         private readonly ITransactionCompletionService _transactionCompletionService; //Cursor: Add for transaction completion
         private readonly IAutoTransactionCompletionService _autoCompletionService; //Cursor: Add auto-completion service
+        private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -73,7 +75,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             IPumpService pumpService, //Cursor: Add pump service
             ITransactionMonitoringService transactionMonitoringService, //Cursor: Add for enhanced monitoring
             ITransactionCompletionService transactionCompletionService, //Cursor: Add for transaction completion
-            IAutoTransactionCompletionService autoCompletionService) //Cursor: Add auto-completion service
+            IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
+            IPumpTankTransferService pumpTankTransferService) //Cursor: Add tank transfer service
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -87,6 +90,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _transactionMonitoringService = transactionMonitoringService; //Cursor: Add for enhanced monitoring
             _transactionCompletionService = transactionCompletionService; //Cursor: Add for transaction completion
             _autoCompletionService = autoCompletionService; //Cursor: Add auto-completion service
+            _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
         }
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
@@ -397,6 +401,73 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         {
                             var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
 
+                            // **CHECK FOR TRANSFER MODE** - Detect if this is a tank transfer (NOT vehicle fueling) //Cursor
+                            var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp) && transferProp.GetBoolean();
+
+                            if (isTransferMode)
+                            {
+                                // **TANK TRANSFER PATH** - Process as pump-based tank transfer
+                                _logger.LogInformation(
+                                    "[UploadStatus] **TANK TRANSFER MODE DETECTED** - Device {DeviceId}, Transaction {TransactionId}",
+                                    deviceId, transactionId);
+
+                                // Extract transfer-specific data
+                                var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp) ? sourceProp.GetInt32() : 0;
+                                var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp) ? destProp.GetInt32() : 0;
+                                var transferReason = context.TryGetProperty("Reason", out var reasonProp) ? reasonProp.GetString() : "Pump transfer";
+                                var userId = context.TryGetProperty("UserId", out var userProp) ? userProp.GetString() : "System";
+
+                                var transferData = new JObject
+                                {
+                                    ["SourceTankId"] = sourceTankId,
+                                    ["DestinationTankId"] = destinationTankId,
+                                    ["Volume"] = volume,
+                                    ["TransferDate"] = DateTime.UtcNow,
+                                    ["Reason"] = transferReason,
+                                    ["UserId"] = userId,
+                                    ["PumpTransactionId"] = transactionId
+                                };
+
+                                _logger.LogInformation(
+                                    "[UploadStatus] **PROCESSING PUMP TRANSFER** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
+                                    sourceTankId, destinationTankId, volume, transactionId);
+
+                                // **PROCESS TRANSFER ASYNCHRONOUSLY**
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        var result = await _pumpTankTransferService.ProcessPumpTransferAsync(transferData);
+
+                                        if (result.IsSuccess)
+                                        {
+                                            _logger.LogInformation(
+                                                "[UploadStatus] **TRANSFER COMPLETE** ✅ - {Message}",
+                                                result.Message);
+                                        }
+                                        else
+                                        {
+                                            _logger.LogError(
+                                                "[UploadStatus] **TRANSFER FAILED** ❌ - {Message}",
+                                                result.Message);
+                                        }
+
+                                        // Clean up Redis context
+                                        await _redisDb.KeyDeleteAsync(transactionKey);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex,
+                                            "[UploadStatus] **TRANSFER ERROR** - Failed to process pump transfer for {DeviceId}:{TransactionId}",
+                                            deviceId, transactionId);
+                                    }
+                                });
+
+                                // Skip vehicle fueling processing - this is a transfer
+                                return;
+                            }
+
+                            // **VEHICLE FUELING PATH** (existing logic)
                             // Extract authorization context data
                             var tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
                             var vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
@@ -761,81 +832,171 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         }
                         else
                         {
-                            _logger.LogWarning("[UploadStatus] **NO MATCH** - EndOfTransaction {TransactionId} for Device {DeviceId} has no corresponding authorization context - may be external transaction",
+                            _logger.LogWarning("[UploadStatus] **NO MATCH** - EndOfTransaction {TransactionId} for Device {DeviceId} has no corresponding authorization context - attempting device query",
                                 detectedTransactionId.Value, deviceId);
 
-                            // **REDIS INVESTIGATION** - List all current transaction keys for this device //Cursor
+                            // **SOLUTION: Query device for complete transaction information** //Cursor
+                            // This solves the missing VehicleId/TankId/Tag issue when Redis context expires or is missing
+                            JObject enrichedStatusData = null;
+
                             try
                             {
-                                var pattern = $"device:{deviceId}:transaction:*";
-                                var server = _redisDb.Multiplexer.GetServer(_redisDb.Multiplexer.GetEndPoints()[0]);
-                                var keys = server.Keys(pattern: pattern).ToList();
+                                _logger.LogInformation("[UploadStatus] **DEVICE QUERY** - Querying PumpTransactionInformation from device {DeviceId}, pump {PumpId}, transaction {TransactionId}",
+                                    deviceId, pumpId, detectedTransactionId.Value);
 
-                                _logger.LogWarning("[UploadStatus] **REDIS DEBUG** - Available transaction keys for device {DeviceId}: {KeyCount} keys found",
-                                    deviceId, keys.Count);
+                                // Query device for complete transaction data
+                                var transactionInfo = await _pumpService.GetPumpTransactionInfoAsync(
+                                    deviceId, pumpId, detectedTransactionId.Value);
 
-                                foreach (var key in keys.Take(5)) // Log first 5 keys to avoid spam
+                                if (transactionInfo != null)
                                 {
-                                    var keyValue = await _redisDb.StringGetAsync(key);
-                                    _logger.LogWarning("[UploadStatus] **REDIS KEY** - {Key}: {Value}",
-                                        key, keyValue.IsNullOrEmpty ? "EMPTY" : keyValue.ToString());
+                                    _logger.LogInformation("[UploadStatus] **DEVICE QUERY SUCCESS** - Retrieved transaction data: Volume={Volume}L, Amount=${Amount}, Nozzle={Nozzle}, Tag={Tag}",
+                                        transactionInfo.Volume, transactionInfo.Amount, transactionInfo.Nozzle, transactionInfo.Tag);
+
+                                    // Try to get authorization state for TankId/VehicleId correlation
+                                    var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+
+                                    // Create enriched data with device transaction info + auth state
+                                    enrichedStatusData = new JObject
+                                    {
+                                        ["Pump"] = pumpId,
+                                        ["Transaction"] = detectedTransactionId.Value,
+                                        ["Volume"] = transactionInfo.Volume ?? volume,
+                                        ["Amount"] = transactionInfo.Amount ?? amount,
+                                        ["Nozzle"] = transactionInfo.Nozzle,
+                                        ["FuelGradeId"] = transactionInfo.FuelGradeId,
+                                        ["FuelGradeName"] = transactionInfo.FuelGradeName,
+                                        ["Price"] = transactionInfo.Price,
+                                        ["DateTime"] = transactionInfo.DateTime,
+                                        ["DateTimeStart"] = transactionInfo.DateTimeStart,
+                                        ["Tag"] = transactionInfo.Tag ?? authState?.TagId,
+                                        ["UserId"] = transactionInfo.UserId,
+                                        ["ConfigurationId"] = transactionInfo.ConfigurationId,
+                                        // Try to correlate with active authorization for business context
+                                        ["TankId"] = authState?.TankId,
+                                        ["VehicleId"] = authState?.VehicleId,
+                                        ["DataSource"] = "DeviceQuery"
+                                    };
+
+                                    _logger.LogInformation("[UploadStatus] **ENRICHMENT SUCCESS** - Transaction {TransactionId} enriched with device data and auth state (TankId={TankId}, VehicleId={VehicleId}, Tag={Tag})",
+                                        detectedTransactionId.Value, authState?.TankId, authState?.VehicleId, enrichedStatusData.Value<string>("Tag"));
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("[UploadStatus] **DEVICE QUERY EMPTY** - Device returned null transaction info for {DeviceId}:{TransactionId}",
+                                        deviceId, detectedTransactionId.Value);
                                 }
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "[UploadStatus] **REDIS DEBUG ERROR** - Error investigating Redis keys for device {DeviceId}", deviceId);
+                                _logger.LogError(ex, "[UploadStatus] **DEVICE QUERY FAILED** - Error querying transaction info from device {DeviceId}:{TransactionId}",
+                                    deviceId, detectedTransactionId.Value);
                             }
 
-                            // This might be a transaction that was not authorized through our system
-                            // Or the context was already cleaned up (duplicate processing)
-                            // Still process it but without enriched context
-                            var basicStatusData = new JObject
+                            // If device query succeeded, use enriched data; otherwise fall back to basic data
+                            if (enrichedStatusData != null)
                             {
-                                ["Pump"] = pumpId,
-                                ["Transaction"] = detectedTransactionId.Value,
-                                ["Volume"] = volume,
-                                ["Amount"] = amount,
-                                ["DateTime"] = DateTime.UtcNow
-                            };
+                                _logger.LogInformation("[AutoComplete] **DEVICE QUERY PATH** - Processing EndOfTransaction with device-queried data for {DeviceId}:{TransactionId}",
+                                    deviceId, detectedTransactionId.Value);
 
-                            // Add device-level data if available
-                            if (eotStatus.Nozzles?.Count > i && eotStatus.Nozzles[i] > 0)
-                            {
-                                basicStatusData["Nozzle"] = eotStatus.Nozzles[i];
+                                // Process with enriched data from device query
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await _autoCompletionService.ProcessEndOfTransactionAsync(
+                                            deviceId, pumpId, detectedTransactionId.Value, enrichedStatusData);
+
+                                        _logger.LogInformation("[AutoComplete] **SUCCESS** - Background auto-completion completed with device-queried data for {DeviceId}:{Transaction}",
+                                            deviceId, detectedTransactionId.Value);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "[AutoComplete] **ERROR** - Background auto-completion failed for device-queried transaction {DeviceId}:{Transaction}",
+                                            deviceId, detectedTransactionId);
+                                    }
+                                });
                             }
-
-                            if (eotStatus.FuelGradeIds?.Count > i && eotStatus.FuelGradeIds[i] > 0)
+                            else
                             {
-                                basicStatusData["FuelGradeId"] = eotStatus.FuelGradeIds[i];
-                            }
+                                // **FALLBACK TO BASIC DATA** - Device query failed or returned no data
+                                _logger.LogWarning("[UploadStatus] **FALLBACK TO BASIC** - Using basic transaction data (may be missing VehicleId/TankId) for {DeviceId}:{TransactionId}",
+                                    deviceId, detectedTransactionId.Value);
 
-                            if (eotStatus.FuelGradeNames?.Count > i && !string.IsNullOrEmpty(eotStatus.FuelGradeNames[i]))
-                            {
-                                basicStatusData["FuelGradeName"] = eotStatus.FuelGradeNames[i];
-                            }
-
-                            if (eotStatus.Prices?.Count > i)
-                            {
-                                basicStatusData["Price"] = (decimal?)eotStatus.Prices[i];
-                            }
-
-                            _logger.LogInformation("[AutoComplete] Processing unmatched EndOfTransaction with basic data for Device {DeviceId}, Transaction {TransactionId}",
-                                deviceId, detectedTransactionId);
-
-                            // Process without full context (may not auto-complete due to missing context)
-                            _ = Task.Run(async () =>
-                            {
+                                // **REDIS INVESTIGATION** - List all current transaction keys for this device //Cursor
                                 try
                                 {
-                                    await _autoCompletionService.ProcessEndOfTransactionAsync(
-                                        deviceId, pumpId, detectedTransactionId.Value, basicStatusData);
+                                    var pattern = $"device:{deviceId}:transaction:*";
+                                    var server = _redisDb.Multiplexer.GetServer(_redisDb.Multiplexer.GetEndPoints()[0]);
+                                    var keys = server.Keys(pattern: pattern).ToList();
+
+                                    _logger.LogWarning("[UploadStatus] **REDIS DEBUG** - Available transaction keys for device {DeviceId}: {KeyCount} keys found",
+                                        deviceId, keys.Count);
+
+                                    foreach (var key in keys.Take(5)) // Log first 5 keys to avoid spam
+                                    {
+                                        var keyValue = await _redisDb.StringGetAsync(key);
+                                        _logger.LogWarning("[UploadStatus] **REDIS KEY** - {Key}: {Value}",
+                                            key, keyValue.IsNullOrEmpty ? "EMPTY" : keyValue.ToString());
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogError(ex, "[AutoComplete] Error processing unmatched EndOfTransaction {DeviceId}:{Transaction}",
-                                        deviceId, detectedTransactionId);
+                                    _logger.LogError(ex, "[UploadStatus] **REDIS DEBUG ERROR** - Error investigating Redis keys for device {DeviceId}", deviceId);
                                 }
-                            });
+
+                                // This might be a transaction that was not authorized through our system
+                                // Or the context was already cleaned up (duplicate processing)
+                                // Still process it but without enriched context
+                                var basicStatusData = new JObject
+                                {
+                                    ["Pump"] = pumpId,
+                                    ["Transaction"] = detectedTransactionId.Value,
+                                    ["Volume"] = volume,
+                                    ["Amount"] = amount,
+                                    ["DateTime"] = DateTime.UtcNow,
+                                    ["DataSource"] = "BasicEOT"
+                                };
+
+                                // Add device-level data if available
+                                if (eotStatus.Nozzles?.Count > i && eotStatus.Nozzles[i] > 0)
+                                {
+                                    basicStatusData["Nozzle"] = eotStatus.Nozzles[i];
+                                }
+
+                                if (eotStatus.FuelGradeIds?.Count > i && eotStatus.FuelGradeIds[i] > 0)
+                                {
+                                    basicStatusData["FuelGradeId"] = eotStatus.FuelGradeIds[i];
+                                }
+
+                                if (eotStatus.FuelGradeNames?.Count > i && !string.IsNullOrEmpty(eotStatus.FuelGradeNames[i]))
+                                {
+                                    basicStatusData["FuelGradeName"] = eotStatus.FuelGradeNames[i];
+                                }
+
+                                if (eotStatus.Prices?.Count > i)
+                                {
+                                    basicStatusData["Price"] = (decimal?)eotStatus.Prices[i];
+                                }
+
+                                _logger.LogInformation("[AutoComplete] **BASIC DATA PATH** - Processing unmatched EndOfTransaction with basic data (missing VehicleId/TankId) for Device {DeviceId}, Transaction {TransactionId}",
+                                    deviceId, detectedTransactionId);
+
+                                // Process without full context (may not auto-complete due to missing context)
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await _autoCompletionService.ProcessEndOfTransactionAsync(
+                                            deviceId, pumpId, detectedTransactionId.Value, basicStatusData);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "[AutoComplete] Error processing unmatched EndOfTransaction {DeviceId}:{Transaction}",
+                                            deviceId, detectedTransactionId);
+                                    }
+                                });
+                            }
                         }
                     }
                     else

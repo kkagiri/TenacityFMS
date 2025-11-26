@@ -24,6 +24,13 @@ const MaintenanceLayout = ({ children, currentPath, pageTitle, pageSubtitle }) =
       description: 'View & Manage Records',
     },
     {
+      id: 'reconciliation',
+      label: 'Odometer Reconciliation',
+      icon: 'fa-light fa-gauge-high',
+      route: maintenanceRoutes.reconciliation,
+      description: 'GPS vs Database Sync',
+    },
+    {
       id: 'settings',
       label: 'Settings',
       icon: 'fa-light fa-cog',

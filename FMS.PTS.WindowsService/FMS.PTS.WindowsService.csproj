@@ -41,7 +41,6 @@
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
-    <ProjectReference Include="..\shared\FMS.Shared\FMS.Shared.csproj" />
     <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
   </ItemGroup>
 </Project>

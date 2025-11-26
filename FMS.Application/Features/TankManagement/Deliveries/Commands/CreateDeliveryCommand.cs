@@ -54,7 +54,8 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
 
                 if (request.DeliveryDTO.ManualDeliveryAmount <= 0) return new FMSResponseMessage(false, "Delivery amount should be greater than 0");
 
-                var deliveryDate = request.DeliveryDTO.DeliveryDate ?? DateTime.Now;
+                // Always use UTC for internal storage
+                var deliveryDate = request.DeliveryDTO.DeliveryDate ?? DateTime.UtcNow;
 
                 // Prevent multiple deliveries on the same tank within the same calendar day
                 var deliveryExistsSameDay = await _context.Deliveries
@@ -100,6 +101,14 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                 if (existingOpeningStock == null)
                     return new FMSResponseMessage(false, $"Opening stock for the tank on {deliveryDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.");
 
+                // NEW VALIDATION: Delivery MUST be after opening stock (chronological order)
+                if (deliveryDate < existingOpeningStock.Timestamp)
+                {
+                    return new FMSResponseMessage(false,
+                        $"CHRONOLOGICAL ORDER VIOLATION: Delivery time ({deliveryDate:yyyy-MM-dd HH:mm:ss}) is BEFORE opening stock recorded at ({existingOpeningStock.Timestamp:yyyy-MM-dd HH:mm:ss}). " +
+                        "Transactions must occur AFTER opening stock is recorded.");
+                }
+
                 // Ensure there is a proper sequence: if there's an opening stock, deliveries should come after it
                 // but before or after a closing stock if it exists
                 var closingStockForDay = await _context.TankVolumeHistories
@@ -115,16 +124,12 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                     return new FMSResponseMessage(false, $"Cannot add delivery after closing stock for {deliveryDate.Date:yyyy-MM-dd}. Please create a new opening stock first.");
                 }
 
-                // Validate if the tank has enough space for the delivery
-                if (deliveryDate.Date == DateTime.Now.Date)
+                // Validate if the tank has enough space for the delivery (only for today's deliveries)
+                if (deliveryDate.Date == DateTime.UtcNow.Date)
                 {
                     if (tank.TankVolume < tank.CurrentStock + request.DeliveryDTO.ManualDeliveryAmount)
                         return new FMSResponseMessage(false, "The tank does not have enough space for the delivery");
                 }
-
-                // Validate if start stock is less than stock level at end of delivery
-                if (request.DeliveryDTO.StockBeforeDelivery > request.DeliveryDTO.StockBeforeDelivery + request.DeliveryDTO.ManualDeliveryAmount)
-                    return new FMSResponseMessage(false, "Start stock should be less than stock level at end of delivery");
 
                 var delivery = _mapper.Map<Delivery>(request.DeliveryDTO);
                 delivery.DeliveryDate = deliveryDate;
@@ -139,6 +144,31 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Update TankStock entry with delivery information (single-row-per-day architecture)
+                var tankStock = await _context.Tankstocks
+                    .Where(x => x.TankId == request.DeliveryDTO.TankId &&
+                        x.EntryDate.Date == deliveryDate.Date &&
+                        !x.IsDeleted)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (tankStock != null)
+                {
+                    // Update delivery amount (cumulative if multiple deliveries, though typically only one per day)
+                    tankStock.DeliveryAmount = (tankStock.DeliveryAmount ?? 0) + request.DeliveryDTO.ManualDeliveryAmount;
+                    tankStock.DeliveryId = delivery.Id; // Store latest delivery ID
+
+                    _context.Tankstocks.Update(tankStock);
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    _logger.LogInformation("Updated TankStock EntryID {EntryId} with delivery amount {Amount}",
+                        tankStock.EntryId, tankStock.DeliveryAmount);
+                }
+                else
+                {
+                    _logger.LogWarning("No TankStock entry found for Tank {TankId} on {Date} to update delivery amount",
+                        request.DeliveryDTO.TankId, deliveryDate.Date);
+                }
 
                 //Cursor - Replaced manual TankVolumeHistory creation with TankVolumeHistoryIntegrationService
                 // Calculate new physical stock value based on current operation

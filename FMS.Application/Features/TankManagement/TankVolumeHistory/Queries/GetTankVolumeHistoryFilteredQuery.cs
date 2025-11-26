@@ -244,19 +244,30 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     .ToList();
             }
 
-            // Bulk load vehicle names for dispensing transactions to avoid N+1 queries
+            // Bulk load vehicle names and types for dispensing transactions to avoid N+1 queries
             var vehicleNameLookup = new Dictionary<int, string>();
+            var vehicleTypeLookup = new Dictionary<int, string>();
             if (dispensingTransactionIds.Any())
             {
                 var fuelRefillsWithVehicles = await _context.FuelRefills
                     .Where(fr => dispensingTransactionIds.Contains(fr.Id))
                     .Include(fr => fr.Vehicle)
-                    .Select(fr => new { fr.Id, VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : "N/A" })
+                        .ThenInclude(v => v.VehicleType)
+                    .Select(fr => new {
+                        fr.Id,
+                        VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : "N/A",
+                        VehicleType = fr.Vehicle != null && fr.Vehicle.VehicleType != null ? fr.Vehicle.VehicleType.Name : "N/A"
+                    })
                     .ToListAsync(cancellationToken);
 
                 vehicleNameLookup = fuelRefillsWithVehicles.ToDictionary(
                     fr => fr.Id,
                     fr => fr.VehicleName ?? "N/A"
+                );
+
+                vehicleTypeLookup = fuelRefillsWithVehicles.ToDictionary(
+                    fr => fr.Id,
+                    fr => fr.VehicleType ?? "N/A"
                 );
             }
 
@@ -273,17 +284,33 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 // Set recorded by user name
                 dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";
 
-                // Handle vehicle names for dispensing transactions using lookup
+                // Handle vehicle names and types for dispensing transactions using lookup
                 if (includeVehicleNames == true &&
                     history.ChangeReason == VolumeChangeReasonEnum.Dispensing &&
-                    history.ReferenceId.HasValue &&
-                    vehicleNameLookup.TryGetValue(history.ReferenceId.Value, out string? vehicleName))
+                    history.ReferenceId.HasValue)
                 {
-                    dto.VehicleName = vehicleName;
+                    if (vehicleNameLookup.TryGetValue(history.ReferenceId.Value, out string? vehicleName))
+                    {
+                        dto.VehicleName = vehicleName;
+                    }
+                    else
+                    {
+                        dto.VehicleName = "N/A";
+                    }
+
+                    if (vehicleTypeLookup.TryGetValue(history.ReferenceId.Value, out string? vehicleType))
+                    {
+                        dto.VehicleType = vehicleType;
+                    }
+                    else
+                    {
+                        dto.VehicleType = "N/A";
+                    }
                 }
                 else
                 {
                     dto.VehicleName = "N/A";
+                    dto.VehicleType = "N/A";
                 }
 
                 result.Add(dto);

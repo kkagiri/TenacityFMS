@@ -1,0 +1,29 @@
+// Delete Confirmation Modal Styles
+
+.delete-confirmation-modal {
+  @apply tw-p-4;
+
+  // Textarea focus styles
+  textarea:focus {
+    @apply tw-ring-2 tw-ring-red-500 tw-border-red-500;
+  }
+
+  // Validation error state
+  textarea.error {
+    @apply tw-border-red-500;
+  }
+
+  // Warning box animation
+  .tw-bg-red-50 {
+    animation: pulse-warning 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}

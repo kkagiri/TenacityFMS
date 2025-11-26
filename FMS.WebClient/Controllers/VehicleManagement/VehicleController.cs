@@ -5,6 +5,7 @@ using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Queries;
 using FMS.Application.Features.Vehicle.Queries.VehicleDashboard;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
+using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +16,7 @@ namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class VehicleController : ControllerBase
+    public class VehicleController : BaseApiController
     {
 
         private readonly IMediator _mediator;
@@ -135,10 +136,7 @@ namespace FMS.WebClient.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
-
+            var userIdClaim = GetUserIdClaim();
             if (userIdClaim == null) return BadRequest("Invalid User ID");
 
             vehicleDTO.CreatedBy = userIdClaim.Value;

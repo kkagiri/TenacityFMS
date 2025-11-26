@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using AutoMapper.Configuration.Annotations;
 using Newtonsoft.Json;
 
-namespace FMS.Application.Features.FMS.Delivery.cs {
-    public class DeliveryDTO {
+namespace FMS.Application.Features.FMS.Delivery.cs
+{
+    public class DeliveryDTO
+    {
         public int Id { get; set; }
         public int TankId { get; set; }
 
@@ -21,13 +23,13 @@ namespace FMS.Application.Features.FMS.Delivery.cs {
         public decimal? DeliveryTemperature { get; set; }
         public decimal? DeliveryDensity { get; set; }
         public decimal? DeliveryMass { get; set; }
-        public decimal StockBeforeDelivery { get; set; }
-        public decimal StockAfterDelivery { get; set; }
-        public decimal PricePerLiter { get; set; }
-        public string? RecordedBy { get; set; }
-        public int SupplierId { get; set; }
+        public decimal? StockBeforeDelivery { get; set; }
+        public decimal? StockAfterDelivery { get; set; }
+        public decimal? PricePerLiter { get; set; }
         public string? Lponumber { get; set; }
         public string? Product { get; set; }
+        public string? RecordedBy { get; set; }
+        public int SupplierId { get; set; }
 
         // Correction tracking properties
         /// <summary>

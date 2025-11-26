@@ -9,7 +9,6 @@ using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
@@ -19,25 +18,18 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly GpsdataContext _context;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateEventService> _logger;
-        private readonly string _apiKey;
-        private readonly string _baseUrl;
-        private readonly int _applicationId;
+        private readonly IGPSGateConfigurationProvider _configurationProvider;
 
         public GPSGateEventService(
             GpsdataContext context,
             HttpClient httpClient,
-            IConfiguration configuration,
+            IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateEventService> logger)
         {
             _context = context;
             _httpClient = httpClient;
+            _configurationProvider = configurationProvider;
             _logger = logger;
-
-            _apiKey = configuration["GPSGate:ApiKey"] ?? throw new ArgumentNullException("GPSGate:ApiKey not configured");
-            _baseUrl = configuration["GPSGate:BaseUrl"] ?? throw new ArgumentNullException("GPSGate:BaseUrl not configured");
-            _applicationId = int.Parse(configuration["GPSGate:ApplicationId"] ?? "1");
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", _apiKey);
         }
 
         public async Task<FMSResponse<List<GPSEventDTO>>> GetVehicleEventsAsync(int vehicleId, DateTime from, DateTime to)
@@ -54,8 +46,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (!vehicle.DeviceId.HasValue)
                     return FMSResponse<List<GPSEventDTO>>.Failed("Vehicle doesn't have a GPS device ID configured");
 
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/events?UserId={vehicle.DeviceId}&From={from:o}&To={to:o}");
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                using var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"{baseUrl}/applications/{applicationId}/events?UserId={vehicle.DeviceId}&From={from:o}&To={to:o}");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -86,8 +82,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/events?From={from:o}&To={to:o}&PageSize=1000");
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                using var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"{baseUrl}/applications/{applicationId}/events?From={from:o}&To={to:o}&PageSize=1000");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {

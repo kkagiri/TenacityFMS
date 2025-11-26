@@ -97,6 +97,13 @@ const AdminDashboard = () => {
       icon: 'fa-light fa-server',
       route: getAdminRoute('pts-service'),
       color: 'tw-text-cyan-600'
+    },
+    {
+      title: 'Log Management',
+      description: 'Download, view, and manage system log files',
+      icon: 'fa-light fa-file-lines',
+      route: getAdminRoute('logs'),
+      color: 'tw-text-slate-600'
     }
 
   ];

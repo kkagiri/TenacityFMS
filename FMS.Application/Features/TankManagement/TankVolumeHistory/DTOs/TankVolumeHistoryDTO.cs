@@ -16,6 +16,7 @@ namespace FMS.Application.Features.FMS.TankVolumeHistory {
         public string? RecordedBy { get; set; } = null;
         public string? RecordedByUserName { get; set; } = null;
         public string? VehicleName { get; set; }
+        public string? VehicleType { get; set; }
 
         public string? ReferenceType { get; set; } = null;
 

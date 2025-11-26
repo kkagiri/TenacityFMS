@@ -36,12 +36,6 @@ import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWa
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
 
-const Products = [
-  { id: 1, name: "Diesel" },
-  { id: 2, name: "Petrol" },
-  { id: 3, name: "Kerosene" },
-];
-
 const TankDeliveryForm = ({
   updateFormData,
   isLoading,
@@ -88,12 +82,7 @@ const TankDeliveryForm = ({
     deliveryTemperature: null,
     deliveryDensity: null,
     deliveryMass: null,
-    stockBeforeDelivery: null,
-    stockAfterDelivery: null,
-    pricePerLiter: null,
     supplierId: null,
-    lponumber: "", // Match DTO field name
-    product: "", // This will store the product name (string)
   });
 
   // Validation errors state for visual feedback
@@ -210,14 +199,7 @@ const TankDeliveryForm = ({
     if (!formData.deliveryDate) errors.deliveryDate = "Delivery date is required";
     if (!formData.manualDeliveryAmount || formData.manualDeliveryAmount <= 0)
       errors.manualDeliveryAmount = "Manual delivery amount must be greater than 0";
-    if (!formData.product) errors.product = "Product is required";
     if (!formData.supplierId) errors.supplierId = "Supplier is required";
-    if (!formData.pricePerLiter || formData.pricePerLiter <= 0)
-      errors.pricePerLiter = "Price per liter must be greater than 0";
-    if (formData.stockBeforeDelivery === null || formData.stockBeforeDelivery < 0)
-      errors.stockBeforeDelivery = "Stock before delivery is required and cannot be negative";
-    if (formData.stockAfterDelivery === null || formData.stockAfterDelivery < 0)
-      errors.stockAfterDelivery = "Stock after delivery is required and cannot be negative";
 
     return errors;
   }, [formData]);
@@ -268,12 +250,7 @@ const TankDeliveryForm = ({
         deliveryTemperature: formData.deliveryTemperature,
         deliveryDensity: formData.deliveryDensity,
         deliveryMass: formData.deliveryMass,
-        stockBeforeDelivery: formData.stockBeforeDelivery,
-        stockAfterDelivery: formData.stockAfterDelivery,
-        pricePerLiter: formData.pricePerLiter,
         supplierId: formData.supplierId,
-        lponumber: formData.lponumber,
-        product: formData.product,
       };
 
       console.log("📤 Sending to API:", deliveryDTO);
@@ -470,45 +447,6 @@ const TankDeliveryForm = ({
         </GroupItem>
         <GroupItem caption="Delivery Details" colCount={2}>
           <SimpleItem
-            dataField="stockBeforeDelivery"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.stockBeforeDelivery,
-              width: "100%",
-              format: "#,##0.00",
-              placeholder: "Enter stock before delivery",
-              isValid: hasAttemptedSubmit ? !validationErrors.stockBeforeDelivery : true,
-              validationError: validationErrors.stockBeforeDelivery
-                ? { message: validationErrors.stockBeforeDelivery }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Stock Before Delivery (L)" />
-            <RequiredRule message="Stock Before Delivery is required" />
-            <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>
-          <SimpleItem
-            dataField="stockAfterDelivery"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.stockAfterDelivery,
-              width: "100%",
-              format: "#,##0.00",
-              placeholder: "Enter stock after delivery",
-              isValid: hasAttemptedSubmit ? !validationErrors.stockAfterDelivery : true,
-              validationError: validationErrors.stockAfterDelivery
-                ? { message: validationErrors.stockAfterDelivery }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Stock After Delivery (L)" />
-            <RequiredRule message="Stock After Delivery is required" />
-            <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>
-
-          <SimpleItem
             dataField="manualDeliveryAmount"
             editorType="dxNumberBox"
             editorOptions={{
@@ -543,28 +481,6 @@ const TankDeliveryForm = ({
           </SimpleItem>
         </GroupItem>
         <GroupItem caption="Delivery Measurements" colCount={2}>
-          <SimpleItem
-            dataField="product"
-            editorType="dxSelectBox"
-            editorOptions={{
-              items: Products,
-              displayExpr: "name",
-              valueExpr: "name",
-              value: formData.product,
-              width: "100%",
-              placeholder: "Select product type",
-              showClearButton: false,
-              searchEnabled: true,
-              isValid: hasAttemptedSubmit ? !validationErrors.product : true,
-              validationError: validationErrors.product
-                ? { message: validationErrors.product }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Product" />
-            <RequiredRule message="Product is required" />
-          </SimpleItem>
           <SimpleItem
             dataField="deliveryTemperature"
             editorType="dxNumberBox"
@@ -627,40 +543,6 @@ const TankDeliveryForm = ({
           >
             <Label text="Supplier" />
             <RequiredRule message="Supplier is required" />
-          </SimpleItem>
-          <SimpleItem
-            dataField="lponumber"
-            editorType="dxTextBox"
-            editorOptions={{
-              value: formData.lponumber,
-              placeholder: "Enter LPO number",
-              width: "100%",
-            }}
-          >
-            <Label text="LPO Number" />
-          </SimpleItem>
-          <SimpleItem
-            dataField="pricePerLiter"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.pricePerLiter,
-              format: {
-                type: "currency",
-                currency: "KES",
-                precision: 2,
-              },
-              width: "100%",
-              placeholder: "Enter price per liter in KES",
-              isValid: hasAttemptedSubmit ? !validationErrors.pricePerLiter : true,
-              validationError: validationErrors.pricePerLiter
-                ? { message: validationErrors.pricePerLiter }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Price per Liter (KES)" />
-            <RequiredRule message="Price per liter is required" />
-            <NumericRule min={0.01} message="Price must be greater than 0" />
           </SimpleItem>
         </GroupItem>
           </Form>

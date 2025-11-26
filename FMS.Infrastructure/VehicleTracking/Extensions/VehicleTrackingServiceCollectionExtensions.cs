@@ -1,9 +1,11 @@
 using System;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using FMS.Infrastructure.Services;
 using FMS.Infrastructure.VehicleTracking.Factory;
 using FMS.Infrastructure.VehicleTracking.Services;
+using FMS.Infrastructure.VehicleTracking.Services.GPSGate;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -39,8 +41,19 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.TryAddSingleton<IProviderRegistry, ProviderRegistry>();
             // ProviderFactory consumes scoped services (IProviderConfigurationService), so it must be Scoped
             services.TryAddScoped<IProviderFactory, ProviderFactory>();
+
+            // Register Infrastructure service (internal interface)
             services.TryAddScoped<IProviderConfigurationService, ProviderConfigurationService>();
+
+            // Register Application service adapter (Application layer interface)
+            services.TryAddScoped<Application.Features.VehicleTracking.Services.IProviderConfigurationService, ProviderConfigurationServiceAdapter>();
+
             services.TryAddScoped<IVehicleTrackingService, VehicleTrackingService>();
+
+            // Register shared GPSGate configuration provider (used by all GPSGate services)
+            // Needs HttpClient to authenticate with GPSGate API
+            services.AddHttpClient<IGPSGateConfigurationProvider, GPSGateConfigurationProvider>();
+            services.TryAddScoped<IGPSGateConfigurationProvider, GPSGateConfigurationProvider>();
 
             // Register GPS domain-specific services (Phase 2 refactoring)
             // GPSGate services organized by domain for better separation of concerns
@@ -58,6 +71,9 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
 
             services.AddHttpClient<IGPSGateHealthService, GPSGateHealthService>();
             services.TryAddScoped<IGPSGateHealthService, GPSGateHealthService>();
+
+            services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
+            services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
 
             // Register Vehicle Health Monitoring service
             services.TryAddScoped<IVehicleHealthMonitorService, VehicleHealthMonitorService>();

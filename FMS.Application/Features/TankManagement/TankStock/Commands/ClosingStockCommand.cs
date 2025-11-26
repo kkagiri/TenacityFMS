@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 {
-    public record ClosingStockCommand(int TankId, decimal ClosingStock, string RecordedBy, DateTime? EntryDate = null) : IRequest<FMSResponseMessage>;
+    public record ClosingStockCommand(int TankId, decimal ClosingStock, string RecordedBy, DateTime? EntryDate = null, decimal? ClosingMeter = null) : IRequest<FMSResponseMessage>;
 
     public class ClosingStockCommandHandler : IRequestHandler<ClosingStockCommand, FMSResponseMessage>
     {
@@ -55,10 +55,14 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
             try
             {
-                var entryDate = request.EntryDate ?? DateTime.Now.Date;
+                // Always use UTC for internal storage
+                var entryDate = request.EntryDate?.Date ?? DateTime.UtcNow.Date;
 
                 var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
                 if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
+
+                // Validate closing stock value is positive
+                if (request.ClosingStock <= 0) return new FMSResponseMessage(false, "Closing stock must be greater than 0");
 
                 // Validate historical entry against future records policy
                 if (entryDate.Date < DateTime.Now.Date)
@@ -82,16 +86,123 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var existingClosingStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.TankId &&
                         x.Timestamp.Date == entryDate &&
-                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
+                        (x.IsDeleted != true))
                     .SingleOrDefaultAsync(cancellationToken);
 
                 if (existingClosingStock != null) return new FMSResponseMessage(false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
 
                 var openingStock = await _context.TankVolumeHistories.Where(x => x.TankId == request.TankId &&
-                        x.Timestamp.Date == entryDate.Date && x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                        x.Timestamp.Date == entryDate.Date && x.ChangeReason == VolumeChangeReasonEnum.OpeningStock &&
+                        (x.IsDeleted != true))
                     .SingleOrDefaultAsync(cancellationToken);
 
                 if (openingStock == null) return new FMSResponseMessage(false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
+
+                // NEW VALIDATION: Check chronological order - opening must not be in the future
+                if (openingStock.Timestamp > DateTime.UtcNow)
+                {
+                    return new FMSResponseMessage(false,
+                        $"Invalid opening stock timestamp: Opening stock recorded at ({openingStock.Timestamp:yyyy-MM-dd HH:mm:ss} UTC) is in the future. " +
+                        "Transaction timestamps cannot be in the future.");
+                }
+
+                // NEW VALIDATION: Check that all transactions for this day are AFTER opening stock
+                var transactionsBeforeOpening = await _context.TankVolumeHistories
+                    .Where(tvh => tvh.TankId == request.TankId &&
+                                  tvh.Timestamp.Date == entryDate.Date &&
+                                  tvh.ChangeReason != VolumeChangeReasonEnum.OpeningStock &&
+                                  tvh.ChangeReason != VolumeChangeReasonEnum.ClosingStock &&
+                                  tvh.Timestamp < openingStock.Timestamp &&
+                                  (tvh.IsDeleted != true))
+                    .OrderBy(tvh => tvh.Timestamp)
+                    .ToListAsync(cancellationToken);
+
+                if (transactionsBeforeOpening.Any())
+                {
+                    var earliestTransaction = transactionsBeforeOpening.First();
+                    return new FMSResponseMessage(false,
+                        $"CHRONOLOGICAL ORDER VIOLATION: Found {transactionsBeforeOpening.Count} transaction(s) recorded BEFORE opening stock. " +
+                        $"Earliest transaction: {earliestTransaction.ChangeReason} at {earliestTransaction.Timestamp:yyyy-MM-dd HH:mm:ss}, " +
+                        $"Opening stock recorded at {openingStock.Timestamp:yyyy-MM-dd HH:mm:ss}. " +
+                        "Please correct the timestamps - Opening stock MUST come before all other transactions.");
+                }
+
+                // NEW VALIDATION: Check that closing stock timestamp is reasonable and after all transactions
+                var latestTransactionBeforeClosing = await _context.TankVolumeHistories
+                    .Where(tvh => tvh.TankId == request.TankId &&
+                                  tvh.Timestamp.Date == entryDate.Date &&
+                                  tvh.ChangeReason != VolumeChangeReasonEnum.ClosingStock &&
+                                  (tvh.IsDeleted != true))
+                    .OrderByDescending(tvh => tvh.Timestamp)
+                    .ThenByDescending(tvh => tvh.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                // NEW VALIDATION: Validate closing stock reflects transactions
+                var allTransactionsForDay = await _context.TankVolumeHistories
+                    .Where(tvh => tvh.TankId == request.TankId &&
+                                  tvh.Timestamp.Date == entryDate.Date &&
+                                  tvh.ChangeReason != VolumeChangeReasonEnum.OpeningStock &&
+                                  tvh.ChangeReason != VolumeChangeReasonEnum.ClosingStock &&
+                                  (tvh.IsDeleted != true))
+                    .ToListAsync(cancellationToken);
+
+                // Calculate expected closing stock based on opening stock and transactions
+                decimal calculatedClosingStock = openingStock.NewVolume ?? openingStock.VolumeChange ?? 0;
+                decimal totalTransactionVolume = allTransactionsForDay.Sum(t => t.VolumeChange ?? 0);
+                decimal expectedClosingStock = calculatedClosingStock + totalTransactionVolume;
+
+                // NEW VALIDATION: Check if closing stock is reasonable
+                decimal varianceFromExpected = Math.Abs(request.ClosingStock - expectedClosingStock);
+                decimal variancePercentage = expectedClosingStock > 0 ? (varianceFromExpected / expectedClosingStock) * 100 : 0;
+
+                // Allow reasonable variance (5% or 20 liters), but flag large discrepancies
+                if (varianceFromExpected > 20 && variancePercentage > 5)
+                {
+                    _logger.LogWarning(
+                        "Large variance detected in closing stock for Tank {TankId}: " +
+                        "Opening: {OpeningStock}L, Expected Closing (based on transactions): {ExpectedClosing}L, " +
+                        "Recorded Closing: {RecordedClosing}L, Variance: {Variance}L ({VariancePercent:F2}%), " +
+                        "Transaction Count: {TransactionCount}",
+                        request.TankId,
+                        openingStock.NewVolume ?? 0,
+                        expectedClosingStock,
+                        request.ClosingStock,
+                        varianceFromExpected,
+                        variancePercentage,
+                        allTransactionsForDay.Count);
+                }
+
+                // NEW VALIDATION: If there are transactions, closing stock MUST be different from opening stock
+                if (allTransactionsForDay.Any() && Math.Abs(request.ClosingStock - (openingStock.NewVolume ?? 0)) < 0.01m)
+                {
+                    return new FMSResponseMessage(false,
+                        $"INVALID CLOSING STOCK: Closing stock ({request.ClosingStock:F2}L) equals opening stock ({openingStock.NewVolume ?? 0:F2}L) " +
+                        $"but {allTransactionsForDay.Count} transaction(s) were recorded for this day. " +
+                        $"Closing stock must reflect the net effect of all transactions (Dispensing, Delivery, Transfers). " +
+                        $"Expected closing stock based on transactions: {expectedClosingStock:F2}L");
+                }
+
+                // Find existing TankStock entry for this tank and date (single-row-per-day architecture)
+                var existingTankStock = await _context.Tankstocks
+                    .Where(x => x.TankId == request.TankId &&
+                        x.EntryDate.Date == entryDate.Date &&
+                        !x.IsDeleted)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (existingTankStock == null)
+                {
+                    return new FMSResponseMessage(false,
+                        $"No TankStock entry found for tank {request.TankId} on {entryDate:yyyy-MM-dd}. " +
+                        "Opening stock must be created first before recording closing stock.");
+                }
+
+                // Update existing TankStock entry with closing stock information
+                existingTankStock.ManualClosingLevel = request.ClosingStock;
+                existingTankStock.ClosingMeter = request.ClosingMeter;
+
+                // Keep EntryType as OpeningStock (primary type) - the row represents the whole day
+                // Don't change: existingTankStock.EntryType = VolumeChangeReasonEnum.ClosingStock;
 
                 // Get all transactions for the day
                 var transactions = await _context.TankVolumeHistories
@@ -103,19 +214,10 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var totalTransfersIn = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn).Sum(t => t.VolumeChange);
                 var totalTransfersOut = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut).Sum(t => t.VolumeChange);
 
-                var newClosingStock = new Tankstock
-                {
-                    TankId = request.TankId,
-                    EntryDate = entryDate,
-                    EntryType = VolumeChangeReasonEnum.ClosingStock,
-                    ManualClosingLevel = request.ClosingStock,
-                    RecordedBy = request.RecordedBy,
-                    SiteId = tank.SiteId
-                };
+                // Update the existing TankStock entry
+                _context.Tankstocks.Update(existingTankStock);
 
-                _context.Tankstocks.Add(newClosingStock);
-
-                // Save only the Tankstock entry first to get the ID
+                // Save changes to get the updated entry
                 await _context.SaveChangesAsync(cancellationToken);
 
                 // Get the most recent transaction before this closing stock to calculate volume change
@@ -146,7 +248,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     tankId: request.TankId,
                     timestamp: entryDate,
                     volumeChange: volumeChange,
-                    stockId: newClosingStock.EntryId,
+                    stockId: existingTankStock.EntryId,  // Use existing entry ID
                     isOpening: false, // This is a closing stock
                     actionType: ActionType.Create, // This is a new closing stock
                     recordedBy: request.RecordedBy,

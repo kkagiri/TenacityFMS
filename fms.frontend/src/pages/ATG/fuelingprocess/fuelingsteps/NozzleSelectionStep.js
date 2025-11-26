@@ -45,7 +45,6 @@ const NozzleSelectionStep = memo(({ nozzles, setSelectedNozzle, setStep }) => {
                       if (isClickable) {
                         console.log(`Clicking nozzle ${item.id}`);
                         setSelectedNozzle(item);
-                        setStep("scan");
                       } else {
                         notify(
                           `Nozzle ${item.id} is currently ${

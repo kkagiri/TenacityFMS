@@ -51,10 +51,11 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 }
                 var fuelRefilDto = request.FuelRefilDTO;
 
-                var entryDate = request.FuelRefilDTO?.Date ?? DateTime.Now;
+                // Always use UTC for internal storage
+                var entryDate = request.FuelRefilDTO?.Date ?? DateTime.UtcNow;
 
                 // Validate historical entry against future records policy
-                if (entryDate.Date < DateTime.Now.Date)
+                if (entryDate.Date < DateTime.UtcNow.Date)
                 {
                     var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync(
                         fuelRefilDto.TankId ?? 0, entryDate, VolumeChangeReasonEnum.Dispensing, cancellationToken);
@@ -82,6 +83,14 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 if (existingOpeningStock == null)
                     return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.");
+
+                // NEW VALIDATION: Fuel refill MUST be after opening stock (chronological order)
+                if (entryDate < existingOpeningStock.Timestamp)
+                {
+                    return new FMSResponseMessage(false,
+                        $"CHRONOLOGICAL ORDER VIOLATION: Fuel refill time ({entryDate:yyyy-MM-dd HH:mm:ss}) is BEFORE opening stock recorded at ({existingOpeningStock.Timestamp:yyyy-MM-dd HH:mm:ss}). " +
+                        "Transactions must occur AFTER opening stock is recorded.");
+                }
 
                 // Ensure there is a proper sequence: if there's an opening stock, fuel refills should come after it
                 // but before or after a closing stock if it exists
@@ -129,7 +138,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 if (tank.UseBookKeeping == 1)
                 {
                     // For current date entries, validate against tank's current stock
-                    if (entryDate.Date == DateTime.Now.Date)
+                    if (entryDate.Date == DateTime.UtcNow.Date)
                     {
                         if (tank.CurrentStock == null || tank.CurrentStock <= 0)
                             return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
@@ -223,8 +232,8 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 // We check if the tank is using book keeping and update the stock accordingly
                 if (tank.UseBookKeeping == 1)
                 {
-                    //check if the date of the fuel refill is today or past date
-                    var today = DateTime.Now.Date;
+                    // Check if the date of the fuel refill is today
+                    var today = DateTime.UtcNow.Date;
 
                     if (entryDate.Date == today)
                     {
@@ -235,7 +244,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                         }
 
                         tank.CurrentStock -= (decimal)fuelRefil.ManualFuelrefillAmount;
-                        tank.LastStockUpdate = DateTime.Now;
+                        tank.LastStockUpdate = DateTime.UtcNow;
                     }
                 }
 

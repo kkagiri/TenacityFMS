@@ -1,0 +1,35 @@
+.delivery-form {
+  @apply tw-p-4;
+
+  .dx-form-group-caption {
+    @apply tw-font-semibold tw-text-gray-700 tw-text-base tw-mb-2;
+  }
+
+  .dx-field-item {
+    @apply tw-mb-3;
+  }
+
+  .dx-field-item-label-text {
+    @apply tw-text-gray-700 tw-font-medium;
+  }
+
+  .dx-texteditor {
+    @apply tw-border-gray-300;
+
+    &.dx-state-focused {
+      @apply tw-border-blue-500;
+    }
+
+    &.dx-invalid {
+      @apply tw-border-red-500;
+    }
+  }
+
+  .dx-numberbox,
+  .dx-textbox,
+  .dx-textarea,
+  .dx-selectbox,
+  .dx-datebox {
+    width: 100%;
+  }
+}

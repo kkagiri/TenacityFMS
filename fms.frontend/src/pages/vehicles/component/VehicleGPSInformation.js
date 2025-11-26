@@ -1,16 +1,16 @@
 /**
  * File: VehicleGPSInformation.js
  * Purpose: Displays comprehensive GPS information for a vehicle including location map and sensor data
- * Dependencies: vehicleGPSTrackingService, React, DevExtreme
- * Last Modified: 2025-01-XX
+ * Dependencies: vehicleGPSTrackingService, React, DevExtreme, Google Maps API
+ * Last Modified: 2025-01-20
  *
  * Key Features:
- * - Location section with map display (Google Maps placeholder)
+ * - Location section with Google Maps display
  * - Sensor information display (GPS signal, satellite count, fuel level, etc.)
  * - Device information display
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 import vehicleGPSTrackingService from "../../../services/vehicleGPSTrackingService";
@@ -22,11 +22,21 @@ const VehicleGPSInformation = ({ vehicleId }) => {
   const [gpsData, setGpsData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapApiKey, setMapApiKey] = useState(null);
+  const [isMapLoading, setIsMapLoading] = useState(false);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
     loadGPSInformation();
     loadMapApiKey();
   }, [vehicleId]);
+
+  useEffect(() => {
+    if (mapApiKey && gpsData?.latitude && gpsData?.longitude) {
+      loadGoogleMapsScript();
+    }
+  }, [mapApiKey, gpsData]);
 
   const loadGPSInformation = async () => {
     try {
@@ -53,9 +63,115 @@ const VehicleGPSInformation = ({ vehicleId }) => {
   };
 
   const loadMapApiKey = async () => {
-    // TODO: Get Google Maps API key from backend configuration
-    // For now, using placeholder
-    setMapApiKey("YOUR_GOOGLE_MAPS_API_KEY");
+    try {
+      const response = await axiosInstance.get(
+        "/api/v1/SystemConfiguration/by-key/GoogleMaps.ApiKey"
+      );
+
+      if (response.data && response.data.isSuccess && response.data.data) {
+        setMapApiKey(response.data.data.configurationValue);
+      } else {
+        console.error("Failed to load Google Maps API key from configuration");
+        notify("Failed to load map configuration", "warning", 3000);
+      }
+    } catch (error) {
+      console.error("Error loading Google Maps API key:", error);
+      notify("Error loading map configuration", "warning", 3000);
+    }
+  };
+
+  const loadGoogleMapsScript = () => {
+    // Check if Google Maps script is already loaded
+    if (window.google && window.google.maps) {
+      initializeMap();
+      return;
+    }
+
+    // Check if script is already being loaded
+    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+      return;
+    }
+
+    setIsMapLoading(true);
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapApiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      setIsMapLoading(false);
+      initializeMap();
+    };
+    script.onerror = () => {
+      setIsMapLoading(false);
+      console.error("Failed to load Google Maps script");
+      notify("Failed to load Google Maps", "error", 3000);
+    };
+
+    document.head.appendChild(script);
+  };
+
+  const initializeMap = () => {
+    if (!mapRef.current || !gpsData?.latitude || !gpsData?.longitude) {
+      return;
+    }
+
+    // Clear existing map if any
+    if (mapInstanceRef.current) {
+      return;
+    }
+
+    const position = {
+      lat: gpsData.latitude,
+      lng: gpsData.longitude,
+    };
+
+    // Create map with zoom level 10
+    const map = new window.google.maps.Map(mapRef.current, {
+      center: position,
+      zoom: 10,
+      mapTypeId: "roadmap",
+      mapTypeControl: true,
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+    });
+
+    // Add marker for vehicle location
+    const marker = new window.google.maps.Marker({
+      position: position,
+      map: map,
+      title: "Vehicle Location",
+      animation: window.google.maps.Animation.DROP,
+      icon: {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: "#4285F4",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 2,
+      },
+    });
+
+    // Add info window
+    const infoWindow = new window.google.maps.InfoWindow({
+      content: `
+        <div style="padding: 8px;">
+          <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">Vehicle Location</h3>
+          <p style="margin: 4px 0; font-size: 12px;"><strong>Latitude:</strong> ${gpsData.latitude.toFixed(6)}</p>
+          <p style="margin: 4px 0; font-size: 12px;"><strong>Longitude:</strong> ${gpsData.longitude.toFixed(6)}</p>
+          ${gpsData.speed ? `<p style="margin: 4px 0; font-size: 12px;"><strong>Speed:</strong> ${gpsData.speed.toFixed(2)} km/h</p>` : ""}
+          ${gpsData.address ? `<p style="margin: 4px 0; font-size: 12px;"><strong>Address:</strong> ${gpsData.address}</p>` : ""}
+        </div>
+      `,
+    });
+
+    marker.addListener("click", () => {
+      infoWindow.open(map, marker);
+    });
+
+    mapInstanceRef.current = map;
+    markerRef.current = marker;
   };
 
   if (isLoading) {
@@ -132,23 +248,28 @@ const VehicleGPSInformation = ({ vehicleId }) => {
           Location
         </h2>
         <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-overflow-hidden">
-          {/* Map Placeholder */}
+          {/* Google Maps Container */}
           <div className="tw-relative tw-w-full" style={{ height: "400px" }}>
             {gpsData.latitude && gpsData.longitude ? (
-              <div className="tw-absolute tw-inset-0 tw-bg-gray-100 tw-flex tw-items-center tw-justify-center">
-                <div className="tw-text-center tw-text-gray-500">
-                  <i className="fa-light fa-map tw-text-6xl tw-mb-4"></i>
-                  <p className="tw-text-lg tw-font-semibold">Map View</p>
-                  <p className="tw-text-sm">
-                    Google Maps integration coming soon
-                  </p>
-                  <p className="tw-text-xs tw-mt-2">
-                    Coordinates: {formatCoordinate(gpsData.latitude)},{" "}
-                    {formatCoordinate(gpsData.longitude)}
-                  </p>
-                </div>
-                {/* TODO: Add Google Maps component here with API key */}
-              </div>
+              <>
+                {/* Map container */}
+                <div
+                  ref={mapRef}
+                  className="tw-absolute tw-inset-0"
+                  style={{ width: "100%", height: "100%" }}
+                />
+                {/* Loading overlay */}
+                {isMapLoading && (
+                  <div className="tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-z-10">
+                    <div className="tw-text-center">
+                      <LoadIndicator width="48px" height="48px" visible={true} />
+                      <p className="tw-text-sm tw-text-gray-600 tw-mt-2">
+                        Loading map...
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="tw-absolute tw-inset-0 tw-bg-gray-100 tw-flex tw-items-center tw-justify-center">
                 <div className="tw-text-center tw-text-gray-500">

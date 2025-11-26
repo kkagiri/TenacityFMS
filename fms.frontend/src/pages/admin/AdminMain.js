@@ -21,6 +21,7 @@ import PTSServiceControl from './ptsService/PTSServiceControl';
 import NotificationSettings from './notification-settings/NotificationSettings';
 import ProviderManagementMain from '../providermanagement/ProviderManagementMain';
 import TaskManagement from '../taskManagement';
+import LogManagementPage from './logManagement/LogManagementPage';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -70,6 +71,10 @@ const AdminMain = () => {
         {/* PTS Service Control Route */}
         <Route path="pts-service" element={<PTSServiceControl />} />
         <Route path="pts-service/*" element={<PTSServiceControl />} />
+
+        {/* Log Management Route */}
+        <Route path="logs" element={<LogManagementPage />} />
+        <Route path="logs/*" element={<LogManagementPage />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

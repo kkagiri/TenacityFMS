@@ -195,7 +195,8 @@ class TankStockReportsService {
         groupByPeriod = 'month',
         siteIds = null,
         tankIds = null,
-        useManualDispensing = false
+        useManualDispensing = false,
+        useCombinedDispensing = false
       } = params;
 
       const queryParams = new URLSearchParams();
@@ -205,6 +206,7 @@ class TankStockReportsService {
       if (siteIds?.length) siteIds.forEach(id => queryParams.append('siteIds', id));
       if (tankIds?.length) tankIds.forEach(id => queryParams.append('tankIds', id));
       queryParams.append('useManualDispensing', useManualDispensing);
+      queryParams.append('useCombinedDispensing', useCombinedDispensing);
 
       const response = await axiosInstance.get(`${this.baseUrl}/pivot-data?${queryParams}`);
 
@@ -250,6 +252,47 @@ class TankStockReportsService {
       return {
         success: false,
         data: [],
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get tank stock data (raw TankStock table data)
+   */
+  async getTankStockData(params = {}) {
+    try {
+      const {
+        startDate,
+        endDate,
+        siteIds = null,
+        tankIds = null
+      } = params;
+
+      const queryParams = new URLSearchParams();
+      queryParams.append('startDate', startDate);
+      queryParams.append('endDate', endDate);
+      if (siteIds?.length) siteIds.forEach(id => queryParams.append('siteIds', id));
+      if (tankIds?.length) tankIds.forEach(id => queryParams.append('tankIds', id));
+
+      const response = await axiosInstance.get(`tankstock?${queryParams}`);
+
+      if (response.status === 200 && response.data) {
+        return {
+          success: true,
+          data: response.data,
+          recordCount: response.data?.length || 0
+        };
+      }
+
+      throw new Error(response.data?.message || 'Failed to fetch tank stock data');
+    } catch (error) {
+      console.error('Error fetching tank stock data:', error);
+
+      return {
+        success: false,
+        data: null,
+        recordCount: 0,
         error: error.message
       };
     }

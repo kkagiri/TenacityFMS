@@ -654,6 +654,19 @@ body > .dx-chart-tooltip {
       }
     }
   }
+
+  // Analysis Report button - purple/violet theme for AI analysis
+  .transaction-hub__action-btn--analysis {
+    .dx-icon {
+      color: #6366f1 !important; // Indigo color
+    }
+
+    &:hover:not(.dx-state-disabled) {
+      .dx-icon {
+        color: #4f46e5 !important; // Darker indigo on hover
+      }
+    }
+  }
 }
 
 // Date nav buttons - with text

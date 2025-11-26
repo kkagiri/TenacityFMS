@@ -75,9 +75,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                         PeriodEnd = new DateTime(g.Key.Year, g.Key.Month, DateTime.DaysInMonth(g.Key.Year, g.Key.Month)),
                         ChangeReason = g.Key.ChangeReason,
                         ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                        TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                        // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                        // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                        // For other transactions: sum the absolute volume changes
+                        TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                            ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                                ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                                : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                         TransactionCount = g.Count(),
-                        AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                        AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? 0 // Average doesn't make sense for opening/closing stock
+                            : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                         ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                     })
                     .OrderBy(x => x.PeriodStart)
@@ -180,9 +189,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                         PeriodEnd = new DateTime(g.Key.Year, g.Key.Quarter * 3, DateTime.DaysInMonth(g.Key.Year, g.Key.Quarter * 3)),
                         ChangeReason = g.Key.ChangeReason,
                         ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                        TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                        // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                        // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                        // For other transactions: sum the absolute volume changes
+                        TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                            ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                                ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                                : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                         TransactionCount = g.Count(),
-                        AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                        AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? 0 // Average doesn't make sense for opening/closing stock
+                            : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                         ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                     })
                     .OrderBy(x => x.PeriodStart)
@@ -286,9 +304,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                         PeriodEnd = GetFirstDateOfWeek(g.Key.Year, g.Key.Week).AddDays(6),
                         ChangeReason = g.Key.ChangeReason,
                         ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                        TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                        // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                        // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                        // For other transactions: sum the absolute volume changes
+                        TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                            ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                                ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                                : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                         TransactionCount = g.Count(),
-                        AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                        AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? 0 // Average doesn't make sense for opening/closing stock
+                            : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                         ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                     })
                     .OrderBy(x => x.PeriodStart)
@@ -445,9 +472,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = g.Key.Date.AddDays(1).AddTicks(-1),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -481,9 +517,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = GetFirstDateOfWeek(g.Key.Year, g.Key.Week).AddDays(6),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -516,9 +561,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = new DateTime(g.Key.Year, g.Key.Month, DateTime.DaysInMonth(g.Key.Year, g.Key.Month)),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -576,7 +630,53 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
             {
                 List<TankVolumeReportDTO> groupedData;
 
-                if (request.UseManualDispensing)
+                if (request.UseCombinedDispensing)
+                {
+                    // COMBINED MODE: Use TankVolumeHistory for all data as primary source,
+                    // but fill gaps with TankStock data where TankVolumeHistory is missing data
+                    // This works bidirectionally for all change reasons (dispensing, delivery, etc.)
+
+                    // Get ALL data from TankVolumeHistory (all change reasons)
+                    var volumeHistoryQuery = _context.TankVolumeHistories
+                        .Include(tvh => tvh.Tank)
+                        .ThenInclude(t => t.Site)
+                        .Where(tvh => tvh.Timestamp >= request.StartDate && tvh.Timestamp <= request.EndDate);
+
+                    // Apply filters to volume history
+                    if (request.SiteIds?.Any() == true)
+                        volumeHistoryQuery = volumeHistoryQuery.Where(tvh => request.SiteIds.Contains(tvh.Tank.SiteId));
+
+                    if (request.TankIds?.Any() == true)
+                        volumeHistoryQuery = volumeHistoryQuery.Where(tvh => request.TankIds.Contains(tvh.TankId ?? 0));
+
+                    var volumeHistoryData = await volumeHistoryQuery.ToListAsync(cancellationToken);
+
+                    // Get ALL TankStock data (all entry types - dispensing, delivery, opening/closing stock, etc.) to fill gaps
+                    var tankStockQuery = _context.Tankstocks
+                        .Include(ts => ts.Tank)
+                        .ThenInclude(t => t.Site)
+                        .Where(ts => ts.EntryDate >= request.StartDate && ts.EntryDate <= request.EndDate);
+
+                    // Apply filters to tank stock
+                    if (request.SiteIds?.Any() == true)
+                        tankStockQuery = tankStockQuery.Where(ts => request.SiteIds.Contains(ts.Tank.SiteId));
+
+                    if (request.TankIds?.Any() == true)
+                        tankStockQuery = tankStockQuery.Where(ts => request.TankIds.Contains(ts.TankId));
+
+                    var tankStockData = await tankStockQuery.ToListAsync(cancellationToken);
+
+                    // Group and merge: use TankVolumeHistory, fill all gaps with TankStock
+                    groupedData = request.GroupBy.ToLower() switch
+                    {
+                        "month" => MergeDispensingDataMonthly(volumeHistoryData, tankStockData),
+                        "quarter" => MergeDispensingDataQuarterly(volumeHistoryData, tankStockData),
+                        "week" => MergeDispensingDataWeekly(volumeHistoryData, tankStockData),
+                        "day" => MergeDispensingDataDaily(volumeHistoryData, tankStockData),
+                        _ => MergeDispensingDataMonthly(volumeHistoryData, tankStockData)
+                    };
+                }
+                else if (request.UseManualDispensing)
                 {
                     // Use manual aggregate dispensing from TankStock
                     // Get all non-dispensing data from TankVolumeHistory
@@ -703,9 +803,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = new DateTime(g.Key.Year, g.Key.Month, DateTime.DaysInMonth(g.Key.Year, g.Key.Month)),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -738,9 +847,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = new DateTime(g.Key.Year, g.Key.Quarter * 3, DateTime.DaysInMonth(g.Key.Year, g.Key.Quarter * 3)),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -774,9 +892,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = GetFirstDateOfWeek(g.Key.Year, g.Key.Week).AddDays(6),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -808,9 +935,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = g.Key.Date.AddDays(1).AddTicks(-1),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
+                    // For Opening Stock: take the FIRST entry's NewVolume (earliest timestamp)
+                    // For Closing Stock: take the LAST entry's NewVolume (latest timestamp)
+                    // For other transactions: sum the absolute volume changes
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.Timestamp).FirstOrDefault()?.NewVolume ?? 0
+                            : Math.Abs(g.Sum(x => x.VolumeChange ?? 0)),
                     TransactionCount = g.Count(),
-                    AverageVolume = Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : Math.Abs(g.Average(x => x.VolumeChange ?? 0)),
                     ReferenceType = g.FirstOrDefault()?.ReferenceType ?? ""
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -881,9 +1017,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = new DateTime(g.Key.Year, g.Key.Month, DateTime.DaysInMonth(g.Key.Year, g.Key.Month)),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    // For Opening Stock: use ManualOpeningLevel from the first entry
+                    // For Closing Stock: use ManualClosingLevel from the last entry
+                    // For other transactions: sum ManualAmount
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.EntryDate).FirstOrDefault()?.ManualOpeningLevel ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.EntryDate).FirstOrDefault()?.ManualClosingLevel ?? 0
+                            : g.Sum(x => x.ManualAmount ?? 0),
                     TransactionCount = g.Count(),
-                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : g.Average(x => x.ManualAmount ?? 0),
                     ReferenceType = "TankStock"
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -916,9 +1061,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = new DateTime(g.Key.Year, g.Key.Quarter * 3, DateTime.DaysInMonth(g.Key.Year, g.Key.Quarter * 3)),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    // For Opening Stock: use ManualOpeningLevel from the first entry
+                    // For Closing Stock: use ManualClosingLevel from the last entry
+                    // For other transactions: sum ManualAmount
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.EntryDate).FirstOrDefault()?.ManualOpeningLevel ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.EntryDate).FirstOrDefault()?.ManualClosingLevel ?? 0
+                            : g.Sum(x => x.ManualAmount ?? 0),
                     TransactionCount = g.Count(),
-                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : g.Average(x => x.ManualAmount ?? 0),
                     ReferenceType = "TankStock"
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -952,9 +1106,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = GetFirstDateOfWeek(g.Key.Year, g.Key.Week).AddDays(6),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    // For Opening Stock: use ManualOpeningLevel from the first entry
+                    // For Closing Stock: use ManualClosingLevel from the last entry
+                    // For other transactions: sum ManualAmount
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.EntryDate).FirstOrDefault()?.ManualOpeningLevel ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.EntryDate).FirstOrDefault()?.ManualClosingLevel ?? 0
+                            : g.Sum(x => x.ManualAmount ?? 0),
                     TransactionCount = g.Count(),
-                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : g.Average(x => x.ManualAmount ?? 0),
                     ReferenceType = "TankStock"
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -986,9 +1149,18 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                     PeriodEnd = g.Key.Date.AddDays(1).AddTicks(-1),
                     ChangeReason = g.Key.ChangeReason,
                     ChangeReasonDisplay = g.Key.ChangeReason.ToString(),
-                    TotalVolume = g.Sum(x => x.ManualAmount ?? 0),
+                    // For Opening Stock: use ManualOpeningLevel from the first entry
+                    // For Closing Stock: use ManualClosingLevel from the last entry
+                    // For other transactions: sum ManualAmount
+                    TotalVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock
+                        ? g.OrderBy(x => x.EntryDate).FirstOrDefault()?.ManualOpeningLevel ?? 0
+                        : g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                            ? g.OrderByDescending(x => x.EntryDate).FirstOrDefault()?.ManualClosingLevel ?? 0
+                            : g.Sum(x => x.ManualAmount ?? 0),
                     TransactionCount = g.Count(),
-                    AverageVolume = g.Average(x => x.ManualAmount ?? 0),
+                    AverageVolume = g.Key.ChangeReason == VolumeChangeReasonEnum.OpeningStock || g.Key.ChangeReason == VolumeChangeReasonEnum.ClosingStock
+                        ? 0 // Average doesn't make sense for opening/closing stock
+                        : g.Average(x => x.ManualAmount ?? 0),
                     ReferenceType = "TankStock"
                 })
                 .OrderBy(x => x.PeriodStart)
@@ -1010,6 +1182,128 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Handlers
                 weekNum -= 1;
             }
             return firstMonday.AddDays(weekNum * 7);
+        }
+
+        // MERGE METHODS: Combine TankVolumeHistory with TankStock to fill gaps bidirectionally
+        // Strategy:
+        // 1. Group both TankVolumeHistory and TankStock data
+        // 2. Use TankVolumeHistory as primary source
+        // 3. Fill gaps with TankStock data where TankVolumeHistory is missing data for a specific period/tank/changeReason
+        // 4. This works bidirectionally - if TankStock is missing delivery/dispensing data, TankVolumeHistory fills it, and vice versa
+
+        private List<TankVolumeReportDTO> MergeDispensingDataMonthly(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            // Group all volume history data (all change reasons)
+            var volumeHistoryGrouped = GroupByMonth(volumeHistory);
+
+            // Group all tank stock data (all entry types)
+            var tankStockGrouped = GroupTankStockByMonth(tankStock);
+
+            // Create a lookup of existing records from TankVolumeHistory by Period + Site + Tank + ChangeReason
+            var volumeHistoryKeys = volumeHistoryGrouped
+                .Select(x => new { x.TimePeriod, x.SiteId, x.TankId, x.ChangeReason })
+                .ToHashSet();
+
+            // Only add TankStock data for period/site/tank/changeReason combinations where TankVolumeHistory has NO data
+            var tankStockToAdd = tankStockGrouped
+                .Where(ts => !volumeHistoryKeys.Contains(new { ts.TimePeriod, ts.SiteId, ts.TankId, ts.ChangeReason }))
+                .ToList();
+
+            // Log the merge operation
+            _logger.LogInformation(
+                "Merge Monthly: VolumeHistory={VHCount} records, TankStock={TSCount} records, Adding TankStock gaps={GapCount}",
+                volumeHistoryGrouped.Count, tankStockGrouped.Count, tankStockToAdd.Count);
+
+            // Combine and return
+            return volumeHistoryGrouped.Concat(tankStockToAdd)
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ThenBy(x => x.ChangeReason)
+                .ToList();
+        }
+
+        private List<TankVolumeReportDTO> MergeDispensingDataQuarterly(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByQuarter(volumeHistory);
+            var tankStockGrouped = GroupTankStockByQuarter(tankStock);
+
+            var volumeHistoryKeys = volumeHistoryGrouped
+                .Select(x => new { x.TimePeriod, x.SiteId, x.TankId, x.ChangeReason })
+                .ToHashSet();
+
+            var tankStockToAdd = tankStockGrouped
+                .Where(ts => !volumeHistoryKeys.Contains(new { ts.TimePeriod, ts.SiteId, ts.TankId, ts.ChangeReason }))
+                .ToList();
+
+            _logger.LogInformation(
+                "Merge Quarterly: VolumeHistory={VHCount} records, TankStock={TSCount} records, Adding TankStock gaps={GapCount}",
+                volumeHistoryGrouped.Count, tankStockGrouped.Count, tankStockToAdd.Count);
+
+            return volumeHistoryGrouped.Concat(tankStockToAdd)
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ThenBy(x => x.ChangeReason)
+                .ToList();
+        }
+
+        private List<TankVolumeReportDTO> MergeDispensingDataWeekly(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByWeek(volumeHistory);
+            var tankStockGrouped = GroupTankStockByWeek(tankStock);
+
+            var volumeHistoryKeys = volumeHistoryGrouped
+                .Select(x => new { x.TimePeriod, x.SiteId, x.TankId, x.ChangeReason })
+                .ToHashSet();
+
+            var tankStockToAdd = tankStockGrouped
+                .Where(ts => !volumeHistoryKeys.Contains(new { ts.TimePeriod, ts.SiteId, ts.TankId, ts.ChangeReason }))
+                .ToList();
+
+            _logger.LogInformation(
+                "Merge Weekly: VolumeHistory={VHCount} records, TankStock={TSCount} records, Adding TankStock gaps={GapCount}",
+                volumeHistoryGrouped.Count, tankStockGrouped.Count, tankStockToAdd.Count);
+
+            return volumeHistoryGrouped.Concat(tankStockToAdd)
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ThenBy(x => x.ChangeReason)
+                .ToList();
+        }
+
+        private List<TankVolumeReportDTO> MergeDispensingDataDaily(
+            List<TankVolumeHistories.TankVolumeHistory> volumeHistory,
+            List<Tankstock> tankStock)
+        {
+            var volumeHistoryGrouped = GroupByDay(volumeHistory);
+            var tankStockGrouped = GroupTankStockByDay(tankStock);
+
+            var volumeHistoryKeys = volumeHistoryGrouped
+                .Select(x => new { x.TimePeriod, x.SiteId, x.TankId, x.ChangeReason })
+                .ToHashSet();
+
+            var tankStockToAdd = tankStockGrouped
+                .Where(ts => !volumeHistoryKeys.Contains(new { ts.TimePeriod, ts.SiteId, ts.TankId, ts.ChangeReason }))
+                .ToList();
+
+            _logger.LogInformation(
+                "Merge Daily: VolumeHistory={VHCount} records, TankStock={TSCount} records, Adding TankStock gaps={GapCount}",
+                volumeHistoryGrouped.Count, tankStockGrouped.Count, tankStockToAdd.Count);
+
+            return volumeHistoryGrouped.Concat(tankStockToAdd)
+                .OrderBy(x => x.PeriodStart)
+                .ThenBy(x => x.SiteName)
+                .ThenBy(x => x.TankName)
+                .ThenBy(x => x.ChangeReason)
+                .ToList();
         }
     }
 }

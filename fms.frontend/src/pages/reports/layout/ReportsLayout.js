@@ -12,7 +12,17 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const getPageInfo = () => {
     const pathname = location.pathname;
 
-    if (pathname.includes('/fuel-importer')) {
+    if (pathname.includes('/gallery')) {
+      return {
+        title: 'Report Gallery',
+        subtitle: 'Browse and access all available reports'
+      };
+    } else if (pathname.includes('/tank-volume-history')) {
+      return {
+        title: 'Tank Volume History Report',
+        subtitle: 'Detailed tank volume changes with filtering and grouping'
+      };
+    } else if (pathname.includes('/fuel-importer')) {
       return {
         title: 'Fuel Data Import',
         subtitle: 'Import and process fuel report data from external sources'
@@ -55,6 +65,18 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   ];
 
   const reportItems = [
+    {
+      id: 'gallery',
+      title: 'Report Gallery',
+      icon: 'fa-light fa-th',
+      path: reportsRoutes.gallery,
+    },
+    {
+      id: 'tank-volume-history',
+      title: 'Tank Volume History',
+      icon: 'fa-light fa-gas-pump',
+      path: reportsRoutes.tankVolumeHistory,
+    },
     {
       id: 'consumption-refills',
       title: 'Consumption Reports',

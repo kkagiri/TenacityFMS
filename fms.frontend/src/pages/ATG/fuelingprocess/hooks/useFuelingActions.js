@@ -231,6 +231,133 @@ export const useFuelingActions = ({
   ]);
 
   /**
+   * Start tank transfer - authorize pump for tank-to-tank transfer
+   */
+  const startTransfer = useCallback(async ({ sourceTankId, destinationTankId, volume, reason }) => {
+    // Check device connection
+    if (state.deviceConnectionStatus === "disconnected") {
+      notify(
+        "Cannot start transfer - device is disconnected. Please wait for reconnection.",
+        "error",
+        3000
+      );
+      return;
+    }
+
+    if (!state.selectedPump || !state.selectedNozzle) {
+      notify("Please select a pump and nozzle first.", "warning", 2000);
+      return;
+    }
+
+    // Validate inputs
+    if (!sourceTankId || !destinationTankId) {
+      notify("Both source and destination tanks are required.", "error", 2000);
+      return;
+    }
+
+    if (!volume || volume <= 0) {
+      notify("Please enter a valid transfer volume.", "error", 2000);
+      return;
+    }
+
+    // Check pump status
+    const pumpCurrentStatus = getPumpDetails(state.selectedPump.id)?.status;
+    if (
+      pumpCurrentStatus === "offline" ||
+      pumpCurrentStatus === "fueling" ||
+      pumpCurrentStatus === "endOfTransaction"
+    ) {
+      notify(
+        `Pump ${state.selectedPump.id} is currently ${pumpCurrentStatus} and cannot be authorized.`,
+        "error",
+        3000
+      );
+      return;
+    }
+
+    try {
+      state.setIsAuthorizing(true);
+
+      const transferParams = {
+        deviceId: ptsId,
+        pumpId: state.selectedPump.id,
+        nozzle: state.selectedNozzle.id,
+        sourceTankId: sourceTankId,
+        destinationTankId: destinationTankId,
+        volume: parseFloat(volume),
+        reason: reason || null,
+        userId: state.userId || null, // Include user ID if available
+      };
+
+      console.log("[TankTransfer] Sending authorization request:", transferParams);
+
+      // Call the tank transfer authorization endpoint
+      const response = await pumpControlService.authorizeTransfer(transferParams);
+      console.log("[TankTransfer] Received response:", response);
+
+      // Handle FMSResponse<T> structure from backend
+      if (response && response.isSuccess) {
+        const transactionId = response.data?.transaction || null;
+        const pumpId = response.data?.pump || state.selectedPump.id;
+        const connectionType = response.data?.connectionType || 'WebSocket';
+        const nozzleId = response.data?.nozzleId || state.selectedNozzle.id;
+
+        state.setCurrentTransactionId(transactionId);
+        state.setActivePumpForPopup(state.selectedPump);
+        state.setActiveNozzleForPopup(state.selectedNozzle);
+        state.setIsFuelingPopupMinimized(false);
+        state.setIsAuthorized(true);
+        state.setEotDetected(false);
+
+        // Store transaction data for monitoring
+        if (transactionId) {
+          state.setTransactionMonitoringData({
+            deviceId: ptsId,
+            pumpId: pumpId,
+            nozzleId: nozzleId,
+            transactionId: transactionId,
+            connectionType: connectionType,
+            isTransfer: true, // Flag to indicate this is a transfer transaction
+            sourceTankId: sourceTankId,
+            destinationTankId: destinationTankId,
+          });
+          state.setDeviceConnectionType(connectionType);
+        }
+
+        notify(
+          `Tank transfer authorized successfully (${connectionType}). Transaction ID: ${
+            transactionId || "N/A"
+          }. Lift nozzle ${nozzleId} to start transfer.`,
+          "success",
+          5000
+        );
+
+        // Navigate to authorization success step
+        state.setStep("authorization");
+      } else {
+        notify(response?.message || "Failed to authorize tank transfer", "error", 3000);
+        state.setActivePumpForPopup(null);
+        state.setActiveNozzleForPopup(null);
+      }
+    } catch (error) {
+      console.error("[TankTransfer] Error:", error);
+      notify(
+        `Error authorizing transfer: ${error.message || "Unknown error"}`,
+        "error",
+        3000
+      );
+      state.setActivePumpForPopup(null);
+      state.setActiveNozzleForPopup(null);
+    } finally {
+      state.setIsAuthorizing(false);
+    }
+  }, [
+    ptsId,
+    state,
+    getPumpDetails,
+  ]);
+
+  /**
    * Stop fueling - send stop command to pump
    */
   const stopFueling = useCallback(async () => {
@@ -298,6 +425,8 @@ export const useFuelingActions = ({
     state.setScanResult(null);
     state.setIsAuthorized(false); // Reset authorization status
     state.setEotDetected(false); // Reset EOT detection
+    state.setCompletedVolume(0); // Reset completed transaction values
+    state.setCompletedCost(0); // Reset completed transaction values
     state.setSelectedTankId(null); // Reset tank selection
     state.setStep("pump");
   }, [state]);
@@ -320,9 +449,11 @@ export const useFuelingActions = ({
     const pumpDetails = getPumpDetails(state.activePumpForPopup.id);
     const transactionIdToClose = state.currentTransactionId || pumpDetails?.transaction;
 
-    if (pumpDetails?.status !== "endOfTransaction") {
+    // Allow completion in both endOfTransaction and nozzleUp status (for simulator pumps)
+    const validCompletionStatuses = ["endOfTransaction", "nozzleUp"];
+    if (!validCompletionStatuses.includes(pumpDetails?.status)) {
       notify(
-        `Cannot complete: Pump ${state.activePumpForPopup.id} is not in EndOfTransaction status. Current status: ${
+        `Cannot complete: Pump ${state.activePumpForPopup.id} is not ready for completion. Current status: ${
           pumpDetails?.status || "Unknown"
         }.`,
         "warning",
@@ -682,6 +813,7 @@ export const useFuelingActions = ({
 
   return {
     startFueling,
+    startTransfer,
     stopFueling,
     completeFueling,
     startNewFueling,

@@ -1,0 +1,79 @@
+.delivery-cycle-analysis {
+  @apply tw-p-4;
+
+  // Summary cards
+  .summary-cards {
+    .summary-card {
+      @apply tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-shadow-sm;
+      @apply tw-transition-all tw-duration-200;
+
+      &:hover {
+        @apply tw-shadow-md tw-border-blue-300;
+      }
+
+      .summary-label {
+        @apply tw-text-sm tw-text-gray-600 tw-mb-1 tw-font-medium;
+      }
+
+      .summary-value {
+        @apply tw-text-2xl tw-font-bold tw-text-gray-800;
+      }
+    }
+  }
+
+  // Chart container
+  .chart-container {
+    @apply tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-shadow-sm;
+    min-height: 400px;
+  }
+
+  // Data grid container
+  .data-grid-container {
+    @apply tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-shadow-sm;
+
+    // Consumption rate color coding
+    .consumption-rate {
+      @apply tw-font-semibold;
+
+      &.high {
+        @apply tw-text-red-600;
+      }
+
+      &.normal {
+        @apply tw-text-green-600;
+      }
+
+      &.low {
+        @apply tw-text-blue-600;
+      }
+    }
+
+    // Days to stockout warning
+    .days-to-stockout {
+      @apply tw-font-semibold tw-flex tw-items-center;
+
+      &.critical {
+        @apply tw-text-red-600;
+      }
+
+      &.warning {
+        @apply tw-text-orange-500;
+      }
+
+      &.safe {
+        @apply tw-text-green-600;
+      }
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .summary-cards {
+      @apply tw-grid-cols-1;
+    }
+
+    .chart-container {
+      min-height: 300px;
+    }
+  }
+}

@@ -62,6 +62,28 @@ export const DELETE_DISPENSING_VOLUME_REQUEST = 'DELETE_DISPENSING_VOLUME_REQUES
 export const DELETE_DISPENSING_VOLUME_SUCCESS = 'DELETE_DISPENSING_VOLUME_SUCCESS';
 export const DELETE_DISPENSING_VOLUME_FAILURE = 'DELETE_DISPENSING_VOLUME_FAILURE';
 
+// Variance Analysis action types
+export const FETCH_VARIANCE_ANALYSIS_REQUEST = 'FETCH_VARIANCE_ANALYSIS_REQUEST';
+export const FETCH_VARIANCE_ANALYSIS_SUCCESS = 'FETCH_VARIANCE_ANALYSIS_SUCCESS';
+export const FETCH_VARIANCE_ANALYSIS_FAILURE = 'FETCH_VARIANCE_ANALYSIS_FAILURE';
+
+// Delivery Cycle Analysis action types
+export const FETCH_DELIVERY_CYCLE_ANALYSIS_REQUEST = 'FETCH_DELIVERY_CYCLE_ANALYSIS_REQUEST';
+export const FETCH_DELIVERY_CYCLE_ANALYSIS_SUCCESS = 'FETCH_DELIVERY_CYCLE_ANALYSIS_SUCCESS';
+export const FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE = 'FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE';
+
+// Transfer Reconciliation action types
+export const FETCH_TRANSFER_RECONCILIATION_REQUEST = 'FETCH_TRANSFER_RECONCILIATION_REQUEST';
+export const FETCH_TRANSFER_RECONCILIATION_SUCCESS = 'FETCH_TRANSFER_RECONCILIATION_SUCCESS';
+export const FETCH_TRANSFER_RECONCILIATION_FAILURE = 'FETCH_TRANSFER_RECONCILIATION_FAILURE';
+export const CLEAR_TRANSFER_RECONCILIATION = 'CLEAR_TRANSFER_RECONCILIATION';
+
+// Period Diagnostic action types
+export const FETCH_PERIOD_DIAGNOSTIC_REQUEST = 'FETCH_PERIOD_DIAGNOSTIC_REQUEST';
+export const FETCH_PERIOD_DIAGNOSTIC_SUCCESS = 'FETCH_PERIOD_DIAGNOSTIC_SUCCESS';
+export const FETCH_PERIOD_DIAGNOSTIC_FAILURE = 'FETCH_PERIOD_DIAGNOSTIC_FAILURE';
+export const CLEAR_PERIOD_DIAGNOSTIC = 'CLEAR_PERIOD_DIAGNOSTIC';
+
 const formatDateTime = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -129,13 +151,20 @@ export const createOpeningStock = (params) => async (dispatch) => {
     const tankId = params.tankId || params;
     const amount = params.amount;
     const dateTime = params.dateTime || params.date;
+    const openingMeter = params.openingMeter;
 
     // Format the date properly for the API
     const formattedDate = dateTime instanceof Date ?
       formatDateTime(dateTime) :
       dateTime;
 
-    const response = await axiosInstance.post(`/tankstock/openingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
+    // Build query string with optional meter reading
+    let queryString = `tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`;
+    if (openingMeter !== null && openingMeter !== undefined) {
+      queryString += `&openingMeter=${openingMeter}`;
+    }
+
+    const response = await axiosInstance.post(`/tankstock/openingstock?${queryString}`);
 
     // Check multiple possible success indicators from backend
     if (response.data.success === true || response.data.isSuccess === true) {
@@ -187,13 +216,20 @@ export const createClosingStock = (params) => async (dispatch) => {
     const tankId = params.tankId || params;
     const amount = params.amount;
     const dateTime = params.dateTime || params.date;
+    const closingMeter = params.closingMeter;
 
     // Format the date properly for the API
     const formattedDate = dateTime instanceof Date ?
       formatDateTime(dateTime) :
       dateTime;
 
-    const response = await axiosInstance.post(`/tankstock/closingstock?tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`);
+    // Build query string with optional meter reading
+    let queryString = `tankId=${tankId}&amount=${amount}&dateTime=${formattedDate}`;
+    if (closingMeter !== null && closingMeter !== undefined) {
+      queryString += `&closingMeter=${closingMeter}`;
+    }
+
+    const response = await axiosInstance.post(`/tankstock/closingstock?${queryString}`);
     if (response.data.success) {
       dispatch({ type: CREATE_CLOSING_STOCK_SUCCESS, payload: response.data });
       return response.data;
@@ -501,4 +537,364 @@ export const deleteDispensingVolume = (entryId) => async (dispatch) => {
     dispatch({ type: DELETE_DISPENSING_VOLUME_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
   }
+};
+
+/**
+ * Fetches variance analysis data for a specific tank and date range
+ * @param {number} tankId - Tank ID
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @param {boolean} useManualDispensing - Use manual dispensing from TankStock
+ * @param {boolean} useCombinedDispensing - Use combined dispensing (TankVolumeHistory + TankStock gaps)
+ * @returns {Promise} Response with variance analysis data
+ */
+export const fetchVarianceAnalysis = (
+  tankId,
+  startDate,
+  endDate,
+  useManualDispensing = false,
+  useCombinedDispensing = false
+) => async (dispatch) => {
+  try {
+    // Validate parameters before API call
+    if (!tankId || tankId <= 0) {
+      const errorMessage = 'Invalid tank ID';
+      dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (!startDate || !endDate) {
+      const errorMessage = 'Start date and end date are required';
+      dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+      const errorMessage = 'Invalid date format';
+      dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (startDate >= endDate) {
+      const errorMessage = 'Start date must be before end date';
+      dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    // Validate mutually exclusive dispensing modes
+    if (useManualDispensing && useCombinedDispensing) {
+      const errorMessage = 'Cannot use both manual and combined dispensing modes';
+      dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    dispatch({ type: FETCH_VARIANCE_ANALYSIS_REQUEST });
+
+    // Convert dates to ISO format (UTC)
+    const params = new URLSearchParams({
+      tankId: tankId.toString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      useManualDispensing: useManualDispensing.toString(),
+      useCombinedDispensing: useCombinedDispensing.toString()
+    });
+
+    const response = await axiosInstance.get(`/tankstock/variance-analysis?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      // Normalize data - ensure dailyData is always an array
+      const normalizedData = {
+        ...response.data.data,
+        dailyData: response.data.data?.dailyData || []
+      };
+
+      dispatch({
+        type: FETCH_VARIANCE_ANALYSIS_SUCCESS,
+        payload: normalizedData
+      });
+
+      return {
+        success: true,
+        data: normalizedData,
+        message: response.data.message || 'Variance analysis loaded successfully'
+      };
+    } else {
+      const errorMessage = response.data.message || 'Failed to fetch variance analysis';
+      dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching variance analysis';
+    dispatch({ type: FETCH_VARIANCE_ANALYSIS_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+/**
+ * Fetch delivery cycle analysis with consumption rates
+ * Supports single tank or multiple tanks for site-level analysis
+ * @param {number|number[]} tankIdOrIds - Single tank ID or array of tank IDs
+ * @param {Date} startDate - Analysis start date
+ * @param {Date} endDate - Analysis end date
+ * @param {string} analysisType - Type of analysis: 'BetweenDeliveries', 'Monthly', 'UntilNextDelivery', 'Custom'
+ * @param {boolean} useManualDispensing - Use manual dispensing from TankStock
+ * @param {boolean} useCombinedDispensing - Use combined dispensing (TankVolumeHistory + TankStock gaps)
+ * @returns {Promise} Response with delivery cycle analysis data including consumption rates
+ */
+export const fetchDeliveryCycleAnalysis = (
+  tankIdOrIds,
+  startDate,
+  endDate,
+  analysisType = 'BetweenDeliveries',
+  useManualDispensing = false,
+  useCombinedDispensing = false
+) => async (dispatch) => {
+  try {
+    // Support both single tank ID and array of tank IDs
+    const tankIds = Array.isArray(tankIdOrIds) ? tankIdOrIds : [tankIdOrIds];
+    const isSingleTank = tankIds.length === 1;
+
+    // Validate parameters before API call
+    if (!tankIds || tankIds.length === 0 || tankIds.some(id => !id || id <= 0)) {
+      const errorMessage = 'Invalid tank ID(s)';
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (!startDate || !endDate) {
+      const errorMessage = 'Start date and end date are required';
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+      const errorMessage = 'Invalid date format';
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (startDate >= endDate) {
+      const errorMessage = 'Start date must be before end date';
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    const validAnalysisTypes = ['BetweenDeliveries', 'Monthly', 'UntilNextDelivery', 'Custom'];
+    if (!validAnalysisTypes.includes(analysisType)) {
+      const errorMessage = `Invalid analysis type. Must be one of: ${validAnalysisTypes.join(', ')}`;
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    // Validate mutually exclusive dispensing modes
+    if (useManualDispensing && useCombinedDispensing) {
+      const errorMessage = 'Cannot use both manual and combined dispensing modes';
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_REQUEST });
+
+    // Build parameters - use tankId for single tank (backward compatible), tankIds for multiple
+    const params = new URLSearchParams({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      analysisType: analysisType,
+      useManualDispensing: useManualDispensing.toString(),
+      useCombinedDispensing: useCombinedDispensing.toString()
+    });
+
+    // Add tank ID(s) appropriately
+    if (isSingleTank) {
+      params.append('tankId', tankIds[0].toString());
+    } else {
+      tankIds.forEach(id => params.append('tankIds', id.toString()));
+    }
+
+    const response = await axiosInstance.get(`/tankstock/delivery-cycle-analysis?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      // Normalize data - ensure cycles is always an array
+      const normalizedData = {
+        ...response.data.data,
+        cycles: response.data.data?.cycles || [],
+        summary: response.data.data?.summary || {}
+      };
+
+      dispatch({
+        type: FETCH_DELIVERY_CYCLE_ANALYSIS_SUCCESS,
+        payload: normalizedData
+      });
+
+      return {
+        success: true,
+        data: normalizedData,
+        message: response.data.message || 'Delivery cycle analysis loaded successfully'
+      };
+    } else {
+      const errorMessage = response.data.message || 'Failed to fetch delivery cycle analysis';
+      dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching delivery cycle analysis';
+    dispatch({ type: FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+/**
+ * Fetch transfer reconciliation analysis for a tank
+ * @param {number} tankId - Tank ID to analyze
+ * @param {Date} startDate - Start date of analysis period
+ * @param {Date} endDate - End date of analysis period
+ * @param {boolean} includeTransferDetails - Whether to include detailed transfer transactions
+ */
+export const fetchTransferReconciliation = (tankId, startDate, endDate, includeTransferDetails = false) => async (dispatch) => {
+  try {
+    // Validation
+    if (!tankId || tankId <= 0) {
+      const errorMessage = 'Valid tank ID is required';
+      dispatch({ type: FETCH_TRANSFER_RECONCILIATION_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (!startDate || !endDate) {
+      const errorMessage = 'Start date and end date are required';
+      dispatch({ type: FETCH_TRANSFER_RECONCILIATION_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    if (startDate >= endDate) {
+      const errorMessage = 'Start date must be before end date';
+      dispatch({ type: FETCH_TRANSFER_RECONCILIATION_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+
+    dispatch({ type: FETCH_TRANSFER_RECONCILIATION_REQUEST });
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      tankId: tankId.toString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      includeTransferDetails: includeTransferDetails.toString()
+    });
+
+    const response = await axiosInstance.get(`/tankstock/transfer-reconciliation?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      // Normalize data - ensure periods is always an array
+      const normalizedData = {
+        ...response.data.data,
+        periods: response.data.data?.periods || [],
+        summary: response.data.data?.summary || {}
+      };
+
+      dispatch({
+        type: FETCH_TRANSFER_RECONCILIATION_SUCCESS,
+        payload: normalizedData
+      });
+
+      return {
+        success: true,
+        data: normalizedData,
+        message: response.data.message || 'Transfer reconciliation analysis loaded successfully'
+      };
+    } else {
+      const errorMessage = response.data.message || 'Failed to fetch transfer reconciliation analysis';
+      dispatch({ type: FETCH_TRANSFER_RECONCILIATION_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching transfer reconciliation analysis';
+    dispatch({ type: FETCH_TRANSFER_RECONCILIATION_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+/**
+ * Clear transfer reconciliation data from state
+ */
+export const clearTransferReconciliation = () => {
+  return {
+    type: CLEAR_TRANSFER_RECONCILIATION
+  };
+};
+
+/**
+ * Fetch period diagnostic data for a specific tank and time period
+ * Combines TankStock, TankVolumeHistory, and TankTransfers for comprehensive analysis
+ *
+ * @param {number} tankId - Tank ID to analyze
+ * @param {Date} startDate - Period start date
+ * @param {Date} endDate - Period end date
+ * @param {boolean} includeAllTransactionTypes - Include adjustments & reconciliations (default: true)
+ * @param {boolean} includeDeletedRecords - Include soft-deleted records (default: false)
+ * @returns {Promise<Object>} Result with diagnostic data or error message
+ */
+export const fetchPeriodDiagnostic = (
+  tankId,
+  startDate,
+  endDate,
+  includeAllTransactionTypes = true,
+  includeDeletedRecords = false
+) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_PERIOD_DIAGNOSTIC_REQUEST });
+
+    console.log('🔍 Fetching period diagnostic:', {
+      tankId,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+      includeAllTransactionTypes,
+      includeDeletedRecords
+    });
+
+    // Build query parameters
+    const params = new URLSearchParams({
+      tankId: tankId.toString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      includeAllTransactionTypes: includeAllTransactionTypes.toString(),
+      includeDeletedRecords: includeDeletedRecords.toString()
+    });
+
+    const response = await axiosInstance.get(`/tankstockreports/period-diagnostic?${params.toString()}`);
+
+    if (response.data.isSuccess) {
+      const diagnosticData = response.data.data;
+
+      console.log('✅ Period diagnostic loaded:', diagnosticData);
+
+      dispatch({
+        type: FETCH_PERIOD_DIAGNOSTIC_SUCCESS,
+        payload: diagnosticData
+      });
+
+      return {
+        success: true,
+        data: diagnosticData,
+        message: response.data.message || 'Period diagnostic data loaded successfully'
+      };
+    } else {
+      const errorMessage = response.data.message || 'Failed to fetch period diagnostic data';
+      dispatch({ type: FETCH_PERIOD_DIAGNOSTIC_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage };
+    }
+  } catch (error) {
+    console.error('❌ Error fetching period diagnostic:', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Error fetching period diagnostic data';
+    dispatch({ type: FETCH_PERIOD_DIAGNOSTIC_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
+  }
+};
+
+/**
+ * Clear period diagnostic data from state
+ */
+export const clearPeriodDiagnostic = () => {
+  return {
+    type: CLEAR_PERIOD_DIAGNOSTIC
+  };
 };

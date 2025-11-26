@@ -124,6 +124,16 @@ const VehicleSearchableSelector = ({
     handleSearchTermChange(inputValue);
   }, [selectedVehicle, onValueChanged, handleSearchTermChange]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // If dropdown is open and there are vehicles, select the first one
+      if (showDropdown && vehicles.length > 0) {
+        handleVehicleSelect(vehicles[0]);
+      }
+    }
+  }, [showDropdown, vehicles, handleVehicleSelect]);
+
   const handleInputFocus = useCallback(() => {
     // Show dropdown immediately if we have enough characters
     if (searchTerm.length >= 2) {
@@ -202,6 +212,7 @@ const VehicleSearchableSelector = ({
             value={searchTerm}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
             className="dx-texteditor-input"

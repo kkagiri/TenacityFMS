@@ -13,7 +13,18 @@
       "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\src\\components\\Tags\\TagRuleManagement\" /b)",
       "Bash(npm start)",
       "Bash(npm install)",
-      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\node_modules\\@craco\" /s /b)"
+      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\node_modules\\@craco\" /s /b)",
+      "Bash(Select-String -Pattern \"TankVolumeReportHandlers|Build succeeded|Build FAILED|error CS\")",
+      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\src\\pages\\tankStock\\shared\" /b)",
+      "Bash(dir:*)",
+      "Bash(nul)",
+      "Bash(mkdir:*)",
+      "Bash(timeout /t 10 /nobreak)",
+      "Bash(timeout:*)",
+      "Bash(Select-String -Pattern \"Build succeeded|Build FAILED|error CS\")",
+      "Bash(Select-Object -First 20)",
+      "Bash(Select-String -Pattern \"GetTankStockListQuery|Build succeeded|Build FAILED|error CS\")",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

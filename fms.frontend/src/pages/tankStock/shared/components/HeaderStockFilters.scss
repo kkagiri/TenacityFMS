@@ -1,0 +1,166 @@
+// HeaderStockFilters - Fix TagBox styling
+// Overrides any global styles that might be interfering
+
+.header-stock-filters {
+  // Reset TagBox to use DevExtreme defaults
+  .dx-tagbox {
+    // Keep single line for header filters
+    &.dx-tagbox-single-line {
+      .dx-tag-container {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+      }
+    }
+
+    // Reset tag styling to DevExtreme defaults
+    .dx-tag {
+      background-color: rgba(0, 0, 0, 0.08) !important;
+      color: rgba(0, 0, 0, 0.87) !important;
+      border-radius: 4px !important;
+      padding: 0 8px !important;
+      margin: 2px !important;
+      font-size: 13px !important;
+      height: 24px !important;
+      line-height: 24px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      border: none !important;
+      box-shadow: none !important;
+      position: relative !important;
+
+      .dx-tag-content {
+        padding: 0 !important;
+        padding-right: 20px !important; // Space for remove button
+        background-color: transparent !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+
+        // Ensure text doesn't overlap with button
+        span {
+          display: inline-block !important;
+          max-width: 150px !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+      }
+
+      .dx-tag-remove-button {
+        position: absolute !important;
+        right: 2px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: transparent !important;
+        color: rgba(0, 0, 0, 0.54) !important;
+        width: 16px !important;
+        height: 16px !important;
+        min-width: 16px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: none !important;
+        box-shadow: none !important;
+        cursor: pointer !important;
+
+        &:hover {
+          color: rgba(0, 0, 0, 0.87) !important;
+          background-color: rgba(0, 0, 0, 0.04) !important;
+          border-radius: 50% !important;
+        }
+
+        &::before {
+          content: '\00d7' !important; // × character
+          font-size: 16px !important;
+          font-weight: 400 !important;
+          line-height: 1 !important;
+        }
+      }
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.12) !important;
+      }
+    }
+
+    // Ensure container doesn't have forced backgrounds
+    .dx-texteditor-container {
+      background-color: transparent !important;
+      border: none !important;
+    }
+
+    .dx-texteditor-input-container {
+      background-color: transparent !important;
+      min-height: auto !important;
+      padding: 4px 8px !important;
+
+      &:focus-within {
+        box-shadow: none !important;
+      }
+    }
+
+    .dx-texteditor-input {
+      padding: 0 !important;
+      background-color: transparent !important;
+      border: none !important;
+    }
+
+    // Fix the clear button icon
+    .dx-clear-button-area {
+      width: 24px !important;
+      height: 24px !important;
+
+      .dx-icon-clear {
+        &::before {
+          content: '\00d7' !important; // × character
+          font-size: 18px !important;
+          font-weight: 400 !important;
+          color: rgba(0, 0, 0, 0.54) !important;
+        }
+
+        &:hover::before {
+          color: rgba(0, 0, 0, 0.87) !important;
+        }
+      }
+    }
+
+    // Maintain proper height on state changes
+    &.dx-state-hover,
+    &.dx-state-focused,
+    &.dx-state-active {
+      .dx-texteditor-input-container {
+        min-height: auto !important;
+        background-color: transparent !important;
+        border: none !important;
+      }
+
+      .dx-texteditor-container {
+        background-color: transparent !important;
+        border: none !important;
+      }
+    }
+
+    // Fix outlined mode
+    &.dx-editor-outlined {
+      background-color: transparent !important;
+
+      .dx-texteditor-input-container {
+        border: none !important;
+      }
+    }
+  }
+
+  // Fix DateRangeBox styling
+  .dx-daterangebox {
+    background-color: transparent !important;
+
+    .dx-texteditor-container {
+      background-color: transparent !important;
+    }
+
+    .dx-texteditor-input-container {
+      background-color: transparent !important;
+    }
+  }
+}

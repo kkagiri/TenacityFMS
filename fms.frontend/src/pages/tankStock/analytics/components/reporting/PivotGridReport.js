@@ -82,7 +82,7 @@ const PivotGridReport = ({ data, reportType, loading, visible = true }) => {
     {
       caption: 'Time Period',
       dataField: 'timePeriod',
-      area: 'column',
+      area: 'row',
       sortOrder: 'asc',
       allowSorting: true,
       allowSortingBySummary: true,

@@ -11,21 +11,24 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
+namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
+{
     /// <summary>
     /// Service to handle tank volume history integration with various operations
     /// This service should be used in fuel refill, tank stock, tank transfer, and delivery operations
     /// to ensure consistent tank volume history updates
     /// </summary>
-    public class TankVolumeHistoryIntegrationService {
+    public class TankVolumeHistoryIntegrationService
+    {
         private readonly IMediator _mediator;
         private readonly ILogger<TankVolumeHistoryIntegrationService> _logger;
         private readonly GpsdataContext _context;
 
-        public TankVolumeHistoryIntegrationService (
+        public TankVolumeHistoryIntegrationService(
             IMediator mediator,
             ILogger<TankVolumeHistoryIntegrationService> logger,
-            GpsdataContext context) {
+            GpsdataContext context)
+        {
             _mediator = mediator;
             _logger = logger;
             _context = context;
@@ -34,7 +37,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a fuel refill change that affects tank volume
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessFuelRefillChangeAsync (
+        public async Task<FMSResponseMessage> ProcessFuelRefillChangeAsync(
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
@@ -43,8 +46,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             string recordedBy,
             decimal? newPhysicalStockValue = null,
             string? physicalStockSource = null,
-            CancellationToken cancellationToken = default) {
-            return await ProcessChangeAsync (
+            CancellationToken cancellationToken = default)
+        {
+            return await ProcessChangeAsync(
                 tankId,
                 timestamp,
                 volumeChange,
@@ -61,7 +65,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a delivery change that affects tank volume
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessDeliveryChangeAsync (
+        public async Task<FMSResponseMessage> ProcessDeliveryChangeAsync(
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
@@ -70,8 +74,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             string recordedBy,
             decimal? newPhysicalStockValue = null,
             string? physicalStockSource = null,
-            CancellationToken cancellationToken = default) {
-            return await ProcessChangeAsync (
+            CancellationToken cancellationToken = default)
+        {
+            return await ProcessChangeAsync(
                 tankId,
                 timestamp,
                 volumeChange,
@@ -88,7 +93,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a tank stock change
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessTankStockChangeAsync (
+        public async Task<FMSResponseMessage> ProcessTankStockChangeAsync(
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
@@ -98,11 +103,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             string recordedBy,
             decimal? newPhysicalStockValue = null, // Add physical stock value parameter
             string? physicalStockSource = null, // Add physical stock source parameter
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default)
+        {
             var reason = isOpening ? VolumeChangeReasonEnum.OpeningStock : VolumeChangeReasonEnum.ClosingStock;
             var referenceType = isOpening ? "OpeningStock" : "ClosingStock"; //Cursor - Use distinct reference types
 
-            return await ProcessChangeAsync (
+            return await ProcessChangeAsync(
                 tankId,
                 timestamp,
                 volumeChange,
@@ -119,7 +125,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a tank transfer that affects source tank volume (outgoing)
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessTankTransferOutChangeAsync (
+        public async Task<FMSResponseMessage> ProcessTankTransferOutChangeAsync(
             int sourceTankId,
             DateTime timestamp,
             decimal volumeChange,
@@ -128,11 +134,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             string recordedBy,
             decimal? newPhysicalStockValue = null,
             string? physicalStockSource = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default)
+        {
             // For outgoing transfers, volume change is negative
-            return await ProcessChangeAsync (
+            return await ProcessChangeAsync(
                 sourceTankId,
-                timestamp, -Math.Abs (volumeChange),
+                timestamp, -Math.Abs(volumeChange),
                 VolumeChangeReasonEnum.TransferOut,
                 recordedBy,
                 transferId,
@@ -146,7 +153,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a tank transfer that affects destination tank volume (incoming)
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessTankTransferInChangeAsync (
+        public async Task<FMSResponseMessage> ProcessTankTransferInChangeAsync(
             int destinationTankId,
             DateTime timestamp,
             decimal volumeChange,
@@ -155,12 +162,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             string recordedBy,
             decimal? newPhysicalStockValue = null,
             string? physicalStockSource = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default)
+        {
             // For incoming transfers, volume change is positive
-            return await ProcessChangeAsync (
+            return await ProcessChangeAsync(
                 destinationTankId,
                 timestamp,
-                Math.Abs (volumeChange),
+                Math.Abs(volumeChange),
                 VolumeChangeReasonEnum.TransferIn,
                 recordedBy,
                 transferId,
@@ -174,15 +182,16 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a manual adjustment to tank volume
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessAdjustmentChangeAsync (
+        public async Task<FMSResponseMessage> ProcessAdjustmentChangeAsync(
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
             int adjustmentId,
             ActionType actionType,
             string recordedBy,
-            CancellationToken cancellationToken = default) {
-            return await ProcessChangeAsync (
+            CancellationToken cancellationToken = default)
+        {
+            return await ProcessChangeAsync(
                 tankId,
                 timestamp,
                 volumeChange,
@@ -199,18 +208,19 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Process a pump transaction that affects tank volume (automated dispensing)
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessPumpTransactionChangeAsync (
+        public async Task<FMSResponseMessage> ProcessPumpTransactionChangeAsync(
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
             int transactionId,
             ActionType actionType,
             string recordedBy,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default)
+        {
             // For pump transactions, volume change is negative (fuel is dispensed)
-            return await ProcessChangeAsync (
+            return await ProcessChangeAsync(
                 tankId,
-                timestamp, -Math.Abs (volumeChange), // Ensure negative
+                timestamp, -Math.Abs(volumeChange), // Ensure negative
                 VolumeChangeReasonEnum.AutomatedDispensing,
                 recordedBy,
                 transactionId,
@@ -229,35 +239,40 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <param name="recordedBy">The ID of the user performing the reconciliation</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Response message indicating success or failure</returns>
-        public async Task<FMSResponseMessage> ReconcileTankCurrentStockAsync (
+        public async Task<FMSResponseMessage> ReconcileTankCurrentStockAsync(
             int tankId,
             string recordedBy,
-            CancellationToken cancellationToken = default) {
-            try {
-                _logger.LogInformation ("Starting tank current stock reconciliation for tank {TankId}", tankId);
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogInformation("Starting tank current stock reconciliation for tank {TankId}", tankId);
 
                 //Cursor - Modified to use direct reconciliation logic instead of UpdateTankVolumeHistoryCommand
                 // Get the tank
-                var tank = await _context.Tanks.FirstOrDefaultAsync (t => t.Id == tankId, cancellationToken);
-                if (tank == null) {
-                    return new FMSResponseMessage (false, $"Tank with ID {tankId} not found");
+                var tank = await _context.Tanks.FirstOrDefaultAsync(t => t.Id == tankId, cancellationToken);
+                if (tank == null)
+                {
+                    return new FMSResponseMessage(false, $"Tank with ID {tankId} not found");
                 }
 
                 // Get the latest volume history for this tank
                 var latestRecord = await _context.TankVolumeHistories
-                    .Where (h => h.TankId == tankId)
-                    .OrderByDescending (h => h.Timestamp)
-                    .FirstOrDefaultAsync (cancellationToken);
+                    .Where(h => h.TankId == tankId)
+                    .OrderByDescending(h => h.Timestamp)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                if (latestRecord == null || !latestRecord.NewVolume.HasValue) {
-                    return new FMSResponseMessage (false, $"No volume history found for tank {tankId}");
+                if (latestRecord == null || !latestRecord.NewVolume.HasValue)
+                {
+                    return new FMSResponseMessage(false, $"No volume history found for tank {tankId}");
                 }
 
                 var oldStock = tank.CurrentStock ?? 0;
                 var newStock = latestRecord.NewVolume.Value;
 
                 // Only create reconciliation record if there's a difference
-                if (oldStock != newStock) {
+                if (oldStock != newStock)
+                {
                     // Update tank's current stock
                     tank.CurrentStock = newStock;
                     tank.LastStockUpdate = DateTime.UtcNow;
@@ -268,7 +283,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                         VolumeChangeReasonEnum.AutomatedReconciliation :
                         VolumeChangeReasonEnum.Reconciliation;
 
-                    var reconciliationRecord = new TankVolumeHistory {
+                    var reconciliationRecord = new TankVolumeHistory
+                    {
                         TankId = tankId,
                         Timestamp = DateTime.UtcNow,
                         VolumeChange = newStock - oldStock, // Difference between new and old stock
@@ -280,20 +296,24 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                         CreatedOn = DateTime.UtcNow
                     };
 
-                    _context.TankVolumeHistories.Add (reconciliationRecord);
-                    await _context.SaveChangesAsync (cancellationToken);
+                    _context.TankVolumeHistories.Add(reconciliationRecord);
+                    await _context.SaveChangesAsync(cancellationToken);
 
-                    _logger.LogInformation ("Successfully reconciled tank {TankId} current stock. Old: {OldStock}, New: {NewStock}, Difference: {Difference}",
+                    _logger.LogInformation("Successfully reconciled tank {TankId} current stock. Old: {OldStock}, New: {NewStock}, Difference: {Difference}",
                         tankId, oldStock, newStock, newStock - oldStock);
 
-                    return new FMSResponseMessage (true, $"Successfully reconciled tank current stock. Adjusted by {newStock - oldStock:F2}L");
-                } else {
-                    _logger.LogInformation ("Tank {TankId} current stock already matches volume history: {Stock}", tankId, oldStock);
-                    return new FMSResponseMessage (true, "Tank current stock already matches volume history - no reconciliation needed");
+                    return new FMSResponseMessage(true, $"Successfully reconciled tank current stock. Adjusted by {newStock - oldStock:F2}L");
                 }
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error reconciling tank {TankId} current stock", tankId);
-                return new FMSResponseMessage (false, $"Error reconciling tank current stock: {ex.Message}");
+                else
+                {
+                    _logger.LogInformation("Tank {TankId} current stock already matches volume history: {Stock}", tankId, oldStock);
+                    return new FMSResponseMessage(true, "Tank current stock already matches volume history - no reconciliation needed");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reconciling tank {TankId} current stock", tankId);
+                return new FMSResponseMessage(false, $"Error reconciling tank current stock: {ex.Message}");
             }
         }
 
@@ -325,7 +345,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
         /// <summary>
         /// Generic method to process any change affecting tank volume
         /// </summary>
-        public async Task<FMSResponseMessage> ProcessChangeAsync (
+        public async Task<FMSResponseMessage> ProcessChangeAsync(
             int tankId,
             DateTime timestamp,
             decimal volumeChange,
@@ -336,10 +356,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
             ActionType actionType,
             decimal? newPhysicalStockValue = null, // Add physical stock value parameter
             string? physicalStockSource = null, // Add physical stock source parameter
-            CancellationToken cancellationToken = default) {
-            try {
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
                 // Send the command to process the tank stock change
-                var command = new ProcessTankStockChangeCommand (
+                var command = new ProcessTankStockChangeCommand(
                     tankId,
                     timestamp,
                     volumeChange,
@@ -351,10 +373,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand {
                     newPhysicalStockValue, // Pass physical stock value
                     physicalStockSource); // Pass physical stock source
 
-                return await _mediator.Send (command, cancellationToken);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error processing tank volume change for tank {TankId}", tankId);
-                return new FMSResponseMessage (false, $"Error processing tank volume change: {ex.Message}");
+                return await _mediator.Send(command, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing tank volume change for tank {TankId}", tankId);
+                return new FMSResponseMessage(false, $"Error processing tank volume change: {ex.Message}");
             }
         }
     }

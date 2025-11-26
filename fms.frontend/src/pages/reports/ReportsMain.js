@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import ReportsLayout from './layout/ReportsLayout';
 import ReportsDashboard from './ReportsDashboard';
+import ReportGallery from './ReportGallery';
+import TankVolumeHistoryReport from './TankVolumeHistoryReport';
 
 // Import existing report components
 import FuelReportImporter from '../FuelReportImporter/FuelReportImporter';
@@ -17,6 +19,10 @@ const ReportsMain = () => {
         {/* Default dashboard route */}
         <Route index element={<ReportsDashboard />} />
         <Route path="dashboard" element={<ReportsDashboard />} />
+
+        {/* DevExtreme Reports */}
+        <Route path="gallery" element={<ReportGallery />} />
+        <Route path="tank-volume-history" element={<TankVolumeHistoryReport />} />
 
         {/* Data Import Routes */}
         <Route path="fuel-importer" element={<FuelReportImporter />} />

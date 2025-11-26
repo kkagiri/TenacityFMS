@@ -1,0 +1,10 @@
+.transfer-variance-chart {
+  // Override DevExtreme tooltip border
+  .dx-tooltip-wrapper {
+    .dx-overlay-content {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+}

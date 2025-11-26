@@ -26,7 +26,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         Description = "Integration with GPSGate Vehicle Tracker system for real-time vehicle location and tracking data",
         Version = "2.0.0"
     )]
-    public class GPSGateProvider : IVehicleTrackingProvider, IDisposable
+    public class  GPSGateProvider : IVehicleTrackingProvider, IDisposable
     {
         private readonly GpsdataContext _context;
         private readonly HttpClient _httpClient;
@@ -278,38 +278,55 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
 
             try
             {
-                _logger.LogDebug("Getting location for vehicle {VehicleId} from GPSGate", vehicleId);
+                _logger.LogInformation("🔍 Getting location for vehicle {VehicleId} from GPSGate", vehicleId);
 
-                // Get vehicle info from database first
+                // Get vehicle info with provider mapping from database
                 var vehicle = await _context.Vehicles
                     .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
                     .FirstOrDefaultAsync();
 
                 if (vehicle == null)
                 {
+                    _logger.LogWarning("⚠ Vehicle {VehicleId} not found or doesn't have GPS installed", vehicleId);
                     return FMSResponse<VehicleLocationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
                 }
 
-                if (!vehicle.DeviceId.HasValue)
+                // Get active provider mapping for this vehicle
+                var mapping = await _context.VehicleProviderMappings
+                    .Where(m => m.VehicleId == vehicleId && m.IsActive)
+                    .Include(m => m.ProviderConfiguration)
+                    .FirstOrDefaultAsync();
+
+                if (mapping == null || string.IsNullOrEmpty(mapping.ExternalDeviceId))
                 {
-                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
+                    _logger.LogWarning("⚠ Vehicle {VehicleId} ({VehicleName}) has no active provider mapping",
+                        vehicleId, vehicle.HyoungNo);
+                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle doesn't have an active GPS provider mapping");
                 }
 
+                _logger.LogInformation("✓ Found mapping: VehicleId={VehicleId} → ExternalDeviceId={ExternalDeviceId}",
+                    vehicleId, mapping.ExternalDeviceId);
+
                 // Get user status from GPSGate API
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}/status");
+                var apiUrl = $"{_baseUrl}/applications/{_applicationId}/users/{mapping.ExternalDeviceId}/status";
+                _logger.LogInformation("📡 Calling GPSGate API: {Url}", apiUrl);
+
+                var response = await _httpClient.GetAsync(apiUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning(
-                        "Failed to get GPS data for vehicle {VehicleId}. Status: {StatusCode}",
-                        vehicleId, response.StatusCode);
+                        "Failed to get GPS data for vehicle {VehicleId} (ExternalDeviceId={ExternalDeviceId}). Status: {StatusCode}",
+                        vehicleId, mapping.ExternalDeviceId, response.StatusCode);
 
                     return FMSResponse<VehicleLocationDTO>.Failed(
                         $"GPS API returned status code: {response.StatusCode}");
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("📥 Received GPSGate response for vehicle {VehicleId}: {ContentLength} bytes",
+                    vehicleId, content.Length);
+
                 var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -322,9 +339,12 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     VehicleName = vehicle.HyoungNo ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
                     HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId,
+                    DeviceId = int.TryParse(mapping.ExternalDeviceId, out var deviceId) ? deviceId : (int?)null,
                     IsOnline = gpsData?.Position != null
                 };
+
+                _logger.LogInformation("📍 GPS Position data present: {HasPosition}, IsOnline: {IsOnline}",
+                    gpsData?.Position != null, locationDto.IsOnline);
 
                 if (gpsData?.Position != null)
                 {
@@ -342,10 +362,14 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     locationDto.Heading = gpsData.Velocity?.Heading.HasValue == true
                         ? (decimal)gpsData.Velocity.Heading
                         : null;
+
+                    _logger.LogInformation("✓ Location parsed: Lat={Lat}, Lng={Lng}, Speed={Speed} km/h",
+                        locationDto.Latitude, locationDto.Longitude, locationDto.Speed);
                 }
                 else
                 {
                     locationDto.LastUpdated = DateTime.UtcNow;
+                    _logger.LogWarning("⚠ No position data in GPSGate response for vehicle {VehicleId}", vehicleId);
                 }
 
                 return FMSResponse<VehicleLocationDTO>.Success(locationDto);
@@ -573,18 +597,24 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
 
             try
             {
-                _logger.LogDebug("Getting all vehicle locations. OnlineOnly: {OnlineOnly}, GPSEnabledOnly: {GPSEnabledOnly}",
+                _logger.LogInformation("Getting all vehicle locations. OnlineOnly: {OnlineOnly}, GPSEnabledOnly: {GPSEnabledOnly}",
                     onlineOnly, gpsEnabledOnly);
 
-                // Get all GPS-enabled vehicles from database
-                var vehicles = await _context.Vehicles
-                    .Where(v => v.HasGPSInstalled == 1 && v.DeviceId.HasValue && v.IsActive == 1)
+                // Get all GPS-enabled vehicles with active provider mappings
+                var vehiclesWithMappings = await _context.VehicleProviderMappings
+                    .Where(m => m.IsActive && m.ExternalDeviceId != null)
+                    .Include(m => m.Vehicle)
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.Vehicle.HasGPSInstalled == 1 && m.Vehicle.IsActive == 1)
                     .ToListAsync();
 
-                if (!vehicles.Any())
+                if (!vehiclesWithMappings.Any())
                 {
+                    _logger.LogWarning("No vehicles with active GPS provider mappings found");
                     return FMSResponse<List<VehicleLocationDTO>>.Success(new List<VehicleLocationDTO>());
                 }
+
+                _logger.LogInformation("Found {Count} vehicles with GPS mappings", vehiclesWithMappings.Count);
 
                 // Get bulk location data from GPSGate
                 var response = await _httpClient.GetAsync(
@@ -603,12 +633,25 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     PropertyNameCaseInsensitive = true
                 });
 
-                // Match vehicles with GPS data
+                _logger.LogInformation("Received {Count} GPS user statuses from GPSGate", gpsUsers?.Count ?? 0);
+
+                // Match vehicles with GPS data using ExternalDeviceId
                 var locationDtos = new List<VehicleLocationDTO>();
 
-                foreach (var vehicle in vehicles)
+                foreach (var mapping in vehiclesWithMappings)
                 {
-                    var gpsData = gpsUsers?.FirstOrDefault(u => u.Id == vehicle.DeviceId);
+                    var vehicle = mapping.Vehicle;
+                    if (vehicle == null) continue;
+
+                    // Parse ExternalDeviceId to int for matching
+                    if (!int.TryParse(mapping.ExternalDeviceId, out var externalDeviceId))
+                    {
+                        _logger.LogWarning("Invalid ExternalDeviceId '{ExternalDeviceId}' for vehicle {VehicleId}",
+                            mapping.ExternalDeviceId, vehicle.VehicleId);
+                        continue;
+                    }
+
+                    var gpsData = gpsUsers?.FirstOrDefault(u => u.Id == externalDeviceId);
                     var isOnline = gpsData?.Position != null;
 
                     if (onlineOnly && !isOnline)
@@ -620,7 +663,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                         VehicleName = vehicle.HyoungNo ?? string.Empty,
                         NumberPlate = vehicle.NumberPlate,
                         HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                        DeviceId = vehicle.DeviceId,
+                        DeviceId = externalDeviceId,
                         IsOnline = isOnline,
                         LastUpdated = DateTime.UtcNow
                     };
@@ -637,6 +680,9 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
 
                     locationDtos.Add(dto);
                 }
+
+                _logger.LogInformation("Returning {Count} vehicle locations (OnlineOnly={OnlineOnly})",
+                    locationDtos.Count, onlineOnly);
 
                 return FMSResponse<List<VehicleLocationDTO>>.Success(locationDtos);
             }
@@ -657,7 +703,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
 
             try
             {
-                _logger.LogDebug("Getting odometer for vehicle {VehicleId} from GPSGate", vehicleId);
+                _logger.LogInformation("Getting odometer for vehicle {VehicleId} from GPSGate", vehicleId);
 
                 var vehicle = await _context.Vehicles
                     .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
@@ -668,14 +714,19 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle not found or doesn't have GPS installed");
                 }
 
-                if (!vehicle.DeviceId.HasValue)
+                // Get active provider mapping
+                var mapping = await _context.VehicleProviderMappings
+                    .Where(m => m.VehicleId == vehicleId && m.IsActive)
+                    .FirstOrDefaultAsync();
+
+                if (mapping == null || string.IsNullOrEmpty(mapping.ExternalDeviceId))
                 {
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
+                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have an active GPS provider mapping");
                 }
 
                 // Get accumulator data from GPSGate API
                 var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/accumulators?UserId={vehicle.DeviceId}");
+                    $"{_baseUrl}/applications/{_applicationId}/accumulators?UserId={mapping.ExternalDeviceId}");
 
                 if (!response.IsSuccessStatusCode)
                 {

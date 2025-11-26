@@ -97,6 +97,7 @@ const ClosingStockForm = ({
     siteId: prefilledData?.siteId || 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility (Site ID is int)
     tankId: prefilledData?.tankId || 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility (Tank ID is int)
     amount: null, // Physical stock measurement
+    closingMeter: null, // Closing meter reading (optional)
     bookBalance: null, // Current book balance (read-only)
     physicalStockValue: null, // Current physical stock value (read-only)
     date: prefilledData?.suggestedDate || new Date(),
@@ -779,6 +780,22 @@ const ClosingStockForm = ({
                 }}
               >
                 <Label text="Physical Stock Amount (Liters)" />
+              </SimpleItem>
+
+              {/* Closing Meter Reading (Optional) */}
+              <SimpleItem
+                dataField="closingMeter"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  showSpinButtons: true,
+                  value: formData.closingMeter || null,
+                  placeholder: "Enter closing meter reading (optional)",
+                  width: "100%",
+                  ...(formData.closingMeter !== null &&
+                    formData.closingMeter !== undefined && { format: "#,##0.00" }),
+                }}
+              >
+                <Label text="Closing Meter Reading (Optional)" />
               </SimpleItem>
 
               {/* Discrepancy Indicator */}

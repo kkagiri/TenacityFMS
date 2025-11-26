@@ -35,7 +35,25 @@ import {
   GENERATE_STOCK_REPORT_REQUEST,
   GENERATE_STOCK_REPORT_SUCCESS,
   GENERATE_STOCK_REPORT_FAILURE,
-  FETCH_TANK_STOCKS_REQUEST
+  FETCH_TANK_STOCKS_REQUEST,
+  // Variance Analysis action types
+  FETCH_VARIANCE_ANALYSIS_REQUEST,
+  FETCH_VARIANCE_ANALYSIS_SUCCESS,
+  FETCH_VARIANCE_ANALYSIS_FAILURE,
+  // Delivery Cycle Analysis action types
+  FETCH_DELIVERY_CYCLE_ANALYSIS_REQUEST,
+  FETCH_DELIVERY_CYCLE_ANALYSIS_SUCCESS,
+  FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE,
+  // Transfer Reconciliation action types
+  FETCH_TRANSFER_RECONCILIATION_REQUEST,
+  FETCH_TRANSFER_RECONCILIATION_SUCCESS,
+  FETCH_TRANSFER_RECONCILIATION_FAILURE,
+  CLEAR_TRANSFER_RECONCILIATION,
+  // Period Diagnostic action types
+  FETCH_PERIOD_DIAGNOSTIC_REQUEST,
+  FETCH_PERIOD_DIAGNOSTIC_SUCCESS,
+  FETCH_PERIOD_DIAGNOSTIC_FAILURE,
+  CLEAR_PERIOD_DIAGNOSTIC
 } from '../actions/tankStockAction';
 
 const initialState = {
@@ -46,10 +64,18 @@ const initialState = {
   stockAdjustments: [],
   reconciliationData: [],
   reports: [],
+  varianceAnalysis: null,
+  deliveryCycleAnalysis: null,
+  transferReconciliation: null,
+  periodDiagnostic: null,
   discrepanciesLoading: false,
   adjustmentsLoading: false,
   reconciliationLoading: false,
   reportsLoading: false,
+  varianceLoading: false,
+  deliveryCycleLoading: false,
+  transferReconciliationLoading: false,
+  periodDiagnosticLoading: false,
   loading: false,
   error: null,
 };
@@ -196,6 +222,96 @@ const tankStockReducer = (state = initialState, action) => {
               ...state,
               reportsLoading: false,
               error: action.payload
+          };
+
+      // Variance Analysis
+      case FETCH_VARIANCE_ANALYSIS_REQUEST:
+          return { ...state, varianceLoading: true, error: null };
+      case FETCH_VARIANCE_ANALYSIS_SUCCESS:
+          return {
+              ...state,
+              varianceAnalysis: action.payload,
+              varianceLoading: false,
+              error: null
+          };
+      case FETCH_VARIANCE_ANALYSIS_FAILURE:
+          return {
+              ...state,
+              varianceAnalysis: null,
+              varianceLoading: false,
+              error: action.payload
+          };
+
+      // Delivery Cycle Analysis
+      case FETCH_DELIVERY_CYCLE_ANALYSIS_REQUEST:
+          return { ...state, deliveryCycleLoading: true, error: null };
+      case FETCH_DELIVERY_CYCLE_ANALYSIS_SUCCESS:
+          return {
+              ...state,
+              deliveryCycleAnalysis: action.payload,
+              deliveryCycleLoading: false,
+              error: null
+          };
+      case FETCH_DELIVERY_CYCLE_ANALYSIS_FAILURE:
+          return {
+              ...state,
+              deliveryCycleAnalysis: null,
+              deliveryCycleLoading: false,
+              error: action.payload
+          };
+
+      // Transfer Reconciliation
+      case FETCH_TRANSFER_RECONCILIATION_REQUEST:
+          return { ...state, transferReconciliationLoading: true, error: null };
+      case FETCH_TRANSFER_RECONCILIATION_SUCCESS:
+          return {
+              ...state,
+              transferReconciliation: action.payload,
+              transferReconciliationLoading: false,
+              error: null
+          };
+      case FETCH_TRANSFER_RECONCILIATION_FAILURE:
+          return {
+              ...state,
+              transferReconciliation: null,
+              transferReconciliationLoading: false,
+              error: action.payload
+          };
+      case CLEAR_TRANSFER_RECONCILIATION:
+          return {
+              ...state,
+              transferReconciliation: null,
+              transferReconciliationLoading: false,
+              error: null
+          };
+
+      // Period Diagnostic
+      case FETCH_PERIOD_DIAGNOSTIC_REQUEST:
+          return {
+              ...state,
+              periodDiagnosticLoading: true,
+              error: null
+          };
+      case FETCH_PERIOD_DIAGNOSTIC_SUCCESS:
+          return {
+              ...state,
+              periodDiagnostic: action.payload,
+              periodDiagnosticLoading: false,
+              error: null
+          };
+      case FETCH_PERIOD_DIAGNOSTIC_FAILURE:
+          return {
+              ...state,
+              periodDiagnostic: null,
+              periodDiagnosticLoading: false,
+              error: action.payload
+          };
+      case CLEAR_PERIOD_DIAGNOSTIC:
+          return {
+              ...state,
+              periodDiagnostic: null,
+              periodDiagnosticLoading: false,
+              error: null
           };
 
       default:

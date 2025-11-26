@@ -7,7 +7,6 @@ using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
@@ -17,35 +16,33 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly GpsdataContext _context;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateHealthService> _logger;
-        private readonly string _apiKey;
-        private readonly string _baseUrl;
-        private readonly int _applicationId;
+        private readonly IGPSGateConfigurationProvider _configurationProvider;
         private readonly IGPSGateLocationService _locationService;
 
         public GPSGateHealthService(
             GpsdataContext context,
             HttpClient httpClient,
-            IConfiguration configuration,
+            IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateHealthService> logger,
             IGPSGateLocationService locationService)
         {
             _context = context;
             _httpClient = httpClient;
+            _configurationProvider = configurationProvider;
             _logger = logger;
             _locationService = locationService;
-
-            _apiKey = configuration["GPSGate:ApiKey"] ?? throw new ArgumentNullException("GPSGate:ApiKey not configured");
-            _baseUrl = configuration["GPSGate:BaseUrl"] ?? throw new ArgumentNullException("GPSGate:BaseUrl not configured");
-            _applicationId = int.Parse(configuration["GPSGate:ApplicationId"] ?? "1");
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", _apiKey);
         }
 
         public async Task<FMSResponse<bool>> ValidateConnectionAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_baseUrl}/applications/{_applicationId}");
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/applications/{applicationId}");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
+
                 return FMSResponse<bool>.Success(response.IsSuccessStatusCode);
             }
             catch (Exception ex)
@@ -59,8 +56,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
                 var stopwatch = Stopwatch.StartNew();
-                var response = await _httpClient.GetAsync($"{_baseUrl}/applications/{_applicationId}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/applications/{applicationId}");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
                 stopwatch.Stop();
 
                 if (response.IsSuccessStatusCode)
