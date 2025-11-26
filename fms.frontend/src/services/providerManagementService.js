@@ -165,7 +165,7 @@ class ProviderManagementService extends BaseService {
       };
     }
 
-    return this.post('assignments', {
+    return this.post('mappings', {
       vehicleId,
       providerId
     });
@@ -196,7 +196,7 @@ class ProviderManagementService extends BaseService {
       };
     }
 
-    return this.post('assignments/bulk', {
+    return this.post('mappings/bulk', {
       vehicleIds,
       providerId
     });
@@ -217,7 +217,7 @@ class ProviderManagementService extends BaseService {
       };
     }
 
-    return this.post('assignments/bulk-unassign', {
+    return this.post('mappings/bulk/unassign', {
       vehicleIds
     });
   }
@@ -258,7 +258,7 @@ class ProviderManagementService extends BaseService {
       };
     }
 
-    return this.post('devices/map', mappingData);
+    return this.post('mappings/device', mappingData);
   }
 
   // ============================================================================

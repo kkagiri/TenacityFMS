@@ -33,6 +33,22 @@ const pumpControlService = {
   },
 
   /**
+   * Authorize a pump for tank-to-tank transfer
+   * NOTE: This is a direct API call specific to tank transfers
+   * @param {object} params - Transfer authorization parameters
+   * @returns {Promise<object>} - Response data
+   */
+  authorizeTransfer: async (params) => {
+    try {
+      const response = await axiosInstance.post(`/api/v1/pump/authorize-transfer`, params);
+      return response.data;
+    } catch (error) {
+      console.error("Tank transfer authorization error:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Stop a pump that is currently fueling
    * NOTE: This uses Redux action for state management
    * @param {string} deviceId - PTS device ID
@@ -210,6 +226,23 @@ const pumpControlService = {
         return response.data;
       } catch (error) {
         console.error("Get device config error:", error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get pump transaction information
+     * Returns complete transaction details including volume, amount, fuel grade, etc.
+     * Used after authorization or at EOT to get final transaction data
+     */
+    getTransactionInfo: async (deviceId, pumpId, transactionId) => {
+      try {
+        const response = await axiosInstance.get(
+          `/pump/${deviceId}/${pumpId}/transaction/${transactionId}`
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Get transaction info error:", error);
         throw error;
       }
     },

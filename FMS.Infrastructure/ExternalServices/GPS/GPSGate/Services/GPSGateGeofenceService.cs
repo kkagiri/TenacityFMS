@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
@@ -16,34 +15,31 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateGeofenceService> _logger;
-        private readonly string _apiKey;
-        private readonly string _baseUrl;
-        private readonly int _applicationId;
+        private readonly IGPSGateConfigurationProvider _configurationProvider;
         private readonly IGPSGateLocationService _locationService;
 
         public GPSGateGeofenceService(
             HttpClient httpClient,
-            IConfiguration configuration,
+            IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateGeofenceService> logger,
             IGPSGateLocationService locationService)
         {
             _httpClient = httpClient;
+            _configurationProvider = configurationProvider;
             _logger = logger;
             _locationService = locationService;
-
-            _apiKey = configuration["GPSGate:ApiKey"] ?? throw new ArgumentNullException("GPSGate:ApiKey not configured");
-            _baseUrl = configuration["GPSGate:BaseUrl"] ?? throw new ArgumentNullException("GPSGate:BaseUrl not configured");
-            _applicationId = int.Parse(configuration["GPSGate:ApplicationId"] ?? "1");
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", _apiKey);
         }
 
         public async Task<FMSResponse<List<GeofenceDTO>>> GetGeofencesAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/geofences");
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                using var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"{baseUrl}/applications/{applicationId}/geofences");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -78,8 +74,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/geofences/{geofenceId}");
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                using var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"{baseUrl}/applications/{applicationId}/geofences/{geofenceId}");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {

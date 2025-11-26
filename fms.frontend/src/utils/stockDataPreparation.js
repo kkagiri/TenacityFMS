@@ -1,7 +1,9 @@
 export const prepareOpeningClosingStockParams = (formData) => ({
     tankId: formData.tankId,
     amount: formData.amount,
-    date: formData.date
+    date: formData.date,
+    openingMeter: formData.openingMeter || null,
+    closingMeter: formData.closingMeter || null
 });
 
 export const prepareOpeningStockDTO = (formData) => ({

@@ -246,6 +246,81 @@ $transition: all 0.3s ease;
   }
 }
 
+// Tank Form Mobile Styles
+.tank-form {
+  .dx-form {
+    .dx-field-item {
+      padding: 0.5rem 0;
+    }
+
+    .dx-selectbox {
+      .dx-texteditor-input {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+      }
+
+      .dx-dropdowneditor-input-wrapper {
+        white-space: normal;
+      }
+    }
+
+    // Mobile responsive adjustments
+    @media (max-width: 768px) {
+      .dx-layout-manager .dx-field-item-content {
+        width: 100% !important;
+      }
+
+      .dx-selectbox {
+        width: 100% !important;
+
+        .dx-texteditor-input-container {
+          padding-right: 40px; // Space for dropdown button
+        }
+
+        .dx-texteditor-input {
+          font-size: 14px;
+          padding: 10px 12px;
+          line-height: 1.4;
+        }
+      }
+
+      // Make form single column on mobile
+      .dx-group-colcount-2 {
+        .dx-field-item {
+          width: 100% !important;
+        }
+      }
+    }
+  }
+
+  // Popup width adjustment for mobile
+  @media (max-width: 640px) {
+    .dx-popup-content {
+      padding: 1rem !important;
+    }
+  }
+}
+
+// Mobile menu dropdown animation
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tank-page {
+  // Mobile dropdown menu styling
+  .tw-absolute.tw-top-full {
+    animation: slideDown 0.2s ease;
+  }
+}
+
 // Font Awesome icon support
 .fas, .far, .fab {
   font-family: 'Font Awesome 5 Free';

@@ -3,6 +3,7 @@
 export const maintenanceRoutes = {
   dashboard: '/maintenance',
   records: '/maintenance/records',
+  reconciliation: '/maintenance/reconciliation',
   settings: '/maintenance/settings',
   // Add more routes as needed
 };

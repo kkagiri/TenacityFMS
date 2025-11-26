@@ -1,32 +1,33 @@
 import React, { useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { useStockFilters } from '../shared/context/StockFilterContext';
 import { useStockData } from '../shared/hooks/useStockDataOptimized';
-import { useDateRange } from '../../../hooks/useDateRange';
-import FilterInfoBar from '../components/FilterInfoBar';
 import ReconciliationWorkflow from './components/ReconciliationWorkflow';
 import AdjustmentCenter from './components/AdjustmentCenter';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import PumpTransactionManager from './components/PumpTransactionManager';
 import TransactionHub from './components/TransactionHub';
 import DispensingManager from './components/DispensingManager';
+import BulkImportManager from './components/bulkImport/BulkImportManager';
+import DeliveryManager from './components/DeliveryManager';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import Tabs from 'devextreme-react/tabs';
 import './StockManagement.scss';
 
-//Cursor - Stock Management - Focused on Stock Adjustment Dashboard
+//Cursor - Stock Management Page - Main container with shared filters from TankStockLayout
 const StockManagement = () => {
   const sites = useSelector((state) => state.site.sites);
   const user = useSelector((state) => state.auth.user);
+
+  // Get filters from shared context (provided by TankStockLayout)
+  const { dateRange, singleSiteId } = useStockFilters();
 
   const [selectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
     return storedSite && storedSite !== 'null' ? storedSite : 'all';
   });
 
-  // Use stable date range hook
-  const { dateRange } = useDateRange(30); // 30 days by default
-
-  // Set default tab to Stock Adjustment Dashboard (index 0)
+  // Set default tab to Transaction Hub (index 0)
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
 
@@ -39,16 +40,13 @@ const StockManagement = () => {
     refreshData
   } = useStockData(selectedSite, dateRange);
 
-
-
-  //Cursor - Tab data with Transaction Hub as first tab, Stock Adjustment Dashboard as second
+  //Cursor - Tab data
   const tabData = [
     { text: "Transaction Hub", icon: "fa-light fa-exchange-alt" },
-    // { text: "Stock Adjustment Dashboard", icon: "fa-light fa-adjust" },
+    { text: "Delivery Management", icon: "fa-light fa-truck-container" },
     { text: "Pump Transactions", icon: "fa-light fa-gas-pump" },
     { text: "Dispensing Volumes", icon: "fa-light fa-tint" },
-    // { text: "Reconciliation", icon: "fa-light fa-balance-scale" },
-    // { text: "Configuration", icon: "fa-light fa-cog" }
+    { text: "Bulk Import", icon: "fa-light fa-file-upload" },
   ];
 
   //Cursor - Custom tab item renderer
@@ -82,43 +80,25 @@ const StockManagement = () => {
             dateRange={dateRange}
           />
         );
-      // case 1:
-      //   return loadedTabs.has(1) && (
-      //     <AdjustmentCenter
-      //       adjustments={adjustments}
-      //       selectedSite={selectedSite}
-      //       dateRange={dateRange}
-      //       onAdjustmentComplete={handleTransactionUpdate}
-      //     />
-      //   );
       case 1:
         return loadedTabs.has(1) && (
+          <DeliveryManager />
+        );
+      case 2:
+        return loadedTabs.has(2) && (
           <PumpTransactionManager
             selectedSite={selectedSite}
             dateRange={dateRange}
           />
         );
-      case 2:
-        return loadedTabs.has(2) && (
+      case 3:
+        return loadedTabs.has(3) && (
           <DispensingManager />
         );
-      // case 3:
-      //   return loadedTabs.has(3) && (
-      //     <ReconciliationWorkflow
-      //       reconciliationData={reconciliationData}
-      //       selectedSite={selectedSite}
-      //       dateRange={dateRange}
-      //       onReconciliationComplete={handleTransactionUpdate}
-      //     />
-      //   );
-      // case 4:
-      //   return loadedTabs.has(4) && (
-      //     <ConfigurationPanel
-      //       systemConfig={systemConfig}
-      //       selectedSite={selectedSite}
-      //       onConfigUpdate={handleTransactionUpdate}
-      //     />
-      //   );
+      case 4:
+        return loadedTabs.has(4) && (
+          <BulkImportManager />
+        );
       default:
         return null;
     }
@@ -126,9 +106,7 @@ const StockManagement = () => {
 
   return (
     <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
-
-
-      {/* Cursor - Loading overlay instead of blocking entire screen */}
+      {/* Cursor - Loading overlay */}
       {isLoading && (
         <div className="tw-absolute tw-top-0 tw-left-0 tw-right-0 tw-bottom-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-justify-center tw-items-center tw-z-40">
           <div className="tw-text-center tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg">
@@ -140,19 +118,20 @@ const StockManagement = () => {
         </div>
       )}
 
-      <div className="stock-management tw-overflow-y-auto tw-h-full">
+      <div className="stock-management tw-overflow-y-auto tw-h-full tw-p-4">
+        {/* Main Content Area - Title and Filters now in TankStockLayout header */}
         <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
-          {/* Cursor - Tabs Navigation */}
+          {/* Tabs Navigation */}
           <Tabs
             dataSource={tabData}
             selectedIndex={activeTabIndex}
             onItemClick={handleTabSelectionChange}
             width="100%"
-            className="tw-mb-4"
+            className="tw-mb-0"
             itemRender={renderTabItem}
           />
 
-          {/* Cursor - Tab Content */}
+          {/* Tab Content */}
           <div className="tw-p-4">
             {renderContent()}
           </div>

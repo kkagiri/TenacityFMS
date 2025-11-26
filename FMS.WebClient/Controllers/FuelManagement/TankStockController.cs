@@ -6,6 +6,10 @@ using FMS.Application.Common;
 using FMS.Application.Features.FMS.Delivery.cs;
 using FMS.Application.Features.FMS.TankStock;
 using FMS.Application.Features.FMS.TankTransfer;
+using FMS.Application.Features.TankManagement.BulkImport.Commands;
+using FMS.Application.Features.TankManagement.BulkImport.DTOs;
+using FMS.Application.Features.TankManagement.Queries;
+using FMS.Application.Features.TankManagement.TankStock.Commands;
 using FMS.Application.Queries.Database.FMSQuery.TankStock;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities.enums;
@@ -45,13 +49,34 @@ public class TankStockController : ControllerBase
         _hubContext = hubContext;
     }
 
+    /// <summary>
+    /// Gets tank stock records with optional filtering by date range, site, and tank
+    /// </summary>
+    /// <param name="startDate">Start date filter (inclusive)</param>
+    /// <param name="endDate">End date filter (inclusive)</param>
+    /// <param name="siteIds">Site IDs to filter by (multiple allowed)</param>
+    /// <param name="tankIds">Tank IDs to filter by (multiple allowed)</param>
+    /// <returns>Filtered list of tank stock records</returns>
     [HttpGet]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> GetTankStocks()
+    public async Task<IActionResult> GetTankStocks(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] List<int>? siteIds = null,
+        [FromQuery] List<int>? tankIds = null)
     {
-        return User.HasClaim("permissions", "_Read_tankStock") ?
-            Ok(await _mediator.Send(new GetTankStockListQuery())) :
-            Forbid();
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+
+        var query = new GetTankStockListQuery(
+            StartDate: startDate,
+            EndDate: endDate,
+            SiteIds: siteIds,
+            TankIds: tankIds
+        );
+
+        var result = await _mediator.Send(query);
+        return Ok(result);
     }
 
     /// <summary>
@@ -162,6 +187,87 @@ public class TankStockController : ControllerBase
         return CreatedAtAction(nameof(GetTankStockById), new { id = id }, tankStockDTO);
     }
 
+    /// <summary>
+    /// Updates a TankStock entry. Optionally processes TankVolumeHistory updates.
+    /// </summary>
+    /// <param name="id">Entry ID to update</param>
+    /// <param name="tankStockDTO">Updated tank stock data</param>
+    /// <param name="processHistory">If true, updates related TankVolumeHistory records (default: false)</param>
+    /// <returns>Success/failure response</returns>
+    [HttpPut("{id:int}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> UpdateTankStock(
+        int id,
+        [FromBody] TankStockDTO tankStockDTO,
+        [FromQuery] bool processHistory = false)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (id <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid ID"));
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _mediator.Send(new UpdateTankStockCommand(tankStockDTO, id, processHistory));
+
+        if (!result)
+        {
+            return NotFound(FMSResponse.FailedResponse($"Tank stock entry with ID {id} not found"));
+        }
+
+        // Notify clients about the update
+        await _hubContext.Clients.All.SendAsync("TankStockUpdate", new
+        {
+            Success = true,
+            EntryId = id,
+            Action = "Updated",
+            Message = "Tank stock entry updated successfully",
+            ProcessHistory = processHistory
+        });
+
+        return Ok(FMSResponse.SuccessResponse("Tank stock entry updated successfully"));
+    }
+
+    /// <summary>
+    /// Soft deletes a TankStock entry. Optionally processes TankVolumeHistory updates.
+    /// </summary>
+    /// <param name="id">Entry ID to delete</param>
+    /// <param name="processHistory">If true, updates related TankVolumeHistory records (default: false)</param>
+    /// <returns>Success/failure response</returns>
+    [HttpDelete("{id:int}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> DeleteTankStock(
+        int id,
+        [FromQuery] bool processHistory = false)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Delete_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (id <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid ID"));
+
+        // Get current user ID
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        var result = await _mediator.Send(new DeleteTankStockCommand(id, processHistory, userId));
+
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        // Notify clients about the deletion
+        await _hubContext.Clients.All.SendAsync("TankStockUpdate", new
+        {
+            Success = true,
+            EntryId = id,
+            Action = "Deleted",
+            Message = "Tank stock entry deleted successfully",
+            ProcessHistory = processHistory
+        });
+
+        return Ok(result);
+    }
+
     [HttpPost("openingstock")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateOpeningStock([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime)
@@ -246,6 +352,72 @@ public class TankStockController : ControllerBase
         var result = await _mediator.Send(new CreateTankTransfer(tankTransferDTO));
 
         if (!result.Success) return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Bulk import tank stock data from Excel file
+    /// Supports opening, closing, dispensing, transfer IN/OUT, and delivery entries
+    /// Performs comprehensive validation with 11 anomaly detection algorithms (backend)
+    /// </summary>
+    /// <param name="request">Bulk import request containing entries and configuration</param>
+    /// <returns>Import result with validation anomalies and statistics</returns>
+    [HttpPost("bulk-import")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> BulkImportTankStock([FromBody] BulkImportRequest request)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Create_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        // Get user ID from claims
+        var userIdClaim = User.Claims.FirstOrDefault(c =>
+            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+            Guid.TryParse(c.Value, out _));
+
+        if (userIdClaim == null)
+        {
+            return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
+        }
+
+        // Build command
+        var command = new BulkImportTankStockCommand
+        {
+            Entries = request.Entries,
+            ValidateOnly = request.ValidateOnly,
+            DuplicateHandling = request.DuplicateHandling,
+            IgnoreWarnings = request.IgnoreWarnings,
+            SkipValidation = request.SkipValidation,
+            UserId = userIdClaim.Value,
+            StationId = request.StationId
+        };
+
+        // Execute command
+        var result = await _mediator.Send(command);
+
+        // Return appropriate response based on validation status
+        if (!result.IsSuccess)
+        {
+            if (result.Data?.ValidationResult?.HasBlockingAnomalies == true)
+            {
+                return UnprocessableEntity(result); // 422 for validation failures
+            }
+            return BadRequest(result); // 400 for other errors
+        }
+
+        // Notify clients if import was successful (not validation-only)
+        if (!request.ValidateOnly && result.Data?.ImportedRows > 0)
+        {
+            await _hubContext.Clients.All.SendAsync("TankStockBulkImport", new
+            {
+                Success = true,
+                ImportedRows = result.Data.ImportedRows,
+                Message = result.Message
+            });
+        }
 
         return Ok(result);
     }
@@ -443,6 +615,178 @@ public class TankStockController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Gets variance analysis data for a specific tank and date range
+    /// </summary>
+    [HttpGet("variance-analysis")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetVarianceAnalysis(
+        [FromQuery] int tankId,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
+        [FromQuery] bool useManualDispensing = false,
+        [FromQuery] bool useCombinedDispensing = false)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (tankId <= 0)
+            return BadRequest(FMSResponse.FailedResponse("Invalid Tank ID"));
+
+        if (startDate >= endDate)
+            return BadRequest(FMSResponse.FailedResponse("Start date must be before end date"));
+
+        // Validate mutually exclusive dispensing modes
+        if (useManualDispensing && useCombinedDispensing)
+        {
+            return BadRequest(FMSResponse.FailedResponse(
+                "Cannot use both manual and combined dispensing modes. Choose one mode."));
+        }
+
+        try
+        {
+            var query = new GetTankVarianceAnalysisQuery(
+                tankId,
+                startDate,
+                endDate,
+                useManualDispensing,
+                useCombinedDispensing);
+
+            var result = await _mediator.Send(query);
+
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(FMSResponse.FailedResponse($"Failed to retrieve variance analysis: {ex.Message}"));
+        }
+    }
+
+    /// <summary>
+    /// Gets delivery cycle analysis with consumption rates for specific tank(s) and date range
+    /// Supports single tank or multiple tanks for site-level analysis
+    /// </summary>
+    [HttpGet("delivery-cycle-analysis")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetDeliveryCycleAnalysis(
+        [FromQuery] int? tankId,  // Single tank ID (for backward compatibility)
+        [FromQuery] int[]? tankIds,  // Multiple tank IDs for multi-tank analysis
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
+        [FromQuery] DeliveryCycleAnalysisType analysisType = DeliveryCycleAnalysisType.BetweenDeliveries,
+        [FromQuery] bool useManualDispensing = false,
+        [FromQuery] bool useCombinedDispensing = false)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+
+        // Validate that either tankId or tankIds is provided
+        if (!tankId.HasValue && (tankIds == null || tankIds.Length == 0))
+            return BadRequest(FMSResponse.FailedResponse("Either tankId or tankIds must be provided"));
+
+        if (startDate >= endDate)
+            return BadRequest(FMSResponse.FailedResponse("Start date must be before end date"));
+
+        // Validate mutually exclusive dispensing modes
+        if (useManualDispensing && useCombinedDispensing)
+        {
+            return BadRequest(FMSResponse.FailedResponse(
+                "Cannot use both manual and combined dispensing modes. Choose one mode."));
+        }
+
+        try
+        {
+            var query = new GetDeliveryCycleAnalysisQuery(
+                tankId,
+                tankIds?.ToList(),
+                startDate,
+                endDate,
+                analysisType,
+                useManualDispensing,
+                useCombinedDispensing);
+
+            var result = await _mediator.Send(query);
+
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(FMSResponse.FailedResponse($"Failed to retrieve delivery cycle analysis: {ex.Message}"));
+        }
+    }
+
+    /// <summary>
+    /// Gets expected stock for validation before saving stock entry
+    /// Calculates expected stock based on previous closing + deliveries + transfers - dispensing
+    /// </summary>
+    [HttpGet("expected-stock")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetExpectedStock(
+        [FromQuery] int tankId,
+        [FromQuery] DateTime timestamp,
+        [FromQuery] string stockType = "Closing")
+    {
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (tankId <= 0)
+            return BadRequest(FMSResponse.FailedResponse("Valid tank ID is required"));
+
+        if (timestamp > DateTime.UtcNow)
+            return BadRequest(FMSResponse.FailedResponse("Timestamp cannot be in the future"));
+
+        try
+        {
+            var query = new GetExpectedStockQuery(tankId, timestamp, stockType);
+            var result = await _mediator.Send(query);
+
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(FMSResponse.FailedResponse($"Failed to calculate expected stock: {ex.Message}"));
+        }
+    }
+
+    /// <summary>
+    /// Gets transfer-based reconciliation analysis for a tank
+    /// Analyzes periods between stock entries, tracking transfers and dispensing with variance detection
+    /// </summary>
+    [HttpGet("transfer-reconciliation")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetTransferReconciliationAnalysis(
+        [FromQuery] int tankId,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
+        [FromQuery] bool includeTransferDetails = false)
+    {
+        var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+        if (!hasPermission) return Forbid();
+
+        if (tankId <= 0)
+            return BadRequest(FMSResponse.FailedResponse("Valid tank ID is required"));
+
+        if (startDate >= endDate)
+            return BadRequest(FMSResponse.FailedResponse("Start date must be before end date"));
+
+        try
+        {
+            var query = new GetTransferReconciliationAnalysisQuery(
+                tankId,
+                startDate,
+                endDate,
+                includeTransferDetails);
+
+            var result = await _mediator.Send(query);
+
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(FMSResponse.FailedResponse($"Failed to retrieve transfer reconciliation analysis: {ex.Message}"));
+        }
+    }
+
 }
 
 /// <summary>
@@ -480,4 +824,40 @@ public class HistoricalEntryValidationRequest
     /// The type of entry (OpeningStock, ClosingStock, TransferOut, etc.)
     /// </summary>
     public VolumeChangeReasonEnum EntryType { get; set; }
+}
+
+/// <summary>
+/// Request model for bulk import tank stock
+/// </summary>
+public class BulkImportRequest
+{
+    /// <summary>
+    /// List of rows from Excel file
+    /// </summary>
+    public List<BulkImportRowDTO> Entries { get; set; } = new List<BulkImportRowDTO>();
+
+    /// <summary>
+    /// If true, only validates without importing
+    /// </summary>
+    public bool ValidateOnly { get; set; }
+
+    /// <summary>
+    /// How to handle duplicate entries (Skip or Replace)
+    /// </summary>
+    public DuplicateHandlingMode DuplicateHandling { get; set; } = DuplicateHandlingMode.Skip;
+
+    /// <summary>
+    /// Whether to proceed even with warnings
+    /// </summary>
+    public bool IgnoreWarnings { get; set; }
+
+    /// <summary>
+    /// Whether to skip validation checks (controlled by system configuration)
+    /// </summary>
+    public bool SkipValidation { get; set; }
+
+    /// <summary>
+    /// Optional: Station ID context
+    /// </summary>
+    public int? StationId { get; set; }
 }

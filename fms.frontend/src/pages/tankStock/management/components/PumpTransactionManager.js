@@ -2,13 +2,16 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DataGrid } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
-import { Form } from 'devextreme-react/form';
+import { ScrollView } from 'devextreme-react/scroll-view';
+import { SelectBox, TagBox } from 'devextreme-react';
 import notify from 'devextreme/ui/notify';
+import { useStockFilters } from '../../shared/context/StockFilterContext';
 import {
     fetchPumpTransactions,
     clearPumpTransactions
 } from '../../../../redux/actions/consumptionActions';
+import { fetchVehicleList } from '../../../../redux/actions/vehicleActions';
+import { fetchPTSDeviceList } from '../../../../redux/actions/ptsActions/ptsDeviceActions';
 import './PumpTransactionManager.scss';
 
 const PumpTransactionManager = ({ selectedSite, dateRange }) => {
@@ -21,27 +24,26 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
         pumpTransactionsFilters
     } = useSelector(state => state.consumption);
 
-    // Filter panel state
+    // Get vehicles and PTS devices from Redux
+    const vehicles = useSelector(state => state.vehicle?.vehicles || []);
+    const ptsDevices = useSelector(state => state.pts?.ptsDeviceList || []);
+
+    // Get filters from shared context (header filters)
+    const { startDate: headerStartDate, endDate: headerEndDate, selectedSiteIds, selectedTankIds } = useStockFilters();
+
+    // Filter panel state - only tab-specific filters (no dates, sites, tanks)
     const [filterPanelVisible, setFilterPanelVisible] = useState(false);
     const [filterValues, setFilterValues] = useState({
-        vehicleId: null,
-        tankId: null,
-        ptsId: '',
-        startDate: dateRange?.[0] || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        endDate: dateRange?.[1] || new Date(),
+        vehicleIds: [],
+        ptsIds: [],
         processedOnly: null
     });
 
-    // Update filter values when date range changes
+    // Load vehicles and PTS devices on mount
     useEffect(() => {
-        if (dateRange && dateRange.length >= 2) {
-            setFilterValues(prev => ({
-                ...prev,
-                startDate: dateRange[0],
-                endDate: dateRange[1]
-            }));
-        }
-    }, [dateRange]);
+        dispatch(fetchVehicleList());
+        dispatch(fetchPTSDeviceList());
+    }, [dispatch]);
 
     // DataGrid columns configuration
     const columns = useMemo(() => [
@@ -148,81 +150,36 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
         }
     ], []);
 
-    // Filter form items configuration
-    const filterFormItems = useMemo(() => [
-        {
-            dataField: 'vehicleId',
-            label: { text: 'Vehicle ID' },
-            editorType: 'dxNumberBox',
-            editorOptions: {
-                placeholder: 'Enter vehicle ID',
-                showClearButton: true
-            }
-        },
-        {
-            dataField: 'tankId',
-            label: { text: 'Tank ID' },
-            editorType: 'dxNumberBox',
-            editorOptions: {
-                placeholder: 'Enter tank ID',
-                showClearButton: true
-            }
-        },
-        {
-            dataField: 'ptsId',
-            label: { text: 'PTS ID' },
-            editorType: 'dxTextBox',
-            editorOptions: {
-                placeholder: 'Enter PTS ID',
-                showClearButton: true
-            }
-        },
-        {
-            dataField: 'startDate',
-            label: { text: 'Start Date' },
-            editorType: 'dxDateBox',
-            editorOptions: {
-                type: 'date',
-                displayFormat: 'dd/MM/yyyy'
-            }
-        },
-        {
-            dataField: 'endDate',
-            label: { text: 'End Date' },
-            editorType: 'dxDateBox',
-            editorOptions: {
-                type: 'date',
-                displayFormat: 'dd/MM/yyyy'
-            }
-        },
-        {
-            dataField: 'processedOnly',
-            label: { text: 'Processing Status' },
-            editorType: 'dxSelectBox',
-            editorOptions: {
-                dataSource: [
-                    { value: null, text: 'All Transactions' },
-                    { value: true, text: 'Processed Only' },
-                    { value: false, text: 'Unprocessed Only' }
-                ],
-                displayExpr: 'text',
-                valueExpr: 'value',
-                placeholder: 'Select status'
-            }
-        }
+    // Processing status options
+    const processingStatusOptions = useMemo(() => [
+        { value: null, text: 'All Transactions' },
+        { value: true, text: 'Processed Only' },
+        { value: false, text: 'Unprocessed Only' }
     ], []);
 
-    // Handle filter application
+    // Handle filter application - uses header filters + tab-specific filters
     const handleApplyFilters = useCallback(async () => {
         try {
-            // Build filter object, excluding null/undefined values
+            // Build filter object using header filters + tab-specific filters
             const filters = {};
 
-            if (filterValues.vehicleId) filters.vehicleId = filterValues.vehicleId;
-            if (filterValues.tankId) filters.tankId = filterValues.tankId;
-            if (filterValues.ptsId && filterValues.ptsId.trim()) filters.ptsId = filterValues.ptsId.trim();
-            if (filterValues.startDate) filters.startDate = filterValues.startDate;
-            if (filterValues.endDate) filters.endDate = filterValues.endDate;
+            // Header filters
+            if (headerStartDate) filters.startDate = headerStartDate;
+            if (headerEndDate) filters.endDate = headerEndDate;
+            if (selectedSiteIds && selectedSiteIds.length > 0) {
+                filters.siteIds = selectedSiteIds;
+            }
+            if (selectedTankIds && selectedTankIds.length > 0) {
+                filters.tankIds = selectedTankIds;
+            }
+
+            // Tab-specific filters - now arrays
+            if (filterValues.vehicleIds && filterValues.vehicleIds.length > 0) {
+                filters.vehicleIds = filterValues.vehicleIds;
+            }
+            if (filterValues.ptsIds && filterValues.ptsIds.length > 0) {
+                filters.ptsIds = filterValues.ptsIds;
+            }
             if (filterValues.processedOnly !== null) filters.processedOnly = filterValues.processedOnly;
 
             // Validate at least one filter is provided
@@ -258,19 +215,16 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
                 displayTime: 5000
             });
         }
-    }, [dispatch, filterValues]);
+    }, [dispatch, filterValues, headerStartDate, headerEndDate, selectedSiteIds, selectedTankIds]);
 
-    // Handle filter reset
+    // Handle filter reset - only resets tab-specific filters
     const handleResetFilters = useCallback(() => {
         setFilterValues({
-            vehicleId: null,
-            tankId: null,
-            ptsId: '',
-            startDate: dateRange?.[0] || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            endDate: dateRange?.[1] || new Date(),
+            vehicleIds: [],
+            ptsIds: [],
             processedOnly: null
         });
-    }, [dateRange]);
+    }, []);
 
     // Handle data refresh
     const handleRefresh = useCallback(async () => {
@@ -383,6 +337,27 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
         };
     }, [pumpTransactions]);
 
+    // React to header filter changes and reload data
+    useEffect(() => {
+        if (pumpTransactionsFilters && (headerStartDate || headerEndDate || selectedSiteIds || selectedTankIds)) {
+            // Automatically refresh data when header filters change
+            const filters = { ...pumpTransactionsFilters };
+
+            // Update with new header filters
+            if (headerStartDate) filters.startDate = headerStartDate;
+            if (headerEndDate) filters.endDate = headerEndDate;
+            if (selectedSiteIds && selectedSiteIds.length > 0) {
+                filters.siteIds = selectedSiteIds;
+            }
+            if (selectedTankIds && selectedTankIds.length > 0) {
+                filters.tankIds = selectedTankIds;
+            }
+
+            dispatch(fetchPumpTransactions(filters));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [headerStartDate, headerEndDate, selectedSiteIds, selectedTankIds]);
+
     // Show error notification when error occurs
     useEffect(() => {
         if (pumpTransactionsError) {
@@ -405,10 +380,11 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
                     </h3>
                     <div className="tw-flex tw-gap-2">
                         <Button
-                            text="Filter Transactions"
-                            icon="filter"
+                            text={filterPanelVisible ? "Hide Filters" : "Show Filters"}
+                            icon={filterPanelVisible ? "fa-light fa-chevron-up" : "fa-light fa-filter"}
                             type="default"
-                            onClick={() => setFilterPanelVisible(true)}
+                            stylingMode="outlined"
+                            onClick={() => setFilterPanelVisible(!filterPanelVisible)}
                         />
                     </div>
                 </div>
@@ -473,6 +449,98 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
                 )}
             </div>
 
+            {/* Inline Filter Panel - Collapsible */}
+            {filterPanelVisible && (
+                <div className="tw-mb-4 tw-p-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg">
+                    <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                        <h4 className="tw-text-md tw-font-semibold tw-text-gray-800">
+                            <i className="fa-light fa-filter tw-mr-2"></i>
+                            Additional Filters
+                        </h4>
+                        <Button
+                            icon="fa-light fa-times"
+                            stylingMode="text"
+                            onClick={() => setFilterPanelVisible(false)}
+                            hint="Close filter panel"
+                        />
+                    </div>
+
+                    <ScrollView height="auto" width="100%" showScrollbar="onScroll">
+                        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4 tw-mb-4">
+                            {/* Vehicle Filter - Multi-select with search */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                                    Vehicles
+                                </label>
+                                <TagBox
+                                    value={filterValues.vehicleIds}
+                                    onValueChanged={(e) => setFilterValues(prev => ({ ...prev, vehicleIds: e.value }))}
+                                    dataSource={vehicles}
+                                    displayExpr="registrationNumber"
+                                    valueExpr="id"
+                                    placeholder="Select vehicles"
+                                    showClearButton={true}
+                                    searchEnabled={true}
+                                    width="100%"
+                                    noDataText="No vehicles available"
+                                />
+                            </div>
+
+                            {/* PTS Device Filter - Multi-select with search */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                                    PTS Devices
+                                </label>
+                                <TagBox
+                                    value={filterValues.ptsIds}
+                                    onValueChanged={(e) => setFilterValues(prev => ({ ...prev, ptsIds: e.value }))}
+                                    dataSource={ptsDevices}
+                                    displayExpr="ptsId"
+                                    valueExpr="ptsId"
+                                    placeholder="Select PTS devices"
+                                    showClearButton={true}
+                                    searchEnabled={true}
+                                    width="100%"
+                                    noDataText="No PTS devices available"
+                                />
+                            </div>
+
+                            {/* Processing Status Filter */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                                    Processing Status
+                                </label>
+                                <SelectBox
+                                    value={filterValues.processedOnly}
+                                    onValueChanged={(e) => setFilterValues(prev => ({ ...prev, processedOnly: e.value }))}
+                                    dataSource={processingStatusOptions}
+                                    displayExpr="text"
+                                    valueExpr="value"
+                                    placeholder="Select status"
+                                    width="100%"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="tw-flex tw-justify-end tw-gap-3">
+                            <Button
+                                text="Reset"
+                                type="normal"
+                                stylingMode="outlined"
+                                onClick={handleResetFilters}
+                            />
+                            <Button
+                                text="Apply Filters"
+                                type="default"
+                                stylingMode="contained"
+                                onClick={handleApplyFilters}
+                            />
+                        </div>
+                    </ScrollView>
+                </div>
+            )}
+
             {/* DataGrid */}
             <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
                 <DataGrid
@@ -508,102 +576,6 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
                     noDataText="No pump transactions found. Use filters to search for transactions."
                 />
             </div>
-
-            {/* Filter Panel Popup */}
-            <Popup
-                visible={filterPanelVisible}
-                onHiding={() => setFilterPanelVisible(false)}
-                dragEnabled={false}
-                hideOnOutsideClick={true}
-                showCloseButton={true}
-                showTitle={true}
-                title="Pump Transaction Filters"
-                width="auto"
-                height="auto"
-                position={{ my: 'center', at: 'center', of: window }}
-            >
-                <div className="tw-p-6 tw-min-w-96">
-                    {/* Quick Filter Buttons */}
-                    <div className="tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200">
-                        <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">Quick Filters:</div>
-                        <div className="tw-flex tw-flex-wrap tw-gap-2">
-                            <Button
-                                text="Last 7 Days"
-                                type="normal"
-                                stylingMode="outlined"
-                                onClick={() => {
-                                    const endDate = new Date();
-                                    const startDate = new Date();
-                                    startDate.setDate(startDate.getDate() - 7);
-                                    setFilterValues(prev => ({ ...prev, startDate, endDate }));
-                                }}
-                            />
-                            <Button
-                                text="Last 30 Days"
-                                type="normal"
-                                stylingMode="outlined"
-                                onClick={() => {
-                                    const endDate = new Date();
-                                    const startDate = new Date();
-                                    startDate.setDate(startDate.getDate() - 30);
-                                    setFilterValues(prev => ({ ...prev, startDate, endDate }));
-                                }}
-                            />
-                            <Button
-                                text="Unprocessed Only"
-                                type="normal"
-                                stylingMode="outlined"
-                                onClick={() => {
-                                    setFilterValues(prev => ({ ...prev, processedOnly: false }));
-                                }}
-                            />
-                            <Button
-                                text="Today"
-                                type="normal"
-                                stylingMode="outlined"
-                                onClick={() => {
-                                    const today = new Date();
-                                    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-                                    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-                                    setFilterValues(prev => ({ ...prev, startDate: startOfDay, endDate: endOfDay }));
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    <Form
-                        formData={filterValues}
-                        onFieldDataChanged={(e) => {
-                            setFilterValues(prev => ({
-                                ...prev,
-                                [e.dataField]: e.value
-                            }));
-                        }}
-                        items={filterFormItems}
-                        labelLocation="top"
-                        colCount={1}
-                        showColonAfterLabel={false}
-                    />
-
-                    <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-                        <Button
-                            text="Reset"
-                            type="normal"
-                            onClick={handleResetFilters}
-                        />
-                        <Button
-                            text="Cancel"
-                            type="normal"
-                            onClick={() => setFilterPanelVisible(false)}
-                        />
-                        <Button
-                            text="Apply Filters"
-                            type="default"
-                            onClick={handleApplyFilters}
-                        />
-                    </div>
-                </div>
-            </Popup>
         </div>
     );
 };

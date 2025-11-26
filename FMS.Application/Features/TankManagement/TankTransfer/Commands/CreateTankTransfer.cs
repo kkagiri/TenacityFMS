@@ -51,7 +51,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                     return new FMSResponseMessage<TankTransferDTO>(false, "Invalid transfer amount", null);
 
                 var transferAmount = request.TankTransferDTO.Amount.Value;
-                var transferDate = request.TankTransferDTO.Date ?? DateTime.Now;
+                // Always use UTC for internal storage
+                var transferDate = request.TankTransferDTO.Date ?? DateTime.UtcNow;
 
                 // Check if there is opening stock for both source and destination tanks on the transfer day
                 var sourceOpeningStock = await _context.TankVolumeHistories
@@ -73,6 +74,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
 
                 if (destinationOpeningStock == null)
                     return new FMSResponseMessage<TankTransferDTO>(false, $"Opening stock for DESTINATION tank '{destinationTank.Name}' on {transferDate.Date:yyyy-MM-dd} not found. Create opening stock for this tank first.", null);
+
+                // NEW VALIDATION: Transfer MUST be after opening stock for BOTH tanks (chronological order)
+                if (transferDate < sourceOpeningStock.Timestamp)
+                {
+                    return new FMSResponseMessage<TankTransferDTO>(false,
+                        $"CHRONOLOGICAL ORDER VIOLATION (SOURCE TANK): Transfer time ({transferDate:yyyy-MM-dd HH:mm:ss}) is BEFORE opening stock recorded at ({sourceOpeningStock.Timestamp:yyyy-MM-dd HH:mm:ss}) " +
+                        $"for source tank '{sourceTank.Name}'. Transactions must occur AFTER opening stock is recorded.", null);
+                }
+
+                if (transferDate < destinationOpeningStock.Timestamp)
+                {
+                    return new FMSResponseMessage<TankTransferDTO>(false,
+                        $"CHRONOLOGICAL ORDER VIOLATION (DESTINATION TANK): Transfer time ({transferDate:yyyy-MM-dd HH:mm:ss}) is BEFORE opening stock recorded at ({destinationOpeningStock.Timestamp:yyyy-MM-dd HH:mm:ss}) " +
+                        $"for destination tank '{destinationTank.Name}'. Transactions must occur AFTER opening stock is recorded.", null);
+                }
 
                 // Ensure there is a proper sequence: if there's an opening stock, transfers should come after it
                 // but before or after a closing stock if it exists
@@ -101,7 +117,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 }
 
                 // Validate historical entry against future records policy for both tanks
-                if (transferDate.Date < DateTime.Now.Date)
+                if (transferDate.Date < DateTime.UtcNow.Date)
                 {
                     // Check source tank
                     var sourceFutureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync(
@@ -133,7 +149,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 if (sourceTank.UseBookKeeping == 1)
                 {
                     // For current day, check current stock
-                    if (transferDate.Date == DateTime.Now.Date)
+                    if (transferDate.Date == DateTime.UtcNow.Date)
                     {
                         if (sourceTank.CurrentStock == null || sourceTank.CurrentStock < transferAmount)
                             return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank. Current stock: {sourceTank.CurrentStock}, Requested amount: {transferAmount}", null);
@@ -179,7 +195,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 decimal? destinationPhysicalStockValue = null;
                 string? physicalStockSource = null;
 
-                if (transferDate.Date == DateTime.Now.Date)
+                if (transferDate.Date == DateTime.UtcNow.Date)
                 {
                     if (sourceTank.PhysicalStockValue.HasValue)
                     {
@@ -225,6 +241,56 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 {
                     _logger.LogWarning("Failed to update destination tank volume history: {Message}", destinationVolumeResult.Message);
                 }
+
+                // Update TankStock entries for both source and destination tanks (single-row-per-day architecture)
+                var sourceTankStock = await _context.Tankstocks
+                    .Where(x => x.TankId == sourceTank.Id &&
+                        x.EntryDate.Date == transferDate.Date &&
+                        !x.IsDeleted)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (sourceTankStock != null)
+                {
+                    // Update transfer out amount (cumulative if multiple transfers)
+                    sourceTankStock.TransferOutAmount = (sourceTankStock.TransferOutAmount ?? 0) + transferAmount;
+                    sourceTankStock.TransferRecordId = tankTransfer.Id; // Store latest transfer ID
+
+                    _context.Tankstocks.Update(sourceTankStock);
+
+                    _logger.LogInformation("Updated source TankStock EntryID {EntryId} with transfer out amount {Amount}",
+                        sourceTankStock.EntryId, sourceTankStock.TransferOutAmount);
+                }
+                else
+                {
+                    _logger.LogWarning("No TankStock entry found for source Tank {TankId} on {Date} to update transfer out amount",
+                        sourceTank.Id, transferDate.Date);
+                }
+
+                var destinationTankStock = await _context.Tankstocks
+                    .Where(x => x.TankId == destinationTank.Id &&
+                        x.EntryDate.Date == transferDate.Date &&
+                        !x.IsDeleted)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (destinationTankStock != null)
+                {
+                    // Update transfer in amount (cumulative if multiple transfers)
+                    destinationTankStock.TransferInAmount = (destinationTankStock.TransferInAmount ?? 0) + transferAmount;
+                    destinationTankStock.TransferRecordId = tankTransfer.Id; // Store latest transfer ID
+
+                    _context.Tankstocks.Update(destinationTankStock);
+
+                    _logger.LogInformation("Updated destination TankStock EntryID {EntryId} with transfer in amount {Amount}",
+                        destinationTankStock.EntryId, destinationTankStock.TransferInAmount);
+                }
+                else
+                {
+                    _logger.LogWarning("No TankStock entry found for destination Tank {TankId} on {Date} to update transfer in amount",
+                        destinationTank.Id, transferDate.Date);
+                }
+
+                // Save TankStock updates
+                await _context.SaveChangesAsync(cancellationToken);
 
                 return new FMSResponseMessage<TankTransferDTO>(true, "Tank Transfer successful", request.TankTransferDTO);
             }

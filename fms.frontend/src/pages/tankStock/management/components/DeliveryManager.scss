@@ -1,0 +1,38 @@
+.delivery-manager {
+  @apply tw-relative tw-h-full;
+
+  .dx-datagrid {
+    @apply tw-bg-white tw-rounded-lg tw-shadow;
+
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+      font-weight: 600;
+    }
+
+    .dx-datagrid-rowsview .dx-row {
+      @apply tw-transition-colors;
+
+      &:hover {
+        @apply tw-bg-blue-50;
+      }
+
+      &.dx-row-alt {
+        @apply tw-bg-gray-50;
+      }
+    }
+
+    .dx-command-edit {
+      .dx-link {
+        @apply tw-text-blue-600;
+
+        &:hover {
+          @apply tw-text-blue-800;
+        }
+      }
+    }
+  }
+
+  .dx-toolbar {
+    @apply tw-bg-white tw-border-b tw-border-gray-200;
+  }
+}

@@ -676,6 +676,42 @@ const ManualRefillForm = ({
               />
 
               <SimpleItem
+                dataField="currentMeterReading"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  showSpinButtons: true,
+                  value: formData.currentMeterReading,
+                  onValueChanged: handleFieldChange("currentMeterReading"),
+                  width: "100%",
+                  showClearButton: false,
+                  ...(formData.currentMeterReading !== null &&
+                    formData.currentMeterReading !== undefined && {
+                      format: "#,##0.00",
+                    }),
+                }}
+              >
+                <Label text="Current Meter Reading" />
+              </SimpleItem>
+
+              <SimpleItem
+                dataField="previousMeterReading"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  showSpinButtons: true,
+                  value: formData.previousMeterReading,
+                  onValueChanged: handleFieldChange("previousMeterReading"),
+                  width: "100%",
+                  showClearButton: false,
+                  ...(formData.previousMeterReading !== null &&
+                    formData.previousMeterReading !== undefined && {
+                      format: "#,##0.00",
+                    }),
+                }}
+              >
+                <Label text="Previous Meter Reading" />
+              </SimpleItem>
+
+              <SimpleItem
                 dataField="manualFuelrefillAmount"
                 editorType="dxNumberBox"
                 editorOptions={{
@@ -698,42 +734,6 @@ const ManualRefillForm = ({
                 }}
               >
                 <Label text="Fuel Amount (Liters)" />
-              </SimpleItem>
-
-              <SimpleItem
-                dataField="previousMeterReading"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.previousMeterReading,
-                  onValueChanged: handleFieldChange("previousMeterReading"),
-                  width: "100%",
-                  showClearButton: false,
-                  ...(formData.previousMeterReading !== null &&
-                    formData.previousMeterReading !== undefined && {
-                      format: "#,##0.00",
-                    }),
-                }}
-              >
-                <Label text="Previous Meter Reading" />
-              </SimpleItem>
-
-              <SimpleItem
-                dataField="currentMeterReading"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.currentMeterReading,
-                  onValueChanged: handleFieldChange("currentMeterReading"),
-                  width: "100%",
-                  showClearButton: false,
-                  ...(formData.currentMeterReading !== null &&
-                    formData.currentMeterReading !== undefined && {
-                      format: "#,##0.00",
-                    }),
-                }}
-              >
-                <Label text="Current Meter Reading" />
               </SimpleItem>
 
               <SimpleItem

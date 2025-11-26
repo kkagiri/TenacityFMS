@@ -20,6 +20,18 @@ public partial class Tankstock
 
     public decimal? ManualClosingLevel { get; set; }
 
+    /// <summary>
+    /// Physical meter reading at the time of opening stock.
+    /// Only applicable when EntryType is OpeningStock.
+    /// </summary>
+    public decimal? OpeningMeter { get; set; }
+
+    /// <summary>
+    /// Physical meter reading at the time of closing stock.
+    /// Only applicable when EntryType is ClosingStock.
+    /// </summary>
+    public decimal? ClosingMeter { get; set; }
+
     public decimal? ManualAmount { get; set; }
 
     public decimal? ManualCalculatedUsage { get; set; }
@@ -42,6 +54,72 @@ public partial class Tankstock
     public VolumeChangeReasonEnum EntryType { get; set; }
 
     public decimal? SensorDiscrepancy { get; set; }
+
+    /// <summary>
+    /// Total delivery amount for this tank on this day.
+    /// Cumulative if multiple deliveries happen (though typically only one per day).
+    /// </summary>
+    public decimal? DeliveryAmount { get; set; }
+
+    /// <summary>
+    /// Reference to the Delivery record if delivery occurred.
+    /// </summary>
+    public int? DeliveryId { get; set; }
+
+    /// <summary>
+    /// Total fuel transferred INTO this tank from other tanks on this day.
+    /// </summary>
+    public decimal? TransferInAmount { get; set; }
+
+    /// <summary>
+    /// Total fuel transferred OUT of this tank to other tanks on this day.
+    /// </summary>
+    public decimal? TransferOutAmount { get; set; }
+
+    /// <summary>
+    /// Reference to the TankTransfer record if transfer occurred.
+    /// For multiple transfers, stores the most recent one.
+    /// </summary>
+    public int? TransferRecordId { get; set; }
+
+    /// <summary>
+    /// Unique identifier for the import batch (GUID format).
+    /// Links multiple tankstock entries that were imported together.
+    /// </summary>
+    public string? ImportBatchId { get; set; }
+
+    /// <summary>
+    /// Timestamp when the record was imported via bulk import.
+    /// Null for manually created or API-created records.
+    /// </summary>
+    public DateTime? ImportedAt { get; set; }
+
+    /// <summary>
+    /// Source of the tankstock entry: 'BulkImport', 'Manual', 'API', 'PTS'
+    /// </summary>
+    public string? ImportSource { get; set; }
+
+    /// <summary>
+    /// Soft delete flag - indicates if the record has been deleted.
+    /// </summary>
+    public bool IsDeleted { get; set; } = false;
+
+    /// <summary>
+    /// Timestamp when the record was soft deleted.
+    /// </summary>
+    public DateTime? DeletedAt { get; set; }
+
+    /// <summary>
+    /// User ID who deleted the record.
+    /// </summary>
+    public string? DeletedBy { get; set; }
+
+    /// <summary>
+    /// Unique key for active entries only (used for unique constraint).
+    /// Format: "{TankId}-{EntryDate}" when IsDeleted = false, NULL when IsDeleted = true.
+    /// This allows multiple soft-deleted entries but only one active entry per tank-date.
+    /// </summary>
+    public string? ActiveEntryKey { get; set; }
 
     public virtual User RecordedByNavigation { get; set; } = null!;
 

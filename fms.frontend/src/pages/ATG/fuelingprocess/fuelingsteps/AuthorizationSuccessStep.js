@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "devextreme-react/button";
 
 /**
  * AuthorizationSuccessStep.js
@@ -20,7 +19,6 @@ const AuthorizationSuccessStep = ({
   selectedPump,
   selectedNozzle,
   eotDetected,
-  onStartNew,
   displayDetails,
 }) => {
   return (
@@ -190,34 +188,30 @@ const AuthorizationSuccessStep = ({
                 </p>
               </div>
               <div className="tw-flex tw-items-center tw-justify-center tw-gap-2">
-                <i className="fa-light fa-lock tw-text-green-600"></i>
-                <p className="tw-text-gray-700">
-                  Pump is now locked and ready for next transaction
+                <i className="fa-light fa-hourglass-half tw-text-orange-600 tw-animate-pulse"></i>
+                <p className="tw-text-gray-700 tw-font-semibold">
+                  Waiting for nozzle to be properly seated...
                 </p>
               </div>
             </div>
           </div>
 
+          {/* Auto-return notice */}
+          <div className="tw-bg-blue-50 tw-rounded-lg tw-p-4 tw-mb-4 tw-border tw-border-blue-200">
+            <div className="tw-flex tw-items-center tw-justify-center tw-gap-3">
+              <i className="fa-light fa-info-circle tw-text-blue-600 tw-text-xl"></i>
+              <p className="tw-text-center tw-text-blue-700 tw-text-sm">
+                System will automatically return to pump selection once nozzle is properly replaced
+              </p>
+            </div>
+          </div>
+
           {/* Transaction Summary Placeholder */}
-          <div className="tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-mb-4 tw-border tw-border-gray-200">
+          <div className="tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-border tw-border-gray-200">
             <p className="tw-text-center tw-text-gray-600 tw-text-sm tw-mb-2">
               <i className="fa-light fa-info-circle tw-mr-2"></i>
               Transaction details will be available in the pump transaction history
             </p>
-          </div>
-
-          {/* Start New Fueling Button */}
-          <div className="tw-flex tw-justify-center tw-mt-6">
-            <Button
-              text="Start New Fueling"
-              icon="fa-light fa-plus"
-              type="success"
-              stylingMode="contained"
-              width={250}
-              height={50}
-              onClick={onStartNew}
-              className="tw-text-lg"
-            />
           </div>
         </div>
       )}

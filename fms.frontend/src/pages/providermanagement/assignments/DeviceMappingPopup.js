@@ -4,9 +4,11 @@ import { Popup } from "devextreme-react/popup";
 import { DataGrid } from "devextreme-react";
 import { Column, Paging, Selection, Scrolling, SearchPanel } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
+import { SelectBox } from "devextreme-react/select-box";
 import { LoadPanel } from "devextreme-react/load-panel";
 import notify from "devextreme/ui/notify";
 import {
+  fetchProviders,
   fetchProviderDevices,
   mapDeviceToVehicle,
 } from "../../../redux/actions/providerActions";
@@ -17,15 +19,29 @@ import "./DeviceMappingPopup.scss";
  * Device Mapping Popup Component
  * Allows users to map GPS devices from provider to FMS vehicles
  * Two-grid layout: Devices (left) and Vehicles (right)
+ * Includes provider selector to choose which provider to fetch devices from
  */
-const DeviceMappingPopup = ({ visible, onHiding, providerName, onMappingComplete }) => {
+const DeviceMappingPopup = ({ visible, onHiding, providers: externalProviders, onMappingComplete }) => {
   const dispatch = useDispatch();
 
   // Get data from Redux store
   const vehicles = useSelector((state) => state.vehicle.vehicles || []);
+  const { providers: reduxProviders } = useSelector((state) => state.provider || {});
+
+  // Use external providers if provided, otherwise use from Redux
+  const providers = useMemo(() => {
+    const providerList = externalProviders || reduxProviders || [];
+    return providerList.map((p) => ({
+      providerId: p.providerId || p.ProviderId,
+      providerName: p.providerName || p.ProviderName,
+      displayName: p.displayName || p.DisplayName,
+      isEnabled: p.isEnabled ?? p.IsEnabled ?? true,
+    })).filter(p => p.isEnabled);
+  }, [externalProviders, reduxProviders]);
 
   // Local state for devices (since they're provider-specific and temporary)
   const [devices, setDevices] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedVehicleKeys, setSelectedVehicleKeys] = useState([]);
@@ -39,23 +55,39 @@ const DeviceMappingPopup = ({ visible, onHiding, providerName, onMappingComplete
   const [showOnlineOnly, setShowOnlineOnly] = useState(true);
   const [showUnmappedOnly, setShowUnmappedOnly] = useState(true);
 
+  // Initialize provider selection when popup opens or providers change
   useEffect(() => {
-    if (visible) {
+    if (visible && providers.length > 0 && !selectedProvider) {
+      // Default to first enabled provider
+      setSelectedProvider(providers[0].providerName);
+    }
+  }, [visible, providers, selectedProvider]);
+
+  // Fetch providers if not available
+  useEffect(() => {
+    if (visible && !externalProviders && (!reduxProviders || reduxProviders.length === 0)) {
+      dispatch(fetchProviders());
+    }
+  }, [visible, externalProviders, reduxProviders, dispatch]);
+
+  useEffect(() => {
+    if (visible && selectedProvider) {
       loadDevices();
       loadVehicles();
-    } else {
+    } else if (!visible) {
       // Reset state when popup closes
       setSelectedDevice(null);
       setSelectedVehicle(null);
+      setDevices([]);
     }
-  }, [visible, providerName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, selectedProvider]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadDevices = async () => {
-    if (!providerName) return;
+    if (!selectedProvider) return;
 
     setLoading(true);
     try {
-      const response = await dispatch(fetchProviderDevices(providerName));
+      const response = await dispatch(fetchProviderDevices(selectedProvider));
       if (response.success) {
         setDevices(response.data || []);
       }
@@ -120,7 +152,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providerName, onMappingComplete
     try {
       const mappingData = {
         vehicleId: selectedVehicle.vehicleId,
-        providerName: providerName,
+        providerName: selectedProvider,
         externalDeviceId: String(selectedDevice.id), // Convert to string
         deviceIMEI: selectedDevice.imei,
         deviceName: selectedDevice.name,
@@ -171,7 +203,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providerName, onMappingComplete
 
     const mappingData = {
       vehicleId: vehicle.vehicleId,
-      providerName: providerName,
+      providerName: selectedProvider,
       externalDeviceId: String(selectedDevice.id),
       deviceIMEI: selectedDevice.imei,
       deviceName: selectedDevice.name,
@@ -255,7 +287,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providerName, onMappingComplete
       dragEnabled={true}
       closeOnOutsideClick={false}
       showTitle={true}
-      title={`Map GPS Devices to Vehicles - ${providerName || 'Provider'}`}
+      title="Map GPS Devices to Vehicles"
       width="90%"
       height="90%"
       showCloseButton={true}
@@ -264,8 +296,32 @@ const DeviceMappingPopup = ({ visible, onHiding, providerName, onMappingComplete
         <LoadPanel visible={loading} />
 
         <div className="tw-h-full tw-flex tw-flex-col tw-p-4">
-        {/* Filter Controls */}
-        <div className="tw-flex tw-gap-4 tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200">
+        {/* Provider Selector and Filter Controls */}
+        <div className="tw-flex tw-flex-wrap tw-gap-4 tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200">
+          {/* Provider Selector */}
+          <div className="tw-flex tw-items-center tw-gap-2">
+            <label className="tw-text-sm tw-font-medium tw-text-gray-700">
+              <i className="fa-light fa-satellite-dish tw-mr-1"></i>
+              Provider:
+            </label>
+            <SelectBox
+              dataSource={providers}
+              displayExpr="displayName"
+              valueExpr="providerName"
+              value={selectedProvider}
+              onValueChanged={(e) => {
+                setSelectedProvider(e.value);
+                setSelectedDevice(null); // Clear device selection when provider changes
+                setDevices([]); // Clear devices list
+              }}
+              placeholder="Select a provider"
+              width={200}
+              disabled={loading || mapping}
+            />
+          </div>
+
+          <div className="tw-border-l tw-border-gray-300 tw-h-6 tw-self-center"></div>
+
           <div className="tw-flex tw-items-center tw-gap-2">
             <input
               type="checkbox"

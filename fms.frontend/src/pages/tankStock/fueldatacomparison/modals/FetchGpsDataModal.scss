@@ -1,0 +1,25 @@
+// Fetch GPS Data Modal Styles
+
+.fetch-gps-data-modal {
+  @apply tw-p-4;
+
+  // DevExtreme component overrides
+  .dx-datebox,
+  .dx-selectbox {
+    @apply tw-w-full;
+  }
+
+  // Warning animation
+  .tw-bg-yellow-50 {
+    animation: pulse-warning 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}

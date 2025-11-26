@@ -44,6 +44,8 @@ import dashboardLayoutReducer from "./dashboardLayoutReducer";
 import vehicleDocumentReducer from "./vehicleDocumentReducer";
 import providerReducer from "./providerReducer";
 import maintenanceReducer from "./maintenanceReducer";
+import reconciliationReducer from "../slices/reconciliationSlice";
+import dailyTankReconciliationReducer from "./dailyTankReconciliationReducer";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -91,6 +93,8 @@ const rootReducer = combineReducers({
   dashboard: dashboardLayoutReducer,
   provider: providerReducer,
   maintenance: maintenanceReducer,
+  reconciliation: reconciliationReducer,
+  dailyTankReconciliation: dailyTankReconciliationReducer,
 });
 
 export default rootReducer;

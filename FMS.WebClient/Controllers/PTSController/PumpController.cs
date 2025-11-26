@@ -15,9 +15,11 @@ using System.Security.Claims;
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Communication.Redis;
+using FMS.Application.Features.PTS.Queries;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Application.Features.PTSDevice.DTOs;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -98,6 +100,64 @@ namespace FMS.WebClient.Controllers.PTSController
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in pump authorization controller: {Message}", ex.Message);
+                return StatusCode(500, FMSResponse<PumpAuthorizeConfirmation>.SystemError($"Unexpected server error: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Authorizes a pump for tank-to-tank transfer (NOT vehicle fueling)
+        /// </summary>
+        [HttpPost("authorize-transfer")]
+        public async Task<ActionResult<FMSResponse<PumpAuthorizeConfirmation>>> AuthorizeTransfer([FromBody] PumpAuthorizeTransferCommand command)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var modelErrors = ModelState
+                        .Where(ms => ms.Value.Errors.Count > 0)
+                        .SelectMany(ms => ms.Value.Errors.Select(e => $"{ms.Key}: {e.ErrorMessage}"))
+                        .ToList();
+
+                    _logger.LogWarning("Model binding failed for tank transfer authorization: {Errors}", string.Join("; ", modelErrors));
+                    return BadRequest(FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(modelErrors));
+                }
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(FMSResponse<PumpAuthorizeConfirmation>.Failed("User not authenticated"));
+                }
+
+                command = command with { UserId = userId };
+
+                _logger.LogInformation(
+                    "[API] Tank transfer authorization request: Device {DeviceId}, Pump {PumpId}, Source {SourceTank} -> Dest {DestTank}, Volume {Volume} L",
+                    command.DeviceId, command.PumpId, command.SourceTankId, command.DestinationTankId, command.Volume);
+
+                var result = await _mediator.Send(command);
+                if (!result.IsSuccess)
+                {
+                    return result.ErrorType
+                    switch
+                    {
+                        ErrorType.Validation => BadRequest(result),
+                        ErrorType.NetworkError => StatusCode(503, result),
+                        ErrorType.SystemError => StatusCode(500, result),
+                        ErrorType.DeviceError => BadRequest(result),
+                        _ => BadRequest(result)
+                    };
+                }
+
+                _logger.LogInformation(
+                    "[API] Tank transfer authorized successfully: Transaction {TransactionId}",
+                    result.Data?.Transaction);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in tank transfer authorization controller: {Message}", ex.Message);
                 return StatusCode(500, FMSResponse<PumpAuthorizeConfirmation>.SystemError($"Unexpected server error: {ex.Message}"));
             }
         }
@@ -197,6 +257,49 @@ namespace FMS.WebClient.Controllers.PTSController
                 _logger.LogError(ex, "Error getting nozzle state for device {DeviceId}, pump {PumpId}", deviceId, pumpId);
                 return StatusCode(500, FMS.Application.Common.FMSResponse<FMS.Application.Features.PTS.Queries.PumpNozzleStateDto>
                     .SystemError("Error getting nozzle state"));
+            }
+        }
+
+        /// <summary>
+        /// Get detailed transaction information from PTS device
+        /// </summary>
+        [HttpGet("{deviceId}/{pumpId}/transaction/{transactionId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<FMSResponse<Pumptransaction>>> GetPumpTransactionInfo(
+            string deviceId,
+            int pumpId,
+            int transactionId)
+        {
+            try
+            {
+                var command = new GetPumpTransactionInfoQuery
+                {
+                    PTSDeviceId = deviceId,
+                    PumpId = pumpId,
+                    TransactionId = transactionId
+                };
+
+                var result = await _mediator.Send(command);
+
+                if (!result.IsSuccess)
+                {
+                    return result.ErrorType switch
+                    {
+                        ErrorType.Validation => BadRequest(result),
+                        ErrorType.NetworkError => StatusCode(503, result),
+                        ErrorType.SystemError => StatusCode(500, result),
+                        ErrorType.DeviceError => BadRequest(result),
+                        _ => BadRequest(result)
+                    };
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting transaction info for device {DeviceId}, pump {PumpId}, transaction {TransactionId}",
+                    deviceId, pumpId, transactionId);
+                return StatusCode(500, FMSResponse<Pumptransaction>.SystemError("Error retrieving transaction information"));
             }
         }
 

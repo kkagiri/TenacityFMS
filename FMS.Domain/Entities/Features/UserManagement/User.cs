@@ -18,7 +18,7 @@ public partial class User : IdentityUser
 
     public int? MasterRFIDTag { get; set; }
     public virtual ICollection<ErrorLog> ErrorLogs { get; set; } = new List<ErrorLog>();
-    public virtual FuelTag MasterTags { get; set; } //Navigation
+    public virtual FuelTag? MasterTags { get; set; } //Navigation
 
     public virtual ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();

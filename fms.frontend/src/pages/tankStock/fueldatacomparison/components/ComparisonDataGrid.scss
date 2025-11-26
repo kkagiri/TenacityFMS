@@ -1,0 +1,122 @@
+// Comparison Data Grid Styles
+// Row highlighting based on variance threshold
+
+.comparison-data-grid {
+  @apply tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-border tw-border-gray-200;
+
+  // Grid container
+  .dx-datagrid {
+    @apply tw-border-0;
+
+    // Row highlighting - HIGH VARIANCE (RED)
+    .high-variance-row {
+      background-color: #ffe0e0 !important; // Light red
+
+      &:hover {
+        background-color: #ffc0c0 !important; // Darker red on hover
+      }
+
+      &.dx-row-focused {
+        background-color: #ffb0b0 !important;
+      }
+    }
+
+    // Row highlighting - MEDIUM VARIANCE (YELLOW)
+    .medium-variance-row {
+      background-color: #fff9e0 !important; // Light yellow
+
+      &:hover {
+        background-color: #fff0c0 !important; // Darker yellow on hover
+      }
+
+      &.dx-row-focused {
+        background-color: #ffe8a0 !important;
+      }
+    }
+
+    // Status badges
+    .status-badge {
+      @apply tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium;
+
+      i {
+        @apply tw-text-sm;
+      }
+
+      &.status-complete {
+        @apply tw-bg-green-100 tw-text-green-800;
+      }
+
+      &.status-partial {
+        @apply tw-bg-yellow-100 tw-text-yellow-800;
+      }
+
+      &.status-single {
+        @apply tw-bg-gray-100 tw-text-gray-800;
+      }
+
+      &.status-high-variance {
+        @apply tw-bg-red-100 tw-text-red-800;
+      }
+
+      &.status-default {
+        @apply tw-bg-blue-100 tw-text-blue-800;
+      }
+    }
+
+    // Action buttons
+    .dx-button {
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  // Toolbar styling
+  .dx-toolbar {
+    @apply tw-border-b tw-border-gray-200 tw-mb-4 tw-pb-3;
+
+    .dx-button {
+      @apply tw-mx-1;
+    }
+  }
+
+  // Search panel
+  .dx-datagrid-search-panel {
+    @apply tw-mb-2;
+  }
+
+  // Pager
+  .dx-datagrid-pager {
+    @apply tw-border-t tw-border-gray-200 tw-mt-4 tw-pt-3;
+  }
+
+  // Column headers
+  .dx-header-row {
+    font-weight: 600;
+    background-color: #f8f9fa;
+  }
+
+  // Loading indicator
+  .dx-loadpanel-content {
+    @apply tw-bg-white tw-rounded-lg tw-shadow-lg;
+  }
+}
+
+// Export button custom styling
+.dx-toolbar-button.dx-button-success {
+  i.fa-light.fa-file-excel {
+    color: #16a34a;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .comparison-data-grid {
+    @apply tw-p-2;
+
+    .dx-datagrid {
+      font-size: 0.85rem;
+    }
+  }
+}

@@ -47,24 +47,19 @@ public class DeliveryCorrectionDto {
     public decimal? DeliveryMass { get; set; }
 
     /// <summary>
-    /// Stock level before delivery
+    /// Stock level before delivery (optional)
     /// </summary>
-    [Required]
-    [Range (0, double.MaxValue, ErrorMessage = "Stock before delivery cannot be negative")]
-    public decimal StockBeforeDelivery { get; set; }
+    public decimal? StockBeforeDelivery { get; set; }
 
     /// <summary>
-    /// Stock level after delivery
+    /// Stock level after delivery (optional)
     /// </summary>
-    [Required]
-    [Range (0, double.MaxValue, ErrorMessage = "Stock after delivery cannot be negative")]
-    public decimal StockAfterDelivery { get; set; }
+    public decimal? StockAfterDelivery { get; set; }
 
     /// <summary>
-    /// Price per liter
+    /// Price per liter (optional)
     /// </summary>
-    [Range (0, double.MaxValue, ErrorMessage = "Price per liter cannot be negative")]
-    public decimal PricePerLiter { get; set; }
+    public decimal? PricePerLiter { get; set; }
 
     /// <summary>
     /// Supplier ID

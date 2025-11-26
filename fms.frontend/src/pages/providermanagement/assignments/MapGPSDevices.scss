@@ -1,0 +1,125 @@
+.map-gps-devices {
+  // Grid styling
+  .device-grid,
+  .vehicle-grid {
+    .dx-datagrid {
+      background: transparent;
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row {
+        cursor: pointer;
+
+        // Selected row - light blue background
+        &.dx-selection {
+          background-color: #dbeafe !important; // tw-bg-blue-100
+
+          td {
+            background-color: #dbeafe !important;
+            color: #1e40af !important; // tw-text-blue-800
+          }
+        }
+
+        // Focused row - slightly darker blue
+        &.dx-row-focused {
+          background-color: #bfdbfe !important; // tw-bg-blue-200
+
+          td {
+            background-color: #bfdbfe !important;
+            color: #1e3a8a !important; // tw-text-blue-900
+          }
+        }
+
+        // Selected AND focused
+        &.dx-selection.dx-row-focused {
+          background-color: #93c5fd !important; // tw-bg-blue-300
+
+          td {
+            background-color: #93c5fd !important;
+            color: #1e3a8a !important;
+          }
+        }
+
+        // Hover state for non-selected rows
+        &:hover:not(.dx-selection):not(.dx-row-focused) {
+          background-color: #f3f4f6 !important; // tw-bg-gray-100
+
+          td {
+            background-color: #f3f4f6 !important;
+          }
+        }
+      }
+    }
+
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+    }
+
+    // Remove alternating row colors for cleaner selection visibility
+    .dx-datagrid-rowsview .dx-row-alt {
+      background-color: transparent !important;
+
+      td {
+        background-color: transparent !important;
+      }
+    }
+  }
+
+  // Active grid highlight (ring around focused grid)
+  .tw-ring-2 {
+    transition: box-shadow 0.15s ease-in-out;
+  }
+
+  // Grid container active state
+  .grid-container-active {
+    box-shadow: 0 0 0 2px #3b82f6; // tw-ring-blue-500
+  }
+}
+
+// Global overrides for DevExtreme focused row
+.dx-datagrid-focus-overlay {
+  border-color: #3b82f6 !important; // tw-border-blue-500
+}
+
+// Flashing animation for guide text
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.guide-text {
+  font-size: 0.875rem;
+  color: #6b7280; // tw-text-gray-500
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.guide-text-device {
+  background-color: #f0fdf4; // tw-bg-green-50
+  color: #166534; // tw-text-green-700
+  border-left: 3px solid #22c55e; // tw-border-green-500
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+}
+
+.guide-text-vehicle {
+  background-color: #f0f9ff; // tw-bg-blue-50
+  color: #1e40af; // tw-text-blue-800
+  border-left: 3px solid #3b82f6; // tw-border-blue-500
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+}
+
+.guide-text-flash {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+  font-weight: 500;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe); // tw-bg-blue-100 to tw-bg-blue-200
+  color: #1e3a8a; // tw-text-blue-900
+  border-left: 3px solid #3b82f6; // tw-border-blue-500
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+}

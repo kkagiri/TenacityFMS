@@ -37,6 +37,14 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.ManualCalculatedUsage).HasPrecision(10, 2);
                 builder.Property(e => e.ManualClosingLevel).HasPrecision(10, 2);
                 builder.Property(e => e.ManualOpeningLevel).HasPrecision(10, 2);
+                builder.Property(e => e.OpeningMeter)
+                    .HasPrecision(10, 2)
+                    .IsRequired(false)
+                    .HasComment("Physical meter reading at the time of opening stock");
+                builder.Property(e => e.ClosingMeter)
+                    .HasPrecision(10, 2)
+                    .IsRequired(false)
+                    .HasComment("Physical meter reading at the time of closing stock");
                 builder.Property(e => e.RecordedBy)
                     .HasMaxLength(100)
                     .UseCollation("utf8mb4_general_ci")
@@ -49,6 +57,46 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.TankId)
                     .HasColumnType("int(11)")
                     .HasColumnName("TankID");
+
+                // New fields for single-row-per-day architecture
+                builder.Property(e => e.DeliveryAmount)
+                    .HasPrecision(10, 2)
+                    .IsRequired(false)
+                    .HasComment("Total delivery amount for this tank on this day");
+                builder.Property(e => e.DeliveryId)
+                    .HasColumnType("int(11)")
+                    .IsRequired(false)
+                    .HasComment("Reference to Delivery record if delivery occurred");
+                builder.Property(e => e.TransferInAmount)
+                    .HasPrecision(10, 2)
+                    .IsRequired(false)
+                    .HasComment("Total fuel transferred INTO this tank from other tanks on this day");
+                builder.Property(e => e.TransferOutAmount)
+                    .HasPrecision(10, 2)
+                    .IsRequired(false)
+                    .HasComment("Total fuel transferred OUT of this tank to other tanks on this day");
+                builder.Property(e => e.TransferRecordId)
+                    .HasColumnType("int(11)")
+                    .IsRequired(false)
+                    .HasComment("Reference to TankTransfer record if transfer occurred");
+
+                // Soft delete fields
+                builder.Property(e => e.IsDeleted)
+                    .HasDefaultValue(false)
+                    .IsRequired();
+                builder.Property(e => e.DeletedAt)
+                    .IsRequired(false);
+                builder.Property(e => e.DeletedBy)
+                    .HasMaxLength(100)
+                    .IsRequired(false);
+
+                // ActiveEntryKey for unique constraint on active entries only
+                builder.Property(e => e.ActiveEntryKey)
+                    .HasMaxLength(100)
+                    .IsRequired(false)
+                    .HasComment("Unique key for active entries: {TankId}-{Date}. NULL for deleted entries.");
+                builder.HasIndex(e => e.ActiveEntryKey, "UQ_tankstock_tank_date_active")
+                    .IsUnique();
 
                 // Relationships
                 builder.HasOne(d => d.RecordedByNavigation).WithMany(p => p.Tankstocks)

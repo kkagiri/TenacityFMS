@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Button } from "devextreme-react/button";
@@ -14,6 +14,9 @@ import StuckTransactionManager from "./Components/StuckTransactionManager";
 import ScanStep from "./fuelingsteps/ScanStep";
 import PumpSelectionStep from "./fuelingsteps/PumpSelectionStep";
 import NozzleSelectionStep from "./fuelingsteps/NozzleSelectionStep";
+import OperationModeStep from "./fuelingsteps/OperationModeStep";
+import TankTransferStep from "./fuelingsteps/TankTransferStep";
+import TransferDetailsStep from "./fuelingsteps/TransferDetailsStep";
 import FuelingDetailsStep from "./fuelingsteps/FuelingDetailsStep";
 import AuthorizationSuccessStep from "./fuelingsteps/AuthorizationSuccessStep";
 import TransactionMonitoringStatus from "./TransactionMonitoringStatus";
@@ -23,6 +26,9 @@ import { useDeviceData } from "../../../hooks/useDeviceData";
 import { useFuelingState } from "./hooks/useFuelingState";
 import { useFuelingActions } from "./hooks/useFuelingActions";
 import { useFuelingEffects } from "./hooks/useFuelingEffects";
+
+// Import services
+import tankService from "../../../services/tankService";
 
 const FuelingProcess = () => {
   const { ptsId } = useParams();
@@ -76,6 +82,10 @@ const FuelingProcess = () => {
     setShowAllFuelingPopup,
     currentTransactionId,
     setCurrentTransactionId,
+    completedVolume,
+    setCompletedVolume,
+    completedCost,
+    setCompletedCost,
     activePumpForPopup,
     setActivePumpForPopup,
     activeNozzleForPopup,
@@ -115,6 +125,15 @@ const FuelingProcess = () => {
     setAvailableTanks,
     isLoadingTanks,
     setIsLoadingTanks,
+    // Tank transfer state
+    operationMode,
+    setOperationMode,
+    transferVolume,
+    setTransferVolume,
+    transferReason,
+    setTransferReason,
+    sourceTank,
+    setSourceTank,
   } = state;
 
   // Use device data hook
@@ -170,6 +189,7 @@ const FuelingProcess = () => {
   // Destructure actions for easier access
   const {
     startFueling,
+    startTransfer,
     stopFueling,
     completeFueling,
     startNewFueling,
@@ -196,6 +216,23 @@ const FuelingProcess = () => {
     validatedTag,
   });
 
+  // Load source tank when entering transfer mode (from localStorage via selectedTankId in header)
+  useEffect(() => {
+    const loadSourceTank = async () => {
+      if (step === "tankTransfer" && selectedTankId && !sourceTank) {
+        try {
+          const tank = await tankService.getTankById(selectedTankId);
+          if (tank && tank.isSuccess) {
+            setSourceTank(tank.data);
+          }
+        } catch (error) {
+          console.error("Failed to load source tank:", error);
+        }
+      }
+    };
+    loadSourceTank();
+  }, [step, selectedTankId, sourceTank, setSourceTank]);
+
   // Step navigation helpers
   const handleStepChange = useCallback((newStep) => {
     setStep(newStep);
@@ -208,7 +245,7 @@ const FuelingProcess = () => {
 
   const handleNozzleSelection = useCallback((nozzle) => {
     setSelectedNozzle(nozzle);
-    setStep("scan");
+    setStep("operationMode");
   }, [setSelectedNozzle, setStep]);
 
   // Navigation dialog helpers
@@ -252,6 +289,53 @@ const FuelingProcess = () => {
             nozzles={nozzlesForSelectedPump}
             setSelectedNozzle={handleNozzleSelection}
             setStep={handleStepChange}
+          />
+        );
+      case "operationMode":
+        return (
+          <OperationModeStep
+            operationMode={operationMode}
+            setOperationMode={setOperationMode}
+            onNext={() => {
+              if (operationMode === "vehicle") {
+                setStep("scan");
+              } else if (operationMode === "transfer") {
+                setStep("tankTransfer");
+              }
+            }}
+            onBack={() => setStep("nozzle")}
+          />
+        );
+      case "tankTransfer":
+        return (
+          <TankTransferStep
+            selectedNozzle={selectedNozzle}
+            sourceTank={sourceTank}
+            availableTanks={availableTanks}
+            selectedTankId={selectedTankId}
+            setSelectedTankId={setSelectedTankId}
+            transferReason={transferReason}
+            setTransferReason={setTransferReason}
+            ptsDevice={ptsDevice}
+            onNext={() => setStep("transferDetails")}
+            onBack={() => setStep("operationMode")}
+          />
+        );
+      case "transferDetails":
+        return (
+          <TransferDetailsStep
+            selectedPump={selectedPump}
+            selectedNozzle={selectedNozzle}
+            sourceTank={sourceTank}
+            destinationTank={availableTanks?.find(tank => tank.id === selectedTankId)}
+            transferVolume={transferVolume}
+            setTransferVolume={setTransferVolume}
+            transferReason={transferReason}
+            activeFuelingProcesses={activeFuelingProcesses}
+            isAuthorizing={isAuthorizing}
+            isAuthorized={isAuthorized}
+            startTransfer={startTransfer}
+            onBack={() => setStep("tankTransfer")}
           />
         );
       case "scan":
@@ -319,7 +403,6 @@ const FuelingProcess = () => {
             selectedPump={selectedPump}
             selectedNozzle={selectedNozzle}
             eotDetected={eotDetected}
-            onStartNew={startNewFueling}
             displayDetails={displayDetails}
           />
         );
@@ -465,12 +548,13 @@ const FuelingProcess = () => {
 
       {FuelingPopupRenderer.renderFuelingCompletePopup(
         fuelingComplete, // Controlled by useEffect watching Redux state
-        popupVolume, // Use derived final volume
-        popupCost, // Use derived final cost
+        completedVolume || popupVolume, // Use stored completed volume, fallback to live data
+        completedCost || popupCost, // Use stored completed cost, fallback to live data
         activePumpForPopup,
         activeNozzleForPopup,
         tagForPopups, // Use the calculated tagForPopups
-        completeFueling // Action to finalize/reset
+        completeFueling, // Action to finalize/reset
+        currentTransactionId
       )}
 
       {FuelingPopupRenderer.renderNavigationDialog(

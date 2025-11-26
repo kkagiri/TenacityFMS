@@ -1,0 +1,103 @@
+.log-management-page {
+  padding: 20px;
+
+  .stat-card {
+    border-left: 4px solid #007bff;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h6 {
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h3 {
+      margin: 0;
+      font-weight: 600;
+      color: #007bff;
+    }
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .nav-tabs {
+    .nav-link {
+      color: #495057;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+
+      &.active {
+        border-bottom: 2px solid #007bff;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .table {
+    thead {
+      background-color: #f8f9fa;
+
+      th {
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+      }
+    }
+
+    tbody tr {
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+    }
+  }
+
+  .progress {
+    height: 8px;
+  }
+
+  .card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    .card-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      font-weight: 600;
+    }
+  }
+
+  .alert {
+    border-radius: 8px;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

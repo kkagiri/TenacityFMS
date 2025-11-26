@@ -24,7 +24,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
         string ReferenceType,
         ActionType ActionType,
         decimal? NewPhysicalStockValue = null, // For opening/closing stock operations
-        string? PhysicalStockSource = null) : IRequest<FMSResponseMessage>;
+        string? PhysicalStockSource = null) : IRequest<FMSResponseMessage>; // For opening/closing stock operations
 
     public enum ActionType
     {

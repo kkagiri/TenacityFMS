@@ -67,7 +67,7 @@ public class InventoryCostingService
             }
 
             // Calculate weighted average
-            var totalValue = deliveries.Sum(d => d.ManualDeliveryAmount * d.PricePerLiter);
+            var totalValue = deliveries.Sum(d => d.ManualDeliveryAmount * (d.PricePerLiter ?? 0));
             var totalQuantity = deliveries.Sum(d => d.ManualDeliveryAmount);
 
             var weightedAverage = totalValue / totalQuantity;

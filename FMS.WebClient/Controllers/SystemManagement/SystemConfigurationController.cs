@@ -213,5 +213,29 @@ namespace FMS.WebClient.Controllers {
                     false, "Internal server error", null));
             }
         }
+
+        /// <summary>
+        /// Get a specific system configuration by key
+        /// </summary>
+        /// <param name="key">Configuration key (e.g., "GoogleMaps.ApiKey")</param>
+        /// <returns>Configuration details</returns>
+        [HttpGet ("by-key/{key}")]
+        [AllowAnonymous] // Allow anonymous access for public configurations like API keys
+        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetConfigurationByKey (string key) {
+            try {
+                var query = new GetSystemConfigurationByKeyQuery (key);
+                var result = await _mediator.Send (query);
+
+                if (!result.Success) {
+                    return NotFound (result);
+                }
+
+                return Ok (result);
+            } catch (Exception ex) {
+                _logger.LogError (ex, "Error retrieving system configuration by key {ConfigKey}", key);
+                return StatusCode (500, new FMSResponseMessage<SystemConfigurationDto> (
+                    false, "Internal server error", null));
+            }
+        }
     }
 }

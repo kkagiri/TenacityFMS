@@ -108,6 +108,7 @@ const OpeningStockForm = ({
     siteId: null,
     tankId: null,
     amount: null, // Physical stock measurement
+    openingMeter: null, // Opening meter reading (optional)
     bookBalance: null, // Current book balance (read-only)
     physicalStockValue: null, // Current physical stock value (read-only)
     date: new Date(),
@@ -413,6 +414,7 @@ const OpeningStockForm = ({
         amount: formData.amount,
         // Send ISO UTC to avoid server-side future-date rejections due to timezone
         dateTime: formData.date ? new Date(formData.date).toISOString() : null,
+        openingMeter: formData.openingMeter, // Include optional opening meter
       };
 
       const response = await dispatch(createOpeningStock(preparedData));
@@ -508,6 +510,7 @@ const OpeningStockForm = ({
         amount: formData.amount,
         // Send ISO UTC to avoid server-side future-date rejections due to timezone
         dateTime: formData.date ? new Date(formData.date).toISOString() : null,
+        openingMeter: formData.openingMeter, // Include optional opening meter
       };
 
       const response = await dispatch(createOpeningStock(preparedData));
@@ -760,6 +763,22 @@ const OpeningStockForm = ({
                 }}
               >
                 <Label text="Physical Stock Amount (Liters)" />
+              </SimpleItem>
+
+              {/* Opening Meter Reading (Optional) */}
+              <SimpleItem
+                dataField="openingMeter"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  showSpinButtons: true,
+                  value: formData.openingMeter || null,
+                  placeholder: "Enter opening meter reading (optional)",
+                  width: "100%",
+                  ...(formData.openingMeter !== null &&
+                    formData.openingMeter !== undefined && { format: "#,##0.00" }),
+                }}
+              >
+                <Label text="Opening Meter Reading (Optional)" />
               </SimpleItem>
 
               {/* Discrepancy Indicator */}

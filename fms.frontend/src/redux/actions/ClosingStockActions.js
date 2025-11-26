@@ -33,9 +33,15 @@ export const createClosingStock = (formData) => async (dispatch) => {
 
     const formattedDate = formatDateTime(formData.date);
 
+    // Build query string with optional meter reading
+    let queryString = `tankId=${formData.tankId}&amount=${formData.amount}&dateTime=${formattedDate}`;
+    if (formData.closingMeter !== null && formData.closingMeter !== undefined) {
+      queryString += `&closingMeter=${formData.closingMeter}`;
+    }
+
     // API call matches TankStockController endpoint: /tankstock/closingstock
     const response = await axiosInstance.post(
-      `/tankstock/closingstock?tankId=${formData.tankId}&amount=${formData.amount}&dateTime=${formattedDate}`
+      `/tankstock/closingstock?${queryString}`
     );
 
     if (response.data.success) {

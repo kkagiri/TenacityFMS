@@ -97,7 +97,7 @@ const MaintenanceList = () => {
     }
   };
 
-  // Fetch odometer reading from GPS
+  // Fetch odometer reading from GPS accumulators
   const handleFetchOdometerFromGPS = async () => {
     if (!formData.vehicleId) {
       notify('Please select a vehicle first', 'warning', 3000);
@@ -106,26 +106,75 @@ const MaintenanceList = () => {
 
     try {
       setLoadingGpsData(true);
-      // Call the GPS tracking API to get vehicle location with odometer
-      const response = await fetch(`/api/v1/tracking/vehicles/${formData.vehicleId}/location`);
+
+      // Call the accumulator API to get vehicle odometer and engine hours
+      const response = await fetch(`/api/v1/vehiclemaintenance/${formData.vehicleId}/accumulators`);
 
       if (response.ok) {
-        const locationData = await response.json();
+        const result = await response.json();
 
-        if (locationData && locationData.odometer !== null && locationData.odometer !== undefined) {
-          setFormData({
-            ...formData,
-            odometerAtSchedule: locationData.odometer,
-          });
-          notify(`Odometer reading updated: ${locationData.odometer} km`, 'success', 3000);
+        if (result.isSuccess && result.data && result.data.length > 0) {
+          const accumulators = result.data;
+
+          // Find odometer accumulator (typically System Odometer)
+          const odometerAcc = accumulators.find(a =>
+            a.accumulatorTypeName?.toLowerCase().includes('odometer')
+          );
+
+          // Find engine hours accumulator
+          const engineHoursAcc = accumulators.find(a =>
+            a.accumulatorTypeName?.toLowerCase().includes('engine') &&
+            a.accumulatorTypeName?.toLowerCase().includes('hour')
+          );
+
+          if (accumulators.length === 1) {
+            // Single accumulator - auto-populate
+            const acc = accumulators[0];
+            const value = Math.round(acc.value * 100) / 100;
+
+            setFormData({
+              ...formData,
+              odometerAtSchedule: value,
+            });
+
+            notify(
+              `${acc.accumulatorTypeName}: ${value.toLocaleString()} ${acc.unit} (from GPS)`,
+              'success',
+              4000
+            );
+          } else {
+            // Multiple accumulators - show selection dialog
+            const message = accumulators.map((a, idx) => {
+              const value = Math.round(a.value * 100) / 100;
+              return `${idx + 1}. ${a.accumulatorTypeName}: ${value.toLocaleString()} ${a.unit}`;
+            }).join('\n');
+
+            // Use DevExtreme popup or alert for selection
+            if (odometerAcc) {
+              const odometerValue = Math.round(odometerAcc.value * 100) / 100;
+              setFormData({
+                ...formData,
+                odometerAtSchedule: odometerValue,
+              });
+
+              notify(
+                `Multiple accumulators found. Using ${odometerAcc.accumulatorTypeName}: ${odometerValue.toLocaleString()} ${odometerAcc.unit}`,
+                'success',
+                5000
+              );
+            } else {
+              notify(`Multiple accumulators available:\n${message}`, 'info', 6000);
+            }
+          }
         } else {
-          notify('Odometer data not available from GPS', 'warning', 3000);
+          notify(result.message || 'No GPS accumulators found for this vehicle', 'warning', 3000);
         }
       } else {
-        notify('Failed to fetch GPS data', 'error', 3000);
+        const errorData = await response.json();
+        notify(errorData.message || 'Failed to fetch GPS accumulators', 'error', 3000);
       }
     } catch (error) {
-      console.error('Error fetching GPS data:', error);
+      console.error('Error fetching GPS accumulators:', error);
       notify('Error fetching odometer from GPS', 'error', 3000);
     } finally {
       setLoadingGpsData(false);

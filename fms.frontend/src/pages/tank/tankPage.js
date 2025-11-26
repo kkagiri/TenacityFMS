@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import TreeList, { Column, Selection, SearchPanel, HeaderFilter } from 'devextreme-react/tree-list';
 import { Button } from 'devextreme-react/button';
@@ -21,6 +21,7 @@ const TankPage = () => {
   const { tanks, loading: tanksLoading } = useSelector(state => state.tank);
   const { sites } = useSelector(state => state.site);
   const { user } = useSelector(state => state.auth);
+  const mobileMenuRef = useRef(null);
 
   // Get user roles from auth state
   const userRoles = user ? user.roles : [];
@@ -33,6 +34,8 @@ const TankPage = () => {
   const [showPTSLink, setShowPTSLink] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showDetailsOnMobile, setShowDetailsOnMobile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     // Only fetch data on initial mount
@@ -42,6 +45,20 @@ const TankPage = () => {
     };
     fetchData();
   }, []); // Remove dispatch dependency to prevent re-fetching
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setShowMobileMenu(false);
+      }
+    };
+
+    if (showMobileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMobileMenu]);
 
   // Memoize tree data transformation
   const transformedTreeData = useMemo(() => {
@@ -87,13 +104,16 @@ const TankPage = () => {
       if (selectedItem.type === 'tank') {
         setSelectedTank(selectedItem.tankData);
         setSelectedSite(null);
+        setShowDetailsOnMobile(true); // Show details on mobile
       } else if (selectedItem.type === 'site') {
         setSelectedTank(null);
         setSelectedSite(selectedItem);
+        setShowDetailsOnMobile(true); // Show details on mobile
       }
     } else {
       setSelectedTank(null);
       setSelectedSite(null);
+      setShowDetailsOnMobile(false);
     }
   }, []);
 
@@ -230,58 +250,105 @@ const TankPage = () => {
   );
 
   return (
-    <div className=" content-block  tank-page tw-h-full tw-flex tw-flex-col">
+    <div className="content-block tank-page tw-h-full tw-flex tw-flex-col">
 
-      <Toolbar className="tw-mb-4 tw-bg-white tw-rounded-lg tw-shadow-md">
+      <Toolbar className="tw-mb-4 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-2">
         <Item location="before">
-          <div className= "tw-gap-2 tw-text-2xl tw-font-bold tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-800 tw-bg-clip-text tw-text-transparent">
-            <i className="fa-light fa-gas-pump tw-mr-2"></i>
-            Tank Management
+          <div className="tw-flex tw-items-center tw-gap-2 tw-text-xl md:tw-text-2xl tw-font-bold tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-800 tw-bg-clip-text tw-text-transparent">
+            <i className="fa-light fa-gas-pump"></i>
+            <span className="tw-hidden sm:tw-inline">Tank Management</span>
+            <span className="tw-inline sm:tw-hidden">Tanks</span>
           </div>
         </Item>
         <Item location="after">
-          <Button
-            text="Add Tank"
-            icon="fa-light fa-plus-circle"
-            onClick={handleAddTank}
-            type="default"
-            stylingMode="contained"
-            className="tw-mr-2"
-          />
-        </Item>
-        <Item location="after">
-          <Button
-            text="Edit Tank"
-            icon="fa-light fa-edit"
-            onClick={handleEditTank}
-            disabled={!selectedTank}
-            type="normal"
-            className="tw-mr-2"
-          />
-        </Item>
-        <Item location="after">
-          <Button
-            text="View History"
-            icon="fa-light fa-history"
-            onClick={handleViewHistory}
-            disabled={!selectedTank}
-            type="normal"
-            className="tw-mr-2"
-          />
-        </Item>
-        <Item location="after">
-          <Button
-            text="Link PTS Device"
-            icon="fa-light fa-link"
-            onClick={handleLinkPTSDevice}
-            disabled={!selectedTank}
-            type="normal"
-          />
+          {/* Desktop: Show all buttons */}
+          <div className="tw-hidden md:tw-flex tw-gap-2">
+            <Button
+              text="Add Tank"
+              icon="fa-light fa-plus-circle"
+              onClick={handleAddTank}
+              type="default"
+              stylingMode="contained"
+            />
+            <Button
+              text="Edit Tank"
+              icon="fa-light fa-edit"
+              onClick={handleEditTank}
+              disabled={!selectedTank}
+              type="normal"
+            />
+            <Button
+              text="View History"
+              icon="fa-light fa-history"
+              onClick={handleViewHistory}
+              disabled={!selectedTank}
+              type="normal"
+            />
+            <Button
+              text="Link PTS Device"
+              icon="fa-light fa-link"
+              onClick={handleLinkPTSDevice}
+              disabled={!selectedTank}
+              type="normal"
+            />
+          </div>
+
+          {/* Mobile: Show compact buttons with dropdown for more options */}
+          <div className="tw-flex md:tw-hidden tw-gap-1 tw-relative" ref={mobileMenuRef}>
+            <Button
+              icon="fa-light fa-plus-circle"
+              hint="Add Tank"
+              onClick={handleAddTank}
+              type="default"
+              stylingMode="contained"
+            />
+            <Button
+              icon="fa-light fa-edit"
+              hint="Edit Tank"
+              onClick={handleEditTank}
+              disabled={!selectedTank}
+              type="normal"
+            />
+            <Button
+              icon="fa-light fa-ellipsis-vertical"
+              hint="More Options"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              disabled={!selectedTank}
+              type="normal"
+            />
+            {/* Mobile dropdown menu */}
+            {showMobileMenu && (
+              <div className="tw-absolute tw-top-full tw-right-0 tw-mt-2 tw-bg-white tw-rounded-lg tw-shadow-lg tw-border tw-border-gray-200 tw-z-50 tw-min-w-[200px]">
+                <button
+                  onClick={() => {
+                    handleViewHistory();
+                    setShowMobileMenu(false);
+                  }}
+                  disabled={!selectedTank}
+                  className="tw-w-full tw-text-left tw-px-4 tw-py-3 tw-flex tw-items-center tw-gap-3 hover:tw-bg-gray-50 tw-border-b tw-border-gray-100 disabled:tw-opacity-50 disabled:tw-cursor-not-allowed"
+                >
+                  <i className="fa-light fa-history tw-text-blue-600"></i>
+                  <span>View History</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleLinkPTSDevice();
+                    setShowMobileMenu(false);
+                  }}
+                  disabled={!selectedTank}
+                  className="tw-w-full tw-text-left tw-px-4 tw-py-3 tw-flex tw-items-center tw-gap-3 hover:tw-bg-gray-50 disabled:tw-opacity-50 disabled:tw-cursor-not-allowed"
+                >
+                  <i className="fa-light fa-link tw-text-blue-600"></i>
+                  <span>Link PTS Device</span>
+                </button>
+              </div>
+            )}
+          </div>
         </Item>
       </Toolbar>
 
-      <div className="tw-flex tw-flex-1 tw-gap-4 tw-overflow-hidden">
-        <div className="tw-w-1/3 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4">
+      <div className="tw-flex tw-flex-col lg:tw-flex-row tw-flex-1 tw-gap-4 tw-overflow-hidden">
+        <div className={`tw-w-full lg:tw-w-1/3 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-max-h-[400px] lg:tw-max-h-full tw-overflow-auto ${showDetailsOnMobile ? 'tw-hidden lg:tw-block' : ''}`}>
           <TreeList
             dataSource={treeData}
             keyExpr="id"
@@ -305,16 +372,28 @@ const TankPage = () => {
           </TreeList>
         </div>
 
-        <div className="tw-flex-1 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-6">
+        <div className={`tw-flex-1 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 md:tw-p-6 tw-overflow-auto tw-relative ${!showDetailsOnMobile ? 'tw-hidden lg:tw-block' : ''}`}>
+          {/* Back button for mobile */}
+          {(selectedTank || selectedSite) && (
+            <button
+              onClick={() => setShowDetailsOnMobile(false)}
+              className="tw-mb-4 tw-bg-blue-500 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-flex tw-items-center tw-gap-2 tw-shadow-md hover:tw-bg-blue-600 tw-transition lg:tw-hidden"
+            >
+              <i className="fa-light fa-arrow-left"></i>
+              <span>Back to List</span>
+            </button>
+          )}
+
           {selectedTank ? (
             <div className="tank-details-container">
               <TankDetails tank={selectedTank} />
             </div>
           ) : selectedSite ? (
             <div className="site-summary tw-animate-fadeIn">
-              <h2 className="tw-text-2xl tw-font-bold tw-mb-6 tw-flex tw-items-center">
-                <i className="fa-light fa-building tw-mr-3 tw-text-blue-600"></i>
-                {selectedSite.name} - Tank Summary
+              <h2 className="tw-text-lg md:tw-text-2xl tw-font-bold tw-mb-4 md:tw-mb-6 tw-flex tw-items-center">
+                <i className="fa-light fa-building tw-mr-2 md:tw-mr-3 tw-text-blue-600"></i>
+                <span className="tw-truncate">{selectedSite.name}</span>
+                <span className="tw-hidden sm:tw-inline tw-ml-2">- Tank Summary</span>
               </h2>
 
               {(() => {
@@ -323,51 +402,51 @@ const TankPage = () => {
 
                 return (
                   <>
-                    <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4 tw-mb-6">
-                      <div className="tw-bg-gradient-to-br tw-from-blue-50 tw-to-blue-100 tw-rounded-lg tw-p-4 tw-border tw-border-blue-200">
+                    <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 md:tw-grid-cols-3 tw-gap-3 md:tw-gap-4 tw-mb-4 md:tw-mb-6">
+                      <div className="tw-bg-gradient-to-br tw-from-blue-50 tw-to-blue-100 tw-rounded-lg tw-p-3 md:tw-p-4 tw-border tw-border-blue-200">
                         <div className="tw-flex tw-items-center tw-justify-between">
                           <div>
-                            <p className="tw-text-sm tw-text-gray-600 tw-font-medium">Total Capacity</p>
-                            <p className="tw-text-2xl tw-font-bold tw-text-blue-800">{summary.totalCapacity.toLocaleString()} L</p>
+                            <p className="tw-text-xs md:tw-text-sm tw-text-gray-600 tw-font-medium">Total Capacity</p>
+                            <p className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-blue-800">{summary.totalCapacity.toLocaleString()} L</p>
                           </div>
-                          <i className="fa-light fa-database tw-text-3xl tw-text-blue-600"></i>
+                          <i className="fa-light fa-database tw-text-2xl md:tw-text-3xl tw-text-blue-600"></i>
                         </div>
                       </div>
 
-                      <div className="tw-bg-gradient-to-br tw-from-green-50 tw-to-green-100 tw-rounded-lg tw-p-4 tw-border tw-border-green-200">
+                      <div className="tw-bg-gradient-to-br tw-from-green-50 tw-to-green-100 tw-rounded-lg tw-p-3 md:tw-p-4 tw-border tw-border-green-200">
                         <div className="tw-flex tw-items-center tw-justify-between">
                           <div>
-                            <p className="tw-text-sm tw-text-gray-600 tw-font-medium">Current Stock</p>
-                            <p className="tw-text-2xl tw-font-bold tw-text-green-800">{summary.totalCurrentStock.toLocaleString()} L</p>
+                            <p className="tw-text-xs md:tw-text-sm tw-text-gray-600 tw-font-medium">Current Stock</p>
+                            <p className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-green-800">{summary.totalCurrentStock.toLocaleString()} L</p>
                           </div>
-                          <i className="fa-light fa-oil-can tw-text-3xl tw-text-green-600"></i>
+                          <i className="fa-light fa-oil-can tw-text-2xl md:tw-text-3xl tw-text-green-600"></i>
                         </div>
                       </div>
 
-                      <div className="tw-bg-gradient-to-br tw-from-purple-50 tw-to-purple-100 tw-rounded-lg tw-p-4 tw-border tw-border-purple-200">
+                      <div className="tw-bg-gradient-to-br tw-from-purple-50 tw-to-purple-100 tw-rounded-lg tw-p-3 md:tw-p-4 tw-border tw-border-purple-200">
                         <div className="tw-flex tw-items-center tw-justify-between">
                           <div>
-                            <p className="tw-text-sm tw-text-gray-600 tw-font-medium">Available Space</p>
-                            <p className="tw-text-2xl tw-font-bold tw-text-purple-800">{summary.totalAvailable.toLocaleString()} L</p>
+                            <p className="tw-text-xs md:tw-text-sm tw-text-gray-600 tw-font-medium">Available Space</p>
+                            <p className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-purple-800">{summary.totalAvailable.toLocaleString()} L</p>
                           </div>
-                          <i className="fa-light fa-chart-pie tw-text-3xl tw-text-purple-600"></i>
+                          <i className="fa-light fa-chart-pie tw-text-2xl md:tw-text-3xl tw-text-purple-600"></i>
                         </div>
                       </div>
                     </div>
 
-                    <div className="tw-mb-6">
-                      <p className="tw-text-sm tw-text-gray-600 tw-mb-2">Overall Fill Level</p>
+                    <div className="tw-mb-4 md:tw-mb-6">
+                      <p className="tw-text-xs md:tw-text-sm tw-text-gray-600 tw-mb-2">Overall Fill Level</p>
                       <div className="progress-bar">
                         <div
                           className={`progress-fill ${statusClass}`}
                           style={{ width: `${summary.avgFillPercentage}%` }}
                         />
                       </div>
-                      <p className="tw-text-right tw-text-sm tw-font-semibold tw-mt-1">{summary.avgFillPercentage.toFixed(1)}%</p>
+                      <p className="tw-text-right tw-text-xs md:tw-text-sm tw-font-semibold tw-mt-1">{summary.avgFillPercentage.toFixed(1)}%</p>
                     </div>
 
-                    <h3 className="tw-text-lg tw-font-semibold tw-mb-4">Individual Tanks ({summary.tankCount})</h3>
-                    <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-4">
+                    <h3 className="tw-text-base md:tw-text-lg tw-font-semibold tw-mb-3 md:tw-mb-4">Individual Tanks ({summary.tankCount})</h3>
+                    <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-3 md:tw-gap-4">
                       {summary.tanks.map(tank => {
                         const fillPercentage = tank.tankVolume > 0 ? (tank.currentStock / tank.tankVolume * 100) : 0;
                         const tankStatusClass = getStatusClass(fillPercentage);
@@ -410,11 +489,11 @@ const TankPage = () => {
               })()}
             </div>
           ) : (
-            <div className="tw-flex tw-items-center tw-justify-center tw-h-full tw-text-gray-500">
+            <div className="tw-flex tw-items-center tw-justify-center tw-h-full tw-text-gray-500 tw-p-4">
               <div className="tw-text-center">
-                <i className="fa-light fa-gas-pump tw-text-6xl tw-mb-4 tw-text-gray-300"></i>
-                <p className="tw-text-xl tw-font-medium">Select a site or tank to view details</p>
-                <p className="tw-text-sm tw-mt-2 tw-text-gray-400">Choose a site to see all tanks summary or a specific tank for detailed information</p>
+                <i className="fa-light fa-gas-pump tw-text-4xl md:tw-text-6xl tw-mb-3 md:tw-mb-4 tw-text-gray-300"></i>
+                <p className="tw-text-base md:tw-text-xl tw-font-medium">Select a site or tank to view details</p>
+                <p className="tw-text-xs md:tw-text-sm tw-mt-2 tw-text-gray-400 tw-hidden sm:tw-block">Choose a site to see all tanks summary or a specific tank for detailed information</p>
               </div>
             </div>
           )}
@@ -427,7 +506,8 @@ const TankPage = () => {
         dragEnabled={true}
         showTitle={true}
         title={editMode ? 'Edit Tank' : 'Add New Tank'}
-        width={600}
+        width="90%"
+        maxWidth={600}
         height="auto"
         showCloseButton={true}
       >

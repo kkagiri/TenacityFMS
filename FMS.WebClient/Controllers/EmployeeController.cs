@@ -6,6 +6,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.Employee.Queries;
 using FMS.Application.Features.FMS.Employee;
 using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
+using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,7 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
 
-    public class EmployeeController : ControllerBase
+    public class EmployeeController : BaseApiController
 
     {
         private readonly IMediator _mediator;
@@ -35,9 +36,7 @@ namespace FMS.WebClient.Controllers
         {
             var hasPermission = User.HasClaim("permissions", "_createEmployee");
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
+            var userIdClaim = GetUserIdClaim();
             if (userIdClaim == null) return BadRequest("Invalid User ID");
 
             employeeDto.CreatedBy = userIdClaim.Value;

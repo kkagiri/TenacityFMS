@@ -133,14 +133,101 @@ export const useFuelingEffects = ({
       if (!state.currentTransactionId && pumpDetails.currentTransaction) {
         state.setCurrentTransactionId(pumpDetails.currentTransaction);
       }
-    } else if (pumpDetails?.status === "endOfTransaction") {
+    } else if (pumpDetails?.status === "endOfTransaction" ||
+               (pumpDetails?.status === "nozzleUp" && state.isAuthorized && !state.fuelingComplete)) {
+      // EOT detected OR simulator pump stuck in nozzleUp after authorized fueling
+      const isSimulatorNozzleUp = pumpDetails?.status === "nozzleUp";
+
       state.setShowFuelingPopup(false);
       state.setIsFuelingPopupMinimized(false);
       state.setFuelingComplete(true);
       state.setEotDetected(true); // Mark EOT detected for authorization step
+
+      // Get transaction ID
+      const transactionId = state.currentTransactionId || pumpDetails.transaction;
+
+      // Try to fetch complete transaction info from PTS device
+      if (transactionId && ptsId) {
+        console.log(`[EOT${isSimulatorNozzleUp ? ' - Simulator NozzleUp' : ''}] Fetching transaction info for txn ${transactionId}`);
+
+        pumpControlService.api.getTransactionInfo(ptsId, state.activePumpForPopup.id, transactionId)
+          .then(response => {
+            if (response?.success && response?.data) {
+              const txnData = response.data;
+              const finalVolume = txnData.volume ?? 0;
+              const finalAmount = txnData.amount ?? 0;
+
+              state.setCompletedVolume(finalVolume);
+              state.setCompletedCost(finalAmount);
+
+              console.log(`[EOT - API] Captured transaction values from API - Volume: ${finalVolume}L, Amount: ${finalAmount}`);
+            } else {
+              // Fallback to pump status data if API call fails
+              const finalVolume = pumpDetails?.currentVolume ?? pumpDetails?.volume ?? 0;
+              const finalPrice = pumpDetails?.currentPrice ?? pumpDetails?.price ?? 0;
+              const finalCost = finalVolume * finalPrice;
+
+              state.setCompletedVolume(finalVolume);
+              state.setCompletedCost(finalCost);
+
+              console.log(`[EOT - Fallback] Captured values from pump status - Volume: ${finalVolume}L, Cost: ${finalCost}`);
+            }
+          })
+          .catch(error => {
+            console.warn(`[EOT] Failed to fetch transaction info, using pump status:`, error);
+
+            // Fallback to pump status data
+            const finalVolume = pumpDetails?.currentVolume ?? pumpDetails?.volume ?? 0;
+            const finalPrice = pumpDetails?.currentPrice ?? pumpDetails?.price ?? 0;
+            const finalCost = finalVolume * finalPrice;
+
+            state.setCompletedVolume(finalVolume);
+            state.setCompletedCost(finalCost);
+
+            console.log(`[EOT - Error Fallback] Captured values from pump status - Volume: ${finalVolume}L, Cost: ${finalCost}`);
+          });
+      } else {
+        // No transaction ID, use pump status data
+        const finalVolume = pumpDetails?.currentVolume ?? pumpDetails?.volume ?? 0;
+        const finalPrice = pumpDetails?.currentPrice ?? pumpDetails?.price ?? 0;
+        const finalCost = finalVolume * finalPrice;
+
+        state.setCompletedVolume(finalVolume);
+        state.setCompletedCost(finalCost);
+
+        console.log(`[EOT - No TxnID] Captured values from pump status - Volume: ${finalVolume}L, Cost: ${finalCost}`);
+      }
+
       if (!state.currentTransactionId && pumpDetails.transaction) {
         state.setCurrentTransactionId(pumpDetails.transaction);
       }
+    } else if (pumpDetails?.status === "idle" && state.eotDetected) {
+      // Nozzle has been replaced after EOT - return to pump selection
+      console.log("[EOT Complete] Nozzle replaced, returning to pump selection");
+
+      // Reset all fueling state
+      state.setEotDetected(false);
+      state.setFuelingComplete(false);
+      state.setIsAuthorized(false);
+      state.setCurrentTransactionId(null);
+      state.setActivePumpForPopup(null);
+      state.setActiveNozzleForPopup(null);
+      state.setSelectedPump(null);
+      state.setSelectedNozzle(null);
+      state.setVehicleInfo(null);
+      state.setTagDetails(null);
+      state.setSelectedTag(null);
+      state.setAmount("");
+      state.setVolume("");
+      state.setVehicleReg("");
+      state.setSelectedVehicleId(null);
+      state.setCompletedVolume(0); // Reset completed transaction values
+      state.setCompletedCost(0); // Reset completed transaction values
+
+      // Return to pump selection step
+      state.setStep("pump");
+
+      notify("Transaction complete. Ready for next fueling.", "success", 3000);
     } else {
       if (state.showFuelingPopup && state.activePumpForPopup?.id === pumpDetails?.id) {
         state.setShowFuelingPopup(false);
@@ -154,6 +241,7 @@ export const useFuelingEffects = ({
     state.showFuelingPopup,
     state.currentTransactionId,
     state.isFuelingPopupMinimized,
+    state.eotDetected,
     getPumpDetails,
   ]); // Use specific state properties - setState functions are stable
 

@@ -21,6 +21,7 @@ export const useFuelingState = () => {
   const [showNavigationDialog, setShowNavigationDialog] = useState(false);
   const [navigateTo, setNavigateTo] = useState(null);
   const [step, setStep] = useState("pump"); // Current UI step
+  const [operationMode, setOperationMode] = useState(null); // "vehicle" or "transfer"
 
   // --- Pump & Nozzle Selection ---
   const [selectedPump, setSelectedPump] = useState(null); // Pump selected in UI *by the user*
@@ -39,8 +40,13 @@ export const useFuelingState = () => {
 
   // --- Tank Selection State ---
   const [selectedTankId, setSelectedTankId] = useState(null); // ID of selected tank
-  const [availableTanks, setAvailableTanks] = useState([]); // Tanks available for this site
+  const [availableTanks, setAvailableTanks] = useState([]); // All tanks available for transfer (cross-site)
   const [isLoadingTanks, setIsLoadingTanks] = useState(false); // Tank loading state
+
+  // --- Tank Transfer State ---
+  const [transferVolume, setTransferVolume] = useState(""); // Volume for tank transfer
+  const [transferReason, setTransferReason] = useState(""); // Reason for tank transfer
+  const [sourceTank, setSourceTank] = useState(null); // Source tank for transfer
 
   // --- Scan State ---
   const [isScanning, setIsScanning] = useState(false); // Scan API call in progress
@@ -51,6 +57,8 @@ export const useFuelingState = () => {
   const [isAuthorized, setIsAuthorized] = useState(false); // Pump authorized and waiting for physical fueling to start
   const [currentTransactionId, setCurrentTransactionId] = useState(null); // Store ID from authorize/status
   const [eotDetected, setEotDetected] = useState(false); // End of Transaction detected (nozzle replaced)
+  const [completedVolume, setCompletedVolume] = useState(0); // Final volume at EOT
+  const [completedCost, setCompletedCost] = useState(0); // Final cost at EOT
 
   // --- Fueling Type & Amounts ---
   const [selectedType, setSelectedType] = useState(null); // User must select type (Volume/FullTank)
@@ -89,6 +97,8 @@ export const useFuelingState = () => {
     setNavigateTo,
     step,
     setStep,
+    operationMode,
+    setOperationMode,
 
     // Pump & Nozzle Selection
     selectedPump,
@@ -131,6 +141,10 @@ export const useFuelingState = () => {
     setCurrentTransactionId,
     eotDetected,
     setEotDetected,
+    completedVolume,
+    setCompletedVolume,
+    completedCost,
+    setCompletedCost,
 
     // Fueling Type & Amounts
     selectedType,
@@ -179,6 +193,14 @@ export const useFuelingState = () => {
     setAvailableTanks,
     isLoadingTanks,
     setIsLoadingTanks,
+
+    // Tank Transfer State
+    transferVolume,
+    setTransferVolume,
+    transferReason,
+    setTransferReason,
+    sourceTank,
+    setSourceTank,
   };
 };
 

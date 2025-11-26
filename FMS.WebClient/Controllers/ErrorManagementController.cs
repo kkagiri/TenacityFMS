@@ -2,6 +2,7 @@ using System;
 using FMS.Application.Features.ErrorHandling.Commands;
 using FMS.Application.Features.ErrorHandling.Dtos;
 using FMS.Application.Features.ErrorHandling.Queries;
+using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ namespace FMS.Webclient.Contollers;
 [ApiController]
 [Route("api/v1/errors")]
 [Authorize]
-public class ErrorManagementController : ControllerBase
+public class ErrorManagementController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<ErrorManagementController> _logger;

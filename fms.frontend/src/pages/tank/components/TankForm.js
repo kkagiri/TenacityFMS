@@ -128,7 +128,12 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
               dataSource: sites,
               displayExpr: 'name',
               valueExpr: 'id',
-              placeholder: 'Select Site'
+              placeholder: 'Select Site',
+              wrapItemText: true,
+              searchEnabled: true,
+              dropDownOptions: {
+                wrapperAttr: { class: 'tw-max-w-full' }
+              }
             }}>
             <Label text="Site" />
             <RequiredRule message="Site is required" />

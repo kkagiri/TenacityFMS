@@ -1,0 +1,37 @@
+.report-gallery {
+  &__header {
+    flex-shrink: 0;
+  }
+
+  &__content {
+    min-height: 0;
+  }
+}
+
+.report-tile {
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+  }
+
+  &__header {
+    flex-shrink: 0;
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.tw-line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

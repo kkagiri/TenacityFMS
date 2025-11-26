@@ -12,10 +12,12 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
-    public record OpeningStockCommand (int TankId, decimal OpeningStock, string RecordedBy, DateTime? EntryDate = null) : IRequest<FMSResponseMessage>;
+namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
+{
+    public record OpeningStockCommand(int TankId, decimal OpeningStock, string RecordedBy, DateTime? EntryDate = null, decimal? OpeningMeter = null) : IRequest<FMSResponseMessage>;
 
-    public class OpeningStockCommandHandler : IRequestHandler<OpeningStockCommand, FMSResponseMessage> {
+    public class OpeningStockCommandHandler : IRequestHandler<OpeningStockCommand, FMSResponseMessage>
+    {
         public readonly GpsdataContext _context;
         public ILogger<OpeningStockCommandHandler> _logger;
         public IMediator _mediator;
@@ -24,7 +26,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
         private readonly TankStockFutureRecordsService _futureRecordsService;
         private readonly OpeningStockValidationService _openingStockValidationService;
 
-        public OpeningStockCommandHandler (GpsdataContext context, ILogger<OpeningStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, OpeningStockValidationService openingStockValidationService) {
+        public OpeningStockCommandHandler(GpsdataContext context, ILogger<OpeningStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, OpeningStockValidationService openingStockValidationService)
+        {
             _context = context;
             _logger = logger;
             _mediator = mediator;
@@ -32,96 +35,125 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand {
             _futureRecordsService = futureRecordsService;
             _openingStockValidationService = openingStockValidationService;
         }
-        public async Task<FMSResponseMessage> Handle (OpeningStockCommand request, CancellationToken cancellationToken) {
+        public async Task<FMSResponseMessage> Handle(OpeningStockCommand request, CancellationToken cancellationToken)
+        {
 
-            try {
+            try
+            {
 
-                var tank = await _context.Tanks.FindAsync (request.TankId, cancellationToken);
-                if (tank == null) return new FMSResponseMessage (false, $"TankID {request.TankId} not found ");
-                if (request.OpeningStock <= 0) return new FMSResponseMessage (false, "Opening stock should be greater than 0");
+                var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
+                if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
+                if (request.OpeningStock <= 0) return new FMSResponseMessage(false, "Opening stock should be greater than 0");
 
                 var entryDate = request.EntryDate?.Date ?? DateTime.Now.Date;
 
                 // Validate historical entry against future records policy
-                if (entryDate.Date < DateTime.Now.Date) {
-                    var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync (
+                if (entryDate.Date < DateTime.Now.Date)
+                {
+                    var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync(
                         request.TankId, entryDate, VolumeChangeReasonEnum.OpeningStock, cancellationToken);
 
-                    if (!futureRecordsValidation.IsAllowed) {
-                        return new FMSResponseMessage (false, futureRecordsValidation.Message);
+                    if (!futureRecordsValidation.IsAllowed)
+                    {
+                        return new FMSResponseMessage(false, futureRecordsValidation.Message);
                     }
 
                     // Log warning for future reference
-                    if (futureRecordsValidation.RequiresUserConfirmation) {
-                        _logger.LogWarning ("Historical opening stock entry with future records: Tank {TankId}, Date {EntryDate}, Policy {Policy}, Future Records {Count}",
+                    if (futureRecordsValidation.RequiresUserConfirmation)
+                    {
+                        _logger.LogWarning("Historical opening stock entry with future records: Tank {TankId}, Date {EntryDate}, Policy {Policy}, Future Records {Count}",
                             request.TankId, entryDate, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
                     }
                 }
 
                 // Enhanced validation using the new validation service
-                var validationResult = await _openingStockValidationService.ValidateOpeningStockCreationAsync (request.TankId, entryDate, cancellationToken);
-                if (!validationResult.Success) {
-                    return new FMSResponseMessage (false, validationResult.Message);
+                var validationResult = await _openingStockValidationService.ValidateOpeningStockCreationAsync(request.TankId, entryDate, cancellationToken);
+                if (!validationResult.Success)
+                {
+                    return new FMSResponseMessage(false, validationResult.Message);
+                }
+
+                // Check if TankStock entry already exists for this tank on this date (single-row-per-day architecture)
+                var existingTankStock = await _context.Tankstocks
+                    .Where(x => x.TankId == request.TankId &&
+                        x.EntryDate.Date == entryDate.Date &&
+                        !x.IsDeleted)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (existingTankStock != null)
+                {
+                    return new FMSResponseMessage(false,
+                        $"A TankStock entry already exists for tank {request.TankId} on {entryDate:yyyy-MM-dd}. " +
+                        "Only one TankStock entry per tank per day is allowed. " +
+                        "Use Update operation to modify existing entry.");
                 }
 
                 //Cursor - Check for previous closing stock but don't require it (allow first opening stock)
                 var previousClosingStock = await _context.TankVolumeHistories
-                    .Where (x => x.TankId == request.TankId &&
+                    .Where(x => x.TankId == request.TankId &&
                         x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
                         x.Timestamp < entryDate)
-                    .OrderByDescending (x => x.Timestamp)
-                    .FirstOrDefaultAsync (cancellationToken);
+                    .OrderByDescending(x => x.Timestamp)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                var stockTaking = new Tankstock {
+                var stockTaking = new Tankstock
+                {
                     TankId = request.TankId,
                     EntryDate = request.EntryDate ?? DateTime.UtcNow,
                     EntryType = VolumeChangeReasonEnum.OpeningStock,
                     ManualOpeningLevel = request.OpeningStock,
+                    OpeningMeter = request.OpeningMeter, // Save opening meter reading
                     RecordedBy = request.RecordedBy,
                     SiteId = tank.SiteId
                 };
-                _context.Tankstocks.Add (stockTaking);
-                
+                _context.Tankstocks.Add(stockTaking);
+
                 // Save only the Tankstock entry first to get the ID
-                await _context.SaveChangesAsync (cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
 
                 //Cursor - Calculate volume change: if no previous closing stock, use 0 as baseline (will show large negative or positive)
                 decimal volumeChange;
-                if (previousClosingStock != null && previousClosingStock.NewVolume.HasValue) {
+                if (previousClosingStock != null && previousClosingStock.NewVolume.HasValue)
+                {
                     // Calculate from previous closing stock
                     volumeChange = request.OpeningStock - previousClosingStock.NewVolume.Value;
-                } else {
+                }
+                else
+                {
                     // No previous closing stock - use 0 as baseline (first opening stock scenario)
                     volumeChange = request.OpeningStock - 0; // This will be the full opening stock amount
                 }
 
                 // Determine physical stock source based on entry date
-                var physicalStockSource = entryDate.Date == DateTime.Now.Date 
-                    ? "Manual Opening Stock" 
+                var physicalStockSource = entryDate.Date == DateTime.Now.Date
+                    ? "Manual Opening Stock"
                     : "Manual Opening Stock (Historical)";
 
                 //Cursor - Use TankVolumeHistoryIntegrationService which will handle tank updates atomically
-                var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync (
+                var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync(
                     tankId: request.TankId,
                     timestamp: stockTaking.EntryDate,
                     volumeChange: volumeChange,
                     stockId: stockTaking.EntryId,
                     isOpening: true, // This is an opening stock
-                    actionType : ActionType.Create, // This is a new opening stock
-                    recordedBy : request.RecordedBy,
+                    actionType: ActionType.Create, // This is a new opening stock
+                    recordedBy: request.RecordedBy,
                     newPhysicalStockValue: request.OpeningStock, // Pass the physical stock value
                     physicalStockSource: physicalStockSource, // Pass the physical stock source
-                    cancellationToken : cancellationToken);
+                    cancellationToken: cancellationToken);
 
-                if (!volumeUpdateResult.Success) {
-                    _logger.LogWarning ("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
-                    return new FMSResponseMessage (false, $"Failed to update tank volume history: {volumeUpdateResult.Message}");
+                if (!volumeUpdateResult.Success)
+                {
+                    _logger.LogWarning("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
+                    return new FMSResponseMessage(false, $"Failed to update tank volume history: {volumeUpdateResult.Message}");
                 }
 
-                return new FMSResponseMessage (true, "Opening stock created successfully");
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error while creating opening stock");
-                return new FMSResponseMessage (false, $"Error while creating opening stock {ex}");
+                return new FMSResponseMessage(true, "Opening stock created successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while creating opening stock");
+                return new FMSResponseMessage(false, $"Error while creating opening stock {ex}");
             }
         }
     }

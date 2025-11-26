@@ -588,6 +588,40 @@ class BusinessSignalRService {
       },
       0
     ); // No debounce for progress updates
+
+    // GPS Fetch Progress Events
+    registerEvent(
+      "GpsFetchProgress",
+      (data) => {
+        if (data) {
+          console.log("[Business SignalR] GPS Fetch Progress:", data);
+          this.notifyListeners("GpsFetchProgress", data);
+        }
+      },
+      0
+    ); // No debounce for progress updates
+
+    registerEvent(
+      "GpsFetchCompleted",
+      (data) => {
+        if (data) {
+          console.log("[Business SignalR] GPS Fetch Completed:", data);
+          this.notifyListeners("GpsFetchCompleted", data);
+        }
+      },
+      0
+    ); // No debounce for completion
+
+    registerEvent(
+      "GpsFetchError",
+      (data) => {
+        if (data) {
+          console.error("[Business SignalR] GPS Fetch Error:", data);
+          this.notifyListeners("GpsFetchError", data);
+        }
+      },
+      0
+    ); // No debounce for errors
   }
 
   /**

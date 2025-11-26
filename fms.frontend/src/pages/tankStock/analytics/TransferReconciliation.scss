@@ -1,0 +1,48 @@
+.transfer-reconciliation-page {
+  padding: 1rem;
+  background-color: #f5f5f5;
+
+  .filter-section {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .content-area {
+    .results-section {
+      .summary-section,
+      .chart-section,
+      .grid-section {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  // Utility classes for variance severity
+  .variance-green {
+    color: #10b981;
+    font-weight: 600;
+  }
+
+  .variance-yellow {
+    color: #f59e0b;
+    font-weight: 600;
+  }
+
+  .variance-red {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  // Loading spinner animation
+  .fa-spinner-third {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

@@ -1,0 +1,111 @@
+.variance-analysis {
+  // Main container styling
+  .dx-scrollview-content {
+    background-color: #f9fafb;
+  }
+
+  // Chart containers
+  .dx-chart {
+    font-family: inherit;
+
+    .dx-chart-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .dx-chart-legend {
+      padding: 10px;
+    }
+  }
+
+  // Filter bar enhancements
+  .dx-selectbox,
+  .dx-datebox {
+    .dx-texteditor-input {
+      font-size: 14px;
+    }
+  }
+
+  // Button styling
+  .dx-button {
+    &.dx-button-default {
+      font-weight: 500;
+    }
+  }
+
+  // Statistics cards hover effect
+  .tw-bg-gradient-to-br {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // Chart area enhancements
+  .tw-bg-white {
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  // Empty state
+  .tw-text-center {
+    i.fa-chart-line {
+      animation: pulse 2s ease-in-out infinite;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .tw-grid-cols-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dx-chart {
+      height: 300px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .tw-grid-cols-4 {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    .dx-chart {
+      height: 250px !important;
+    }
+
+    .tw-text-2xl {
+      font-size: 1.25rem;
+    }
+  }
+
+  // Loading indicator
+  .dx-loadindicator {
+    .dx-loadindicator-segment {
+      background-color: #3b82f6;
+    }
+  }
+
+  // Tooltip customization
+  .dx-tooltip-wrapper {
+    .dx-popup-content {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  }
+}

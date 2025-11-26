@@ -8,13 +8,18 @@ using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using FMS.BackgroundServices.TankStock;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-
+using FMS.BackgroundServices.TankManagement;
+using FMS.Application.Common;
+using FMS.Application.Features.GPSGate.DTOs;
+using FMS.Application.Features.GPSGate.Queries;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using FMS.Application.Features.Reporting.Services;
 using StackExchange.Redis;
 using System.Text;
 using FMS.Application.Infrastructure.Services.Authentication;
@@ -23,7 +28,8 @@ using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget service
 using FMS.Application.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
-
+using FMS.Application.Features.TankManagement.DailyTankReconciliation.Queries;
+using FMS.Application.Features.Reporting.Services;
 using FMS.BackgroundServices.ActiveAlarmProcessing;
 using FMS.BackgroundServices.FMS;
 using FMS.Application.Services.Configuration;
@@ -54,6 +60,7 @@ using FMS.Infrastructure.Services;
 using FMS.BackgroundServices.VehicleDocumentNotifier;
 using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
+using FMS.Application.Services.Logging;
 
 namespace FMS.WebClient.Extensions;
 
@@ -215,7 +222,19 @@ public static class FmsServiceCollectionExtensions
 
     private static void RegisterMediatR(IServiceCollection services)
     {
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(GetVehicleQuery).Assembly));
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
+            typeof(GetVehicleQuery).Assembly,
+            typeof(GetDailyReconciliationReportQuery).Assembly));
+
+        // Register generic ProcessReportQueryHandler for specific DTO types
+        // MediatR doesn't auto-register open generic handlers, so we need to close them explicitly
+        services.AddTransient<
+            IRequestHandler<ProcessReportQuery<RefuelingReportDto>, FMSResponse<ProcessedReportDto<RefuelingReportDto>>>,
+            ProcessReportQueryHandler<RefuelingReportDto>>();
+
+        services.AddTransient<
+            IRequestHandler<ProcessReportQuery<FuelConsumptionReportDto>, FMSResponse<ProcessedReportDto<FuelConsumptionReportDto>>>,
+            ProcessReportQueryHandler<FuelConsumptionReportDto>>();
     }
 
     private static void RegisterAutoMapper(IServiceCollection services)
@@ -367,6 +386,20 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<ISystemUserService, SystemUserService>();
         services.AddScoped<IFileHandlingService, FileHandlingService>();
 
+        // GPSGate Services
+        services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();
+        services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateReportingService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();
+
+        // GPSGate Report Processors
+        services.AddScoped<FMS.Application.Features.GPSGate.Processors.FuelConsumptionReportProcessor>();
+        services.AddScoped<FMS.Application.Features.GPSGate.Processors.RefuelingReportProcessor>();
+        services.AddSingleton<FMS.Application.Features.GPSGate.Processors.IReportProcessorFactory, FMS.Application.Features.GPSGate.Processors.ReportProcessorFactory>();
+        services.AddSingleton<IReportDefinitionService, ReportDefinitionService>();
+        services.AddScoped<IReportGenerationService, ReportGenerationService>();
+
+        // GPS Fetch Progress Service (SignalR)
+        services.AddScoped<FMS.Application.Communication.SignalR.IGpsFetchProgressService, FMS.Application.Communication.SignalR.GpsFetchProgressService>();
+
         // Vehicle & GPS Services
         // OLD: Legacy GPSGateService - Now replaced by pluggable vehicle tracking providers (Phase 1-4)
         // services.AddHttpClient<IGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
@@ -399,7 +432,9 @@ public static class FmsServiceCollectionExtensions
 
         // Tank Management Services
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
-        services.AddHostedService<DailyTankReconciliationService>();
+        services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); //Cursor: Add pump tank transfer service
+        services.AddScoped<TankStockReconciliationService>(); // Tank Stock reconciliation service
+        services.AddHostedService<FMS.BackgroundServices.TankManagement.DailyTankReconciliationService>(); // Daily automatic reconciliation
         services.AddHostedService<SystemUserInitializationService>();
         services.AddHostedService<NotificationBackgroundService>();
         services.AddHostedService<VehicleDocumentExpiryNotifierService>();
@@ -433,6 +468,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand.TankVolumeHistoryIntegrationService>();
         services.AddScoped<TankStockFutureRecordsService>();
         services.AddScoped<OpeningStockValidationService>();
+        services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
+        services.AddScoped<DispensingAggregationService>(); // Dispensing aggregation service for single-row-per-day
         // Automated reconciliation core + supporting services
         services.AddScoped<FMS.Application.Features.AutomatedReconciliation.Services.PolicyEvaluationEngine>();
         services.AddScoped<FMS.Application.Services.AutomatedReconciliation.DiscrepancyDetectionService>();
@@ -440,6 +477,10 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.AutomatedReconciliation.Services.DailyReconciliationPolicyService>();
         services.AddScoped<FMS.Application.Features.AutomatedReconciliation.Services.AutomatedReconciliationService>();
         services.AddHttpClient<DeviceHttpCommandPusher>().SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+        // Log Management Services
+        services.AddScoped<ILogCleanupService, LogCleanupService>();
+        services.AddHostedService<LogCleanupBackgroundService>();
     }
 
     private static string GetEnvRequired(string key)

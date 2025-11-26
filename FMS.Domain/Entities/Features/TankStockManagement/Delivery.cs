@@ -6,7 +6,8 @@ namespace FMS.Domain.Entities;
 /// <summary>
 ///
 /// </summary>
-public partial class Delivery {
+public partial class Delivery
+{
     public int Id { get; set; }
 
     public int TankId { get; set; }
@@ -24,19 +25,19 @@ public partial class Delivery {
 
     public decimal? DeliveryMass { get; set; }
 
-    public decimal StockBeforeDelivery { get; set; }
+    public decimal? StockBeforeDelivery { get; set; }
 
-    public decimal StockAfterDelivery { get; set; }
+    public decimal? StockAfterDelivery { get; set; }
 
-    public decimal PricePerLiter { get; set; }
+    public decimal? PricePerLiter { get; set; }
+
+    public string? Lponumber { get; set; }
+
+    public string? Product { get; set; }
 
     public string RecordedBy { get; set; } = null!;
 
     public int SupplierId { get; set; }
-
-    public string Lponumber { get; set; } = null!;
-
-    public string Product { get; set; } = null!;
 
     // Soft delete properties
     /// <summary>

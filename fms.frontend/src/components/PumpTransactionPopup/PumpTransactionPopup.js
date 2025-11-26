@@ -623,37 +623,6 @@ const PumpTransactionPopup = ({
         }
     }, [filterValues, summaryStats, pumpTransactions, user]);
 
-    // Debug function to test jsPDF autoTable
-    const testAutoTable = useCallback(() => {
-        try {
-            const doc = new jsPDF();
-
-            console.log('jsPDF instance:', doc);
-            console.log('autoTable function available:', typeof doc.autoTable);
-            console.log('autoTable function:', doc.autoTable);
-
-            if (typeof doc.autoTable === 'function') {
-                // Test simple table
-                doc.autoTable({
-                    head: [['Name', 'Value']],
-                    body: [
-                        ['Test 1', 'Value 1'],
-                        ['Test 2', 'Value 2']
-                    ]
-                });
-
-                doc.save('test-autotable.pdf');
-                notify('AutoTable test successful!', 'success', 3000);
-            } else {
-                console.error('autoTable is not a function. Available methods:', Object.getOwnPropertyNames(doc));
-                notify('AutoTable not available. Check console for details.', 'error', 5000);
-            }
-        } catch (error) {
-            console.error('AutoTable test failed:', error);
-            notify(`AutoTable test failed: ${error.message}`, 'error', 5000);
-        }
-    }, []);
-
     // Function to open column selection popup
     const onOpenColumnSelection = useCallback(() => {
         setColumnSelectionVisible(true);
@@ -692,6 +661,7 @@ const PumpTransactionPopup = ({
             height={isMobile ? "100%" : height}
             position={{ my: 'center', at: 'center', of: window }}
             className="pump-transaction-popup"
+            animation={null}
         >
             {isMobile ? (
                 <ScrollView className="pump-transaction-popup-content">
@@ -714,7 +684,7 @@ const PumpTransactionPopup = ({
                                 <span className="tw-font-medium">Pending:</span> {summaryStats.pendingCount}
                             </div>
                         </div>
-                        <div className="tw-flex tw-flex-col tw-gap-2">
+                        <div className="tw-grid tw-grid-cols-2 tw-gap-2">
                             <Button
                                 text="Filters"
                                 icon="filter"
@@ -735,13 +705,7 @@ const PumpTransactionPopup = ({
                                 type="normal"
                                 stylingMode="outlined"
                                 onClick={onOpenColumnSelection}
-                            />
-                            <Button
-                                text="Test AutoTable"
-                                icon="fa-light fa-bug"
-                                type="normal"
-                                stylingMode="outlined"
-                                onClick={testAutoTable}
+                                className="tw-col-span-2"
                             />
                         </div>
                     </div>
@@ -897,172 +861,90 @@ const PumpTransactionPopup = ({
                 width={isMobile ? "95%" : "auto"}
                 height={isMobile ? "90%" : "auto"}
                 position={{ my: 'center', at: 'center', of: window }}
+                animation={null}
             >
-                {isMobile ? (
-                    <ScrollView className="tw-p-4 tw-min-w-full filter-panel-mobile">
-                        {/* Quick Filter Buttons */}
-                        <div className="tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200">
-                            <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">Quick Filters:</div>
-                            <div className="tw-flex tw-flex-col tw-gap-2">
-                                <Button
-                                    text="Last 7 Days"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        const endDate = new Date();
-                                        const startDate = new Date();
-                                        startDate.setDate(startDate.getDate() - 7);
-                                        setQuickFilter({ startDate, endDate });
-                                    }}
-                                />
-                                <Button
-                                    text="Last 30 Days"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        const endDate = new Date();
-                                        const startDate = new Date();
-                                        startDate.setDate(startDate.getDate() - 30);
-                                        setQuickFilter({ startDate, endDate });
-                                    }}
-                                />
-                                <Button
-                                    text="Unprocessed Only"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        setQuickFilter({ processedOnly: false });
-                                    }}
-                                />
-                                <Button
-                                    text="Today"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        const today = new Date();
-                                        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-                                        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-                                        setQuickFilter({ startDate: startOfDay, endDate: endOfDay });
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <Form
-                            formData={filterValues}
-                            onFieldDataChanged={(e) => {
-                                setFilterValues(prev => ({
-                                    ...prev,
-                                    [e.dataField]: e.value
-                                }));
-                            }}
-                            items={filterFormItems}
-                            labelLocation="top"
-                            colCount={1}
-                            showColonAfterLabel={false}
-                        />
-
-                        <div className="tw-flex tw-flex-col tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
+                <ScrollView className={isMobile ? "tw-p-4 tw-min-w-full filter-panel-mobile" : "tw-p-6 tw-min-w-96"}>
+                    {/* Quick Filter Buttons */}
+                    <div className="tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200">
+                        <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">Quick Filters:</div>
+                        <div className={isMobile ? "tw-grid tw-grid-cols-2 tw-gap-2" : "tw-flex tw-flex-wrap tw-gap-2"}>
                             <Button
-                                text="Reset"
+                                text="Last 7 Days"
                                 type="normal"
-                                onClick={handleResetFilters}
+                                stylingMode="outlined"
+                                onClick={() => {
+                                    const endDate = new Date();
+                                    const startDate = new Date();
+                                    startDate.setDate(startDate.getDate() - 7);
+                                    setQuickFilter({ startDate, endDate });
+                                }}
                             />
                             <Button
-                                text="Cancel"
+                                text="Last 30 Days"
                                 type="normal"
-                                onClick={() => setFilterPanelVisible(false)}
+                                stylingMode="outlined"
+                                onClick={() => {
+                                    const endDate = new Date();
+                                    const startDate = new Date();
+                                    startDate.setDate(startDate.getDate() - 30);
+                                    setQuickFilter({ startDate, endDate });
+                                }}
                             />
                             <Button
-                                text="Apply Filters"
-                                type="default"
-                                onClick={handleApplyFilters}
-                            />
-                        </div>
-                    </ScrollView>
-                ) : (
-                    <div className="tw-p-6 tw-min-w-96">
-                        {/* Quick Filter Buttons */}
-                        <div className="tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200">
-                            <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">Quick Filters:</div>
-                            <div className="tw-flex tw-flex-wrap tw-gap-2">
-                                <Button
-                                    text="Last 7 Days"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        const endDate = new Date();
-                                        const startDate = new Date();
-                                        startDate.setDate(startDate.getDate() - 7);
-                                        setQuickFilter({ startDate, endDate });
-                                    }}
-                                />
-                                <Button
-                                    text="Last 30 Days"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        const endDate = new Date();
-                                        const startDate = new Date();
-                                        startDate.setDate(startDate.getDate() - 30);
-                                        setQuickFilter({ startDate, endDate });
-                                    }}
-                                />
-                                <Button
-                                    text="Unprocessed Only"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        setQuickFilter({ processedOnly: false });
-                                    }}
-                                />
-                                <Button
-                                    text="Today"
-                                    type="normal"
-                                    stylingMode="outlined"
-                                    onClick={() => {
-                                        const today = new Date();
-                                        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-                                        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-                                        setQuickFilter({ startDate: startOfDay, endDate: endOfDay });
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <Form
-                            formData={filterValues}
-                            onFieldDataChanged={(e) => {
-                                setFilterValues(prev => ({
-                                    ...prev,
-                                    [e.dataField]: e.value
-                                }));
-                            }}
-                            items={filterFormItems}
-                            labelLocation="top"
-                            colCount={1}
-                            showColonAfterLabel={false}
-                        />
-
-                        <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-                            <Button
-                                text="Reset"
+                                text="Unprocessed"
                                 type="normal"
-                                onClick={handleResetFilters}
+                                stylingMode="outlined"
+                                onClick={() => {
+                                    setQuickFilter({ processedOnly: false });
+                                }}
                             />
                             <Button
-                                text="Cancel"
+                                text="Today"
                                 type="normal"
-                                onClick={() => setFilterPanelVisible(false)}
-                            />
-                            <Button
-                                text="Apply Filters"
-                                type="default"
-                                onClick={handleApplyFilters}
+                                stylingMode="outlined"
+                                onClick={() => {
+                                    const today = new Date();
+                                    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+                                    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+                                    setQuickFilter({ startDate: startOfDay, endDate: endOfDay });
+                                }}
                             />
                         </div>
                     </div>
-                )}
+
+                    <Form
+                        formData={filterValues}
+                        onFieldDataChanged={(e) => {
+                            setFilterValues(prev => ({
+                                ...prev,
+                                [e.dataField]: e.value
+                            }));
+                        }}
+                        items={filterFormItems}
+                        labelLocation="top"
+                        colCount={1}
+                        showColonAfterLabel={false}
+                    />
+
+                    <div className={isMobile ? "tw-grid tw-grid-cols-2 tw-gap-2 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200" : "tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200"}>
+                        <Button
+                            text="Reset"
+                            type="normal"
+                            onClick={handleResetFilters}
+                        />
+                        <Button
+                            text="Cancel"
+                            type="normal"
+                            onClick={() => setFilterPanelVisible(false)}
+                        />
+                        <Button
+                            text="Apply"
+                            type="default"
+                            onClick={handleApplyFilters}
+                            className={isMobile ? "tw-col-span-2" : ""}
+                        />
+                    </div>
+                </ScrollView>
             </Popup>
 
             {/* Column Selection Popup */}
@@ -1077,166 +959,21 @@ const PumpTransactionPopup = ({
                 width={isMobile ? "95%" : "auto"}
                 height={isMobile ? "90%" : "auto"}
                 position={{ my: 'center', at: 'center', of: window }}
+                animation={null}
             >
-                {isMobile ? (
-                    <ScrollView className="tw-p-4 tw-min-w-full">
-                        <div className="tw-mb-4">
-                            <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">
-                                Select the columns you want to include in the PDF report:
-                            </div>
-                            <div className="tw-text-xs tw-text-gray-500 tw-mb-4">
-                                Note: Reports are limited to 50 transactions maximum.
-                            </div>
+                <ScrollView className={isMobile ? "tw-p-4 tw-min-w-full" : "tw-p-6 tw-min-w-96"}>
+                    <div className="tw-mb-4">
+                        <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">
+                            Select the columns you want to include in the PDF report:
                         </div>
+                        <div className="tw-text-xs tw-text-gray-500 tw-mb-4">
+                            Note: Reports are limited to 50 transactions maximum{!isMobile && ". Amounts are displayed in KES (Kenyan Shillings)"}.
+                        </div>
+                    </div>
 
-                        <div className="tw-space-y-3">
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">PTS ID</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.ptsId}
-                                    onChange={(e) => handleColumnChange('ptsId', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Vehicle Name</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.vehicleName}
-                                    onChange={(e) => handleColumnChange('vehicleName', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Tank Name</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.tankName}
-                                    onChange={(e) => handleColumnChange('tankName', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Pump ID</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.pump}
-                                    onChange={(e) => handleColumnChange('pump', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Nozzle</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.nozzle}
-                                    onChange={(e) => handleColumnChange('nozzle', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Tag</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.tag}
-                                    onChange={(e) => handleColumnChange('tag', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Volume (L)</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.volume}
-                                    onChange={(e) => handleColumnChange('volume', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Price (KES)</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.price}
-                                    onChange={(e) => handleColumnChange('price', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Amount (KES)</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.amount}
-                                    onChange={(e) => handleColumnChange('amount', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Date/Time</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.dateTime}
-                                    onChange={(e) => handleColumnChange('dateTime', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                            <div className="tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium">Status</label>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedColumns.hasBeenProcessed}
-                                    onChange={(e) => handleColumnChange('hasBeenProcessed', e.target.checked)}
-                                    className="tw-rounded tw-border-gray-300"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="tw-flex tw-flex-col tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-                            <Button
-                                text="Select All"
-                                type="normal"
-                                onClick={() => {
-                                    const allSelected = {
-                                        ptsId: true,
-                                        vehicleName: true,
-                                        tankName: true,
-                                        pump: true,
-                                        nozzle: true,
-                                        tag: true,
-                                        volume: true,
-                                        price: true,
-                                        amount: true,
-                                        dateTime: true,
-                                        hasBeenProcessed: true
-                                    };
-                                    setSelectedColumns(allSelected);
-                                }}
-                            />
-                            <Button
-                                text="Cancel"
-                                type="normal"
-                                onClick={() => setColumnSelectionVisible(false)}
-                            />
-                            <Button
-                                text="Generate PDF"
-                                type="default"
-                                onClick={generatePDFWithColumns}
-                            />
-                        </div>
-                    </ScrollView>
-                ) : (
-                    <div className="tw-p-6 tw-min-w-96">
-                        <div className="tw-mb-4">
-                            <div className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-3">
-                                Select the columns you want to include in the PDF report:
-                            </div>
-                            <div className="tw-text-xs tw-text-gray-500 tw-mb-4">
-                                Note: Reports are limited to 50 transactions maximum. Amounts are displayed in KES (Kenyan Shillings).
-                            </div>
-                        </div>
-
-                        <div className="tw-grid tw-grid-cols-2 tw-gap-3">
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                    <div className={isMobile ? "tw-space-y-3" : "tw-grid tw-grid-cols-2 tw-gap-3"}>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-ptsId"
@@ -1244,9 +981,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('ptsId', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-ptsId" className="tw-text-sm tw-font-medium">PTS ID</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-ptsId" className="tw-text-sm tw-font-medium">PTS ID</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.ptsId}
+                                    onChange={(e) => handleColumnChange('ptsId', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-vehicleName"
@@ -1254,9 +1001,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('vehicleName', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-vehicleName" className="tw-text-sm tw-font-medium">Vehicle Name</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-vehicleName" className="tw-text-sm tw-font-medium">Vehicle Name</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.vehicleName}
+                                    onChange={(e) => handleColumnChange('vehicleName', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-tankName"
@@ -1264,9 +1021,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('tankName', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-tankName" className="tw-text-sm tw-font-medium">Tank Name</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-tankName" className="tw-text-sm tw-font-medium">Tank Name</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.tankName}
+                                    onChange={(e) => handleColumnChange('tankName', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-pump"
@@ -1274,9 +1041,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('pump', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-pump" className="tw-text-sm tw-font-medium">Pump ID</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-pump" className="tw-text-sm tw-font-medium">Pump ID</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.pump}
+                                    onChange={(e) => handleColumnChange('pump', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-nozzle"
@@ -1284,9 +1061,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('nozzle', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-nozzle" className="tw-text-sm tw-font-medium">Nozzle</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-nozzle" className="tw-text-sm tw-font-medium">Nozzle</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.nozzle}
+                                    onChange={(e) => handleColumnChange('nozzle', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-tag"
@@ -1294,9 +1081,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('tag', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-tag" className="tw-text-sm tw-font-medium">Tag</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-tag" className="tw-text-sm tw-font-medium">Tag</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.tag}
+                                    onChange={(e) => handleColumnChange('tag', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-volume"
@@ -1304,9 +1101,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('volume', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-volume" className="tw-text-sm tw-font-medium">Volume (L)</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-volume" className="tw-text-sm tw-font-medium">Volume (L)</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.volume}
+                                    onChange={(e) => handleColumnChange('volume', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-price"
@@ -1314,9 +1121,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('price', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-price" className="tw-text-sm tw-font-medium">Price (KES)</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-price" className="tw-text-sm tw-font-medium">Price (KES)</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.price}
+                                    onChange={(e) => handleColumnChange('price', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-amount"
@@ -1324,9 +1141,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('amount', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-amount" className="tw-text-sm tw-font-medium">Amount (KES)</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-amount" className="tw-text-sm tw-font-medium">Amount (KES)</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.amount}
+                                    onChange={(e) => handleColumnChange('amount', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-dateTime"
@@ -1334,9 +1161,19 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('dateTime', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-dateTime" className="tw-text-sm tw-font-medium">Date/Time</label>
-                            </div>
-                            <div className="tw-flex tw-items-center tw-space-x-2">
+                            )}
+                            <label htmlFor="col-dateTime" className="tw-text-sm tw-font-medium">Date/Time</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.dateTime}
+                                    onChange={(e) => handleColumnChange('dateTime', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
+                                />
+                            )}
+                        </div>
+                        <div className={isMobile ? "tw-flex tw-items-center tw-justify-between" : "tw-flex tw-items-center tw-space-x-2"}>
+                            {!isMobile && (
                                 <input
                                     type="checkbox"
                                     id="col-status"
@@ -1344,46 +1181,54 @@ const PumpTransactionPopup = ({
                                     onChange={(e) => handleColumnChange('hasBeenProcessed', e.target.checked)}
                                     className="tw-rounded tw-border-gray-300"
                                 />
-                                <label htmlFor="col-status" className="tw-text-sm tw-font-medium">Status</label>
-                            </div>
-                        </div>
-
-                        <div className="tw-flex tw-justify-between tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-                            <Button
-                                text="Select All"
-                                type="normal"
-                                onClick={() => {
-                                    const allSelected = {
-                                        ptsId: true,
-                                        vehicleName: true,
-                                        tankName: true,
-                                        pump: true,
-                                        nozzle: true,
-                                        tag: true,
-                                        volume: true,
-                                        price: true,
-                                        amount: true,
-                                        dateTime: true,
-                                        hasBeenProcessed: true
-                                    };
-                                    setSelectedColumns(allSelected);
-                                }}
-                            />
-                            <div className="tw-flex tw-gap-3">
-                                <Button
-                                    text="Cancel"
-                                    type="normal"
-                                    onClick={() => setColumnSelectionVisible(false)}
+                            )}
+                            <label htmlFor="col-status" className="tw-text-sm tw-font-medium">Status</label>
+                            {isMobile && (
+                                <input
+                                    type="checkbox"
+                                    checked={selectedColumns.hasBeenProcessed}
+                                    onChange={(e) => handleColumnChange('hasBeenProcessed', e.target.checked)}
+                                    className="tw-rounded tw-border-gray-300"
                                 />
-                                <Button
-                                    text="Generate PDF"
-                                    type="default"
-                                    onClick={generatePDFWithColumns}
-                                />
-                            </div>
+                            )}
                         </div>
                     </div>
-                )}
+
+                    <div className={isMobile ? "tw-grid tw-grid-cols-2 tw-gap-2 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200" : "tw-flex tw-justify-between tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200"}>
+                        <Button
+                            text="Select All"
+                            type="normal"
+                            onClick={() => {
+                                const allSelected = {
+                                    ptsId: true,
+                                    vehicleName: true,
+                                    tankName: true,
+                                    pump: true,
+                                    nozzle: true,
+                                    tag: true,
+                                    volume: true,
+                                    price: true,
+                                    amount: true,
+                                    dateTime: true,
+                                    hasBeenProcessed: true
+                                };
+                                setSelectedColumns(allSelected);
+                            }}
+                            className={isMobile ? "tw-col-span-2" : ""}
+                        />
+                        {!isMobile && <div className="tw-flex-1"></div>}
+                        <Button
+                            text="Cancel"
+                            type="normal"
+                            onClick={() => setColumnSelectionVisible(false)}
+                        />
+                        <Button
+                            text="Generate PDF"
+                            type="default"
+                            onClick={generatePDFWithColumns}
+                        />
+                    </div>
+                </ScrollView>
             </Popup>
         </Popup>
     );

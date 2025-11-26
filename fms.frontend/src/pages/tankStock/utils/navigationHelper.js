@@ -10,7 +10,9 @@ export const tankStockRoutes = {
   dashboard: '/tankstock/dashboard',
   stockAnalytics: '/tankstock/stock-analytics',
   stockManagement: '/tankstock/stock-management',
-  reconciliationControl: '/tankstock/reconciliation-control',
+  reconciliationControl: '/tankstock/reconciliation',
+  transferReconciliation: '/tankstock/transfer-reconciliation',
+  fuelDataComparison: '/tankstock/fueldatacomparison',
   settings: '/tankstock/settings'
 };
 
@@ -18,6 +20,12 @@ export const tankStockRoutes = {
 export const isActiveRoute = (currentPath, targetPath) => {
   if (targetPath === '/tankstock/dashboard') {
     return currentPath === '/tankstock' || currentPath === '/tankstock/' || currentPath === '/tankstock/dashboard';
+  }
+  if (targetPath === '/tankstock/reconciliation') {
+    return currentPath.startsWith('/tankstock/reconciliation');
+  }
+  if (targetPath === '/tankstock/fueldatacomparison') {
+    return currentPath.startsWith('/tankstock/fueldatacomparison');
   }
   return currentPath.startsWith(targetPath);
 };

@@ -7,6 +7,7 @@ import MaintenanceDashboard from './dashboard/MaintenanceDashboard';
 // Import maintenance feature pages
 import MaintenanceList from './list/MaintenanceList';
 import MaintenanceSettings from './settings/MaintenanceSettings';
+import OdometerReconciliation from './reconciliation/OdometerReconciliation';
 
 const MaintenanceMain = () => {
   const location = useLocation();
@@ -24,6 +25,10 @@ const MaintenanceMain = () => {
         {/* Maintenance Records List */}
         <Route path="/records" element={<MaintenanceList />} />
         <Route path="/records/*" element={<MaintenanceList />} />
+
+        {/* Odometer Reconciliation */}
+        <Route path="/reconciliation" element={<OdometerReconciliation />} />
+        <Route path="/reconciliation/*" element={<OdometerReconciliation />} />
 
         {/* Maintenance Settings */}
         <Route path="/settings" element={<MaintenanceSettings />} />

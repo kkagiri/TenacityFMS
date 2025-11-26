@@ -141,6 +141,16 @@ const EmployeeSearchableSelector = ({
     }
   }, [selectedEmployee, onValueChanged, handleSearchTermChange]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // If dropdown is open and there are employees, select the first one
+      if (showDropdown && employees.length > 0) {
+        handleEmployeeSelect(employees[0]);
+      }
+    }
+  }, [showDropdown, employees, handleEmployeeSelect]);
+
   const handleInputFocus = useCallback(() => {
     if (searchTerm.length >= 2) {
       performSearch(searchTerm);
@@ -291,6 +301,7 @@ const EmployeeSearchableSelector = ({
             value={searchTerm}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
             className="dx-texteditor-input"

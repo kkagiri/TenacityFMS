@@ -191,7 +191,11 @@ axiosInstance.interceptors.request.use(
         const cleanUrl = config.url.startsWith("/")
           ? config.url.slice(1)
           : config.url;
-        config.url = `v1/${cleanUrl}`;
+
+        // Only prepend v1 if it's not already there
+        if (!cleanUrl.startsWith("v1/") && !cleanUrl.startsWith("v2/")) {
+          config.url = `v1/${cleanUrl}`;
+        }
       }
     }
 

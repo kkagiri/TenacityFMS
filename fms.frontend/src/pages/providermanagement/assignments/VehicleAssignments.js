@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { DataGrid } from "devextreme-react";
 import { Column, Paging, SearchPanel, HeaderFilter, Scrolling } from "devextreme-react/data-grid";
 import { SelectBox } from "devextreme-react/select-box";
@@ -15,7 +16,6 @@ import {
 } from "../../../redux/actions/providerActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import businessSignalRService from "../../../signalR/businessSignalRService";
-import DeviceMappingPopup from "./DeviceMappingPopup";
 
 /**
  * Vehicle Assignments Component
@@ -24,12 +24,9 @@ import DeviceMappingPopup from "./DeviceMappingPopup";
  */
 const VehicleAssignments = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { providers: providersRaw, mappings, providersLoading, mappingsLoading, assigning } = useSelector((s) => s.provider || {});
   const { vehicles: vehiclesRaw, loading: vehiclesLoading } = useSelector((s) => s.vehicle || {});
-
-  // Device mapping popup state
-  const [deviceMappingVisible, setDeviceMappingVisible] = useState(false);
-  const [selectedProviderForMapping, setSelectedProviderForMapping] = useState(null);
 
   // Bulk assignment popup state
   const [bulkPopupVisible, setBulkPopupVisible] = useState(false);
@@ -328,10 +325,7 @@ const VehicleAssignments = () => {
                 text="Map GPS Devices"
                 icon="fa-light fa-satellite-dish"
                 onClick={() => {
-                  // Use first available provider or default
-                  const defaultProvider = providers.find(p => p.displayName)?.providerName || "GPSGate";
-                  setSelectedProviderForMapping(defaultProvider);
-                  setDeviceMappingVisible(true);
+                  navigate("/admin/providers/map-devices");
                 }}
                 disabled={assigning || providers.length === 0}
               />
@@ -576,17 +570,6 @@ const VehicleAssignments = () => {
           </div>
         </div>
       </Popup>
-
-      {/* Device Mapping Popup */}
-      <DeviceMappingPopup
-        visible={deviceMappingVisible}
-        onHiding={() => setDeviceMappingVisible(false)}
-        providerName={selectedProviderForMapping}
-        onMappingComplete={() => {
-          // Refresh mappings to show new device assignments
-          dispatch(fetchProviderMappings());
-        }}
-      />
 
       {/* Progress Popup */}
       <Popup

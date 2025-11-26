@@ -1,0 +1,13 @@
+.report-builder {
+  &__header {
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+  }
+
+  &__content {
+    overflow: hidden;
+  }
+}
+
+.report-builder-empty {
+  min-height: 400px;
+}

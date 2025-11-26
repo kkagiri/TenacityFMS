@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
+using FMS.Application.Features.TankManagement.Queries;
 using FMS.Domain.Entities.enums;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -181,7 +182,8 @@ namespace FMS.WebClient.Controllers
             [FromQuery] string groupByPeriod = "month",
             [FromQuery] int[]? siteIds = null,
             [FromQuery] int[]? tankIds = null,
-            [FromQuery] bool useManualDispensing = false)
+            [FromQuery] bool useManualDispensing = false,
+            [FromQuery] bool useCombinedDispensing = false)
         {
             var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
             if (!hasPermission)
@@ -199,11 +201,16 @@ namespace FMS.WebClient.Controllers
                 if (!validGroupByOptions.Contains(groupByPeriod))
                     return BadRequest("Invalid groupByPeriod. Allowed values: month, quarter, week, day");
 
+                // Validate that only one mode is selected
+                if (useManualDispensing && useCombinedDispensing)
+                    return BadRequest("Cannot use both useManualDispensing and useCombinedDispensing at the same time. Choose one mode.");
+
                 var query = new GetPivotDataQuery(startDate, endDate, groupByPeriod)
                 {
                     SiteIds = siteIds?.ToList(),
                     TankIds = tankIds?.ToList(),
-                    UseManualDispensing = useManualDispensing
+                    UseManualDispensing = useManualDispensing,
+                    UseCombinedDispensing = useCombinedDispensing
                 };
 
                 var result = await _mediator.Send(query);
@@ -212,6 +219,56 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting pivot data");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get comprehensive diagnostic data for a tank period
+        /// Combines TankStock, TankVolumeHistory, and TankTransfers for analysis
+        /// </summary>
+        [HttpGet("period-diagnostic")]
+        public async Task<IActionResult> GetPeriodDiagnostic(
+            [FromQuery] int tankId,
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] bool includeAllTransactionTypes = true,
+            [FromQuery] bool includeDeletedRecords = false)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
+            if (!hasPermission)
+                return Forbid();
+
+            try
+            {
+                if (startDate == default || endDate == default)
+                    return BadRequest("Start date and end date are required");
+
+                if (startDate > endDate)
+                    return BadRequest("Start date cannot be greater than end date");
+
+                if (tankId <= 0)
+                    return BadRequest("Valid tank ID is required");
+
+                var query = new GetPeriodDiagnosticQuery
+                {
+                    TankId = tankId,
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    IncludeAllTransactionTypes = includeAllTransactionTypes,
+                    IncludeDeletedRecords = includeDeletedRecords
+                };
+
+                var result = await _mediator.Send(query);
+
+                if (!result.IsSuccess)
+                    return BadRequest(result.Message);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting period diagnostic data for tank {TankId}", tankId);
                 return StatusCode(500, "Internal server error");
             }
         }

@@ -9,7 +9,6 @@ using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
@@ -19,51 +18,70 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly GpsdataContext _context;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateSensorService> _logger;
-        private readonly string _apiKey;
-        private readonly string _baseUrl;
-        private readonly int _applicationId;
+        private readonly IGPSGateConfigurationProvider _configurationProvider;
 
         public GPSGateSensorService(
             GpsdataContext context,
             HttpClient httpClient,
-            IConfiguration configuration,
+            IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateSensorService> logger)
         {
             _context = context;
             _httpClient = httpClient;
+            _configurationProvider = configurationProvider;
             _logger = logger;
-
-            _apiKey = configuration["GPSGate:ApiKey"] ?? throw new ArgumentNullException("GPSGate:ApiKey not configured");
-            _baseUrl = configuration["GPSGate:BaseUrl"] ?? throw new ArgumentNullException("GPSGate:BaseUrl not configured");
-            _applicationId = int.Parse(configuration["GPSGate:ApplicationId"] ?? "1");
-
-            _httpClient.DefaultRequestHeaders.Add("Authorization", _apiKey);
         }
-
         public async Task<FMSResponse<VehicleGPSInformationDTO>> GetVehicleGPSInformationAsync(int vehicleId)
         {
             try
             {
                 var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
+                    .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
                 if (vehicle == null)
-                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
+                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle not found");
 
-                var statusResponse = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}/status");
+                // Try to get device ID from vehicle_provider_mappings first (new way)
+                var providerMapping = await _context.VehicleProviderMappings
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.VehicleId == vehicleId
+                        && m.IsActive
+                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.ProviderConfiguration.IsEnabled)
+                    .FirstOrDefaultAsync();
 
-                var deviceResponse = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}");
+                string? externalDeviceId = providerMapping?.ExternalDeviceId;
+
+                // Fallback to old DeviceId field if mapping not found (backward compatibility)
+                if (string.IsNullOrEmpty(externalDeviceId) && vehicle.DeviceId.HasValue)
+                {
+                    externalDeviceId = vehicle.DeviceId.Value.ToString();
+                    _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
+                }
+
+                if (string.IsNullOrEmpty(externalDeviceId))
+                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle doesn't have a GPS device configured. Please add a provider mapping.");
+
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                var statusUrl = $"{baseUrl}/applications/{applicationId}/users/{externalDeviceId}/status";
+
+                using var statusRequest = new HttpRequestMessage(HttpMethod.Get, statusUrl);
+                statusRequest.Headers.Authorization = authHeader;
+                var statusResponse = await _httpClient.SendAsync(statusRequest);
+
+                using var deviceRequest = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/applications/{applicationId}/users/{externalDeviceId}");
+                deviceRequest.Headers.Authorization = authHeader;
+                var deviceResponse = await _httpClient.SendAsync(deviceRequest);
 
                 var gpsInfo = new VehicleGPSInformationDTO
                 {
                     VehicleId = vehicleId,
                     VehicleName = vehicle.HyoungNo ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId,
+                    HasGPSInstalled = providerMapping != null || vehicle.HasGPSInstalled == 1,
+                    DeviceId = providerMapping != null ? int.TryParse(externalDeviceId, out var deviceIdInt) ? deviceIdInt : null : vehicle.DeviceId,
                     IsOnline = false,
                     SensorHealth = new SensorHealthDTO
                     {
@@ -93,7 +111,9 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         gpsInfo.SensorHealth.LastSensorUpdate = gpsInfo.LastUpdated;
 
                         if (gpsData.Variables != null && gpsData.Variables.Any())
+                        {
                             ParseSensorVariables(gpsData.Variables, gpsInfo.SensorHealth);
+                        }
                         else
                         {
                             gpsInfo.SensorHealth.GPSSignalStrength = "Unknown";
@@ -150,17 +170,37 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             try
             {
                 var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
+                    .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
                 if (vehicle == null)
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle not found or doesn't have GPS installed");
+                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle not found");
 
-                if (!vehicle.DeviceId.HasValue)
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
+                // Try to get device ID from vehicle_provider_mappings first (new way)
+                var providerMapping = await _context.VehicleProviderMappings
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.VehicleId == vehicleId
+                        && m.IsActive
+                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.ProviderConfiguration.IsEnabled)
+                    .FirstOrDefaultAsync();
 
-                var response = await _httpClient.GetAsync(
-                    $"{_baseUrl}/applications/{_applicationId}/accumulators?UserId={vehicle.DeviceId}");
+                string? externalDeviceId = providerMapping?.ExternalDeviceId;
+
+                // Fallback to old DeviceId field if mapping not found (backward compatibility)
+                if (string.IsNullOrEmpty(externalDeviceId) && vehicle.DeviceId.HasValue)
+                {
+                    externalDeviceId = vehicle.DeviceId.Value.ToString();
+                }
+
+                if (string.IsNullOrEmpty(externalDeviceId))
+                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have a GPS device configured");
+
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/applications/{applicationId}/accumulators?UserId={externalDeviceId}");
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -186,8 +226,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     TotalDistance = odometerData?.Value.HasValue == true ? (decimal)odometerData.Value / 1000 : 0,
                     LastUpdated = DateTime.TryParse(odometerData?.Timestamp, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
                     Unit = "km",
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId
+                    HasGPSInstalled = providerMapping != null || vehicle.HasGPSInstalled == 1,
+                    DeviceId = providerMapping != null ? int.TryParse(externalDeviceId, out var deviceIdInt) ? deviceIdInt : null : vehicle.DeviceId
                 };
 
                 return FMSResponse<VehicleOdometerDTO>.Success(odometerDto);
@@ -246,16 +286,16 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (string.IsNullOrWhiteSpace(variable.Name) || string.IsNullOrWhiteSpace(variable.Value))
                     continue;
 
-                var variableName = variable.Name.Trim();
+                var variableName = variable.Name.Trim().ToLower();
                 var variableValue = variable.Value.Trim();
                 var variableType = variable.Type?.ToLower();
 
                 try
                 {
-                    switch (variableName.ToLower())
+                    switch (variableName)
                     {
                         case "satellitecount":
-                            if (int.TryParse(variableValue, out var satelliteCount))
+                            if (int.TryParse(variableValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var satelliteCount))
                             {
                                 sensorHealth.SatelliteCount = satelliteCount;
                                 sensorHealth.GPSSignalStrength = satelliteCount >= 8 ? "Strong" :
@@ -264,44 +304,85 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                             }
                             break;
 
+                        case "battery voltage":
                         case "batteryvoltage":
                         case "voltage":
-                            if (decimal.TryParse(variableValue, out var batteryVoltage))
-                                sensorHealth.BatteryVoltage = batteryVoltage;
+                            if (decimal.TryParse(variableValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var batteryVoltage))
+                            {
+                                // Use the non-zero value (Voltage is usually the correct one)
+                                if (batteryVoltage > 0 || sensorHealth.BatteryVoltage == null)
+                                {
+                                    sensorHealth.BatteryVoltage = batteryVoltage;
+                                }
+                            }
                             break;
 
                         case "fuel level":
                         case "fuellevel":
-                        case "rawfuel":
-                            if (decimal.TryParse(variableValue, out var fuelLevel))
+                            // Use "Fuel level" (calculated) over "Rawfuel"
+                            if (decimal.TryParse(variableValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var fuelLevel))
                             {
                                 sensorHealth.FuelLevel = fuelLevel;
                                 sensorHealth.FuelLevelUnit = "Liters";
                             }
                             break;
 
+                        case "rawfuel":
+                            // Only use raw fuel if we don't have calculated fuel level yet
+                            if (sensorHealth.FuelLevel == null)
+                            {
+                                if (decimal.TryParse(variableValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var rawFuel))
+                                {
+                                    sensorHealth.FuelLevel = rawFuel;
+                                    sensorHealth.FuelLevelUnit = "Liters";
+                                }
+                            }
+                            break;
+
                         case "ignition":
-                            if (variableType == "boolean" && bool.TryParse(variableValue, out var ignition))
+                            if (bool.TryParse(variableValue, out var ignition))
+                            {
                                 sensorHealth.IgnitionStatus = ignition;
+                            }
                             break;
 
                         case "engine":
                         case "enginestatus":
-                            if (variableType == "boolean" && bool.TryParse(variableValue, out var engineStatus))
+                            if (bool.TryParse(variableValue, out var engineStatus))
+                            {
                                 sensorHealth.EngineStatus = engineStatus;
+                            }
                             break;
 
                         case "enginetemperature":
                         case "temperature":
                         case "engtemp":
-                            if (decimal.TryParse(variableValue, out var engineTemp))
+                            if (decimal.TryParse(variableValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var engineTemp))
+                            {
                                 sensorHealth.EngineTemperature = engineTemp;
+                            }
+                            break;
+
+                        // Additional variables - logged but not critical
+                        case "customanalog1":
+                        case "harshaccelerationdigital":
+                        case "harshturningdigital":
+                        case "harshbreakingdigital":
+                        case "digitalinput1":
+                        case "speed":
+                        case "_odometer":
+                        case "_datetimeserver":
+                            // These are informational - ignore silently
+                            break;
+
+                        default:
+                            _logger.LogDebug("Unhandled sensor variable: {Name} = {Value}", variable.Name, variableValue);
                             break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error parsing sensor variable {VariableName} with value {Value}", variableName, variableValue);
+                    _logger.LogWarning(ex, "Error parsing sensor variable {VariableName} with value {Value}", variable.Name, variableValue);
                 }
             }
 
