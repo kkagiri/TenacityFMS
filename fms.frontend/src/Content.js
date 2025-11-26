@@ -259,7 +259,7 @@ export default function Content() {
         >
           <div>
             Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
-            Version:2.1.0
+            Version:2.2.0
             <br />
             Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
             trademarks are property of Hyoung EA Co. Ltd.
