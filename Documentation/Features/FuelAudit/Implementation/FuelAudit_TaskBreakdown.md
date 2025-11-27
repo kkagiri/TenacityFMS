@@ -35,16 +35,17 @@
 | 1.1.1 | ✅ Create PRD document | | ✅ Done | FuelAudit_PRD.md |
 | 1.1.2 | ✅ Create task breakdown | | ✅ Done | This document |
 | 1.1.3 | ⬜ Review algorithm with stakeholders | | ⬜ Pending | hybrid_fuel_audit_algorithm.md |
-| 1.1.4 | ⬜ Identify GPS data source | | ⬜ Pending | Need to find consumption tables |
+| 1.1.4 | ✅ Identify GPS data source | | ✅ Done | GPSGate /tracks API with variables |
 | 1.1.5 | ⬜ Verify vehicle type classification exists | | ⬜ Pending | GPS vs Pickup field |
 | 1.1.6 | ⬜ Sign-off on PRD | | ⬜ Pending | Stakeholder approval |
+| 1.1.7 | ✅ Design GPS Data Service | | ✅ Done | GPSDataService_Design.md |
 
 ### 1.2 Design Decisions
 | # | Decision | Options | Selected | Rationale |
 |---|----------|---------|----------|-----------|
 | 1.2.1 | Audit storage | Snapshot vs. Live calculation | TBD | |
 | 1.2.2 | Estimation algorithm | Simple avg vs. ML-based | TBD | |
-| 1.2.3 | GPS data source | Direct sensor vs. Pre-aggregated | TBD | |
+| 1.2.3 | GPS data source | Direct sensor vs. Pre-aggregated | **GPSGate /tracks API** | Returns variables with fuel level per track point |
 | 1.2.4 | Report generation | Server-side vs. Client-side | TBD | |
 
 ---

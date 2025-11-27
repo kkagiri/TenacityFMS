@@ -8,6 +8,7 @@ This folder contains all implementation documentation for the Hybrid Fuel Audit 
 |----------|-------------|--------|
 | [Requirements Specification (PRD)](./FuelAudit_PRD.md) | Product requirements and specifications | 🟡 In Progress |
 | [Task Breakdown](./FuelAudit_TaskBreakdown.md) | Implementation tasks and checklist | 🟡 In Progress |
+| [GPS Data Service Design](./GPSDataService_Design.md) | GPS service for fuel audit data | ✅ Complete |
 | [Database Schema](./database/FuelAudit_Schema.sql) | MySQL 5.5.6 compatible schema | 🔴 Pending |
 | [API Specification](./FuelAudit_API.md) | API endpoints and contracts | 🔴 Pending |
 

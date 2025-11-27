@@ -1,8 +1,22 @@
 # Fuel Audit - GPS Data Service Design
 
-**Version:** 1.0  
-**Created:** November 27, 2025  
-**Status:** Design Phase  
+**Version:** 1.1
+**Created:** November 27, 2025
+**Updated:** November 27, 2025
+**Status:** Design Finalized
+
+---
+
+## Decision Summary
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Data Retrieval Approach** | Parallel API Calls (per-vehicle) | Accurate, uses existing infrastructure |
+| **API Endpoint** | `/tracks` REST API | Returns fuel variables in track points |
+| **Bulk Alternative** | Not used (GPSGate bulk is current-only) | Historical data requires per-vehicle calls |
+| **Data Persistence** | Yes - Save to `fuel_audit_gps_readings` | Cache readings for audit records |
+| **Throttling** | Max 10 concurrent calls | Avoid overwhelming GPSGate server |
+| **Fallback Days** | Up to 7 days back | Handle offline vehicles |
 
 ---
 
@@ -143,22 +157,22 @@ public class VehicleFuelPositionDTO
     public int VehicleId { get; set; }
     public string VehicleName { get; set; } = string.Empty;
     public string? NumberPlate { get; set; }
-    
+
     // Fuel Data
     public decimal? FuelLevel { get; set; }          // Liters
     public string FuelLevelUnit { get; set; } = "Liters";
     public DateTime? ReadingTimestamp { get; set; }   // When this reading was taken
-    
+
     // Data Quality
     public FuelDataQuality DataQuality { get; set; }
     public string? DataQualityReason { get; set; }
-    
+
     // Vehicle Status at Reading Time
     public bool WasOnline { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public bool? IgnitionStatus { get; set; }
-    
+
     // For Audit Trail
     public DateTime RequestedDate { get; set; }       // The date we asked for
     public DateTime? ActualDataDate { get; set; }     // The actual date of the data (may differ)
@@ -168,16 +182,16 @@ public enum FuelDataQuality
 {
     /// <summary>Fuel reading from exact requested date</summary>
     Exact = 1,
-    
+
     /// <summary>No data on requested date, used nearest available</summary>
     Interpolated = 2,
-    
+
     /// <summary>Vehicle was offline, no recent data</summary>
     Unavailable = 3,
-    
+
     /// <summary>Vehicle has no fuel sensor</summary>
     NoSensor = 4,
-    
+
     /// <summary>Data exists but fuel variable not in track</summary>
     SensorNotReporting = 5
 }
@@ -191,13 +205,13 @@ public class VehicleFuelConsumptionDTO
     public string VehicleName { get; set; } = string.Empty;
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
-    
+
     // Consumption Metrics
     public decimal? TotalFuelConsumed { get; set; }      // From fuel probe
     public decimal? FlowMeterFuelUsed { get; set; }      // From flow meter (if available)
     public decimal? TotalDistance { get; set; }           // Kilometers
     public decimal? EngineHours { get; set; }
-    
+
     // Calculated
     public decimal? FuelEfficiency { get; set; }          // km/L or L/100km
 }
@@ -495,7 +509,7 @@ public async Task<AuditResult> CalculateGPSFleetPositionAsync(
     {
         var opening = openingPositions.FirstOrDefault(p => p.VehicleId == vehicle);
         var closing = closingPositions.FirstOrDefault(p => p.VehicleId == vehicle);
-        
+
         // Expected = Opening + Refueled - Consumed
         // Variance = Actual Closing - Expected
     }

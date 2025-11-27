@@ -90,6 +90,22 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         "Use Update operation to modify existing entry.");
                 }
 
+                // Clean up any soft-deleted TankStock entries for this tank on this date
+                // This handles the case where unique constraint doesn't respect IsDeleted flag
+                var deletedEntries = await _context.Tankstocks
+                    .Where(x => x.TankId == request.TankId &&
+                        x.EntryDate.Date == entryDate.Date &&
+                        x.IsDeleted == true)
+                    .ToListAsync(cancellationToken);
+
+                if (deletedEntries.Any())
+                {
+                    _context.Tankstocks.RemoveRange(deletedEntries);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Cleaned up {Count} soft-deleted TankStock entries for tank {TankId} on {Date}",
+                        deletedEntries.Count, request.TankId, entryDate.ToString("yyyy-MM-dd"));
+                }
+
                 //Cursor - Check for previous closing stock but don't require it (allow first opening stock)
                 var previousClosingStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.TankId &&
