@@ -3,6 +3,7 @@ using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Application.Features.TankManagement.FuelRefill.Commands;
 using FMS.Application.Queries.Database.FMSQuery.FuelRefillQueries;
 using FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
+using FMS.WebClient.Attributes;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -31,7 +32,8 @@ public class FuelRefillController : ControllerBase
 
     //api: Post fuelrefill
     [HttpPost]
-    [Authorize(Policy = "_createFuelRefill")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("_Create_FuelRefill")]
     public async Task<IActionResult> CreateFuelRefil([FromBody] FuelRefilDTO fuelRefilDTO)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -52,7 +54,8 @@ public class FuelRefillController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Policy = "_readFuelRefill")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("_Read_FuelRefill")]
     public async Task<IActionResult> GetFuelRefil(int id)
     {
         var FuelRefill = await _mediator.Send(new FuelRefillGetbyIDQuery(id));
@@ -64,7 +67,8 @@ public class FuelRefillController : ControllerBase
     }
 
     [HttpGet("summary")]
-    [Authorize(Policy = "_readFuelRefill")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("_Read_FuelRefill")]
     public async Task<IActionResult> GetFuelRefillSummary([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
     {
         var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate, null));
@@ -78,7 +82,8 @@ public class FuelRefillController : ControllerBase
     }
 
     [HttpGet("summary/{siteId}")]
-    [Authorize(Policy = "_readFuelRefill")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("_Read_FuelRefill")]
     public async Task<IActionResult> GetFuelRefillSummaryBySite([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, int siteId)
     {
         var summary = await _mediator.Send(new FuelRefillSummaryQuery(startDate, endDate, siteId));
@@ -93,7 +98,8 @@ public class FuelRefillController : ControllerBase
 
     //Cursor - Enhanced GetFuelRefilList with filtering support
     [HttpGet]
-    [Authorize(Policy = "_readFuelRefill")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("_Read_FuelRefill")]
     public async Task<IActionResult> GetFuelRefilList(
         int take = 100,
         int skip = 0, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] int? siteId = null)
