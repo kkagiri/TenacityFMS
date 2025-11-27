@@ -531,6 +531,16 @@ FMS.Application/
 │           ├── VehicleFuelConsumptionDTO.cs     # Consumption over period
 │           └── RefuelEventDTO.cs                # Detected refuel events
 
+FMS.Domain/
+├── Entities/
+│   └── FuelAudit/
+│       └── FuelAuditGPSReading.cs               # NEW: Persisted GPS readings
+
+FMS.Persistence/
+├── EntityConfigurations/
+│   └── FuelAudit/
+│       └── FuelAuditGPSReadingConfiguration.cs  # NEW: Entity config
+
 FMS.Infrastructure/
 ├── ExternalServices/
 │   └── GPS/
@@ -542,6 +552,13 @@ FMS.Infrastructure/
     └── Models/
         └── GPSGate/
             └── GPSGateTrack.cs                  # UPDATE: Add Variables property
+
+Documentation/
+└── Features/
+    └── FuelAudit/
+        └── Implementation/
+            └── database/
+                └── 01_fuel_audit_gps_readings.sql  # NEW: Database script
 ```
 
 ---
@@ -550,34 +567,200 @@ FMS.Infrastructure/
 
 | Dependency | Status | Action Required |
 |------------|--------|-----------------|
-| `GPSGateTrack.cs` | Needs update | Add `Variables` property |
+| `GPSGateTrack.cs` | ⏳ Needs update | Add `Variables` property |
 | `GPSGateVariable.cs` | ✅ Exists | Reuse as-is |
 | `ParseSensorVariables()` | ✅ Exists | Reuse or extract to utility |
 | `IGPSGateConfigurationProvider` | ✅ Exists | Reuse for API auth |
 | `vehicle_provider_mappings` | ✅ Exists | Use for device ID lookup |
+| `fuel_audit_gps_readings` | ⏳ New table | Create with migration script |
+| `FuelAuditGPSReading` entity | ⏳ New | Create entity and configuration |
 
 ---
 
-## 10. Next Steps
+## 10. Data Persistence
 
-1. [ ] Update `GPSGateTrack.cs` to add `Variables` property
-2. [ ] Create `IFuelAuditGPSService` interface
-3. [ ] Create DTOs (`VehicleFuelPositionDTO`, etc.)
-4. [ ] Implement `FuelAuditGPSService`
-5. [ ] Register service in DI container
-6. [ ] Write unit tests
-7. [ ] Integration test with actual GPSGate API
+### 10.1 Database Table: `fuel_audit_gps_readings`
+
+Store GPS fuel readings for audit records and avoid repeated API calls.
+
+```sql
+-- MySQL 5.5.6 compatible
+CREATE TABLE IF NOT EXISTS fuel_audit_gps_readings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    audit_id INT NULL COMMENT 'FK to fuel_audits table (if linked to specific audit)',
+    vehicle_id INT NOT NULL COMMENT 'FK to vehicles table',
+    reading_date DATE NOT NULL COMMENT 'The date we requested fuel reading for',
+    reading_type ENUM('opening', 'closing') NOT NULL COMMENT 'Opening or closing stock reading',
+    
+    -- Fuel Data
+    fuel_level DECIMAL(10,2) NULL COMMENT 'Fuel level in liters',
+    fuel_level_unit VARCHAR(20) DEFAULT 'Liters',
+    
+    -- Timestamp of actual reading
+    reading_timestamp DATETIME NULL COMMENT 'Actual timestamp from GPS track',
+    actual_data_date DATE NULL COMMENT 'Date of actual data (may differ from reading_date)',
+    
+    -- Data Quality
+    data_quality TINYINT NOT NULL COMMENT '1=Exact, 2=Interpolated, 3=Unavailable, 4=NoSensor, 5=SensorNotReporting',
+    data_quality_reason VARCHAR(255) NULL,
+    
+    -- Vehicle Status at Reading
+    was_online BIT(1) DEFAULT 0,
+    latitude DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
+    ignition_status BIT(1) NULL,
+    
+    -- Source Tracking
+    gps_device_id VARCHAR(50) NULL COMMENT 'GPSGate user/device ID used',
+    track_info_id INT NULL COMMENT 'GPSGate trackInfoId for traceability',
+    
+    -- Audit Trail
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by INT NULL COMMENT 'User who triggered the reading',
+    
+    -- Indexes
+    INDEX idx_audit_id (audit_id),
+    INDEX idx_vehicle_date (vehicle_id, reading_date),
+    INDEX idx_reading_date_type (reading_date, reading_type),
+    
+    -- Foreign Keys (adjust if needed)
+    CONSTRAINT fk_gps_reading_vehicle FOREIGN KEY (vehicle_id) 
+        REFERENCES vehicles(vehicleId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Stores GPS fuel level readings for fuel audit';
+```
+
+### 10.2 Entity: `FuelAuditGPSReading`
+
+**Location:** `FMS.Domain/Entities/FuelAudit/`
+
+```csharp
+namespace FMS.Domain.Entities.FuelAudit
+{
+    /// <summary>
+    /// Stores GPS fuel readings for audit records
+    /// </summary>
+    public class FuelAuditGPSReading
+    {
+        public int Id { get; set; }
+        public int? AuditId { get; set; }
+        public int VehicleId { get; set; }
+        public DateTime ReadingDate { get; set; }
+        public string ReadingType { get; set; } = "opening"; // opening, closing
+        
+        // Fuel Data
+        public decimal? FuelLevel { get; set; }
+        public string FuelLevelUnit { get; set; } = "Liters";
+        
+        // Timestamp
+        public DateTime? ReadingTimestamp { get; set; }
+        public DateTime? ActualDataDate { get; set; }
+        
+        // Data Quality
+        public int DataQuality { get; set; }
+        public string? DataQualityReason { get; set; }
+        
+        // Vehicle Status
+        public bool WasOnline { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public bool? IgnitionStatus { get; set; }
+        
+        // Source Tracking
+        public string? GPSDeviceId { get; set; }
+        public int? TrackInfoId { get; set; }
+        
+        // Audit Trail
+        public DateTime CreatedAt { get; set; }
+        public int? CreatedBy { get; set; }
+        
+        // Navigation
+        public virtual Vehicle? Vehicle { get; set; }
+    }
+}
+```
+
+### 10.3 Service Update: Save Readings
+
+```csharp
+// In FuelAuditGPSService
+
+public async Task<FMSResponse<VehicleFuelPositionDTO>> GetVehicleFuelAtDateAsync(
+    int vehicleId, DateTime date, string readingType = "opening", int? auditId = null)
+{
+    // 1. Check if we already have this reading cached
+    var existingReading = await _context.FuelAuditGPSReadings
+        .FirstOrDefaultAsync(r => 
+            r.VehicleId == vehicleId && 
+            r.ReadingDate == date.Date && 
+            r.ReadingType == readingType);
+    
+    if (existingReading != null)
+    {
+        // Return cached data
+        return FMSResponse<VehicleFuelPositionDTO>.Success(MapToDTO(existingReading));
+    }
+    
+    // 2. Fetch from GPSGate API
+    var result = await FetchFromGPSGateAsync(vehicleId, date, readingType);
+    
+    if (result.IsSuccess && result.Data != null)
+    {
+        // 3. Save to database for future use
+        var reading = new FuelAuditGPSReading
+        {
+            AuditId = auditId,
+            VehicleId = vehicleId,
+            ReadingDate = date.Date,
+            ReadingType = readingType,
+            FuelLevel = result.Data.FuelLevel,
+            ReadingTimestamp = result.Data.ReadingTimestamp,
+            ActualDataDate = result.Data.ActualDataDate,
+            DataQuality = (int)result.Data.DataQuality,
+            DataQualityReason = result.Data.DataQualityReason,
+            WasOnline = result.Data.WasOnline,
+            Latitude = result.Data.Latitude,
+            Longitude = result.Data.Longitude,
+            IgnitionStatus = result.Data.IgnitionStatus,
+            GPSDeviceId = result.Data.GPSDeviceId,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        _context.FuelAuditGPSReadings.Add(reading);
+        await _context.SaveChangesAsync();
+    }
+    
+    return result;
+}
+```
 
 ---
 
-## 11. Open Questions
+## 11. Next Steps
 
-| # | Question | Notes |
-|---|----------|-------|
-| 1 | Should we cache fuel readings? | Avoid repeated API calls for same date |
-| 2 | What's the throttle limit for GPSGate API? | Avoid rate limiting |
-| 3 | How far back should we search for data? | Currently proposed: 7 days |
-| 4 | Should we store historical readings in FMS? | For faster future audits |
+1. [x] Design GPS Data Service approach (Parallel API Calls)
+2. [x] Define data persistence strategy (Save to `fuel_audit_gps_readings`)
+3. [ ] Create database table `fuel_audit_gps_readings`
+4. [ ] Update `GPSGateTrack.cs` to add `Variables` property
+5. [ ] Create `IFuelAuditGPSService` interface
+6. [ ] Create DTOs (`VehicleFuelPositionDTO`, etc.)
+7. [ ] Create entity `FuelAuditGPSReading` and configuration
+8. [ ] Implement `FuelAuditGPSService`
+9. [ ] Register service in DI container
+10. [ ] Write unit tests
+11. [ ] Integration test with actual GPSGate API
+
+---
+
+## 12. Open Questions (Resolved)
+
+| # | Question | Decision |
+|---|----------|----------|
+| 1 | Should we cache fuel readings? | ✅ **Yes** - Save to `fuel_audit_gps_readings` table |
+| 2 | What's the throttle limit for GPSGate API? | Max 10 concurrent calls |
+| 3 | How far back should we search for data? | 7 days |
+| 4 | Should we store historical readings in FMS? | ✅ **Yes** - For faster future audits |
+| 5 | Bulk vs. Parallel API calls? | ✅ **Parallel** - GPSGate bulk is current-only |
 
 ---
 
@@ -586,3 +769,4 @@ FMS.Infrastructure/
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | Nov 27, 2025 | | Initial design |
+| 1.1 | Nov 27, 2025 | | Finalized approach: Parallel API calls with data persistence |

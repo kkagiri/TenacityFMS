@@ -1,7 +1,8 @@
 # Fuel Audit System - Task Breakdown & Implementation Checklist
 
-**Version:** 1.0
+**Version:** 1.1
 **Created:** November 27, 2025
+**Updated:** November 27, 2025
 **Status:** Planning
 
 ---
@@ -41,12 +42,14 @@
 | 1.1.7 | ✅ Design GPS Data Service | | ✅ Done | GPSDataService_Design.md |
 
 ### 1.2 Design Decisions
+
 | # | Decision | Options | Selected | Rationale |
 |---|----------|---------|----------|-----------|
 | 1.2.1 | Audit storage | Snapshot vs. Live calculation | TBD | |
 | 1.2.2 | Estimation algorithm | Simple avg vs. ML-based | TBD | |
-| 1.2.3 | GPS data source | Direct sensor vs. Pre-aggregated | **GPSGate /tracks API** | Returns variables with fuel level per track point |
-| 1.2.4 | Report generation | Server-side vs. Client-side | TBD | |
+| 1.2.3 | GPS data source | Direct sensor vs. Pre-aggregated | **GPSGate /tracks API (Parallel Calls)** | Returns variables with fuel level per track point. Parallel calls with throttling (max 10 concurrent). Results saved to `fuel_audit_gps_readings` table. |
+| 1.2.4 | GPS data persistence | None vs. Cache readings | **Save to table** | Store readings in `fuel_audit_gps_readings` for audit records |
+| 1.2.5 | Report generation | Server-side vs. Client-side | TBD | |
 
 ---
 
@@ -253,9 +256,10 @@
 ## Dependencies & Blockers
 
 ### Current Blockers
+
 | # | Blocker | Owner | Status | Resolution Date |
 |---|---------|-------|--------|-----------------|
-| B-001 | GPS data source not identified | | ⬜ Open | |
+| B-001 | ~~GPS data source not identified~~ | | ✅ Resolved | Nov 27, 2025 |
 | B-002 | Vehicle type field confirmation | | ⬜ Open | |
 | B-003 | Pickup tank capacity availability | | ⬜ Open | |
 
@@ -271,18 +275,20 @@
 ## Progress Tracking
 
 ### Overall Progress
-```
-Phase 1: Requirements    [██░░░░░░░░] 20%
+
+```text
+Phase 1: Requirements    [████░░░░░░] 40%
 Phase 2: Database        [░░░░░░░░░░]  0%
 Phase 3: Backend         [░░░░░░░░░░]  0%
 Phase 4: Frontend        [░░░░░░░░░░]  0%
 Phase 5: Testing         [░░░░░░░░░░]  0%
 Phase 6: Deployment      [░░░░░░░░░░]  0%
 ─────────────────────────────────────────
-OVERALL                  [█░░░░░░░░░]  3%
+OVERALL                  [██░░░░░░░░]  7%
 ```
 
 ### Legend
+
 - ✅ Complete
 - 🔄 In Progress
 - ⬜ Pending
@@ -295,3 +301,4 @@ OVERALL                  [█░░░░░░░░░]  3%
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | Nov 27, 2025 | | Initial task breakdown |
+| 1.1 | Nov 27, 2025 | | GPS data source finalized; Design decisions updated |
