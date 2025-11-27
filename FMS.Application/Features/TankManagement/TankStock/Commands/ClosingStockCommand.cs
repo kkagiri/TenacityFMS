@@ -65,7 +65,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 if (request.ClosingStock <= 0) return new FMSResponseMessage(false, "Closing stock must be greater than 0");
 
                 // Validate historical entry against future records policy
-                if (entryDate.Date < DateTime.Now.Date)
+                if (entryDate.Date < DateTime.UtcNow.Date)
                 {
                     var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync(
                         request.TankId, entryDate, VolumeChangeReasonEnum.ClosingStock, cancellationToken);
@@ -206,7 +206,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                 // Get all transactions for the day
                 var transactions = await _context.TankVolumeHistories
-                    .Where(tvh => tvh.TankId == request.TankId && tvh.Timestamp.Date == DateTime.Now.Date)
+                    .Where(tvh => tvh.TankId == request.TankId && tvh.Timestamp.Date == entryDate.Date)
                     .ToListAsync();
 
                 var totalRefills = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum(t => t.VolumeChange);
@@ -246,7 +246,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 //Cursor - Use TankVolumeHistoryIntegrationService which will handle tank updates atomically
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync(
                     tankId: request.TankId,
-                    timestamp: entryDate,
+                    timestamp: entryDate.AddHours(23).AddMinutes(55), // Always 23:55:00 UTC on the entry date
                     volumeChange: volumeChange,
                     stockId: existingTankStock.EntryId,  // Use existing entry ID
                     isOpening: false, // This is a closing stock

@@ -99,7 +99,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var stockTaking = new Tankstock
                 {
                     TankId = request.TankId,
-                    EntryDate = request.EntryDate ?? DateTime.UtcNow,
+                    EntryDate = entryDate.AddMinutes(5), // Always 00:05:00 UTC on the entry date
                     EntryType = VolumeChangeReasonEnum.OpeningStock,
                     ManualOpeningLevel = request.OpeningStock,
                     OpeningMeter = request.OpeningMeter, // Save opening meter reading
@@ -125,7 +125,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 }
 
                 // Determine physical stock source based on entry date
-                var physicalStockSource = entryDate.Date == DateTime.Now.Date
+                var physicalStockSource = entryDate.Date == DateTime.UtcNow.Date
                     ? "Manual Opening Stock"
                     : "Manual Opening Stock (Historical)";
 
