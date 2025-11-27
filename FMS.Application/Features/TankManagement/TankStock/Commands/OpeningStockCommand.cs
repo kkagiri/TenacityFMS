@@ -73,18 +73,20 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     return new FMSResponseMessage(false, validationResult.Message);
                 }
 
-                // Check if TankStock entry already exists for this tank on this date (single-row-per-day architecture)
-                var existingTankStock = await _context.Tankstocks
+                // Check if OPENING STOCK entry already exists for this tank on this date
+                var existingOpeningStock = await _context.Tankstocks
                     .Where(x => x.TankId == request.TankId &&
                         x.EntryDate.Date == entryDate.Date &&
-                        !x.IsDeleted)
+                        x.EntryType == VolumeChangeReasonEnum.OpeningStock &&
+                        (x.IsDeleted == null || x.IsDeleted == false))
                     .FirstOrDefaultAsync(cancellationToken);
 
-                if (existingTankStock != null)
+                if (existingOpeningStock != null)
                 {
+                    var tankName = tank.Name ?? $"Tank {request.TankId}";
                     return new FMSResponseMessage(false,
-                        $"A TankStock entry already exists for tank {request.TankId} on {entryDate:yyyy-MM-dd}. " +
-                        "Only one TankStock entry per tank per day is allowed. " +
+                        $"An opening stock entry already exists for {tankName} on {entryDate:yyyy-MM-dd}. " +
+                        "Only one opening stock per tank per day is allowed. " +
                         "Use Update operation to modify existing entry.");
                 }
 

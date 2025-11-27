@@ -37,7 +37,7 @@ namespace FMS.BackgroundServices.FMS {
             while (!stoppingToken.IsCancellationRequested) {
                 _logger.LogInformation ("AutomatedClosingStockService running at: {time}", DateTimeOffset.Now);
 
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 var endOfShiftTime = TimeSpan.TryParse (_configuration["EndOfShiftTime"], out var parsedTime) ?
                     parsedTime :
                     new TimeSpan (18, 0, 0);
@@ -58,7 +58,7 @@ namespace FMS.BackgroundServices.FMS {
                         var tanks = await context.Tanks
                             .Where (t => t.UseBookKeeping == 1)
                             .Where (x => !x.TankVolumeHistories.Any (tvh =>
-                                tvh.Timestamp.Date == DateTime.Now.Date &&
+                                tvh.Timestamp.Date == DateTime.UtcNow.Date &&
                                 tvh.ChangeReason == VolumeChangeReasonEnum.ClosingStock))
                             .ToListAsync (stoppingToken);
 
@@ -117,7 +117,7 @@ namespace FMS.BackgroundServices.FMS {
 
                             if (latestMeasurement?.ProductVolume.HasValue == true && latestMeasurement.ProductVolume.Value > 0) {
                                 // Use sensor reading if it's recent (within last 24 hours)
-                                var measurementAge = DateTime.Now - latestMeasurement.DateTime;
+                                var measurementAge = DateTime.UtcNow - latestMeasurement.DateTime;
                                 if (measurementAge.TotalHours <= 24) {
                                     return (decimal) latestMeasurement.ProductVolume.Value;
                                 }
