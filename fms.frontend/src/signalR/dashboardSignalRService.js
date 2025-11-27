@@ -21,10 +21,10 @@ import {
   SignalRError,
   resolveSignalRBaseUrl,
   buildHubUrl,
-  logConnectionConfig,
   logConnectionSuccess,
   createAccessTokenFactory,
   getConnectionInfo as getBaseConnectionInfo,
+  ensureValidToken,
 } from "./signalRBaseService";
 
 // Re-export for backward compatibility
@@ -184,6 +184,15 @@ class DashboardSignalRService {
     console.log(
       `[Dashboard SignalR] Starting connection attempt (ID: ${connectionId})...`
     );
+
+    // Ensure we have a valid token before attempting connection
+    // This will automatically refresh the token if it's expired or about to expire
+    const token = await ensureValidToken("Dashboard");
+    if (!token) {
+      console.warn("[Dashboard SignalR] No valid auth token available - skipping connection (user not authenticated or token refresh failed)");
+      this.state = ConnectionState.DISCONNECTED;
+      return;
+    }
 
     // Re-entrancy and state guard to avoid AbortError from overlapping starts
     if (this._isStarting) {

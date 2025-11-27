@@ -75,7 +75,7 @@ namespace FMS.Application.Features.GPSGate.Services
             }
         }
 
-        public async Task<GenerateReportResponseDto> GenerateReportAsync(string sessionId, int reportId, DateTime startDate, DateTime endDate)
+        public async Task<GenerateReportResponseDto> GenerateReportAsync(string sessionId, int reportId, DateTime startDate, DateTime endDate, string? jobId = null)
         {
             if (!await InitializeClientAsync() || _reportingClient == null)
             {
@@ -108,6 +108,7 @@ namespace FMS.Application.Features.GPSGate.Services
                 {
                     ReportId = reportId,
                     HandleId = handleId.Value,
+                    JobId = jobId, // Store the GUID job identifier for tracking cancellation
                     SessionId = sessionId,
                     StartDate = startDate,
                     EndDate = endDate,

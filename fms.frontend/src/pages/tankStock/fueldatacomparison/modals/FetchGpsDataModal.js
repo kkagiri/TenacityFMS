@@ -14,15 +14,28 @@ import './FetchGpsDataModal.scss';
  * - Overwrite existing data option
  * - Validation for date range
  * - Fetches data for ALL vehicles (no filters)
+ * - Cancel running fetch operation
  *
  * @param {boolean} visible - Modal visibility
  * @param {object} currentFilters - Current active filters { startDate, endDate }
  * @param {Function} onClose - Close callback
  * @param {Function} onFetch - Fetch callback with parameters
+ * @param {boolean} isFetching - Whether GPS fetch is in progress
+ * @param {string} currentJobId - Current GPS fetch job ID
+ * @param {Function} onCancel - Cancel callback
+ * @param {object} fetchProgress - Current fetch progress { status, progressPercent, message }
  * @returns {JSX.Element} Fetch GPS Data Modal
  */
-const FetchGpsDataModal = ({ visible, currentFilters, onClose, onFetch }) => {
-  const [isFetching, setIsFetching] = useState(false);
+const FetchGpsDataModal = ({
+  visible,
+  currentFilters,
+  onClose,
+  onFetch,
+  isFetching: isGpsFetching = false,
+  currentJobId = null,
+  onCancel,
+  fetchProgress = null
+}) => {
   const [fetchParams, setFetchParams] = useState({
     startDate: null,
     endDate: null,
@@ -90,19 +103,23 @@ const FetchGpsDataModal = ({ visible, currentFilters, onClose, onFetch }) => {
     }
 
     try {
-      setIsFetching(true);
-
       notify('GPS data fetch started. This may take several minutes...', 'info', 5000);
 
       await onFetch(fetchParams);
 
-      notify('GPS data fetched successfully', 'success', 3000);
-      onClose();
+      // Note: onFetch closes the modal and manages fetching state
     } catch (error) {
       console.error('Error fetching GPS data:', error);
       notify(error.message || 'Failed to fetch GPS data', 'error', 3000);
-    } finally {
-      setIsFetching(false);
+    }
+  };
+
+  /**
+   * Handle cancel
+   */
+  const handleCancel = async () => {
+    if (onCancel && currentJobId) {
+      await onCancel();
     }
   };
 
@@ -210,22 +227,58 @@ const FetchGpsDataModal = ({ visible, currentFilters, onClose, onFetch }) => {
           </div>
         )}
 
+        {/* Fetch Progress Indicator */}
+        {isGpsFetching && fetchProgress && (
+          <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-mb-5">
+            <div className="tw-flex tw-items-center tw-gap-3 tw-mb-2">
+              <i className="fa-light fa-spinner fa-spin tw-text-blue-600"></i>
+              <div className="tw-flex-1">
+                <div className="tw-text-sm tw-font-semibold tw-text-blue-800">
+                  {fetchProgress.status || 'Fetching GPS Data...'}
+                </div>
+                {fetchProgress.message && (
+                  <div className="tw-text-xs tw-text-blue-700 tw-mt-1">
+                    {fetchProgress.message}
+                  </div>
+                )}
+              </div>
+            </div>
+            {fetchProgress.progressPercent > 0 && (
+              <div className="tw-w-full tw-bg-blue-100 tw-rounded-full tw-h-2">
+                <div
+                  className="tw-bg-blue-600 tw-h-2 tw-rounded-full tw-transition-all tw-duration-300"
+                  style={{ width: `${fetchProgress.progressPercent}%` }}
+                ></div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
           <Button
-            text="Cancel"
+            text="Close"
             onClick={onClose}
             type="normal"
             stylingMode="outlined"
-            disabled={isFetching}
+            disabled={isGpsFetching}
           />
+          {isGpsFetching && currentJobId && (
+            <Button
+              text="Cancel Fetch"
+              onClick={handleCancel}
+              type="danger"
+              stylingMode="outlined"
+              icon="fa-light fa-times"
+            />
+          )}
           <Button
-            text={isFetching ? "Fetching..." : "Fetch GPS Data"}
+            text={isGpsFetching ? "Fetching..." : "Fetch GPS Data"}
             onClick={handleFetch}
             type="success"
             stylingMode="contained"
-            disabled={isFetching}
-            icon={isFetching ? "fa-light fa-spinner fa-spin" : "fa-light fa-satellite-dish"}
+            disabled={isGpsFetching}
+            icon={isGpsFetching ? "fa-light fa-spinner fa-spin" : "fa-light fa-satellite-dish"}
           />
         </div>
       </div>

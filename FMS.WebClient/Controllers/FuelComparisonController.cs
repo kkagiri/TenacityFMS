@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.FuelComparison.Commands;
 using FMS.Application.Features.FuelComparison.DTOs;
 using FMS.Application.Features.FuelComparison.Queries;
+using FMS.Application.Features.GPSGate.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -28,6 +30,10 @@ namespace FMS.WebClient.Controllers
         private readonly IMediator _mediator;
         private readonly ILogger<FuelComparisonController> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+
+        // Static dictionary to track cancellation tokens for GPS fetch jobs
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> _activeJobs
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource>();
 
         public FuelComparisonController(
             IMediator mediator,
@@ -151,6 +157,10 @@ namespace FMS.WebClient.Controllers
                 // Generate unique job ID
                 var jobId = Guid.NewGuid().ToString();
 
+                // Create cancellation token source for this job
+                var cts = new CancellationTokenSource();
+                _activeJobs.TryAdd(jobId, cts);
+
                 // Fire-and-forget: Start the long-running operation in background
                 // IMPORTANT: Use IServiceScopeFactory to create a new DI scope for background work
                 // This prevents ObjectDisposedException when the controller's scope is disposed
@@ -169,13 +179,25 @@ namespace FMS.WebClient.Controllers
                             jobId
                         );
 
-                        await scopedMediator.Send(command);
+                        await scopedMediator.Send(command, cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        scopedLogger.LogInformation("GPS fetch job {JobId} was cancelled", jobId);
                     }
                     catch (Exception ex)
                     {
                         scopedLogger.LogError(ex, "Background GPS fetch job {JobId} failed", jobId);
                     }
-                });
+                    finally
+                    {
+                        // Clean up cancellation token
+                        if (_activeJobs.TryRemove(jobId, out var removedCts))
+                        {
+                            removedCts?.Dispose();
+                        }
+                    }
+                }, cts.Token);
 
                 // Return immediately with job ID
                 return Ok(FMSResponse<object>.Success(
@@ -187,6 +209,51 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogError(ex, "Error starting GPS data fetch");
                 return StatusCode(500, FMSResponse<object>.Failed($"Failed to start GPS data fetch: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Cancel a running GPS data fetch job
+        /// Sends cancellation request to GPSGate server and cancels local processing
+        /// </summary>
+        /// <param name="jobId">Job ID to cancel</param>
+        /// <returns>Success or error response</returns>
+        [HttpPost("cancel-gps-fetch/{jobId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> CancelGpsFetch(string jobId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(jobId))
+                {
+                    return BadRequest(FMSResponse<object>.Failed("Job ID is required"));
+                }
+
+                if (_activeJobs.TryRemove(jobId, out var cts))
+                {
+                    // Cancel the local processing token
+                    cts.Cancel();
+
+                    // Send cancellation instruction to GPSGate server
+                    // This will instruct GPSGate to stop generating the report
+                    var cancelCommand = new CancelGpsReportCommand(jobId);
+                    await _mediator.Send(cancelCommand);
+
+                    cts.Dispose();
+
+                    _logger.LogInformation("GPS fetch job {JobId} cancelled successfully (local + GPSGate server)", jobId);
+                    return Ok(FMSResponse<object>.Success(null, "GPS fetch cancelled successfully"));
+                }
+                else
+                {
+                    _logger.LogWarning("GPS fetch job {JobId} not found or already completed", jobId);
+                    return NotFound(FMSResponse<object>.Failed("Job not found or already completed"));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling GPS fetch job {JobId}", jobId);
+                return StatusCode(500, FMSResponse<object>.Failed($"Failed to cancel GPS fetch: {ex.Message}"));
             }
         }
 

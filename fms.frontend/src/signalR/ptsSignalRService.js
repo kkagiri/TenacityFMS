@@ -15,6 +15,7 @@ import {
   logConnectionSuccess,
   createAccessTokenFactory,
   getConnectionInfo as getBaseConnectionInfo,
+  ensureValidToken,
 } from "./signalRBaseService";
 
 // Re-export for backward compatibility
@@ -94,6 +95,15 @@ class PTSSignalRService {
     console.log(
       `[PTS SignalR] Starting connection attempt (ID: ${connectionId})...`
     );
+
+    // Ensure we have a valid token before attempting connection
+    // This will automatically refresh the token if it's expired or about to expire
+    const token = await ensureValidToken("PTS");
+    if (!token) {
+      console.warn("[PTS SignalR] No valid auth token available - skipping connection (user not authenticated or token refresh failed)");
+      this.state = ConnectionState.DISCONNECTED;
+      return;
+    }
 
     if (this._isStarting) {
       console.log("[PTS SignalR] Start already in progress, skipping");

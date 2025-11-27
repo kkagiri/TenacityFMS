@@ -9,7 +9,10 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.GPSGate.Commands
 {
-    public record GenerateGPSReportCommand(string SessionId, GenerateReportRequestDto ReportRequest) : IRequest<FMSResponse<GenerateReportResponseDto>>;
+    public record GenerateGPSReportCommand(
+        string SessionId,
+        GenerateReportRequestDto ReportRequest,
+        string? JobId = null) : IRequest<FMSResponse<GenerateReportResponseDto>>;
 
     public class GenerateGPSReportCommandHandler : IRequestHandler<GenerateGPSReportCommand, FMSResponse<GenerateReportResponseDto>>
     {
@@ -60,7 +63,8 @@ namespace FMS.Application.Features.GPSGate.Commands
                     request.SessionId,
                     request.ReportRequest.ReportId,
                     request.ReportRequest.StartDate,
-                    request.ReportRequest.EndDate);
+                    request.ReportRequest.EndDate,
+                    request.JobId); // Pass JobId to service
 
                 if (!result.Success)
                 {

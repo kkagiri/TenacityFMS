@@ -11,13 +11,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using FMS.WebClient.Attributes; // For RequirePermission attribute
-
+using FMS.WebClient.Attributes;
 
 namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class TankStockReportsController : ControllerBase
     {
         private readonly IMediator _mediator;

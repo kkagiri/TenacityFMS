@@ -10,7 +10,8 @@ import businessSignalRService from '../../../../signalR/businessSignalRService';
 import {
   getVarianceReport,
   getUserSettings,
-  fetchGpsData
+  fetchGpsData,
+  cancelGpsFetch
 } from '../../../../api/fuelComparisonClient';
 import './FuelDataComparisonDashboard.scss';
 
@@ -75,6 +76,18 @@ const FuelDataComparisonDashboard = () => {
 
       if (response.isSuccess) {
         setReportData(response.data);
+
+        // Debug: Log GPS data statistics
+        const details = response.data?.details || [];
+        const totalRecords = details.length;
+        const recordsWithGps = details.filter(d => d.gpsVolume != null).length;
+        const recordsWithEffectiveGps = details.filter(d => d.effectiveGpsVolume != null).length;
+        console.log('[Fuel Comparison] Data loaded:', {
+          totalRecords,
+          recordsWithGps,
+          recordsWithEffectiveGps,
+          sampleRecord: details[0]
+        });
       } else {
         notify(response.message || 'Failed to load variance report', 'error', 3000);
         setReportData(null);
@@ -239,6 +252,32 @@ const FuelDataComparisonDashboard = () => {
   };
 
   /**
+   * Handle GPS data fetch cancellation
+   */
+  const handleCancelGpsFetch = async () => {
+    if (!gpsFetchJob) {
+      notify('No GPS fetch job to cancel', 'warning', 3000);
+      return;
+    }
+
+    try {
+      const response = await cancelGpsFetch(gpsFetchJob);
+
+      if (response.isSuccess) {
+        setIsFetchingGps(false);
+        setGpsFetchJob(null);
+        setGpsFetchProgress({ status: 'Cancelled', progressPercent: 0, message: '' });
+        notify('GPS fetch cancelled successfully', 'success', 3000);
+      } else {
+        notify(response.message || 'Failed to cancel GPS fetch', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error cancelling GPS fetch:', error);
+      notify('Error cancelling GPS data fetch', 'error', 3000);
+    }
+  };
+
+  /**
    * Handle data refresh after grid operations (edit/delete)
    */
   const handleDataRefresh = () => {
@@ -383,6 +422,10 @@ const FuelDataComparisonDashboard = () => {
           currentFilters={{ startDate, endDate, siteId: selectedSiteIds?.[0], vehicleId: null }}
           onClose={() => setShowFetchGpsModal(false)}
           onFetch={handleFetchGpsData}
+          isFetching={isFetchingGps}
+          currentJobId={gpsFetchJob}
+          onCancel={handleCancelGpsFetch}
+          fetchProgress={gpsFetchProgress}
         />
       )}
 

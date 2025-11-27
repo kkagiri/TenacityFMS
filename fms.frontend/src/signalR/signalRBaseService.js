@@ -8,6 +8,7 @@ import {
   getResolvedApiBaseUrlSync,
   resolveApiBaseUrl,
 } from "../api/axiosInstance";
+import axiosInstance from "../api/axiosInstance";
 
 // ============================================================
 // ENUMS & CONSTANTS
@@ -77,6 +78,163 @@ export const normalizeSignalRHost = (value) =>
  */
 export const getAuthToken = () => {
   return localStorage.getItem("token");
+};
+
+/**
+ * Get refresh token from localStorage
+ * @returns {string|null} Refresh token or null
+ */
+export const getRefreshToken = () => {
+  return localStorage.getItem("refreshToken");
+};
+
+/**
+ * Decode JWT token to get payload (without verification)
+ * @param {string} token - JWT token
+ * @returns {object|null} Decoded payload or null
+ */
+export const decodeJwtToken = (token) => {
+  try {
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch (error) {
+    console.warn('[SignalR] Failed to decode JWT token:', error);
+    return null;
+  }
+};
+
+// ============================================================
+// TOKEN REFRESH MUTEX (prevent concurrent refresh attempts)
+// ============================================================
+let isRefreshingToken = false;
+let refreshPromise = null;
+
+/**
+ * Check if token is expired or about to expire
+ * @param {string} token - JWT token
+ * @param {number} bufferSeconds - Buffer time in seconds (default: 60 = 1 minute)
+ * @returns {boolean} True if token is expired or about to expire
+ */
+export const isTokenExpired = (token, bufferSeconds = 60) => {
+  const payload = decodeJwtToken(token);
+  if (!payload || !payload.exp) {
+    console.warn('[SignalR] Token has no expiration claim');
+    return true; // Treat as expired if we can't determine
+  }
+
+  const expirationTime = payload.exp * 1000; // Convert to milliseconds
+  const currentTime = Date.now();
+  const bufferMs = bufferSeconds * 1000;
+
+  const isExpired = currentTime >= (expirationTime - bufferMs);
+
+  if (isExpired) {
+    const expiresIn = Math.round((expirationTime - currentTime) / 1000);
+    console.log(`[SignalR] Token ${expiresIn > 0 ? `expires in ${expiresIn}s` : `expired ${Math.abs(expiresIn)}s ago`}`);
+  }
+
+  return isExpired;
+};
+
+/**
+ * Attempt to refresh the authentication token
+ * Uses the same mechanism as axios interceptor for consistency
+ * Uses mutex to prevent multiple concurrent refresh attempts
+ * @param {string} serviceName - Service name for logging
+ * @returns {Promise<string|null>} New token or null if refresh failed
+ */
+export const refreshAuthToken = async (serviceName = "SignalR") => {
+  // If already refreshing, wait for the existing refresh to complete
+  if (isRefreshingToken && refreshPromise) {
+    console.log(`[${serviceName}] Token refresh already in progress, waiting...`);
+    try {
+      const result = await refreshPromise;
+      console.log(`[${serviceName}] Shared refresh completed: ${result ? 'success' : 'failed'}`);
+      return result;
+    } catch (error) {
+      console.warn(`[${serviceName}] Shared refresh failed:`, error);
+      return null;
+    }
+  }
+
+  const refreshToken = getRefreshToken();
+
+  if (!refreshToken) {
+    console.warn(`[${serviceName}] No refresh token available - cannot refresh`);
+    return null;
+  }
+
+  // Start refresh with mutex
+  isRefreshingToken = true;
+
+  refreshPromise = (async () => {
+    try {
+      console.log(`[${serviceName}] Attempting token refresh...`);
+
+      const response = await axiosInstance.post("/User/refresh-token", { refreshToken });
+      const responseData = response.data.Data || response.data.data || response.data;
+      const { Token: newToken, RefreshToken: newRefreshToken } = responseData;
+
+      if (!newToken) {
+        console.error(`[${serviceName}] Token refresh returned no token`);
+        return null;
+      }
+
+      // Update tokens in localStorage
+      localStorage.setItem("token", newToken);
+      if (newRefreshToken) {
+        localStorage.setItem("refreshToken", newRefreshToken);
+      }
+
+      // Update axios default header
+      axiosInstance.defaults.headers.common["Authorization"] = "Bearer " + newToken;
+
+      console.log(`[${serviceName}] ✅ Token refreshed successfully`);
+      return newToken;
+    } catch (error) {
+      console.error(`[${serviceName}] ❌ Token refresh failed:`, error);
+
+      // If refresh fails with 401, the refresh token is also invalid
+      if (error.response?.status === 401) {
+        console.error(`[${serviceName}] Refresh token expired - user needs to login again`);
+        // Don't clear tokens here - let the main auth flow handle that
+      }
+
+      return null;
+    } finally {
+      isRefreshingToken = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+/**
+ * Ensure we have a valid token before SignalR connection
+ * Will attempt to refresh if token is expired or about to expire
+ * @param {string} serviceName - Service name for logging
+ * @returns {Promise<string|null>} Valid token or null
+ */
+export const ensureValidToken = async (serviceName = "SignalR") => {
+  const token = getAuthToken();
+
+  if (!token) {
+    console.warn(`[${serviceName}] No auth token available`);
+    return null;
+  }
+
+  // Check if token is expired or about to expire (within 60 seconds)
+  if (isTokenExpired(token, 60)) {
+    console.log(`[${serviceName}] Token expired or expiring soon - attempting refresh`);
+    const newToken = await refreshAuthToken(serviceName);
+    return newToken;
+  }
+
+  return token;
 };
 
 // ============================================================
@@ -345,13 +503,18 @@ export function getConnectionInfo(
 // DEFAULT EXPORT (for backward compatibility)
 // ============================================================
 
-export default {
+const signalRBaseService = {
   ConnectionState,
   SignalRError,
   getWindowOrigin,
   getEnvironmentHint,
   normalizeSignalRHost,
   getAuthToken,
+  getRefreshToken,
+  decodeJwtToken,
+  isTokenExpired,
+  refreshAuthToken,
+  ensureValidToken,
   resolveSignalRBaseUrl,
   buildHubUrl,
   logConnectionConfig,
@@ -359,3 +522,5 @@ export default {
   createAccessTokenFactory,
   getConnectionInfo,
 };
+
+export default signalRBaseService;

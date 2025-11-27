@@ -48,9 +48,9 @@ export class AuthenticationService extends BaseService {
 
       // Handle FMSResponse<object> format from backend
       if (response.success && response.data) {
-        // Backend returns FMSResponse<object> with Data = { Token: "..." }
-        // So response.data contains { Token: "..." }
+        // Backend returns FMSResponse<object> with Data = { Token, RefreshToken, User }
         const token = response.data.Token || response.data.token;
+        const refreshToken = response.data.RefreshToken || response.data.refreshToken;
 
         if (!token) {
           this.logger.error("No token in response data:", response.data);
@@ -62,8 +62,16 @@ export class AuthenticationService extends BaseService {
           };
         }
 
-        // Store token and set up authentication
+        // Store access token and set up authentication
         this.setAuthToken(token);
+
+        // Store refresh token for automatic token renewal
+        if (refreshToken) {
+          localStorage.setItem("refreshToken", refreshToken);
+          this.logger.debug("Refresh token stored successfully");
+        } else {
+          this.logger.warn("No refresh token received from server - token refresh will not be available");
+        }
 
         // Test authentication by calling the health endpoint
         try {
@@ -516,6 +524,7 @@ export class AuthenticationService extends BaseService {
 
   clearAuthToken() {
     localStorage.removeItem("token"); // Use 'token' to match axiosInstance
+    localStorage.removeItem("refreshToken"); // Also clear refresh token
 
     // Remove from axios instance
     if (this.axiosInstance?.defaults?.headers?.common) {

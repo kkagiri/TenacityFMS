@@ -19,6 +19,7 @@ import { exportDataGrid } from 'devextreme/excel_exporter';
 import notify from 'devextreme/ui/notify';
 import EditGpsEntryModal from '../modals/EditGpsEntryModal';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal';
+import { usePermissions } from '../../../../hooks/usePermissions';
 import './ComparisonDataGrid.scss';
 
 /**
@@ -40,6 +41,11 @@ const ComparisonDataGrid = ({ data, varianceThreshold, onRefresh }) => {
   const dataGridRef = useRef(null);
   const [selectedRowForEdit, setSelectedRowForEdit] = useState(null);
   const [selectedRowForDelete, setSelectedRowForDelete] = useState(null);
+
+  // Get permissions from hook
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission('_Update_tankStock');
+  const canDelete = hasPermission('_Delete_tankStock');
 
   /**
    * Calculate row class based on variance threshold
@@ -134,27 +140,31 @@ const ComparisonDataGrid = ({ data, varianceThreshold, onRefresh }) => {
 
     return (
       <div className="tw-flex tw-items-center tw-gap-2">
-        <Button
-          icon="fa-light fa-pen-to-square"
-          hint="Edit GPS Entry"
-          onClick={() => setSelectedRowForEdit(row)}
-          disabled={!hasGpsEntry}
-          type="default"
-          stylingMode="text"
-          className="tw-text-blue-600 hover:tw-text-blue-800"
-        />
-        <Button
-          icon="fa-light fa-trash"
-          hint="Delete GPS Entry"
-          onClick={() => setSelectedRowForDelete(row)}
-          disabled={!hasGpsEntry}
-          type="danger"
-          stylingMode="text"
-          className="tw-text-red-600 hover:tw-text-red-800"
-        />
+        {canUpdate && (
+          <Button
+            icon="fa-light fa-pen-to-square"
+            hint="Edit GPS Entry"
+            onClick={() => setSelectedRowForEdit(row)}
+            disabled={!hasGpsEntry}
+            type="default"
+            stylingMode="text"
+            className="tw-text-blue-600 hover:tw-text-blue-800"
+          />
+        )}
+        {canDelete && (
+          <Button
+            icon="fa-light fa-trash"
+            hint="Delete GPS Entry"
+            onClick={() => setSelectedRowForDelete(row)}
+            disabled={!hasGpsEntry}
+            type="danger"
+            stylingMode="text"
+            className="tw-text-red-600 hover:tw-text-red-800"
+          />
+        )}
       </div>
     );
-  }, []);
+  }, [canUpdate, canDelete]);
 
   /**
    * Export to Excel
@@ -232,11 +242,12 @@ const ComparisonDataGrid = ({ data, varianceThreshold, onRefresh }) => {
         columnResizingMode="widget"
       >
         {/* Scrolling */}
-        <Scrolling mode="virtual" />
+        <Scrolling mode="standard" />
 
         {/* Paging */}
-        <Paging enabled={true} defaultPageSize={50} />
+        <Paging enabled={true} defaultPageSize={20} />
         <Pager
+          visible={true}
           showPageSizeSelector={true}
           allowedPageSizes={[20, 50, 100, 200]}
           showInfo={true}
@@ -282,6 +293,18 @@ const ComparisonDataGrid = ({ data, varianceThreshold, onRefresh }) => {
         <Column
           dataField="vehicleName"
           caption="Vehicle Name"
+          dataType="string"
+          width={120}
+        />
+        <Column
+          dataField="siteName"
+          caption="Site"
+          dataType="string"
+          width={120}
+        />
+        <Column
+          dataField="vehicleTypeName"
+          caption="Vehicle Type"
           dataType="string"
           width={120}
         />

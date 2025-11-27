@@ -281,7 +281,14 @@ axiosInstance.interceptors.response.use(
 
       // Handle authentication errors with token refresh
       if (error.response.status === 401 && !originalRequest._retry) {
+        const token = localStorage.getItem("token");
         const refreshToken = localStorage.getItem("refreshToken");
+
+        console.log("🔍 401 received - checking tokens:", {
+          hasToken: !!token,
+          hasRefreshToken: !!refreshToken,
+          endpoint: originalRequest.url
+        });
 
         // If this is the refresh-token endpoint failing, don't retry
         if (originalRequest.url?.includes("/User/refresh-token")) {
@@ -295,6 +302,8 @@ axiosInstance.interceptors.response.use(
         // If no refresh token, just logout
         if (!refreshToken) {
           console.error("🚫 No refresh token available - logging out");
+          console.error("💡 This usually means you logged in before refresh tokens were implemented.");
+          console.error("💡 Please log out and log in again to get a fresh refresh token.");
           localStorage.removeItem("token");
           window.location.href = "/login";
           return Promise.reject(error);

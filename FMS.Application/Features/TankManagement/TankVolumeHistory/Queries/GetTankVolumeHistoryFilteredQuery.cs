@@ -25,6 +25,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
         public int? Take { get; init; } = 100; // Default limit
         public bool? IncludeVehicleNames { get; init; } = true;
         public bool? UseManualDispensing { get; init; } = false; // Use TankStock manual dispensing instead of sensor dispensing
+        public bool? IncludeGpsData { get; init; } = false; // Include GPS refill volume from GPSGate report entries
     }
 
     public class GetTankVolumeHistoryFilteredQueryHandler : IRequestHandler<GetTankVolumeHistoryFilteredQuery, FMSResponse<List<TankVolumeHistoryDTO>>>
@@ -58,14 +59,14 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     // Use manual dispensing from TankStock instead of sensor dispensing
                     result = await GetTankVolumeHistoryWithManualDispensingAsync(
                         startDate, endDate, request.SiteId, request.TankId, request.RecordedBy,
-                        request.IncludeVehicleNames, cancellationToken);
+                        request.IncludeVehicleNames, request.IncludeGpsData, cancellationToken);
                 }
                 else
                 {
                     // Use sensor dispensing from TankVolumeHistory (default behavior)
                     result = await GetTankVolumeHistoryWithSensorDispensingAsync(
                         startDate, endDate, request.SiteId, request.TankId, request.RecordedBy,
-                        request.IncludeVehicleNames, cancellationToken);
+                        request.IncludeVehicleNames, request.IncludeGpsData, cancellationToken);
                 }
 
                 _logger.LogInformation("Retrieved {Count} tank volume history records with filters: SiteId={SiteId}, TankId={TankId}, StartDate={StartDate}, EndDate={EndDate}, UseManualDispensing={UseManualDispensing}",
@@ -85,7 +86,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
         /// </summary>
         private async Task<List<TankVolumeHistoryDTO>> GetTankVolumeHistoryWithSensorDispensingAsync(
             DateTime startDate, DateTime endDate, int? siteId, int? tankId, string? recordedBy,
-            bool? includeVehicleNames, CancellationToken cancellationToken)
+            bool? includeVehicleNames, bool? includeGpsData, CancellationToken cancellationToken)
         {
 
             // Build the query with filters
@@ -119,7 +120,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             // Execute the main query
             var tankVolumeHistories = await query.ToListAsync(cancellationToken);
 
-            return await MapTankVolumeHistoryToDTO(tankVolumeHistories, includeVehicleNames, cancellationToken);
+            return await MapTankVolumeHistoryToDTO(tankVolumeHistories, includeVehicleNames, includeGpsData, startDate, endDate, cancellationToken);
         }
 
         /// <summary>
@@ -128,7 +129,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
         /// </summary>
         private async Task<List<TankVolumeHistoryDTO>> GetTankVolumeHistoryWithManualDispensingAsync(
             DateTime startDate, DateTime endDate, int? siteId, int? tankId, string? recordedBy,
-            bool? includeVehicleNames, CancellationToken cancellationToken)
+            bool? includeVehicleNames, bool? includeGpsData, CancellationToken cancellationToken)
         {
 
             // Get all NON-DISPENSING transactions from TankVolumeHistory
@@ -191,7 +192,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             var result = new List<TankVolumeHistoryDTO>();
 
             // Map TankVolumeHistory (non-dispensing) records
-            var mappedVolumeHistory = await MapTankVolumeHistoryToDTO(volumeHistoryData, includeVehicleNames, cancellationToken);
+            var mappedVolumeHistory = await MapTankVolumeHistoryToDTO(volumeHistoryData, includeVehicleNames, includeGpsData, startDate, endDate, cancellationToken);
             result.AddRange(mappedVolumeHistory);
 
             // Map TankStock (manual dispensing) records
@@ -231,6 +232,9 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
         private async Task<List<TankVolumeHistoryDTO>> MapTankVolumeHistoryToDTO(
             List<Domain.Entities.Features.TankStockManagement.TankVolumeHistory> tankVolumeHistories,
             bool? includeVehicleNames,
+            bool? includeGpsData,
+            DateTime startDate,
+            DateTime endDate,
             CancellationToken cancellationToken)
         {
 
@@ -247,14 +251,17 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             // Bulk load vehicle names and types for dispensing transactions to avoid N+1 queries
             var vehicleNameLookup = new Dictionary<int, string>();
             var vehicleTypeLookup = new Dictionary<int, string>();
+            var vehicleIdLookup = new Dictionary<int, int>(); // FuelRefill.Id -> Vehicle.Id
             if (dispensingTransactionIds.Any())
             {
                 var fuelRefillsWithVehicles = await _context.FuelRefills
                     .Where(fr => dispensingTransactionIds.Contains(fr.Id))
                     .Include(fr => fr.Vehicle)
                         .ThenInclude(v => v.VehicleType)
-                    .Select(fr => new {
+                    .Select(fr => new
+                    {
                         fr.Id,
+                        VehicleId = fr.VehicleId,
                         VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : "N/A",
                         VehicleType = fr.Vehicle != null && fr.Vehicle.VehicleType != null ? fr.Vehicle.VehicleType.Name : "N/A"
                     })
@@ -269,6 +276,50 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     fr => fr.Id,
                     fr => fr.VehicleType ?? "N/A"
                 );
+
+                vehicleIdLookup = fuelRefillsWithVehicles
+                    .Where(fr => fr.VehicleId > 0) // VehicleId is int, not nullable
+                    .ToDictionary(
+                        fr => fr.Id,
+                        fr => fr.VehicleId
+                    );
+            }
+
+            // Bulk load GPS data if requested
+            var gpsDataLookup = new Dictionary<string, decimal>(); // "vehicleId_date" -> RefillVolume
+            if (includeGpsData == true && vehicleIdLookup.Any())
+            {
+                var vehicleIds = vehicleIdLookup.Values.Distinct().ToList();
+
+                var gpsEntries = await _context.GpsGateReportEntries
+                    .Where(g => vehicleIds.Contains(g.VehicleId))
+                    .Where(g => g.DispenseDate >= startDate && g.DispenseDate <= endDate)
+                    .Where(g => !g.IsDeleted)
+                    .Select(g => new
+                    {
+                        g.VehicleId,
+                        DispenseDate = g.DispenseDate.Date,
+                        g.RefillVolume
+                    })
+                    .ToListAsync(cancellationToken);
+
+                // Build lookup: "vehicleId_yyyy-MM-dd" -> RefillVolume
+                foreach (var entry in gpsEntries)
+                {
+                    var key = $"{entry.VehicleId}_{entry.DispenseDate:yyyy-MM-dd}";
+                    // If multiple GPS entries for same vehicle/date, sum them
+                    if (gpsDataLookup.ContainsKey(key))
+                    {
+                        gpsDataLookup[key] += entry.RefillVolume;
+                    }
+                    else
+                    {
+                        gpsDataLookup[key] = entry.RefillVolume;
+                    }
+                }
+
+                _logger.LogInformation("Loaded {Count} GPS entries for {VehicleCount} vehicles",
+                    gpsEntries.Count, vehicleIds.Count);
             }
 
             var result = new List<TankVolumeHistoryDTO>();
@@ -305,6 +356,22 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     else
                     {
                         dto.VehicleType = "N/A";
+                    }
+
+                    // Get VehicleId from lookup
+                    if (vehicleIdLookup.TryGetValue(history.ReferenceId.Value, out int vehicleId))
+                    {
+                        dto.VehicleId = vehicleId;
+
+                        // Get GPS data if available
+                        if (includeGpsData == true)
+                        {
+                            var dateKey = $"{vehicleId}_{history.Timestamp:yyyy-MM-dd}";
+                            if (gpsDataLookup.TryGetValue(dateKey, out decimal gpsVolume))
+                            {
+                                dto.GpsVolume = gpsVolume;
+                            }
+                        }
                     }
                 }
                 else

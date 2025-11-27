@@ -8,6 +8,7 @@ namespace FMS.Domain.Entities.GPSGate
         public int ReportId { get; set; }
         public string? ReportName { get; set; }
         public int HandleId { get; set; }
+        public string? JobId { get; set; } // GUID job identifier for tracking cancellation
         public string SessionId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }

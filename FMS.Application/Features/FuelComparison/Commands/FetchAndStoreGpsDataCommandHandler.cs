@@ -107,7 +107,8 @@ public class FetchAndStoreGpsDataCommandHandler
                     ReportId = reportId,
                     StartDate = request.StartDate,
                     EndDate = request.EndDate
-                }
+                },
+                request.JobId // Pass JobId for tracking
             ), cancellationToken);
 
             if (!generateResult.IsSuccess || generateResult.Data == null)

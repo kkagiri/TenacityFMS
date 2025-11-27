@@ -5,8 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Application.Features.FMS.TankVolumeHistory {
-    public class TankVolumeHistoryDTO {
+namespace FMS.Application.Features.FMS.TankVolumeHistory
+{
+    public class TankVolumeHistoryDTO
+    {
         public int Id { get; set; }
         public int? TankId { get; set; }
         public DateTime Timestamp { get; set; }
@@ -23,6 +25,17 @@ namespace FMS.Application.Features.FMS.TankVolumeHistory {
         public int? ReferenceId { get; set; }
         public string? Site { get; set; } = null;
         public int? SiteId { get; set; }
+
+        /// <summary>
+        /// GPS-reported refill volume from GPSGate (if available)
+        /// Only populated when IncludeGpsData = true and vehicle has GPS mapping
+        /// </summary>
+        public decimal? GpsVolume { get; set; }
+
+        /// <summary>
+        /// Vehicle ID for GPS data lookup
+        /// </summary>
+        public int? VehicleId { get; set; }
 
     }
 }

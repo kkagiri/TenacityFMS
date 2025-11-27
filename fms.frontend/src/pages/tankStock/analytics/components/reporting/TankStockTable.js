@@ -30,6 +30,7 @@ import { useStockFilters } from '../../../shared/context/StockFilterContext';
 import { fetchSiteList } from '../../../../../redux/actions/siteActions';
 import { fetchTanks } from '../../../../../redux/actions/tankActions';
 import { fetchUsers } from '../../../../../redux/actions/userActions';
+import { usePermissions } from '../../../../../hooks/usePermissions';
 
 /**
  * TankStockTable - Displays and manages TankStock data in an editable data grid
@@ -47,6 +48,12 @@ const TankStockTable = () => {
 
   // Get filters from shared context
   const { startDate, endDate, selectedSiteIds, selectedTankIds } = useStockFilters();
+
+  // Get permissions from hook
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('_Create_tankStock');
+  const canUpdate = hasPermission('_Update_tankStock');
+  const canDelete = hasPermission('_Delete_tankStock');
 
   // Get lookup data from Redux store
   const sites = useSelector(state => state.site.sites || []);
@@ -314,9 +321,9 @@ const TankStockTable = () => {
           {/* Enable editing */}
           <Editing
             mode="popup"
-            allowAdding={true}
-            allowUpdating={true}
-            allowDeleting={true}
+            allowAdding={canCreate}
+            allowUpdating={canUpdate}
+            allowDeleting={canDelete}
             useIcons={true}
           >
             <Popup
@@ -468,7 +475,7 @@ const TankStockTable = () => {
           </Summary>
 
           <Toolbar>
-            <Item name="addRowButton" />
+            {canCreate && <Item name="addRowButton" />}
             <Item name="searchPanel" />
             <Item name="exportButton" />
           </Toolbar>

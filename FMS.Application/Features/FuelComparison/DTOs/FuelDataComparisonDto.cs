@@ -100,6 +100,16 @@ namespace FMS.Application.Features.FuelComparison.DTOs
         public string SiteName { get; set; }
 
         /// <summary>
+        /// Vehicle type identifier
+        /// </summary>
+        public int? VehicleTypeId { get; set; }
+
+        /// <summary>
+        /// Vehicle type name for display
+        /// </summary>
+        public string VehicleTypeName { get; set; }
+
+        /// <summary>
         /// Tank identifier for filtering (from manual refill or PTS transaction)
         /// </summary>
         public int? TankId { get; set; }

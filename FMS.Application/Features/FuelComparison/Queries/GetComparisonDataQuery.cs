@@ -47,7 +47,7 @@ namespace FMS.Application.Features.FuelComparison.Queries
             {
                 _logger.LogInformation(
                     $"Getting comparison data from {request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}, " +
-                    $"Filter: {request.FilterType}, SiteId: {request.SiteId}, TankId: {request.TankId}");
+                    $"Filter: {request.FilterType}, SiteId: {request.SiteId}, TankId: {request.TankId}, ShowDeleted: {request.ShowDeleted}");
 
                 // Get user's variance threshold
                 var userSettings = await _context.FuelComparisonSettings
@@ -107,6 +107,8 @@ namespace FMS.Application.Features.FuelComparison.Queries
                     })
                     .ToListAsync(cancellationToken);
 
+                _logger.LogInformation($"Retrieved {gpsEntries.Count} GPS entries from database");
+
                 // Get vehicle info for display names
                 var vehicleIds = manualRefills.Select(m => m.VehicleId)
                     .Concat(ptsTransactions.Where(p => p.Vehicleid.HasValue).Select(p => p.Vehicleid.Value))
@@ -117,13 +119,16 @@ namespace FMS.Application.Features.FuelComparison.Queries
                 var vehicles = await _context.Vehicles
                     .Where(v => vehicleIds.Contains(v.VehicleId))
                     .Include(v => v.WorkingSite)
+                    .Include(v => v.VehicleType)
                     .Select(v => new
                     {
                         v.VehicleId,
                         v.HyoungNo,
                         PlateNumber = v.NumberPlate,
                         SiteId = v.WorkingSiteId,
-                        SiteName = v.WorkingSite != null ? v.WorkingSite.Name : null
+                        SiteName = v.WorkingSite != null ? v.WorkingSite.Name : null,
+                        VehicleTypeId = v.VehicleTypeId,
+                        VehicleTypeName = v.VehicleType != null ? v.VehicleType.Name : null
                     })
                     .ToListAsync(cancellationToken);
 
@@ -235,6 +240,8 @@ namespace FMS.Application.Features.FuelComparison.Queries
                             GpsModifiedBy = gpsEntry?.ModifiedBy,
                             SiteId = vehicle.SiteId,
                             SiteName = vehicle.SiteName,
+                            VehicleTypeId = vehicle.VehicleTypeId,
+                            VehicleTypeName = vehicle.VehicleTypeName,
                             TankId = manualEntry?.TankId,
                             TankName = tankInfo?.TankName
                         });
@@ -242,6 +249,11 @@ namespace FMS.Application.Features.FuelComparison.Queries
                 }
 
                 _logger.LogInformation($"Retrieved {result.Count} comparison records");
+
+                // Log GPS data statistics for debugging
+                var recordsWithGps = result.Count(r => r.GpsVolume.HasValue);
+                var recordsWithModifiedGps = result.Count(r => r.IsGpsModified);
+                _logger.LogInformation($"GPS Data Stats - Total records: {result.Count}, With GPS: {recordsWithGps}, Modified: {recordsWithModifiedGps}");
 
                 return FMSResponse<List<FuelDataComparisonDto>>.Success(
                     result.OrderByDescending(r => r.DispenseDate).ThenBy(r => r.VehicleName).ToList(),
