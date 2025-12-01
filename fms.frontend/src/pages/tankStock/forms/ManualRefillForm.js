@@ -75,7 +75,11 @@ const ManualRefillForm = ({
     manualFuelrefillAmount: null,
     previousMeterReading: null,
     currentMeterReading: null,
-    date: sharedDate ? sharedDate.toISOString() : new Date().toISOString(), // Initialize from shared context
+    date: sharedDate
+      ? typeof sharedDate === "string"
+        ? sharedDate
+        : sharedDate.toISOString()
+      : new Date().toISOString(), // Initialize from shared context, handle both string and Date
     siteId: sharedSiteId, // Initialize from shared context
     comment: "",
     driverId: null,
@@ -345,18 +349,24 @@ const ManualRefillForm = ({
     }
 
     // Validate meter reading difference
-    if (formData.currentMeterReading !== null && formData.previousMeterReading !== null) {
+    if (
+      formData.currentMeterReading !== null &&
+      formData.previousMeterReading !== null
+    ) {
       const currentReading = parseFloat(formData.currentMeterReading) || 0;
       const previousReading = parseFloat(formData.previousMeterReading) || 0;
       const difference = Math.abs(currentReading - previousReading);
 
       if (difference > MAX_METER_READING_DIFFERENCE) {
-        errors.meterReadingDifference = `The difference between current and previous meter readings cannot exceed ${MAX_METER_READING_DIFFERENCE}. Current difference: ${difference.toFixed(2)}`;
+        errors.meterReadingDifference = `The difference between current and previous meter readings cannot exceed ${MAX_METER_READING_DIFFERENCE}. Current difference: ${difference.toFixed(
+          2
+        )}`;
       }
 
       // Also validate that current reading should be greater than or equal to previous reading
       if (currentReading < previousReading) {
-        errors.currentMeterReading = "Current meter reading cannot be less than previous meter reading";
+        errors.currentMeterReading =
+          "Current meter reading cannot be less than previous meter reading";
       }
     }
 
@@ -719,7 +729,8 @@ const ManualRefillForm = ({
                       format: "#,##0.00",
                     }),
                   isValid: hasAttemptedSubmit
-                    ? !validationErrors.currentMeterReading && !validationErrors.meterReadingDifference
+                    ? !validationErrors.currentMeterReading &&
+                      !validationErrors.meterReadingDifference
                     : true,
                   validationError: validationErrors.currentMeterReading
                     ? { message: validationErrors.currentMeterReading }
