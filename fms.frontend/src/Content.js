@@ -13,9 +13,6 @@ import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
 import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 import { useSignalRRouting } from "./hooks/useSignalRRouting";
 
-import { ReportGallery } from './pages/reports/ReportsIndex';
-import { TankVolumeHistoryReport } from './pages/reports/ReportsIndex';
-
 export default function Content() {
   const dispatch = useDispatch();
   const { navigationItems } = useSelector((state) => state.navigation);
@@ -70,8 +67,6 @@ export default function Content() {
             withRoleProtection(resolvedComponents("user-details"), ["Admin"])
           )}
         />
-        <Route path="/reports" element={<ReportGallery />} />
-<Route path="/reports/tank-volume-history" element={<TankVolumeHistoryReport />} />
         <Route
           path="/admin/users/:id/edit"
           element={React.createElement(
@@ -184,8 +179,7 @@ export default function Content() {
           path="/reports/*"
           element={React.createElement(resolvedComponents("reports"))}
         />
-<Route path="/reports" element={<ReportGallery />} />
-<Route path="/reports/tank-volume-history" element={<TankVolumeHistoryReport />} />
+
         {/* Maintenance System Routes - Handle all maintenance sub-routes internally */}
         <Route
           path="/maintenance"

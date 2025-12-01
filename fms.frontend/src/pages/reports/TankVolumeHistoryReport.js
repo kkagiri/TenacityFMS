@@ -186,7 +186,7 @@ const TankVolumeHistoryReport = () => {
     return (
       <div className="tw-flex tw-items-center tw-justify-center tw-h-full">
         <div className="tw-text-center">
-          <i className="fa-light fa-spinner-third fa-spin tw-text-4xl tw-text-blue-600 tw-mb-3"></i>
+          <i className="fa-light fa-hourglass tw-text-4xl tw-text-blue-600 tw-mb-3"></i>
           <p className="tw-text-gray-600">Loading report...</p>
         </div>
       </div>

@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
 import './ReportsLayout.scss';
 
-const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
+const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Determine page title and subtitle based on current route
-  const getPageInfo = () => {
+  // 🚀 OPTIMIZATION: Memoize page info to avoid recalculating on every render
+  const pageInfo = useMemo(() => {
     const pathname = location.pathname;
 
     if (pathname.includes('/gallery')) {
@@ -38,14 +38,13 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         subtitle: 'Access and generate fuel management reports'
       };
     }
-  };
+  }, [location.pathname]);
 
-  const { title: autoTitle, subtitle: autoSubtitle } = getPageInfo();
-  const finalTitle = pageTitle || autoTitle;
-  const finalSubtitle = pageSubtitle || autoSubtitle;
+  const finalTitle = pageTitle || pageInfo.title;
+  const finalSubtitle = pageSubtitle || pageInfo.subtitle;
 
-  // Define navigation groups
-  const mainNavigationItems = [
+  // 🚀 OPTIMIZATION: Memoize navigation items to prevent recreation on every render
+  const mainNavigationItems = useMemo(() => [
     {
       id: 'dashboard',
       title: 'Dashboard',
@@ -53,18 +52,18 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       path: reportsRoutes.dashboard,
       badge: null,
     },
-  ];
+  ], []);
 
-  const dataManagementItems = [
+  const dataManagementItems = useMemo(() => [
     {
       id: 'fuel-importer',
       title: 'Fuel Data Import',
       icon: 'fa-light fa-upload',
       path: reportsRoutes.fuelImporter,
     },
-  ];
+  ], []);
 
-  const reportItems = [
+  const reportItems = useMemo(() => [
     {
       id: 'gallery',
       title: 'Report Gallery',
@@ -83,9 +82,13 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       icon: 'fa-light fa-chart-bar',
       path: reportsRoutes.consumptionRefills,
     },
-  ];
+  ], []);
 
-  const handleNavigation = (path) => {
+  const handleNavigation = (path, event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     navigate(path);
   };
 
@@ -96,7 +99,7 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         {/* Header */}
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <i className="fa-light fa-chart-pie tw-text-blue-400"></i>
+            <i className="fa-light fa-chart-pie tw-text-purple-300"></i>
             {!sidebarCollapsed && (
               <span className="tw-text-lg tw-font-semibold tw-ml-2">Reports</span>
             )}
@@ -117,13 +120,18 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             {!sidebarCollapsed && <div className="group-label">Main</div>}
             <nav className="nav-menu">
               {mainNavigationItems.map((item) => {
-                const isActive = isActiveRoute(currentPath, item.path);
+                const isActive = isActiveRoute(location.pathname, item.path);
                 return (
                   <div
                     key={item.id}
-                    onClick={() => handleNavigation(item.path)}
+                    onClick={(e) => handleNavigation(item.path, e)}
                     className={`nav-item ${isActive ? 'active' : ''}`}
                     title={sidebarCollapsed ? item.title : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleNavigation(item.path, e);
+                    }}
                   >
                     <div className="nav-item-content">
                       <i className={item.icon}></i>
@@ -145,13 +153,18 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             {!sidebarCollapsed && <div className="group-label">Data Management</div>}
             <nav className="nav-menu">
               {dataManagementItems.map((item) => {
-                const isActive = isActiveRoute(currentPath, item.path);
+                const isActive = isActiveRoute(location.pathname, item.path);
                 return (
                   <div
                     key={item.id}
-                    onClick={() => handleNavigation(item.path)}
+                    onClick={(e) => handleNavigation(item.path, e)}
                     className={`nav-item ${isActive ? 'active' : ''}`}
                     title={sidebarCollapsed ? item.title : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleNavigation(item.path, e);
+                    }}
                   >
                     <div className="nav-item-content">
                       <i className={item.icon}></i>
@@ -170,13 +183,18 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             {!sidebarCollapsed && <div className="group-label">Reports</div>}
             <nav className="nav-menu">
               {reportItems.map((item) => {
-                const isActive = isActiveRoute(currentPath, item.path);
+                const isActive = isActiveRoute(location.pathname, item.path);
                 return (
                   <div
                     key={item.id}
-                    onClick={() => handleNavigation(item.path)}
+                    onClick={(e) => handleNavigation(item.path, e)}
                     className={`nav-item ${isActive ? 'active' : ''}`}
                     title={sidebarCollapsed ? item.title : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleNavigation(item.path, e);
+                    }}
                   >
                     <div className="nav-item-content">
                       <i className={item.icon}></i>
@@ -194,20 +212,20 @@ const ReportsLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       <main className="reports-main">
         {/* Header */}
         <header className="main-header">
-          <div className="header-content">
-            <div className="tw-flex tw-items-center tw-justify-between tw-w-full">
-              <div>
-                <h1 className="main-title">{finalTitle}</h1>
-                {finalSubtitle && (
-                  <p className="tw-text-sm tw-text-gray-600 tw-mt-1">{finalSubtitle}</p>
-                )}
-              </div>
-              <div className="tw-flex tw-items-center tw-space-x-4">
-                <div className="tw-flex tw-items-center tw-space-x-2 tw-text-sm tw-text-gray-600">
-                  <i className="fa-light fa-chart-pie"></i>
-                  <span>Reports System</span>
-                </div>
-              </div>
+          {/* Title on LEFT - Single line compact header */}
+          <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-gap-6 tw-px-6 tw-py-3">
+            {/* Title Section - LEFT */}
+            <div className="tw-flex-shrink-0">
+              <h1 className="tw-text-xl tw-font-bold tw-text-gray-800">{finalTitle}</h1>
+              {finalSubtitle && (
+                <p className="tw-text-sm tw-text-gray-500 tw-mt-1">{finalSubtitle}</p>
+              )}
+            </div>
+
+            {/* Right side - Reports badge */}
+            <div className="tw-flex tw-items-center tw-space-x-2 tw-text-sm tw-text-gray-500">
+              <i className="fa-light fa-chart-pie"></i>
+              <span>Reports System</span>
             </div>
           </div>
         </header>

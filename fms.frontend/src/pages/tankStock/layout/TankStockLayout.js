@@ -42,6 +42,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         showFilters: true,
         showUserFilter: false
       };
+    } else if (pathname.includes('/fuel-audit')) {
+      return {
+        title: 'Fuel Audit',
+        subtitle: 'Comprehensive fuel auditing with variance tracking and reconciliation',
+        showFilters: false,
+        showUserFilter: false
+      };
     } else if (pathname.includes('/reconciliation')) {
       return {
         title: 'Data Reconciliation',
@@ -108,6 +115,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       title: 'Fuel Data Comparison',
       icon: 'fa-light fa-code-compare',
       path: tankStockRoutes.fuelDataComparison,
+      badge: null,
+    },
+    {
+      id: 'fuelAudit',
+      title: 'Fuel Audit',
+      icon: 'fa-light fa-clipboard-check',
+      path: tankStockRoutes.fuelAudit,
       badge: null,
     },
     {

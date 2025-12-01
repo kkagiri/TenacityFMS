@@ -10,6 +10,7 @@ import TankStockSettings from './settings/TankStockSettings';
 import TransferReconciliation from './analytics/TransferReconciliation';
 import ReconciliationMain from '../reconciliation/ReconciliationMain';
 import FuelDataComparisonMain from './fueldatacomparison/FuelDataComparisonMain';
+import FuelAuditMain from './fuelAudit/FuelAuditMain';
 
 const TankStockMain = () => {
   return (
@@ -27,6 +28,7 @@ const TankStockMain = () => {
           <Route path="/reconciliation" element={<ReconciliationMain />} />
           <Route path="/transfer-reconciliation" element={<TransferReconciliation />} />
           <Route path="/fueldatacomparison/*" element={<FuelDataComparisonMain />} />
+          <Route path="/fuel-audit/*" element={<FuelAuditMain />} />
           <Route path="/settings" element={<TankStockSettings />} />
 
           {/* Catch all - redirect to dashboard */}

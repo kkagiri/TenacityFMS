@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-public partial class Vehicleconsumption {
+public partial class Vehicleconsumption
+{
     public int Id { get; set; }
 
     public int VehicleId { get; set; }
@@ -43,6 +44,10 @@ public partial class Vehicleconsumption {
     public decimal? ExcessWorkingHrsCost { get; set; }
 
     public ulong IsNightShift { get; set; }
+
+    /// <summary>
+    /// Indicates whether speed is recorded in km/hr or
+    /// </summary>
 
     public ulong IsKmperhr { get; set; }
 

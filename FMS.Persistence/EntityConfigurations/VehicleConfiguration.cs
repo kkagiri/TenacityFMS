@@ -23,6 +23,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("vehicle");
 
                 builder.HasIndex(e => e.HyoungNo, "HyoungNo_UNIQUE").IsUnique();
+
                 //builder.HasIndex (e => e.DeviceId, "Vehicle_Device_idx");
                 builder.HasIndex(e => e.DefaultEmployeeId, "Vehicle_employee_idx");
                 builder.HasIndex(e => e.DefaultExptdAvgid, "vehicle_expectedAvg_idx");
@@ -38,7 +39,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnName("vehicleID");
 
                 builder.Property(e => e.AverageKmL).HasColumnName("Average_km_l");
-                builder.Property(e => e.Capacity).HasMaxLength(45);
+                // Note: Legacy 'Capacity' column removed - use FuelTankCapacity instead
                 builder.Property(e => e.CurrentPhysicalReading).HasMaxLength(45);
                 builder.Property(e => e.DefaultEmployeeId)
                     .HasColumnType("int(11)")
@@ -63,6 +64,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("tinyint(4)")
                     .HasColumnName("IsActive");
                 builder.Property(e => e.HyoungNo).HasMaxLength(45);
+                builder.Property(e => e.FuelTankCapacity)
+                    .HasColumnType("decimal(10,2)")
+                    .HasColumnName("FuelTankCapacity");
+                builder.Property(e => e.IsFullTankPolicy);
                 builder.Property(e => e.ModifiedBy)
                     .HasMaxLength(100)
                     .UseCollation("utf8mb4_general_ci")

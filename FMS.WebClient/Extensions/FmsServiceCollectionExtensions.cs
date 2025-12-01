@@ -489,6 +489,12 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.AutomatedReconciliation.Services.AutomatedReconciliationService>();
         services.AddHttpClient<DeviceHttpCommandPusher>().SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+        // Fuel Audit Services
+        services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.FuelAuditGPSService>();
+        services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditTankStockService, FMS.Application.Features.FuelAudit.Services.FuelAuditTankStockService>();
+        services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditCalculationService, FMS.Application.Features.FuelAudit.Services.FuelAuditCalculationService>();
+        services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFullTankEstimationService, FMS.Application.Features.FuelAudit.Services.FullTankEstimationService>();
+
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();
         services.AddHostedService<LogCleanupBackgroundService>();

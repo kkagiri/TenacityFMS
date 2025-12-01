@@ -32,12 +32,34 @@ export default function SideNavigationMenu(props) {
     }
   });
 
+  // Track if we've already fetched navigation items to prevent repeated calls
+  const hasFetchedRef = useRef(false);
+
   // Force re-fetch navigation items when layout switches or component mounts
   useEffect(() => {
-    if (user && (!navigationItems || navigationItems.length === 0)) {
-      dispatch(fetchNavigationItems());
+    // Always try to fetch navigation items if user is logged in
+    if (user && !hasFetchedRef.current) {
+      // Check if navigationItems is empty or undefined
+      if (!navigationItems || navigationItems.length === 0) {
+        console.log(`[${layoutType}] No navigation items found, fetching...`);
+        dispatch(fetchNavigationItems());
+        hasFetchedRef.current = true;
+      }
     }
-  }, [user, dispatch, navigationItems, layoutType]);
+  }, [user, dispatch, layoutType, navigationItems]);
+
+  // Retry fetching navigation items if initial load fails
+  useEffect(() => {
+    if (user && !loading && (!navigationItems || navigationItems.length === 0)) {
+      // Wait a bit and retry - user may have been authenticated but navigation not fetched
+      const retryTimer = setTimeout(() => {
+        console.log(`[${layoutType}] Retrying navigation fetch...`);
+        dispatch(fetchNavigationItems());
+      }, 2000);
+
+      return () => clearTimeout(retryTimer);
+    }
+  }, [user, loading, navigationItems, dispatch, layoutType]);
 
   useEffect(() => {
     if (loading) {
@@ -113,9 +135,19 @@ export default function SideNavigationMenu(props) {
       transformedItemsCount: transformedNavigationItems?.length || 0,
       loading,
       compactMode,
-      menuStatus
+      menuStatus,
+      userExists: !!user,
+      userRoles: user?.roles || 'No roles',
+      error: error || 'No error'
     });
-  }, [navigationItems, transformedNavigationItems, loading, compactMode, menuStatus, layoutType]);
+
+    // Log warning if user is logged in but has no navigation items
+    if (user && !loading && (!navigationItems || navigationItems.length === 0)) {
+      console.warn(`[${layoutType}] WARNING: User is logged in but has no navigation items. ` +
+        `This may indicate the user's role(s) have no navigation items assigned. ` +
+        `User roles: ${JSON.stringify(user?.roles || [])}`);
+    }
+  }, [navigationItems, transformedNavigationItems, loading, compactMode, menuStatus, layoutType, user, error]);
 
   const { navigationData: { currentPath } } = useNavigation();
 

@@ -1,4 +1,4 @@
-// Reports Layout - Analytics Theme with Blue-Purple Gradient
+// Reports Layout - Analytics Theme with Purple Gradient
 .reports-layout {
   display: flex;
   min-height: 100vh;
@@ -97,6 +97,11 @@
             transform: translateX(4px);
           }
 
+          &:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.5);
+            outline-offset: 2px;
+          }
+
           &.active {
             background: rgba(255, 255, 255, 0.15);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -162,26 +167,12 @@
   .main-header {
     background: white;
     border-bottom: 1px solid #e2e8f0;
-    padding: 1.5rem 2rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      .main-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin: 0;
-      }
-    }
   }
 
   .main-content {
     flex: 1;
-    padding: 2rem;
+    padding: 1.5rem;
     overflow-y: auto;
   }
 }
@@ -214,10 +205,6 @@
   }
 
   .reports-main {
-    .main-header {
-      padding: 1rem;
-    }
-
     .main-content {
       padding: 1rem;
     }

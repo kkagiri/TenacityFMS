@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Audit - SIPOC Diagram</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="fuelflow-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span class="icon icon-lg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="3" x2="9" y2="21"/>
+                    </svg>
+                </span>
+                SIPOC Diagram
+            </h1>
+            <p>Suppliers, Inputs, Process, Outputs, Customers for Fuel Audit Workflow</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <a href="fuelflow-sipoc.html" class="tab active">
+                <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="3" x2="9" y2="21"/>
+                    </svg>
+                </span>
+                SIPOC Diagram
+            </a>
+            <a href="fuelflow-swimlane.html" class="tab">
+                <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="5" rx="1"/>
+                        <rect x="2" y="10" width="20" height="5" rx="1"/>
+                        <rect x="2" y="17" width="20" height="5" rx="1"/>
+                    </svg>
+                </span>
+                Swimlane Diagram
+            </a>
+            <a href="fuelflow-dependencies.html" class="tab">
+                <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2">
+                        <circle cx="6" cy="6" r="3"/>
+                        <circle cx="18" cy="6" r="3"/>
+                        <circle cx="6" cy="18" r="3"/>
+                        <circle cx="18" cy="18" r="3"/>
+                        <line x1="9" y1="6" x2="15" y2="6"/>
+                        <line x1="6" y1="9" x2="6" y2="15"/>
+                        <line x1="18" y1="9" x2="18" y2="15"/>
+                        <line x1="9" y1="18" x2="15" y2="18"/>
+                    </svg>
+                </span>
+                Data Dependencies
+            </a>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--success-light); border-color: var(--success);"></div>
+                <span>Implemented</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--warning-light); border-color: var(--warning);"></div>
+                <span>Partial</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--danger-light); border-color: var(--danger); border-style: dashed;"></div>
+                <span>Not Implemented</span>
+            </div>
+        </div>
+
+        <!-- Process Flow -->
+        <div class="process-flow">
+            <div class="process-step">
+                <div class="process-circle">1</div>
+                <div class="process-step-name">Site & Period</div>
+                <span class="status-badge status-done">Done</span>
+            </div>
+            <div class="process-arrow">
+                <svg viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="0" y1="10" x2="30" y2="10"/>
+                    <polyline points="25,5 30,10 25,15"/>
+                </svg>
+            </div>
+            <div class="process-step">
+                <div class="process-circle">2</div>
+                <div class="process-step-name">Select Tanks</div>
+                <span class="status-badge status-done">Done</span>
+            </div>
+            <div class="process-arrow">
+                <svg viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="0" y1="10" x2="30" y2="10"/>
+                    <polyline points="25,5 30,10 25,15"/>
+                </svg>
+            </div>
+            <div class="process-step">
+                <div class="process-circle">3</div>
+                <div class="process-step-name">Tank Preview</div>
+                <span class="status-badge status-done">Done</span>
+            </div>
+            <div class="process-arrow">
+                <svg viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="0" y1="10" x2="30" y2="10"/>
+                    <polyline points="25,5 30,10 25,15"/>
+                </svg>
+            </div>
+            <div class="process-step">
+                <div class="process-circle">4</div>
+                <div class="process-step-name">Vehicles</div>
+                <span class="status-badge status-done">Done</span>
+            </div>
+            <div class="process-arrow">
+                <svg viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="0" y1="10" x2="30" y2="10"/>
+                    <polyline points="25,5 30,10 25,15"/>
+                </svg>
+            </div>
+            <div class="process-step">
+                <div class="process-circle">5</div>
+                <div class="process-step-name">GPS Preview</div>
+                <span class="status-badge status-done">Done</span>
+            </div>
+            <div class="process-arrow">
+                <svg viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="0" y1="10" x2="30" y2="10"/>
+                    <polyline points="25,5 30,10 25,15"/>
+                </svg>
+            </div>
+            <div class="process-step">
+                <div class="process-circle">6</div>
+                <div class="process-step-name">Review & Create</div>
+                <span class="status-badge status-partial">Partial</span>
+            </div>
+        </div>
+
+        <!-- SIPOC Table -->
+        <div class="sipoc-container" style="margin-top: 1.5rem;">
+            <div class="sipoc-table">
+                <!-- Headers -->
+                <div class="sipoc-header">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
+                    Suppliers
+                </div>
+                <div class="sipoc-header">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </span>
+                    Inputs
+                </div>
+                <div class="sipoc-header">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                            <polyline points="2 17 12 22 22 17"/>
+                            <polyline points="2 12 12 17 22 12"/>
+                        </svg>
+                    </span>
+                    Process
+                </div>
+                <div class="sipoc-header">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </span>
+                    Outputs
+                </div>
+                <div class="sipoc-header">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
+                    Customers
+                </div>
+
+                <!-- Step 1 Row -->
+                <div class="sipoc-cell">
+                    <span class="sipoc-step-label">Step 1</span>
+                    <div class="sipoc-item supplier">
+                        <span class="icon icon-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </span>
+                        User (Auditor)
+                    </div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item input">Site selection</div>
+                    <div class="sipoc-item input">Audit type</div>
+                    <div class="sipoc-item input">Date range</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item process">Validate dates</div>
+                    <div class="sipoc-item process">Check period ≤ 31 days</div>
+                    <div class="sipoc-item process">Store in wizard state</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item output">siteId</div>
+                    <div class="sipoc-item output">auditType</div>
+                    <div class="sipoc-item output">periodStart</div>
+                    <div class="sipoc-item output">periodEnd</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item customer">Step 2 (Tank Selection)</div>
+                </div>
+
+                <!-- Step 2 Row -->
+                <div class="sipoc-cell">
+                    <span class="sipoc-step-label">Step 2</span>
+                    <div class="sipoc-item supplier">Step 1 output</div>
+                    <div class="sipoc-item supplier">
+                        <span class="icon icon-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                            </svg>
+                        </span>
+                        Tank Table
+                    </div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item input">siteId (from Step 1)</div>
+                    <div class="sipoc-item input">Tank master data</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item process">GET /api/tanks</div>
+                    <div class="sipoc-item process">Filter by site</div>
+                    <div class="sipoc-item process">User multi-select</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item output">selectedTankIds[]</div>
+                    <div class="sipoc-item output">tankDetails[]</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item customer">Step 3 (Preview)</div>
+                    <div class="sipoc-item customer">Step 4 (Vehicles)</div>
+                </div>
+
+                <!-- Step 3 Row -->
+                <div class="sipoc-cell">
+                    <span class="sipoc-step-label">Step 3</span>
+                    <div class="sipoc-item supplier">Step 1 & 2 output</div>
+                    <div class="sipoc-item supplier">
+                        <span class="icon icon-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                            </svg>
+                        </span>
+                        TankVolumeHistory
+                    </div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item input">tankIds[]</div>
+                    <div class="sipoc-item input">periodStart/End</div>
+                    <div class="sipoc-item input">Volume history data</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item process">POST /tank-volume-preview</div>
+                    <div class="sipoc-item process">Query opening/closing</div>
+                    <div class="sipoc-item process">Sum deliveries</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item output">openingStock per tank</div>
+                    <div class="sipoc-item output">closingStock per tank</div>
+                    <div class="sipoc-item output">deliveries summary</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item customer">Step 6 (Review)</div>
+                </div>
+
+                <!-- Step 4 Row -->
+                <div class="sipoc-cell">
+                    <span class="sipoc-step-label">Step 4</span>
+                    <div class="sipoc-item supplier">Step 1 & 2 output</div>
+                    <div class="sipoc-item supplier">
+                        <span class="icon icon-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                            </svg>
+                        </span>
+                        FuelRefill + Vehicle
+                    </div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item input">tankIds[], period</div>
+                    <div class="sipoc-item input">FuelRefill records</div>
+                    <div class="sipoc-item input">Vehicle master</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item process">POST /tank-refills-preview</div>
+                    <div class="sipoc-item process">Group by vehicle</div>
+                    <div class="sipoc-item process">Classify into 5 categories</div>
+                    <div class="sipoc-item process">Calculate efficiency</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item output">vehicleId, HyoungNo</div>
+                    <div class="sipoc-item output">vehicleCategory (1-5)</div>
+                    <div class="sipoc-item output">refillCount, totalFuel</div>
+                    <div class="sipoc-item output">isFullTankPolicy ✓</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item customer">Step 5 (GPS)</div>
+                    <div class="sipoc-item customer">Step 6 (Review)</div>
+                </div>
+
+                <!-- Step 5 Row -->
+                <div class="sipoc-cell">
+                    <span class="sipoc-step-label">Step 5</span>
+                    <div class="sipoc-item supplier">Step 4 output</div>
+                    <div class="sipoc-item supplier" style="border-color: var(--pink); background: var(--pink-light);">
+                        <span class="icon icon-sm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                            </svg>
+                        </span>
+                        GPSGate API / DB
+                    </div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item input">vehicles[] by category</div>
+                    <div class="sipoc-item input">periodStart/End</div>
+                    <div class="sipoc-item input" style="border-color: var(--pink);">GPS fuel readings</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item process">POST /fleet/category-audit</div>
+                    <div class="sipoc-item process">Cat 1: REST API</div>
+                    <div class="sipoc-item process">Cat 2: Estimation</div>
+                    <div class="sipoc-item process">Cat 4: gpsgate_report_entries</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item output">openingFuelLevel</div>
+                    <div class="sipoc-item output">closingFuelLevel</div>
+                    <div class="sipoc-item output">dataSource (REST/DB)</div>
+                    <div class="sipoc-item output">consumption</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item customer">Step 6 (Review)</div>
+                </div>
+
+                <!-- Step 6 Row -->
+                <div class="sipoc-cell">
+                    <span class="sipoc-step-label">Step 6</span>
+                    <div class="sipoc-item supplier">All previous steps</div>
+                    <div class="sipoc-item supplier">User notes</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item input">All wizard state</div>
+                    <div class="sipoc-item input">Tank preview data</div>
+                    <div class="sipoc-item input">Vehicle list</div>
+                    <div class="sipoc-item input">GPS preview</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item process">Validate completeness</div>
+                    <div class="sipoc-item process">POST /api/v1/FuelAudit</div>
+                    <div class="sipoc-item process">Create audit record</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item output">auditId</div>
+                    <div class="sipoc-item output">auditNumber</div>
+                    <div class="sipoc-item output">status: Draft</div>
+                </div>
+                <div class="sipoc-cell">
+                    <div class="sipoc-item customer">Audit Detail Page</div>
+                    <div class="sipoc-item customer">Calculate Step</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <div class="summary-card done">
+                <div class="value">5</div>
+                <div class="label">Steps Done</div>
+            </div>
+            <div class="summary-card partial">
+                <div class="value">1</div>
+                <div class="label">Partial</div>
+            </div>
+            <div class="summary-card total">
+                <div class="value">6</div>
+                <div class="label">Total Steps</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
