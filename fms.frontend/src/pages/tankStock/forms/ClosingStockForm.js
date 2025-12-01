@@ -2,12 +2,13 @@
  * File: ClosingStockForm.js
  * Purpose: Manage closing stock entry workflow, reusing shared site/tank datasets and handling validation plus history insights.
  * Dependencies: React, Redux Toolkit, DevExtreme components, tankActions, siteActions, ClosingStockActions, tankVolumeHistoryActions
- * Last Modified: 2025-10-06
+ * Last Modified: 2025-11-27
  *
  * Key Functions/Components:
  * - ClosingStockForm: Main component orchestrating closing stock submission lifecycle
  * - handleSiteChange: Filters tanks for selected site and primes dependent state
  * - handleTankChange: Retrieves tank metrics and triggers validation/history loads
+ * - useTankStockFormData: Shared context for persisting date and site across forms
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -30,7 +31,10 @@ import {
   fetchTanks,
   fetctTankbySiteId,
 } from "../../../redux/actions/tankActions";
-import { fetchTankVolumeHistoryByTankId, fetchTankVolumeHistoryFiltered } from "../../../redux/actions/tankVolumeHistoryActions";
+import {
+  fetchTankVolumeHistoryByTankId,
+  fetchTankVolumeHistoryFiltered,
+} from "../../../redux/actions/tankVolumeHistoryActions";
 import { createClosingStock } from "../../../redux/actions/ClosingStockActions";
 import { prepareOpeningClosingStockParams } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
@@ -40,6 +44,7 @@ import "./ClosingStockForm.scss";
 // Future records validation imports
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
+import { useTankStockFormData } from "../shared/context/TankStockFormContext";
 
 const ClosingStockForm = ({
   updateFormData,
@@ -51,6 +56,11 @@ const ClosingStockForm = ({
   tanks: tanksProp = [],
 }) => {
   const dispatch = useDispatch();
+
+  // Shared form context for date and site persistence
+  const { sharedDate, sharedSiteId, updateDate, updateSiteId } =
+    useTankStockFormData();
+
   const tanksState = useSelector((state) => state.tank.tanks || []);
   const sitesState = useSelector((state) => state.site.sites || []);
   const tankVolumeHistory = useSelector(
@@ -63,44 +73,47 @@ const ClosingStockForm = ({
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Helper function for notifications with consistent positioning
-  const showNotification = useCallback((message, type = "info", duration = 3000) => {
-    notify({
-      message,
-      type,
-      displayTime: duration,
-      position: {
-        my: "top center",
-        at: "top center",
-        of: window,
-        offset: "0 20",
-      },
-      animation: {
-        show: {
-          type: "slide",
-          duration: 300,
-          from: { top: -100, opacity: 0 },
-          to: { top: 0, opacity: 1 },
+  const showNotification = useCallback(
+    (message, type = "info", duration = 3000) => {
+      notify({
+        message,
+        type,
+        displayTime: duration,
+        position: {
+          my: "top center",
+          at: "top center",
+          of: window,
+          offset: "0 20",
         },
-        hide: {
-          type: "slide",
-          duration: 300,
-          from: { top: 0, opacity: 1 },
-          to: { top: -100, opacity: 0 },
+        animation: {
+          show: {
+            type: "slide",
+            duration: 300,
+            from: { top: -100, opacity: 0 },
+            to: { top: 0, opacity: 1 },
+          },
+          hide: {
+            type: "slide",
+            duration: 300,
+            from: { top: 0, opacity: 1 },
+            to: { top: -100, opacity: 0 },
+          },
         },
-      },
-    });
-  }, []);
+      });
+    },
+    []
+  );
 
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    siteId: prefilledData?.siteId || 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility (Site ID is int)
+    siteId: prefilledData?.siteId || sharedSiteId || 0, // Use shared site if available
     tankId: prefilledData?.tankId || 0, // ✅ Changed from null to 0 for DevExtreme Form compatibility (Tank ID is int)
     amount: null, // Physical stock measurement
     closingMeter: null, // Closing meter reading (optional)
     bookBalance: null, // Current book balance (read-only)
     physicalStockValue: null, // Current physical stock value (read-only)
-    date: prefilledData?.suggestedDate || new Date(),
+    date: prefilledData?.suggestedDate || sharedDate || new Date(), // Use shared date if available
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -211,6 +224,11 @@ const ClosingStockForm = ({
     (e) => {
       const { dataField, value } = e;
 
+      // Update shared context when date changes
+      if (dataField === "date") {
+        updateDate(value);
+      }
+
       setFormData((prev) => {
         const updated = { ...prev, [dataField]: value };
         if (typeof updateFormData === "function") {
@@ -222,12 +240,17 @@ const ClosingStockForm = ({
       // Clear validation errors for the changed field
       setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
     },
-    [updateFormData]
+    [updateFormData, updateDate]
   );
 
   const handleSiteChange = useCallback(
     async (e) => {
       const siteId = e?.value ?? null;
+
+      // Update shared context when site changes
+      if (siteId !== null) {
+        updateSiteId(siteId);
+      }
 
       setValidationErrors((prev) => ({ ...prev, siteId: null, tankId: null }));
       setFormData((prev) => ({
@@ -268,7 +291,7 @@ const ClosingStockForm = ({
 
       setFilteredTanks(tanksForSite);
     },
-    [dispatch, tanksAvailable, usingPropTanks, showNotification]
+    [dispatch, tanksAvailable, usingPropTanks, showNotification, updateSiteId]
   );
 
   const handleTankChange = useCallback(
@@ -294,22 +317,32 @@ const ClosingStockForm = ({
         setLoading(true);
 
         // Fetch tank volume history for the selected date
-        const selectedDate = formData.date ? new Date(formData.date) : new Date();
+        const selectedDate = formData.date
+          ? new Date(formData.date)
+          : new Date();
         const startDate = new Date(selectedDate);
         startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(selectedDate);
         endDate.setHours(23, 59, 59, 999);
 
-        dispatch(fetchTankVolumeHistoryFiltered({
-          tankId: tankId,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
-        }))
+        dispatch(
+          fetchTankVolumeHistoryFiltered({
+            tankId: tankId,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          })
+        )
           .then(() => {
-            console.log("Tank volume history loaded successfully for date:", selectedDate.toLocaleDateString());
+            console.log(
+              "Tank volume history loaded successfully for date:",
+              selectedDate.toLocaleDateString()
+            );
           })
           .catch((error) => {
-            console.error("ClosingStockForm - Error loading tank volume history:", error);
+            console.error(
+              "ClosingStockForm - Error loading tank volume history:",
+              error
+            );
             showNotification("Failed to load tank volume history", "error");
           })
           .finally(() => {
@@ -360,16 +393,24 @@ const ClosingStockForm = ({
         const endDate = new Date(selectedDate);
         endDate.setHours(23, 59, 59, 999);
 
-        dispatch(fetchTankVolumeHistoryFiltered({
-          tankId: formData.tankId,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
-        }))
+        dispatch(
+          fetchTankVolumeHistoryFiltered({
+            tankId: formData.tankId,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          })
+        )
           .then(() => {
-            console.log("Tank volume history reloaded for date:", selectedDate.toLocaleDateString());
+            console.log(
+              "Tank volume history reloaded for date:",
+              selectedDate.toLocaleDateString()
+            );
           })
           .catch((error) => {
-            console.error("ClosingStockForm - Error reloading tank volume history:", error);
+            console.error(
+              "ClosingStockForm - Error reloading tank volume history:",
+              error
+            );
             showNotification("Failed to reload tank volume history", "error");
           })
           .finally(() => {
@@ -433,7 +474,11 @@ const ClosingStockForm = ({
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      showNotification("Please fill in all required fields correctly", "error", 3000);
+      showNotification(
+        "Please fill in all required fields correctly",
+        "error",
+        3000
+      );
       return;
     }
 
@@ -498,7 +543,11 @@ const ClosingStockForm = ({
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      showNotification("Please fill in all required fields correctly", "error", 3000);
+      showNotification(
+        "Please fill in all required fields correctly",
+        "error",
+        3000
+      );
       return;
     }
 
@@ -519,7 +568,8 @@ const ClosingStockForm = ({
 
       if (response.success) {
         showNotification(
-          response.message || "Closing stock created successfully. Form cleared for new entry.",
+          response.message ||
+            "Closing stock created successfully. Form cleared for new entry.",
           "success",
           3000
         );
@@ -660,7 +710,7 @@ const ClosingStockForm = ({
               </SimpleItem>
 
               <SimpleItem
-                key={`site-${formData.siteId || 'empty'}`}
+                key={`site-${formData.siteId || "empty"}`}
                 dataField="siteId"
                 editorType="dxSelectBox"
                 editorOptions={{
@@ -691,7 +741,9 @@ const ClosingStockForm = ({
               </SimpleItem>
 
               <SimpleItem
-                key={`tank-${formData.siteId || 'empty'}-${formData.tankId || 'none'}`}
+                key={`tank-${formData.siteId || "empty"}-${
+                  formData.tankId || "none"
+                }`}
                 dataField="tankId"
                 editorType="dxSelectBox"
                 editorOptions={{
@@ -700,11 +752,12 @@ const ClosingStockForm = ({
                   valueExpr: "id",
                   onValueChanged: handleTankChange,
                   disabled: !formData.siteId || formData.siteId === 0,
-                  placeholder: !formData.siteId || formData.siteId === 0
-                    ? "Select site first"
-                    : filteredTanks.length > 0
-                    ? "Select a tank"
-                    : "No tanks available",
+                  placeholder:
+                    !formData.siteId || formData.siteId === 0
+                      ? "Select site first"
+                      : filteredTanks.length > 0
+                      ? "Select a tank"
+                      : "No tanks available",
                   width: "100%",
                   searchEnabled: true,
                   showClearButton: true,
@@ -792,7 +845,9 @@ const ClosingStockForm = ({
                   placeholder: "Enter closing meter reading (optional)",
                   width: "100%",
                   ...(formData.closingMeter !== null &&
-                    formData.closingMeter !== undefined && { format: "#,##0.00" }),
+                    formData.closingMeter !== undefined && {
+                      format: "#,##0.00",
+                    }),
                 }}
               >
                 <Label text="Closing Meter Reading (Optional)" />
@@ -894,11 +949,16 @@ const ClosingStockForm = ({
             </Form>
 
             {/* Historical Entry Information Notice */}
-            {formData.date && formData.tankId && !showWarning && !validationError && showHistoricalNotice && (
+            {formData.date &&
+              formData.tankId &&
+              !showWarning &&
+              !validationError &&
+              showHistoricalNotice &&
               (() => {
                 const selectedDate = new Date(formData.date);
                 const today = new Date();
-                const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+                const isHistorical =
+                  selectedDate < new Date(today.setHours(0, 0, 0, 0));
 
                 if (isHistorical) {
                   return (
@@ -911,17 +971,29 @@ const ClosingStockForm = ({
                               Historical Entry Detected
                             </h4>
                             <p className="tw-text-blue-700 tw-text-sm">
-                              You are creating a closing stock for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                              You are creating a closing stock for{" "}
+                              <strong>
+                                {selectedDate.toLocaleDateString()}
+                              </strong>{" "}
+                              (backdated entry).
                             </p>
                             <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                              <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                              <strong>Impact:</strong> This will recalculate the
+                              tank's current stock and affect all subsequent
+                              records.
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={() => setShowHistoricalNotice(false)}
                           className="tw-ml-2 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-flex-shrink-0"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0', fontSize: '16px' }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "0",
+                            fontSize: "16px",
+                          }}
                           title="Dismiss"
                         >
                           <i className="fa-light fa-times"></i>
@@ -931,8 +1003,7 @@ const ClosingStockForm = ({
                   );
                 }
                 return null;
-              })()
-            )}
+              })()}
 
             {/* Future Records Warning */}
             {(showWarning || validationError) && (
@@ -953,134 +1024,139 @@ const ClosingStockForm = ({
             )}
 
             {/* Tank Volume History Section - Only show if tank is selected */}
-            {formData.siteId > 0 && formData.tankId > 0 && showVolumeHistory && (
-              <div className="tw-mt-1 tw-mb-5">
-                <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-shadow-sm">
-                  <div className="tw-p-2 tw-border-b tw-border-gray-200 tw-flex tw-items-start tw-justify-between">
-                    <div className="tw-flex-1">
-                      <h4 className="tw-font-semibold tw-text-gray-800">
-                        <i className="fa-light fa-history tw-mr-2 tw-text-blue-600"></i>
-                        Tank Volume History
-                      </h4>
-                      <p className="tw-text-sm tw-text-gray-600">
-                        Showing transactions for{" "}
-                        <strong className="tw-text-blue-600">
-                          {formData.date
-                            ? new Date(formData.date).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })
-                            : new Date().toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })
-                          }
-                        </strong>
-                        . Use search and filters to analyze transaction data. Negative values
-                        indicate fuel dispensed or transferred out.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowVolumeHistory(false)}
-                      className="tw-ml-3 tw-text-gray-600 hover:tw-text-gray-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                      title="Hide volume history"
-                    >
-                      <i className="fa-light fa-times tw-text-lg"></i>
-                    </button>
-                  </div>
-
-                  <div className="tw-p-2">
-                    {Array.isArray(tankVolumeHistory) &&
-                    tankVolumeHistory.length > 0 ? (
-                      <DataGrid
-                        dataSource={tankVolumeHistory}
-                        showBorders={true}
-                        columnAutoWidth={true}
-                        height="400px"
-                        width="100%"
-                        columnResizingMode="widget"
-                        allowColumnResizing={true}
-                        className="tw-text-sm"
-                      >
-                        <GroupPanel visible={false} />
-                        <Grouping autoExpandAll={false} />
-                        {/* Search functionality */}
-                        <SearchPanel
-                          visible={false}
-                          highlightCaseSensitive={true}
-                        />
-                        {/* Column chooser */}
-                        <ColumnChooser enabled={false} />
-                        {/* Header filter */}
-                        <HeaderFilter visible={false} />
-                        {/* Filter row */}
-                        <FilterRow visible={true} />{" "}
-                        {/* Transaction Type Column */}
-                        <Column
-                          dataField="timestamp"
-                          caption="Date/Time"
-                          dataType="datetime"
-                          format="dd/MM/yyyy HH:mm"
-                          width="140"
-                          sortOrder="desc"
-                        />
-                        <Column
-                          dataField="volumeChange"
-                          caption="Volume Change (L)"
-                          dataType="number"
-                          format="#,##0.00"
-                          width="120"
-                          cellRender={(cellData) => (
-                            <span
-                              className={
-                                cellData.value >= 0
-                                  ? "tw-text-green-600 tw-font-medium"
-                                  : "tw-text-red-600 tw-font-medium"
-                              }
-                            >
-                              {cellData.value >= 0 ? "+" : ""}
-                              {cellData.value?.toFixed(2)}
-                            </span>
-                          )}
-                        />
-                        <Column
-                          dataField="newVolume"
-                          caption="Resulting Volume (L)"
-                          dataType="number"
-                          format="#,##0.00"
-                          width="130"
-                        />
-                        <Column
-                          dataField="recordedByUserName"
-                          caption="Recorded By"
-                          width="110"
-                        />
-                        <Column
-                          dataField="vehicleName"
-                          caption="Vehicle"
-                          width="100"
-                        />
-                        <Column
-                          dataField="referenceType"
-                          caption="Reference"
-                          width="100"
-                        />
-                      </DataGrid>
-                    ) : (
-                      <div className="tw-text-center tw-py-8">
-                        <i className="fa-light fa-inbox tw-text-gray-400 tw-text-3xl tw-mb-3"></i>
-                        <p className="tw-text-gray-500">
-                          No volume history available for this tank
+            {formData.siteId > 0 &&
+              formData.tankId > 0 &&
+              showVolumeHistory && (
+                <div className="tw-mt-1 tw-mb-5">
+                  <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-shadow-sm">
+                    <div className="tw-p-2 tw-border-b tw-border-gray-200 tw-flex tw-items-start tw-justify-between">
+                      <div className="tw-flex-1">
+                        <h4 className="tw-font-semibold tw-text-gray-800">
+                          <i className="fa-light fa-history tw-mr-2 tw-text-blue-600"></i>
+                          Tank Volume History
+                        </h4>
+                        <p className="tw-text-sm tw-text-gray-600">
+                          Showing transactions for{" "}
+                          <strong className="tw-text-blue-600">
+                            {formData.date
+                              ? new Date(formData.date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  }
+                                )
+                              : new Date().toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                          </strong>
+                          . Use search and filters to analyze transaction data.
+                          Negative values indicate fuel dispensed or transferred
+                          out.
                         </p>
                       </div>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => setShowVolumeHistory(false)}
+                        className="tw-ml-3 tw-text-gray-600 hover:tw-text-gray-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
+                        title="Hide volume history"
+                      >
+                        <i className="fa-light fa-times tw-text-lg"></i>
+                      </button>
+                    </div>
+
+                    <div className="tw-p-2">
+                      {Array.isArray(tankVolumeHistory) &&
+                      tankVolumeHistory.length > 0 ? (
+                        <DataGrid
+                          dataSource={tankVolumeHistory}
+                          showBorders={true}
+                          columnAutoWidth={true}
+                          height="400px"
+                          width="100%"
+                          columnResizingMode="widget"
+                          allowColumnResizing={true}
+                          className="tw-text-sm"
+                        >
+                          <GroupPanel visible={false} />
+                          <Grouping autoExpandAll={false} />
+                          {/* Search functionality */}
+                          <SearchPanel
+                            visible={false}
+                            highlightCaseSensitive={true}
+                          />
+                          {/* Column chooser */}
+                          <ColumnChooser enabled={false} />
+                          {/* Header filter */}
+                          <HeaderFilter visible={false} />
+                          {/* Filter row */}
+                          <FilterRow visible={true} />{" "}
+                          {/* Transaction Type Column */}
+                          <Column
+                            dataField="timestamp"
+                            caption="Date/Time"
+                            dataType="datetime"
+                            format="dd/MM/yyyy HH:mm"
+                            width="140"
+                            sortOrder="desc"
+                          />
+                          <Column
+                            dataField="volumeChange"
+                            caption="Volume Change (L)"
+                            dataType="number"
+                            format="#,##0.00"
+                            width="120"
+                            cellRender={(cellData) => (
+                              <span
+                                className={
+                                  cellData.value >= 0
+                                    ? "tw-text-green-600 tw-font-medium"
+                                    : "tw-text-red-600 tw-font-medium"
+                                }
+                              >
+                                {cellData.value >= 0 ? "+" : ""}
+                                {cellData.value?.toFixed(2)}
+                              </span>
+                            )}
+                          />
+                          <Column
+                            dataField="newVolume"
+                            caption="Resulting Volume (L)"
+                            dataType="number"
+                            format="#,##0.00"
+                            width="130"
+                          />
+                          <Column
+                            dataField="recordedByUserName"
+                            caption="Recorded By"
+                            width="110"
+                          />
+                          <Column
+                            dataField="vehicleName"
+                            caption="Vehicle"
+                            width="100"
+                          />
+                          <Column
+                            dataField="referenceType"
+                            caption="Reference"
+                            width="100"
+                          />
+                        </DataGrid>
+                      ) : (
+                        <div className="tw-text-center tw-py-8">
+                          <i className="fa-light fa-inbox tw-text-gray-400 tw-text-3xl tw-mb-3"></i>
+                          <p className="tw-text-gray-500">
+                            No volume history available for this tank
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Form Actions */}
             <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-6 tw-pt-6 tw-border-t tw-border-gray-200">

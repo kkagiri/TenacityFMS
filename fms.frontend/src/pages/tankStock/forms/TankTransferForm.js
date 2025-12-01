@@ -2,12 +2,13 @@
  * File: TankTransferForm.js
  * Purpose: Coordinate tank-to-tank and site-to-site transfers leveraging shared site/tank datasets with validation safeguards.
  * Dependencies: React, Redux Toolkit, DevExtreme components, siteActions, tankActions, tankStockAction
- * Last Modified: 2025-10-06
+ * Last Modified: 2025-11-27
  *
  * Key Functions/Components:
  * - TankTransferForm: Handles transfer workflow including validation and submission
  * - handleSourceSiteChange: Filters source tanks with API fallback when cache misses occur
  * - handleDestinationSiteChange: Maintains destination tank list honoring transfer type constraints
+ * - useTankStockFormData: Shared context for persisting date and site across forms
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -32,6 +33,7 @@ import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 // Future records validation imports
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
+import { useTankStockFormData } from "../shared/context/TankStockFormContext";
 
 const TankTransferForm = ({
   updateFormData,
@@ -84,6 +86,14 @@ const TankTransferForm = ({
   const sitesAvailable = usingPropSites ? sitesProp : sitesState;
   const tanksAvailable = usingPropTanks ? tanksProp : tanksState;
 
+  // ✅ Get shared form data from context
+  const {
+    date: sharedDate,
+    siteId: sharedSiteId,
+    updateDate,
+    updateSiteId,
+  } = useTankStockFormData();
+
   const [filteredSourceTanks, setFilteredSourceTanks] = useState([]);
   const [filteredDestinationTanks, setFilteredDestinationTanks] = useState([]);
   const [loading] = useState(false);
@@ -100,12 +110,12 @@ const TankTransferForm = ({
     [tanksAvailable, filteredSourceTanks, filteredDestinationTanks]
   );
   const [formData, setFormData] = useState({
-    sourceSiteId: null,
+    sourceSiteId: sharedSiteId, // Initialize from shared context
     sourceTankId: null,
     destinationSiteId: null,
     destinationTankId: null,
     amount: null,
-    date: new Date(),
+    date: sharedDate, // Initialize from shared context
     transferType: "InterTank", // InterTank, InterSite
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -188,16 +198,24 @@ const TankTransferForm = ({
         return updated;
       });
 
+      // ✅ Update shared context when date changes
+      if (dataField === "date") {
+        updateDate(value);
+      }
+
       // Clear validation errors for the changed field
       setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
     },
-    [updateFormData]
+    [updateFormData, updateDate]
   );
 
   const handleSourceSiteChange = useCallback(
     (e) => {
       const siteId = e?.value ?? null;
       setShowSourceTankInfo(false);
+
+      // ✅ Update shared context when source site changes
+      updateSiteId(siteId);
 
       setFormData((prevData) => {
         const isInterTank = prevData.transferType === "InterTank";
@@ -217,7 +235,9 @@ const TankTransferForm = ({
         if (!siteId) {
           return {
             ...updatedData,
-            destinationSiteId: isInterTank ? null : updatedData.destinationSiteId,
+            destinationSiteId: isInterTank
+              ? null
+              : updatedData.destinationSiteId,
             destinationTankId: null,
           };
         }
@@ -241,7 +261,7 @@ const TankTransferForm = ({
         setFilteredDestinationTanks(tanksForSite);
       }
     },
-    [formData.transferType, tanksAvailable]
+    [formData.transferType, tanksAvailable, updateSiteId]
   );
 
   const handleDestinationSiteChange = useCallback(
@@ -250,7 +270,7 @@ const TankTransferForm = ({
       setFormData((prevData) => ({
         ...prevData,
         destinationSiteId: siteId,
-        destinationTankId: null
+        destinationTankId: null,
       }));
 
       const tanksForSite = tanksAvailable.filter(
@@ -401,8 +421,9 @@ const TankTransferForm = ({
         const updatedData = {
           ...prevData,
           transferType: transferType,
-          destinationSiteId: transferType === "InterTank" ? prevData.sourceSiteId : null,
-          destinationTankId: null
+          destinationSiteId:
+            transferType === "InterTank" ? prevData.sourceSiteId : null,
+          destinationTankId: null,
         };
 
         // Update destination tanks based on transfer type
@@ -521,7 +542,11 @@ const TankTransferForm = ({
 
   return (
     <div className="tank-transfer-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView showScrollbar="onScroll" scrollByThumb={true} useNative={false}>
+      <ScrollView
+        showScrollbar="onScroll"
+        scrollByThumb={true}
+        useNative={false}
+      >
         <div className="tw-p-6">
           {/* Header */}
           <div className="tw-mb-6">
@@ -582,209 +607,224 @@ const TankTransferForm = ({
               </div>
             </div>
           )}
-            <Form
-              readOnly={isLoading}
-              formData={formData}
-              showColonAfterLabel={true}
-              labelLocation="top"
-              onFieldDataChanged={handleChange}
-              colCount={2}
-              className="tw-mb-6"
-              scrollingEnabled={false}
+          <Form
+            readOnly={isLoading}
+            formData={formData}
+            showColonAfterLabel={true}
+            labelLocation="top"
+            onFieldDataChanged={handleChange}
+            colCount={2}
+            className="tw-mb-6"
+            scrollingEnabled={false}
+          >
+            <SimpleItem
+              dataField="date"
+              editorType="dxDateBox"
+              cssClass="datebox-full-width"
+              colSpan={2}
+              editorOptions={{
+                value: formData.date,
+                max: new Date(),
+                displayFormat: "yyyy-MM-dd HH:mm",
+                type: "datetime",
+                onValueChanged: handleDateChange,
+                width: "100%",
+                dropDownOptions: {
+                  width: "auto",
+                  minWidth: 380,
+                  maxWidth: 520,
+                  wrapperAttr: { class: "datebox-wide" },
+                },
+                elementAttr: { class: "datebox-full-width-popup" },
+                isValid: hasAttemptedSubmit ? !validationErrors.date : true,
+                validationError: validationErrors.date
+                  ? { message: validationErrors.date }
+                  : null,
+                validationMessageMode: "always",
+              }}
             >
-              <SimpleItem
-                dataField="date"
-                editorType="dxDateBox"
-                cssClass="datebox-full-width"
-                colSpan={2}
-                editorOptions={{
-                  value: formData.date,
-                  max: new Date(),
-                  displayFormat: "yyyy-MM-dd HH:mm",
-                  type: "datetime",
-                  onValueChanged: handleDateChange,
-                  width: "100%",
-                  dropDownOptions: {
-                    width: "auto",
-                    minWidth: 380,
-                    maxWidth: 520,
-                    wrapperAttr: { class: "datebox-wide" },
-                  },
-                  elementAttr: { class: "datebox-full-width-popup" },
-                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
-                  validationError: validationErrors.date
-                    ? { message: validationErrors.date }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Date & Time" />
-                <RequiredRule message="Date is required" />
-              </SimpleItem>
+              <Label text="Date & Time" />
+              <RequiredRule message="Date is required" />
+            </SimpleItem>
 
-              <SimpleItem
-                dataField="transferType"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: transferTypeOptions,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  onValueChanged: handleTransferTypeChange,
-                  placeholder: "Select transfer type",
-                  width: "100%",
-                }}
-              >
-                <Label text="Transfer Type" />
-                <RequiredRule message="Transfer type is required" />
-              </SimpleItem>
+            <SimpleItem
+              dataField="transferType"
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: transferTypeOptions,
+                displayExpr: "name",
+                valueExpr: "id",
+                onValueChanged: handleTransferTypeChange,
+                placeholder: "Select transfer type",
+                width: "100%",
+              }}
+            >
+              <Label text="Transfer Type" />
+              <RequiredRule message="Transfer type is required" />
+            </SimpleItem>
 
-              <SimpleItem
-                dataField="sourceSiteId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: sitesAvailable,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  value: formData.sourceSiteId,
-                  onValueChanged: handleSourceSiteChange,
-                  placeholder: "Select source site",
-                  searchEnabled: true,
-                  showClearButton: true,
-                  width: "100%",
-                  dropDownOptions: {
-                    container: "body",
-                  },
-                  isValid: hasAttemptedSubmit ? !validationErrors.sourceSiteId : true,
-                  validationError: validationErrors.sourceSiteId
-                    ? { message: validationErrors.sourceSiteId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Source Site" />
-                <RequiredRule message="Source site is required" />
-              </SimpleItem>
+            <SimpleItem
+              dataField="sourceSiteId"
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: sitesAvailable,
+                displayExpr: "name",
+                valueExpr: "id",
+                value: formData.sourceSiteId,
+                onValueChanged: handleSourceSiteChange,
+                placeholder: "Select source site",
+                searchEnabled: true,
+                showClearButton: true,
+                width: "100%",
+                dropDownOptions: {
+                  container: "body",
+                },
+                isValid: hasAttemptedSubmit
+                  ? !validationErrors.sourceSiteId
+                  : true,
+                validationError: validationErrors.sourceSiteId
+                  ? { message: validationErrors.sourceSiteId }
+                  : null,
+                validationMessageMode: "always",
+              }}
+            >
+              <Label text="Source Site" />
+              <RequiredRule message="Source site is required" />
+            </SimpleItem>
 
-              <SimpleItem
-                dataField="sourceTankId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: filteredSourceTanks,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  onValueChanged: handleSourceTankChange,
-                  disabled: !formData.sourceSiteId,
-                  placeholder: !formData.sourceSiteId
-                    ? "Select source site first"
-                    : filteredSourceTanks.length === 0
-                    ? "No tanks available"
-                    : "Select source tank",
-                  searchEnabled: true,
-                  showClearButton: true,
-                  width: "100%",
-                  dropDownOptions: {
-                    container: "body",
-                  },
-                  isValid: hasAttemptedSubmit ? !validationErrors.sourceTankId : true,
-                  validationError: validationErrors.sourceTankId
-                    ? { message: validationErrors.sourceTankId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Source Tank" />
-                <RequiredRule message="Source tank is required" />
-              </SimpleItem>
+            <SimpleItem
+              dataField="sourceTankId"
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: filteredSourceTanks,
+                displayExpr: "name",
+                valueExpr: "id",
+                onValueChanged: handleSourceTankChange,
+                disabled: !formData.sourceSiteId,
+                placeholder: !formData.sourceSiteId
+                  ? "Select source site first"
+                  : filteredSourceTanks.length === 0
+                  ? "No tanks available"
+                  : "Select source tank",
+                searchEnabled: true,
+                showClearButton: true,
+                width: "100%",
+                dropDownOptions: {
+                  container: "body",
+                },
+                isValid: hasAttemptedSubmit
+                  ? !validationErrors.sourceTankId
+                  : true,
+                validationError: validationErrors.sourceTankId
+                  ? { message: validationErrors.sourceTankId }
+                  : null,
+                validationMessageMode: "always",
+              }}
+            >
+              <Label text="Source Tank" />
+              <RequiredRule message="Source tank is required" />
+            </SimpleItem>
 
-              <SimpleItem
-                key={`destination-site-${formData.destinationSiteId || 'empty'}-${formData.transferType}`}
-                dataField="destinationSiteId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: sitesAvailable,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  value: formData.destinationSiteId,
-                  onValueChanged: handleDestinationSiteChange,
-                  searchEnabled: true,
-                  disabled: formData.transferType === "InterTank",
-                  placeholder: "Select destination site",
-                  showClearButton: true,
-                  width: "100%",
-                  dropDownOptions: {
-                    container: "body",
-                  },
-                  isValid: hasAttemptedSubmit ? !validationErrors.destinationSiteId : true,
-                  validationError: validationErrors.destinationSiteId
-                    ? { message: validationErrors.destinationSiteId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Destination Site" />
-                <RequiredRule message="Destination site is required" />
-              </SimpleItem>
+            <SimpleItem
+              key={`destination-site-${formData.destinationSiteId || "empty"}-${
+                formData.transferType
+              }`}
+              dataField="destinationSiteId"
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: sitesAvailable,
+                displayExpr: "name",
+                valueExpr: "id",
+                value: formData.destinationSiteId,
+                onValueChanged: handleDestinationSiteChange,
+                searchEnabled: true,
+                disabled: formData.transferType === "InterTank",
+                placeholder: "Select destination site",
+                showClearButton: true,
+                width: "100%",
+                dropDownOptions: {
+                  container: "body",
+                },
+                isValid: hasAttemptedSubmit
+                  ? !validationErrors.destinationSiteId
+                  : true,
+                validationError: validationErrors.destinationSiteId
+                  ? { message: validationErrors.destinationSiteId }
+                  : null,
+                validationMessageMode: "always",
+              }}
+            >
+              <Label text="Destination Site" />
+              <RequiredRule message="Destination site is required" />
+            </SimpleItem>
 
-              <SimpleItem
-                dataField="destinationTankId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: filteredDestinationTanks,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  value: formData.destinationTankId,
-                  onValueChanged: handleDestinationTankChange,
-                  disabled: !formData.destinationSiteId,
-                  placeholder: "Select destination tank",
-                  searchEnabled: true,
-                  showClearButton: true,
-                  width: "100%",
-                  dropDownOptions: {
-                    container: "body",
-                  },
-                  isValid: hasAttemptedSubmit ? !validationErrors.destinationTankId : true,
-                  validationError: validationErrors.destinationTankId
-                    ? { message: validationErrors.destinationTankId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Destination Tank" />
-                <RequiredRule message="Destination tank is required" />
-              </SimpleItem>
+            <SimpleItem
+              dataField="destinationTankId"
+              editorType="dxSelectBox"
+              editorOptions={{
+                items: filteredDestinationTanks,
+                displayExpr: "name",
+                valueExpr: "id",
+                value: formData.destinationTankId,
+                onValueChanged: handleDestinationTankChange,
+                disabled: !formData.destinationSiteId,
+                placeholder: "Select destination tank",
+                searchEnabled: true,
+                showClearButton: true,
+                width: "100%",
+                dropDownOptions: {
+                  container: "body",
+                },
+                isValid: hasAttemptedSubmit
+                  ? !validationErrors.destinationTankId
+                  : true,
+                validationError: validationErrors.destinationTankId
+                  ? { message: validationErrors.destinationTankId }
+                  : null,
+                validationMessageMode: "always",
+              }}
+            >
+              <Label text="Destination Tank" />
+              <RequiredRule message="Destination tank is required" />
+            </SimpleItem>
 
-              <SimpleItem
-                dataField="amount"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.amount,
-                  onValueChanged: handleAmountChange,
-                  placeholder: "Enter transfer amount",
-                  width: "100%",
-                  ...(formData.amount !== null &&
-                    formData.amount !== undefined && { format: "#,##0.00" }),
-                  isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
-                  validationError: validationErrors.amount
-                    ? { message: validationErrors.amount }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Transfer Amount (Liters)" />
-                <RequiredRule message="Amount is required" />
-                <NumericRule message="Must be a valid number" />
-              </SimpleItem>
+            <SimpleItem
+              dataField="amount"
+              editorType="dxNumberBox"
+              editorOptions={{
+                showSpinButtons: true,
+                value: formData.amount,
+                onValueChanged: handleAmountChange,
+                placeholder: "Enter transfer amount",
+                width: "100%",
+                ...(formData.amount !== null &&
+                  formData.amount !== undefined && { format: "#,##0.00" }),
+                isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
+                validationError: validationErrors.amount
+                  ? { message: validationErrors.amount }
+                  : null,
+                validationMessageMode: "always",
+              }}
+            >
+              <Label text="Transfer Amount (Liters)" />
+              <RequiredRule message="Amount is required" />
+              <NumericRule message="Must be a valid number" />
+            </SimpleItem>
 
-              {/* Reason removed as not required */}
-            </Form>
+            {/* Reason removed as not required */}
+          </Form>
 
           {/* Historical Entry Information Notice */}
-          {formData.date && formData.fromTankId && !showWarning && !validationError && showHistoricalNotice && (
+          {formData.date &&
+            formData.fromTankId &&
+            !showWarning &&
+            !validationError &&
+            showHistoricalNotice &&
             (() => {
               const selectedDate = new Date(formData.date);
               const today = new Date();
-              const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+              const isHistorical =
+                selectedDate < new Date(today.setHours(0, 0, 0, 0));
 
               if (isHistorical) {
                 return (
@@ -797,10 +837,14 @@ const TankTransferForm = ({
                             Historical Entry Detected
                           </h4>
                           <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating a tank transfer for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                            You are creating a tank transfer for{" "}
+                            <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                            (backdated entry).
                           </p>
                           <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate both tanks' current stock and affect all subsequent records.
+                            <strong>Impact:</strong> This will recalculate both
+                            tanks' current stock and affect all subsequent
+                            records.
                           </p>
                         </div>
                       </div>
@@ -808,7 +852,13 @@ const TankTransferForm = ({
                         onClick={() => setShowHistoricalNotice(false)}
                         className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
                         title="Dismiss"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px' }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          fontSize: "16px",
+                        }}
                       >
                         <i className="fa-light fa-times"></i>
                       </button>
@@ -817,8 +867,7 @@ const TankTransferForm = ({
                 );
               }
               return null;
-            })()
-          )}
+            })()}
 
           {/* Future Records Warning */}
           {(showWarning || validationError) && (

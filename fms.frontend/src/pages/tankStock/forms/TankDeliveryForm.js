@@ -2,13 +2,14 @@
  * File: TankDeliveryForm.js
  * Purpose: Capture tank delivery details, validate entries, and dispatch API calls to create deliveries in the backend
  * Dependencies: React, Redux Toolkit, DevExtreme Form components, siteActions, tankActions, SupplierActions, DeliveryActions
- * Last Modified: 2025-11-04
+ * Last Modified: 2025-11-27
  *
  * Key Functions/Components:
  * - TankDeliveryForm: Main component orchestrating delivery data entry, validation, and submission
  * - handleSiteChange: Filters tanks by site with API fallback when local cache is empty
  * - handleChange: Syncs DevExtreme form changes with React state and parent callbacks
  * - handleSubmit: Validates form and dispatches createDelivery Redux action to backend API
+ * - useTankStockFormData: Shared context for persisting date and site across forms
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,6 +36,7 @@ import LoadIndicator from "devextreme-react/load-indicator";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
+import { useTankStockFormData } from "../shared/context/TankStockFormContext";
 
 const TankDeliveryForm = ({
   updateFormData,
@@ -60,6 +62,14 @@ const TankDeliveryForm = ({
   const tanksAvailable = usingPropTanks ? tanksProp : tanksState;
   const combinedLoading = isLoading || loading || isSubmitting;
 
+  // ✅ Get shared form data from context
+  const {
+    date: sharedDate,
+    siteId: sharedSiteId,
+    updateDate,
+    updateSiteId,
+  } = useTankStockFormData();
+
   // Future records validation hook
   const {
     isValidating,
@@ -74,9 +84,9 @@ const TankDeliveryForm = ({
   } = useFutureRecordsValidation();
 
   const [formData, setFormData] = useState({
-    siteId: null,
+    siteId: sharedSiteId, // Initialize from shared context
     tankId: null,
-    deliveryDate: new Date(),
+    deliveryDate: sharedDate, // Initialize from shared context
     manualDeliveryAmount: null,
     sensorDeliveryAmount: null,
     deliveryTemperature: null,
@@ -164,6 +174,13 @@ const TankDeliveryForm = ({
         return updated;
       });
 
+      // ✅ Update shared context when date or site changes
+      if (dataField === "deliveryDate") {
+        updateDate(value);
+      } else if (dataField === "siteId") {
+        updateSiteId(value);
+      }
+
       // Clear validation error for this field when user changes it
       setValidationErrors((prev) => ({ ...prev, [dataField]: null }));
 
@@ -171,7 +188,11 @@ const TankDeliveryForm = ({
       if (dataField === "tankId" && value && formData.deliveryDate) {
         resetValidation();
         try {
-          await validateHistoricalEntry(value, formData.deliveryDate, VolumeChangeReasons.DELIVERY);
+          await validateHistoricalEntry(
+            value,
+            formData.deliveryDate,
+            VolumeChangeReasons.DELIVERY
+          );
         } catch (error) {
           console.warn("Validation error:", error);
         }
@@ -181,13 +202,25 @@ const TankDeliveryForm = ({
       if (dataField === "deliveryDate" && value && formData.tankId) {
         resetValidation();
         try {
-          await validateHistoricalEntry(formData.tankId, value, VolumeChangeReasons.DELIVERY);
+          await validateHistoricalEntry(
+            formData.tankId,
+            value,
+            VolumeChangeReasons.DELIVERY
+          );
         } catch (error) {
           console.warn("Validation error:", error);
         }
       }
     },
-    [updateFormData, formData.deliveryDate, formData.tankId, resetValidation, validateHistoricalEntry]
+    [
+      updateFormData,
+      formData.deliveryDate,
+      formData.tankId,
+      resetValidation,
+      validateHistoricalEntry,
+      updateDate,
+      updateSiteId,
+    ]
   );
 
   // Validation function
@@ -196,9 +229,11 @@ const TankDeliveryForm = ({
 
     if (!formData.siteId) errors.siteId = "Site is required";
     if (!formData.tankId) errors.tankId = "Tank is required";
-    if (!formData.deliveryDate) errors.deliveryDate = "Delivery date is required";
+    if (!formData.deliveryDate)
+      errors.deliveryDate = "Delivery date is required";
     if (!formData.manualDeliveryAmount || formData.manualDeliveryAmount <= 0)
-      errors.manualDeliveryAmount = "Manual delivery amount must be greater than 0";
+      errors.manualDeliveryAmount =
+        "Manual delivery amount must be greater than 0";
     if (!formData.supplierId) errors.supplierId = "Supplier is required";
 
     return errors;
@@ -244,7 +279,9 @@ const TankDeliveryForm = ({
       // Prepare the data in the format expected by the backend DTO
       const deliveryDTO = {
         tankId: formData.tankId,
-        deliveryDate: formData.deliveryDate ? new Date(formData.deliveryDate).toISOString() : null,
+        deliveryDate: formData.deliveryDate
+          ? new Date(formData.deliveryDate).toISOString()
+          : null,
         manualDeliveryAmount: formData.manualDeliveryAmount,
         sensorDeliveryAmount: formData.sensorDeliveryAmount,
         deliveryTemperature: formData.deliveryTemperature,
@@ -292,7 +329,10 @@ const TankDeliveryForm = ({
       }
     } catch (error) {
       console.error("💥 TankDeliveryForm - Error creating delivery:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Error creating delivery";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Error creating delivery";
       setBackendError({
         message: errorMessage,
         type: "error",
@@ -367,192 +407,208 @@ const TankDeliveryForm = ({
             labelLocation="top"
             onFieldDataChanged={handleChange}
           >
-        <GroupItem caption="General Details" colCount={2}>
-          <SimpleItem
-            dataField="deliveryDate"
-            editorType="dxDateBox"
-            editorOptions={{
-              value: formData.deliveryDate,
-              max: new Date(),
-              displayFormat: "yyyy-MM-dd HH:mm",
-              type: "datetime",
-              pickerType: "calendar",
-              width: "100%",
-              isValid: hasAttemptedSubmit ? !validationErrors.deliveryDate : true,
-              validationError: validationErrors.deliveryDate
-                ? { message: validationErrors.deliveryDate }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Delivery Date & Time" />
-            <RequiredRule message="Date and time are required" />
-          </SimpleItem>
-          <SimpleItem
-            key={`site-${formData.siteId || 'empty'}`}
-            dataField="siteId"
-            editorType="dxSelectBox"
-            editorOptions={{
-              items: sitesAvailable,
-              displayExpr: "name",
-              valueExpr: "id",
-              value: formData.siteId,
-              onValueChanged: handleSiteChange,
-              searchEnabled: true,
-              showClearButton: true,
-              width: "100%",
-              placeholder: combinedLoading
-                ? "Loading sites..."
-                : sitesAvailable.length > 0
-                ? "Select site"
-                : "No sites available",
-              isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
-              validationError: validationErrors.siteId
-                ? { message: validationErrors.siteId }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Site" />
-            <RequiredRule message="Site is required" />
-          </SimpleItem>
-          <SimpleItem
-            key={`tank-${formData.siteId || 'empty'}-${formData.tankId || 'none'}`}
-            dataField="tankId"
-            editorType="dxSelectBox"
-            editorOptions={{
-              items: filteredTanks,
-              displayExpr: "name",
-              valueExpr: "id",
-              value: formData.tankId,
-              disabled: !formData.siteId,
-              searchEnabled: true,
-              showClearButton: true,
-              width: "100%",
-              placeholder: !formData.siteId
-                ? "Select site first"
-                : filteredTanks.length > 0
-                ? "Select tank"
-                : "No tanks available",
-              isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
-              validationError: validationErrors.tankId
-                ? { message: validationErrors.tankId }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Tank" />
-            <RequiredRule message="Tank is required" />
-          </SimpleItem>
-        </GroupItem>
-        <GroupItem caption="Delivery Details" colCount={2}>
-          <SimpleItem
-            dataField="manualDeliveryAmount"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.manualDeliveryAmount,
-              width: "100%",
-              format: "#,##0.00",
-              placeholder: "Enter manual delivery amount",
-              isValid: hasAttemptedSubmit ? !validationErrors.manualDeliveryAmount : true,
-              validationError: validationErrors.manualDeliveryAmount
-                ? { message: validationErrors.manualDeliveryAmount }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Manual Delivery Amount (L)" />
-            <RequiredRule message="Manual Delivery Amount is required" />
-            <NumericRule min={0.01} message="Amount must be greater than 0" />
-          </SimpleItem>
+            <GroupItem caption="General Details" colCount={2}>
+              <SimpleItem
+                dataField="deliveryDate"
+                editorType="dxDateBox"
+                editorOptions={{
+                  value: formData.deliveryDate,
+                  max: new Date(),
+                  displayFormat: "yyyy-MM-dd HH:mm",
+                  type: "datetime",
+                  pickerType: "calendar",
+                  width: "100%",
+                  isValid: hasAttemptedSubmit
+                    ? !validationErrors.deliveryDate
+                    : true,
+                  validationError: validationErrors.deliveryDate
+                    ? { message: validationErrors.deliveryDate }
+                    : null,
+                  validationMessageMode: "always",
+                }}
+              >
+                <Label text="Delivery Date & Time" />
+                <RequiredRule message="Date and time are required" />
+              </SimpleItem>
+              <SimpleItem
+                key={`site-${formData.siteId || "empty"}`}
+                dataField="siteId"
+                editorType="dxSelectBox"
+                editorOptions={{
+                  items: sitesAvailable,
+                  displayExpr: "name",
+                  valueExpr: "id",
+                  value: formData.siteId,
+                  onValueChanged: handleSiteChange,
+                  searchEnabled: true,
+                  showClearButton: true,
+                  width: "100%",
+                  placeholder: combinedLoading
+                    ? "Loading sites..."
+                    : sitesAvailable.length > 0
+                    ? "Select site"
+                    : "No sites available",
+                  isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
+                  validationError: validationErrors.siteId
+                    ? { message: validationErrors.siteId }
+                    : null,
+                  validationMessageMode: "always",
+                }}
+              >
+                <Label text="Site" />
+                <RequiredRule message="Site is required" />
+              </SimpleItem>
+              <SimpleItem
+                key={`tank-${formData.siteId || "empty"}-${
+                  formData.tankId || "none"
+                }`}
+                dataField="tankId"
+                editorType="dxSelectBox"
+                editorOptions={{
+                  items: filteredTanks,
+                  displayExpr: "name",
+                  valueExpr: "id",
+                  value: formData.tankId,
+                  disabled: !formData.siteId,
+                  searchEnabled: true,
+                  showClearButton: true,
+                  width: "100%",
+                  placeholder: !formData.siteId
+                    ? "Select site first"
+                    : filteredTanks.length > 0
+                    ? "Select tank"
+                    : "No tanks available",
+                  isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
+                  validationError: validationErrors.tankId
+                    ? { message: validationErrors.tankId }
+                    : null,
+                  validationMessageMode: "always",
+                }}
+              >
+                <Label text="Tank" />
+                <RequiredRule message="Tank is required" />
+              </SimpleItem>
+            </GroupItem>
+            <GroupItem caption="Delivery Details" colCount={2}>
+              <SimpleItem
+                dataField="manualDeliveryAmount"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  value: formData.manualDeliveryAmount,
+                  width: "100%",
+                  format: "#,##0.00",
+                  placeholder: "Enter manual delivery amount",
+                  isValid: hasAttemptedSubmit
+                    ? !validationErrors.manualDeliveryAmount
+                    : true,
+                  validationError: validationErrors.manualDeliveryAmount
+                    ? { message: validationErrors.manualDeliveryAmount }
+                    : null,
+                  validationMessageMode: "always",
+                }}
+              >
+                <Label text="Manual Delivery Amount (L)" />
+                <RequiredRule message="Manual Delivery Amount is required" />
+                <NumericRule
+                  min={0.01}
+                  message="Amount must be greater than 0"
+                />
+              </SimpleItem>
 
-          <SimpleItem
-            dataField="sensorDeliveryAmount"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.sensorDeliveryAmount,
-              width: "100%",
-              format: "#,##0.00",
-              placeholder: "Enter sensor delivery amount (optional)",
-            }}
-          >
-            <Label text="Sensor Delivery Amount (L)" />
-            <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>
-        </GroupItem>
-        <GroupItem caption="Delivery Measurements" colCount={2}>
-          <SimpleItem
-            dataField="deliveryTemperature"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.deliveryTemperature,
-              width: "100%",
-              format: "#,##0.00",
-              placeholder: "Enter temperature (optional)",
-            }}
-          >
-            <Label text="Delivery Temperature (°C)" />
-            <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>
-          <SimpleItem
-            dataField="deliveryDensity"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.deliveryDensity,
-              width: "100%",
-              format: "#,##0.0000",
-              placeholder: "Enter density (optional)",
-            }}
-          >
-            <Label text="Delivery Density (kg/L)" />
-            <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>
-          <SimpleItem
-            dataField="deliveryMass"
-            editorType="dxNumberBox"
-            editorOptions={{
-              value: formData.deliveryMass,
-              width: "100%",
-              format: "#,##0.00",
-              placeholder: "Enter mass (optional)",
-            }}
-          >
-            <Label text="Delivery Mass (kg)" />
-            <NumericRule min={0} message="Value cannot be negative" />
-          </SimpleItem>
-        </GroupItem>
-        <GroupItem caption="Supplier Details" colCount={2}>
-          <SimpleItem
-            dataField="supplierId"
-            editorType="dxSelectBox"
-            editorOptions={{
-              items: suppliers,
-              displayExpr: "name",
-              valueExpr: "id",
-              value: formData.supplierId,
-              searchEnabled: true,
-              showClearButton: true,
-              width: "100%",
-              placeholder: "Select supplier",
-              isValid: hasAttemptedSubmit ? !validationErrors.supplierId : true,
-              validationError: validationErrors.supplierId
-                ? { message: validationErrors.supplierId }
-                : null,
-              validationMessageMode: "always",
-            }}
-          >
-            <Label text="Supplier" />
-            <RequiredRule message="Supplier is required" />
-          </SimpleItem>
-        </GroupItem>
+              <SimpleItem
+                dataField="sensorDeliveryAmount"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  value: formData.sensorDeliveryAmount,
+                  width: "100%",
+                  format: "#,##0.00",
+                  placeholder: "Enter sensor delivery amount (optional)",
+                }}
+              >
+                <Label text="Sensor Delivery Amount (L)" />
+                <NumericRule min={0} message="Value cannot be negative" />
+              </SimpleItem>
+            </GroupItem>
+            <GroupItem caption="Delivery Measurements" colCount={2}>
+              <SimpleItem
+                dataField="deliveryTemperature"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  value: formData.deliveryTemperature,
+                  width: "100%",
+                  format: "#,##0.00",
+                  placeholder: "Enter temperature (optional)",
+                }}
+              >
+                <Label text="Delivery Temperature (°C)" />
+                <NumericRule min={0} message="Value cannot be negative" />
+              </SimpleItem>
+              <SimpleItem
+                dataField="deliveryDensity"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  value: formData.deliveryDensity,
+                  width: "100%",
+                  format: "#,##0.0000",
+                  placeholder: "Enter density (optional)",
+                }}
+              >
+                <Label text="Delivery Density (kg/L)" />
+                <NumericRule min={0} message="Value cannot be negative" />
+              </SimpleItem>
+              <SimpleItem
+                dataField="deliveryMass"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  value: formData.deliveryMass,
+                  width: "100%",
+                  format: "#,##0.00",
+                  placeholder: "Enter mass (optional)",
+                }}
+              >
+                <Label text="Delivery Mass (kg)" />
+                <NumericRule min={0} message="Value cannot be negative" />
+              </SimpleItem>
+            </GroupItem>
+            <GroupItem caption="Supplier Details" colCount={2}>
+              <SimpleItem
+                dataField="supplierId"
+                editorType="dxSelectBox"
+                editorOptions={{
+                  items: suppliers,
+                  displayExpr: "name",
+                  valueExpr: "id",
+                  value: formData.supplierId,
+                  searchEnabled: true,
+                  showClearButton: true,
+                  width: "100%",
+                  placeholder: "Select supplier",
+                  isValid: hasAttemptedSubmit
+                    ? !validationErrors.supplierId
+                    : true,
+                  validationError: validationErrors.supplierId
+                    ? { message: validationErrors.supplierId }
+                    : null,
+                  validationMessageMode: "always",
+                }}
+              >
+                <Label text="Supplier" />
+                <RequiredRule message="Supplier is required" />
+              </SimpleItem>
+            </GroupItem>
           </Form>
 
           {/* Historical Entry Information Notice */}
-          {formData.deliveryDate && formData.tankId && !isValidating && !showWarning && !validationError && (
+          {formData.deliveryDate &&
+            formData.tankId &&
+            !isValidating &&
+            !showWarning &&
+            !validationError &&
             (() => {
               const selectedDate = new Date(formData.deliveryDate);
               const today = new Date();
-              const isHistorical = selectedDate < new Date(today.setHours(0, 0, 0, 0));
+              const isHistorical =
+                selectedDate < new Date(today.setHours(0, 0, 0, 0));
 
               if (isHistorical && showHistoricalNotice) {
                 return (
@@ -565,10 +621,14 @@ const TankDeliveryForm = ({
                             Historical Entry Detected
                           </h4>
                           <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating a tank delivery for <strong>{selectedDate.toLocaleDateString()}</strong> (backdated entry).
+                            You are creating a tank delivery for{" "}
+                            <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                            (backdated entry).
                           </p>
                           <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate the tank's current stock and affect all subsequent records.
+                            <strong>Impact:</strong> This will recalculate the
+                            tank's current stock and affect all subsequent
+                            records.
                           </p>
                         </div>
                       </div>
@@ -576,7 +636,13 @@ const TankDeliveryForm = ({
                         onClick={() => setShowHistoricalNotice(false)}
                         className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
                         title="Dismiss"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px' }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          fontSize: "16px",
+                        }}
                       >
                         <i className="fa-light fa-times"></i>
                       </button>
@@ -585,8 +651,7 @@ const TankDeliveryForm = ({
                 );
               }
               return null;
-            })()
-          )}
+            })()}
 
           {/* Future Records Warning */}
           {(showWarning || validationError) && (

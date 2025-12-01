@@ -2,23 +2,13 @@
  * File: ManualRefillForm.js
  * Purpose: Record manual fuel refills while leveraging shared site/tank datasets and on-demand lookups for related entities.
  * Dependencies: React, Redux Toolkit, DevExtreme components, siteActions, tankActions, fuelRefillAction
- * Last Modified: 2025-10-06
+ * Last Modified: 2025-11-27
  *
  * Key Functions/Components:
  * - ManualRefillForm: Main component handling manual refill submission and validation workflows
  * - handleSiteChange: Filters tanks based on selected site with API fallback when cache misses occur
- * - handleSaveAndClose/handleSaveAndNew: Persi                      }
-                      maxHeight={250}
-                      dropDownOptions={{
-                        container: "body",
-                      }}
-                    />
-                  </div>
-                )}
-              />
-
-              <SimpleItem
-                dataField="vehicleId"data and coordinate UI feedback
+ * - handleSaveAndClose/handleSaveAndNew: Persist data and coordinate UI feedback
+ * - useTankStockFormData: Shared context for persisting date and site across forms
  */
 import React, { useState, useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -40,6 +30,7 @@ import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValid
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
 import FixedHeightSelector from "../../../components/selectors/FixedHeightSelector";
 import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
+import { useTankStockFormData } from "../shared/context/TankStockFormContext";
 import "./ManualRefillForm.scss";
 
 const ManualRefillForm = ({
@@ -65,6 +56,14 @@ const ManualRefillForm = ({
   const [loading, setLoading] = useState(false);
   const combinedLoading = isLoading || loading;
 
+  // ✅ Get shared form data from context
+  const {
+    date: sharedDate,
+    siteId: sharedSiteId,
+    updateDate,
+    updateSiteId,
+  } = useTankStockFormData();
+
   const [filteredTanks, setFilteredTanks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -76,8 +75,8 @@ const ManualRefillForm = ({
     manualFuelrefillAmount: null,
     previousMeterReading: null,
     currentMeterReading: null,
-    date: new Date().toISOString(),
-    siteId: null,
+    date: sharedDate ? sharedDate.toISOString() : new Date().toISOString(), // Initialize from shared context
+    siteId: sharedSiteId, // Initialize from shared context
     comment: "",
     driverId: null,
     fuelBy: currentUser?.userName || "",
@@ -168,6 +167,9 @@ const ManualRefillForm = ({
         tankId: null,
       }));
 
+      // ✅ Update shared context when site changes
+      updateSiteId(siteId);
+
       setValidationErrors((prev) => ({ ...prev, siteId: null, tankId: null }));
 
       if (!siteId) {
@@ -202,7 +204,7 @@ const ManualRefillForm = ({
 
       setFilteredTanks(tanksForSite);
     },
-    [dispatch, showNotification, tanksAvailable, usingPropTanks]
+    [dispatch, showNotification, tanksAvailable, usingPropTanks, updateSiteId]
   );
 
   useEffect(() => {
@@ -260,6 +262,9 @@ const ManualRefillForm = ({
       };
       setFormData(updatedData);
 
+      // ✅ Update shared context when date changes
+      updateDate(newDate);
+
       // Clear validation errors for this field
       setValidationErrors((prev) => ({ ...prev, date: null }));
 
@@ -279,7 +284,13 @@ const ManualRefillForm = ({
         }
       }
     },
-    [formData, resetValidation, validateHistoricalEntry, showNotification]
+    [
+      formData,
+      resetValidation,
+      validateHistoricalEntry,
+      showNotification,
+      updateDate,
+    ]
   );
 
   useEffect(() => {
@@ -777,7 +788,9 @@ const ManualRefillForm = ({
                             </h4>
                             <p className="tw-text-blue-700 tw-text-sm">
                               You are creating a manual refill for{" "}
-                              <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                              <strong>
+                                {selectedDate.toLocaleDateString()}
+                              </strong>{" "}
                               (backdated entry).
                             </p>
                             <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
@@ -791,7 +804,13 @@ const ManualRefillForm = ({
                           onClick={() => setShowHistoricalNotice(false)}
                           className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
                           title="Dismiss"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '16px' }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                            fontSize: "16px",
+                          }}
                         >
                           <i className="fa-light fa-times"></i>
                         </button>
