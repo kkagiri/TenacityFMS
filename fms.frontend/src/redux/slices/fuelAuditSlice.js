@@ -553,8 +553,9 @@ const fuelAuditSlice = createSlice({
     setWizardSiteAndPeriod: (state, action) => {
       const { siteId, periodStart, periodEnd, auditType } = action.payload;
       state.wizard.siteId = siteId;
-      state.wizard.periodStart = periodStart;
-      state.wizard.periodEnd = periodEnd;
+      // Convert Date objects to ISO strings for Redux serialization
+      state.wizard.periodStart = periodStart instanceof Date ? periodStart.toISOString() : periodStart;
+      state.wizard.periodEnd = periodEnd instanceof Date ? periodEnd.toISOString() : periodEnd;
       state.wizard.auditType = auditType || 'Weekly';
       // Clear downstream data when period changes
       state.wizard.tanks = [];

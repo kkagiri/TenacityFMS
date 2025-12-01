@@ -57,8 +57,10 @@ import { GroupingControls } from './transactionHub/GroupingControls';
 import {
   useTransactionData,
   useDeleteTransaction,
+  useEditTransaction,
   useDataGridGrouping
 } from './transactionHub/useTransactionHub';
+import { EditTransactionDialog } from './transactionHub/EditTransactionDialog';
 
 // Hooks
 import { usePermissions } from '../../../../hooks/usePermissions';
@@ -68,9 +70,12 @@ const TransactionHub = () => {
   const dataGridRef = useRef(null);
 
   // Permission checks using JWT token
-  const { hasPermission } = usePermissions();
+  const { hasPermission, hasRole } = usePermissions();
   const canReadTankVolumeHistory = hasPermission('_Read_tankVolumeHistory');
   const canDeleteTankVolumeHistory = hasPermission('_Delete_tankVolumeHistory');
+  // Edit is admin-only feature
+  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+  const canEditTankVolumeHistory = isAdmin ;
 
   // Use extracted hooks for data management
   const {
@@ -104,6 +109,16 @@ const TransactionHub = () => {
     handleToggleDetails,
     handleConfirmChange
   } = useDeleteTransaction(handleRefresh);
+
+  // Use extracted hook for edit functionality
+  const {
+    editState,
+    isTransactionEditable,
+    handleEditTransaction,
+    handleEditSuccess,
+    handleCancelEdit,
+    handleEditDialogHiding
+  } = useEditTransaction(handleRefresh);
 
   // Use extracted hook for grouping
   const {
@@ -440,13 +455,36 @@ const TransactionHub = () => {
             {/* Actions Column */}
             <Column
               type="buttons"
-              width={100}
+              width={120}
               caption="Actions"
               allowSorting={false}
               allowGrouping={false}
               allowFiltering={false}
               cellRender={(cellData) => (
-                <div className="tw-flex tw-space-x-2">
+                <div className="tw-flex tw-space-x-1">
+                  {/* Edit Button */}
+                  {canEditTankVolumeHistory && isTransactionEditable(cellData.data) && (
+                    <Button
+                      icon="fa-light fa-pencil"
+                      stylingMode="text"
+                      onClick={() => handleEditTransaction(cellData.data)}
+                      className="tw-text-blue-600 hover:tw-text-blue-800"
+                      hint="Edit Transaction"
+                      disabled={isLoading || editState.visible}
+                    />
+                  )}
+                  {canEditTankVolumeHistory && !isTransactionEditable(cellData.data) && (
+                    <span className="tw-text-gray-300 tw-px-2" title="This type cannot be edited">
+                      <i className="fa-light fa-pencil-slash"></i>
+                    </span>
+                  )}
+                  {!canEditTankVolumeHistory && (
+                    <span className="tw-text-gray-300 tw-px-2" title="No edit permission">
+                      <i className="fa-light fa-pencil"></i>
+                    </span>
+                  )}
+
+                  {/* Delete Button */}
                   {canDeleteTankVolumeHistory && (
                     <Button
                       icon="fa-light fa-trash"
@@ -458,8 +496,8 @@ const TransactionHub = () => {
                     />
                   )}
                   {!canDeleteTankVolumeHistory && (
-                    <span className="tw-text-gray-400 tw-text-xs" title="No delete permission">
-                      <i className="fa-light fa-lock"></i>
+                    <span className="tw-text-gray-300 tw-px-2" title="No delete permission">
+                      <i className="fa-light fa-trash"></i>
                     </span>
                   )}
                 </div>
@@ -556,6 +594,17 @@ const TransactionHub = () => {
         onCancel={handleCancelDelete}
         onExecuteDelete={executeDelete}
         tanks={tanks}
+      />
+
+      {/* Edit Transaction Dialog Component */}
+      <EditTransactionDialog
+        visible={editState.visible}
+        onHiding={handleEditDialogHiding}
+        transaction={editState.transaction}
+        tanks={tanks}
+        sites={sites}
+        onSuccess={handleEditSuccess}
+        onCancel={handleCancelEdit}
       />
 
       {/* Page-level LoadPanel */}

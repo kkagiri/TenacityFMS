@@ -139,7 +139,9 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
 
   // Handle form submission
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
     if (onSave) {
       onSave(formData);
       setIsEditingInternal(false); // Close edit mode after save

@@ -16,88 +16,103 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands;
 /// Command to update fuel refill using correction-based approach
 /// This creates a correction entry and soft deletes the original
 /// </summary>
-public record UpdateFuelRefillCommand (
+public record UpdateFuelRefillCommand(
     int OriginalFuelRefillId,
     FuelRefillCorrectionDto CorrectionData
 ) : IRequest<FMSResponseMessage>;
 
-public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCommand, FMSResponseMessage> {
+public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCommand, FMSResponseMessage>
+{
     private readonly GpsdataContext _context;
     private readonly ILogger<UpdateFuelRefillCommandHandler> _logger;
     private readonly IMediator _mediator;
 
-    public UpdateFuelRefillCommandHandler (
+    public UpdateFuelRefillCommandHandler(
         GpsdataContext context,
         ILogger<UpdateFuelRefillCommandHandler> logger,
-        IMediator mediator) {
+        IMediator mediator)
+    {
         _context = context;
         _logger = logger;
         _mediator = mediator;
     }
 
-    public async Task<FMSResponseMessage> Handle (UpdateFuelRefillCommand request, CancellationToken cancellationToken) {
-        try {
+    public async Task<FMSResponseMessage> Handle(UpdateFuelRefillCommand request, CancellationToken cancellationToken)
+    {
+        try
+        {
             // 1. Validate the original record exists
-            var originalFuelRefill = await _context.FuelRefills.FindAsync (new object[] { request.OriginalFuelRefillId }, cancellationToken);
-            if (originalFuelRefill == null) {
-                return new FMSResponseMessage (false, $"Original fuel refill with ID {request.OriginalFuelRefillId} not found");
+            var originalFuelRefill = await _context.FuelRefills.FindAsync(new object[] { request.OriginalFuelRefillId }, cancellationToken);
+            if (originalFuelRefill == null)
+            {
+                return new FMSResponseMessage(false, $"Original fuel refill with ID {request.OriginalFuelRefillId} not found");
             }
 
             // 2. Find the associated TankVolumeHistory record
+            // CRITICAL: Include IsDeleted filter and secondary sort for deterministic ordering
             var originalTankVolumeHistory = await _context.TankVolumeHistories
-                .Where (tvh => tvh.ReferenceId == request.OriginalFuelRefillId &&
-                    tvh.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.Dispensing)
-                .FirstOrDefaultAsync (cancellationToken);
+                .Where(tvh => tvh.ReferenceId == request.OriginalFuelRefillId &&
+                    tvh.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.Dispensing &&
+                    (tvh.IsDeleted != true))
+                .OrderByDescending(tvh => tvh.Timestamp)
+                .ThenByDescending(tvh => tvh.Id)  // Secondary sort for deterministic ordering
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalTankVolumeHistory == null) {
-                return new FMSResponseMessage (false, $"Associated tank volume history for fuel refill {request.OriginalFuelRefillId} not found");
+            if (originalTankVolumeHistory == null)
+            {
+                return new FMSResponseMessage(false, $"Associated tank volume history for fuel refill {request.OriginalFuelRefillId} not found");
             }
 
             // 3. Soft delete the original tank volume history record with validation
-            var deleteResult = await _mediator.Send (new DeleteTankVolumeHistoryCommand (
+            var deleteResult = await _mediator.Send(new DeleteTankVolumeHistoryCommand(
                 DeletedBy: request.CorrectionData.FuelBy,
                 Id: originalTankVolumeHistory.Id,
                 ValidateFutureRecords: true
             ), cancellationToken);
 
-            if (!deleteResult.Success) {
-                return new FMSResponseMessage (false, $"Failed to delete original tank volume history: {deleteResult.Message}");
+            if (!deleteResult.Success)
+            {
+                return new FMSResponseMessage(false, $"Failed to delete original tank volume history: {deleteResult.Message}");
             }
 
             // 4. Create new correction entry using existing create command
-            var createResult = await _mediator.Send (new CreateFuelRrefillCommand (new Features.FMS.FuelRefil.FuelRefilDTO {
+            var createResult = await _mediator.Send(new CreateFuelRrefillCommand(new Features.FMS.FuelRefil.FuelRefilDTO
+            {
                 VehicleId = request.CorrectionData.VehicleId,
-                    TankId = request.CorrectionData.TankId,
-                    SiteId = request.CorrectionData.SiteId,
-                    Date = request.CorrectionData.Date,
-                    ManualFuelrefillAmount = request.CorrectionData.ManualFuelrefillAmount,
-                    PreviousMeterReading = request.CorrectionData.PreviousMeterReading,
-                    CurrentMeterReading = request.CorrectionData.CurrentMeterReading,
-                    DriverId = request.CorrectionData.DriverId,
-                    TagId = request.CorrectionData.TagId,
-                    Comment = request.CorrectionData.Comment,
-                    PumpTranscationId = request.CorrectionData.PumpTranscationId,
-                    FuelBy = request.CorrectionData.FuelBy,
-                    // Correction tracking
-                    IsCorrection = true,
-                    CorrectsRecordId = request.OriginalFuelRefillId,
-                    CorrectionReason = request.CorrectionData.CorrectionReason
+                TankId = request.CorrectionData.TankId,
+                SiteId = request.CorrectionData.SiteId,
+                Date = request.CorrectionData.Date,
+                ManualFuelrefillAmount = request.CorrectionData.ManualFuelrefillAmount,
+                PreviousMeterReading = request.CorrectionData.PreviousMeterReading,
+                CurrentMeterReading = request.CorrectionData.CurrentMeterReading,
+                DriverId = request.CorrectionData.DriverId,
+                TagId = request.CorrectionData.TagId,
+                Comment = request.CorrectionData.Comment,
+                PumpTranscationId = request.CorrectionData.PumpTranscationId,
+                FuelBy = request.CorrectionData.FuelBy,
+                // Correction tracking
+                IsCorrection = true,
+                CorrectsRecordId = request.OriginalFuelRefillId,
+                CorrectionReason = request.CorrectionData.CorrectionReason
             }), cancellationToken);
 
-            if (!createResult.Success) {
-                _logger.LogError ("Failed to create correction entry for fuel refill {FuelRefillId}: {Error}",
+            if (!createResult.Success)
+            {
+                _logger.LogError("Failed to create correction entry for fuel refill {FuelRefillId}: {Error}",
                     request.OriginalFuelRefillId, createResult.Message);
-                return new FMSResponseMessage (false, $"Failed to create correction entry: {createResult.Message}");
+                return new FMSResponseMessage(false, $"Failed to create correction entry: {createResult.Message}");
             }
 
-            _logger.LogInformation ("Successfully created correction entry for fuel refill {OriginalId} by user {UserId}. Reason: {Reason}",
+            _logger.LogInformation("Successfully created correction entry for fuel refill {OriginalId} by user {UserId}. Reason: {Reason}",
                 request.OriginalFuelRefillId, request.CorrectionData.FuelBy, request.CorrectionData.CorrectionReason);
 
-            return new FMSResponseMessage (true, "Fuel refill correction completed successfully");
+            return new FMSResponseMessage(true, "Fuel refill correction completed successfully");
 
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Error processing fuel refill correction for ID {FuelRefillId}", request.OriginalFuelRefillId);
-            return new FMSResponseMessage (false, $"Error processing fuel refill correction: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing fuel refill correction for ID {FuelRefillId}", request.OriginalFuelRefillId);
+            return new FMSResponseMessage(false, $"Error processing fuel refill correction: {ex.Message}");
         }
     }
 }

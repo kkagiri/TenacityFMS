@@ -17,8 +17,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Button } from 'devextreme-react/button';
-import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 
 // Redux actions
@@ -211,107 +209,97 @@ const CreateAuditWizard = ({ onClose }) => {
   };
 
   return (
-    <div className="create-audit-wizard-page tw-h-full tw-flex tw-flex-col tw-bg-gray-100">
-      {/* Full Page Header */}
-      <div className="wizard-page-header tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-700 tw-px-6 tw-py-4 tw-shadow-md">
-        <div className="tw-max-w-6xl tw-mx-auto tw-flex tw-justify-between tw-items-center">
-          <div className="tw-flex tw-items-center tw-gap-4">
-            <button
-              onClick={handleClose}
-              className="tw-text-white tw-opacity-80 hover:tw-opacity-100 tw-transition-opacity tw-p-2 tw-rounded-lg hover:tw-bg-white/10"
-              title="Back to Fuel Audit"
-            >
-              <i className="fa-light fa-arrow-left tw-text-xl"></i>
-            </button>
-            <div>
-              <h1 className="tw-text-xl tw-font-bold tw-text-white tw-flex tw-items-center">
-                <i className="fa-light fa-plus-circle tw-mr-3"></i>
-                Create New Fuel Audit
-              </h1>
-              <p className="tw-text-blue-100 tw-text-sm tw-mt-0.5">
-                Step {currentStep} of {TOTAL_STEPS}
-              </p>
-            </div>
+    <div className="create-audit-wizard-page tw-h-full tw-flex tw-flex-col tw-bg-white">
+      {/* Wizard Panel - Full Screen */}
+      <div className="tw-flex-1 tw-flex tw-flex-col tw-overflow-hidden">
+        {/* Header with Title and Progress */}
+        <div className="wizard-panel-header tw-bg-white tw-border-b tw-px-6 tw-py-4">
+          <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+            <h1 className="tw-text-xl tw-font-bold tw-text-gray-800 tw-flex tw-items-center">
+              <i className="fa-light fa-plus-circle tw-mr-3 tw-text-blue-600"></i>
+              Create New Fuel Audit
+            </h1>
+            <span className="tw-text-sm tw-text-gray-500">
+              Step {currentStep} of {TOTAL_STEPS}
+            </span>
           </div>
-          <button
-            onClick={handleClose}
-            className="tw-text-white tw-opacity-80 hover:tw-opacity-100 tw-transition-opacity tw-px-4 tw-py-2 tw-rounded-lg tw-border tw-border-white/30 hover:tw-bg-white/10 tw-flex tw-items-center tw-gap-2"
-            title="Cancel and go back"
-          >
-            <i className="fa-light fa-times"></i>
-            <span className="tw-hidden sm:tw-inline">Cancel</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Progress Indicator - Full Width */}
-      <div className="tw-bg-white tw-border-b tw-shadow-sm">
-        <div className="tw-max-w-6xl tw-mx-auto">
+          {/* Progress Indicator - Integrated */}
           <WizardProgress currentStep={currentStep} />
         </div>
-      </div>
 
-      {/* Main Content Area - Scrollable */}
-      <div className="tw-flex-1 tw-overflow-auto tw-py-6">
-        <div className="tw-max-w-6xl tw-mx-auto tw-px-4">
-          <div className="tw-bg-white tw-rounded-xl tw-shadow-lg tw-min-h-[500px]">
+        {/* Main Content Area - Scrollable */}
+        <div className="tw-flex-1 tw-overflow-auto">
+          {/* Key forces React to remount the step component completely, avoiding DOM conflicts with DevExtreme DataGrid */}
+          <div className="tw-h-full" key={`wizard-step-${currentStep}`}>
             {renderStepContent()}
           </div>
         </div>
-      </div>
 
-      {/* Footer Actions - Fixed at Bottom */}
-      <div className="wizard-footer tw-bg-white tw-border-t tw-shadow-lg tw-px-6 tw-py-4">
-        <div className="tw-max-w-6xl tw-mx-auto tw-flex tw-justify-between tw-items-center">
-          {/* Cancel button */}
-          <Button
-            text="Cancel"
-            type="normal"
-            stylingMode="outlined"
-            onClick={handleClose}
-            icon="fa-light fa-times"
-          />
-
-          {/* Navigation buttons */}
-          <div className="tw-flex tw-gap-3">
+        {/* Footer Actions - Fixed at Bottom */}
+        <div className="wizard-footer tw-bg-white tw-border-t tw-px-6 tw-py-4">
+          <div className="tw-flex tw-justify-between tw-items-center">
             {/* Back button */}
-            {currentStep > 1 && (
-              <Button
-                text="Back"
-                type="normal"
-                stylingMode="outlined"
-                icon="fa-light fa-arrow-left"
+            {currentStep > 1 ? (
+              <button
                 onClick={handleBack}
-              />
+                className="dx-widget dx-button dx-button-mode-outlined dx-button-normal dx-button-has-text dx-button-has-icon"
+                type="button"
+                style={{ minWidth: '100px' }}
+              >
+                <div className="dx-button-content">
+                  <i className="dx-icon fa-light fa-arrow-left"></i>
+                  <span className="dx-button-text">Back</span>
+                </div>
+              </button>
+            ) : (
+              <div style={{ width: '100px' }}></div>
             )}
 
-            {/* Next / Create button */}
-            {currentStep < TOTAL_STEPS ? (
-              <Button
-                text="Next"
-                type="default"
-                icon="fa-light fa-arrow-right"
-                rtlEnabled={true}
-                onClick={handleNext}
-              />
-            ) : (
-              <Button
-                text={loading.create ? "Creating..." : "Create Audit"}
-                type="success"
-                icon={loading.create ? "" : "fa-light fa-check"}
-                onClick={handleCreateAudit}
-                disabled={loading.create}
+            {/* Navigation buttons */}
+            <div className="tw-flex tw-gap-3">
+              {/* Cancel button */}
+              <button
+                onClick={handleClose}
+                className="dx-widget dx-button dx-button-mode-outlined dx-button-normal dx-button-has-text"
+                type="button"
+                style={{ minWidth: '100px' }}
               >
-                {loading.create && (
-                  <LoadIndicator
-                    className="tw-mr-2"
-                    height={16}
-                    width={16}
-                    visible={true}
-                  />
-                )}
-              </Button>
-            )}
+                <div className="dx-button-content">
+                  <span className="dx-button-text">Cancel</span>
+                </div>
+              </button>
+
+              {/* Next button */}
+              {currentStep < TOTAL_STEPS && (
+                <button
+                  onClick={handleNext}
+                  className="dx-widget dx-button dx-button-mode-contained dx-button-default dx-button-has-text dx-button-has-icon"
+                  type="button"
+                  style={{ minWidth: '100px' }}
+                >
+                  <div className="dx-button-content">
+                    <span className="dx-button-text">Next</span>
+                    <i className="dx-icon fa-light fa-arrow-right" style={{ marginLeft: '8px' }}></i>
+                  </div>
+                </button>
+              )}
+
+              {/* Create button */}
+              {currentStep === TOTAL_STEPS && (
+                <button
+                  onClick={handleCreateAudit}
+                  disabled={loading.create}
+                  className={`dx-widget dx-button dx-button-mode-contained dx-button-success dx-button-has-text dx-button-has-icon ${loading.create ? 'dx-state-disabled' : ''}`}
+                  type="button"
+                  style={{ minWidth: '120px' }}
+                >
+                  <div className="dx-button-content">
+                    <i className={`dx-icon fa-light ${loading.create ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+                    <span className="dx-button-text">{loading.create ? "Creating..." : "Create Audit"}</span>
+                  </div>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

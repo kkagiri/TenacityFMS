@@ -32,15 +32,16 @@ const VehicleFuelingHistory = ({ vehicleId }) => {
       setIsLoading(true);
 
       // Execute the API call using the vehicleRefills endpoint with 30 days default
-      const response = await dispatch(fetchConsumptionByDateRangeByVehicleID(
+      const action = await dispatch(fetchConsumptionByDateRangeByVehicleID(
         dateFrom,
         dateTo,
         vehicleId
       ));
 
-      if (response.type && response.type.includes('SUCCESS')) {
+      // Check if the action type indicates success
+      if (action.type === 'FETCH_VEHICLE_REFILLS_SUCCESS') {
         // The data comes from the payload
-        const data = response.payload || [];
+        const data = action.payload || [];
 
         // Convert and map data to match expected format
         const processedData = data.map(item => ({
@@ -66,8 +67,8 @@ const VehicleFuelingHistory = ({ vehicleId }) => {
 
         setFuelingData(processedData);
         dataLoadedRef.current = true; // Mark as loaded
-      } else {
-        throw new Error('Failed to load fueling data');
+      } else if (action.type === 'FETCH_VEHICLE_REFILLS_FAILURE') {
+        throw new Error(action.payload || 'Failed to load fueling data');
       }
     } catch (error) {
       console.error('Error loading fueling history:', error);

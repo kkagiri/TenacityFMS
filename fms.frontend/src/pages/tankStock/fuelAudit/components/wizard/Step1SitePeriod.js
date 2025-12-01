@@ -6,7 +6,7 @@
  * Date range: Max 1 month, default is 1 month ending today
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
@@ -15,14 +15,13 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { setWizardSiteAndPeriod, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
 import { AUDIT_TYPES } from './wizardConstants';
 
-// Helper: Get default dates (1 month range ending today)
+// Helper: Get default dates (30 days ago to now)
 const getDefaultDates = () => {
-  const endDate = new Date();
-  endDate.setHours(23, 59, 59, 999); // End of today
+  const endDate = new Date(); // Current time (now)
 
   const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 1);
-  startDate.setHours(0, 0, 0, 0); // Start of day, 1 month ago
+  startDate.setDate(startDate.getDate() - 30); // 30 days ago
+  startDate.setHours(0, 0, 0, 0); // Start of day
 
   return { startDate, endDate };
 };
@@ -37,7 +36,7 @@ const getDaysBetween = (start, end) => {
 // Max allowed days (approximately 1 month)
 const MAX_DAYS = 31;
 
-const Step1SitePeriod = () => {
+const Step1SitePeriod = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
   const sites = useSelector((state) => state.site?.sites || []);
@@ -45,11 +44,11 @@ const Step1SitePeriod = () => {
 
   // Date validation error
   const [dateError, setDateError] = useState(null);
-  const [initialized, setInitialized] = useState(false);
 
-  // Set default dates on first render if not already set
+  // Set default dates on mount if not already set
   useEffect(() => {
-    if (!initialized && !wizard.periodStart && !wizard.periodEnd) {
+    // Always set defaults if periodStart or periodEnd is not set
+    if (!wizard.periodStart || !wizard.periodEnd) {
       const { startDate, endDate } = getDefaultDates();
       dispatch(setWizardSiteAndPeriod({
         siteId: wizard.siteId,
@@ -57,9 +56,9 @@ const Step1SitePeriod = () => {
         periodEnd: endDate,
         auditType: wizard.auditType || 'Weekly'
       }));
-      setInitialized(true);
     }
-  }, [initialized, wizard.periodStart, wizard.periodEnd, wizard.siteId, wizard.auditType, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Validate date range
   const validateDateRange = (start, end) => {
@@ -210,6 +209,9 @@ const Step1SitePeriod = () => {
       </div>
     </div>
   );
-};
+}
+);
+
+Step1SitePeriod.displayName = 'Step1SitePeriod';
 
 export default Step1SitePeriod;

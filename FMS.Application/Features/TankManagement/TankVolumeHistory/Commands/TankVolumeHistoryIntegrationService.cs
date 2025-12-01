@@ -257,9 +257,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 }
 
                 // Get the latest volume history for this tank
+                // CRITICAL: Secondary sort by Id ensures we get the correct latest record when timestamps are equal
                 var latestRecord = await _context.TankVolumeHistories
                     .Where(h => h.TankId == tankId)
                     .OrderByDescending(h => h.Timestamp)
+                    .ThenByDescending(h => h.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (latestRecord == null || !latestRecord.NewVolume.HasValue)

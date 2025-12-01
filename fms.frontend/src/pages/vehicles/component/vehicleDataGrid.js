@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import {
   fetchVehicleList,
   updateVehicle,
+  getVehicleById,
   // createVehicle, // Moved to popup-based creation
 } from "../../../redux/actions/vehicleActions";
 import { fetchVehicleManufacturers } from "../../../redux/actions/vehicleManufacturerActions";
@@ -50,6 +51,7 @@ import DataGrid, {
   LoadPanel,
 } from "devextreme-react/data-grid";
 import TagAssignmentForm from "../../../components/Tags/TagAssignmentForm/TagAssignmentForm";
+import VehicleEditForm from "./VehicleEditForm";
 // import FuelRuleSetAssignmentForm from './../fuelingRule/assignmentForm/fuelRuleSetAssignmentForm';
 
 const VehicleDataGrid = () => {
@@ -75,6 +77,8 @@ const VehicleDataGrid = () => {
   const [saving, setSaving] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [showTagForm, setShowTagForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
   // const [showRuleSetForm, setShowRuleSetForm] = useState(false); // Not currently used
   const exportFormats = ["xlsx"];
 
@@ -321,6 +325,91 @@ const VehicleDataGrid = () => {
     }
   };
 
+  // Edit handler
+  const handleEditClick = async (vehicle) => {
+    try {
+      setSaving(true); // Use saving state instead of loading to avoid hiding the grid
+      const response = await dispatch(getVehicleById(vehicle.vehicleId));
+      if (response && response.data) {
+        setEditingVehicle(response.data);
+        setShowEditForm(true);
+      } else {
+        notify('Failed to load vehicle details', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error loading vehicle for edit:', error);
+      notify('Failed to load vehicle details', 'error', 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save edited vehicle
+  const handleSaveEdit = async (formData) => {
+    try {
+      setSaving(true);
+      const response = await dispatch(updateVehicle(editingVehicle.vehicleId, formData));
+
+      if (response && response.success) {
+        notify('Vehicle updated successfully', 'success', 3000);
+
+        // Close popup and clear editing state ONLY on success
+        setShowEditForm(false);
+        setEditingVehicle(null);
+
+        // Refresh the grid
+        await dispatch(fetchVehicleList());
+      } else {
+        // Handle error response - don't close popup
+        const errorMessage = response?.message || 'Failed to update vehicle';
+        const requiredPerms = response?.requiredPermissions?.join(', ') || '';
+        const fullMessage = requiredPerms
+          ? `${errorMessage}\nRequired permissions: ${requiredPerms}`
+          : errorMessage;
+
+        notify(fullMessage, 'error', 5000);
+        // Don't close popup - let user try again or cancel manually
+      }
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+
+      // Handle different error types
+      let errorMessage = 'Failed to save vehicle';
+
+      if (error.response?.status === 400) {
+        // Handle validation errors
+        const validationErrors = error.response?.data?.errors;
+        if (validationErrors) {
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          errorMessage = `Validation Error:\n${errorMessages}`;
+        } else if (error.response?.data?.title) {
+          errorMessage = error.response.data.title;
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.response?.status === 403) {
+        errorMessage = error.response?.data?.message || 'Access denied. Insufficient permissions.';
+        const requiredPerms = error.response?.data?.requiredPermissions?.join(', ') || '';
+        if (requiredPerms) {
+          errorMessage += `\nRequired permissions: ${requiredPerms}`;
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      notify(errorMessage, 'error', 5000);
+      // Don't close popup on error - let user try again or cancel manually
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const TagsCell = ({ data, handleAddNewTagClick }) => {
     const { tags } = data;
 
@@ -432,11 +521,9 @@ const VehicleDataGrid = () => {
         <Sorting mode="multiple" />
         <Editing
           mode="row"
-          allowUpdating={canEdit}
+          allowUpdating={false}
           allowAdding={false}
           allowDeleting={false}
-          selectTextOnEditStart={true}
-          startEditAction="dblClick"
         />
 
         <Toolbar>
@@ -464,6 +551,7 @@ const VehicleDataGrid = () => {
           </TItems>
         </Toolbar>
 
+        {/* Column configuration matching VehicleDTO.cs */}
         <Column
           dataField="vehicleId"
           caption="Vehicle ID"
@@ -471,42 +559,39 @@ const VehicleDataGrid = () => {
           visible={false}
           defaultSortOrder="asc"
         />
+
         <Column
           dataField="hyoungNo"
           allowHiding={false}
           fixed={true}
           caption="Hyoung No"
-          allowEditing={true}
-          minWidth={100}
+          allowEditing={false}
+          minWidth={120}
         >
           <RequiredRule />
         </Column>
-        <Column dataField="passenger" caption="Passenger" minWidth={150} />
-        <Column dataField="workingSiteId" caption="Working Site" minWidth={100}>
-          <Lookup dataSource={site} valueExpr="id" displayExpr="name" />
-        </Column>
-        <Column dataField="vehicleTypeId" caption="Vehicle Type" minWidth={150}>
+
+        <Column
+          dataField="numberPlate"
+          caption="Number Plate"
+          minWidth={120}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="vehicleTypeId"
+          caption="Vehicle Type"
+          minWidth={150}
+          allowEditing={false}
+        >
           <Lookup dataSource={vehicleType} valueExpr="id" displayExpr="name" />
         </Column>
-        <Column
-          dataField="defaultExpectedAverageId"
-          minWidth={100}
-          caption="Default Expected AVG"
-          alignment="center"
-          hidingPriority={0}
-        />
-        <Column dataField="averageKmL" caption="is km/l" minWidth={100} />
-        <Column
-          dataField="defaultEmployeeId"
-          caption="Default Driver"
-          minWidth={230}
-        >
-          <Lookup dataSource={employee} valueExpr="id" displayExpr="fullName" />
-        </Column>
+
         <Column
           dataField="vehicleManufacturerId"
-          caption="Vehicle Manufacturer"
-          minWidth={200}
+          caption="Manufacturer"
+          minWidth={150}
+          allowEditing={false}
         >
           <Lookup
             dataSource={manufacturers}
@@ -514,25 +599,176 @@ const VehicleDataGrid = () => {
             displayExpr="name"
           />
         </Column>
+
         <Column
           dataField="vehicleModelId"
-          caption="Vehicle Model"
-          minWidth={200}
+          caption="Model"
+          minWidth={150}
           calculateDisplayValue={vehicleModelDisplayValue}
+          allowEditing={false}
         >
           <Lookup dataSource={[]} valueExpr="id" displayExpr="name" />
         </Column>
+
+        <Column
+          dataField="yom"
+          caption="Year"
+          minWidth={80}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="workingSiteId"
+          caption="Working Site"
+          minWidth={150}
+          allowEditing={false}
+        >
+          <Lookup dataSource={site} valueExpr="id" displayExpr="name" />
+        </Column>
+
+        <Column
+          dataField="defaultEmployeeId"
+          caption="Default Driver"
+          minWidth={180}
+          allowEditing={false}
+        >
+          <Lookup dataSource={employee} valueExpr="id" displayExpr="fullName" />
+        </Column>
+
+        <Column
+          dataField="fuelTankCapacity"
+          caption="Fuel Tank Capacity (L)"
+          dataType="number"
+          format="#,##0.00"
+          minWidth={150}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="isFullTankPolicy"
+          caption="Full Tank Policy"
+          dataType="boolean"
+          minWidth={120}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="passenger"
+          caption="Passenger Capacity"
+          minWidth={130}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="capacity"
+          caption="Cargo Capacity"
+          minWidth={120}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="currentPhysicalReading"
+          caption="Current Reading"
+          minWidth={130}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="defaultExptdAvgid"
+          minWidth={150}
+          caption="Expected AVG"
+          alignment="center"
+          hidingPriority={0}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="averageKmL"
+          caption="Km/L"
+          dataType="boolean"
+          minWidth={80}
+          allowEditing={false}
+        />
+
         <Column
           dataField="excessWorkingHrCost"
-          caption="Excess Working Hr Cost"
+          caption="Excess Hr Cost"
           dataType="number"
-          setCellValue={(newData, value) => {
-            newData.excessWorkingHrCost = Math.max(
-              0,
-              Math.min(10000, Number(value))
-            );
-          }}
+          format="#,##0.00"
+          minWidth={120}
+          allowEditing={false}
         />
+
+        <Column
+          dataField="hasGPSInstalled"
+          caption="GPS"
+          dataType="boolean"
+          minWidth={80}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="gpsgategeneratedId"
+          caption="GPS Gate ID"
+          dataType="boolean"
+          minWidth={100}
+          visible={false}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="isCompanyVehicle"
+          caption="Company Vehicle"
+          dataType="boolean"
+          minWidth={130}
+          visible={false}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="isActive"
+          caption="Active"
+          dataType="boolean"
+          minWidth={80}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="dateCreated"
+          caption="Date Created"
+          dataType="datetime"
+          format="dd/MM/yyyy HH:mm"
+          minWidth={150}
+          visible={false}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="dateModified"
+          caption="Date Modified"
+          dataType="datetime"
+          format="dd/MM/yyyy HH:mm"
+          minWidth={150}
+          visible={false}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="createdBy"
+          caption="Created By"
+          minWidth={120}
+          visible={false}
+          allowEditing={false}
+        />
+
+        <Column
+          dataField="modifiedBy"
+          caption="Modified By"
+          minWidth={120}
+          visible={false}
+          allowEditing={false}
+        />
+
         <Column
           caption="Tags"
           dataField="tags"
@@ -545,29 +781,45 @@ const VehicleDataGrid = () => {
           minWidth={200}
           allowSorting={false}
           allowFiltering={false}
+          allowEditing={false}
         />
+
         <Column
           type="buttons"
-          width={120}
+          width={150}
           caption="Actions"
+          fixed={true}
+          fixedPosition="right"
           cellRender={(cellData) => (
-            <Button
-              text="View Details"
-              icon="fa-light fa-eye"
-              onClick={(e) => {
-                e.event.stopPropagation();
-                handleViewDetails(cellData.data);
-              }}
-              stylingMode="outlined"
-              type="default"
-              className="tw-text-sm"
-            />
+            <div className="tw-flex tw-gap-2">
+              <Button
+                icon="fa-light fa-edit"
+                hint="Edit Vehicle"
+                onClick={(e) => {
+                  e.event.stopPropagation();
+                  handleEditClick(cellData.data);
+                }}
+                stylingMode="text"
+                type="default"
+              />
+              <Button
+                icon="fa-light fa-eye"
+                hint="View Details"
+                onClick={(e) => {
+                  e.event.stopPropagation();
+                  handleViewDetails(cellData.data);
+                }}
+                stylingMode="text"
+                type="default"
+              />
+            </div>
           )}
         />
 
       </DataGrid>
       )}
 
+      {/* Tag Assignment Popup */}
       <Popup
         visible={showTagForm}
         onHiding={() => setShowTagForm(false)}
@@ -576,7 +828,7 @@ const VehicleDataGrid = () => {
         title={`Assign RFID Tag to Vehicle ${selectedVehicle?.hyoungNo}`}
         width="auto"
         height="auto"
-        position={{ my: "center", at: "center", of: window }}
+        showCloseButton={true}
       >
         <TagAssignmentForm
           vehicle={selectedVehicle}
@@ -584,6 +836,51 @@ const VehicleDataGrid = () => {
           onClose={() => setShowTagForm(false)}
         />
       </Popup>
+
+      {/* Edit Vehicle Popup */}
+      <Popup
+        visible={showEditForm}
+        onHiding={() => {
+          if (!saving) { // Prevent closing while saving
+            setShowEditForm(false);
+            setEditingVehicle(null);
+          }
+        }}
+        dragEnabled={false}
+        showTitle={true}
+        title={`Edit Vehicle - ${editingVehicle?.hyoungNo || ''}`}
+        width="90%"
+        height="90%"
+        showCloseButton={!saving}
+        closeOnOutsideClick={false}
+      >
+        {/* Loading Panel Overlay */}
+        {saving && (
+          <div className="tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-z-50">
+            <div className="tw-flex tw-flex-col tw-items-center">
+              <LoadIndicator width="48px" height="48px" visible={true} />
+              <span className="tw-mt-4 tw-text-gray-700 tw-font-medium">Saving changes...</span>
+            </div>
+          </div>
+        )}
+
+        <div className="tw-p-4">
+          {editingVehicle ? (
+            <VehicleEditForm
+              vehicle={editingVehicle}
+              isEditing={true}
+              onSave={handleSaveEdit}
+              isSaving={saving}
+            />
+          ) : (
+            <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
+              <LoadIndicator visible={true} />
+              <span className="tw-ml-3 tw-text-gray-600">Loading vehicle data...</span>
+            </div>
+          )}
+        </div>
+      </Popup>
+
       {/* {showRuleSetForm && <FuelRuleSetAssignmentForm vehicle={selectedVehicle} />} */}
     </div>
   );

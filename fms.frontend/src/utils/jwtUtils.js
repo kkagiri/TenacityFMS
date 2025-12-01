@@ -112,6 +112,23 @@ export const hasAllPermissions = (token, requiredPermissions) => {
 };
 
 /**
+ * Check if user has a specific role
+ * @param {string} token - The JWT token
+ * @param {string} role - The role to check
+ * @returns {boolean} - True if user has the role
+ */
+export const hasRole = (token, role) => {
+  const userInfo = getUserInfoFromToken(token);
+  if (!userInfo || !userInfo.roles) return false;
+
+  const roles = Array.isArray(userInfo.roles) ? userInfo.roles : [userInfo.roles];
+  return roles.some(r =>
+    r === role ||
+    (typeof r === 'string' && r.toLowerCase() === role.toLowerCase())
+  );
+};
+
+/**
  * Check if token is expired
  * @param {string} token - The JWT token
  * @returns {boolean} - True if token is expired

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -107,11 +107,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 }
 
                 //Cursor - Check for previous closing stock but don't require it (allow first opening stock)
+                // CRITICAL: Secondary sort by Id ensures we get the correct latest record when timestamps are equal
                 var previousClosingStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.TankId &&
                         x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
                         x.Timestamp < entryDate)
                     .OrderByDescending(x => x.Timestamp)
+                    .ThenByDescending(x => x.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 var stockTaking = new Tankstock

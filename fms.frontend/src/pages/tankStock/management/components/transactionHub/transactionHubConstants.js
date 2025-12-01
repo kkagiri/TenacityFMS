@@ -60,6 +60,15 @@ export const defaultDeleteConfirmationState = {
 };
 
 /**
+ * Default edit state
+ */
+export const defaultEditState = {
+  visible: false,
+  transaction: null,
+  isLoading: false
+};
+
+/**
  * Default grouping state
  */
 export const defaultGroupByState = {

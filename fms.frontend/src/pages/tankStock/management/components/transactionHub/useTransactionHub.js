@@ -1,7 +1,13 @@
 /**
  * File: useTransactionHub.js
  * Purpose: Custom hooks for TransactionHub component - data loading, state management
- * Last Modified: 2025-11-26
+ * Last Modified: 2025-12-01
+ *
+ * Key Hooks:
+ * - useTransactionData: Data loading and filtering
+ * - useDeleteTransaction: Delete functionality with validation
+ * - useEditTransaction: Edit functionality with form routing
+ * - useDataGridGrouping: DataGrid grouping controls
  */
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,7 +20,7 @@ import { fetchVehicleList } from '../../../../../redux/actions/vehicleActions';
 import { fetchEmployees } from '../../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../../redux/actions/userActions';
 import { sortTransactions, buildFiltersObject } from './transactionHubUtils';
-import { defaultDeleteConfirmationState, defaultGroupByState } from './transactionHubConstants';
+import { defaultDeleteConfirmationState, defaultGroupByState, defaultEditState } from './transactionHubConstants';
 
 // Import service with fallback
 let transactionDeleteService;
@@ -323,6 +329,77 @@ export const useDeleteTransaction = (handleRefresh) => {
     handleCancelDelete,
     handleToggleDetails,
     handleConfirmChange
+  };
+};
+
+/**
+ * Hook for managing edit transaction functionality
+ * Opens the appropriate form based on transaction type
+ */
+export const useEditTransaction = (handleRefresh) => {
+  const [editState, setEditState] = useState(defaultEditState);
+
+  // Non-editable transaction types
+  const NON_EDITABLE_TYPES = [7, 8, 9]; // AutomatedDispensing, Reconciliation, AutomatedReconciliation
+
+  // Check if transaction is editable
+  const isTransactionEditable = useCallback((transaction) => {
+    if (!transaction) return false;
+    return !NON_EDITABLE_TYPES.includes(transaction.changeReason);
+  }, []);
+
+  // Handle edit initiation
+  const handleEditTransaction = useCallback((transaction) => {
+    console.log('Edit transaction initiated:', transaction);
+
+    if (!isTransactionEditable(transaction)) {
+      notify({
+        message: 'This transaction type cannot be edited.',
+        type: 'warning',
+        displayTime: 3000,
+        position: 'top center'
+      });
+      return;
+    }
+
+    setEditState({
+      visible: true,
+      transaction,
+      isLoading: false
+    });
+  }, [isTransactionEditable]);
+
+  // Handle successful edit
+  const handleEditSuccess = useCallback((updatedData) => {
+    console.log('Edit successful:', updatedData);
+
+    setEditState(defaultEditState);
+
+    // Refresh data after successful edit
+    if (handleRefresh) {
+      setTimeout(() => {
+        handleRefresh();
+      }, 100);
+    }
+  }, [handleRefresh]);
+
+  // Handle cancel edit
+  const handleCancelEdit = useCallback(() => {
+    setEditState(defaultEditState);
+  }, []);
+
+  // Handle dialog hiding
+  const handleEditDialogHiding = useCallback(() => {
+    setEditState(defaultEditState);
+  }, []);
+
+  return {
+    editState,
+    isTransactionEditable,
+    handleEditTransaction,
+    handleEditSuccess,
+    handleCancelEdit,
+    handleEditDialogHiding
   };
 };
 

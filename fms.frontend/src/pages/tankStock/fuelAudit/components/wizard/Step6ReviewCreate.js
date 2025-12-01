@@ -3,7 +3,7 @@
  * Step 6: Review Summary and Create Audit
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { TextArea } from 'devextreme-react/text-area';
 import { CheckBox } from 'devextreme-react/check-box';
@@ -13,7 +13,7 @@ import { fetctTankbySiteId } from '../../../../../redux/actions/tankActions';
 import { fetchVehicleList } from '../../../../../redux/actions/vehicleActions';
 import { fetchEmployees } from '../../../../../redux/actions/employeeActions';
 
-const Step6ReviewCreate = ({ autoPopulate, onAutoPopulateChange }) => {
+const Step6ReviewCreate = memo(({ autoPopulate, onAutoPopulateChange }) => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
   const sites = useSelector((state) => state.site?.sites || []);
@@ -220,6 +220,9 @@ const Step6ReviewCreate = ({ autoPopulate, onAutoPopulateChange }) => {
       </div>
     </div>
   );
-};
+}
+);
+
+Step6ReviewCreate.displayName = 'Step6ReviewCreate';
 
 export default Step6ReviewCreate;

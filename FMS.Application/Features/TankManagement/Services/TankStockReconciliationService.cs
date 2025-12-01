@@ -61,11 +61,13 @@ namespace FMS.Application.Features.TankManagement.Services
                 }
 
                 // Get TankVolumeHistory records for this date
+                // CRITICAL: Secondary sort by Id ensures consistent ordering for same-timestamp transactions
                 var volumeHistory = await _context.TankVolumeHistories
                     .Where(vh => vh.TankId == tankId &&
                            vh.Timestamp.Date == date.Date &&
                            (vh.IsDeleted == null || vh.IsDeleted == false))
                     .OrderBy(vh => vh.Timestamp)
+                    .ThenBy(vh => vh.Id)  // Secondary sort for deterministic ordering
                     .ToListAsync(cancellationToken);
 
                 if (!volumeHistory.Any())

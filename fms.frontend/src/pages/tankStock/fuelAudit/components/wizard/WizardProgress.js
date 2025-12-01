@@ -16,7 +16,7 @@ const WizardProgress = ({ currentStep }) => {
 
           return (
             <div
-              key={stepInfo.step}
+              key={`step-${stepInfo.step}`}
               className={`tw-flex tw-flex-col tw-items-center tw-flex-1 ${
                 index > 0 ? 'tw-relative' : ''
               }`}
@@ -42,7 +42,7 @@ const WizardProgress = ({ currentStep }) => {
                 }`}
               >
                 {isCompleted ? (
-                  <i className="fa-light fa-check"></i>
+                  <span className="tw-inline-block">✓</span>
                 ) : (
                   stepInfo.step
                 )}

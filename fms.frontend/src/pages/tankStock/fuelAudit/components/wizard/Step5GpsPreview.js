@@ -12,7 +12,7 @@
  * Each category has its own data source and confidence level.
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, { Column, Selection, Paging, Scrolling } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -89,7 +89,7 @@ const CATEGORY_CONFIG = {
   }
 };
 
-const Step5GpsPreview = () => {
+const Step5GpsPreview = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
   const loading = useSelector(selectLoading);
@@ -564,6 +564,9 @@ const Step5GpsPreview = () => {
       )}
     </div>
   );
-};
+}
+);
+
+Step5GpsPreview.displayName = 'Step5GpsPreview';
 
 export default Step5GpsPreview;

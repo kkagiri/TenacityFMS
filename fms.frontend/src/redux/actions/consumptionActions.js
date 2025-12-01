@@ -121,9 +121,9 @@ export const fetchConsumptionByDateRangeByVehicleID = (startDate, endDate, vehic
         const response = await axiosInstance.get(`/consumption/vehicleRefills?startDate=${formattedStartDate}&endDate=${formattedEndDate}&vehicleId=${vehicleId}`, {
             timeout: 120000, // 2 minutes timeout for large data
         });
-        dispatch({ type: FETCH_VEHICLE_REFILLS_SUCCESS, payload: response.data });
+        return dispatch({ type: FETCH_VEHICLE_REFILLS_SUCCESS, payload: response.data });
     } catch (error) {
-        dispatch({ type: FETCH_VEHICLE_REFILLS_FAILURE, payload: error.message });
+        return dispatch({ type: FETCH_VEHICLE_REFILLS_FAILURE, payload: error.message });
     }
 }// New actions based on ConsumptionController endpoints
 

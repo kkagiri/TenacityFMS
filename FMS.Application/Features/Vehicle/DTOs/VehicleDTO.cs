@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -59,13 +59,15 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public bool? IsActive { get; set; }
 
         [JsonIgnore]
-        public string ExpectedAverageclassificationName { get; set; } = null!;
+        public string? ExpectedAverageclassificationName { get; set; }
 
         [JsonIgnore]
         public decimal? ExpectedAverageValue { get; set; }
 
         [JsonIgnore]
-        public string CombinedExpectedAverage => $"{ExpectedAverageclassificationName} {ExpectedAverageValue}" ?? "";
+        public string? CombinedExpectedAverage => !string.IsNullOrEmpty(ExpectedAverageclassificationName)
+            ? $"{ExpectedAverageclassificationName} {ExpectedAverageValue}"
+            : null;
 
         public List<string> Tags { get; set; } = new List<string>();
 

@@ -74,11 +74,14 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 }
 
                 // Check if there is opening stock for the tank on the entry day
+                // CRITICAL: Include IsDeleted filter and secondary sort for deterministic ordering
                 var existingOpeningStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
-                        x.Timestamp.Date.Date == entryDate.Date.Date &&
-                        x.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
-                    .OrderByDescending(x => x.Timestamp.Date)
+                        x.Timestamp.Date == entryDate.Date &&
+                        x.ChangeReason == VolumeChangeReasonEnum.OpeningStock &&
+                        (x.IsDeleted != true))
+                    .OrderByDescending(x => x.Timestamp)
+                    .ThenByDescending(x => x.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (existingOpeningStock == null)
@@ -94,10 +97,14 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 // Ensure there is a proper sequence: if there's an opening stock, fuel refills should come after it
                 // but before or after a closing stock if it exists
+                // CRITICAL: Include IsDeleted filter and secondary sort for deterministic ordering
                 var closingStockForDay = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
                         x.Timestamp.Date == entryDate.Date &&
-                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
+                        (x.IsDeleted != true))
+                    .OrderByDescending(x => x.Timestamp)
+                    .ThenByDescending(x => x.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 // If there's already a closing stock for the day, and fuel refill is after that closing stock,
@@ -257,7 +264,8 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 string? physicalStockSource = null;
 
                 // For current day operations, calculate the new physical stock
-                if (entryDate.Date == DateTime.Now.Date && tank.PhysicalStockValue.HasValue)
+                // FIXED: Use DateTime.UtcNow for consistency with other date comparisons
+                if (entryDate.Date == DateTime.UtcNow.Date && tank.PhysicalStockValue.HasValue)
                 {
                     newPhysicalStockValue = tank.PhysicalStockValue.Value - (decimal)fuelRefil.ManualFuelrefillAmount;
                     physicalStockSource = "FuelRefill";

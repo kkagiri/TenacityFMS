@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using FMS.Application.Common;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
 using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
 using FMS.Application.Services.Configuration;
@@ -11,6 +12,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.WebClient.Controllers
@@ -221,6 +223,202 @@ namespace FMS.WebClient.Controllers
                 return BadRequest($"Delete failed: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Gets detailed transaction information including reference data
+        /// </summary>
+        [HttpGet("{id}/details")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetTransactionDetails(int id)
+        {
+            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
+            if (!hasPermission) return Forbid();
+
+            if (id <= 0)
+                return BadRequest("Invalid transaction ID");
+
+            try
+            {
+                var result = await _mediator.Send(new GetTransactionDetailsQuery(id));
+
+                if (!result.Success)
+                    return NotFound(result.Message);
+
+                // Cast to generic type to access Data property
+                if (result is FMSResponseMessage<TransactionDetailsDto> typedResult)
+                {
+                    return Ok(typedResult.Data);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to get transaction details: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Validates if a transaction can be updated
+        /// </summary>
+        [HttpPost("validate-update")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> ValidateUpdate([FromBody] ValidateUpdateRequest request)
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Update_tankVolumeHistory");
+            // if (!hasPermission) return Forbid();
+
+            if (request.TransactionId <= 0)
+                return BadRequest("Invalid transaction ID");
+
+            try
+            {
+                var futureRecordsService = new TankStockFutureRecordsService(
+                    HttpContext.RequestServices.GetService<GpsdataContext>(),
+                    HttpContext.RequestServices.GetService<ISystemConfigurationService>(),
+                    HttpContext.RequestServices.GetService<ILogger<TankStockFutureRecordsService>>());
+
+                var result = await futureRecordsService.ValidateHistoricalEntryAsync(
+                    request.TankId,
+                    request.Timestamp,
+                    request.ChangeReason);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Validation failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Triggers recalculation of volume history for a tank
+        /// </summary>
+        [HttpPost("recalculate")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> RecalculateVolumeHistory([FromBody] RecalculateRequest request)
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Update_tankVolumeHistory");
+            // if (!hasPermission) return Forbid();
+
+            if (request.TankId <= 0)
+                return BadRequest("Invalid tank ID");
+
+            try
+            {
+                var fromDate = request.FromDate ?? DateTime.UtcNow.Date;
+
+                var result = await _mediator.Send(new UpdateTankVolumeHistoryCommand(
+                    request.TankId,
+                    fromDate,
+                    IsHistoricalUpdate: true,
+                    UpdateTankCurrentStock: true));
+
+                if (!result.Success)
+                    return BadRequest(result.Message);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Recalculation failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates a tank volume history transaction (admin only - direct volume edit)
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> UpdateTransaction(int id, [FromBody] UpdateTransactionRequest request)
+        {
+            // var hasPermission = User.HasClaim("permissions", "_Update_tankVolumeHistory");
+            // if (!hasPermission) return Forbid();
+
+            // Check for admin role
+            var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+            if (!isAdmin)
+                return Forbid("This operation requires admin privileges");
+
+            if (id <= 0)
+                return BadRequest("Invalid transaction ID");
+
+            if (string.IsNullOrWhiteSpace(request.UpdateReason))
+                return BadRequest("Update reason is required");
+
+            try
+            {
+                // Get the current user identifier
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse(c.Value, out _));
+                var updatedBy = userIdClaim?.Value;
+
+                // Get the transaction
+                var context = HttpContext.RequestServices.GetService<GpsdataContext>();
+                var transaction = await context.TankVolumeHistories
+                    .FirstOrDefaultAsync(t => t.Id == id && (t.IsDeleted != true));
+
+                if (transaction == null)
+                    return NotFound($"Transaction with ID {id} not found");
+
+                // Update the volume change
+                var oldVolumeChange = transaction.VolumeChange;
+                transaction.VolumeChange = request.VolumeChange;
+
+                // Log the change (optional - add audit trail)
+                var logger = HttpContext.RequestServices.GetService<ILogger<TankVolumeHistoryController>>();
+                logger?.LogInformation(
+                    "Transaction {TransactionId} updated by {UserId}. VolumeChange: {OldValue} -> {NewValue}. Reason: {Reason}",
+                    id, updatedBy, oldVolumeChange, request.VolumeChange, request.UpdateReason);
+
+                await context.SaveChangesAsync();
+
+                // Recalculate if requested
+                if (request.RecalculateHistory)
+                {
+                    var result = await _mediator.Send(new UpdateTankVolumeHistoryCommand(
+                        transaction.TankId ?? 0,
+                        transaction.Timestamp,
+                        IsHistoricalUpdate: true,
+                        UpdateTankCurrentStock: true));
+
+                    if (!result.Success)
+                    {
+                        return Ok(new
+                        {
+                            success = true,
+                            message = "Transaction updated, but recalculation failed: " + result.Message,
+                            recalculationFailed = true
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Transaction updated successfully",
+                    transactionId = id,
+                    oldVolumeChange = oldVolumeChange,
+                    newVolumeChange = request.VolumeChange,
+                    recalculated = request.RecalculateHistory
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Update failed: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Request model for updating a transaction
+    /// </summary>
+    public class UpdateTransactionRequest
+    {
+        public decimal VolumeChange { get; set; }
+        public bool RecalculateHistory { get; set; } = true;
+        public string UpdateReason { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -231,6 +429,26 @@ namespace FMS.WebClient.Controllers
         public int TankId { get; set; }
         public DateTime EntryDate { get; set; }
         public VolumeChangeReasonEnum EntryType { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for update validation
+    /// </summary>
+    public class ValidateUpdateRequest
+    {
+        public int TransactionId { get; set; }
+        public int TankId { get; set; }
+        public DateTime Timestamp { get; set; }
+        public VolumeChangeReasonEnum ChangeReason { get; set; }
+    }
+
+    /// <summary>
+    /// Request model for recalculation
+    /// </summary>
+    public class RecalculateRequest
+    {
+        public int TankId { get; set; }
+        public DateTime? FromDate { get; set; }
     }
 
     /// <summary>

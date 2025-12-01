@@ -13,7 +13,7 @@
  * Data comes from TankVolumeHistory via /fuelaudit/tank-preview endpoint
  */
 
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -26,7 +26,7 @@ import {
   selectWizardTankPreview
 } from '../../../../../redux/slices/fuelAuditSlice';
 
-const Step3TankPreview = () => {
+const Step3TankPreview = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
   const loading = useSelector(selectLoading);
@@ -479,6 +479,9 @@ const Step3TankPreview = () => {
       )}
     </div>
   );
-};
+}
+);
+
+Step3TankPreview.displayName = 'Step3TankPreview';
 
 export default Step3TankPreview;

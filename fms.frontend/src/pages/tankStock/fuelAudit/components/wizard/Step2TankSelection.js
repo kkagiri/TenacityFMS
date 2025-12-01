@@ -6,7 +6,7 @@
  * - id, name, tankVolume, currentStock, fuelGradeName, ptsId, siteId
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, { Column, Selection, Paging, FilterRow, Scrolling } from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -15,7 +15,7 @@ import notify from 'devextreme/ui/notify';
 import { setSelectedTanks, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
 import { fetctTankbySiteId } from '../../../../../redux/actions/tankActions';
 
-const Step2TankSelection = () => {
+const Step2TankSelection = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
 
@@ -151,12 +151,7 @@ const Step2TankSelection = () => {
             <Paging enabled={false} />
 
             <Column dataField="name" caption="Tank Name" width={180} />
-            <Column
-              dataField="fuelGradeName"
-              caption="Fuel Type"
-              width={110}
-              cellRender={renderFuelType}
-            />
+
             <Column
               dataField="tankVolume"
               caption="Capacity (L)"
@@ -209,6 +204,9 @@ const Step2TankSelection = () => {
       )}
     </div>
   );
-};
+}
+);
+
+Step2TankSelection.displayName = 'Step2TankSelection';
 
 export default Step2TankSelection;

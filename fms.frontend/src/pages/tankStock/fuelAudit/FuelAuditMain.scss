@@ -423,3 +423,31 @@
   }
 }
 
+// Quick Action Buttons
+.quick-action-btn {
+  &.dx-button {
+    height: auto !important;
+    min-height: 140px;
+    width: 100%;
+    border-radius: 12px;
+
+    .dx-button-content {
+      padding: 0;
+      text-align: left;
+
+      > div {
+        width: 100%;
+      }
+
+      h3, p {
+        text-align: left;
+      }
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+

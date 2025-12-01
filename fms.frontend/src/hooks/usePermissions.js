@@ -5,6 +5,7 @@ import {
   hasPermission,
   hasAnyPermission,
   hasAllPermissions,
+  hasRole,
   getUserInfoFromToken
 } from '../utils/jwtUtils';
 
@@ -43,12 +44,18 @@ export const usePermissions = () => {
     return hasAllPermissions(token, requiredPermissions);
   };
 
+  const checkRole = (role) => {
+    if (!token) return false;
+    return hasRole(token, role);
+  };
+
   return {
     permissions,
     userInfo,
     hasPermission: checkPermission,
     hasAnyPermission: checkAnyPermission,
     hasAllPermissions: checkAllPermissions,
+    hasRole: checkRole,
     isAuthenticated: !!token
   };
 };

@@ -61,11 +61,13 @@ namespace FMS.Application.Features.FuelAudit.Services
             try
             {
                 // Get the most recent volume history entry at or before the specified time
+                // CRITICAL: Secondary sort by Id ensures we get the correct latest record when timestamps are equal
                 var volumeRecord = await _context.TankVolumeHistories
                     .Where(h => h.TankId == tankId &&
                                 h.Timestamp <= timestamp &&
                                 (h.IsDeleted == null || h.IsDeleted == false))
                     .OrderByDescending(h => h.Timestamp)
+                    .ThenByDescending(h => h.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (volumeRecord == null)
@@ -107,19 +109,23 @@ namespace FMS.Application.Features.FuelAudit.Services
                 }
 
                 // Get opening volume - the most recent volume at or before period start
+                // CRITICAL: Secondary sort by Id ensures we get the correct latest record when timestamps are equal
                 var openingRecord = await _context.TankVolumeHistories
                     .Where(h => h.TankId == tankId &&
                                 h.Timestamp <= periodStart &&
                                 (h.IsDeleted == null || h.IsDeleted == false))
                     .OrderByDescending(h => h.Timestamp)
+                    .ThenByDescending(h => h.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 // Get closing volume - the most recent volume at or before period end
+                // CRITICAL: Secondary sort by Id ensures we get the correct latest record when timestamps are equal
                 var closingRecord = await _context.TankVolumeHistories
                     .Where(h => h.TankId == tankId &&
                                 h.Timestamp <= periodEnd &&
                                 (h.IsDeleted == null || h.IsDeleted == false))
                     .OrderByDescending(h => h.Timestamp)
+                    .ThenByDescending(h => h.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
                 // Get all transactions during the period
