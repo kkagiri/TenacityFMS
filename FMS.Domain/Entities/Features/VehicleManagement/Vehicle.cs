@@ -43,7 +43,7 @@ public partial class Vehicle
 
     public decimal? FuelTankCapacity { get; set; }
 
-    public bool IsFullTankPolicy { get; set; }
+    public bool? IsFullTankPolicy { get; set; }
 
     /// <summary>
     /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.

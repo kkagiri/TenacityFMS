@@ -26,7 +26,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
 
         public int? DefaultEmployeeId { get; set; }
         public decimal? FuelTankCapacity { get; set; }
-        public bool IsFullTankPolicy { get; set; }
+        public bool? IsFullTankPolicy { get; set; }
 
         public int? WorkingSiteId { get; set; }
 
