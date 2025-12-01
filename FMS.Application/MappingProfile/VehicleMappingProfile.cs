@@ -13,6 +13,8 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.IsCompanyVehicle, opt => opt.MapFrom(src => src.IsCompanyVehicle.HasValue && src.IsCompanyVehicle.Value != 0))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive.HasValue && src.IsActive.Value != 0))
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags.Select(t => t.Name).ToList()))
+                .ForMember(dest => dest.FuelTankCapacity, opt => opt.MapFrom(src => src.FuelTankCapacity))
+                .ForMember(dest => dest.IsFullTankPolicy, opt => opt.MapFrom(src => src.IsFullTankPolicy))
                 .ReverseMap()
                 .ForMember(dest => dest.IsCompanyVehicle, opt => opt.MapFrom(src => ConvertBoolToSbyte(src.IsCompanyVehicle)))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => ConvertBoolToSbyte(src.IsActive)));

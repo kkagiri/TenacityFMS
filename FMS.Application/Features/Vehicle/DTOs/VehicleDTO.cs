@@ -6,8 +6,10 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
 
-namespace FMS.Application.Features.Vehicle.DTOs {
-    public class VehicleDTO {
+namespace FMS.Application.Features.Vehicle.DTOs
+{
+    public class VehicleDTO
+    {
         public string HyoungNo { get; set; } = null!;
 
         public int VehicleId { get; set; }
@@ -23,6 +25,8 @@ namespace FMS.Application.Features.Vehicle.DTOs {
         public int? DeviceId { get; set; }
 
         public int? DefaultEmployeeId { get; set; }
+        public decimal? FuelTankCapacity { get; set; }
+        public bool IsFullTankPolicy { get; set; }
 
         public int? WorkingSiteId { get; set; }
 
@@ -63,7 +67,7 @@ namespace FMS.Application.Features.Vehicle.DTOs {
         [JsonIgnore]
         public string CombinedExpectedAverage => $"{ExpectedAverageclassificationName} {ExpectedAverageValue}" ?? "";
 
-        public List<string> Tags { get; set; } = new List<string> ();
+        public List<string> Tags { get; set; } = new List<string>();
 
     }
 }

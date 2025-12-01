@@ -41,7 +41,9 @@ public partial class Vehicle
 
     public bool AverageKmL { get; set; }
 
-    public string? Capacity { get; set; }
+    public decimal? FuelTankCapacity { get; set; }
+
+    public bool IsFullTankPolicy { get; set; }
 
     /// <summary>
     /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.

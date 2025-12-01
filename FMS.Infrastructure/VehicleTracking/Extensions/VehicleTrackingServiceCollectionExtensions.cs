@@ -1,5 +1,6 @@
 using System;
 using FMS.Application.CommonInterface;
+using FMS.Application.Features.FuelAudit.Services;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using FMS.Infrastructure.Services;
@@ -74,6 +75,10 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
 
             services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
             services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
+
+            // Register Fuel Audit GPS Service for fetching GPS-based fuel data
+            services.AddHttpClient<IFuelAuditGPSService, FuelAuditGPSService>();
+            services.TryAddScoped<IFuelAuditGPSService, FuelAuditGPSService>();
 
             // Register Vehicle Health Monitoring service
             services.TryAddScoped<IVehicleHealthMonitorService, VehicleHealthMonitorService>();

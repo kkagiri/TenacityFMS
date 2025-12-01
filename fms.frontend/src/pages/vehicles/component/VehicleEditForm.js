@@ -52,7 +52,8 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
         workingSiteId: vehicle.workingSiteId || null,
         defaultEmployeeId: vehicle.defaultEmployeeId || null,
         defaultExptdAvgid: vehicle.defaultExptdAvgid || null,
-        capacity: vehicle.capacity || '',
+        fuelTankCapacity: vehicle.fuelTankCapacity || null,
+        isFullTankPolicy: vehicle.IsFullTankPolicy || false,
         passenger: vehicle.passenger || '',
         currentPhysicalReading: vehicle.currentPhysicalReading || '',
         excessWorkingHrCost: vehicle.excessWorkingHrCost || 0,
@@ -166,7 +167,8 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
         workingSiteId: vehicle.workingSiteId || null,
         defaultEmployeeId: vehicle.defaultEmployeeId || null,
         defaultExptdAvgid: vehicle.defaultExptdAvgid || null,
-        capacity: vehicle.capacity || '',
+        fuelTankCapacity: vehicle.fuelTankCapacity || null,
+        isFullTankPolicy: vehicle.isFullTankPolicy || false,
         passenger: vehicle.passenger || '',
         currentPhysicalReading: vehicle.currentPhysicalReading || '',
         excessWorkingHrCost: vehicle.excessWorkingHrCost || 0,
@@ -247,15 +249,28 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
             </SimpleItem>
 
             <SimpleItem
-              dataField="capacity"
-              caption="Capacity"
+              dataField="fuelTankCapacity"
+              caption="Full Tank Capacity"
               editorOptions={{
-                placeholder: "Enter vehicle capacity",
-                onValueChanged: (e) => handleFieldChange('capacity', e.value),
+                placeholder: "Enter Fuel tank capacity",
+                onValueChanged: (e) => handleFieldChange('fuelTankCapacity', e.value),
                 readOnly: isFormDisabled,
                 stylingMode: isFormDisabled ? "outlined" : "outlined"
               }}
             />
+            <SimpleItem
+              dataField="isFullTankPolicy"
+              caption="Full Tank Policy"
+              editorType="dxCheckBox"
+              editorOptions={{
+                onValueChanged: (e) => handleFieldChange('isFullTankPolicy', e.value),
+                readOnly: isFormDisabled,
+                stylingMode: isFormDisabled ? "outlined" : "outlined"
+              }}
+            />
+
+
+
           </GroupItem>
 
           {/* Technical Details Group */}

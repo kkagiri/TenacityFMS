@@ -1,7 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './ReportsDashboard.scss';
 
 const ReportsDashboard = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="reports-dashboard">
       <div className="dashboard-header">
@@ -18,7 +21,7 @@ const ReportsDashboard = () => {
             <h3 className="stat-title">Consumption Reports</h3>
             <p className="stat-description">Vehicle fuel consumption analysis</p>
             <div className="stat-actions">
-              <button className="btn btn-primary" onClick={() => window.location.href = '/reports/consumption-refills'}>
+              <button className="btn btn-primary" onClick={() => navigate('/reports/consumption-refills')}>
                 View Reports
               </button>
             </div>
@@ -33,7 +36,7 @@ const ReportsDashboard = () => {
             <h3 className="stat-title">Data Import</h3>
             <p className="stat-description">Import fuel report data from external sources</p>
             <div className="stat-actions">
-              <button className="btn btn-secondary" onClick={() => window.location.href = '/reports/fuel-importer'}>
+              <button className="btn btn-secondary" onClick={() => navigate('/reports/fuel-importer')}>
                 Import Data
               </button>
             </div>
@@ -85,7 +88,7 @@ const ReportsDashboard = () => {
             <div className="activity-actions">
               <button
                 className="btn btn-sm btn-outline"
-                onClick={() => window.location.href = '/reports/consumption-refills'}
+                onClick={() => navigate('/reports/consumption-refills')}
               >
                 View Report
               </button>
@@ -103,7 +106,7 @@ const ReportsDashboard = () => {
             <div className="activity-actions">
               <button
                 className="btn btn-sm btn-outline"
-                onClick={() => window.location.href = '/reports/fuel-importer'}
+                onClick={() => navigate('/reports/fuel-importer')}
               >
                 Import Now
               </button>

@@ -46,6 +46,7 @@ import providerReducer from "./providerReducer";
 import maintenanceReducer from "./maintenanceReducer";
 import reconciliationReducer from "../slices/reconciliationSlice";
 import dailyTankReconciliationReducer from "./dailyTankReconciliationReducer";
+import fuelAuditReducer from "../slices/fuelAuditSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -95,6 +96,7 @@ const rootReducer = combineReducers({
   maintenance: maintenanceReducer,
   reconciliation: reconciliationReducer,
   dailyTankReconciliation: dailyTankReconciliationReducer,
+  fuelAudit: fuelAuditReducer,
 });
 
 export default rootReducer;

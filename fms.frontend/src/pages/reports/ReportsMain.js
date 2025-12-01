@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
 import ReportsLayout from './layout/ReportsLayout';
 import ReportsDashboard from './ReportsDashboard';
 import ReportGallery from './ReportGallery';
@@ -11,10 +10,8 @@ import FuelReportImporter from '../FuelReportImporter/FuelReportImporter';
 import ConsumptionBasedOnRefills from './consumption/consumptionBasedonRefills';
 
 const ReportsMain = () => {
-  const location = useLocation();
-
   return (
-    <ReportsLayout currentPath={location.pathname}>
+    <ReportsLayout>
       <Routes>
         {/* Default dashboard route */}
         <Route index element={<ReportsDashboard />} />

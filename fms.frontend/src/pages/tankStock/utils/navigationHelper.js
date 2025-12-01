@@ -13,6 +13,7 @@ export const tankStockRoutes = {
   reconciliationControl: '/tankstock/reconciliation',
   transferReconciliation: '/tankstock/transfer-reconciliation',
   fuelDataComparison: '/tankstock/fueldatacomparison',
+  fuelAudit: '/tankstock/fuel-audit',
   settings: '/tankstock/settings'
 };
 
@@ -26,6 +27,9 @@ export const isActiveRoute = (currentPath, targetPath) => {
   }
   if (targetPath === '/tankstock/fueldatacomparison') {
     return currentPath.startsWith('/tankstock/fueldatacomparison');
+  }
+  if (targetPath === '/tankstock/fuel-audit') {
+    return currentPath.startsWith('/tankstock/fuel-audit');
   }
   return currentPath.startsWith(targetPath);
 };

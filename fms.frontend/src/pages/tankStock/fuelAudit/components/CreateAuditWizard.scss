@@ -1,0 +1,96 @@
+.create-audit-wizard {
+  .wizard-header {
+    .tw-cursor-pointer:hover {
+      opacity: 0.8;
+    }
+  }
+
+  .wizard-content {
+    min-height: 400px;
+
+    // DataGrid styling
+    .dx-datagrid {
+      .dx-row-focused {
+        background-color: rgba(59, 130, 246, 0.1);
+      }
+
+      .dx-selection-cell {
+        .dx-checkbox-icon {
+          border-color: #3b82f6;
+        }
+
+        .dx-checkbox-checked .dx-checkbox-icon {
+          background-color: #3b82f6;
+        }
+      }
+    }
+  }
+
+  .wizard-footer {
+    .dx-button {
+      min-width: 100px;
+
+      &.dx-button-success {
+        .dx-button-content {
+          .dx-icon {
+            color: white;
+          }
+        }
+      }
+    }
+  }
+
+  // Step indicator responsive adjustments
+  @media (max-width: 768px) {
+    .wizard-header {
+      .tw-flex {
+        gap: 0.5rem;
+      }
+
+      .tw-w-10 {
+        width: 2rem;
+        height: 2rem;
+      }
+    }
+  }
+
+  // Preview cards styling
+  .tw-bg-blue-50,
+  .tw-bg-green-50,
+  .tw-bg-purple-50,
+  .tw-bg-orange-50,
+  .tw-bg-yellow-50 {
+    transition: transform 0.2s ease-in-out;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  // Summary cards in review step
+  .tw-bg-gray-50 {
+    h5 {
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+  }
+
+  // Validation error styling
+  .tw-bg-red-50 {
+    animation: shake 0.3s ease-in-out;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  // Loading state
+  .dx-loadindicator {
+    .dx-loadindicator-segment {
+      background-color: #3b82f6;
+    }
+  }
+}
