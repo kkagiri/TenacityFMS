@@ -1,0 +1,425 @@
+// Fuel Audit Main Styles
+.fuel-audit-main {
+  background-color: #f8fafc;
+
+  .fuel-audit-tabs {
+    .dx-tabs {
+      background: transparent;
+      border: none;
+    }
+
+    .dx-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      background: transparent;
+      color: #64748b;
+      border: none;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f1f5f9;
+        color: #1e40af;
+      }
+
+      &.dx-tab-selected {
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-weight: 600;
+        border-bottom: 2px solid #2563eb;
+      }
+    }
+  }
+}
+
+// Dashboard Cards
+.audit-stat-card {
+  @apply tw-bg-white tw-rounded-xl tw-p-6 tw-shadow-sm tw-border tw-border-gray-100;
+  transition: all 0.2s ease;
+
+  &:hover {
+    @apply tw-shadow-md;
+    transform: translateY(-2px);
+  }
+
+  .stat-icon {
+    @apply tw-w-12 tw-h-12 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-text-2xl;
+  }
+
+  .stat-value {
+    @apply tw-text-3xl tw-font-bold tw-text-gray-800;
+  }
+
+  .stat-label {
+    @apply tw-text-sm tw-text-gray-500 tw-mt-1;
+  }
+
+  .stat-trend {
+    @apply tw-text-xs tw-mt-2 tw-flex tw-items-center tw-gap-1;
+
+    &.positive {
+      @apply tw-text-green-600;
+    }
+
+    &.negative {
+      @apply tw-text-red-600;
+    }
+  }
+}
+
+// Audit List
+.audit-list-container {
+  @apply tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100;
+
+  .audit-list-header {
+    @apply tw-px-6 tw-py-4 tw-border-b tw-border-gray-100 tw-flex tw-items-center tw-justify-between;
+  }
+
+  .audit-list-filters {
+    @apply tw-px-6 tw-py-3 tw-bg-gray-50 tw-border-b tw-border-gray-100 tw-flex tw-items-center tw-gap-4 tw-flex-wrap;
+  }
+}
+
+// Status Badges
+.status-badge {
+  @apply tw-px-3 tw-py-1 tw-rounded-full tw-text-xs tw-font-semibold tw-inline-flex tw-items-center tw-gap-1;
+
+  &.draft {
+    @apply tw-bg-gray-100 tw-text-gray-700;
+  }
+
+  &.calculated {
+    @apply tw-bg-blue-100 tw-text-blue-700;
+  }
+
+  &.finalized {
+    @apply tw-bg-green-100 tw-text-green-700;
+  }
+
+  &.cancelled {
+    @apply tw-bg-red-100 tw-text-red-700;
+  }
+}
+
+// Variance Indicators
+.variance-indicator {
+  @apply tw-flex tw-items-center tw-gap-1 tw-text-sm;
+
+  &.low {
+    @apply tw-text-green-600;
+  }
+
+  &.medium {
+    @apply tw-text-yellow-600;
+  }
+
+  &.high {
+    @apply tw-text-orange-600;
+  }
+
+  &.critical {
+    @apply tw-text-red-600;
+  }
+}
+
+// Flag Severity
+.flag-severity {
+  @apply tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium;
+
+  &.low {
+    @apply tw-bg-green-100 tw-text-green-700;
+  }
+
+  &.medium {
+    @apply tw-bg-yellow-100 tw-text-yellow-700;
+  }
+
+  &.high {
+    @apply tw-bg-orange-100 tw-text-orange-700;
+  }
+
+  &.critical {
+    @apply tw-bg-red-100 tw-text-red-700;
+  }
+}
+
+// Create Wizard
+.create-wizard {
+  @apply tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100;
+
+  .wizard-header {
+    @apply tw-px-6 tw-py-4 tw-border-b tw-border-gray-100;
+  }
+
+  .wizard-steps {
+    @apply tw-flex tw-items-center tw-justify-center tw-gap-4 tw-py-6 tw-px-6 tw-bg-gray-50;
+  }
+
+  .wizard-step {
+    @apply tw-flex tw-items-center tw-gap-2;
+
+    .step-number {
+      @apply tw-w-8 tw-h-8 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-sm tw-font-semibold;
+      @apply tw-bg-gray-200 tw-text-gray-600;
+    }
+
+    .step-label {
+      @apply tw-text-sm tw-text-gray-500;
+    }
+
+    &.active {
+      .step-number {
+        @apply tw-bg-blue-600 tw-text-white;
+      }
+      .step-label {
+        @apply tw-text-blue-600 tw-font-medium;
+      }
+    }
+
+    &.completed {
+      .step-number {
+        @apply tw-bg-green-600 tw-text-white;
+      }
+      .step-label {
+        @apply tw-text-green-600;
+      }
+    }
+  }
+
+  .wizard-content {
+    @apply tw-p-6;
+  }
+
+  .wizard-footer {
+    @apply tw-px-6 tw-py-4 tw-border-t tw-border-gray-100 tw-flex tw-items-center tw-justify-between;
+  }
+}
+
+// GPS Monitor
+.gps-monitor {
+  .vehicle-card {
+    @apply tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4;
+    transition: all 0.2s ease;
+
+    &:hover {
+      @apply tw-shadow-md tw-border-blue-200;
+    }
+
+    .fuel-gauge {
+      @apply tw-relative tw-h-4 tw-bg-gray-200 tw-rounded-full tw-overflow-hidden;
+
+      .fuel-level {
+        @apply tw-h-full tw-rounded-full tw-transition-all;
+
+        &.low {
+          @apply tw-bg-red-500;
+        }
+
+        &.medium {
+          @apply tw-bg-yellow-500;
+        }
+
+        &.high {
+          @apply tw-bg-green-500;
+        }
+      }
+    }
+
+    .data-quality {
+      @apply tw-flex tw-items-center tw-gap-1 tw-text-xs;
+
+      .quality-dot {
+        @apply tw-w-2 tw-h-2 tw-rounded-full;
+
+        &.good {
+          @apply tw-bg-green-500;
+        }
+
+        &.warning {
+          @apply tw-bg-yellow-500;
+        }
+
+        &.poor {
+          @apply tw-bg-red-500;
+        }
+      }
+    }
+  }
+}
+
+// Audit Detail
+.audit-detail {
+  .detail-section {
+    @apply tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100 tw-mb-6;
+
+    .section-header {
+      @apply tw-px-6 tw-py-4 tw-border-b tw-border-gray-100 tw-flex tw-items-center tw-justify-between;
+
+      h3 {
+        @apply tw-text-lg tw-font-semibold tw-text-gray-800 tw-flex tw-items-center tw-gap-2;
+      }
+    }
+
+    .section-content {
+      @apply tw-p-6;
+    }
+  }
+
+  .reading-card {
+    @apply tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-border tw-border-gray-200;
+
+    &.opening {
+      @apply tw-border-l-4 tw-border-l-blue-500;
+    }
+
+    &.closing {
+      @apply tw-border-l-4 tw-border-l-green-500;
+    }
+  }
+
+  .variance-row {
+    @apply tw-flex tw-items-center tw-justify-between tw-py-3 tw-border-b tw-border-gray-100;
+
+    &:last-child {
+      @apply tw-border-b-0;
+    }
+  }
+
+  .flag-item {
+    @apply tw-flex tw-items-start tw-gap-4 tw-py-4 tw-border-b tw-border-gray-100;
+
+    &:last-child {
+      @apply tw-border-b-0;
+    }
+
+    .flag-icon {
+      @apply tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center;
+    }
+
+    &.resolved {
+      @apply tw-opacity-60;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .fuel-audit-main {
+    .fuel-audit-tabs {
+      .dx-tab {
+        padding: 0.5rem;
+
+        span {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .audit-stat-card {
+    .stat-value {
+      @apply tw-text-2xl;
+    }
+  }
+
+  .create-wizard {
+    .wizard-steps {
+      @apply tw-flex-col tw-gap-2;
+    }
+  }
+}
+
+// Create Audit Wizard Step Indicators
+.create-audit-wizard {
+  .step-indicator {
+    @apply tw-flex tw-flex-col tw-items-center tw-gap-2;
+
+    .step-circle {
+      @apply tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-gray-400 tw-bg-gray-100 tw-transition-all;
+    }
+
+    .step-title {
+      @apply tw-text-xs tw-text-gray-400 tw-font-medium;
+    }
+
+    &.active {
+      .step-circle {
+        @apply tw-bg-blue-600 tw-text-white;
+      }
+      .step-title {
+        @apply tw-text-blue-600;
+      }
+    }
+
+    &.completed {
+      .step-circle {
+        @apply tw-bg-green-600 tw-text-white;
+      }
+      .step-title {
+        @apply tw-text-green-600;
+      }
+    }
+  }
+
+  .step-line {
+    @apply tw-flex-1 tw-h-0.5 tw-bg-gray-200 tw-mx-4;
+
+    &.completed {
+      @apply tw-bg-green-500;
+    }
+  }
+
+  .review-section {
+    @apply tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-divide-y tw-divide-gray-200;
+
+    .review-row {
+      @apply tw-flex tw-items-center tw-justify-between tw-py-3;
+
+      &:first-child {
+        @apply tw-pt-0;
+      }
+
+      &:last-child {
+        @apply tw-pb-0;
+      }
+
+      .label {
+        @apply tw-text-sm tw-text-gray-500;
+      }
+
+      .value {
+        @apply tw-text-sm tw-font-medium tw-text-gray-800;
+      }
+    }
+  }
+}
+
+// Tanker Reading Form
+.tanker-reading-form {
+  .form-group {
+    @apply tw-mb-4;
+
+    label {
+      @apply tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2;
+    }
+  }
+
+  .dx-texteditor {
+    @apply tw-rounded-lg;
+
+    &.dx-state-focused {
+      @apply tw-ring-2 tw-ring-blue-500 tw-ring-offset-1;
+    }
+  }
+}
+
+// Variance Details
+.variance-details {
+  .variance-item {
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateX(4px);
+    }
+  }
+}
+

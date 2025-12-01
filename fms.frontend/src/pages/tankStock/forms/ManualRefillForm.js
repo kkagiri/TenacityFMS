@@ -304,6 +304,9 @@ const ManualRefillForm = ({
     []
   ); // Remove formData dependency
 
+  // Maximum allowed difference between current and previous meter readings
+  const MAX_METER_READING_DIFFERENCE = 1500;
+
   // Validation logic
   const validateForm = useCallback(() => {
     const errors = {};
@@ -328,6 +331,22 @@ const ManualRefillForm = ({
     }
     if (!formData.driverId) {
       errors.driverId = "Driver is required";
+    }
+
+    // Validate meter reading difference
+    if (formData.currentMeterReading !== null && formData.previousMeterReading !== null) {
+      const currentReading = parseFloat(formData.currentMeterReading) || 0;
+      const previousReading = parseFloat(formData.previousMeterReading) || 0;
+      const difference = Math.abs(currentReading - previousReading);
+
+      if (difference > MAX_METER_READING_DIFFERENCE) {
+        errors.meterReadingDifference = `The difference between current and previous meter readings cannot exceed ${MAX_METER_READING_DIFFERENCE}. Current difference: ${difference.toFixed(2)}`;
+      }
+
+      // Also validate that current reading should be greater than or equal to previous reading
+      if (currentReading < previousReading) {
+        errors.currentMeterReading = "Current meter reading cannot be less than previous meter reading";
+      }
     }
 
     return errors;
@@ -688,6 +707,15 @@ const ManualRefillForm = ({
                     formData.currentMeterReading !== undefined && {
                       format: "#,##0.00",
                     }),
+                  isValid: hasAttemptedSubmit
+                    ? !validationErrors.currentMeterReading && !validationErrors.meterReadingDifference
+                    : true,
+                  validationError: validationErrors.currentMeterReading
+                    ? { message: validationErrors.currentMeterReading }
+                    : validationErrors.meterReadingDifference
+                    ? { message: validationErrors.meterReadingDifference }
+                    : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Current Meter Reading" />
@@ -706,6 +734,13 @@ const ManualRefillForm = ({
                     formData.previousMeterReading !== undefined && {
                       format: "#,##0.00",
                     }),
+                  isValid: hasAttemptedSubmit
+                    ? !validationErrors.meterReadingDifference
+                    : true,
+                  validationError: validationErrors.meterReadingDifference
+                    ? { message: validationErrors.meterReadingDifference }
+                    : null,
+                  validationMessageMode: "always",
                 }}
               >
                 <Label text="Previous Meter Reading" />

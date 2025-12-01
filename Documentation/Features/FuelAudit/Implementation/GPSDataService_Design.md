@@ -591,40 +591,40 @@ CREATE TABLE IF NOT EXISTS fuel_audit_gps_readings (
     vehicle_id INT NOT NULL COMMENT 'FK to vehicles table',
     reading_date DATE NOT NULL COMMENT 'The date we requested fuel reading for',
     reading_type ENUM('opening', 'closing') NOT NULL COMMENT 'Opening or closing stock reading',
-    
+
     -- Fuel Data
     fuel_level DECIMAL(10,2) NULL COMMENT 'Fuel level in liters',
     fuel_level_unit VARCHAR(20) DEFAULT 'Liters',
-    
+
     -- Timestamp of actual reading
     reading_timestamp DATETIME NULL COMMENT 'Actual timestamp from GPS track',
     actual_data_date DATE NULL COMMENT 'Date of actual data (may differ from reading_date)',
-    
+
     -- Data Quality
     data_quality TINYINT NOT NULL COMMENT '1=Exact, 2=Interpolated, 3=Unavailable, 4=NoSensor, 5=SensorNotReporting',
     data_quality_reason VARCHAR(255) NULL,
-    
+
     -- Vehicle Status at Reading
     was_online BIT(1) DEFAULT 0,
     latitude DECIMAL(10,7) NULL,
     longitude DECIMAL(10,7) NULL,
     ignition_status BIT(1) NULL,
-    
+
     -- Source Tracking
     gps_device_id VARCHAR(50) NULL COMMENT 'GPSGate user/device ID used',
     track_info_id INT NULL COMMENT 'GPSGate trackInfoId for traceability',
-    
+
     -- Audit Trail
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by INT NULL COMMENT 'User who triggered the reading',
-    
+
     -- Indexes
     INDEX idx_audit_id (audit_id),
     INDEX idx_vehicle_date (vehicle_id, reading_date),
     INDEX idx_reading_date_type (reading_date, reading_type),
-    
+
     -- Foreign Keys (adjust if needed)
-    CONSTRAINT fk_gps_reading_vehicle FOREIGN KEY (vehicle_id) 
+    CONSTRAINT fk_gps_reading_vehicle FOREIGN KEY (vehicle_id)
         REFERENCES vehicles(vehicleId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Stores GPS fuel level readings for fuel audit';
@@ -647,33 +647,33 @@ namespace FMS.Domain.Entities.FuelAudit
         public int VehicleId { get; set; }
         public DateTime ReadingDate { get; set; }
         public string ReadingType { get; set; } = "opening"; // opening, closing
-        
+
         // Fuel Data
         public decimal? FuelLevel { get; set; }
         public string FuelLevelUnit { get; set; } = "Liters";
-        
+
         // Timestamp
         public DateTime? ReadingTimestamp { get; set; }
         public DateTime? ActualDataDate { get; set; }
-        
+
         // Data Quality
         public int DataQuality { get; set; }
         public string? DataQualityReason { get; set; }
-        
+
         // Vehicle Status
         public bool WasOnline { get; set; }
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public bool? IgnitionStatus { get; set; }
-        
+
         // Source Tracking
         public string? GPSDeviceId { get; set; }
         public int? TrackInfoId { get; set; }
-        
+
         // Audit Trail
         public DateTime CreatedAt { get; set; }
         public int? CreatedBy { get; set; }
-        
+
         // Navigation
         public virtual Vehicle? Vehicle { get; set; }
     }
@@ -690,20 +690,20 @@ public async Task<FMSResponse<VehicleFuelPositionDTO>> GetVehicleFuelAtDateAsync
 {
     // 1. Check if we already have this reading cached
     var existingReading = await _context.FuelAuditGPSReadings
-        .FirstOrDefaultAsync(r => 
-            r.VehicleId == vehicleId && 
-            r.ReadingDate == date.Date && 
+        .FirstOrDefaultAsync(r =>
+            r.VehicleId == vehicleId &&
+            r.ReadingDate == date.Date &&
             r.ReadingType == readingType);
-    
+
     if (existingReading != null)
     {
         // Return cached data
         return FMSResponse<VehicleFuelPositionDTO>.Success(MapToDTO(existingReading));
     }
-    
+
     // 2. Fetch from GPSGate API
     var result = await FetchFromGPSGateAsync(vehicleId, date, readingType);
-    
+
     if (result.IsSuccess && result.Data != null)
     {
         // 3. Save to database for future use
@@ -725,11 +725,11 @@ public async Task<FMSResponse<VehicleFuelPositionDTO>> GetVehicleFuelAtDateAsync
             GPSDeviceId = result.Data.GPSDeviceId,
             CreatedAt = DateTime.UtcNow
         };
-        
+
         _context.FuelAuditGPSReadings.Add(reading);
         await _context.SaveChangesAsync();
     }
-    
+
     return result;
 }
 ```

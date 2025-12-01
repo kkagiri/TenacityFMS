@@ -51,14 +51,19 @@ namespace FMS.Domain.Entities.FuelAudit
 
         // Data Quality
         /// <summary>
-        /// Quality indicator: 1=Exact, 2=Interpolated, 3=Unavailable, 4=NoSensor, 5=SensorNotReporting
+        /// Quality indicator: Exact, Interpolated, Unavailable, NoSensor, SensorNotReporting
         /// </summary>
-        public int DataQuality { get; set; } = 1;
+        public string DataQuality { get; set; } = "Exact";
 
         /// <summary>
         /// Human-readable reason for data quality status
         /// </summary>
         public string? DataQualityReason { get; set; }
+
+        /// <summary>
+        /// How many days back we searched to find data
+        /// </summary>
+        public int? DaysFromRequestedDate { get; set; }
 
         // Vehicle Status at Reading
         /// <summary>
@@ -92,8 +97,14 @@ namespace FMS.Domain.Entities.FuelAudit
         /// </summary>
         public int? TrackInfoId { get; set; }
 
+        /// <summary>
+        /// Raw JSON data from GPS provider (for debugging/audit)
+        /// </summary>
+        public string? RawData { get; set; }
+
         // Audit Trail
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
         /// <summary>
         /// User who triggered the reading

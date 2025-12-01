@@ -21,8 +21,41 @@ const ReportBuilder = ({ reportDefinition, filters, onFiltersChange, autoLoad = 
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pivotDataSource, setPivotDataSource] = useState(null);
+  const isMountedRef = useRef(true);
   const dataGridRef = useRef(null);
   const pivotGridRef = useRef(null);
+
+  // Cleanup effect to properly dispose DevExtreme components
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Clean up PivotGridDataSource
+      if (pivotDataSource) {
+        try {
+          pivotDataSource.dispose();
+        } catch (e) {
+          console.warn('Error disposing PivotGridDataSource:', e);
+        }
+      }
+    };
+  }, [pivotDataSource]);
+
+  // Create PivotGrid data source
+  const createPivotDataSource = useCallback((data, pivotConfig) => {
+    const dataSource = new PivotGridDataSource({
+      fields: pivotConfig.fields || [],
+      store: data
+    });
+
+    dataSource.load().then(() => {
+      if (isMountedRef.current) {
+        setPivotDataSource(dataSource);
+      }
+    }).catch((error) => {
+      console.error('Error loading PivotGridDataSource:', error);
+    });
+  }, []);
 
   // Load report data
   const loadReportData = useCallback(async () => {
@@ -48,6 +81,9 @@ const ReportBuilder = ({ reportDefinition, filters, onFiltersChange, autoLoad = 
         formattedFilters
       );
 
+      // Only update state if component is still mounted
+      if (!isMountedRef.current) return;
+
       if (result.success) {
         setReportData(result.data);
 
@@ -66,25 +102,15 @@ const ReportBuilder = ({ reportDefinition, filters, onFiltersChange, autoLoad = 
       }
     } catch (error) {
       console.error('Error loading report data:', error);
-      notify({ message: `Error loading report: ${error.message}`, type: 'error' });
+      if (isMountedRef.current) {
+        notify({ message: `Error loading report: ${error.message}`, type: 'error' });
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [reportDefinition, filters]);
-
-  // Create PivotGrid data source
-  const createPivotDataSource = useCallback((data, pivotConfig) => {
-    const dataSource = new PivotGridDataSource({
-      fields: pivotConfig.fields || [],
-      store: data
-    });
-
-    dataSource.load().then(() => {
-      setPivotDataSource(dataSource);
-    }).catch((error) => {
-      console.error('Error loading PivotGridDataSource:', error);
-    });
-  }, []);
+  }, [reportDefinition, filters, createPivotDataSource]);
 
   // Auto-load on mount if specified
   useEffect(() => {

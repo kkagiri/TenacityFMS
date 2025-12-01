@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Fuel Data Sources - Fuel Audit System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --purple: #7c3aed;
+            --purple-light: #ede9fe;
+            --cyan: #0891b2;
+            --cyan-light: #cffafe;
+            --pink: #db2777;
+            --pink-light: #fce7f3;
+            --orange: #ea580c;
+            --orange-light: #fff7ed;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            color: var(--gray-800);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .header p {
+            color: var(--gray-500);
+        }
+
+        /* Category Cards */
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .category-card.gps::before { background: var(--primary); }
+        .category-card.fulltank::before { background: var(--success); }
+        .category-card.nonfull::before { background: var(--warning); }
+        .category-card.external::before { background: var(--pink); }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-card.gps .category-icon { background: var(--primary-light); color: var(--primary); }
+        .category-card.fulltank .category-icon { background: var(--success-light); color: var(--success); }
+        .category-card.nonfull .category-icon { background: var(--warning-light); color: var(--warning); }
+        .category-card.external .category-icon { background: var(--pink-light); color: var(--pink); }
+
+        .category-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .category-subtitle {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .confidence-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .confidence-high { background: var(--success-light); color: var(--success); }
+        .confidence-medium { background: var(--warning-light); color: var(--warning); }
+        .confidence-low { background: var(--danger-light); color: var(--danger); }
+        .confidence-accounted { background: var(--pink-light); color: var(--pink); }
+
+        /* Data Fields */
+        .data-fields {
+            margin-top: 1rem;
+        }
+
+        .data-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--gray-200);
+        }
+
+        .data-field:last-child {
+            border-bottom: none;
+        }
+
+        .field-name {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        .field-source {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .source-gps { background: var(--primary-light); color: var(--primary); }
+        .source-db { background: var(--purple-light); color: var(--purple); }
+        .source-estimated { background: var(--warning-light); color: var(--warning); }
+        .source-none { background: var(--gray-100); color: var(--gray-500); }
+        .source-external { background: var(--pink-light); color: var(--pink); }
+
+        /* Data Flow Section */
+        .data-flow-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+
+        .flow-column {
+            min-width: 280px;
+            flex: 1;
+        }
+
+        .flow-header {
+            background: var(--gray-800);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .flow-header .step-num {
+            font-size: 0.7rem;
+            background: rgba(255,255,255,0.2);
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .flow-body {
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            padding: 1rem;
+            min-height: 200px;
+        }
+
+        .flow-item {
+            background: white;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid var(--gray-300);
+            font-size: 0.8rem;
+        }
+
+        .flow-item.gps { border-color: var(--primary); }
+        .flow-item.fulltank { border-color: var(--success); }
+        .flow-item.nonfull { border-color: var(--warning); }
+        .flow-item.external { border-color: var(--pink); }
+        .flow-item.db { border-color: var(--purple); }
+
+        .flow-item-title {
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+
+        .comparison-table th {
+            background: var(--gray-800);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .comparison-table th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .comparison-table th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 0.85rem;
+        }
+
+        .comparison-table tr:last-child td:first-child {
+            border-radius: 0 0 0 8px;
+        }
+
+        .comparison-table tr:last-child td:last-child {
+            border-radius: 0 0 8px 0;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .status-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        .status-yes { background: var(--success-light); color: var(--success); }
+        .status-no { background: var(--danger-light); color: var(--danger); }
+        .status-partial { background: var(--warning-light); color: var(--warning); }
+        .status-na { background: var(--gray-100); color: var(--gray-400); }
+
+        /* External Vehicle Section */
+        .external-section {
+            background: linear-gradient(135deg, var(--pink-light) 0%, white 50%);
+            border: 2px solid var(--pink);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .external-section .section-title {
+            color: var(--pink);
+        }
+
+        .external-flow {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .external-box {
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .external-box.site { border-color: var(--primary); }
+        .external-box.tank { border-color: var(--purple); }
+        .external-box.vehicle { border-color: var(--pink); }
+        .external-box.audit { border-color: var(--success); }
+
+        .external-box-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .external-box-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .external-box-subtitle {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .arrow-right {
+            font-size: 1.5rem;
+            color: var(--gray-400);
+        }
+
+        /* Formula Box */
+        .formula-box {
+            background: var(--gray-800);
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .formula-title {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .formula {
+            font-size: 1rem;
+            line-height: 2;
+        }
+
+        .formula .var {
+            color: var(--cyan-light);
+        }
+
+        .formula .op {
+            color: var(--warning);
+        }
+
+        .formula .result {
+            color: var(--success-light);
+        }
+
+        /* Key Insight Box */
+        .insight-box {
+            background: linear-gradient(135deg, var(--primary-light) 0%, white 100%);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .insight-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .insight-content {
+            font-size: 0.9rem;
+            color: var(--gray-700);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .categories {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .categories {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                🚗 Vehicle Fuel Data Sources
+            </h1>
+            <p>Understanding data sources for each vehicle type in the Fuel Audit System</p>
+        </div>
+
+        <!-- Vehicle Categories -->
+        <div class="categories">
+            <!-- GPS Vehicles -->
+            <div class="category-card gps">
+                <span class="confidence-badge confidence-high">HIGH CONFIDENCE</span>
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="category-title">1. Site GPS Fleet</div>
+                        <div class="category-subtitle">Full Telemetry Data</div>
+                    </div>
+                </div>
+                <div class="data-fields">
+                    <div class="data-field">
+                        <span class="field-name">Opening Fuel Level</span>
+                        <span class="field-source source-gps">GPSGate API</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Closing Fuel Level</span>
+                        <span class="field-source source-gps">GPSGate API</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Consumed</span>
+                        <span class="field-source source-gps">GPS Calculated</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Distance Traveled</span>
+                        <span class="field-source source-gps">GPS Odometer</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Refuel Events (GPS)</span>
+                        <span class="field-source source-gps">Fuel Jumps</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Refueled (Rec)</span>
+                        <span class="field-source source-db">FuelRefill DB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full Tank Vehicles -->
+            <div class="category-card fulltank">
+                <span class="confidence-badge confidence-medium">MEDIUM CONFIDENCE</span>
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="3" width="15" height="13"/>
+                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                            <circle cx="5.5" cy="18.5" r="2.5"/>
+                            <circle cx="18.5" cy="18.5" r="2.5"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="category-title">2. Site Full Tank (No GPS)</div>
+                        <div class="category-subtitle">IsKmL = True</div>
+                    </div>
+                </div>
+                <div class="data-fields">
+                    <div class="data-field">
+                        <span class="field-name">Opening Fuel Level</span>
+                        <span class="field-source source-estimated">Estimated</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Closing Fuel Level</span>
+                        <span class="field-source source-estimated">Estimated</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Consumed</span>
+                        <span class="field-source source-db">= Refueled ✓</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Distance Traveled</span>
+                        <span class="field-source source-db">Odometer Diff</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Refueled</span>
+                        <span class="field-source source-db">FuelRefill DB</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Efficiency</span>
+                        <span class="field-source source-db">Calculated</span>
+                    </div>
+                </div>
+                <div class="insight-box">
+                    <div class="insight-title">💡 Key Insight</div>
+                    <div class="insight-content">
+                        <strong>Full Tank Policy:</strong> Fuel Added = Fuel Consumed Since Last Fill
+                    </div>
+                </div>
+            </div>
+
+            <!-- Non-Full Tank -->
+            <div class="category-card nonfull">
+                <span class="confidence-badge confidence-low">LOW CONFIDENCE</span>
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="category-title">3. Site Equipment (No GPS)</div>
+                        <div class="category-subtitle">Equipment / L per Hour</div>
+                    </div>
+                </div>
+                <div class="data-fields">
+                    <div class="data-field">
+                        <span class="field-name">Opening Fuel Level</span>
+                        <span class="field-source source-none">Unknown ❌</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Closing Fuel Level</span>
+                        <span class="field-source source-none">Unknown ❌</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Consumed</span>
+                        <span class="field-source source-none">Unknown ❌</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Hours Operated</span>
+                        <span class="field-source source-db">FuelRefill (if recorded)</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Issued</span>
+                        <span class="field-source source-db">FuelRefill DB ✓</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Est. Consumption</span>
+                        <span class="field-source source-estimated">Historical L/hr</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cross-Site Company Vehicle -->
+            <div class="category-card" style="border-top: 4px solid var(--cyan);">
+                <span class="confidence-badge confidence-high">HIGH CONFIDENCE</span>
+                <div class="category-header">
+                    <div class="category-icon" style="background: var(--cyan-light); color: var(--cyan);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="category-title">4. Cross-Site Company</div>
+                        <div class="category-subtitle">IsCompany=1, Different Site, Has GPS</div>
+                    </div>
+                </div>
+                <div class="data-fields">
+                    <div class="data-field">
+                        <span class="field-name">Opening Fuel Level</span>
+                        <span class="field-source" style="background: var(--cyan-light); color: var(--cyan);">SOAP FuelBefore</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Closing Fuel Level</span>
+                        <span class="field-source" style="background: var(--cyan-light); color: var(--cyan);">SOAP FuelBefore*</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel from This Site</span>
+                        <span class="field-source source-db">FuelRefill DB ✓</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Total Refueled</span>
+                        <span class="field-source" style="background: var(--cyan-light); color: var(--cyan);">SOAP Report 212</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fleet Reconcile</span>
+                        <span class="field-source source-external">Separate Section</span>
+                    </div>
+                </div>
+                <div class="insight-box" style="background: linear-gradient(135deg, var(--cyan-light) 0%, white 100%); border-color: var(--cyan);">
+                    <div class="insight-title" style="color: var(--cyan);">💡 Data Source</div>
+                    <div class="insight-content">
+                        <strong>GPSGate SOAP Report 212</strong> via <code>GpsGateReportEntry</code> table
+                        <br>*Closing = FuelBefore of next refuel event
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row for External -->
+        <div class="categories" style="grid-template-columns: 1fr; max-width: 500px; margin: 0 auto 2rem auto;">
+            <!-- External Non-Company Vehicles -->
+            <div class="category-card external">
+                <span class="confidence-badge confidence-accounted">ACCOUNTED ONLY</span>
+                <div class="category-header">
+                    <div class="category-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v8"/>
+                            <path d="M8 12h8"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="category-title">5. External Non-Company</div>
+                        <div class="category-subtitle">IsCompanyVehicle = 0, No GPS</div>
+                    </div>
+                </div>
+                <div class="data-fields">
+                    <div class="data-field">
+                        <span class="field-name">Fuel Issued</span>
+                        <span class="field-source source-db">FuelRefill DB ✓</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Refuel Count</span>
+                        <span class="field-source source-db">FuelRefill DB ✓</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Opening/Closing</span>
+                        <span class="field-source source-none">Not Available ❌</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fuel Consumed</span>
+                        <span class="field-source source-none">Cannot Calculate ❌</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Tanker Side</span>
+                        <span class="field-source source-external">Include in Total</span>
+                    </div>
+                    <div class="data-field">
+                        <span class="field-name">Fleet Side</span>
+                        <span class="field-source source-none">Excluded ❌</span>
+                    </div>
+                </div>
+                <div class="insight-box" style="background: linear-gradient(135deg, var(--pink-light) 0%, white 100%); border-color: var(--pink);">
+                    <div class="insight-title" style="color: var(--pink);">⚠️ Limited Data</div>
+                    <div class="insight-content">
+                        Third-party/contractor vehicles. <strong>Track fuel issued only</strong> - no consumption data possible.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPS Data Source Comparison - NEW SECTION -->
+        <div class="data-flow-section" style="border: 2px solid var(--primary); background: linear-gradient(135deg, var(--primary-light) 0%, white 50%);">
+            <div class="section-title" style="color: var(--primary);">
+                🎯 GPS Data Source Decision Guide
+            </div>
+            <p style="color: var(--gray-600); margin-bottom: 1.5rem;">
+                For GPS-equipped vehicles, we have <strong>three potential data sources</strong>. Use the right source for each data point.
+            </p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th style="background: var(--primary);">REST API (Tracks)</th>
+                        <th style="background: var(--cyan);">SOAP Report 212</th>
+                        <th style="background: var(--purple);">Manual FuelRefill</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>API Type</strong></td>
+                        <td>Real-time / On-demand</td>
+                        <td>Batch / Pre-fetched</td>
+                        <td>Database Table</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Type</strong></td>
+                        <td>Point-in-time fuel readings</td>
+                        <td>Refuel event detection</td>
+                        <td>Recorded fuel entries</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Key Fields</strong></td>
+                        <td><code>FuelLevel</code>, <code>Timestamp</code>, <code>Position</code></td>
+                        <td><code>FuelBefore</code>, <code>FuelAfter</code>, <code>RefillVolume</code></td>
+                        <td><code>FuelAmount</code>, <code>RefillDate</code>, <code>Odometer</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Storage</strong></td>
+                        <td>Not stored (fetched on demand)</td>
+                        <td>Stored in <code>gpsgate_report_entries</code></td>
+                        <td>Stored in <code>fuelrefill</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Timestamp Accuracy</strong></td>
+                        <td style="color: var(--success); font-weight: 600;">HIGH - Exact GPS timestamp</td>
+                        <td style="color: var(--success); font-weight: 600;">HIGH - Event-based</td>
+                        <td style="color: var(--warning); font-weight: 600;">LOW - May not be accurate</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Vehicle Scope</strong></td>
+                        <td>Site vehicles with GPSGate</td>
+                        <td>Any company vehicle with GPSGate</td>
+                        <td>All vehicles in system</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Decision Matrix -->
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--gray-700);">📋 Which Source for Which Data Point?</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+
+                    <div style="background: white; border: 2px solid var(--primary); border-radius: 12px; padding: 1rem;">
+                        <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">
+                            Opening/Closing Fuel Level
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                            Use: <strong style="color: var(--primary);">REST API (Tracks)</strong>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                            Real-time reading at specific time window<br>
+                            Opening: 00:00-06:00 | Closing: 18:00-23:59
+                        </div>
+                    </div>
+
+                    <div style="background: white; border: 2px solid var(--cyan); border-radius: 12px; padding: 1rem;">
+                        <div style="font-weight: 600; color: var(--cyan); margin-bottom: 0.5rem;">
+                            Refuel Validation
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                            Use: <strong style="color: var(--cyan);">SOAP Report 212</strong>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                            Compare RefillVolume with recorded amount<br>
+                            Detect unrecorded refuels
+                        </div>
+                    </div>
+
+                    <div style="background: white; border: 2px solid var(--purple); border-radius: 12px; padding: 1rem;">
+                        <div style="font-weight: 600; color: var(--purple); margin-bottom: 0.5rem;">
+                            Fuel Dispensed Amount
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                            Use: <strong style="color: var(--purple);">FuelRefill Table</strong>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                            Authoritative record of dispensed fuel<br>
+                            From PTS or manual entry
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Quality Hierarchy -->
+            <div class="formula-box" style="margin-top: 1.5rem;">
+                <div class="formula-title">FuelAuditGPSService Data Source Hierarchy</div>
+                <div class="formula">
+                    <span style="color: #a5f3fc;">1. Check Cache</span> → <span class="var">FuelPositionCacheService</span><br>
+                    <span style="color: #a5f3fc;">2. GPSGate REST</span> → <span class="var">FetchFuelPositionFromGPSGateAsync()</span> → DataQuality: <span class="result">Exact</span>/<span style="color: #fef08a;">Interpolated</span><br>
+                    <span style="color: #a5f3fc;">3. Manual Fallback</span> → <span class="var">TryGetFuelFromManualRefillAsync()</span> → DataQuality: <span style="color: #fca5a5;">Low</span><br>
+                    <span style="color: #a5f3fc;">4. Unavailable</span> → DataQuality: <span style="color: #f87171;">Unavailable</span>
+                </div>
+            </div>
+
+            <!-- Data Quality Indicators -->
+            <div style="margin-top: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--gray-700);">📊 Data Quality Indicators</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                    <span style="background: var(--success-light); color: var(--success); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+                        ✓ Exact - Same day GPS data
+                    </span>
+                    <span style="background: var(--warning-light); color: var(--warning); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+                        ~ Interpolated - 1-7 days prior
+                    </span>
+                    <span style="background: var(--orange-light); color: var(--orange); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+                        ⚠ Low - Manual fallback
+                    </span>
+                    <span style="background: var(--danger-light); color: var(--danger); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+                        ✗ Unavailable - No data
+                    </span>
+                    <span style="background: var(--gray-100); color: var(--gray-500); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+                        — NoSensor - No fuel sensor
+                    </span>
+                    <span style="background: var(--purple-light); color: var(--purple); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">
+                        ⚡ SensorNotReporting - Malfunction
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="data-flow-section">
+            <div class="section-title">
+                📊 Data Availability Comparison (5 Vehicle Categories)
+            </div>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Data Field</th>
+                        <th>1. Site GPS</th>
+                        <th>2. Site Full Tank</th>
+                        <th>3. Site Equipment</th>
+                        <th>4. Cross-Site Company</th>
+                        <th>5. External Non-Company</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Opening Fuel Level</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> GPS Sensor</td>
+                        <td><span class="status-icon status-partial">~</span> Estimated</td>
+                        <td><span class="status-icon status-no">✗</span> Unknown</td>
+                        <td><span class="status-icon status-yes">✓</span> SOAP FuelBefore</td>
+                        <td><span class="status-icon status-no">✗</span> N/A</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Closing Fuel Level</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> GPS Sensor</td>
+                        <td><span class="status-icon status-partial">~</span> Estimated</td>
+                        <td><span class="status-icon status-no">✗</span> Unknown</td>
+                        <td><span class="status-icon status-yes">✓</span> SOAP FuelBefore*</td>
+                        <td><span class="status-icon status-no">✗</span> N/A</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fuel Consumed</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> GPS Calculated</td>
+                        <td><span class="status-icon status-yes">✓</span> = Refuel Amt</td>
+                        <td><span class="status-icon status-no">✗</span> Cannot Verify</td>
+                        <td><span class="status-icon status-yes">✓</span> Calculated</td>
+                        <td><span class="status-icon status-no">✗</span> N/A</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fuel from This Site</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Refueled (All Sites)</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> GPS + FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> FuelRefill</td>
+                        <td><span class="status-icon status-yes">✓</span> SOAP Report 212</td>
+                        <td><span class="status-icon status-na">—</span> Only this site</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Refuel Mismatch Detection</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> GPS vs Record</td>
+                        <td><span class="status-icon status-no">✗</span> No GPS</td>
+                        <td><span class="status-icon status-no">✗</span> No GPS</td>
+                        <td><span class="status-icon status-yes">✓</span> SOAP vs Record</td>
+                        <td><span class="status-icon status-no">✗</span> No GPS</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Include in Fleet Reconciliation</strong></td>
+                        <td><span class="status-icon status-yes">✓</span> Yes</td>
+                        <td><span class="status-icon status-yes">✓</span> Yes (Est)</td>
+                        <td><span class="status-icon status-partial">~</span> Optional</td>
+                        <td><span class="status-icon status-partial">~</span> Separate</td>
+                        <td><span class="status-icon status-no">✗</span> No</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Source</strong></td>
+                        <td style="font-size: 0.75rem;">GPSGate API</td>
+                        <td style="font-size: 0.75rem;">FuelRefill + Est</td>
+                        <td style="font-size: 0.75rem;">FuelRefill only</td>
+                        <td style="font-size: 0.75rem;">SOAP Report 212</td>
+                        <td style="font-size: 0.75rem;">FuelRefill only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Confidence</strong></td>
+                        <td style="color: var(--success); font-weight: 600;">HIGH</td>
+                        <td style="color: var(--warning); font-weight: 600;">MEDIUM</td>
+                        <td style="color: var(--danger); font-weight: 600;">LOW</td>
+                        <td style="color: var(--success); font-weight: 600;">HIGH</td>
+                        <td style="color: var(--pink); font-weight: 600;">ACCOUNTED</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.5rem;">
+                * For Cross-Site Company: Closing = FuelBefore of next refuel event after audit period
+            </p>
+        </div>
+
+        <!-- Cross-Site Company Vehicle Flow -->
+        <div class="external-section" style="background: linear-gradient(135deg, var(--cyan-light) 0%, white 50%); border-color: var(--cyan);">
+            <div class="section-title" style="color: var(--cyan);">
+                🔄 Cross-Site Company Vehicle Data Flow (Category 4)
+            </div>
+            <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                Company vehicles from other sites that fuel here. Uses <strong>GPSGate SOAP Report 212</strong> via <code>GpsGateReportEntry</code> table.
+            </p>
+            <div class="external-flow">
+                <div class="external-box" style="border-color: var(--warning);">
+                    <div class="external-box-icon">📡</div>
+                    <div class="external-box-title">Step 1: Fetch GPS Data</div>
+                    <div class="external-box-subtitle">POST /FuelComparison/fetch-gps-data</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box" style="border-color: var(--cyan);">
+                    <div class="external-box-icon">📊</div>
+                    <div class="external-box-title">Step 2: Opening Stock</div>
+                    <div class="external-box-subtitle">FuelBefore @ first refuel</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box" style="border-color: var(--purple);">
+                    <div class="external-box-icon">⛽</div>
+                    <div class="external-box-title">Step 3: Fuel Issued</div>
+                    <div class="external-box-subtitle">FuelRefill from this site</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box" style="border-color: var(--cyan);">
+                    <div class="external-box-icon">📊</div>
+                    <div class="external-box-title">Step 4: Closing Stock</div>
+                    <div class="external-box-subtitle">FuelBefore @ next refuel</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box" style="border-color: var(--success);">
+                    <div class="external-box-icon">🧮</div>
+                    <div class="external-box-title">Step 5: Calculate</div>
+                    <div class="external-box-subtitle">Consumed = Open + Ref - Close</div>
+                </div>
+            </div>
+
+            <div class="formula-box" style="margin-top: 1.5rem;">
+                <div class="formula-title">Cross-Site Company Vehicle Calculation</div>
+                <div class="formula">
+                    <span class="var">Opening</span> <span class="op">=</span> <span class="var">GpsGateReportEntry.FuelBefore</span> @ first refuel in period<br>
+                    <span class="var">Total Refueled</span> <span class="op">=</span> <span class="var">SUM(GpsGateReportEntry.RefillVolume)</span> during period<br>
+                    <span class="var">Closing</span> <span class="op">=</span> <span class="var">GpsGateReportEntry.FuelBefore</span> @ next refuel after period<br>
+                    <span class="result">Fuel Consumed = Opening + Total Refueled - Closing</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- External Non-Company Vehicle Section -->
+        <div class="external-section">
+            <div class="section-title">
+                ⚠️ External Non-Company Vehicle (Category 5) - Limited Data
+            </div>
+            <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                Third-party/contractor vehicles. No GPS, not company-owned. <strong>Can only track fuel issued.</strong>
+            </p>
+            <div class="external-flow">
+                <div class="external-box site">
+                    <div class="external-box-icon">🏭</div>
+                    <div class="external-box-title">Audit Site</div>
+                    <div class="external-box-subtitle">Kisumu (SiteId: 5)</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box tank">
+                    <div class="external-box-icon">⛽</div>
+                    <div class="external-box-title">Site Tank</div>
+                    <div class="external-box-subtitle">Dispenses Fuel</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box vehicle">
+                    <div class="external-box-icon">🚐</div>
+                    <div class="external-box-title">External Vehicle</div>
+                    <div class="external-box-subtitle">IsCompanyVehicle = 0</div>
+                </div>
+                <div class="arrow-right">→</div>
+                <div class="external-box audit">
+                    <div class="external-box-icon">📋</div>
+                    <div class="external-box-title">Audit Treatment</div>
+                    <div class="external-box-subtitle">Fuel Issued Only</div>
+                </div>
+            </div>
+
+            <div class="formula-box">
+                <div class="formula-title">External Non-Company Vehicle - What We Track</div>
+                <div class="formula">
+                    <span class="var">Fuel Issued</span> <span class="op">=</span> <span class="var">SUM(FuelRefill.FuelAmount)</span> ✅<br>
+                    <span class="var">Refill Count</span> <span class="op">=</span> <span class="var">COUNT(FuelRefill)</span> ✅<br>
+                    <span style="color: var(--danger-light);">Opening, Closing, Consumed</span> <span class="op">=</span> <span style="color: var(--danger-light);">❌ NOT AVAILABLE</span><br>
+                    <span class="result">∴ Include in tanker "Total Dispensed", exclude from fleet reconciliation</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Variance Calculation -->
+        <div class="data-flow-section">
+            <div class="section-title">
+                🧮 Vehicle Variance Calculations by Type
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+                <!-- GPS Formula -->
+                <div class="formula-box" style="background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);">
+                    <div class="formula-title">GPS Vehicle</div>
+                    <div class="formula">
+                        <span class="var">Expected Closing</span> <span class="op">=</span><br>
+                        &nbsp;&nbsp;<span class="var">Opening</span> <span class="op">+</span> <span class="var">Refueled</span> <span class="op">−</span> <span class="var">Consumed</span><br><br>
+                        <span class="result">Variance</span> <span class="op">=</span><br>
+                        &nbsp;&nbsp;<span class="var">Actual Closing</span> <span class="op">−</span> <span class="var">Expected</span>
+                    </div>
+                </div>
+
+                <!-- Full Tank Formula -->
+                <div class="formula-box" style="background: linear-gradient(135deg, var(--success) 0%, #047857 100%);">
+                    <div class="formula-title">Full Tank Vehicle</div>
+                    <div class="formula">
+                        <span class="result">Consumed = Refueled</span><br>
+                        (Full tank policy)<br><br>
+                        <span class="var">Opening</span> <span class="op">=</span> <span class="var">Capacity</span> <span class="op">−</span> <span class="var">Est. Used</span><br>
+                        <span class="var">Closing</span> <span class="op">=</span> <span class="var">Capacity</span> <span class="op">−</span> <span class="var">Est. Used</span>
+                    </div>
+                </div>
+
+                <!-- Non-Full Tank Formula -->
+                <div class="formula-box" style="background: linear-gradient(135deg, var(--warning) 0%, #b45309 100%);">
+                    <div class="formula-title">Non-Full Tank Vehicle</div>
+                    <div class="formula">
+                        <span style="color: var(--danger-light);">⚠️ Cannot Reconcile</span><br><br>
+                        <span class="var">Track Only:</span><br>
+                        &nbsp;&nbsp;• Fuel Issued<br>
+                        &nbsp;&nbsp;• Hours Operated<br>
+                        &nbsp;&nbsp;• Historical L/hr
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confidence Scoring -->
+        <div class="data-flow-section">
+            <div class="section-title">
+                📈 Full Tank Vehicle Confidence Scoring
+            </div>
+            <p style="color: var(--gray-600); margin-bottom: 1.5rem;">
+                Confidence is based on how recently the vehicle was refueled relative to the audit period dates.
+            </p>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Days Since Last Refuel</th>
+                        <th>Confidence Level</th>
+                        <th>Estimation Accuracy</th>
+                        <th>Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>0-3 days</strong></td>
+                        <td><span style="color: var(--success); font-weight: 600;">HIGH (>80%)</span></td>
+                        <td>Dead stock estimate is reliable</td>
+                        <td>Include in reconciliation</td>
+                    </tr>
+                    <tr>
+                        <td><strong>4-7 days</strong></td>
+                        <td><span style="color: var(--warning); font-weight: 600;">MEDIUM (50-80%)</span></td>
+                        <td>Estimate may drift from actual</td>
+                        <td>Include with caution</td>
+                    </tr>
+                    <tr>
+                        <td><strong>8-14 days</strong></td>
+                        <td><span style="color: var(--orange); font-weight: 600;">LOW (30-50%)</span></td>
+                        <td>Significant uncertainty</td>
+                        <td>Flag for review</td>
+                    </tr>
+                    <tr>
+                        <td><strong>15+ days</strong></td>
+                        <td><span style="color: var(--danger); font-weight: 600;">VERY LOW (<30%)</span></td>
+                        <td>Dead stock highly uncertain</td>
+                        <td>Exclude or manual check</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="insight-box" style="margin-top: 1.5rem;">
+                <div class="insight-title">💡 Best Practice</div>
+                <div class="insight-content">
+                    For critical audits, consider <strong>forcing pickup refuels on audit dates</strong> to eliminate estimation uncertainty.
+                    This ensures all full-tank vehicles have 100% confidence on opening and closing positions.
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Data Collection Strategy -->
+        <div class="data-flow-section" style="border: 2px solid var(--purple); background: linear-gradient(135deg, var(--purple-light) 0%, white 50%);">
+            <div class="section-title" style="color: var(--purple);">
+                🧙 Wizard Data Collection Strategy
+            </div>
+            <p style="color: var(--gray-600); margin-bottom: 1.5rem;">
+                Optimal data collection timing during the 6-step Fuel Audit creation wizard.
+            </p>
+
+            <!-- Wizard Steps Timeline -->
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding: 0.5rem;">
+                <div style="flex: 1; min-width: 150px; text-align: center;">
+                    <div style="background: var(--gray-800); color: white; padding: 0.5rem; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 600;">
+                        Step 1
+                    </div>
+                    <div style="background: var(--gray-100); padding: 0.75rem; border: 1px solid var(--gray-200); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600;">Site & Period</div>
+                        <div style="font-size: 0.7rem; color: var(--gray-500); margin-top: 0.25rem;">No data fetch</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--gray-400);">→</div>
+                <div style="flex: 1; min-width: 150px; text-align: center;">
+                    <div style="background: var(--gray-800); color: white; padding: 0.5rem; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 600;">
+                        Step 2
+                    </div>
+                    <div style="background: var(--gray-100); padding: 0.75rem; border: 1px solid var(--gray-200); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600;">Tank Selection</div>
+                        <div style="font-size: 0.7rem; color: var(--gray-500); margin-top: 0.25rem;">Fetch tank list</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--gray-400);">→</div>
+                <div style="flex: 1; min-width: 150px; text-align: center;">
+                    <div style="background: var(--gray-800); color: white; padding: 0.5rem; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 600;">
+                        Step 3
+                    </div>
+                    <div style="background: var(--gray-100); padding: 0.75rem; border: 1px solid var(--gray-200); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600;">Tank Preview</div>
+                        <div style="font-size: 0.7rem; color: var(--gray-500); margin-top: 0.25rem;">ATG readings</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--gray-400);">→</div>
+                <div style="flex: 1; min-width: 150px; text-align: center;">
+                    <div style="background: var(--purple); color: white; padding: 0.5rem; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 600;">
+                        Step 4 ⭐
+                    </div>
+                    <div style="background: var(--purple-light); padding: 0.75rem; border: 2px solid var(--purple); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600;">Vehicle Selection</div>
+                        <div style="font-size: 0.7rem; color: var(--purple); margin-top: 0.25rem;">
+                            Classify + Prefetch
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--gray-400);">→</div>
+                <div style="flex: 1; min-width: 150px; text-align: center;">
+                    <div style="background: var(--primary); color: white; padding: 0.5rem; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 600;">
+                        Step 5
+                    </div>
+                    <div style="background: var(--primary-light); padding: 0.75rem; border: 1px solid var(--primary); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600;">GPS Preview</div>
+                        <div style="font-size: 0.7rem; color: var(--primary); margin-top: 0.25rem;">Show prefetched</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--gray-400);">→</div>
+                <div style="flex: 1; min-width: 150px; text-align: center;">
+                    <div style="background: var(--success); color: white; padding: 0.5rem; border-radius: 8px 8px 0 0; font-size: 0.75rem; font-weight: 600;">
+                        Step 6
+                    </div>
+                    <div style="background: var(--success-light); padding: 0.75rem; border: 1px solid var(--success); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600;">Review & Create</div>
+                        <div style="font-size: 0.7rem; color: var(--success); margin-top: 0.25rem;">Validate & save</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4 Optimization Details -->
+            <div style="background: white; border: 2px solid var(--purple); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--purple); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="background: var(--purple); color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">4</span>
+                    Optimized Step 4: Vehicle Selection + Classification
+                </h4>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px;">
+                        <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;">1. Fetch FuelRefill Records</div>
+                        <code style="font-size: 0.75rem; color: var(--gray-600);">POST /tank-refills-preview</code>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem;">Get all vehicles that fueled from selected tanks</div>
+                    </div>
+                    <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px;">
+                        <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;">2. Classify by Category</div>
+                        <code style="font-size: 0.75rem; color: var(--gray-600);">ClassifyVehicle(vehicle, siteId)</code>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem;">Assign category 1-5 based on properties</div>
+                    </div>
+                    <div style="background: var(--primary-light); padding: 1rem; border-radius: 8px; border: 1px solid var(--primary);">
+                        <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--primary);">3. Prefetch GPS (Category 1)</div>
+                        <code style="font-size: 0.75rem; color: var(--gray-600);">REST: /fleet/audit-period</code>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem;">Background fetch opening/closing</div>
+                    </div>
+                    <div style="background: var(--cyan-light); padding: 1rem; border-radius: 8px; border: 1px solid var(--cyan);">
+                        <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--cyan);">4. Prefetch SOAP (Category 4)</div>
+                        <code style="font-size: 0.75rem; color: var(--gray-600);">SOAP: Report 212</code>
+                        <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem;">Background fetch cross-site data</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category-Aware Data Preview -->
+            <div style="background: white; border-radius: 12px; padding: 1rem; border: 1px solid var(--gray-200);">
+                <h4 style="margin-bottom: 1rem; font-size: 0.9rem;">📊 Step 5: Category-Aware Data Preview</h4>
+
+                <div style="display: grid; gap: 0.5rem;">
+                    <!-- Category 1 -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--primary-light); border-radius: 8px; border-left: 4px solid var(--primary);">
+                        <span style="font-size: 1.2rem;">🛰️</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem;">Category 1: GPS Fleet</div>
+                            <div style="font-size: 0.7rem; color: var(--gray-500);">Opening: REST | Closing: REST | Refuels: GPS+FuelRefill</div>
+                        </div>
+                        <div style="background: var(--success); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">HIGH</div>
+                    </div>
+
+                    <!-- Category 2 -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--success-light); border-radius: 8px; border-left: 4px solid var(--success);">
+                        <span style="font-size: 1.2rem;">🚛</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem;">Category 2: Full Tank</div>
+                            <div style="font-size: 0.7rem; color: var(--gray-500);">Opening: Estimated | Closing: Estimated | Consumed = Refueled</div>
+                        </div>
+                        <div style="background: var(--warning); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">MEDIUM</div>
+                    </div>
+
+                    <!-- Category 3 -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--warning-light); border-radius: 8px; border-left: 4px solid var(--warning);">
+                        <span style="font-size: 1.2rem;">⚙️</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem;">Category 3: Equipment</div>
+                            <div style="font-size: 0.7rem; color: var(--gray-500);">Opening: ❌ | Closing: ❌ | Track fuel issued only</div>
+                        </div>
+                        <div style="background: var(--orange); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">LOW</div>
+                    </div>
+
+                    <!-- Category 4 -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--cyan-light); border-radius: 8px; border-left: 4px solid var(--cyan);">
+                        <span style="font-size: 1.2rem;">🔄</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem;">Category 4: Cross-Site Company</div>
+                            <div style="font-size: 0.7rem; color: var(--gray-500);">Opening: SOAP FuelBefore | Closing: SOAP FuelBefore | Total: Report 212</div>
+                        </div>
+                        <div style="background: var(--success); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">HIGH</div>
+                    </div>
+
+                    <!-- Category 5 -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--pink-light); border-radius: 8px; border-left: 4px solid var(--pink);">
+                        <span style="font-size: 1.2rem;">📋</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem;">Category 5: External Non-Company</div>
+                            <div style="font-size: 0.7rem; color: var(--gray-500);">Opening: N/A | Closing: N/A | Track fuel issued for tank reconciliation</div>
+                        </div>
+                        <div style="background: var(--pink); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">ACCOUNTED</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Benefits -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1.5rem;">
+                <div style="background: var(--success-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">⚡</div>
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--success);">30% Faster</div>
+                    <div style="font-size: 0.7rem; color: var(--gray-500);">Parallel fetching</div>
+                </div>
+                <div style="background: var(--primary-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">📊</div>
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary);">Clear Grouping</div>
+                    <div style="font-size: 0.7rem; color: var(--gray-500);">Category awareness</div>
+                </div>
+                <div style="background: var(--purple-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">✓</div>
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--purple);">Right Source</div>
+                    <div style="font-size: 0.7rem; color: var(--gray-500);">Per category</div>
+                </div>
+                <div style="background: var(--warning-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🎯</div>
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--warning);">Quality Indicators</div>
+                    <div style="font-size: 0.7rem; color: var(--gray-500);">Data confidence</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

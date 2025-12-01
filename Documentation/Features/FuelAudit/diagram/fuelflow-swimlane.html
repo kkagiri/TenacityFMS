@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Audit - Swimlane Diagram</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="fuelflow-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span class="icon icon-lg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="5" rx="1"/>
+                        <rect x="2" y="10" width="20" height="5" rx="1"/>
+                        <rect x="2" y="17" width="20" height="5" rx="1"/>
+                    </svg>
+                </span>
+                Swimlane Diagram
+            </h1>
+            <p>Actor responsibilities and data flow across Fuel Audit workflow steps</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="tabs">
+            <a href="fuelflow-sipoc.html" class="tab">
+                <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="3" x2="9" y2="21"/>
+                    </svg>
+                </span>
+                SIPOC Diagram
+            </a>
+            <a href="fuelflow-swimlane.html" class="tab active">
+                <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="5" rx="1"/>
+                        <rect x="2" y="10" width="20" height="5" rx="1"/>
+                        <rect x="2" y="17" width="20" height="5" rx="1"/>
+                    </svg>
+                </span>
+                Swimlane Diagram
+            </a>
+            <a href="fuelflow-dependencies.html" class="tab">
+                <span class="icon icon-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2">
+                        <circle cx="6" cy="6" r="3"/>
+                        <circle cx="18" cy="6" r="3"/>
+                        <circle cx="6" cy="18" r="3"/>
+                        <circle cx="18" cy="18" r="3"/>
+                        <line x1="9" y1="6" x2="15" y2="6"/>
+                        <line x1="6" y1="9" x2="6" y2="15"/>
+                        <line x1="18" y1="9" x2="18" y2="15"/>
+                        <line x1="9" y1="18" x2="15" y2="18"/>
+                    </svg>
+                </span>
+                Data Dependencies
+            </a>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--success-light); border-color: var(--success);"></div>
+                <span>Implemented</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--warning-light); border-color: var(--warning);"></div>
+                <span>Partial</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--danger-light); border-color: var(--danger); border-style: dashed;"></div>
+                <span>Not Implemented</span>
+            </div>
+        </div>
+
+        <!-- Swimlane Diagram -->
+        <div class="swimlane-container" style="margin-top: 1.5rem;">
+            <table class="swimlane-table">
+                <thead>
+                    <tr>
+                        <th class="lane-header">Actor / Layer</th>
+                        <th>Step 1<br><small>Site & Period</small></th>
+                        <th>Step 2<br><small>Select Tanks</small></th>
+                        <th>Step 3<br><small>Tank Preview</small></th>
+                        <th>Step 4<br><small>Vehicles</small></th>
+                        <th>Step 5<br><small>GPS Preview</small></th>
+                        <th>Step 6<br><small>Review & Create</small></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- User Lane -->
+                    <tr class="lane lane-user">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </span>
+                            User<br>(Auditor)
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">
+                                <span class="icon icon-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </span>
+                                Select site, type, dates
+                            </div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">
+                                <span class="icon icon-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 11 12 14 22 4"/>
+                                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                                    </svg>
+                                </span>
+                                Select tanks
+                            </div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">
+                                <span class="icon icon-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                    </svg>
+                                </span>
+                                Review tank data
+                            </div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">
+                                <span class="icon icon-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                                        <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                                        <circle cx="12" cy="20" r="1"/>
+                                    </svg>
+                                </span>
+                                View category info
+                            </div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">
+                                <span class="icon icon-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                    </svg>
+                                </span>
+                                Click Load GPS Data
+                            </div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action partial">
+                                <span class="icon icon-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    </svg>
+                                </span>
+                                Submit audit
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Frontend Lane -->
+                    <tr class="lane lane-frontend">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                </svg>
+                            </span>
+                            Frontend<br>(React)
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">Step1SitePeriod.js</div>
+                            <div class="lane-action done">Validate dates</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">Step2TankSelection.js</div>
+                            <div class="lane-action done">Multi-select grid</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">Step3TankPreview.js</div>
+                            <div class="lane-action done">Display opening/closing</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">Step4VehicleSelection.js</div>
+                            <div class="lane-action done">Show 5 categories</div>
+                            <div class="lane-action done">Display HyoungNo</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">Step5GpsPreview.js</div>
+                            <div class="lane-action done">fetchCategoryAuditData</div>
+                            <div class="lane-action done">Category routing</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action partial">Step6ReviewCreate.js</div>
+                            <div class="lane-action partial">Validation</div>
+                        </td>
+                    </tr>
+
+                    <!-- Redux Lane -->
+                    <tr class="lane lane-redux">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </span>
+                            Redux<br>(State)
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">wizard.siteId</div>
+                            <div class="lane-action done">wizard.period</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">wizard.selectedTanks</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">wizard.tankPreview</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">wizard.selectedVehicles</div>
+                            <div class="lane-action done">vehicleCategories</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">wizard.tankRefills</div>
+                            <div class="lane-action done">gpsPreviewData</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">wizard (all)</div>
+                        </td>
+                    </tr>
+
+                    <!-- API Lane -->
+                    <tr class="lane lane-api">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </span>
+                            API<br>(Controller)
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">GET /sites</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">GET /tanks?siteId=</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">POST /tank-volume-preview</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">POST /tank-refills-preview</div>
+                            <div class="lane-action done">Returns 5 categories</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">POST /fleet/category-audit</div>
+                            <div class="lane-action done">Category-aware routing</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action partial">POST /fuelaudit</div>
+                        </td>
+                    </tr>
+
+                    <!-- Application Lane -->
+                    <tr class="lane lane-application">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                    <polyline points="2 17 12 22 22 17"/>
+                                    <polyline points="2 12 12 17 22 12"/>
+                                </svg>
+                            </span>
+                            Application<br>(CQRS)
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">GetSitesQuery</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">GetTanksBySiteQuery</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">GetTankPreviewQuery</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">GetTankRefillsQuery</div>
+                            <div class="lane-action done">VehicleCategorization</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">Category 1-5 Handlers</div>
+                            <div class="lane-action done">GetCrossSiteGpsDataQuery</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action partial">CreateFuelAuditCommand</div>
+                        </td>
+                    </tr>
+
+                    <!-- Database Lane -->
+                    <tr class="lane lane-database">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                </svg>
+                            </span>
+                            Database<br>(MySQL)
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">sites table</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">tanks table</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">tank_volume_history</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">fuel_refills</div>
+                            <div class="lane-action done">vehicles</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action done">gpsgate_report_entries</div>
+                            <div class="lane-action done">(Cat 4 only)</div>
+                        </td>
+                        <td class="lane-cell">
+                            <div class="lane-action partial">fuel_audits</div>
+                        </td>
+                    </tr>
+
+                    <!-- External Lane -->
+                    <tr class="lane lane-external">
+                        <td class="lane-label">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                                </svg>
+                            </span>
+                            External<br>(GPSGate)
+                        </td>
+                        <td class="lane-cell">—</td>
+                        <td class="lane-cell">—</td>
+                        <td class="lane-cell">—</td>
+                        <td class="lane-cell">—</td>
+                        <td class="lane-cell">
+                            <div class="lane-action done" style="border-color: var(--pink); background: var(--pink-light);">
+                                Cat 1: REST API
+                            </div>
+                            <div class="lane-action done" style="border-color: var(--pink); background: var(--pink-light);">
+                                Cat 4: DB (stored)
+                            </div>
+                        </td>
+                        <td class="lane-cell">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Vehicle Categories Reference -->
+        <div class="category-reference" style="margin-top: 2rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--gray-800);">
+                <span class="icon" style="margin-right: 0.5rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                        <rect x="1" y="3" width="15" height="13"/>
+                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/>
+                        <circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                </span>
+                Vehicle Categories (Step 4 → Step 5)
+            </h3>
+            <div class="category-grid">
+                <div class="category-card cat-1">
+                    <div class="cat-header">Category 1</div>
+                    <div class="cat-desc">GPS + Full Tank</div>
+                    <div class="cat-method">REST API Call</div>
+                </div>
+                <div class="category-card cat-2">
+                    <div class="cat-header">Category 2</div>
+                    <div class="cat-desc">GPS + No Policy</div>
+                    <div class="cat-method">Full Tank Estimation</div>
+                </div>
+                <div class="category-card cat-3">
+                    <div class="cat-header">Category 3</div>
+                    <div class="cat-desc">No GPS + Full Tank</div>
+                    <div class="cat-method">Refill Records Only</div>
+                </div>
+                <div class="category-card cat-4">
+                    <div class="cat-header">Category 4</div>
+                    <div class="cat-desc">Cross-Site GPS</div>
+                    <div class="cat-method">gpsgate_report_entries</div>
+                </div>
+                <div class="category-card cat-5">
+                    <div class="cat-header">Category 5</div>
+                    <div class="cat-desc">No GPS + No Policy</div>
+                    <div class="cat-method">Refill Records Only</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <div class="summary-card done">
+                <div class="value">5</div>
+                <div class="label">Steps Done</div>
+            </div>
+            <div class="summary-card partial">
+                <div class="value">1</div>
+                <div class="label">Partial</div>
+            </div>
+            <div class="summary-card total">
+                <div class="value">6</div>
+                <div class="label">Total Steps</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

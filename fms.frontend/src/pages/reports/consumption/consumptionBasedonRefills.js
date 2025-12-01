@@ -709,9 +709,9 @@ const RefillDetails = ({ vehicleId, startDate, endDate }) => {
             >
             <Paging defaultPageSize={5} />
             <Column dataField="date" dataType="date" />
-            <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" />
-            <Column dataField="previousMeterReading" caption="Previous Reading" />
-            <Column dataField="currentMeterReading" caption="Current Reading" />
+            <Column dataField="manualFuelrefillAmount" caption="Fuel Amount" dataType="number" format="fixedPoint" precision={2} />
+            <Column dataField="previousMeterReading" caption="Previous Reading" dataType="number" format="fixedPoint" precision={2} />
+            <Column dataField="currentMeterReading" caption="Current Reading" dataType="number" format="fixedPoint" precision={2} />
             <Column dataField="distanceOrEngineHours" caption="Distance/Engine Hours" dataType="number" format="fixedPoint" precision={0} />
             <Column dataField="consumption" caption="Consumption" dataType="number"  format={{ type: "fixedPoint", precision: 1 }} />
             <Column dataField="siteName" caption="Site" />
