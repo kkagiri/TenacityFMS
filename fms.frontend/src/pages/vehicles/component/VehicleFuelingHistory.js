@@ -99,6 +99,14 @@ const VehicleFuelingHistory = ({ vehicleId }) => {
     distanceOrEngineHours: item.distanceOrEngineHours
   }));
 
+  // Calculate ticker metrics
+  const totalFuelDispensed = fuelingData.reduce((sum, item) => sum + (item.fuelAmount || 0), 0);
+  const totalDistanceCovered = fuelingData.reduce((sum, item) => sum + (item.distanceOrEngineHours || 0), 0);
+  const averageConsumption = fuelingData.length > 0
+    ? (fuelingData.reduce((sum, item) => sum + (item.consumption || 0), 0) / fuelingData.length)
+    : 0;
+  const consumptionUnit = fuelingData.length > 0 && fuelingData[0].isKmL ? 'Km/L' : 'L/Hr';
+
   return (
     <div className="vehicle-fueling-history">
       <div className="tw-mb-6">
@@ -117,6 +125,56 @@ const VehicleFuelingHistory = ({ vehicleId }) => {
                 stylingMode={viewMode === option.value ? 'contained' : 'outlined'}
               />
             ))}
+          </div>
+        </div>
+
+        {/* Ticker Dashboard - One Line */}
+        <div className="tw-bg-gradient-to-r tw-from-blue-500 tw-to-blue-600 tw-rounded-lg tw-p-3 tw-mb-4 tw-shadow-md">
+          <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-around tw-gap-4 md:tw-gap-8">
+            {/* Fuel Dispensed */}
+            <div className="tw-flex tw-items-center tw-gap-3">
+              <div className="tw-bg-white tw-bg-opacity-20 tw-rounded-full tw-p-2">
+                <i className="fa-solid fa-gas-pump tw-text-white tw-text-lg"></i>
+              </div>
+              <div>
+                <p className="tw-text-white tw-text-opacity-80 tw-text-xs tw-font-medium tw-uppercase tw-tracking-wide">
+                  Fuel Dispensed
+                </p>
+                <p className="tw-text-white tw-text-xl tw-font-bold">
+                  {totalFuelDispensed.toFixed(2)} L
+                </p>
+              </div>
+            </div>
+
+            {/* Distance Covered */}
+            <div className="tw-flex tw-items-center tw-gap-3">
+              <div className="tw-bg-white tw-bg-opacity-20 tw-rounded-full tw-p-2">
+                <i className="fa-solid fa-road tw-text-white tw-text-lg"></i>
+              </div>
+              <div>
+                <p className="tw-text-white tw-text-opacity-80 tw-text-xs tw-font-medium tw-uppercase tw-tracking-wide">
+                  Distance Covered
+                </p>
+                <p className="tw-text-white tw-text-xl tw-font-bold">
+                  {totalDistanceCovered.toFixed(2)} {fuelingData.length > 0 && fuelingData[0].isKmL ? 'Km' : 'Hrs'}
+                </p>
+              </div>
+            </div>
+
+            {/* Fuel Average */}
+            <div className="tw-flex tw-items-center tw-gap-3">
+              <div className="tw-bg-white tw-bg-opacity-20 tw-rounded-full tw-p-2">
+                <i className="fa-solid fa-gauge-high tw-text-white tw-text-lg"></i>
+              </div>
+              <div>
+                <p className="tw-text-white tw-text-opacity-80 tw-text-xs tw-font-medium tw-uppercase tw-tracking-wide">
+                  Fuel Average
+                </p>
+                <p className="tw-text-white tw-text-xl tw-font-bold">
+                  {averageConsumption.toFixed(2)} {consumptionUnit}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
