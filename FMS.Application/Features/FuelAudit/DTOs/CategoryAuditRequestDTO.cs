@@ -150,6 +150,15 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         /// <summary>Opening data quality explanation</summary>
         public string? OpeningDataQualityReason { get; set; }
 
+        /// <summary>Days from requested opening date to actual data date</summary>
+        public int? OpeningDaysFromRequested { get; set; }
+
+        /// <summary>Actual date of opening data (may differ from requested if interpolated)</summary>
+        public DateTime? OpeningActualDataDate { get; set; }
+
+        /// <summary>Whether vehicle was online at opening time</summary>
+        public bool? OpeningWasOnline { get; set; }
+
         #endregion
 
         #region Closing Stock
@@ -166,17 +175,32 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         /// <summary>Closing data quality explanation</summary>
         public string? ClosingDataQualityReason { get; set; }
 
+        /// <summary>Days from requested closing date to actual data date</summary>
+        public int? ClosingDaysFromRequested { get; set; }
+
+        /// <summary>Actual date of closing data (may differ from requested if interpolated)</summary>
+        public DateTime? ClosingActualDataDate { get; set; }
+
+        /// <summary>Whether vehicle was online at closing time</summary>
+        public bool? ClosingWasOnline { get; set; }
+
         #endregion
 
         #region Period Data
 
-        /// <summary>Total fuel refilled during period</summary>
+        /// <summary>Total fuel refilled during period (from FuelRefill table - fuel dispensed)</summary>
         public decimal TotalFuelRefilled { get; set; }
 
-        /// <summary>Calculated consumption (Opening + Refills - Closing)</summary>
+        /// <summary>
+        /// Calculated consumption using opening/closing/refilled formula:
+        /// Opening + Refills - Closing
+        /// </summary>
         public decimal? CalculatedConsumption { get; set; }
 
-        /// <summary>GPS-measured consumption from VehicleConsumption table (Category 1 only)</summary>
+        /// <summary>
+        /// GPS-measured consumption from VehicleConsumption table (Category 1 &amp; 4).
+        /// This is the actual fuel used as measured by the GPS fuel sensor.
+        /// </summary>
         public decimal? GpsMeasuredConsumption { get; set; }
 
         /// <summary>
@@ -221,7 +245,73 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         /// <summary>Whether this vehicle can be audited reliably</summary>
         public bool IsAuditable { get; set; }
 
+        /// <summary>
+        /// Summary of data sources used for this vehicle's data.
+        /// Helps explain where each piece of data came from.
+        /// </summary>
+        public string? DataSourceSummary { get; set; }
+
         #endregion
+
+        #region GPS Refill Events
+
+        /// <summary>
+        /// GPS refill events from SOAP Report 212 for this vehicle.
+        /// Used to show FuelBefore, FuelAfter, GPS Volume alongside manual refill records.
+        /// Only populated for categories 1 and 4 (GPS-tracked vehicles).
+        /// </summary>
+        public List<GpsRefillEventResultDTO>? GpsRefillEvents { get; set; }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// GPS refill event for audit result - includes variance calculation
+    /// </summary>
+    public class GpsRefillEventResultDTO
+    {
+        /// <summary>GPS entry ID from gpsgate_report_entries</summary>
+        public int EntryId { get; set; }
+
+        /// <summary>Date of refill event</summary>
+        public DateTime RefillDate { get; set; }
+
+        /// <summary>Start time of refueling</summary>
+        public TimeSpan? StartTime { get; set; }
+
+        /// <summary>Duration of refueling event</summary>
+        public TimeSpan? Duration { get; set; }
+
+        /// <summary>Fuel level before refueling (from GPS sensor)</summary>
+        public decimal? FuelBefore { get; set; }
+
+        /// <summary>Fuel level after refueling (from GPS sensor)</summary>
+        public decimal? FuelAfter { get; set; }
+
+        /// <summary>Refill volume reported by GPS (FuelAfter - FuelBefore)</summary>
+        public decimal GpsRefillVolume { get; set; }
+
+        /// <summary>Manual refill amount from FuelRefill table</summary>
+        public decimal? ManualRefillAmount { get; set; }
+
+        /// <summary>
+        /// Variance = ManualRefillAmount - GpsRefillVolume
+        /// Positive = Manual shows more than GPS
+        /// Negative = GPS shows more than manual
+        /// </summary>
+        public decimal? Variance { get; set; }
+
+        /// <summary>Variance percentage = (Variance / ManualRefillAmount) * 100</summary>
+        public decimal? VariancePercent { get; set; }
+
+        /// <summary>Whether this is a refill at the audit site</summary>
+        public bool IsAuditSiteRefill { get; set; }
+
+        /// <summary>Associated FuelRefill ID if matched</summary>
+        public int? FuelRefillId { get; set; }
+
+        /// <summary>Tank name from the FuelRefill record</summary>
+        public string? TankName { get; set; }
     }
 
     /// <summary>

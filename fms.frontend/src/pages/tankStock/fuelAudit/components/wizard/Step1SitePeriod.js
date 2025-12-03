@@ -1,13 +1,15 @@
 /**
  * Step1SitePeriod.js
- * Step 1: Site & Audit Period Selection
+ * Step 1: Multi-Site & Audit Period Selection
  *
  * Site data uses: id, name (from SiteDTO.cs)
+ * Supports multiple site selection using TagBox
  * Date range: Max 1 month, default is 1 month ending today
  */
 
-import React, { useEffect, useState, memo } from 'react';
+import React, { useEffect, useState, memo, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { TagBox } from 'devextreme-react/tag-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
@@ -45,13 +47,18 @@ const Step1SitePeriod = memo(() => {
   // Date validation error
   const [dateError, setDateError] = useState(null);
 
+  // Get selected site IDs (ensure it's always an array)
+  const selectedSiteIds = useMemo(() => {
+    return Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
+  }, [wizard.siteIds]);
+
   // Set default dates on mount if not already set
   useEffect(() => {
     // Always set defaults if periodStart or periodEnd is not set
     if (!wizard.periodStart || !wizard.periodEnd) {
       const { startDate, endDate } = getDefaultDates();
       dispatch(setWizardSiteAndPeriod({
-        siteId: wizard.siteId,
+        siteIds: wizard.siteIds || [],
         periodStart: startDate,
         periodEnd: endDate,
         auditType: wizard.auditType || 'Weekly'
@@ -87,6 +94,7 @@ const Step1SitePeriod = memo(() => {
 
   // Update wizard state with validation
   const updateWizard = (updates) => {
+    const newSiteIds = updates.siteIds !== undefined ? updates.siteIds : selectedSiteIds;
     const newStart = updates.periodStart !== undefined ? updates.periodStart : wizard.periodStart;
     const newEnd = updates.periodEnd !== undefined ? updates.periodEnd : wizard.periodEnd;
 
@@ -96,49 +104,68 @@ const Step1SitePeriod = memo(() => {
     }
 
     dispatch(setWizardSiteAndPeriod({
-      siteId: updates.siteId !== undefined ? updates.siteId : wizard.siteId,
+      siteIds: newSiteIds,
       periodStart: newStart,
       periodEnd: newEnd,
       auditType: updates.auditType !== undefined ? updates.auditType : wizard.auditType
     }));
   };
 
+  // Handle site selection change
+  const handleSiteSelectionChanged = (e) => {
+    updateWizard({ siteIds: e.value || [] });
+  };
+
   return (
-    <div className="wizard-step tw-p-6">
-      <h3 className="tw-text-lg tw-font-semibold tw-mb-6">
+    <div className="wizard-step tw-p-4 tw-max-w-3xl tw-mx-auto">
+      <h3 className="tw-text-base tw-font-semibold tw-mb-4">
         <i className="fa-light fa-building tw-mr-2"></i>
-        Select Site & Audit Period
+        Select Sites & Audit Period
       </h3>
 
-      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
-        {/* Site Selection */}
-        <div className="tw-space-y-2">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
-            Site <span className="tw-text-red-500">*</span>
+      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+        {/* Multi-Site Selection */}
+        <div className="tw-space-y-1 md:tw-col-span-2">
+          <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-700">
+            Sites <span className="tw-text-red-500">*</span>
+            <span className="tw-text-xs tw-text-gray-500 tw-ml-2">(Select one or more)</span>
           </label>
           {siteLoading ? (
-            <div className="tw-flex tw-items-center tw-h-10">
-              <LoadIndicator height={24} width={24} />
-              <span className="tw-ml-2 tw-text-sm tw-text-gray-500">Loading sites...</span>
+            <div className="tw-flex tw-items-center tw-h-9">
+              <LoadIndicator height={20} width={20} />
+              <span className="tw-ml-2 tw-text-xs tw-text-gray-500">Loading sites...</span>
             </div>
           ) : (
-            <SelectBox
+            <TagBox
               dataSource={sites}
               displayExpr={(item) => item?.name || item?.siteName || ''}
               valueExpr={(item) => item?.id ?? item?.siteId}
-              value={wizard.siteId}
-              onValueChanged={(e) => updateWizard({ siteId: e.value })}
-              placeholder="Select a site..."
+              value={selectedSiteIds}
+              onValueChanged={handleSiteSelectionChanged}
+              placeholder="Select sites..."
               searchEnabled={true}
+              showSelectionControls={true}
               showClearButton={true}
-              height={40}
+              multiline={false}
+              applyValueMode="instantly"
+              height={36}
+              stylingMode="outlined"
             />
+          )}
+          {/* Selected sites summary */}
+          {selectedSiteIds.length > 0 && (
+            <div className="tw-p-1.5 tw-bg-blue-50 tw-rounded tw-border tw-border-blue-200">
+              <span className="tw-text-xs tw-text-blue-700">
+                <i className="fa-light fa-check-circle tw-mr-1"></i>
+                <strong>{selectedSiteIds.length}</strong> site{selectedSiteIds.length !== 1 ? 's' : ''} selected
+              </span>
+            </div>
           )}
         </div>
 
         {/* Audit Type */}
-        <div className="tw-space-y-2">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
+        <div className="tw-space-y-1">
+          <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-700">
             Audit Type
           </label>
           <SelectBox
@@ -147,13 +174,16 @@ const Step1SitePeriod = memo(() => {
             valueExpr="value"
             value={wizard.auditType || 'Weekly'}
             onValueChanged={(e) => updateWizard({ auditType: e.value })}
-            height={40}
+            height={36}
           />
         </div>
 
+        {/* Empty spacer for grid alignment */}
+        <div className="tw-hidden md:tw-block"></div>
+
         {/* Period Start */}
-        <div className="tw-space-y-2">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
+        <div className="tw-space-y-1">
+          <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-700">
             Period Start <span className="tw-text-red-500">*</span>
           </label>
           <DateBox
@@ -161,15 +191,15 @@ const Step1SitePeriod = memo(() => {
             onValueChanged={(e) => updateWizard({ periodStart: e.value })}
             type="datetime"
             displayFormat="yyyy-MM-dd HH:mm"
-            height={40}
+            height={36}
             placeholder="Select start date..."
             max={wizard.periodEnd || new Date()}
           />
         </div>
 
         {/* Period End */}
-        <div className="tw-space-y-2">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
+        <div className="tw-space-y-1">
+          <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-700">
             Period End <span className="tw-text-red-500">*</span>
           </label>
           <DateBox
@@ -177,7 +207,7 @@ const Step1SitePeriod = memo(() => {
             onValueChanged={(e) => updateWizard({ periodEnd: e.value })}
             type="datetime"
             displayFormat="yyyy-MM-dd HH:mm"
-            height={40}
+            height={36}
             placeholder="Select end date..."
             min={wizard.periodStart}
             max={new Date()}
@@ -187,8 +217,8 @@ const Step1SitePeriod = memo(() => {
 
       {/* Date Range Error */}
       {dateError && (
-        <div className="tw-mt-4 tw-p-3 tw-bg-red-50 tw-rounded-lg tw-border tw-border-red-200">
-          <p className="tw-text-sm tw-text-red-700 tw-flex tw-items-center">
+        <div className="tw-mt-3 tw-p-2 tw-bg-red-50 tw-rounded tw-border tw-border-red-200">
+          <p className="tw-text-xs tw-text-red-700 tw-flex tw-items-center">
             <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
             {dateError}
           </p>
@@ -196,17 +226,29 @@ const Step1SitePeriod = memo(() => {
       )}
 
       {/* Date Range Info */}
-      <div className="tw-mt-4 tw-p-3 tw-bg-gray-50 tw-rounded-lg tw-border">
+      <div className="tw-mt-3 tw-p-2 tw-bg-gray-50 tw-rounded tw-border">
         <p className="tw-text-xs tw-text-gray-500 tw-flex tw-items-center">
           <i className="fa-light fa-info-circle tw-mr-2"></i>
-          Maximum audit period is {MAX_DAYS} days.
+          Max {MAX_DAYS} days.
           {wizard.periodStart && wizard.periodEnd && (
             <span className="tw-ml-1 tw-font-medium">
-              Currently: {getDaysBetween(wizard.periodStart, wizard.periodEnd)} days selected.
+              Currently: {getDaysBetween(wizard.periodStart, wizard.periodEnd)} days.
             </span>
           )}
         </p>
       </div>
+
+      {/* Multi-site notice */}
+      {selectedSiteIds.length > 1 && (
+        <div className="tw-mt-3 tw-p-2 tw-bg-amber-50 tw-rounded tw-border tw-border-amber-200">
+          <p className="tw-text-xs tw-text-amber-700 tw-flex tw-items-start">
+            <i className="fa-light fa-info-circle tw-mr-2 tw-mt-0.5"></i>
+            <span>
+              <strong>Multi-site:</strong> Tanks from all sites will be grouped for selection.
+            </span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

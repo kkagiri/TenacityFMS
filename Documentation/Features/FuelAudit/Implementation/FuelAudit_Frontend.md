@@ -42,7 +42,7 @@ fms.frontend/src/pages/tankStock/fuelAudit/
                                            ▼
 ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
 │   Step 6    │◀──│   Step 5    │◀──│   Step 4    │
-│Review/Create│   │ GPS Preview │   │Select Vehicles│
+│Review/Create│   │ Vehicle Preview │   │Select Vehicles│
 └─────────────┘   └─────────────┘   └─────────────┘
 ```
 
@@ -88,7 +88,7 @@ fms.frontend/src/pages/tankStock/fuelAudit/
 
 **Data Source:** `fetchVehiclesForSite(siteId, options)` thunk
 
-#### Step 5: GPS Preview
+#### Step 5: Vehicle Preview
 - **Summary Cards**:
   - Vehicle Count
   - Transaction Count

@@ -1,7 +1,7 @@
 /**
  * CreateAuditWizard.js
  *
- * Main 6-Step Wizard for creating new fuel audits.
+ * Main 7-Step Wizard for creating new fuel audits.
  *
  * Steps:
  *   1: Site & Period Selection
@@ -9,7 +9,8 @@
  *   3: Tank Data Preview
  *   4: Vehicle Selection (with real driver data)
  *   5: GPS Data Preview
- *   6: Review & Create
+ *   6: Fuel Reconciliation View
+ *   7: Review & Create
  *
  * Uses Redux state.fuelAudit.wizard which is 1-indexed (step: 1 = first step).
  */
@@ -34,8 +35,9 @@ import Step1SitePeriod from './Step1SitePeriod';
 import Step2TankSelection from './Step2TankSelection';
 import Step3TankPreview from './Step3TankPreview';
 import Step4VehicleSelection from './Step4VehicleSelection';
-import Step5GpsPreview from './Step5GpsPreview';
-import Step6ReviewCreate from './Step6ReviewCreate';
+import Step5VehiclePreview from './Step5VehiclePreview';
+import Step6Reconciliation from './Step6Reconciliation';
+import Step7ReviewCreate from './Step6ReviewCreate'; // Renamed import
 import WizardProgress from './WizardProgress';
 
 // Constants
@@ -77,8 +79,10 @@ const CreateAuditWizard = ({ onClose }) => {
   const validateStep = useCallback((step) => {
     switch (step) {
       case 1:
-        if (!wizard.siteId) {
-          notify('Please select a site', 'warning', 3000);
+        // Check for multi-site selection (siteIds array)
+        const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
+        if (siteIds.length === 0) {
+          notify('Please select at least one site', 'warning', 3000);
           return false;
         }
         if (!wizard.periodStart || !wizard.periodEnd) {
@@ -114,6 +118,10 @@ const CreateAuditWizard = ({ onClose }) => {
         return true;
 
       case 6:
+        // Reconciliation view - optional, can proceed
+        return true;
+
+      case 7:
         // Review step - final validation before create
         return true;
 
@@ -142,8 +150,11 @@ const CreateAuditWizard = ({ onClose }) => {
 
   // Create the audit
   const handleCreateAudit = useCallback(async () => {
+    // Get siteIds array
+    const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
+
     // Final validation
-    if (!wizard.siteId || !wizard.periodStart || !wizard.periodEnd) {
+    if (siteIds.length === 0 || !wizard.periodStart || !wizard.periodEnd) {
       notify('Missing required audit information', 'error', 3000);
       return;
     }
@@ -155,7 +166,7 @@ const CreateAuditWizard = ({ onClose }) => {
 
     try {
       const auditData = {
-        siteId: wizard.siteId,
+        siteIds: siteIds, // Array of site IDs for multi-site
         auditType: wizard.auditType || 'Weekly',
         periodStart: wizard.periodStart,
         periodEnd: wizard.periodEnd,
@@ -195,10 +206,12 @@ const CreateAuditWizard = ({ onClose }) => {
       case 4:
         return <Step4VehicleSelection />;
       case 5:
-        return <Step5GpsPreview />;
+        return <Step5VehiclePreview />;
       case 6:
+        return <Step6Reconciliation />;
+      case 7:
         return (
-          <Step6ReviewCreate
+          <Step7ReviewCreate
             autoPopulate={autoPopulate}
             onAutoPopulateChange={setAutoPopulate}
           />

@@ -136,6 +136,14 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
                 .HasForeignKey(r => r.VehicleId)
                 .HasConstraintName("fk_gps_reading_vehicle")
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Foreign Key - FuelAudit (use AuditId, not inferred FuelAuditId)
+            // Use fully qualified name to avoid conflict with namespace
+            builder.HasOne<FMS.Domain.Entities.FuelAudit.FuelAudit>()
+                .WithMany(a => a.GPSReadings)
+                .HasForeignKey(r => r.AuditId)
+                .HasConstraintName("fk_gps_reading_audit")
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

@@ -224,6 +224,7 @@ public static class FmsServiceCollectionExtensions
             }, LogLevel.Information)
             .EnableDetailedErrors();
         });
+
         return services;
     }
 
@@ -481,6 +482,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<OpeningStockValidationService>();
         services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
         services.AddScoped<DispensingAggregationService>(); // Dispensing aggregation service for single-row-per-day
+        // Data validation and correction services for tank volume history
+        services.AddScoped<ITankVolumeHistoryValidationService, TankVolumeHistoryValidationService>();
+        services.AddScoped<ITankVolumeCorrectionService, TankVolumeCorrectionService>();
         // Automated reconciliation core + supporting services
         services.AddScoped<FMS.Application.Features.AutomatedReconciliation.Services.PolicyEvaluationEngine>();
         services.AddScoped<FMS.Application.Services.AutomatedReconciliation.DiscrepancyDetectionService>();

@@ -172,7 +172,7 @@ User Action:
 
 ---
 
-### **STEP 5: Vehicle Data Preview (GPS Preview)**
+### **STEP 5: Vehicle Data Preview (Vehicle Preview)**
 
 #### **What It Does:**
 ```javascript

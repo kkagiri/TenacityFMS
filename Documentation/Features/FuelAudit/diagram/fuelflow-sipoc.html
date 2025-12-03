@@ -83,7 +83,7 @@
         <div class="process-flow">
             <div class="process-step">
                 <div class="process-circle">1</div>
-                <div class="process-step-name">Site & Period</div>
+                <div class="process-step-name">Sites & Period</div>
                 <span class="status-badge status-done">Done</span>
             </div>
             <div class="process-arrow">
@@ -127,7 +127,7 @@
             </div>
             <div class="process-step">
                 <div class="process-circle">5</div>
-                <div class="process-step-name">GPS Preview</div>
+                <div class="process-step-name">Vehicle Preview</div>
                 <span class="status-badge status-done">Done</span>
             </div>
             <div class="process-arrow">
@@ -212,17 +212,17 @@
                     </div>
                 </div>
                 <div class="sipoc-cell">
-                    <div class="sipoc-item input">Site selection</div>
+                    <div class="sipoc-item input">Multi-site selection (TagBox)</div>
                     <div class="sipoc-item input">Audit type</div>
                     <div class="sipoc-item input">Date range</div>
                 </div>
                 <div class="sipoc-cell">
                     <div class="sipoc-item process">Validate dates</div>
                     <div class="sipoc-item process">Check period ≤ 31 days</div>
-                    <div class="sipoc-item process">Store in wizard state</div>
+                    <div class="sipoc-item process">Store siteIds[] array</div>
                 </div>
                 <div class="sipoc-cell">
-                    <div class="sipoc-item output">siteId</div>
+                    <div class="sipoc-item output">siteIds[] (array)</div>
                     <div class="sipoc-item output">auditType</div>
                     <div class="sipoc-item output">periodStart</div>
                     <div class="sipoc-item output">periodEnd</div>
@@ -243,20 +243,21 @@
                                 <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
                             </svg>
                         </span>
-                        Tank Table
+                        Tank Table (per site)
                     </div>
                 </div>
                 <div class="sipoc-cell">
-                    <div class="sipoc-item input">siteId (from Step 1)</div>
+                    <div class="sipoc-item input">siteIds[] (from Step 1)</div>
                     <div class="sipoc-item input">Tank master data</div>
                 </div>
                 <div class="sipoc-cell">
-                    <div class="sipoc-item process">GET /api/tanks</div>
-                    <div class="sipoc-item process">Filter by site</div>
-                    <div class="sipoc-item process">User multi-select</div>
+                    <div class="sipoc-item process">Loop: GET /api/tanks?siteId</div>
+                    <div class="sipoc-item process">Group tanks by site</div>
+                    <div class="sipoc-item process">User multi-select per site</div>
                 </div>
                 <div class="sipoc-cell">
                     <div class="sipoc-item output">selectedTankIds[]</div>
+                    <div class="sipoc-item output">tanksBySite{}</div>
                     <div class="sipoc-item output">tankDetails[]</div>
                 </div>
                 <div class="sipoc-cell">

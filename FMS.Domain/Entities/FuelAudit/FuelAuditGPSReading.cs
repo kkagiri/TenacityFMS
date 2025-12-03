@@ -1,4 +1,5 @@
 using System;
+using FMS.Domain.Entities;
 
 namespace FMS.Domain.Entities.FuelAudit
 {
@@ -13,7 +14,7 @@ namespace FMS.Domain.Entities.FuelAudit
         /// <summary>
         /// FK to fuel_audits table (if linked to specific audit)
         /// </summary>
-        public int? AuditId { get; set; }
+        public long? AuditId { get; set; }
 
         /// <summary>
         /// FK to vehicles table

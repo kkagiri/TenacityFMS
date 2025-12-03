@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -19,7 +20,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 {
     /// <summary>
     /// Implementation of IFuelAuditGPSService for GPSGate provider.
-    /// Fetches GPS-based fuel data for fuel audits with caching and parallel processing.
+    /// Fetches GPS-based fuel data for fuel audits with caching and sequential DB operations.
     /// </summary>
     public class FuelAuditGPSService : IFuelAuditGPSService
     {
@@ -28,10 +29,13 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly IGPSGateConfigurationProvider _configurationProvider;
         private readonly ILogger<FuelAuditGPSService> _logger;
 
-        // Throttling for parallel API calls
-        private const int MaxConcurrentApiCalls = 10;
+        // Throttling for parallel API calls (not DB operations)
+        private const int MaxConcurrentApiCalls = 5;
         private const int MaxDaysToSearchBack = 7;
         private static readonly SemaphoreSlim _apiThrottle = new(MaxConcurrentApiCalls);
+
+        // Semaphore to ensure sequential DB operations
+        private static readonly SemaphoreSlim _dbSemaphore = new(1, 1);
 
         // Known fuel sensor variable names (case-insensitive)
         private static readonly HashSet<string> FuelVariableNames = new(StringComparer.OrdinalIgnoreCase)
@@ -61,7 +65,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                _logger.LogDebug("Getting fuel position for vehicle {VehicleId} on {Date} ({ReadingType})",
+                _logger.LogInformation("Getting fuel position for vehicle {VehicleId} on {Date} ({ReadingType})",
                     vehicleId, date.ToString("yyyy-MM-dd"), readingType);
 
                 // Check cache first if enabled
@@ -70,7 +74,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     var cachedReading = await GetCachedReadingAsync(vehicleId, date, readingType, cancellationToken);
                     if (cachedReading != null)
                     {
-                        _logger.LogDebug("Found cached reading for vehicle {VehicleId}", vehicleId);
+                        _logger.LogInformation("Found cached reading for vehicle {VehicleId}", vehicleId);
                         return FMSResponse<VehicleFuelPositionDTO>.Success(cachedReading);
                     }
                 }
@@ -154,18 +158,21 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     TotalVehiclesRequested = request.VehicleIds.Count
                 };
 
-                // Process vehicles in parallel with throttling
-                var tasks = request.VehicleIds.Select(vehicleId =>
-                    GetVehicleFuelWithThrottlingAsync(vehicleId, request.Date, request.ReadingType, cancellationToken));
-
-                var results = await Task.WhenAll(tasks);
-
-                // Collect results
-                foreach (var result in results)
+                // Process vehicles sequentially to avoid DbContext threading issues
+                // Each vehicle may do multiple DB operations (cache check, device mapping, cache write)
+                foreach (var vehicleId in request.VehicleIds)
                 {
-                    if (result.IsSuccess && result.Data != null)
+                    try
                     {
-                        response.VehiclePositions.Add(result.Data);
+                        var result = await GetVehicleFuelAtDateAsync(vehicleId, request.Date, request.ReadingType, true, cancellationToken);
+                        if (result.IsSuccess && result.Data != null)
+                        {
+                            response.VehiclePositions.Add(result.Data);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to get fuel position for vehicle {VehicleId}", vehicleId);
                     }
                 }
 
@@ -193,17 +200,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                _logger.LogDebug("Calculating consumption for vehicle {VehicleId} from {StartDate} to {EndDate}",
+                _logger.LogInformation("Calculating consumption for vehicle {VehicleId} from {StartDate} to {EndDate}",
                     vehicleId, startDate.ToString("yyyy-MM-dd"), endDate.ToString("yyyy-MM-dd"));
 
-                // Get opening and closing positions
-                var openingTask = GetVehicleFuelAtDateAsync(vehicleId, startDate, "opening", true, cancellationToken);
-                var closingTask = GetVehicleFuelAtDateAsync(vehicleId, endDate, "closing", true, cancellationToken);
-
-                await Task.WhenAll(openingTask, closingTask);
-
-                var opening = openingTask.Result;
-                var closing = closingTask.Result;
+                // Get opening and closing positions sequentially to avoid DbContext threading issues
+                var opening = await GetVehicleFuelAtDateAsync(vehicleId, startDate, "opening", true, cancellationToken);
+                var closing = await GetVehicleFuelAtDateAsync(vehicleId, endDate, "closing", true, cancellationToken);
 
                 if (!opening.IsSuccess || !closing.IsSuccess)
                 {
@@ -245,7 +247,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                _logger.LogDebug("Detecting refuel events for vehicle {VehicleId} on {Date}",
+                _logger.LogInformation("Detecting refuel events for vehicle {VehicleId} on {Date}",
                     vehicleId, date.ToString("yyyy-MM-dd"));
 
                 var deviceMapping = await GetDeviceMappingAsync(vehicleId, cancellationToken);
@@ -320,16 +322,25 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 _logger.LogInformation("Refreshing GPS data for vehicle {VehicleId} on {Date}",
                     vehicleId, date.ToString("yyyy-MM-dd"));
 
-                // Delete cached readings for this vehicle and date
-                var cachedReadings = await _context.FuelAuditGPSReadings
-                    .Where(r => r.VehicleId == vehicleId && r.ReadingDate.Date == date.Date)
-                    .ToListAsync(cancellationToken);
-
-                if (cachedReadings.Any())
+                // Use semaphore to ensure thread-safe database operations
+                await _dbSemaphore.WaitAsync(cancellationToken);
+                try
                 {
-                    _context.FuelAuditGPSReadings.RemoveRange(cachedReadings);
-                    await _context.SaveChangesAsync(cancellationToken);
-                    _logger.LogDebug("Removed {Count} cached readings", cachedReadings.Count);
+                    // Delete cached readings for this vehicle and date
+                    var cachedReadings = await _context.FuelAuditGPSReadings
+                        .Where(r => r.VehicleId == vehicleId && r.ReadingDate.Date == date.Date)
+                        .ToListAsync(cancellationToken);
+
+                    if (cachedReadings.Any())
+                    {
+                        _context.FuelAuditGPSReadings.RemoveRange(cachedReadings);
+                        await _context.SaveChangesAsync(cancellationToken);
+                        _logger.LogInformation("Removed {Count} cached readings", cachedReadings.Count);
+                    }
+                }
+                finally
+                {
+                    _dbSemaphore.Release();
                 }
 
                 // Fetch fresh data
@@ -644,6 +655,13 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             string untilTime,
             CancellationToken cancellationToken)
         {
+            // Don't proceed if already cancelled
+            if (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogDebug("Skipping fetch for device {DeviceId} - operation already cancelled", externalDeviceId);
+                return null;
+            }
+
             try
             {
                 var tracksUrl = $"{baseUrl}/applications/{applicationId}/users/{externalDeviceId}/tracks?Date={date:yyyy-MM-dd}&From={fromTime}&Until={untilTime}";
@@ -651,7 +669,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 using var request = new HttpRequestMessage(HttpMethod.Get, tracksUrl);
                 request.Headers.Authorization = authHeader;
 
-                var response = await _httpClient.SendAsync(request, cancellationToken);
+                // Use a separate timeout that doesn't affect the main cancellation token
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+                var response = await _httpClient.SendAsync(request, timeoutCts.Token);
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Failed to fetch tracks for device {DeviceId}. Status: {StatusCode}",
@@ -659,15 +680,35 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return null;
                 }
 
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+
                 return JsonSerializer.Deserialize<List<GPSGateTrack>>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
             }
+            catch (TaskCanceledException)
+            {
+                // Timeout or cancellation - don't log as error, just return null
+                _logger.LogWarning("GPSGate API timeout for device {DeviceId} - request took too long", externalDeviceId);
+                return null;
+            }
+            catch (HttpRequestException ex)
+            {
+                // Network error - log and return null
+                _logger.LogWarning("GPSGate network error for device {DeviceId}: {Message}", externalDeviceId, ex.Message);
+                return null;
+            }
+            catch (IOException ex)
+            {
+                // Socket/transport error - log and return null
+                _logger.LogWarning("GPSGate I/O error for device {DeviceId}: {Message}", externalDeviceId, ex.Message);
+                return null;
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching tracks for device {DeviceId}", externalDeviceId);
+                _logger.LogError(ex, "Unexpected error fetching tracks for device {DeviceId}", externalDeviceId);
                 return null;
             }
         }
@@ -719,40 +760,50 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
         private async Task<DeviceMappingInfo?> GetDeviceMappingAsync(int vehicleId, CancellationToken cancellationToken)
         {
-            // Try new provider mapping first
-            var providerMapping = await _context.VehicleProviderMappings
-                .Include(m => m.ProviderConfiguration)
-                .Where(m => m.VehicleId == vehicleId
-                    && m.IsActive
-                    && m.ProviderConfiguration.Name == "GPSGate"
-                    && m.ProviderConfiguration.IsEnabled)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (providerMapping != null)
+            // Use semaphore to ensure thread-safe database operations
+            // Don't pass cancellationToken to semaphore/DB - we want DB operations to complete
+            await _dbSemaphore.WaitAsync();
+            try
             {
-                return new DeviceMappingInfo
+                // Try new provider mapping first
+                var providerMapping = await _context.VehicleProviderMappings
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.VehicleId == vehicleId
+                        && m.IsActive
+                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.ProviderConfiguration.IsEnabled)
+                    .FirstOrDefaultAsync();
+
+                if (providerMapping != null)
                 {
-                    VehicleId = vehicleId,
-                    ExternalDeviceId = providerMapping.ExternalDeviceId
-                };
+                    return new DeviceMappingInfo
+                    {
+                        VehicleId = vehicleId,
+                        ExternalDeviceId = providerMapping.ExternalDeviceId
+                    };
+                }
+
+                // Fallback to legacy DeviceId
+                var vehicle = await _context.Vehicles
+                    .Where(v => v.VehicleId == vehicleId && v.DeviceId.HasValue)
+                    .FirstOrDefaultAsync();
+
+                if (vehicle?.DeviceId != null)
+                {
+                    _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
+                    return new DeviceMappingInfo
+                    {
+                        VehicleId = vehicleId,
+                        ExternalDeviceId = vehicle.DeviceId.Value.ToString()
+                    };
+                }
+
+                return null;
             }
-
-            // Fallback to legacy DeviceId
-            var vehicle = await _context.Vehicles
-                .Where(v => v.VehicleId == vehicleId && v.DeviceId.HasValue)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vehicle?.DeviceId != null)
+            finally
             {
-                _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
-                return new DeviceMappingInfo
-                {
-                    VehicleId = vehicleId,
-                    ExternalDeviceId = vehicle.DeviceId.Value.ToString()
-                };
+                _dbSemaphore.Release();
             }
-
-            return null;
         }
 
         private async Task<VehicleFuelPositionDTO?> GetCachedReadingAsync(
@@ -761,90 +812,133 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             string readingType,
             CancellationToken cancellationToken)
         {
-            var cached = await _context.FuelAuditGPSReadings
-                .AsNoTracking()
-                .Where(r => r.VehicleId == vehicleId
-                    && r.ReadingDate.Date == date.Date
-                    && r.ReadingType == readingType)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (cached == null)
-                return null;
-
-            return new VehicleFuelPositionDTO
+            // Use semaphore to ensure thread-safe database operations
+            // Don't pass cancellationToken to semaphore/DB - we want DB operations to complete
+            await _dbSemaphore.WaitAsync();
+            try
             {
-                VehicleId = cached.VehicleId,
-                ReadingDate = cached.ReadingDate,
-                ReadingType = cached.ReadingType,
-                FuelLevel = cached.FuelLevel,
-                ReadingTimestamp = cached.ReadingTimestamp,
-                DataQuality = Enum.TryParse<FuelDataQuality>(cached.DataQuality, out var quality) ? quality : FuelDataQuality.Unavailable,
-                DataQualityReason = cached.DataQualityReason,
-                Latitude = cached.Latitude,
-                Longitude = cached.Longitude,
-                DaysFromRequestedDate = cached.DaysFromRequestedDate ?? 0,
-                ActualDataDate = cached.ActualDataDate,
-                WasOnline = cached.WasOnline,
-                IgnitionStatus = cached.IgnitionStatus,
-                GPSDeviceId = cached.GPSDeviceId,
-                TrackInfoId = cached.TrackInfoId,
-                RawData = cached.RawData
-            };
+                var cached = await _context.FuelAuditGPSReadings
+                    .AsNoTracking()
+                    .Where(r => r.VehicleId == vehicleId
+                        && r.ReadingDate.Date == date.Date
+                        && r.ReadingType == readingType)
+                    .FirstOrDefaultAsync();
+
+                if (cached == null)
+                    return null;
+
+                return new VehicleFuelPositionDTO
+                {
+                    VehicleId = cached.VehicleId,
+                    ReadingDate = cached.ReadingDate,
+                    ReadingType = cached.ReadingType,
+                    FuelLevel = cached.FuelLevel,
+                    ReadingTimestamp = cached.ReadingTimestamp,
+                    DataQuality = Enum.TryParse<FuelDataQuality>(cached.DataQuality, out var quality) ? quality : FuelDataQuality.Unavailable,
+                    DataQualityReason = cached.DataQualityReason,
+                    Latitude = cached.Latitude,
+                    Longitude = cached.Longitude,
+                    DaysFromRequestedDate = cached.DaysFromRequestedDate ?? 0,
+                    ActualDataDate = cached.ActualDataDate,
+                    WasOnline = cached.WasOnline,
+                    IgnitionStatus = cached.IgnitionStatus,
+                    GPSDeviceId = cached.GPSDeviceId,
+                    TrackInfoId = cached.TrackInfoId,
+                    RawData = cached.RawData
+                };
+            }
+            finally
+            {
+                _dbSemaphore.Release();
+            }
         }
 
         private async Task CacheReadingAsync(VehicleFuelPositionDTO position, CancellationToken cancellationToken)
         {
             try
             {
-                var existing = await _context.FuelAuditGPSReadings
-                    .FirstOrDefaultAsync(r => r.VehicleId == position.VehicleId
-                        && r.ReadingDate.Date == position.ReadingDate.Date
-                        && r.ReadingType == position.ReadingType,
-                        cancellationToken);
+                _logger.LogInformation("Attempting to cache reading for VehicleId={VehicleId}, Date={Date}, Type={Type}",
+                    position.VehicleId, position.ReadingDate.ToString("yyyy-MM-dd"), position.ReadingType);
 
-                if (existing != null)
+                // Use semaphore to ensure thread-safe database operations
+                // Don't pass cancellationToken to semaphore/DB - we want DB operations to complete
+                await _dbSemaphore.WaitAsync();
+                try
                 {
-                    existing.FuelLevel = position.FuelLevel;
-                    existing.ReadingTimestamp = position.ReadingTimestamp;
-                    existing.DataQuality = position.DataQuality.ToString();
-                    existing.DataQualityReason = position.DataQualityReason;
-                    existing.Latitude = position.Latitude;
-                    existing.Longitude = position.Longitude;
-                    existing.DaysFromRequestedDate = position.DaysFromRequestedDate;
-                    existing.ActualDataDate = position.ActualDataDate;
-                    existing.WasOnline = position.WasOnline;
-                    existing.IgnitionStatus = position.IgnitionStatus;
-                    existing.GPSDeviceId = position.GPSDeviceId;
-                    existing.TrackInfoId = position.TrackInfoId;
-                    existing.RawData = position.RawData;
-                    existing.UpdatedAt = DateTime.UtcNow;
-                }
-                else
-                {
-                    var entity = new FuelAuditGPSReading
+                    // Validate that vehicle exists before caching
+                    var vehicleExists = await _context.Vehicles
+                        .AnyAsync(v => v.VehicleId == position.VehicleId);
+
+                    if (!vehicleExists)
                     {
-                        VehicleId = position.VehicleId,
-                        ReadingDate = position.ReadingDate,
-                        ReadingType = position.ReadingType,
-                        FuelLevel = position.FuelLevel,
-                        ReadingTimestamp = position.ReadingTimestamp,
-                        DataQuality = position.DataQuality.ToString(),
-                        DataQualityReason = position.DataQualityReason,
-                        Latitude = position.Latitude,
-                        Longitude = position.Longitude,
-                        DaysFromRequestedDate = position.DaysFromRequestedDate,
-                        ActualDataDate = position.ActualDataDate,
-                        WasOnline = position.WasOnline,
-                        IgnitionStatus = position.IgnitionStatus,
-                        GPSDeviceId = position.GPSDeviceId,
-                        TrackInfoId = position.TrackInfoId,
-                        RawData = position.RawData,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.FuelAuditGPSReadings.Add(entity);
-                }
+                        _logger.LogWarning("Cannot cache GPS reading - vehicle {VehicleId} does not exist in database. " +
+                            "Position details: VehicleName={Name}, Date={Date}",
+                            position.VehicleId, position.VehicleName, position.ReadingDate.ToString("yyyy-MM-dd"));
+                        return;
+                    }
 
-                await _context.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Vehicle {VehicleId} exists, proceeding with cache", position.VehicleId);
+
+                    var existing = await _context.FuelAuditGPSReadings
+                        .FirstOrDefaultAsync(r => r.VehicleId == position.VehicleId
+                            && r.ReadingDate.Date == position.ReadingDate.Date
+                            && r.ReadingType == position.ReadingType);
+
+                    if (existing != null)
+                    {
+                        existing.FuelLevel = position.FuelLevel;
+                        existing.ReadingTimestamp = position.ReadingTimestamp;
+                        existing.DataQuality = position.DataQuality.ToString();
+                        existing.DataQualityReason = position.DataQualityReason;
+                        existing.Latitude = position.Latitude;
+                        existing.Longitude = position.Longitude;
+                        existing.DaysFromRequestedDate = position.DaysFromRequestedDate;
+                        existing.ActualDataDate = position.ActualDataDate;
+                        existing.WasOnline = position.WasOnline;
+                        existing.IgnitionStatus = position.IgnitionStatus;
+                        existing.GPSDeviceId = position.GPSDeviceId;
+                        existing.TrackInfoId = position.TrackInfoId;
+                        existing.RawData = position.RawData;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        var entity = new FuelAuditGPSReading
+                        {
+                            VehicleId = position.VehicleId,
+                            ReadingDate = position.ReadingDate,
+                            ReadingType = position.ReadingType,
+                            FuelLevel = position.FuelLevel,
+                            ReadingTimestamp = position.ReadingTimestamp,
+                            DataQuality = position.DataQuality.ToString(),
+                            DataQualityReason = position.DataQualityReason,
+                            Latitude = position.Latitude,
+                            Longitude = position.Longitude,
+                            DaysFromRequestedDate = position.DaysFromRequestedDate,
+                            ActualDataDate = position.ActualDataDate,
+                            WasOnline = position.WasOnline,
+                            IgnitionStatus = position.IgnitionStatus,
+                            GPSDeviceId = position.GPSDeviceId,
+                            TrackInfoId = position.TrackInfoId,
+                            RawData = position.RawData,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _context.FuelAuditGPSReadings.Add(entity);
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+                finally
+                {
+                    _dbSemaphore.Release();
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogWarning(dbEx, "Database error caching fuel reading for vehicle {VehicleId} on {Date} ({Type}). Inner: {Inner}",
+                    position.VehicleId, position.ReadingDate.ToString("yyyy-MM-dd"), position.ReadingType,
+                    dbEx.InnerException?.Message ?? "none");
+                // Don't throw - caching is non-critical
             }
             catch (Exception ex)
             {
@@ -920,48 +1014,66 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var isOpening = readingType.Equals("opening", StringComparison.OrdinalIgnoreCase);
+                // Use semaphore to ensure thread-safe database operations
+                // Don't pass cancellationToken to semaphore/DB - we want DB operations to complete
+                await _dbSemaphore.WaitAsync();
+                object? vehicle;
+                List<dynamic> refillsNearDate;
 
-                // Get vehicle info for tank capacity and consumption rate
-                var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId)
-                    .Select(v => new
-                    {
-                        v.VehicleId,
-                        v.HyoungNo,
-                        v.FuelTankCapacity, // Tank capacity in liters
-                        v.AverageKmL // true = km/L (distance), false = L/hr (hours)
-                    })
-                    .FirstOrDefaultAsync(cancellationToken);
+                try
+                {
+                    var isOpeningCheck = readingType.Equals("opening", StringComparison.OrdinalIgnoreCase);
 
-                if (vehicle == null)
-                    return null;
+                    // Get vehicle info for tank capacity and consumption rate
+                    vehicle = await _context.Vehicles
+                        .Where(v => v.VehicleId == vehicleId)
+                        .Select(v => new
+                        {
+                            v.VehicleId,
+                            v.HyoungNo,
+                            v.FuelTankCapacity, // Tank capacity in liters
+                            v.AverageKmL // true = km/L (distance), false = L/hr (hours)
+                        })
+                        .FirstOrDefaultAsync();
 
-                // Find refills around the requested date
-                // For opening: Get the last refill BEFORE or ON the date
-                // For closing: Get the last refill ON or BEFORE the date, and next refill after
-                var refillsNearDate = await _context.FuelRefills
-                    .Where(r => r.VehicleId == vehicleId
-                        && !r.IsDeleted
-                        && r.Date.HasValue)
-                    .OrderByDescending(r => r.Date)
-                    .Take(10) // Get recent refills for context
-                    .Select(r => new
-                    {
-                        r.Id,
-                        r.Date,
-                        r.ManualFuelrefillAmount,
-                        r.PreviousMeterReading,
-                        r.CurrentMeterReading,
-                        r.SiteId
-                    })
-                    .ToListAsync(cancellationToken);
+                    if (vehicle == null)
+                        return null;
+
+                    // Find refills around the requested date
+                    // For opening: Get the last refill BEFORE or ON the date
+                    // For closing: Get the last refill ON or BEFORE the date, and next refill after
+                    refillsNearDate = await _context.FuelRefills
+                        .Where(r => r.VehicleId == vehicleId
+                            && !r.IsDeleted
+                            && r.Date.HasValue)
+                        .OrderByDescending(r => r.Date)
+                        .Take(10) // Get recent refills for context
+                        .Select(r => new
+                        {
+                            r.Id,
+                            r.Date,
+                            r.ManualFuelrefillAmount,
+                            r.PreviousMeterReading,
+                            r.CurrentMeterReading,
+                            r.SiteId
+                        } as dynamic)
+                        .ToListAsync();
+                }
+                finally
+                {
+                    _dbSemaphore.Release();
+                }
+
+                // Cast vehicle to dynamic to access properties
+                dynamic vehicleData = vehicle;
 
                 if (!refillsNearDate.Any())
                 {
-                    _logger.LogDebug("No manual refill records found for vehicle {VehicleId}", vehicleId);
+                    _logger.LogInformation("No manual refill records found for vehicle {VehicleId}", vehicleId);
                     return null;
                 }
+
+                var isOpening = readingType.Equals("opening", StringComparison.OrdinalIgnoreCase);
 
                 // Find the most relevant refill
                 var lastRefillBeforeDate = refillsNearDate
@@ -977,7 +1089,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (lastRefillBeforeDate == null)
                 {
                     // No refill before this date - can't estimate
-                    _logger.LogDebug("No refill record before {Date} for vehicle {VehicleId}", date, vehicleId);
+                    _logger.LogInformation("No refill record before {Date} for vehicle {VehicleId}", date, vehicleId);
                     return null;
                 }
 
@@ -989,11 +1101,11 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 string qualityReason;
                 var dataQuality = FuelDataQuality.EstimatedFromRefill;
 
-                var daysSinceRefill = (date - lastRefillBeforeDate.Date!.Value).Days;
-                var refillAmount = lastRefillBeforeDate.ManualFuelrefillAmount ?? 0;
+                var daysSinceRefill = (date - (DateTime)lastRefillBeforeDate.Date).Days;
+                var refillAmount = (decimal)(lastRefillBeforeDate.ManualFuelrefillAmount ?? 0);
 
                 // Use tank capacity directly from vehicle entity
-                decimal? tankCapacity = vehicle.FuelTankCapacity;
+                decimal? tankCapacity = vehicleData.FuelTankCapacity;
 
                 if (daysSinceRefill == 0)
                 {
@@ -1025,55 +1137,56 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         }
                     }
                 }
-                else if (lastRefillBeforeDate.CurrentMeterReading.HasValue && lastRefillBeforeDate.PreviousMeterReading.HasValue)
+                else if (lastRefillBeforeDate.CurrentMeterReading != null && lastRefillBeforeDate.PreviousMeterReading != null)
                 {
                     // We have meter readings - can calculate consumption rate
-                    var meterDifference = lastRefillBeforeDate.CurrentMeterReading.Value - lastRefillBeforeDate.PreviousMeterReading.Value;
+                    var meterDifference = (decimal)lastRefillBeforeDate.CurrentMeterReading - (decimal)lastRefillBeforeDate.PreviousMeterReading;
 
                     if (meterDifference > 0 && refillAmount > 0)
                     {
                         // Calculate consumption rate
                         decimal consumptionRate = refillAmount / meterDifference;
-                        string consumptionUnit = vehicle.AverageKmL ? "L/km" : "L/hr";
+                        bool isKmL = vehicleData.AverageKmL ?? false;
+                        string consumptionUnit = isKmL ? "L/km" : "L/hr";
 
                         // Provide context but not estimated level (we don't know starting level)
-                        qualityReason = $"Last refill: {refillAmount}L on {lastRefillBeforeDate.Date:yyyy-MM-dd} ({daysSinceRefill} days ago). " +
+                        qualityReason = $"Last refill: {refillAmount}L on {((DateTime)lastRefillBeforeDate.Date):yyyy-MM-dd} ({daysSinceRefill} days ago). " +
                             $"Consumption rate: {consumptionRate:F3} {consumptionUnit}. " +
                             $"Cannot estimate current level without knowing tank level at refill time.";
                     }
                     else
                     {
-                        qualityReason = $"Last refill: {refillAmount}L on {lastRefillBeforeDate.Date:yyyy-MM-dd} ({daysSinceRefill} days ago). " +
+                        qualityReason = $"Last refill: {refillAmount}L on {((DateTime)lastRefillBeforeDate.Date):yyyy-MM-dd} ({daysSinceRefill} days ago). " +
                             $"Invalid meter readings. Cannot estimate current level.";
                     }
                 }
                 else
                 {
                     // No meter readings - provide context only
-                    qualityReason = $"Last refill: {refillAmount}L on {lastRefillBeforeDate.Date:yyyy-MM-dd} ({daysSinceRefill} days ago). " +
+                    qualityReason = $"Last refill: {refillAmount}L on {((DateTime)lastRefillBeforeDate.Date):yyyy-MM-dd} ({daysSinceRefill} days ago). " +
                         $"No meter data available. Cannot estimate current level.";
                 }
 
                 // If we have a refill after the date, provide additional context
                 if (firstRefillAfterDate != null)
                 {
-                    var daysUntilNextRefill = (firstRefillAfterDate.Date!.Value - date).Days;
+                    var daysUntilNextRefill = ((DateTime)firstRefillAfterDate.Date - date).Days;
                     qualityReason += $" Next refill: {firstRefillAfterDate.ManualFuelrefillAmount}L in {daysUntilNextRefill} days.";
                 }
 
                 return new VehicleFuelPositionDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? "",
+                    VehicleName = (string)(vehicleData.HyoungNo ?? ""),
                     ReadingDate = date,
                     ReadingType = readingType,
                     FuelLevel = estimatedFuelLevel,
                     FuelLevelUnit = "Liters",
-                    ReadingTimestamp = lastRefillBeforeDate.Date,
+                    ReadingTimestamp = (DateTime?)lastRefillBeforeDate.Date,
                     DataQuality = dataQuality,
                     DataQualityReason = qualityReason,
                     DaysFromRequestedDate = daysSinceRefill,
-                    ActualDataDate = lastRefillBeforeDate.Date,
+                    ActualDataDate = (DateTime?)lastRefillBeforeDate.Date,
                     WasOnline = false, // Not GPS data
                     RawData = JsonSerializer.Serialize(new
                     {
@@ -1083,8 +1196,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         LastRefillAmount = lastRefillBeforeDate.ManualFuelrefillAmount,
                         PreviousMeter = lastRefillBeforeDate.PreviousMeterReading,
                         CurrentMeter = lastRefillBeforeDate.CurrentMeterReading,
-                        TankCapacity = vehicle.FuelTankCapacity,
-                        IsKmL = vehicle.AverageKmL
+                        TankCapacity = vehicleData.FuelTankCapacity,
+                        IsKmL = vehicleData.AverageKmL
                     })
                 };
             }

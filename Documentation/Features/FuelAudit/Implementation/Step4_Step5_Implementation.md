@@ -329,9 +329,9 @@ public class FleetAuditPeriodResponseDTO
 
 ### 5.2 Frontend Implementation
 
-#### Component: `Step5GpsPreview.js`
+#### Component: `Step5VehiclePreview.js`
 
-**Location:** `fms.frontend/src/pages/tankStock/fuelAudit/components/wizard/Step5GpsPreview.js`
+**Location:** `fms.frontend/src/pages/tankStock/fuelAudit/components/wizard/Step5VehiclePreview.js`
 
 **Key Features:**
 - Category-aware data loading
@@ -564,7 +564,7 @@ IsKmL = true (AverageKmL) →  Category 2 (legacy fallback)
 ### Frontend - ✅ COMPLETE
 
 - [x] `Step4VehicleSelection.js` - Category grouping
-- [x] `Step5GpsPreview.js` - Category-aware preview
+- [x] `Step5VehiclePreview.js` - Category-aware preview
 - [x] `fuelAuditSlice.js` - Redux thunks
 - [x] `fuelAuditApi.js` - API calls
 - [x] Category badges and icons
@@ -713,7 +713,7 @@ POST /api/v1/FuelAuditGPS/estimate/full-tank
 | `FullTankEstimationService.cs` | **NEW** Full tank estimation |
 | `CategoryAuditRequestDTO.cs` | **NEW** Category-aware DTOs |
 | `Step4VehicleSelection.js` | Frontend category grouping |
-| `Step5GpsPreview.js` | GPS preview component |
+| `Step5VehiclePreview.js` | GPS preview component |
 | `fuelAuditSlice.js` | Redux state management |
 | `fuelAuditApi.js` | API client |
 

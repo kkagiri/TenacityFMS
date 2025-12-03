@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
+
+/// <summary>
+/// THis class represents vehicle consumption data from GPS Source..this data has be clean and verified
+/// </summary>
 public partial class Vehicleconsumption
 {
     public int Id { get; set; }

@@ -59,6 +59,26 @@ namespace FMS.Domain.Entities.VehicleTracking
         public string? DeviceType { get; set; }
 
         /// <summary>
+        /// Whether the device has a fuel sensor installed.
+        /// This is cached from GPSGate API to avoid repeated lookups.
+        /// </summary>
+        [Column("has_fuel_sensor")]
+        public bool? HasFuelSensor { get; set; }
+
+        /// <summary>
+        /// Type of fuel sensor if installed (e.g., "CapacitiveFuelSensor", "FlowMeter")
+        /// </summary>
+        [MaxLength(100)]
+        [Column("fuel_sensor_type")]
+        public string? FuelSensorType { get; set; }
+
+        /// <summary>
+        /// Last time the fuel sensor status was verified/updated
+        /// </summary>
+        [Column("fuel_sensor_verified_at")]
+        public DateTime? FuelSensorVerifiedAt { get; set; }
+
+        /// <summary>
         /// Additional device metadata (JSON)
         /// </summary>
         [Column("metadata", TypeName = "text")]

@@ -6,20 +6,23 @@
  * for the audit period (Step 1) and displays vehicle summaries.
  *
  * Vehicles are now classified into 5 categories:
- * 1. Site GPS Fleet (at audit site, has GPS) - HIGH confidence
- * 2. Site Full Tank (at audit site, no GPS, km/L) - MEDIUM confidence
- * 3. Site Equipment (at audit site, no GPS, L/hr) - LOW confidence
+ * 1. Site GPS Fleet (at audit site, has GPS + fuel sensor) - HIGH confidence
+ * 2. Site Full Tank Policy (at audit site, full tank policy OR GPS without fuel sensor) - MEDIUM confidence
+ * 3. Site Equipment (at audit site, no GPS/sensor, no full tank policy) - LOW confidence
  * 4. Cross-Site Company (different site, company-owned) - HIGH confidence
  * 5. External Non-Company (not company-owned) - ACCOUNTED only
  *
  * Data comes from FuelRefill table via /fuelaudit/tank-refills-preview endpoint
  */
 
-import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, memo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import DataGrid, { Column, Selection, Paging, Scrolling } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Selection, Paging, Scrolling, Export } from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import { Workbook } from 'exceljs';
+import { saveAs } from 'file-saver';
 
 import {
   setSelectedVehicles,
@@ -39,21 +42,21 @@ const CATEGORY_CONFIG = {
     textColor: 'tw-text-green-700',
     badgeColor: 'tw-bg-green-100 tw-text-green-800',
     confidence: 'HIGH',
-    description: 'Vehicles with GPS at this site. Opening/closing from REST API.'
+    description: 'Vehicles with GPS + Fuel Sensor. Opening/closing from GPS REST API.'
   },
   2: {
-    name: 'Site Full Tank (No GPS)',
-    icon: 'fa-truck',
+    name: 'Site Full Tank',
+    icon: 'fa-gas-pump',
     color: 'yellow',
     bgColor: 'tw-bg-yellow-50',
     borderColor: 'tw-border-yellow-200',
     textColor: 'tw-text-yellow-700',
     badgeColor: 'tw-bg-yellow-100 tw-text-yellow-800',
     confidence: 'MEDIUM',
-    description: 'Full tank vehicles without GPS. Consumption = Fuel Added.'
+    description: 'Full tank policy vehicles (incl. GPS without fuel sensor). Opening = Tank Capacity.'
   },
   3: {
-    name: 'Site Equipment (No GPS)',
+    name: 'Site Equipment',
     icon: 'fa-gear',
     color: 'orange',
     bgColor: 'tw-bg-orange-50',
@@ -61,7 +64,7 @@ const CATEGORY_CONFIG = {
     textColor: 'tw-text-orange-700',
     badgeColor: 'tw-bg-orange-100 tw-text-orange-800',
     confidence: 'LOW',
-    description: 'Equipment without GPS. Track fuel issued only.'
+    description: 'Equipment without GPS/sensor. Track fuel issued only.'
   },
   4: {
     name: 'Cross-Site Company',
@@ -72,7 +75,7 @@ const CATEGORY_CONFIG = {
     textColor: 'tw-text-cyan-700',
     badgeColor: 'tw-bg-cyan-100 tw-text-cyan-800',
     confidence: 'HIGH',
-    description: 'Company vehicles from other sites. Uses SOAP Report 212.'
+    description: 'Company vehicles from other sites. SOAP Report 212 refuel events.'
   },
   5: {
     name: 'External Non-Company',
@@ -97,29 +100,87 @@ const Step4VehicleSelection = memo(() => {
   // Expanded accordion items (by category)
   const [expandedCategories, setExpandedCategories] = useState([0, 1, 2, 3, 4]);
 
+  // Refs for each category DataGrid (for export)
+  const gridRefs = useRef({});
+
+  // Export handler for a specific category
+  const handleExportCategory = useCallback((categoryId) => {
+    const gridRef = gridRefs.current[categoryId];
+    if (!gridRef?.instance) return;
+
+    const config = CATEGORY_CONFIG[categoryId];
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet(config.name);
+
+    exportDataGrid({
+      component: gridRef.instance,
+      worksheet,
+      autoFilterEnabled: true,
+      customizeCell: ({ gridCell, excelCell }) => {
+        // Style header row
+        if (gridCell.rowType === 'header') {
+          excelCell.font = { bold: true };
+          excelCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+          };
+        }
+      }
+    }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        saveAs(
+          new Blob([buffer], { type: 'application/octet-stream' }),
+          `Vehicles_${config.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
+        );
+      });
+    });
+  }, []);
+
   // Sync local selection with Redux state
   useEffect(() => {
     setSelectedKeys(wizard.selectedVehicleIds ? [...wizard.selectedVehicleIds] : []);
   }, [wizard.selectedVehicleIds]);
 
+  // Track previous tank selection to detect changes
+  const prevTankIdsRef = useRef(null);
+  const prevPeriodRef = useRef(null);
+
   // Load refill data when step is reached
   const loadRefillData = useCallback(() => {
     if (wizard.selectedTankIds?.length > 0 && wizard.periodStart && wizard.periodEnd) {
+      // For multi-site, pass siteIds array
+      const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : (wizard.siteIds ? [wizard.siteIds] : []);
       dispatch(fetchTankRefillsPreview({
         tankIds: wizard.selectedTankIds,
         startDate: wizard.periodStart,
         endDate: wizard.periodEnd,
-        siteId: wizard.siteId
+        siteIds: siteIds  // Pass array of site IDs
       }));
     }
-  }, [dispatch, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.siteId]);
+  }, [dispatch, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.siteIds]);
 
-  // Load on mount if we have required data
+  // Load on mount or when tank selection/period changes
   useEffect(() => {
-    if (wizard.selectedTankIds?.length > 0 && !wizard.tankRefills?.length) {
-      loadRefillData();
+    if (wizard.selectedTankIds?.length > 0 && wizard.periodStart && wizard.periodEnd) {
+      // Create a signature to detect changes
+      const currentTankIds = JSON.stringify([...(wizard.selectedTankIds || [])].sort());
+      const currentPeriod = `${wizard.periodStart}-${wizard.periodEnd}`;
+
+      // Check if tank selection or period has changed
+      const tankSelectionChanged = prevTankIdsRef.current !== null && prevTankIdsRef.current !== currentTankIds;
+      const periodChanged = prevPeriodRef.current !== null && prevPeriodRef.current !== currentPeriod;
+
+      // Load if no data exists OR if selection/period changed
+      if (!wizard.tankRefills?.length || tankSelectionChanged || periodChanged) {
+        loadRefillData();
+      }
+
+      // Update refs for next comparison
+      prevTankIdsRef.current = currentTankIds;
+      prevPeriodRef.current = currentPeriod;
     }
-  }, [loadRefillData, wizard.selectedTankIds, wizard.tankRefills]);
+  }, [loadRefillData, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.tankRefills?.length]);
 
   // Group vehicles by category
   const vehiclesByCategory = useMemo(() => {
@@ -265,6 +326,13 @@ const Step4VehicleSelection = memo(() => {
           <p className="tw-text-xs tw-text-gray-600">{config.description}</p>
           <div className="tw-flex tw-gap-2">
             <Button
+              icon="exportxlsx"
+              hint="Export to Excel"
+              type="default"
+              stylingMode="text"
+              onClick={() => handleExportCategory(categoryId)}
+            />
+            <Button
               text="Select all"
               type="default"
               stylingMode="outlined"
@@ -285,26 +353,28 @@ const Step4VehicleSelection = memo(() => {
 
         {/* DataGrid */}
         <DataGrid
+          ref={(ref) => { gridRefs.current[categoryId] = ref; }}
           dataSource={vehicles}
           keyExpr="vehicleId"
           showBorders={false}
           columnAutoWidth={true}
           rowAlternationEnabled={true}
-          height={Math.min(200, vehicles.length * 40 + 50)}
+          height={Math.min(250, vehicles.length * 40 + 50)}
           selectedRowKeys={categorySelectedKeys}
           onSelectionChanged={(e) => handleCategorySelectionChanged(categoryId, e)}
         >
           <Selection mode="multiple" showCheckBoxesMode="always" />
           <Scrolling mode="virtual" />
           <Paging enabled={false} />
+          <Export enabled={false} /> {/* We use custom export button */}
 
-          <Column dataField="vehicleNo" caption="Vehicle" width={120} />
-          <Column dataField="vehicleTypeName" caption="Type" width={100} />
-          <Column dataField="driverName" caption="Driver" width={140} />
+          <Column dataField="vehicleNo" caption="Vehicle" width={110} />
+          <Column dataField="vehicleTypeName" caption="Type" width={90} />
+          <Column dataField="driverName" caption="Driver" width={120} />
           <Column
             dataField="refillCount"
             caption="Refills"
-            width={70}
+            width={60}
             alignment="center"
             cellRender={(cellData) => (
               <span className="tw-px-2 tw-py-0.5 tw-rounded tw-bg-gray-100 tw-text-gray-700 tw-text-xs">
@@ -313,30 +383,130 @@ const Step4VehicleSelection = memo(() => {
             )}
           />
           <Column
-            dataField="totalFuelAmount"
-            caption="Fuel (L)"
-            width={90}
+            dataField="openingFuel"
+            caption="Opening (L)"
+            width={85}
             dataType="number"
-            format="#,##0.0"
+            format="#,##0"
             alignment="right"
+            cellRender={(cellData) => {
+              const value = cellData.value;
+              const source = cellData.data.openingFuelSource;
+              if (value == null) {
+                return <span className="tw-text-gray-400 tw-text-xs">N/A</span>;
+              }
+              return (
+                <span className="tw-text-xs" title={source || 'Unknown source'}>
+                  {value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+              );
+            }}
+          />
+          <Column
+            dataField="totalFuelAmount"
+            caption="Added (L)"
+            width={80}
+            dataType="number"
+            format="#,##0"
+            alignment="right"
+            cellRender={(cellData) => (
+              <span className="tw-text-green-600 tw-font-medium tw-text-xs">
+                +{cellData.value?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || 0}
+              </span>
+            )}
+          />
+          <Column
+            dataField="closingFuel"
+            caption="Closing (L)"
+            width={85}
+            dataType="number"
+            format="#,##0"
+            alignment="right"
+            cellRender={(cellData) => {
+              const value = cellData.value;
+              const source = cellData.data.closingFuelSource;
+              if (value == null) {
+                return <span className="tw-text-gray-400 tw-text-xs">N/A</span>;
+              }
+              return (
+                <span className="tw-text-xs" title={source || 'Unknown source'}>
+                  {value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+              );
+            }}
+          />
+          <Column
+            dataField="calculatedConsumption"
+            caption="Used (L)"
+            width={75}
+            dataType="number"
+            alignment="right"
+            cellRender={(cellData) => {
+              const opening = cellData.data.openingFuel;
+              const closing = cellData.data.closingFuel;
+              const added = cellData.data.totalFuelAmount || 0;
+              if (opening == null || closing == null) {
+                return <span className="tw-text-gray-400 tw-text-xs">-</span>;
+              }
+              const consumption = opening + added - closing;
+              return (
+                <span className={`tw-text-xs tw-font-medium ${consumption >= 0 ? 'tw-text-red-600' : 'tw-text-blue-600'}`}>
+                  {consumption >= 0 ? '-' : '+'}{Math.abs(consumption).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+              );
+            }}
           />
           <Column
             dataField="dataSourcePrimary"
-            caption="Data Source"
-            width={100}
+            caption="Source"
+            width={90}
             cellRender={(cellData) => {
               const source = cellData.value;
+              const hasFuelSensor = cellData.data.hasFuelSensor;
+              const hasGPS = cellData.data.hasGPS;
               const colors = {
                 'GPS_REST': 'tw-bg-green-100 tw-text-green-700',
                 'GPS_SOAP': 'tw-bg-cyan-100 tw-text-cyan-700',
-                'Estimated': 'tw-bg-yellow-100 tw-text-yellow-700',
+                'FullTank': 'tw-bg-yellow-100 tw-text-yellow-700',
+                'FullTank_GPS': 'tw-bg-yellow-100 tw-text-yellow-700',
                 'FuelRefill': 'tw-bg-gray-100 tw-text-gray-700',
                 'Unavailable': 'tw-bg-red-100 tw-text-red-700'
               };
+              const displayText = source === 'FullTank_GPS' ? 'Full Tank' : (source?.replace('_', ' ') || 'N/A');
+              const tooltip = hasGPS && !hasFuelSensor ? 'GPS tracking (no fuel sensor)' : source;
               return (
-                <span className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${colors[source] || 'tw-bg-gray-100'}`}>
-                  {source?.replace('_', ' ') || 'N/A'}
+                <span
+                  className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${colors[source] || 'tw-bg-gray-100'}`}
+                  title={tooltip}
+                >
+                  {displayText}
                 </span>
+              );
+            }}
+          />
+          {/* GPS/Sensor indicator */}
+          <Column
+            caption="Sensors"
+            width={70}
+            alignment="center"
+            cellRender={(cellData) => {
+              const hasGPS = cellData.data.hasGPS;
+              const hasFuelSensor = cellData.data.hasFuelSensor;
+              return (
+                <div className="tw-flex tw-gap-1 tw-justify-center">
+                  <span
+                    className={`tw-text-xs ${hasGPS ? 'tw-text-blue-500' : 'tw-text-gray-300'}`}
+                    title={hasGPS ? 'GPS Tracking' : 'No GPS'}
+                  >
+                    <i className="fa-light fa-location-dot"></i>
+                  </span>
+                  <span
+                    className={`tw-text-xs ${hasFuelSensor ? 'tw-text-green-500' : 'tw-text-gray-300'}`}
+                    title={hasFuelSensor ? 'Fuel Sensor' : 'No Fuel Sensor'}
+                  >
+                    <i className="fa-light fa-gauge"></i>
+                  </span>
+                </div>
               );
             }}
           />

@@ -1,77 +1,147 @@
 /**
  * Step2TankSelection.js
- * Step 2: Tank Selection with real backend data
+ * Step 2: Tank Selection with multi-site support
  *
  * Tank data uses fields from TankDTO.cs:
  * - id, name, tankVolume, currentStock, fuelGradeName, ptsId, siteId
+ *
+ * Multi-site: Loads tanks from all selected sites and groups them by site
  */
 
-import React, { useEffect, useState, memo } from 'react';
+import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import DataGrid, { Column, Selection, Paging, FilterRow, Scrolling } from 'devextreme-react/data-grid';
+import DataGrid, { Column, Selection, Paging, Scrolling, FilterRow } from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 
-import { setSelectedTanks, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
+import { setSelectedTanks, setTanksBySite, clearTanksData, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
 import { fetctTankbySiteId } from '../../../../../redux/actions/tankActions';
 
 const Step2TankSelection = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
+  const sites = useSelector((state) => state.site?.sites || []);
 
-  // Local state for tanks data
-  const [tanks, setTanks] = useState([]);
+  // Local state
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: 0 });
   const [error, setError] = useState(null);
   // Local state for selection to avoid Redux immutability issues with DevExtreme
   const [selectedKeys, setSelectedKeys] = useState([]);
+
+  // Get site IDs from wizard (ensure array)
+  const siteIds = useMemo(() => {
+    return Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
+  }, [wizard.siteIds]);
+
+  // Get tanks by site from wizard state
+  const tanksBySite = useMemo(() => {
+    return wizard.tanksBySite || {};
+  }, [wizard.tanksBySite]);
+
+  // Get all tanks flattened with site info
+  const allTanks = useMemo(() => {
+    const tanks = [];
+    Object.entries(tanksBySite).forEach(([siteId, siteTanks]) => {
+      const site = sites.find(s => (s.id || s.siteId) === parseInt(siteId));
+      const siteName = site?.name || site?.siteName || `Site ${siteId}`;
+      siteTanks.forEach(tank => {
+        tanks.push({
+          ...tank,
+          siteName,
+          siteId: parseInt(siteId)
+        });
+      });
+    });
+    return tanks;
+  }, [tanksBySite, sites]);
 
   // Sync local selection with Redux state on mount
   useEffect(() => {
     setSelectedKeys(wizard.selectedTankIds ? [...wizard.selectedTankIds] : []);
   }, [wizard.selectedTankIds]);
 
-  // Load tanks when site changes
+  // Load tanks when site selection changes
   useEffect(() => {
-    if (wizard.siteId) {
-      loadTanks(wizard.siteId);
+    if (siteIds.length > 0) {
+      loadAllTanks(siteIds);
+    } else {
+      dispatch(clearTanksData());
     }
-  }, [wizard.siteId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(siteIds)]);
 
-  // Fetch tanks for the selected site
-  const loadTanks = async (siteId) => {
+  // Fetch tanks for all selected sites
+  const loadAllTanks = async (selectedSiteIds) => {
     setLoading(true);
     setError(null);
-    try {
-      const result = await dispatch(fetctTankbySiteId(siteId));
-      if (result.success && result.data) {
-        setTanks(result.data);
-      } else {
-        setTanks([]);
-        setError('No tanks found for this site');
+    setLoadingProgress({ loaded: 0, total: selectedSiteIds.length });
+
+    // Clear previous tanks
+    dispatch(clearTanksData());
+
+    let hasError = false;
+    let loadedCount = 0;
+
+    // Load tanks for each site
+    for (const siteId of selectedSiteIds) {
+      try {
+        const result = await dispatch(fetctTankbySiteId(siteId));
+        if (result.success && result.data) {
+          dispatch(setTanksBySite({ siteId, tanks: result.data }));
+        } else {
+          dispatch(setTanksBySite({ siteId, tanks: [] }));
+        }
+      } catch (err) {
+        console.error(`Error loading tanks for site ${siteId}:`, err);
+        dispatch(setTanksBySite({ siteId, tanks: [] }));
+        hasError = true;
       }
-    } catch (err) {
-      console.error('Error loading tanks:', err);
-      setTanks([]);
-      setError('Failed to load tanks');
-      notify('Error loading tanks', 'error', 3000);
-    } finally {
-      setLoading(false);
+      loadedCount++;
+      setLoadingProgress({ loaded: loadedCount, total: selectedSiteIds.length });
+    }
+
+    setLoading(false);
+
+    if (hasError) {
+      notify('Some tanks could not be loaded', 'warning', 3000);
+    }
+
+    if (allTanks.length === 0 && !hasError) {
+      setError('No tanks found for the selected sites');
     }
   };
 
   // Handle tank selection change
-  const handleSelectionChanged = (e) => {
+  const handleSelectionChanged = useCallback((e) => {
     const newSelection = [...e.selectedRowKeys];
     setSelectedKeys(newSelection);
     dispatch(setSelectedTanks(newSelection));
-  };
+  }, [dispatch]);
 
   // Handle clear selection
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedKeys([]);
     dispatch(setSelectedTanks([]));
-  };
+  }, [dispatch]);
+
+  // Handle select all for a specific site
+  const handleSelectAllForSite = useCallback((siteId) => {
+    const siteTanks = tanksBySite[siteId] || [];
+    const siteTankIds = siteTanks.map(t => t.id);
+    const newSelection = [...new Set([...selectedKeys, ...siteTankIds])];
+    setSelectedKeys(newSelection);
+    dispatch(setSelectedTanks(newSelection));
+  }, [tanksBySite, selectedKeys, dispatch]);
+
+  // Handle deselect all for a specific site
+  const handleDeselectAllForSite = useCallback((siteId) => {
+    const siteTanks = tanksBySite[siteId] || [];
+    const siteTankIds = new Set(siteTanks.map(t => t.id));
+    const newSelection = selectedKeys.filter(id => !siteTankIds.has(id));
+    setSelectedKeys(newSelection);
+    dispatch(setSelectedTanks(newSelection));
+  }, [tanksBySite, selectedKeys, dispatch]);
 
   // Render tank status badge
   const renderStatus = (cellData) => {
@@ -85,121 +155,225 @@ const Step2TankSelection = memo(() => {
     );
   };
 
-  // Render fuel type with color coding
-  const renderFuelType = (cellData) => {
-    const fuelType = cellData.data.fuelGradeName || 'Unknown';
-    const colorMap = {
-      'Diesel': 'tw-bg-yellow-100 tw-text-yellow-800',
-      'Petrol': 'tw-bg-blue-100 tw-text-blue-800',
-      'AGO': 'tw-bg-orange-100 tw-text-orange-800',
-      'PMS': 'tw-bg-purple-100 tw-text-purple-800'
-    };
-    const colorClass = colorMap[fuelType] || 'tw-bg-gray-100 tw-text-gray-800';
+  // Get count of selected tanks per site
+  const getSelectedCountForSite = useCallback((siteId) => {
+    const siteTanks = tanksBySite[siteId] || [];
+    const siteTankIds = new Set(siteTanks.map(t => t.id));
+    return selectedKeys.filter(id => siteTankIds.has(id)).length;
+  }, [tanksBySite, selectedKeys]);
 
+  // Single site view (simpler UI)
+  const renderSingleSiteView = () => {
+    const tanks = allTanks;
     return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${colorClass}`}>
-        {fuelType}
-      </span>
+      <DataGrid
+        dataSource={tanks}
+        keyExpr="id"
+        showBorders={true}
+        columnAutoWidth={true}
+        rowAlternationEnabled={true}
+        height={300}
+        selectedRowKeys={selectedKeys}
+        onSelectionChanged={handleSelectionChanged}
+      >
+        <Selection mode="multiple" showCheckBoxesMode="always" />
+        <FilterRow visible={true} />
+        <Scrolling mode="virtual" />
+        <Paging enabled={false} />
+
+        <Column dataField="name" caption="Tank Name" width={180} />
+        <Column
+          dataField="tankVolume"
+          caption="Capacity (L)"
+          width={120}
+          dataType="number"
+          format="#,##0"
+          alignment="right"
+        />
+        <Column
+          dataField="currentStock"
+          caption="Current Vol (L)"
+          width={130}
+          dataType="number"
+          format="#,##0"
+          alignment="right"
+        />
+        <Column
+          caption="Status"
+          width={90}
+          cellRender={renderStatus}
+          alignment="center"
+        />
+      </DataGrid>
+    );
+  };
+
+  // Multi-site view (grouped by site with accordion)
+  const renderMultiSiteView = () => {
+    return (
+      <div className="tw-space-y-3">
+        {siteIds.map(siteId => {
+          const site = sites.find(s => (s.id || s.siteId) === siteId);
+          const siteName = site?.name || site?.siteName || `Site ${siteId}`;
+          const siteTanks = tanksBySite[siteId] || [];
+          const selectedCount = getSelectedCountForSite(siteId);
+
+          return (
+            <div key={siteId} className="tw-border tw-rounded tw-overflow-hidden">
+              {/* Site Header */}
+              <div className="tw-bg-gray-100 tw-px-3 tw-py-2 tw-flex tw-items-center tw-justify-between">
+                <div className="tw-flex tw-items-center">
+                  <i className="fa-light fa-building tw-mr-2 tw-text-blue-600 tw-text-sm"></i>
+                  <span className="tw-font-medium tw-text-sm tw-text-gray-800">{siteName}</span>
+                  <span className="tw-ml-2 tw-text-xs tw-text-gray-500">
+                    ({siteTanks.length} tank{siteTanks.length !== 1 ? 's' : ''})
+                  </span>
+                  {selectedCount > 0 && (
+                    <span className="tw-ml-2 tw-bg-blue-100 tw-text-blue-800 tw-px-1.5 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium">
+                      {selectedCount} selected
+                    </span>
+                  )}
+                </div>
+                <div className="tw-flex tw-items-center tw-space-x-2">
+                  <button
+                    className="tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 tw-px-1"
+                    onClick={() => handleSelectAllForSite(siteId)}
+                    disabled={siteTanks.length === 0}
+                  >
+                    Select All
+                  </button>
+                  <span className="tw-text-gray-300">|</span>
+                  <button
+                    className="tw-text-xs tw-text-gray-600 hover:tw-text-gray-800 tw-px-1"
+                    onClick={() => handleDeselectAllForSite(siteId)}
+                    disabled={selectedCount === 0}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Site Tanks Grid */}
+              {siteTanks.length > 0 ? (
+                <DataGrid
+                  dataSource={siteTanks}
+                  keyExpr="id"
+                  showBorders={false}
+                  columnAutoWidth={true}
+                  rowAlternationEnabled={true}
+                  height={Math.min(150, 40 + siteTanks.length * 35)}
+                  selectedRowKeys={selectedKeys.filter(id => siteTanks.some(t => t.id === id))}
+                  onSelectionChanged={handleSelectionChanged}
+                >
+                  <Selection mode="multiple" showCheckBoxesMode="always" />
+                  <Scrolling mode="standard" />
+                  <Paging enabled={false} />
+
+                  <Column dataField="name" caption="Tank Name" width={180} />
+                  <Column
+                    dataField="tankVolume"
+                    caption="Capacity (L)"
+                    width={120}
+                    dataType="number"
+                    format="#,##0"
+                    alignment="right"
+                  />
+                  <Column
+                    dataField="currentStock"
+                    caption="Current Vol (L)"
+                    width={130}
+                    dataType="number"
+                    format="#,##0"
+                    alignment="right"
+                  />
+                  <Column
+                    caption="Status"
+                    width={90}
+                    cellRender={renderStatus}
+                    alignment="center"
+                  />
+                </DataGrid>
+              ) : (
+                <div className="tw-p-3 tw-text-center tw-text-gray-500 tw-text-xs">
+                  <i className="fa-light fa-database tw-mr-1"></i>
+                  No tanks found for this site
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     );
   };
 
   return (
-    <div className="wizard-step tw-p-6">
-      <h3 className="tw-text-lg tw-font-semibold tw-mb-2">
+    <div className="wizard-step tw-p-4 tw-max-w-4xl tw-mx-auto">
+      <h3 className="tw-text-base tw-font-semibold tw-mb-2">
         <i className="fa-light fa-database tw-mr-2"></i>
         Select Tanks for Audit
       </h3>
-      <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
-        Select the tanks to include in this fuel audit. Volume history will be analyzed for the selected period.
+      <p className="tw-text-xs tw-text-gray-600 tw-mb-3">
+        {siteIds.length > 1
+          ? `Select tanks from ${siteIds.length} sites to include in this audit.`
+          : 'Select the tanks to include in this fuel audit.'
+        }
       </p>
 
       {/* Loading state */}
       {loading && (
-        <div className="tw-flex tw-items-center tw-justify-center tw-py-12">
+        <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-8">
           <LoadIndicator />
-          <span className="tw-ml-3 tw-text-gray-600">Loading tanks for selected site...</span>
+          <span className="tw-mt-2 tw-text-xs tw-text-gray-600">
+            Loading tanks... ({loadingProgress.loaded}/{loadingProgress.total} sites)
+          </span>
         </div>
       )}
 
       {/* Error state */}
-      {!loading && error && tanks.length === 0 && (
-        <div className="tw-text-center tw-py-10 tw-bg-yellow-50 tw-rounded-lg tw-border tw-border-yellow-200">
-          <i className="fa-light fa-exclamation-triangle tw-text-4xl tw-text-yellow-500 tw-mb-3"></i>
-          <p className="tw-text-gray-700 tw-font-medium">{error}</p>
-          <p className="tw-text-sm tw-text-gray-500 tw-mt-2">
-            Please go back and select a different site, or add tanks to this site first.
+      {!loading && error && allTanks.length === 0 && (
+        <div className="tw-text-center tw-py-6 tw-bg-yellow-50 tw-rounded tw-border tw-border-yellow-200">
+          <i className="fa-light fa-exclamation-triangle tw-text-2xl tw-text-yellow-500 tw-mb-2"></i>
+          <p className="tw-text-sm tw-text-gray-700 tw-font-medium">{error}</p>
+          <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+            Please go back and select different sites.
           </p>
         </div>
       )}
 
-      {/* Tanks grid */}
-      {!loading && tanks.length > 0 && (
+      {/* Tanks display */}
+      {!loading && allTanks.length > 0 && (
         <>
-          <DataGrid
-            dataSource={tanks}
-            keyExpr="id"
-            showBorders={true}
-            columnAutoWidth={true}
-            rowAlternationEnabled={true}
-            height={380}
-            selectedRowKeys={selectedKeys}
-            onSelectionChanged={handleSelectionChanged}
-          >
-            <Selection mode="multiple" showCheckBoxesMode="always" />
-            <FilterRow visible={true} />
-            <Scrolling mode="virtual" />
-            <Paging enabled={false} />
-
-            <Column dataField="name" caption="Tank Name" width={180} />
-
-            <Column
-              dataField="tankVolume"
-              caption="Capacity (L)"
-              width={120}
-              dataType="number"
-              format="#,##0"
-              alignment="right"
-            />
-            <Column
-              dataField="currentStock"
-              caption="Current Vol (L)"
-              width={130}
-              dataType="number"
-              format="#,##0"
-              alignment="right"
-            />
-            <Column
-              caption="Status"
-              width={90}
-              cellRender={renderStatus}
-              alignment="center"
-            />
-
-          </DataGrid>
+          {siteIds.length === 1 ? renderSingleSiteView() : renderMultiSiteView()}
 
           {/* Selection summary */}
-          <div className="tw-mt-4 tw-flex tw-items-center tw-justify-between">
-            <div className="tw-text-sm tw-text-gray-600">
-              <i className="fa-light fa-check-double tw-mr-2"></i>
-              <span className="tw-font-semibold">{selectedKeys.length}</span> of {tanks.length} tanks selected
+          <div className="tw-mt-3 tw-flex tw-items-center tw-justify-between tw-p-2 tw-bg-gray-50 tw-rounded tw-border">
+            <div className="tw-text-xs tw-text-gray-600">
+              <i className="fa-light fa-check-double tw-mr-1"></i>
+              <span className="tw-font-semibold">{selectedKeys.length}</span> of {allTanks.length} tanks selected
+              {siteIds.length > 1 && (
+                <span className="tw-ml-1 tw-text-gray-400">
+                  (across {siteIds.length} sites)
+                </span>
+              )}
             </div>
             {selectedKeys.length > 0 && (
               <button
-                className="tw-text-sm tw-text-blue-600 hover:tw-text-blue-800"
+                className="tw-text-xs tw-text-red-600 hover:tw-text-red-800 tw-flex tw-items-center"
                 onClick={handleClearSelection}
               >
-                Clear selection
+                <i className="fa-light fa-times tw-mr-1"></i>
+                Clear all
               </button>
             )}
           </div>
         </>
       )}
 
-      {/* No site selected */}
-      {!wizard.siteId && !loading && (
-        <div className="tw-text-center tw-py-10 tw-bg-gray-50 tw-rounded-lg">
-          <i className="fa-light fa-building tw-text-4xl tw-text-gray-400 tw-mb-3"></i>
-          <p className="tw-text-gray-600">Please select a site in Step 1 first.</p>
+      {/* No sites selected */}
+      {siteIds.length === 0 && !loading && (
+        <div className="tw-text-center tw-py-6 tw-bg-gray-50 tw-rounded">
+          <i className="fa-light fa-building tw-text-2xl tw-text-gray-400 tw-mb-2"></i>
+          <p className="tw-text-sm tw-text-gray-600">Please select at least one site in Step 1.</p>
         </div>
       )}
     </div>

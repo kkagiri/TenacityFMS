@@ -6,27 +6,44 @@
  * This data will be used in subsequent steps (Step 6 Review & Create).
  *
  * Shows selected tanks with their audit period data:
- * - Opening stock (at period start date)
- * - Closing stock (at period end date)
+ * - Opening stock (at period start date) - EDITABLE
+ * - Closing stock (at period end date) - EDITABLE
  * - Total deliveries
  * - Total dispensed
  * - Transfers in (from other tanks)
  * - Transfers out (to other tanks)
  *
+ * Features:
+ * - Editable Opening and Closing columns
+ * - Export to Excel functionality
+ *
  * Data comes from TankVolumeHistory via /fuelaudit/tank-preview endpoint
  */
 
-import React, { useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import DataGrid, { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
+import DataGrid, {
+  Column,
+  Summary,
+  TotalItem,
+  Editing,
+  Export,
+  Paging,
+  Scrolling
+} from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import { Workbook } from 'exceljs';
+import { saveAs } from 'file-saver';
+import notify from 'devextreme/ui/notify';
 
 import {
   selectWizard,
   selectLoading,
   fetchTankVolumePreview,
-  selectWizardTankPreview
+  selectWizardTankPreview,
+  updateTankPreviewData
 } from '../../../../../redux/slices/fuelAuditSlice';
 
 const Step3TankPreview = memo(() => {
@@ -34,18 +51,74 @@ const Step3TankPreview = memo(() => {
   const wizard = useSelector(selectWizard);
   const loading = useSelector(selectLoading);
   const tankPreview = useSelector(selectWizardTankPreview);
+  const gridRef = useRef(null);
 
   // Load tank preview data when step is reached
   const loadPreviewData = useCallback(() => {
     if (wizard.selectedTankIds?.length > 0 && wizard.periodStart && wizard.periodEnd) {
+      // For multi-site, pass siteIds array; for single site compatibility
+      const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : (wizard.siteIds ? [wizard.siteIds] : []);
       dispatch(fetchTankVolumePreview({
         tankIds: wizard.selectedTankIds,
         startDate: wizard.periodStart,
         endDate: wizard.periodEnd,
-        siteId: wizard.siteId
+        siteIds: siteIds  // Pass array of site IDs
       }));
     }
-  }, [dispatch, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.siteId]);
+  }, [dispatch, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.siteIds]);
+
+  // Handle cell value changes (for editable columns)
+  const handleRowUpdated = useCallback((e) => {
+    // Update Redux state with the edited value
+    dispatch(updateTankPreviewData({
+      tankId: e.key,
+      changes: e.data
+    }));
+    notify('Tank data updated', 'success', 2000);
+  }, [dispatch]);
+
+  // Export to Excel
+  const handleExportExcel = useCallback(() => {
+    if (!gridRef.current) return;
+
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('Tank Preview');
+
+    // Format dates for filename
+    const startDate = wizard.periodStart ? new Date(wizard.periodStart).toISOString().split('T')[0] : 'start';
+    const endDate = wizard.periodEnd ? new Date(wizard.periodEnd).toISOString().split('T')[0] : 'end';
+
+    exportDataGrid({
+      component: gridRef.current.instance,
+      worksheet,
+      autoFilterEnabled: true,
+      customizeCell: ({ gridCell, excelCell }) => {
+        // Format header row
+        if (gridCell.rowType === 'header') {
+          excelCell.font = { bold: true };
+          excelCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+          };
+        }
+        // Format summary row
+        if (gridCell.rowType === 'totalFooter') {
+          excelCell.font = { bold: true };
+          excelCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFF0CC' }
+          };
+        }
+      }
+    }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `Tank_Preview_${startDate}_to_${endDate}.xlsx`);
+        notify('Tank preview exported to Excel', 'success', 3000);
+      });
+    });
+  }, [wizard.periodStart, wizard.periodEnd]);
 
   // Load on mount if we have required data
   useEffect(() => {
@@ -227,8 +300,20 @@ const Step3TankPreview = memo(() => {
             </div>
           </div>
 
+          {/* Export Button */}
+          <div className="tw-flex tw-justify-end tw-mb-2">
+            <button
+              onClick={handleExportExcel}
+              className="tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-bg-green-600 tw-text-white tw-rounded tw-hover:tw-bg-green-700 tw-transition-colors"
+            >
+              <i className="fa-light fa-file-excel"></i>
+              Export to Excel
+            </button>
+          </div>
+
           {/* Per-tank DataGrid */}
           <DataGrid
+            ref={gridRef}
             dataSource={previewData}
             keyExpr="tankId"
             showBorders={true}
@@ -237,8 +322,14 @@ const Step3TankPreview = memo(() => {
             rowAlternationEnabled={true}
             height={400}
             wordWrapEnabled={true}
+            onRowUpdated={handleRowUpdated}
           >
-            <Column dataField="tankName" caption="Tank" width={150} fixed={true} />
+            <Editing
+              mode="cell"
+              allowUpdating={true}
+            />
+            <Export enabled={true} />
+            <Column dataField="tankName" caption="Tank" width={150} fixed={true} allowEditing={false} />
 
             {/* Opening Stock with date indicator */}
             <Column
@@ -248,12 +339,14 @@ const Step3TankPreview = memo(() => {
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              allowEditing={true}
               headerCellRender={() => (
                 <div className="tw-text-center">
                   <div className="tw-font-semibold">Opening (L)</div>
                   <div className="tw-text-xs tw-text-gray-500">{formatDate(wizard.periodStart)}</div>
                 </div>
               )}
+              cssClass="tw-bg-green-50"
             />
 
             <Column
@@ -262,6 +355,7 @@ const Step3TankPreview = memo(() => {
               width={90}
               cellRender={renderDataSource}
               alignment="center"
+              allowEditing={false}
             />
 
             {/* Deliveries */}
@@ -272,6 +366,7 @@ const Step3TankPreview = memo(() => {
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              allowEditing={false}
               cellRender={(cellData) => (
                 <span className="tw-text-blue-600 tw-font-medium">
                   +{(cellData.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
@@ -287,6 +382,7 @@ const Step3TankPreview = memo(() => {
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              allowEditing={false}
               cellRender={(cellData) => (
                 <span className="tw-text-purple-600 tw-font-medium">
                   -{(cellData.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
@@ -302,6 +398,7 @@ const Step3TankPreview = memo(() => {
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              allowEditing={false}
               cellRender={(cellData) => {
                 const value = cellData.value || 0;
                 return value > 0 ? (
@@ -322,6 +419,7 @@ const Step3TankPreview = memo(() => {
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              allowEditing={false}
               cellRender={(cellData) => {
                 const value = cellData.value || 0;
                 return value > 0 ? (
@@ -342,12 +440,14 @@ const Step3TankPreview = memo(() => {
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              allowEditing={true}
               headerCellRender={() => (
                 <div className="tw-text-center">
                   <div className="tw-font-semibold">Closing (L)</div>
                   <div className="tw-text-xs tw-text-gray-500">{formatDate(wizard.periodEnd)}</div>
                 </div>
               )}
+              cssClass="tw-bg-orange-50"
             />
 
             <Summary>

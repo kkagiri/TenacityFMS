@@ -127,9 +127,25 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public DateTime EndDate { get; set; }
 
         /// <summary>
-        /// Site ID (optional, for additional filtering)
+        /// Site IDs for multi-site audit (optional, for additional filtering)
         /// </summary>
-        public int? SiteId { get; set; }
+        public List<int> SiteIds { get; set; } = new();
+
+        /// <summary>
+        /// Legacy single site ID - use SiteIds instead for multi-site support
+        /// </summary>
+        [Obsolete("Use SiteIds instead for multi-site support")]
+        public int? SiteId
+        {
+            get => SiteIds.Count == 1 ? SiteIds[0] : null;
+            set
+            {
+                if (value.HasValue && !SiteIds.Contains(value.Value))
+                {
+                    SiteIds.Add(value.Value);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -162,10 +178,10 @@ namespace FMS.Application.Features.FuelAudit.DTOs
 
         /// <summary>
         /// Vehicle category (1-5):
-        /// 1 = Site GPS Fleet (at audit site, has GPS)
-        /// 2 = Site Full Tank (at audit site, no GPS, isKmL=true)
-        /// 3 = Site Equipment (at audit site, no GPS, isKmL=false)
-        /// 4 = Cross-Site Company (different site, isCompanyVehicle=true)
+        /// 1 = Site GPS Fleet with Fuel Sensor (at audit site, has GPS + fuel sensor)
+        /// 2 = Site Full Tank Policy (at audit site, follows full tank policy - may or may not have GPS)
+        /// 3 = Site Equipment (at audit site, no GPS/fuel sensor, no full tank policy)
+        /// 4 = Cross-Site Company (different site, company-owned)
         /// 5 = External Non-Company (not company owned)
         /// </summary>
         public int VehicleCategory { get; set; }
@@ -176,9 +192,15 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public string VehicleCategoryName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Whether vehicle has GPS with fuel sensor installed
+        /// Whether vehicle has GPS tracking installed
         /// </summary>
         public bool HasGPS { get; set; }
+
+        /// <summary>
+        /// Whether vehicle has a fuel sensor installed (required for Category 1)
+        /// Vehicles with GPS but no fuel sensor should use Full Tank Policy (Category 2)
+        /// </summary>
+        public bool HasFuelSensor { get; set; }
 
         /// <summary>
         /// Whether this is a company-owned vehicle
@@ -285,6 +307,48 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         /// Last refill date in the period
         /// </summary>
         public DateTime? LastRefillDate { get; set; }
+
+        #region Opening/Closing Fuel Data
+
+        /// <summary>
+        /// Opening fuel level at start of audit period (liters)
+        /// Source depends on category:
+        /// - Category 1: GPS REST API fuel position
+        /// - Category 2: Tank capacity (full tank assumption)
+        /// - Category 3/5: Not available
+        /// - Category 4: GPS SOAP Report 212
+        /// </summary>
+        public decimal? OpeningFuel { get; set; }
+
+        /// <summary>
+        /// Closing fuel level at end of audit period (liters)
+        /// </summary>
+        public decimal? ClosingFuel { get; set; }
+
+        /// <summary>
+        /// Source of opening fuel data
+        /// </summary>
+        public string? OpeningFuelSource { get; set; }
+
+        /// <summary>
+        /// Source of closing fuel data
+        /// </summary>
+        public string? ClosingFuelSource { get; set; }
+
+        /// <summary>
+        /// Calculated consumption: Opening + TotalFuelAmount - Closing
+        /// </summary>
+        public decimal? CalculatedConsumption =>
+            (OpeningFuel.HasValue && ClosingFuel.HasValue)
+                ? OpeningFuel.Value + TotalFuelAmount - ClosingFuel.Value
+                : null;
+
+        /// <summary>
+        /// Variance between calculated and expected consumption
+        /// </summary>
+        public decimal? ConsumptionVariance { get; set; }
+
+        #endregion
 
         /// <summary>
         /// List of individual refill records

@@ -65,11 +65,11 @@ namespace FMS.Application.Features.FuelAudit.Queries
                 }
 
                 _logger.LogInformation(
-                    "Getting tank refills for tanks {TankIds} from {StartDate} to {EndDate}, SiteId: {SiteId}",
+                    "Getting tank refills for tanks {TankIds} from {StartDate} to {EndDate}, SiteIds: {SiteIds}",
                     string.Join(",", req.TankIds),
                     req.StartDate,
                     req.EndDate,
-                    req.SiteId);
+                    req.SiteIds.Count > 0 ? string.Join(",", req.SiteIds) : "All");
 
                 // Query fuel refills from the selected tanks within the date range
                 var query = _context.FuelRefills
@@ -79,9 +79,10 @@ namespace FMS.Application.Features.FuelAudit.Queries
                     .Where(r => !r.IsDeleted); // Exclude soft-deleted records
 
                 // Apply site filter if provided (for the tank location, not vehicle assignment)
-                if (req.SiteId.HasValue)
+                // Support both multi-site (SiteIds) filtering
+                if (req.SiteIds.Count > 0)
                 {
-                    query = query.Where(r => r.SiteId == req.SiteId.Value);
+                    query = query.Where(r => req.SiteIds.Contains(r.SiteId));
                 }
 
                 // Get refills with related data
@@ -97,8 +98,10 @@ namespace FMS.Application.Features.FuelAudit.Queries
 
                 _logger.LogInformation("Found {Count} fuel refill records", refills.Count);
 
-                // Get audit site ID for classification
-                var auditSiteId = req.SiteId ?? 0;
+                // Get audit site IDs for classification (supports multi-site)
+                var auditSiteIds = req.SiteIds.Count > 0
+                    ? new HashSet<int>(req.SiteIds)
+                    : new HashSet<int>();
 
                 // Get vehicle IDs for GPS mapping lookup
                 var vehicleIds = refills
@@ -106,20 +109,22 @@ namespace FMS.Application.Features.FuelAudit.Queries
                     .Distinct()
                     .ToList();
 
-                // Fetch active GPS provider mappings for these vehicles (modern GPS detection)
-                var gpsVehicleIds = await _context.VehicleProviderMappings
+                // Fetch active GPS provider mappings with fuel sensor info for these vehicles
+                var gpsMappings = await _context.VehicleProviderMappings
                     .AsNoTracking()
                     .Where(m => vehicleIds.Contains(m.VehicleId) && m.IsActive)
-                    .Select(m => m.VehicleId)
-                    .Distinct()
+                    .Select(m => new { m.VehicleId, m.HasFuelSensor })
                     .ToListAsync(cancellationToken);
 
-                var vehiclesWithGps = new HashSet<int>(gpsVehicleIds);
+                var vehiclesWithGps = new HashSet<int>(gpsMappings.Select(m => m.VehicleId));
+                var vehiclesWithFuelSensor = new HashSet<int>(
+                    gpsMappings.Where(m => m.HasFuelSensor == true).Select(m => m.VehicleId));
 
                 _logger.LogDebug(
-                    "GPS mappings found for {Count}/{Total} vehicles",
+                    "GPS mappings found for {GpsCount}/{Total} vehicles, {FuelSensorCount} with fuel sensors",
                     vehiclesWithGps.Count,
-                    vehicleIds.Count);
+                    vehicleIds.Count,
+                    vehiclesWithFuelSensor.Count);
 
                 // Group by vehicle and create summaries with classification
                 var vehicleSummaries = refills
@@ -140,18 +145,22 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         var hasLegacyGps = (vehicle?.HasGPSInstalled == 1) || (vehicle?.DeviceId.HasValue == true);
                         var hasGPS = hasModernGps || hasLegacyGps;
 
+                        // Check for fuel sensor (only from modern mappings)
+                        var hasFuelSensor = vehiclesWithFuelSensor.Contains(vehicleId);
+
                         // Check IsFullTankPolicy for Category 2 classification
                         var isFullTankPolicy = vehicle?.IsFullTankPolicy ?? false;
 
                         // Classify vehicle into one of 5 categories
                         var (category, categoryName, dataSource, confidence) =
-                            ClassifyVehicle(vehicle, auditSiteId, isKmL, hasGPS, isFullTankPolicy);
+                            ClassifyVehicle(vehicle, auditSiteIds, isKmL, hasGPS, hasFuelSensor, isFullTankPolicy);
 
                         // Determine if vehicle is company-owned
                         var isCompanyVehicle = (vehicle?.IsCompanyVehicle == 1);
 
-                        // Determine if vehicle belongs to audit site
-                        var belongsToAuditSite = vehicle?.WorkingSiteId == auditSiteId;
+                        // Determine if vehicle belongs to any audit site
+                        var belongsToAuditSite = vehicle?.WorkingSiteId.HasValue == true
+                            && auditSiteIds.Contains(vehicle.WorkingSiteId.Value);
 
                         // Calculate totals
                         var totalFuel = vehicleRefills.Sum(r => r.ManualFuelrefillAmount ?? 0);
@@ -189,6 +198,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                             VehicleCategory = category,
                             VehicleCategoryName = categoryName,
                             HasGPS = hasGPS,
+                            HasFuelSensor = hasFuelSensor,
                             IsCompanyVehicle = isCompanyVehicle,
                             BelongsToAuditSite = belongsToAuditSite,
                             DataSourcePrimary = dataSource,
@@ -256,24 +266,26 @@ namespace FMS.Application.Features.FuelAudit.Queries
 
         /// <summary>
         /// Classifies a vehicle into one of 5 categories based on:
-        /// - WorkingSiteId (belongs to audit site or not)
+        /// - WorkingSiteId (belongs to audit site(s) or not)
         /// - IsCompanyVehicle (company-owned or external)
         /// - HasGPS (via VehicleProviderMappings or legacy fields)
+        /// - HasFuelSensor (from VehicleProviderMappings.HasFuelSensor)
         /// - IsFullTankPolicy (explicit full tank policy flag)
         /// - AverageKmL (IsKmL: true = vehicle, false = equipment with L/hr)
         ///
         /// Category Logic:
-        /// 1. Site GPS Fleet: At site + GPS = use GPS_REST real-time data
-        /// 2. Site Full Tank: At site + No GPS + (IsFullTankPolicy OR IsKmL) = estimate from full tank
-        /// 3. Site Equipment: At site + No GPS + !IsKmL (L/hr equipment) = use refill records
+        /// 1. Site GPS Fleet with Fuel Sensor: At site + GPS + FuelSensor = use GPS_REST real-time data
+        /// 2. Site Full Tank Policy: At site + (IsFullTankPolicy OR (GPS without fuel sensor)) = estimate from full tank
+        /// 3. Site Equipment: At site + No GPS/Sensor + No full tank policy = track fuel issued only
         /// 4. Cross-Site Company: Company vehicle from another site = use GPS_SOAP Report 212
         /// 5. External Non-Company: Third-party/contractor = just account for fuel taken
         /// </summary>
         private static (int category, string name, string dataSource, string confidence) ClassifyVehicle(
             VehicleEntity? vehicle,
-            int auditSiteId,
+            HashSet<int> auditSiteIds,
             bool isKmL,
             bool hasGPS,
+            bool hasFuelSensor,
             bool isFullTankPolicy)
         {
             if (vehicle == null)
@@ -281,38 +293,41 @@ namespace FMS.Application.Features.FuelAudit.Queries
                 return (5, "External Non-Company", "Unavailable", "ACCOUNTED");
             }
 
-            var atSite = vehicle.WorkingSiteId == auditSiteId;
+            // Check if vehicle belongs to any of the audit sites
+            var atSite = vehicle.WorkingSiteId.HasValue && auditSiteIds.Contains(vehicle.WorkingSiteId.Value);
             var isCompany = (vehicle.IsCompanyVehicle == 1);
 
-            // Category 1: Site GPS Fleet
-            // Vehicle belongs to audit site AND has GPS
-            if (atSite && hasGPS)
+            // Category 1: Site GPS Fleet with Fuel Sensor
+            // Vehicle belongs to audit site AND has GPS AND has fuel sensor
+            if (atSite && hasGPS && hasFuelSensor)
             {
                 return (1, "Site GPS Fleet", "GPS_REST", "HIGH");
             }
 
-            // Category 2: Site Full Tank (No GPS)
-            // Vehicle belongs to audit site, no GPS, but follows full tank policy
-            // Use IsFullTankPolicy flag OR fall back to IsKmL for legacy data
-            if (atSite && !hasGPS && (isFullTankPolicy || isKmL))
+            // Category 2: Site Full Tank Policy
+            // Vehicle belongs to audit site AND either:
+            // - Explicitly follows full tank policy
+            // - Has GPS but no fuel sensor (use full tank estimation instead)
+            if (atSite && (isFullTankPolicy || (hasGPS && !hasFuelSensor)))
             {
-                return (2, "Site Full Tank (No GPS)", "Estimated", "MEDIUM");
+                var source = isFullTankPolicy ? "FullTank" : "FullTank_GPS";
+                return (2, "Site Full Tank (No Sensor)", source, "MEDIUM");
             }
 
-            // Category 3: Site Equipment (No GPS)
-            // Vehicle belongs to audit site, no GPS, uses L/hr (equipment like generators, cranes)
-            // These are !IsKmL AND !IsFullTankPolicy
-            if (atSite && !hasGPS && !isKmL && !isFullTankPolicy)
+            // Category 3: Site Equipment (No GPS/Sensor, No Full Tank)
+            // Vehicle belongs to audit site, no GPS or no fuel sensor, no full tank policy
+            if (atSite && !isFullTankPolicy)
             {
-                return (3, "Site Equipment (No GPS)", "FuelRefill", "LOW");
+                return (3, "Site Equipment", "FuelRefill", "LOW");
             }
 
             // Category 4: Cross-Site Company Vehicle
-            // Vehicle is company-owned but belongs to different site
+            // Vehicle is company-owned but belongs to different site (or no site assigned)
             if (!atSite && isCompany)
             {
                 // Cross-site company vehicles may have GPS, use SOAP Report 212
-                return (4, "Cross-Site Company", hasGPS ? "GPS_SOAP" : "FuelRefill", "HIGH");
+                var source = (hasGPS && hasFuelSensor) ? "GPS_SOAP" : "FuelRefill";
+                return (4, "Cross-Site Company", source, "HIGH");
             }
 
             // Category 5: External Non-Company

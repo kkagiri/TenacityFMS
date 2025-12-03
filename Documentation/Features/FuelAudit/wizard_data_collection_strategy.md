@@ -408,7 +408,7 @@ Instead of a single GPS preview, show a **category-aware preview**:
 </Accordion>
 ```
 
-### Step 5: GPS Preview (Enhanced)
+### Step 5: Vehicle Preview (Enhanced)
 
 ```jsx
 // Show category-specific data collection status

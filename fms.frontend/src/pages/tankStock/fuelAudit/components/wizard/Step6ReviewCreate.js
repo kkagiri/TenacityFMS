@@ -31,10 +31,21 @@ const Step6ReviewCreate = memo(({ autoPopulate, onAutoPopulateChange }) => {
   const wizard = useSelector(selectWizard);
   const sites = useSelector((state) => state.site?.sites || []);
 
-  // Get selected site
-  const selectedSite = useMemo(() => {
-    return sites.find(s => s.siteId === wizard.siteId);
-  }, [sites, wizard.siteId]);
+  // Get selected sites (support multi-site)
+  const selectedSites = useMemo(() => {
+    const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : (wizard.siteIds ? [wizard.siteIds] : []);
+    return sites.filter(s => siteIds.includes(s.id || s.siteId));
+  }, [sites, wizard.siteIds]);
+
+  // Get selected site names for display
+  const siteNamesDisplay = useMemo(() => {
+    if (selectedSites.length === 0) return 'N/A';
+    if (selectedSites.length === 1) return selectedSites[0]?.name || selectedSites[0]?.siteName || 'N/A';
+    if (selectedSites.length <= 3) {
+      return selectedSites.map(s => s.name || s.siteName).join(', ');
+    }
+    return `${selectedSites.slice(0, 2).map(s => s.name || s.siteName).join(', ')} +${selectedSites.length - 2} more`;
+  }, [selectedSites]);
 
   // Get selected tanks from wizard.tanks (already loaded in Step 2)
   const selectedTanks = useMemo(() => {
@@ -55,10 +66,6 @@ const Step6ReviewCreate = memo(({ autoPopulate, onAutoPopulateChange }) => {
 
   // Calculate System Reconciliation per Hybrid Algorithm Phase 6
   const reconciliation = useMemo(() => {
-    // Get category audit result from wizard (contains variance data)
-    const categoryResult = wizard.categoryAuditResult;
-    const summary = categoryResult?.summary || {};
-
     // Group vehicles by category for calculations
     const byCategory = {
       1: selectedVehicles.filter(v => v.vehicleCategory === 1),
@@ -172,7 +179,7 @@ const Step6ReviewCreate = memo(({ autoPopulate, onAutoPopulateChange }) => {
       totalVerifiedVehicles,
       totalEstimatedVehicles
     };
-  }, [selectedVehicles, wizard.categoryAuditResult, wizard.tankPreview]);
+  }, [selectedVehicles, wizard.tankPreview]);
 
   // Format date for display
   const formatDate = (date) => {
@@ -200,12 +207,16 @@ const Step6ReviewCreate = memo(({ autoPopulate, onAutoPopulateChange }) => {
         <div className="tw-bg-blue-50 tw-rounded-lg tw-p-4 tw-border tw-border-blue-200">
           <div className="tw-flex tw-items-center tw-mb-3">
             <i className="fa-light fa-building tw-mr-2 tw-text-blue-800"></i>
-            <h4 className="tw-font-semibold tw-text-blue-800">Site & Period</h4>
+            <h4 className="tw-font-semibold tw-text-blue-800">
+              Site{selectedSites.length > 1 ? 's' : ''} & Period
+            </h4>
           </div>
           <div className="tw-space-y-2 tw-text-sm">
             <div className="tw-flex tw-justify-between">
-              <span className="tw-text-gray-600">Site:</span>
-              <span className="tw-font-medium tw-text-gray-800">{selectedSite?.siteName || 'N/A'}</span>
+              <span className="tw-text-gray-600">Site{selectedSites.length > 1 ? 's' : ''}:</span>
+              <span className="tw-font-medium tw-text-gray-800" title={selectedSites.map(s => s.name || s.siteName).join(', ')}>
+                {siteNamesDisplay}
+              </span>
             </div>
             <div className="tw-flex tw-justify-between">
               <span className="tw-text-gray-600">Audit Type:</span>
@@ -454,7 +465,7 @@ const Step6ReviewCreate = memo(({ autoPopulate, onAutoPopulateChange }) => {
         </div>
         <p className="tw-text-sm tw-text-blue-700">
           You are about to create a <strong>{wizard.auditType || 'Weekly'}</strong> audit for{' '}
-          <strong>{selectedSite?.siteName || 'N/A'}</strong> covering{' '}
+          <strong>{siteNamesDisplay}</strong> covering{' '}
           <strong>{selectedTanks.length}</strong> tank{selectedTanks.length !== 1 ? 's' : ''} and{' '}
           <strong>{selectedVehicles.length}</strong> vehicle{selectedVehicles.length !== 1 ? 's' : ''}.
         </p>

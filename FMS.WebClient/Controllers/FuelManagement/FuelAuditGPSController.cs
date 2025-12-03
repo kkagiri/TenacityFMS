@@ -1,15 +1,21 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Communication.SignalR;
 using FMS.Application.Features.FuelAudit.DTOs;
 using FMS.Application.Features.FuelAudit.Queries;
 using FMS.Application.Features.FuelAudit.Services;
+using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.WebClient.Controllers.FuelManagement
@@ -27,18 +33,30 @@ namespace FMS.WebClient.Controllers.FuelManagement
         private readonly IFuelAuditGPSService _fuelAuditGPSService;
         private readonly IFullTankEstimationService _fullTankEstimationService;
         private readonly IMediator _mediator;
+        private readonly IHubContext<FrontEndHub> _hubContext;
         private readonly ILogger<FuelAuditGPSController> _logger;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly GpsdataContext _context;
+
+        // Track active GPS fetch jobs
+        private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeJobs = new();
 
         public FuelAuditGPSController(
             IFuelAuditGPSService fuelAuditGPSService,
             IFullTankEstimationService fullTankEstimationService,
             IMediator mediator,
-            ILogger<FuelAuditGPSController> logger)
+            IHubContext<FrontEndHub> hubContext,
+            ILogger<FuelAuditGPSController> logger,
+            IServiceScopeFactory serviceScopeFactory,
+            GpsdataContext context)
         {
             _fuelAuditGPSService = fuelAuditGPSService ?? throw new ArgumentNullException(nameof(fuelAuditGPSService));
             _fullTankEstimationService = fullTankEstimationService ?? throw new ArgumentNullException(nameof(fullTankEstimationService));
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         /// <summary>
@@ -416,6 +434,452 @@ namespace FMS.WebClient.Controllers.FuelManagement
             return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
 
+        /// <summary>
+        /// Start async GPS data fetch with SignalR progress updates.
+        /// Returns immediately with a job ID, then broadcasts progress via SignalR.
+        /// </summary>
+        /// <param name="request">Category-aware request with vehicle info</param>
+        /// <returns>Job ID for tracking progress</returns>
+        [HttpPost("fleet/category-audit-async")]
+        public IActionResult StartCategoryAuditAsync([FromBody] CategoryAuditRequestDTO request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request body is required");
+            }
+
+            if (request.Vehicles == null || request.Vehicles.Count == 0)
+            {
+                return BadRequest("At least one vehicle is required");
+            }
+
+            if (request.StartDate == default || request.EndDate == default)
+            {
+                return BadRequest("Start date and end date are required");
+            }
+
+            // Generate unique job ID
+            var jobId = Guid.NewGuid().ToString("N")[..12];
+            var cts = new CancellationTokenSource();
+
+            // Store the job for potential cancellation
+            _activeJobs[jobId] = cts;
+
+            _logger.LogInformation(
+                "Starting async category audit job {JobId} for {Count} vehicles from {StartDate} to {EndDate}",
+                jobId, request.Vehicles.Count, request.StartDate.ToString("yyyy-MM-dd"), request.EndDate.ToString("yyyy-MM-dd"));
+
+            // Start background processing (fire and forget)
+            _ = ProcessCategoryAuditInBackgroundAsync(jobId, request, cts.Token);
+
+            return Ok(FMSResponse<object>.Success(new
+            {
+                JobId = jobId,
+                Message = "GPS data fetch started. Progress will be broadcast via SignalR.",
+                TotalVehicles = request.Vehicles.Count
+            }, "Job started successfully"));
+        }
+
+        /// <summary>
+        /// Cancel an active GPS fetch job.
+        /// </summary>
+        /// <param name="jobId">Job ID to cancel</param>
+        [HttpPost("fleet/category-audit-async/{jobId}/cancel")]
+        public IActionResult CancelCategoryAuditJob(string jobId)
+        {
+            if (_activeJobs.TryRemove(jobId, out var cts))
+            {
+                cts.Cancel();
+                _logger.LogInformation("Cancelled GPS fetch job {JobId}", jobId);
+                return Ok(FMSResponse<object>.Success(new { JobId = jobId, Message = "Job cancelled" }));
+            }
+
+            return NotFound(FMSResponse<object>.Failed($"Job {jobId} not found or already completed"));
+        }
+
+        /// <summary>
+        /// Process category audit in background with SignalR progress updates.
+        /// Uses a new service scope to ensure scoped services are not disposed.
+        /// </summary>
+        private async Task ProcessCategoryAuditInBackgroundAsync(
+            string jobId,
+            CategoryAuditRequestDTO request,
+            CancellationToken cancellationToken)
+        {
+            // Create a new scope for background processing to avoid disposed context issues
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedFuelAuditGPSService = scope.ServiceProvider.GetRequiredService<IFuelAuditGPSService>();
+            var scopedFullTankEstimationService = scope.ServiceProvider.GetRequiredService<IFullTankEstimationService>();
+            var scopedMediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+            try
+            {
+                // Broadcast job started
+                await BroadcastProgressAsync(jobId, "started", 0, $"Starting GPS data fetch for {request.Vehicles.Count} vehicles...");
+
+                var response = new CategoryAuditResponseDTO
+                {
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    TotalVehicles = request.Vehicles.Count
+                };
+
+                // Group vehicles by category
+                var vehiclesByCategory = request.Vehicles.GroupBy(v => v.Category).ToList();
+                var totalCategories = vehiclesByCategory.Count;
+                var processedCategories = 0;
+
+                foreach (var categoryGroup in vehiclesByCategory)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        await BroadcastProgressAsync(jobId, "cancelled", 0, "Job was cancelled by user");
+                        return;
+                    }
+
+                    var categoryName = GetCategoryName(categoryGroup.Key);
+                    var vehiclesInCategory = categoryGroup.ToList();
+
+                    await BroadcastProgressAsync(jobId, "processing",
+                        (int)((processedCategories * 100.0) / totalCategories),
+                        $"Processing {categoryName} ({vehiclesInCategory.Count} vehicles)...");
+
+                    // Process category with progress callback using scoped services
+                    var categoryResult = await ProcessCategoryWithProgressAsync(
+                        jobId,
+                        categoryGroup.Key,
+                        vehiclesInCategory,
+                        request.StartDate,
+                        request.EndDate,
+                        request.AuditId,
+                        request.RequestedBy,
+                        processedCategories,
+                        totalCategories,
+                        scopedFuelAuditGPSService,
+                        scopedFullTankEstimationService,
+                        scopedMediator,
+                        cancellationToken);
+
+                    response.CategoryResults.Add(categoryResult);
+                    processedCategories++;
+                }
+
+                // Calculate summary
+                CalculateCategorySummary(response);
+
+                // Broadcast completion
+                await _hubContext.Clients.All.SendAsync("GpsFetchCompleted", new
+                {
+                    jobId,
+                    result = response,
+                    timestamp = DateTime.UtcNow
+                }, cancellationToken);
+
+                _logger.LogInformation(
+                    "Async category audit job {JobId} complete: GPS={GPS}, Estimated={Est}, RefillOnly={Refill}, NoData={NoData}",
+                    jobId, response.Summary.VehiclesWithGPS, response.Summary.VehiclesWithEstimate,
+                    response.Summary.VehiclesWithRefillOnly, response.Summary.VehiclesWithNoData);
+            }
+            catch (OperationCanceledException)
+            {
+                await BroadcastProgressAsync(jobId, "cancelled", 0, "Job was cancelled");
+                _logger.LogInformation("GPS fetch job {JobId} was cancelled", jobId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in async category audit job {JobId}", jobId);
+                await _hubContext.Clients.All.SendAsync("GpsFetchError", new
+                {
+                    jobId,
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            finally
+            {
+                // Clean up job tracking
+                _activeJobs.TryRemove(jobId, out _);
+            }
+        }
+
+        /// <summary>
+        /// Process a category with progress updates.
+        /// </summary>
+        private async Task<CategoryResultDTO> ProcessCategoryWithProgressAsync(
+            string jobId,
+            int category,
+            List<CategoryVehicleDTO> vehicles,
+            DateTime startDate,
+            DateTime endDate,
+            int? auditId,
+            int? requestedBy,
+            int currentCategoryIndex,
+            int totalCategories,
+            IFuelAuditGPSService fuelAuditGPSService,
+            IFullTankEstimationService fullTankEstimationService,
+            IMediator mediator,
+            CancellationToken cancellationToken)
+        {
+            var result = new CategoryResultDTO
+            {
+                Category = category,
+                CategoryName = GetCategoryName(category),
+                VehicleCount = vehicles.Count,
+                DataSource = GetCategoryDataSource(category)
+            };
+
+            try
+            {
+                switch (category)
+                {
+                    case 1: // Site GPS Fleet - Use REST API
+                        await ProcessGPSCategoryWithProgressAsync(jobId, result, vehicles, startDate, endDate,
+                            auditId, requestedBy, currentCategoryIndex, totalCategories, fuelAuditGPSService, mediator, cancellationToken);
+                        break;
+
+                    case 2: // Site Full Tank - Use Estimation
+                        await ProcessFullTankCategoryAsync(result, vehicles, startDate, endDate, fullTankEstimationService, cancellationToken);
+                        break;
+
+                    case 3: // Site Equipment - Refill data only
+                        ProcessEquipmentCategory(result, vehicles, startDate, endDate);
+                        break;
+
+                    case 4: // Cross-Site Company - Use SOAP data from gpsgate_report_entries
+                        await ProcessCrossSiteCategoryAsync(result, vehicles, startDate, endDate, mediator, cancellationToken);
+                        break;
+
+                    case 5: // External Non-Company - Refill data only
+                        ProcessExternalCategory(result, vehicles, startDate, endDate);
+                        break;
+
+                    default:
+                        result.ErrorMessage = $"Unknown category: {category}";
+                        break;
+                }
+
+                result.AllProcessed = result.Vehicles.All(v => v.IsAuditable);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing category {Category}", category);
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Process GPS category with vehicle-level progress updates.
+        /// </summary>
+        private async Task ProcessGPSCategoryWithProgressAsync(
+            string jobId,
+            CategoryResultDTO result,
+            List<CategoryVehicleDTO> vehicles,
+            DateTime startDate,
+            DateTime endDate,
+            int? auditId,
+            int? requestedBy,
+            int currentCategoryIndex,
+            int totalCategories,
+            IFuelAuditGPSService fuelAuditGPSService,
+            IMediator mediator,
+            CancellationToken cancellationToken)
+        {
+            var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
+            var totalVehicles = vehicles.Count;
+            var processedVehicles = 0;
+
+            // Get opening positions
+            await BroadcastProgressAsync(jobId, "processing", CalculateOverallProgress(currentCategoryIndex, totalCategories, 0, 2),
+                $"Fetching opening fuel levels for {totalVehicles} vehicles...");
+
+            var openingRequest = new FleetFuelPositionRequestDTO
+            {
+                VehicleIds = vehicleIds,
+                Date = startDate,
+                ReadingType = "opening",
+                AuditId = auditId,
+                RequestedBy = requestedBy
+            };
+            var openingResult = await fuelAuditGPSService.GetFleetFuelAtDateAsync(openingRequest, cancellationToken);
+
+            // Get closing positions
+            await BroadcastProgressAsync(jobId, "processing", CalculateOverallProgress(currentCategoryIndex, totalCategories, 1, 2),
+                $"Fetching closing fuel levels for {totalVehicles} vehicles...");
+
+            var closingRequest = new FleetFuelPositionRequestDTO
+            {
+                VehicleIds = vehicleIds,
+                Date = endDate,
+                ReadingType = "closing",
+                AuditId = auditId,
+                RequestedBy = requestedBy
+            };
+            var closingResult = await fuelAuditGPSService.GetFleetFuelAtDateAsync(closingRequest, cancellationToken);
+
+            // Fetch GPS-measured consumption
+            await BroadcastProgressAsync(jobId, "processing", CalculateOverallProgress(currentCategoryIndex, totalCategories, 1, 2),
+                "Fetching GPS consumption data...");
+
+            var gpsConsumptionByVehicle = new Dictionary<int, decimal>();
+            foreach (var vehicleId in vehicleIds)
+            {
+                try
+                {
+                    var consumptionQuery = new FMS.Application.Queries.Database.FMSQuery.Consumption.GetHistoryConsumptionByVehicleQuery
+                    {
+                        VehicleId = vehicleId,
+                        StartDate = startDate,
+                        EndDate = endDate
+                    };
+                    // Don't pass cancellationToken - let consumption queries complete
+                    var consumptionData = await mediator.Send(consumptionQuery);
+                    var totalGpsConsumption = consumptionData?.Sum(c => c.TotalFuel ?? 0) ?? 0;
+                    gpsConsumptionByVehicle[vehicleId] = totalGpsConsumption;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch GPS consumption for vehicle {VehicleId}", vehicleId);
+                    gpsConsumptionByVehicle[vehicleId] = 0;
+                }
+
+                processedVehicles++;
+
+                // Broadcast progress every 5 vehicles
+                if (processedVehicles % 5 == 0 || processedVehicles == totalVehicles)
+                {
+                    await BroadcastProgressAsync(jobId, "processing",
+                        CalculateOverallProgress(currentCategoryIndex, totalCategories, 1, 2),
+                        $"Processing consumption data: {processedVehicles}/{totalVehicles} vehicles...");
+                }
+            }
+
+            // Variance thresholds
+            const decimal VEHICLE_VARIANCE_THRESHOLD = 5.0m;
+            const decimal CONSUMPTION_VARIANCE_THRESHOLD = 10.0m;
+
+            // Combine results (same logic as original ProcessGPSCategoryAsync)
+            foreach (var vehicle in vehicles)
+            {
+                var opening = openingResult.Data?.VehiclePositions?.FirstOrDefault(p => p.VehicleId == vehicle.VehicleId);
+                var closing = closingResult.Data?.VehiclePositions?.FirstOrDefault(p => p.VehicleId == vehicle.VehicleId);
+
+                var vehicleResult = new VehicleFuelAuditResultDTO
+                {
+                    VehicleId = vehicle.VehicleId,
+                    Category = vehicle.Category,
+                    TotalFuelRefilled = vehicle.TotalFuelRefilled,
+                    DataSource = "GPS_REST",
+                    Confidence = "HIGH"
+                };
+
+                // Populate opening data with full metadata
+                if (opening != null)
+                {
+                    vehicleResult.OpeningFuelLevel = opening.FuelLevel;
+                    vehicleResult.OpeningTimestamp = opening.ReadingTimestamp;
+                    vehicleResult.OpeningDataQuality = opening.DataQuality;
+                    vehicleResult.OpeningDataQualityReason = opening.DataQualityReason;
+                    vehicleResult.OpeningDaysFromRequested = opening.DaysFromRequestedDate;
+                    vehicleResult.OpeningActualDataDate = opening.ActualDataDate;
+                    vehicleResult.OpeningWasOnline = opening.WasOnline;
+                    vehicleResult.VehicleName = opening.VehicleName;
+                }
+
+                // Populate closing data with full metadata
+                if (closing != null)
+                {
+                    vehicleResult.ClosingFuelLevel = closing.FuelLevel;
+                    vehicleResult.ClosingTimestamp = closing.ReadingTimestamp;
+                    vehicleResult.ClosingDataQuality = closing.DataQuality;
+                    vehicleResult.ClosingDataQualityReason = closing.DataQualityReason;
+                    vehicleResult.ClosingDaysFromRequested = closing.DaysFromRequestedDate;
+                    vehicleResult.ClosingActualDataDate = closing.ActualDataDate;
+                    vehicleResult.ClosingWasOnline = closing.WasOnline;
+
+                    if (string.IsNullOrEmpty(vehicleResult.VehicleName))
+                        vehicleResult.VehicleName = closing.VehicleName;
+                }
+
+                // Build data source summary
+                var openingSource = opening?.DataQuality.ToString() ?? "Unavailable";
+                var closingSource = closing?.DataQuality.ToString() ?? "Unavailable";
+                vehicleResult.DataSourceSummary = $"Opening: {openingSource}, Closing: {closingSource}";
+
+                // Calculate variance
+                if (vehicleResult.OpeningFuelLevel.HasValue && vehicleResult.ClosingFuelLevel.HasValue)
+                {
+                    var gpsConsumption = gpsConsumptionByVehicle.GetValueOrDefault(vehicle.VehicleId, 0);
+                    vehicleResult.GpsMeasuredConsumption = gpsConsumption;
+
+                    var fuelUsed = vehicleResult.OpeningFuelLevel.Value + vehicle.TotalFuelRefilled - vehicleResult.ClosingFuelLevel.Value;
+                    vehicleResult.CalculatedConsumption = fuelUsed;
+
+                    // ConsumptionVariance = Calculated - GPS
+                    vehicleResult.ConsumptionVariance = fuelUsed - gpsConsumption;
+
+                    // VehicleVariance = Actual Closing - Expected Closing (where Expected = Opening + Refills - GPS Consumption)
+                    var expectedClosing = vehicleResult.OpeningFuelLevel.Value + vehicle.TotalFuelRefilled - gpsConsumption;
+                    vehicleResult.VehicleVariance = vehicleResult.ClosingFuelLevel.Value - expectedClosing;
+
+                    // Check if variance exceeds threshold
+                    var variancePercent = gpsConsumption > 0
+                        ? Math.Abs(vehicleResult.ConsumptionVariance.Value / gpsConsumption) * 100
+                        : 0;
+
+                    vehicleResult.HasVarianceFlag = Math.Abs(vehicleResult.VehicleVariance.Value) > VEHICLE_VARIANCE_THRESHOLD
+                        || variancePercent > CONSUMPTION_VARIANCE_THRESHOLD;
+
+                    if (vehicleResult.HasVarianceFlag)
+                    {
+                        vehicleResult.VarianceFlagMessage = $"Variance exceeds threshold: Vehicle={vehicleResult.VehicleVariance:F2}L, Consumption={variancePercent:F1}%";
+                    }
+
+                    vehicleResult.IsAuditable = true;
+                }
+                else
+                {
+                    vehicleResult.IsAuditable = false;
+                    vehicleResult.VarianceFlagMessage = "Missing opening or closing fuel level";
+                }
+
+                result.Vehicles.Add(vehicleResult);
+            }
+        }
+
+        /// <summary>
+        /// Helper to broadcast progress via SignalR.
+        /// </summary>
+        private async Task BroadcastProgressAsync(string jobId, string status, int progressPercent, string message)
+        {
+            try
+            {
+                await _hubContext.Clients.All.SendAsync("GpsFetchProgress", new
+                {
+                    jobId,
+                    status,
+                    progressPercent,
+                    message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to broadcast progress for job {JobId}", jobId);
+            }
+        }
+
+        /// <summary>
+        /// Calculate overall progress percentage.
+        /// </summary>
+        private static int CalculateOverallProgress(int categoryIndex, int totalCategories, int stepIndex, int totalSteps)
+        {
+            var categoryProgress = (categoryIndex * 100.0) / totalCategories;
+            var stepProgress = (stepIndex * 100.0 / totalCategories) / totalSteps;
+            return (int)Math.Min(99, categoryProgress + stepProgress);
+        }
+
         #region Private Category Processing Methods
 
         private async Task<CategoryResultDTO> ProcessCategoryAsync(
@@ -444,7 +908,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
                         break;
 
                     case 2: // Site Full Tank - Use Estimation
-                        await ProcessFullTankCategoryAsync(result, vehicles, startDate, endDate, cancellationToken);
+                        await ProcessFullTankCategoryAsync(result, vehicles, startDate, endDate, _fullTankEstimationService, cancellationToken);
                         break;
 
                     case 3: // Site Equipment - Refill data only
@@ -452,7 +916,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
                         break;
 
                     case 4: // Cross-Site Company - Use SOAP data from gpsgate_report_entries
-                        await ProcessCrossSiteCategoryAsync(result, vehicles, startDate, endDate, cancellationToken);
+                        await ProcessCrossSiteCategoryAsync(result, vehicles, startDate, endDate, _mediator, cancellationToken);
                         break;
 
                     case 5: // External Non-Company - Refill data only
@@ -509,6 +973,44 @@ namespace FMS.WebClient.Controllers.FuelManagement
             };
             var closingResult = await _fuelAuditGPSService.GetFleetFuelAtDateAsync(closingRequest, cancellationToken);
 
+            // Fetch GPS refill events from gpsgate_report_entries for master-detail grid
+            var gpsRefillEventsByVehicle = new Dictionary<int, List<GpsRefillEventResultDTO>>();
+            try
+            {
+                var gpsRefillEntries = await _context.GpsGateReportEntries
+                    .AsNoTracking()
+                    .Where(e => vehicleIds.Contains(e.VehicleId))
+                    .Where(e => e.DispenseDate >= startDate && e.DispenseDate <= endDate)
+                    .Where(e => !e.IsDeleted)
+                    .OrderBy(e => e.DispenseDate)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var entry in gpsRefillEntries)
+                {
+                    if (!gpsRefillEventsByVehicle.ContainsKey(entry.VehicleId))
+                    {
+                        gpsRefillEventsByVehicle[entry.VehicleId] = new List<GpsRefillEventResultDTO>();
+                    }
+                    gpsRefillEventsByVehicle[entry.VehicleId].Add(new GpsRefillEventResultDTO
+                    {
+                        EntryId = entry.Id,
+                        RefillDate = entry.DispenseDate,
+                        StartTime = entry.StartTime,
+                        Duration = entry.Duration,
+                        FuelBefore = entry.FuelBefore,
+                        FuelAfter = entry.FuelAfter,
+                        GpsRefillVolume = entry.RefillVolume,
+                        IsAuditSiteRefill = true // All Category 1 refills are at the audit site
+                    });
+                }
+                _logger.LogDebug("Fetched {Count} GPS refill entries for {Vehicles} Category 1 vehicles",
+                    gpsRefillEntries.Count, vehicleIds.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch GPS refill entries for Category 1 vehicles");
+            }
+
             // Fetch GPS-measured consumption from VehicleConsumption table for all vehicles
             var gpsConsumptionByVehicle = new Dictionary<int, decimal>();
             foreach (var vehicleId in vehicleIds)
@@ -521,7 +1023,8 @@ namespace FMS.WebClient.Controllers.FuelManagement
                         StartDate = startDate,
                         EndDate = endDate
                     };
-                    var consumptionData = await _mediator.Send(consumptionQuery, cancellationToken);
+                    // Don't pass cancellationToken - let consumption queries complete even if HTTP request is cancelled
+                    var consumptionData = await _mediator.Send(consumptionQuery);
 
                     // Sum all daily consumption (TotalFuel field contains daily consumption)
                     var totalGpsConsumption = consumptionData?.Sum(c => c.TotalFuel ?? 0) ?? 0;
@@ -558,25 +1061,38 @@ namespace FMS.WebClient.Controllers.FuelManagement
                     Confidence = "HIGH"
                 };
 
+                // Populate opening data with full metadata
                 if (opening != null)
                 {
                     vehicleResult.OpeningFuelLevel = opening.FuelLevel;
                     vehicleResult.OpeningTimestamp = opening.ReadingTimestamp;
                     vehicleResult.OpeningDataQuality = opening.DataQuality;
                     vehicleResult.OpeningDataQualityReason = opening.DataQualityReason;
+                    vehicleResult.OpeningDaysFromRequested = opening.DaysFromRequestedDate;
+                    vehicleResult.OpeningActualDataDate = opening.ActualDataDate;
+                    vehicleResult.OpeningWasOnline = opening.WasOnline;
                     vehicleResult.VehicleName = opening.VehicleName;
                 }
 
+                // Populate closing data with full metadata
                 if (closing != null)
                 {
                     vehicleResult.ClosingFuelLevel = closing.FuelLevel;
                     vehicleResult.ClosingTimestamp = closing.ReadingTimestamp;
                     vehicleResult.ClosingDataQuality = closing.DataQuality;
                     vehicleResult.ClosingDataQualityReason = closing.DataQualityReason;
+                    vehicleResult.ClosingDaysFromRequested = closing.DaysFromRequestedDate;
+                    vehicleResult.ClosingActualDataDate = closing.ActualDataDate;
+                    vehicleResult.ClosingWasOnline = closing.WasOnline;
 
                     if (string.IsNullOrEmpty(vehicleResult.VehicleName))
                         vehicleResult.VehicleName = closing.VehicleName;
                 }
+
+                // Build data source summary
+                var openingSource = opening?.DataQuality.ToString() ?? "Unavailable";
+                var closingSource = closing?.DataQuality.ToString() ?? "Unavailable";
+                vehicleResult.DataSourceSummary = $"Opening: {openingSource}, Closing: {closingSource}";
 
                 // Get GPS-measured consumption
                 gpsConsumptionByVehicle.TryGetValue(vehicle.VehicleId, out var gpsConsumption);
@@ -625,6 +1141,12 @@ namespace FMS.WebClient.Controllers.FuelManagement
 
                 vehicleResult.IsAuditable = vehicleResult.OpeningFuelLevel.HasValue && vehicleResult.ClosingFuelLevel.HasValue;
 
+                // Add GPS refill events for master-detail grid
+                if (gpsRefillEventsByVehicle.TryGetValue(vehicle.VehicleId, out var gpsEvents))
+                {
+                    vehicleResult.GpsRefillEvents = gpsEvents;
+                }
+
                 result.Vehicles.Add(vehicleResult);
             }
 
@@ -639,6 +1161,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
             List<CategoryVehicleDTO> vehicles,
             DateTime startDate,
             DateTime endDate,
+            IFullTankEstimationService fullTankEstimationService,
             CancellationToken cancellationToken)
         {
             var estimationRequests = vehicles.Select(v => new FullTankEstimationRequestDTO
@@ -653,7 +1176,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 IsFullTankPolicy = v.IsFullTankPolicy
             }).ToList();
 
-            var estimationResult = await _fullTankEstimationService.EstimateBatchAsync(estimationRequests, cancellationToken);
+            var estimationResult = await fullTankEstimationService.EstimateBatchAsync(estimationRequests, cancellationToken);
 
             if (estimationResult.IsSuccess && estimationResult.Data != null)
             {
@@ -689,19 +1212,29 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// <summary>
         /// Process Category 4: Cross-Site Company vehicles.
         /// Uses data from gpsgate_report_entries table (populated by FetchAndStoreGpsDataCommand via SOAP Report 212).
+        ///
+        /// CONSUMPTION CALCULATION:
+        /// - Opening = FuelBefore of the refill at the audit site (fuel when vehicle arrived)
+        /// - Closing = FuelBefore of the NEXT refill (fuel remaining after consuming Site A's fuel)
+        /// - Consumption = Opening + FuelDispensed - Closing
+        ///
+        /// This tells us how much fuel was consumed from the fuel dispensed by this audit site.
         /// </summary>
         private async Task ProcessCrossSiteCategoryAsync(
             CategoryResultDTO result,
             List<CategoryVehicleDTO> vehicles,
             DateTime startDate,
             DateTime endDate,
+            IMediator mediator,
             CancellationToken cancellationToken)
         {
             var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
 
             // Use the GetCrossSiteGpsDataQuery to fetch from gpsgate_report_entries
+            // This query fetches refills within the period AND the next refill after the period
+            // to calculate proper consumption (Closing = FuelBefore of next refill)
             var query = new GetCrossSiteGpsDataQuery(vehicleIds, startDate, endDate);
-            var queryResult = await _mediator.Send(query, cancellationToken);
+            var queryResult = await mediator.Send(query, cancellationToken);
 
             if (queryResult.IsSuccess && queryResult.Data != null)
             {
@@ -714,20 +1247,46 @@ namespace FMS.WebClient.Controllers.FuelManagement
                         VehicleId = gpsData.VehicleId,
                         VehicleName = gpsData.VehicleName ?? vehicle?.VehicleName ?? $"Vehicle {gpsData.VehicleId}",
                         Category = 4,
+                        // Opening = FuelBefore of the refill at audit site
                         OpeningFuelLevel = gpsData.OpeningFuelLevel,
                         OpeningTimestamp = gpsData.FirstReadingTime,
                         OpeningDataQuality = gpsData.DataQuality,
-                        OpeningDataQualityReason = gpsData.HasCompleteData ? "From GPSGate SOAP Report 212" : "Incomplete data",
+                        OpeningDataQualityReason = gpsData.HasCompleteData
+                            ? "FuelBefore from audit site refill (SOAP Report 212)"
+                            : "Incomplete data",
+                        // Closing = FuelBefore of NEXT refill (not FuelAfter of current refill)
                         ClosingFuelLevel = gpsData.ClosingFuelLevel,
                         ClosingTimestamp = gpsData.LastReadingTime,
                         ClosingDataQuality = gpsData.DataQuality,
-                        ClosingDataQualityReason = gpsData.HasCompleteData ? "From GPSGate SOAP Report 212" : "Incomplete data",
+                        ClosingDataQualityReason = gpsData.HasCompleteData
+                            ? "FuelBefore from next refill (SOAP Report 212)"
+                            : "Incomplete data",
+                        // Fuel dispensed by audit site (from FuelRefill table)
                         TotalFuelRefilled = vehicle?.TotalFuelRefilled ?? gpsData.TotalFuelRefilled,
+                        // Consumption = Opening + Dispensed - Closing
                         CalculatedConsumption = gpsData.CalculatedConsumption,
+                        // For cross-site, the GPS-measured consumption IS the calculated consumption
+                        // (unlike Category 1 where we have separate VehicleConsumption data)
+                        GpsMeasuredConsumption = gpsData.CalculatedConsumption,
                         DataSource = "GPS_SOAP",
                         Confidence = gpsData.Confidence,
-                        IsAuditable = gpsData.HasCompleteData
+                        IsAuditable = gpsData.HasCompleteData,
+                        // Include GPS refill events for master-detail grid
+                        GpsRefillEvents = gpsData.RefillEvents?.Select(e => new GpsRefillEventResultDTO
+                        {
+                            EntryId = e.EntryId,
+                            RefillDate = e.RefillDate,
+                            StartTime = e.StartTime,
+                            Duration = e.Duration,
+                            FuelBefore = e.FuelBefore,
+                            FuelAfter = e.FuelAfter,
+                            GpsRefillVolume = e.RefillVolume,
+                            IsAuditSiteRefill = e.IsAuditSiteRefill
+                        }).ToList()
                     };
+
+                    // Add data source summary
+                    vehicleResult.DataSourceSummary = $"Opening: FuelBefore@RefillSite, Closing: FuelBefore@NextRefill";
 
                     // Add any warnings
                     if (gpsData.Warnings?.Any() == true)
