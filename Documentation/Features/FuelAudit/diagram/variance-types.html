@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMS Fuel Audit - Variance Types Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .variance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .variance-card {
+            border: 3px solid;
+            border-radius: 12px;
+            padding: 25px;
+            background: #f7fafc;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .variance-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .variance-card.implemented {
+            border-color: #48bb78;
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+        }
+
+        .variance-card.partial {
+            border-color: #ed8936;
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+        }
+
+        .variance-card.missing {
+            border-color: #f56565;
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        }
+
+        .variance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .variance-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-badge.implemented {
+            background: #48bb78;
+        }
+
+        .status-badge.partial {
+            background: #ed8936;
+        }
+
+        .status-badge.missing {
+            background: #f56565;
+        }
+
+        .variance-description {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.05em;
+            line-height: 1.6;
+        }
+
+        .formula-box {
+            background: white;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            color: #2d3748;
+            border-radius: 4px;
+        }
+
+        .data-sources {
+            margin: 15px 0;
+        }
+
+        .data-source-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .data-source-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 0.9em;
+        }
+
+        .icon-table {
+            background: #4299e1;
+            color: white;
+        }
+
+        .icon-formula {
+            background: #9f7aea;
+            color: white;
+        }
+
+        .example-box {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .example-title {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .example-values {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.95em;
+        }
+
+        .example-value {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+        }
+
+        .value-label {
+            color: #718096;
+        }
+
+        .value-number {
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .variance-result {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .variance-result.positive {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .flow-diagram {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+        }
+
+        .flow-title {
+            font-size: 1.8em;
+            color: #2d3748;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .flow-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .flow-step {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .flow-step::after {
+            content: '→';
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2em;
+            color: #cbd5e0;
+        }
+
+        .flow-step:last-child::after {
+            display: none;
+        }
+
+        .flow-step-number {
+            width: 40px;
+            height: 40px;
+            background: #4299e1;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .flow-step-title {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .flow-step-desc {
+            font-size: 0.9em;
+            color: #718096;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: #4299e1;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .comparison-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .check-icon {
+            color: #48bb78;
+            font-weight: bold;
+        }
+
+        .cross-icon {
+            color: #f56565;
+            font-weight: bold;
+        }
+
+        .warning-icon {
+            color: #ed8936;
+            font-weight: bold;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 3px solid;
+        }
+
+        @media (max-width: 768px) {
+            .variance-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .flow-steps {
+                flex-direction: column;
+            }
+
+            .flow-step::after {
+                content: '↓';
+                right: 50%;
+                top: auto;
+                bottom: -35px;
+                transform: translateX(50%);
+            }
+
+            .example-values {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 FMS Fuel Audit Variance Types</h1>
+        <p class="subtitle">Understanding the Three Types of Variance in Fuel Auditing</p>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box" style="border-color: #48bb78; background: #c6f6d5;"></div>
+                <span>✅ Implemented</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="border-color: #ed8936; background: #feebc8;"></div>
+                <span>⚠️ Partial</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="border-color: #f56565; background: #fed7d7;"></div>
+                <span>❌ Missing</span>
+            </div>
+        </div>
+
+        <!-- Variance Cards -->
+        <div class="variance-grid">
+            <!-- Refuel Variance -->
+            <div class="variance-card implemented">
+                <div class="variance-header">
+                    <div class="variance-title">1. Refuel Variance</div>
+                    <div class="status-badge implemented">✅ IMPLEMENTED</div>
+                </div>
+
+                <div class="variance-description">
+                    <strong>What it measures:</strong> Difference between fuel dispensed from pump vs fuel received by vehicle
+                </div>
+
+                <div class="formula-box">
+                    Refuel Variance = GPS Detected - Manual Recorded
+                </div>
+
+                <div class="data-sources">
+                    <div class="data-source-item">
+                        <div class="data-source-icon icon-table">📊</div>
+                        <div>
+                            <strong>FuelRefill</strong>: Manual recorded amount<br>
+                            <small>What pump says was dispensed</small>
+                        </div>
+                    </div>
+                    <div class="data-source-item">
+                        <div class="data-source-icon icon-table">🛰️</div>
+                        <div>
+                            <strong>GpsGateReportEntry</strong>: GPS detected refuel<br>
+                            <small>What GPS sensor detected (SOAP Report 212)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <div class="example-title">📋 Example:</div>
+                    <div class="example-values">
+                        <div class="example-value">
+                            <span class="value-label">Pump Dispensed:</span>
+                            <span class="value-number">150.0 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">GPS Detected:</span>
+                            <span class="value-number">145.0 L</span>
+                        </div>
+                    </div>
+                    <div class="variance-result">
+                        Variance: -5.0 L (5 liters missing!)
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 6px;">
+                    <strong>🎯 Purpose:</strong> Detect dispensing errors, pump theft, calibration issues
+                </div>
+
+                <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 6px;">
+                    <strong>📍 Location:</strong> FuelComparisonController.cs
+                </div>
+            </div>
+
+            <!-- Consumption Variance -->
+            <div class="variance-card missing">
+                <div class="variance-header">
+                    <div class="variance-title">2. Consumption Variance</div>
+                    <div class="status-badge missing">❌ NOT IMPLEMENTED</div>
+                </div>
+
+                <div class="variance-description">
+                    <strong>What it measures:</strong> Difference between GPS-measured consumption vs calculated consumption
+                </div>
+
+                <div class="formula-box">
+                    Consumption Variance = Calculated - GPS Measured<br><br>
+                    Calculated = Opening + Refilled - Closing<br>
+                    GPS Measured = SUM(daily VehicleConsumption)
+                </div>
+
+                <div class="data-sources">
+                    <div class="data-source-item">
+                        <div class="data-source-icon icon-table">📈</div>
+                        <div>
+                            <strong>VehicleConsumption</strong>: Daily GPS consumption<br>
+                            <small>Actual fuel consumed (GPS calculated)</small>
+                        </div>
+                    </div>
+                    <div class="data-source-item">
+                        <div class="data-source-icon icon-formula">🧮</div>
+                        <div>
+                            <strong>Formula</strong>: Opening + Refilled - Closing<br>
+                            <small>Calculated from fuel levels</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <div class="example-title">📋 Example (7-day period):</div>
+                    <div class="example-values">
+                        <div class="example-value">
+                            <span class="value-label">Opening:</span>
+                            <span class="value-number">150.0 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">Refueled:</span>
+                            <span class="value-number">+500.0 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">Closing:</span>
+                            <span class="value-number">170.0 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">Calculated:</span>
+                            <span class="value-number">480.0 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">GPS Measured:</span>
+                            <span class="value-number">490.0 L</span>
+                        </div>
+                    </div>
+                    <div class="variance-result">
+                        Variance: -10.0 L (GPS shows 10L more consumed!)
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 6px;">
+                    <strong>🎯 Purpose:</strong> Detect sensor drift, fuel theft during operation, calibration issues
+                </div>
+
+                <div style="margin-top: 10px; padding: 10px; background: #fff5f5; border-radius: 6px; border: 1px solid #f56565;">
+                    <strong>⚠️ Status:</strong> Query exists (GetHistoryConsumptionByVehicleQuery) but not used in wizard
+                </div>
+            </div>
+
+            <!-- System Variance -->
+            <div class="variance-card partial">
+                <div class="variance-header">
+                    <div class="variance-title">3. System Variance</div>
+                    <div class="status-badge partial">⚠️ PARTIAL</div>
+                </div>
+
+                <div class="variance-description">
+                    <strong>What it measures:</strong> Total system fuel position vs expected based on deliveries and consumption
+                </div>
+
+                <div class="formula-box">
+                    System Variance = Actual Closing - Expected Closing<br><br>
+                    Expected = Opening + Deliveries - Consumption<br>
+                    Actual = Tank Readings + Vehicle Dead Stock
+                </div>
+
+                <div class="data-sources">
+                    <div class="data-source-item">
+                        <div class="data-source-icon icon-table">🛢️</div>
+                        <div>
+                            <strong>TankVolumeHistory</strong>: Tank readings<br>
+                            <small>Opening, closing, deliveries</small>
+                        </div>
+                    </div>
+                    <div class="data-source-item">
+                        <div class="data-source-icon icon-table">🚛</div>
+                        <div>
+                            <strong>GPS/Estimates</strong>: Vehicle dead stock<br>
+                            <small>Fuel in vehicle tanks</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <div class="example-title">📋 Example (Weekly audit):</div>
+                    <div class="example-values">
+                        <div class="example-value">
+                            <span class="value-label">Opening Position:</span>
+                            <span class="value-number">30,500 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">+ Deliveries:</span>
+                            <span class="value-number">+50,000 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">- Consumption:</span>
+                            <span class="value-number">-62,000 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">Expected Closing:</span>
+                            <span class="value-number">18,500 L</span>
+                        </div>
+                        <div class="example-value">
+                            <span class="value-label">Actual Closing:</span>
+                            <span class="value-number">32,700 L</span>
+                        </div>
+                    </div>
+                    <div class="variance-result positive">
+                        Variance: +14,200 L (14,200L more than expected!)
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 6px;">
+                    <strong>🎯 Purpose:</strong> Overall audit reconciliation, system-wide theft/loss detection
+                </div>
+
+                <div style="margin-top: 10px; padding: 10px; background: #fffaf0; border-radius: 6px; border: 1px solid #ed8936;">
+                    <strong>⚠️ Status:</strong> Wizard collects data but doesn't calculate variance
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <h2 style="text-align: center; margin: 40px 0 20px; color: #2d3748;">Variance Comparison Matrix</h2>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th>Refuel Variance</th>
+                    <th>Consumption Variance</th>
+                    <th>System Variance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Scope</strong></td>
+                    <td>Single refuel event</td>
+                    <td>Vehicle over period</td>
+                    <td>Entire system</td>
+                </tr>
+                <tr>
+                    <td><strong>Detection Time</strong></td>
+                    <td>Immediate</td>
+                    <td>Daily/Period</td>
+                    <td>Period end</td>
+                </tr>
+                <tr>
+                    <td><strong>Precision</strong></td>
+                    <td>High (±1L)</td>
+                    <td>Medium (±5L)</td>
+                    <td>Low (±20L)</td>
+                </tr>
+                <tr>
+                    <td><strong>Data Quality</strong></td>
+                    <td>High</td>
+                    <td>High (GPS)</td>
+                    <td>Mixed</td>
+                </tr>
+                <tr>
+                    <td><strong>Theft Detection</strong></td>
+                    <td>At pump</td>
+                    <td>During operation</td>
+                    <td>System-wide</td>
+                </tr>
+                <tr>
+                    <td><strong>Implementation</strong></td>
+                    <td><span class="check-icon">✅ Complete</span></td>
+                    <td><span class="cross-icon">❌ Missing</span></td>
+                    <td><span class="warning-icon">⚠️ Partial</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Wizard Flow -->
+        <div class="flow-diagram">
+            <h2 class="flow-title">Current Wizard Implementation</h2>
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="flow-step-number">1</div>
+                    <div class="flow-step-title">Site & Period</div>
+                    <div class="flow-step-desc">Select audit site and date range</div>
+                    <div style="margin-top: 10px; color: #48bb78; font-weight: bold;">✅ Complete</div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-step-number">2</div>
+                    <div class="flow-step-title">Tank Selection</div>
+                    <div class="flow-step-desc">Choose tanks to audit</div>
+                    <div style="margin-top: 10px; color: #48bb78; font-weight: bold;">✅ Complete</div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-step-number">3</div>
+                    <div class="flow-step-title">Tank Preview</div>
+                    <div class="flow-step-desc">View tank readings & deliveries</div>
+                    <div style="margin-top: 10px; color: #48bb78; font-weight: bold;">✅ Complete</div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-step-number">4</div>
+                    <div class="flow-step-title">Vehicle Selection</div>
+                    <div class="flow-step-desc">Select vehicles by category</div>
+                    <div style="margin-top: 10px; color: #48bb78; font-weight: bold;">✅ Complete</div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-step-number">5</div>
+                    <div class="flow-step-title">Vehicle Preview</div>
+                    <div class="flow-step-desc">GPS opening/closing data</div>
+                    <div style="margin-top: 10px; color: #ed8936; font-weight: bold;">⚠️ Missing Consumption Variance</div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="flow-step-number">6</div>
+                    <div class="flow-step-title">Review & Create</div>
+                    <div class="flow-step-desc">Summary and audit creation</div>
+                    <div style="margin-top: 10px; color: #ed8936; font-weight: bold;">⚠️ Missing System Variance</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="background: #edf2f7; border-radius: 12px; padding: 30px; margin-top: 40px;">
+            <h2 style="color: #2d3748; margin-bottom: 20px;">📊 Summary: Are We on the Right Track?</h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="background: #c6f6d5; padding: 20px; border-radius: 8px; border-left: 4px solid #48bb78;">
+                    <h3 style="color: #2f855a; margin-bottom: 10px;">✅ What's Working</h3>
+                    <ul style="color: #2d3748; line-height: 1.8;">
+                        <li>Vehicle classification (5 categories)</li>
+                        <li>GPS data fetching (REST API)</li>
+                        <li>Refuel variance (FuelComparison)</li>
+                        <li>Pickup estimation</li>
+                        <li>Data collection</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fed7d7; padding: 20px; border-radius: 8px; border-left: 4px solid #f56565;">
+                    <h3 style="color: #c53030; margin-bottom: 10px;">❌ What's Missing</h3>
+                    <ul style="color: #2d3748; line-height: 1.8;">
+                        <li>GPS consumption variance</li>
+                        <li>System variance calculation</li>
+                        <li>Variance flags & alerts</li>
+                        <li>Variance confidence scoring</li>
+                        <li>Threshold checking</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid #4299e1;">
+                <h3 style="color: #2d3748; margin-bottom: 15px;">🎯 Core Issue</h3>
+                <p style="color: #4a5568; font-size: 1.1em; line-height: 1.6;">
+                    The wizard is <strong>collecting all the right data</strong> but <strong>not performing the final reconciliation calculations</strong> that the Hybrid Algorithm specifies. It's like gathering all the ingredients for a recipe but not cooking the meal!
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; margin-top: 20px; align-items: center;">
+                    <div style="background: #feebc8; padding: 15px; border-radius: 8px; text-align: center;">
+                        <strong>Current:</strong><br>Data Collection Tool
+                    </div>
+                    <div style="font-size: 2em;">→</div>
+                    <div style="background: #c6f6d5; padding: 15px; border-radius: 8px; text-align: center;">
+                        <strong>Should Be:</strong><br>Data + Reconciliation + Variance
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #bee3f8; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                <h3 style="color: #2c5282; margin-bottom: 15px;">✅ Conclusion: YES, We Are on the Right Track!</h3>
+                <p style="color: #2d3748; font-size: 1.05em; line-height: 1.6;">
+                    The wizard architecture is sound, and data collection is comprehensive. We just need to add the <strong>reconciliation and variance analysis layers</strong> to complete the Hybrid Algorithm implementation.
+                </p>
+                <p style="color: #2d3748; font-size: 1.05em; line-height: 1.6; margin-top: 10px;">
+                    All three variance types serve different, non-overlapping purposes and are valuable for a complete fuel audit system.
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding: 20px; background: #f7fafc; border-radius: 8px;">
+            <p style="color: #718096;">
+                <strong>Document Version:</strong> 1.0 |
+                <strong>Last Updated:</strong> December 2025 |
+                <strong>System:</strong> FMS Fuel Audit
+            </p>
+        </div>
+    </div>
+</body>
+</html>

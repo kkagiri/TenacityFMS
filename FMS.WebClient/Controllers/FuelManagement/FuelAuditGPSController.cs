@@ -509,6 +509,38 @@ namespace FMS.WebClient.Controllers.FuelManagement
             };
             var closingResult = await _fuelAuditGPSService.GetFleetFuelAtDateAsync(closingRequest, cancellationToken);
 
+            // Fetch GPS-measured consumption from VehicleConsumption table for all vehicles
+            var gpsConsumptionByVehicle = new Dictionary<int, decimal>();
+            foreach (var vehicleId in vehicleIds)
+            {
+                try
+                {
+                    var consumptionQuery = new FMS.Application.Queries.Database.FMSQuery.Consumption.GetHistoryConsumptionByVehicleQuery
+                    {
+                        VehicleId = vehicleId,
+                        StartDate = startDate,
+                        EndDate = endDate
+                    };
+                    var consumptionData = await _mediator.Send(consumptionQuery, cancellationToken);
+
+                    // Sum all daily consumption (TotalFuel field contains daily consumption)
+                    var totalGpsConsumption = consumptionData?.Sum(c => c.TotalFuel ?? 0) ?? 0;
+                    gpsConsumptionByVehicle[vehicleId] = totalGpsConsumption;
+
+                    _logger.LogDebug("Vehicle {VehicleId}: GPS consumption from {Start} to {End} = {Consumption}L",
+                        vehicleId, startDate.ToString("yyyy-MM-dd"), endDate.ToString("yyyy-MM-dd"), totalGpsConsumption);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch GPS consumption for vehicle {VehicleId}", vehicleId);
+                    gpsConsumptionByVehicle[vehicleId] = 0;
+                }
+            }
+
+            // Variance thresholds (from algorithm)
+            const decimal VEHICLE_VARIANCE_THRESHOLD = 5.0m;
+            const decimal CONSUMPTION_VARIANCE_THRESHOLD = 10.0m;
+
             // Combine results
             foreach (var vehicle in vehicles)
             {
@@ -546,19 +578,60 @@ namespace FMS.WebClient.Controllers.FuelManagement
                         vehicleResult.VehicleName = closing.VehicleName;
                 }
 
-                // Calculate consumption
+                // Get GPS-measured consumption
+                gpsConsumptionByVehicle.TryGetValue(vehicle.VehicleId, out var gpsConsumption);
+                vehicleResult.GpsMeasuredConsumption = gpsConsumption;
+
+                // Calculate formula-based consumption (Opening + Refueled - Closing)
                 if (vehicleResult.OpeningFuelLevel.HasValue && vehicleResult.ClosingFuelLevel.HasValue)
                 {
                     vehicleResult.CalculatedConsumption =
                         vehicleResult.OpeningFuelLevel.Value
                         + vehicleResult.TotalFuelRefilled
                         - vehicleResult.ClosingFuelLevel.Value;
+
+                    // Calculate consumption variance (Calculated - GPS Measured)
+                    // Per algorithm: Positive = Calculated shows more consumption than GPS
+                    if (gpsConsumption > 0)
+                    {
+                        vehicleResult.ConsumptionVariance = vehicleResult.CalculatedConsumption.Value - gpsConsumption;
+                    }
+
+                    // Calculate vehicle variance per algorithm Phase 2.1:
+                    // expected_closing = opening_dead_stock + total_refueled - gps_consumption
+                    // vehicle_variance = actual_closing - expected_closing
+                    if (gpsConsumption > 0)
+                    {
+                        var expectedClosing = vehicleResult.OpeningFuelLevel.Value
+                            + vehicleResult.TotalFuelRefilled
+                            - gpsConsumption;
+                        vehicleResult.VehicleVariance = vehicleResult.ClosingFuelLevel.Value - expectedClosing;
+                    }
+                }
+
+                // Flag if variance exceeds thresholds
+                if (vehicleResult.VehicleVariance.HasValue &&
+                    Math.Abs(vehicleResult.VehicleVariance.Value) > VEHICLE_VARIANCE_THRESHOLD)
+                {
+                    vehicleResult.HasVarianceFlag = true;
+                    vehicleResult.VarianceFlagMessage = $"Vehicle variance ({vehicleResult.VehicleVariance:F1}L) exceeds {VEHICLE_VARIANCE_THRESHOLD}L threshold";
+                }
+                else if (vehicleResult.ConsumptionVariance.HasValue &&
+                         Math.Abs(vehicleResult.ConsumptionVariance.Value) > CONSUMPTION_VARIANCE_THRESHOLD)
+                {
+                    vehicleResult.HasVarianceFlag = true;
+                    vehicleResult.VarianceFlagMessage = $"Consumption variance ({vehicleResult.ConsumptionVariance:F1}L) exceeds {CONSUMPTION_VARIANCE_THRESHOLD}L threshold";
                 }
 
                 vehicleResult.IsAuditable = vehicleResult.OpeningFuelLevel.HasValue && vehicleResult.ClosingFuelLevel.HasValue;
 
                 result.Vehicles.Add(vehicleResult);
             }
+
+            _logger.LogInformation(
+                "Processed {Count} GPS vehicles with variance analysis. Flagged: {Flagged}",
+                vehicles.Count,
+                result.Vehicles.Count(v => v.HasVarianceFlag));
         }
 
         private async Task ProcessFullTankCategoryAsync(
@@ -782,7 +855,13 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 TotalOpeningFuel = allVehicles.Where(v => v.OpeningFuelLevel.HasValue).Sum(v => v.OpeningFuelLevel),
                 TotalClosingFuel = allVehicles.Where(v => v.ClosingFuelLevel.HasValue).Sum(v => v.ClosingFuelLevel),
                 TotalFuelRefilled = allVehicles.Sum(v => v.TotalFuelRefilled),
-                TotalCalculatedConsumption = allVehicles.Where(v => v.CalculatedConsumption.HasValue).Sum(v => v.CalculatedConsumption)
+                TotalCalculatedConsumption = allVehicles.Where(v => v.CalculatedConsumption.HasValue).Sum(v => v.CalculatedConsumption),
+
+                // NEW: Variance aggregates
+                TotalGpsMeasuredConsumption = allVehicles.Where(v => v.GpsMeasuredConsumption.HasValue).Sum(v => v.GpsMeasuredConsumption),
+                TotalConsumptionVariance = allVehicles.Where(v => v.ConsumptionVariance.HasValue).Sum(v => v.ConsumptionVariance),
+                TotalVehicleVariance = allVehicles.Where(v => v.VehicleVariance.HasValue).Sum(v => v.VehicleVariance),
+                VehiclesWithVarianceFlag = allVehicles.Count(v => v.HasVarianceFlag)
             };
 
             // Data quality by category
@@ -791,6 +870,12 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 var auditable = category.Vehicles.Count(v => v.IsAuditable);
                 var total = category.VehicleCount;
                 response.Summary.DataQualityByCategory[category.Category] = $"{auditable}/{total} auditable";
+
+                // Variance by category
+                var categoryVariance = category.Vehicles
+                    .Where(v => v.VehicleVariance.HasValue)
+                    .Sum(v => v.VehicleVariance);
+                response.Summary.VarianceByCategory[category.Category] = categoryVariance;
             }
         }
 

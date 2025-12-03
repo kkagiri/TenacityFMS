@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using FMS.Application.Queries;
 using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
 using FMS.Domain.Entities.Auth;
@@ -15,8 +15,11 @@ using System.Collections.Generic;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Import;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.FuelImport.Commands;
+using FMS.Application.Communication.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 //using FMS.Application.Queries.Database.Consumption;
 using System;
 using System.Linq;
@@ -44,13 +47,27 @@ namespace FMS.WebClient.Controllers
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
         private readonly ILogger<ConsumptionController> _logger;
+        private readonly IHubContext<FrontEndHub> _hubContext;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public ConsumptionController(IMediator mediator, IConfiguration configuration, IMapper mapper, ILogger<ConsumptionController> logger)
+        // Static dictionary to track cancellation tokens for fuel import jobs
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> _activeImportJobs
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource>();
+
+        public ConsumptionController(
+            IMediator mediator,
+            IConfiguration configuration,
+            IMapper mapper,
+            ILogger<ConsumptionController> logger,
+            IHubContext<FrontEndHub> hubContext,
+            IServiceScopeFactory serviceScopeFactory)
         {
             _mapper = mapper;
             _mediator = mediator;
             _configuration = configuration;
             _logger = logger;
+            _hubContext = hubContext;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         [HttpGet("manualRefills")]
@@ -571,6 +588,304 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// Async import endpoint - returns immediately with a job ID and processes in background.
+        /// Progress and completion are sent via SignalR.
+        /// </summary>
+        [HttpPost("import/async")]
+        public async Task<IActionResult> ImportFuelReportAsync([FromBody] object requestObj)
+        {
+            try
+            {
+                _logger.LogInformation("Received async import request");
+
+                if (requestObj == null)
+                {
+                    return BadRequest(new
+                    {
+                        isSuccess = false,
+                        message = "No data provided in request"
+                    });
+                }
+
+                // Parse the request (same logic as sync import)
+                List<ConsumptionDTO> models;
+                bool overwriteExisting = false;
+                bool skipDuplicates = false;
+
+                if (requestObj is Newtonsoft.Json.Linq.JObject jObject)
+                {
+                    if (jObject.ContainsKey("consumptions"))
+                    {
+                        models = jObject["consumptions"].ToObject<List<ConsumptionDTO>>();
+                        if (jObject.ContainsKey("overwriteExisting") && jObject["overwriteExisting"].Type == Newtonsoft.Json.Linq.JTokenType.Boolean)
+                            overwriteExisting = jObject["overwriteExisting"].Value<bool>();
+                        if (jObject.ContainsKey("skipDuplicates") && jObject["skipDuplicates"].Type == Newtonsoft.Json.Linq.JTokenType.Boolean)
+                            skipDuplicates = jObject["skipDuplicates"].Value<bool>();
+                    }
+                    else
+                    {
+                        models = jObject.ToObject<List<ConsumptionDTO>>();
+                    }
+                }
+                else if (requestObj is System.Text.Json.JsonElement jsonElement)
+                {
+                    if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    {
+                        if (jsonElement.TryGetProperty("consumptions", out var consumptionsElement))
+                        {
+                            models = System.Text.Json.JsonSerializer.Deserialize<List<ConsumptionDTO>>(consumptionsElement.GetRawText());
+                            if (jsonElement.TryGetProperty("overwriteExisting", out var overwriteElement) && overwriteElement.ValueKind == System.Text.Json.JsonValueKind.True)
+                                overwriteExisting = true;
+                            if (jsonElement.TryGetProperty("skipDuplicates", out var skipElement) && skipElement.ValueKind == System.Text.Json.JsonValueKind.True)
+                                skipDuplicates = true;
+                        }
+                        else
+                        {
+                            models = System.Text.Json.JsonSerializer.Deserialize<List<ConsumptionDTO>>(jsonElement.GetRawText());
+                        }
+                    }
+                    else if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        models = System.Text.Json.JsonSerializer.Deserialize<List<ConsumptionDTO>>(jsonElement.GetRawText());
+                    }
+                    else
+                    {
+                        return BadRequest(new { isSuccess = false, message = "Invalid data format" });
+                    }
+                }
+                else
+                {
+                    return BadRequest(new { isSuccess = false, message = "Invalid request format" });
+                }
+
+                if (models == null || models.Count == 0)
+                {
+                    return BadRequest(new { isSuccess = false, message = "No consumption records found" });
+                }
+
+                // Generate job ID
+                var jobId = Guid.NewGuid().ToString("N");
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+
+                _logger.LogInformation("Starting async import job {JobId} with {Count} records", jobId, models.Count);
+
+                // Validate data first (quick validation before returning)
+                var validationErrors = ValidateFuelReportData(models);
+                if (validationErrors.Count > 0)
+                {
+                    return BadRequest(new
+                    {
+                        isSuccess = false,
+                        message = "Validation failed",
+                        validationErrors = validationErrors.Select(v => v.Message).ToArray()
+                    });
+                }
+
+                // Notify that job has started via SignalR
+                await _hubContext.Clients.All.SendAsync("FuelImportJobStarted", new
+                {
+                    JobId = jobId,
+                    TotalRecords = models.Count,
+                    Status = "Started",
+                    Timestamp = DateTime.UtcNow
+                });
+
+                // Create cancellation token for this job
+                var cts = new CancellationTokenSource();
+                _activeImportJobs.TryAdd(jobId, cts);
+
+                // Start background processing with a new DI scope
+                // IMPORTANT: We capture the IServiceScopeFactory to create a fresh scope
+                // This prevents the "disposed context" error that occurs when using scoped services in background tasks
+                var scopeFactory = _serviceScopeFactory;
+                var hubContext = _hubContext;
+
+                _ = Task.Run(async () =>
+                {
+                    // Create a new scope for the background work
+                    using var scope = scopeFactory.CreateScope();
+                    var scopedMediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                    var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<ConsumptionController>>();
+
+                    try
+                    {
+                        // Check for cancellation before starting
+                        if (cts.Token.IsCancellationRequested)
+                        {
+                            scopedLogger.LogInformation("Import job {JobId} cancelled before starting", jobId);
+                            await hubContext.Clients.All.SendAsync("FuelImportCancelled", new
+                            {
+                                JobId = jobId,
+                                Message = "Import job was cancelled",
+                                Timestamp = DateTime.UtcNow
+                            });
+                            return;
+                        }
+
+                        scopedLogger.LogInformation("Background import job {JobId} starting with new scope", jobId);
+
+                        // Set overwrite flag on all records if needed
+                        if (overwriteExisting)
+                        {
+                            models.ForEach(model => model.OverwriteExisting = true);
+                        }
+
+                        var command = new FMS.Application.Features.FuelImport.Commands.ImportFuelReportCommand
+                        {
+                            Models = models,
+                            SkipDuplicates = skipDuplicates,
+                            OverwriteExisting = overwriteExisting,
+                            UserId = userId
+                        };
+
+                        // Use the scoped mediator for background work
+                        // Note: The command handler also receives a CancellationToken from MediatR
+                        var result = await scopedMediator.Send(command, cts.Token);
+
+                        // Check for cancellation after command execution
+                        if (cts.Token.IsCancellationRequested)
+                        {
+                            scopedLogger.LogInformation("Import job {JobId} cancelled after processing", jobId);
+                            await hubContext.Clients.All.SendAsync("FuelImportCancelled", new
+                            {
+                                JobId = jobId,
+                                Message = "Import job was cancelled",
+                                Timestamp = DateTime.UtcNow
+                            });
+                            return;
+                        }
+
+                        // Send completion notification via SignalR
+                        await hubContext.Clients.All.SendAsync("FuelImportCompleted", new
+                        {
+                            JobId = jobId,
+                            IsSuccess = result.IsSuccess,
+                            Message = result.Message,
+                            Data = result.Data,
+                            Timestamp = DateTime.UtcNow
+                        });
+
+                        scopedLogger.LogInformation("Async import job {JobId} completed: {Success}", jobId, result.IsSuccess);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        scopedLogger.LogInformation("Import job {JobId} was cancelled", jobId);
+                        await hubContext.Clients.All.SendAsync("FuelImportCancelled", new
+                        {
+                            JobId = jobId,
+                            Message = "Import job was cancelled",
+                            Timestamp = DateTime.UtcNow
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        scopedLogger.LogError(ex, "Async import job {JobId} failed", jobId);
+
+                        // Send error notification via SignalR
+                        await hubContext.Clients.All.SendAsync("FuelImportError", new
+                        {
+                            JobId = jobId,
+                            Message = ex.Message,
+                            Timestamp = DateTime.UtcNow
+                        });
+                    }
+                    finally
+                    {
+                        // Clean up the cancellation token
+                        if (_activeImportJobs.TryRemove(jobId, out var removedCts))
+                        {
+                            removedCts.Dispose();
+                        }
+                    }
+                });
+
+                // Return immediately with job ID
+                return Ok(new
+                {
+                    isSuccess = true,
+                    message = "Import job started. Progress will be sent via SignalR.",
+                    data = new
+                    {
+                        jobId = jobId,
+                        totalRecords = models.Count,
+                        status = "Processing"
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting async fuel report import");
+                return StatusCode(500, new
+                {
+                    isSuccess = false,
+                    message = "Error starting import: " + ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Cancel an in-progress fuel report import job
+        /// </summary>
+        /// <param name="jobId">The job ID to cancel</param>
+        /// <returns>Success or error response</returns>
+        [HttpPost("import/cancel/{jobId}")]
+        public async Task<IActionResult> CancelFuelImport(string jobId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(jobId))
+                {
+                    return BadRequest(new
+                    {
+                        isSuccess = false,
+                        message = "Job ID is required"
+                    });
+                }
+
+                if (_activeImportJobs.TryRemove(jobId, out var cts))
+                {
+                    // Cancel the job
+                    cts.Cancel();
+
+                    // Send cancellation notification via SignalR
+                    await _hubContext.Clients.All.SendAsync("FuelImportCancelled", new
+                    {
+                        JobId = jobId,
+                        Message = "Import job was cancelled by user",
+                        Timestamp = DateTime.UtcNow
+                    });
+
+                    cts.Dispose();
+
+                    _logger.LogInformation("Fuel import job {JobId} cancelled successfully", jobId);
+                    return Ok(new
+                    {
+                        isSuccess = true,
+                        message = "Import job cancelled successfully"
+                    });
+                }
+                else
+                {
+                    _logger.LogWarning("Fuel import job {JobId} not found or already completed", jobId);
+                    return NotFound(new
+                    {
+                        isSuccess = false,
+                        message = "Job not found or already completed"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling fuel import job {JobId}", jobId);
+                return StatusCode(500, new
+                {
+                    isSuccess = false,
+                    message = $"Failed to cancel import: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
         /// Private helper to validate fuel report data.
         /// </summary>
         /// <returns>A list of validation issues. Empty list means validation passed.</returns>
@@ -612,7 +927,7 @@ namespace FMS.WebClient.Controllers
                 }
 
                 // Validate SiteId (Required for L/Hr reports)
-                if (model.SiteId <= 0 && !model.IsKmPerHr)
+                if (model.SiteId <= 0 && !model.IsKmperLiter)
                 {
                     validationErrors.Add(new ValidationIssue
                     {

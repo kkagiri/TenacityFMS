@@ -1,6 +1,12 @@
+/**
+ * File: DataPreview.js
+ * Purpose: Data grid preview component for fuel report import with validation filtering
+ * Dependencies: react, react-bootstrap, devextreme-react/data-grid, devextreme-react/button
+ * Last Modified: 2025-12-01
+ */
 import React, { memo, useMemo } from "react";
 import { Form, Badge } from "react-bootstrap";
-import Button from "devextreme-react/button"; //Cursor
+import Button from "devextreme-react/button";
 import {
   DataGrid,
   Paging,
@@ -12,7 +18,10 @@ import {
   Editing,
   Lookup,
   Column,
+  ColumnFixing
+
 } from "devextreme-react/data-grid";
+import "./DataPreview.scss";
 
 const DataPreview = memo(({
   filteredData,
@@ -45,180 +54,216 @@ const DataPreview = memo(({
   selectValidRowsOnly,
   vehicles,
   sites,
+  fixedRows = new Set(),
+  onDeleteSelectedRows,
+  onValidateData,
 }) => {
   // Memoize the data source to prevent unnecessary re-renders
+  // Include filterErrorsOnly and showValidationErrors in dependencies to re-compute when filters change
   const memoizedDataSource = useMemo(() => {
     return getFilteredData();
-  }, [getFilteredData]);
+  }, [getFilteredData, filterErrorsOnly, showValidationErrors, showDuplicateErrors, validationErrors]);
 
   return (
-    <div className="tw-mt-6">
-      <div className="tw-flex tw-flex-wrap tw-justify-between tw-items-center tw-mb-3 tw-pb-2 tw-border-b tw-border-gray-200 tw-gap-3">
-        <h5 className="tw-text-lg tw-font-medium tw-flex tw-items-center tw-text-gray-800">
+    <div className="data-preview tw-mt-6">
+      {/* Header Row */}
+      <div className="tw-flex tw-flex-wrap tw-justify-between tw-items-center tw-mb-4 tw-pb-3 tw-border-b tw-border-gray-200 tw-gap-3">
+        <h5 className="tw-text-lg tw-font-semibold tw-flex tw-items-center tw-gap-2 tw-text-gray-800">
           <i className="fa-light fa-table tw-mr-2 tw-text-blue-500"></i>
           Data Preview
-          <span className="tw-ml-2 tw-bg-blue-100 tw-text-blue-800 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs">
-            {filteredData.length} rows in grid
+          <span className="tw-bg-blue-100 tw-text-blue-800 tw-px-2.5 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium">
+            {memoizedDataSource.length} rows
+            {filterErrorsOnly && parsedData.length !== memoizedDataSource.length && (
+              <span className="tw-text-blue-600"> of {parsedData.length}</span>
+            )}
           </span>
-        </h5>
-        <div className="tw-flex tw-items-center tw-gap-4">
-          <Form.Check
-            type="checkbox"
-            id="validation-filter"
-            label={
-              <span className="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium">
-                <i
-                  className={`fa-light fa-triangle-exclamation ${
-                    showValidationErrors
-                      ? "tw-text-red-500"
-                      : "tw-text-amber-500"
-                  }`}
-                ></i>
-                {showValidationErrors
-                  ? "Validation issues filter active"
-                  : "Show validation issues"}
-                {showValidationErrors && validationErrors.length > 0 && (
-                  <span className="tw-bg-amber-100 tw-text-amber-800 tw-px-1.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium">
-                    {validationErrors.length}
-                  </span>
-                )}
-              </span>
-            }
-            checked={showValidationErrors}
-            onChange={(e) => {
-              setTimeout(() => {
-                handleToggleValidationFilter(e);
-              }, 0);
-            }}
-            disabled={validationErrors.length === 0}
-            className={`tw-text-sm ${
-              showValidationErrors ? "tw-font-medium" : ""
-            }`}
-          />
-          {validationErrors.some((err) => err.isDuplicate) && (
-            <Form.Check
-              type="checkbox"
-              id="duplicate-filter"
-              label={
-                <span className="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium">
-                  <i className="fa-light fa-copy tw-text-rose-500"></i>
-                  Show only duplicates
-                  {showDuplicateErrors && (
-                    <span className="tw-bg-rose-100 tw-text-rose-800 tw-px-1.5 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium">
-                      {validationErrors.filter((err) => err.isDuplicate).length}
-                    </span>
-                  )}
-                </span>
-              }
-              checked={showDuplicateErrors}
-              onChange={(e) => {
-                setTimeout(() => {
-                  handleToggleDuplicateFilter(e);
-                }, 0);
-              }}
-              disabled={!validationErrors.some((err) => err.isDuplicate)}
-              className="tw-text-sm"
-            />
+          {/* Status Summary */}
+          {validationErrors.some(err => err.isBackendError) && (
+            <span className="tw-bg-red-100 tw-text-red-800 tw-px-2.5 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium">
+              <i className="fa-light fa-server tw-mr-1"></i>
+              {validationErrors.filter(err => err.isBackendError).length} server error{validationErrors.filter(err => err.isBackendError).length !== 1 ? 's' : ''}
+            </span>
           )}
-          {selectedRows.length > 0 && (
-            <div className="tw-text-sm tw-text-gray-600 tw-flex tw-items-center">
-              <i className="fa-light fa-check-square tw-mr-1"></i>
-              {selectedRows.length} rows selected
-              {selectedRows.length > 0 && countSelectedRowsErrors() > 0 && (
-                <span className="tw-ml-2 tw-text-red-500">
-                  ({countSelectedRowsErrors()} validation issues)
-                </span>
-              )}
+          {validationErrors.filter(err => !err.isBackendError && !err.isDuplicate).length > 0 && (
+            <span className="tw-bg-amber-100 tw-text-amber-800 tw-px-2.5 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium">
+              <i className="fa-light fa-triangle-exclamation tw-mr-1"></i>
+              {validationErrors.filter(err => !err.isBackendError && !err.isDuplicate).length} issue{validationErrors.filter(err => !err.isBackendError && !err.isDuplicate).length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {fixedRows.size > 0 && (
+            <span className="tw-bg-emerald-100 tw-text-emerald-800 tw-px-2.5 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium">
+              <i className="fa-light fa-check-double tw-mr-1"></i>
+              {fixedRows.size} fixed
+            </span>
+          )}
+        </h5>
+
+        {/* Selection Info */}
+        {selectedRows.length > 0 && (
+          <div className="tw-flex tw-items-center tw-gap-2 tw-bg-gray-50 tw-px-3 tw-py-1.5 tw-rounded-md tw-border tw-border-gray-200">
+            <i className="fa-light fa-check-square tw-text-blue-500"></i>
+            <span className="tw-text-sm tw-text-gray-700 tw-font-medium">
+              {selectedRows.length} selected
+            </span>
+            {countSelectedRowsErrors() > 0 && (
+              <span className="tw-text-xs tw-text-red-500 tw-font-medium">
+                ({countSelectedRowsErrors()} issues)
+              </span>
+            )}
+            <button
+              onClick={clearSelections}
+              className="tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 tw-underline tw-ml-1"
+              title="Clear selection"
+            >
+              Clear
+            </button>
+            {onDeleteSelectedRows && (
+              <button
+                onClick={onDeleteSelectedRows}
+                className="tw-ml-2 tw-px-2 tw-py-1 tw-bg-red-100 tw-text-red-700 tw-rounded tw-text-xs tw-font-medium hover:tw-bg-red-200 tw-border tw-border-red-300 tw-transition-colors"
+                title={`Delete ${selectedRows.length} selected row(s)`}
+              >
+                <i className="fa-light fa-trash tw-mr-1"></i>
+                Delete ({selectedRows.length})
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons Row */}
+      <div className="tw-mb-4 tw-flex tw-flex-wrap tw-justify-between tw-items-center tw-gap-3">
+        <div className="tw-flex tw-items-center tw-gap-3">
+          {/* Validation Filter Button Group - Show for l/hr reports OR when backend errors exist */}
+          {((reportType === "l/hr" && validationErrors.length > 0) ||
+            validationErrors.some(err => err.isBackendError)) && (
+            <div className="data-preview__filter-buttons">
               <Button
-                stylingMode="text"
-                type="normal"
-                text="(Clear)"
-                onClick={clearSelections}
-                elementAttr={{
-                  class: "tw-ml-1 tw-text-blue-500 hover:tw-text-blue-700",
-                  title: "Clear selection",
+                text={filterErrorsOnly ? "Showing Issues" : "Show Issues"}
+                icon="fa-light fa-triangle-exclamation"
+                type="default"
+                stylingMode="outlined"
+                onClick={() => {
+                  if (!filterErrorsOnly) {
+                    setFilterErrorsOnly(true);
+                    handleToggleValidationFilter({ target: { checked: true } });
+                  }
                 }}
+                hint="Filter to show only rows with validation issues"
+                className={`data-preview__filter-btn data-preview__filter-btn--first ${
+                  filterErrorsOnly ? "data-preview__filter-btn--active" : ""
+                }`}
+              />
+              <Button
+                text="Show All"
+                icon="fa-light fa-list"
+                type="default"
+                stylingMode="outlined"
+                onClick={() => {
+                  setFilterErrorsOnly(false);
+                  handleToggleValidationFilter({ target: { checked: false } });
+                }}
+                hint="Show all rows"
+                className={`data-preview__filter-btn data-preview__filter-btn--last ${
+                  !filterErrorsOnly ? "data-preview__filter-btn--active" : ""
+                }`}
               />
             </div>
           )}
-        </div>
-      </div>
 
-      <div className="tw-mb-4 tw-flex tw-justify-between tw-items-center">
-        <div className="tw-flex tw-items-center">
-          <Form.Check
-            type="checkbox"
-            id="filter-errors"
-            label={
-              <span className="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium">
-                <i
-                  className={`fa-light ${
-                    filterErrorsOnly
-                      ? "fa-filter-circle-xmark tw-text-red-500"
-                      : "fa-filter tw-text-gray-500"
-                  }`}
-                ></i>
-                Show only rows with errors
-                {filterErrorsOnly && validationErrors.length > 0 && (
-                  <Badge bg="danger" className="tw-ml-2 tw-font-medium">
-                    {validationErrors.length}
-                  </Badge>
-                )}
-              </span>
-            }
-            checked={filterErrorsOnly}
-            onChange={(e) => {
-              setTimeout(() => {
-                try {
-                  setFilterErrorsOnly(e.target.checked);
-
-                  if (e.target.checked && !showValidationErrors) {
-                    handleToggleValidationFilter({
-                      target: { checked: true }
-                    });
-                  }
-                } catch (err) {
-                  console.error("Error toggling filter:", err);
-                }
-              }, 10);
-            }}
-            disabled={validationErrors.length === 0}
-            className={`tw-text-sm ${filterErrorsOnly ? "tw-font-medium" : ""}`}
-          />
-          {showDuplicateErrors && (
-            <Badge bg="danger" className="tw-font-semibold tw-ml-2">
-              {validationErrors.filter((err) => err.isDuplicate).length}{" "}
-              Duplicate Records
-            </Badge>
-          )}
-          {(showValidationErrors || filterErrorsOnly) &&
-            validationErrors.length > 0 && (
-              <div className="tw-ml-3 tw-text-red-600 tw-text-sm tw-flex tw-items-center">
-                <i className="fa-solid fa-triangle-exclamation tw-mr-1"></i>
-                Showing {memoizedDataSource.length} of {parsedData.length} rows
-              </div>
-            )}
-        </div>
-        <div className="tw-flex tw-items-center tw-gap-2">
+          {/* Validation Issues Badge */}
           {validationErrors.length > 0 && (
+            <span className="tw-bg-amber-100 tw-text-amber-800 tw-px-3 tw-py-1.5 tw-rounded-md tw-text-xs tw-font-semibold tw-flex tw-items-center tw-gap-1.5 tw-border tw-border-amber-200">
+              <i className="fa-light fa-triangle-exclamation"></i>
+              {validationErrors.length} validation issue{validationErrors.length !== 1 ? 's' : ''}
+            </span>
+          )}
+
+          {/* Duplicates Filter - Only if duplicates exist */}
+          {validationErrors.some((err) => err.isDuplicate) && (
             <Button
-              stylingMode="outlined"
-              type="default"
-              text="Select Valid Rows Only"
-              icon="filter"
-              onClick={selectValidRowsOnly}
-              hint="Select only rows without validation errors"
+              text={showDuplicateErrors ? "Showing Duplicates" : "Show Duplicates"}
+              icon="fa-light fa-copy"
+              type={showDuplicateErrors ? "danger" : "default"}
+              stylingMode={showDuplicateErrors ? "contained" : "outlined"}
+              onClick={() => {
+                handleToggleDuplicateFilter({
+                  target: { checked: !showDuplicateErrors }
+                });
+              }}
+              hint="Filter to show only duplicate records"
+              className="data-preview__duplicate-btn"
             />
           )}
-          <span
-            className={
-              validationErrors.length > 0
-                ? "tw-text-red-600 tw-font-medium tw-ml-2"
-                : "tw-hidden"
-            }
-          >
-            {validationErrors.length} validation issues found
-          </span>
+
+          {/* km/l reports: Checkbox-based filters */}
+          {reportType !== "l/hr" && validationErrors.length > 0 && (
+            <>
+              <Form.Check
+                type="checkbox"
+                id="validation-filter"
+                label={
+                  <span className="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium">
+                    <i className={`fa-light fa-triangle-exclamation ${showValidationErrors ? "tw-text-red-500" : "tw-text-amber-500"}`}></i>
+                    Show validation issues
+                    <Badge bg="warning" className="tw-ml-1">{validationErrors.length}</Badge>
+                  </span>
+                }
+                checked={showValidationErrors}
+                onChange={(e) => {
+                  setTimeout(() => handleToggleValidationFilter(e), 0);
+                }}
+                className="tw-text-sm"
+              />
+              <Form.Check
+                type="checkbox"
+                id="filter-errors"
+                label={
+                  <span className="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium">
+                    <i className={`fa-light ${filterErrorsOnly ? "fa-filter-circle-xmark tw-text-red-500" : "fa-filter tw-text-gray-500"}`}></i>
+                    Filter rows with errors
+                  </span>
+                }
+                checked={filterErrorsOnly}
+                onChange={(e) => {
+                  setTimeout(() => {
+                    setFilterErrorsOnly(e.target.checked);
+                    if (e.target.checked && !showValidationErrors) {
+                      handleToggleValidationFilter({ target: { checked: true } });
+                    }
+                  }, 10);
+                }}
+                className="tw-text-sm"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Select Valid Rows Button */}
+        <div className="tw-flex tw-items-center tw-gap-2">
+          {/* Validate Data Button - Re-run validation after edits */}
+          {onValidateData && (
+            <Button
+              text="Validate Data"
+              icon="fa-light fa-clipboard-check"
+              type="default"
+              stylingMode="outlined"
+              onClick={onValidateData}
+              hint="Re-validate data after making edits to check for remaining issues"
+              className="data-preview__validate-btn"
+            />
+          )}
+          {validationErrors.length > 0 && (
+            <Button
+              text="Select Valid Rows"
+              icon="fa-light fa-filter-circle-check"
+              type="default"
+              stylingMode="outlined"
+              onClick={selectValidRowsOnly}
+              hint="Select only rows without validation errors"
+              className="data-preview__select-valid-btn"
+            />
+          )}
         </div>
       </div>
 
@@ -232,6 +277,7 @@ const DataPreview = memo(({
           columnAutoWidth={true}
           wordWrapEnabled={true}
           allowColumnResizing={true}
+          allowColumnReordering={true}
           width="100%"
           height="100vh"
           onSelectionChanged={onSelectionChanged}
@@ -259,21 +305,23 @@ const DataPreview = memo(({
             sorting: false,
             paging: false,
           }}
-          cacheEnabled={false}
-          repaintChangesOnly={false}
+          cacheEnabled={true}
+          repaintChangesOnly={true}
           columnMinWidth={80}
           columnHidingEnabled={true}
-          renderAsync={false}
+          renderAsync={true}
         >
           <Editing
-            mode="row"
+            mode="cell"
             allowUpdating={true}
             allowAdding={false}
             allowDeleting={false}
             startEditAction="click"
+            selectTextOnEditStart={true}
           />
+
           <FilterRow visible={true} />
-          <HeaderFilter visible={true} allowSearch={true} />
+          <HeaderFilter visible={true} allowSearch={true} height={350} />
           <Paging defaultPageSize={pageSize} />
           <Pager
             showPageSizeSelector={true}
@@ -294,8 +342,10 @@ const DataPreview = memo(({
             allowFiltering={false}
             allowSorting={false}
             headerCellRender={() => {
-              const allSelected = filteredData && filteredData.length > 0 &&
-                filteredData.every(row => row && selectedRowKeys.includes(row._rowIndex));
+              // Use memoizedDataSource for consistent filtering with the grid data
+              const currentData = memoizedDataSource;
+              const allSelected = currentData && currentData.length > 0 &&
+                currentData.every(row => row && selectedRowKeys.includes(row._rowIndex));
 
               return (
                 <div className="tw-flex tw-justify-center">
@@ -310,7 +360,7 @@ const DataPreview = memo(({
                           selectedRowsData: []
                         });
                       } else {
-                        const validRows = filteredData.filter(row => row && typeof row._rowIndex !== 'undefined');
+                        const validRows = currentData.filter(row => row && typeof row._rowIndex !== 'undefined');
                         const allKeys = validRows.map(row => row._rowIndex);
 
                         onSelectionChanged && onSelectionChanged({
@@ -337,11 +387,12 @@ const DataPreview = memo(({
                         : [...selectedRowKeys, cellData.data._rowIndex];
 
                       if (onSelectionChanged) {
-                        // Create a safe filtered list of selected rows
+                        // Create a safe filtered list of selected rows using memoizedDataSource
                         const selectedRowsData = [];
-                        if (filteredData && Array.isArray(filteredData)) {
-                          for (let i = 0; i < filteredData.length; i++) {
-                            const row = filteredData[i];
+                        const currentData = memoizedDataSource;
+                        if (currentData && Array.isArray(currentData)) {
+                          for (let i = 0; i < currentData.length; i++) {
+                            const row = currentData[i];
                             if (row && typeof row._rowIndex !== 'undefined' &&
                                 newSelectedKeys.includes(row._rowIndex)) {
                               selectedRowsData.push(row);
@@ -358,6 +409,171 @@ const DataPreview = memo(({
                     }}
                   />
                 </div>
+              );
+            }}
+          />
+
+          {/* Status Column - Shows validation status and fix button */}
+          <Column
+            caption="Status"
+            width={130}
+            alignment="center"
+            allowFiltering={false}
+            allowSorting={false}
+            allowEditing={false}
+            cellRender={(cellData) => {
+              const { data, component, rowIndex } = cellData;
+              if (!data) return null;
+
+              const dataRowIndex = parsedData.findIndex(
+                (item) => item._rowIndex === data._rowIndex
+              );
+
+              // Check if this row has been fixed
+              const isFixed = fixedRows.has(data._rowIndex) || data._isFixed;
+
+              // Check if this row has any validation error
+              const rowErrors = validationErrors.filter(
+                (err) => err.rowIndex === dataRowIndex
+              );
+
+              // Row is valid (no errors and not previously had errors)
+              if (rowErrors.length === 0 && !isFixed) {
+                return (
+                  <span className="tw-inline-flex tw-items-center tw-gap-1 tw-bg-green-100 tw-text-green-700 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium">
+                    <i className="fa-light fa-check-circle"></i>
+                    Valid
+                  </span>
+                );
+              }
+
+              // Row was fixed (errors were resolved)
+              if (rowErrors.length === 0 && isFixed) {
+                return (
+                  <span className="tw-inline-flex tw-items-center tw-gap-1 tw-bg-emerald-100 tw-text-emerald-700 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium">
+                    <i className="fa-light fa-check-double"></i>
+                    Fixed
+                  </span>
+                );
+              }
+
+              // Determine error type for styling
+              const duplicateError = rowErrors.find(err => err.isDuplicate);
+              const isDuplicate = !!duplicateError;
+              const duplicateWithRows = duplicateError?.duplicateWithRows || [];
+              const errorFields = [...new Set(rowErrors.map(err => err.field))];
+
+              // For duplicates, show which rows conflict
+              if (isDuplicate) {
+                return (
+                  <div className="tw-flex tw-flex-col tw-items-center tw-gap-1">
+                    <span className="tw-text-[10px] tw-text-rose-600 tw-font-medium">
+                      <i className="fa-light fa-copy tw-mr-1"></i>
+                      Dup w/ Row {duplicateWithRows.map(i => i + 1).join(", ")}
+                    </span>
+                    <button
+                      className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium tw-border-0 tw-cursor-pointer tw-transition-all tw-bg-rose-100 tw-text-rose-700 hover:tw-bg-rose-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          // For duplicates, edit isNightShift
+                          const colIndex = component.getVisibleColumnIndex("isNightShift");
+                          if (colIndex >= 0) {
+                            setTimeout(() => {
+                              try {
+                                component.editCell(rowIndex, colIndex);
+                              } catch (err) {
+                                console.warn("Could not edit cell:", err);
+                              }
+                            }, 50);
+                          }
+                        } catch (err) {
+                          console.warn("Error handling fix click:", err);
+                        }
+                      }}
+                      title="Toggle Night Shift to differentiate from duplicate"
+                    >
+                      <i className="fa-light fa-moon"></i>
+                      Set Shift
+                    </button>
+                  </div>
+                );
+              }
+
+              // Check if this is a backend error
+              const isBackendError = rowErrors.some(err => err.isBackendError);
+
+              // Backend server errors - show in red
+              if (isBackendError) {
+                return (
+                  <div className="tw-flex tw-flex-col tw-items-center tw-gap-1">
+                    <span className="tw-text-[10px] tw-text-red-600 tw-font-medium">
+                      <i className="fa-light fa-server tw-mr-1"></i>
+                      Server Error
+                    </span>
+                    <button
+                      className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium tw-border-0 tw-cursor-pointer tw-transition-all tw-bg-red-100 tw-text-red-700 hover:tw-bg-red-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          const editableFields = ["vehicleName", "locationName", "driverName", "date", "isNightShift"];
+                          const firstEditableError = errorFields.find(f => editableFields.includes(f));
+                          if (firstEditableError) {
+                            const colIndex = component.getVisibleColumnIndex(firstEditableError);
+                            if (colIndex >= 0) {
+                              setTimeout(() => {
+                                try {
+                                  component.editCell(rowIndex, colIndex);
+                                } catch (err) {
+                                  console.warn("Could not edit cell:", err);
+                                }
+                              }, 50);
+                            }
+                          }
+                        } catch (err) {
+                          console.warn("Error handling fix click:", err);
+                        }
+                      }}
+                      title={`Click to fix: ${rowErrors.map(e => e.message).join('; ')}`}
+                    >
+                      <i className="fa-light fa-edit"></i>
+                      Fix
+                    </button>
+                  </div>
+                );
+              }
+
+              // Non-duplicate frontend errors
+              return (
+                <button
+                  className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium tw-border-0 tw-cursor-pointer tw-transition-all tw-bg-amber-100 tw-text-amber-700 hover:tw-bg-amber-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      // Find the first editable error field and edit it
+                      const editableFields = ["vehicleName", "locationName", "driverName", "date", "isNightShift"];
+                      const firstEditableError = errorFields.find(f => editableFields.includes(f));
+                      if (firstEditableError) {
+                        const colIndex = component.getVisibleColumnIndex(firstEditableError);
+                        if (colIndex >= 0) {
+                          setTimeout(() => {
+                            try {
+                              component.editCell(rowIndex, colIndex);
+                            } catch (err) {
+                              console.warn("Could not edit cell:", err);
+                            }
+                          }, 50);
+                        }
+                      }
+                    } catch (err) {
+                      console.warn("Error handling fix click:", err);
+                    }
+                  }}
+                  title={`Click to fix: ${rowErrors.map(e => e.message).join('; ')}`}
+                >
+                  <i className="fa-light fa-edit"></i>
+                  Fix ({rowErrors.length})
+                </button>
               );
             }}
           />
@@ -471,13 +687,13 @@ const DataPreview = memo(({
           />
 
           <Column
-            dataField="engineHours"
-            caption="Engine Hours"
+            dataField="engHours"
+            caption="Runtime Eng Hrs"
             dataType="number"
             format="#,##0.00"
             allowFiltering={true}
             cellRender={cellRender}
-            width={110}
+            width={130}
             visible={reportType === "l/hr"}
           />
 
@@ -534,10 +750,66 @@ const DataPreview = memo(({
           <Column
             dataField="isNightShift"
             caption="Night Shift"
-            width={100}
+            width={120}
             dataType="boolean"
-            allowEditing={false}
+            allowEditing={true}
             visible={reportType === "l/hr"}
+            cellRender={(cellData) => {
+              const { data, component, rowIndex } = cellData;
+              if (!data) return null;
+
+              const dataRowIndex = parsedData.findIndex(
+                (item) => item._rowIndex === data._rowIndex
+              );
+
+              // Check if this row has a duplicate error
+              const duplicateError = validationErrors.find(
+                (err) => err.rowIndex === dataRowIndex && err.isDuplicate
+              );
+              const hasDuplicateError = !!duplicateError;
+
+              // If has duplicate error, show toggle button
+              if (hasDuplicateError) {
+                return (
+                  <div className="tw-flex tw-items-center tw-justify-center tw-gap-1">
+                    <button
+                      className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium tw-border tw-cursor-pointer tw-transition-all ${
+                        data.isNightShift
+                          ? "tw-bg-indigo-500 tw-text-white tw-border-indigo-600 hover:tw-bg-indigo-600"
+                          : "tw-bg-amber-500 tw-text-white tw-border-amber-600 hover:tw-bg-amber-600"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Toggle the isNightShift value
+                        const newValue = !data.isNightShift;
+                        component.cellValue(rowIndex, "isNightShift", newValue);
+                        // Trigger save
+                        component.saveEditData();
+                      }}
+                      title={`Click to set as ${data.isNightShift ? "Day" : "Night"} shift`}
+                    >
+                      <i className={`fa-light ${data.isNightShift ? "fa-sun" : "fa-moon"} tw-mr-1`}></i>
+                      {data.isNightShift ? "→ Day" : "→ Night"}
+                    </button>
+                  </div>
+                );
+              }
+
+              // Normal display
+              return (
+                <div className="tw-flex tw-items-center tw-justify-center">
+                  {data.isNightShift ? (
+                    <span className="tw-bg-indigo-100 tw-text-indigo-800 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium">
+                      <i className="fa-light fa-moon tw-mr-1"></i>Night
+                    </span>
+                  ) : (
+                    <span className="tw-bg-amber-50 tw-text-amber-700 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium">
+                      <i className="fa-light fa-sun tw-mr-1"></i>Day
+                    </span>
+                  )}
+                </div>
+              );
+            }}
           />
 
           <Column

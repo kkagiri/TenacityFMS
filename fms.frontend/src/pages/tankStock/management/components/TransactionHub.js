@@ -161,6 +161,28 @@ const TransactionHub = () => {
     return isNaN(date.getTime()) ? cellInfo.value : date.toLocaleString();
   }, []);
 
+  // Calculate group value for date grouping - extracts date only (no time)
+  const calculateDateGroupValue = useCallback((rowData) => {
+    if (!rowData.timestamp) return null;
+    const date = new Date(rowData.timestamp);
+    if (isNaN(date.getTime())) return null;
+    // Return date string in YYYY-MM-DD format for consistent grouping
+    return date.toISOString().split('T')[0];
+  }, []);
+
+  // Render group cell for date grouping - displays formatted date
+  const groupCellRenderDate = useCallback((cellInfo) => {
+    if (!cellInfo.value) return 'No Date';
+    const date = new Date(cellInfo.value);
+    if (isNaN(date.getTime())) return cellInfo.value;
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }, []);
+
   // Render change reason
   const changeReasonCellRender = useCallback((cellInfo) => {
     const reason = VolumeChangeReasonEnum.find(r => r.id === cellInfo.value);
@@ -375,6 +397,8 @@ const TransactionHub = () => {
               defaultSortOrder="desc"
               sortIndex={0}
               allowGrouping={true}
+              calculateGroupValue={calculateDateGroupValue}
+              groupCellRender={groupCellRenderDate}
             />
             <Column
               dataField="site"

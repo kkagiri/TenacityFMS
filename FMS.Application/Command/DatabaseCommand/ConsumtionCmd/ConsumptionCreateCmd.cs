@@ -28,7 +28,7 @@ public class ConsumptionCreateCmd : IRequest<Unit>
 
         public decimal? FuelLost { get; set; }
 
-        public bool IsKmperhr { get; set; }
+        public bool IsKmperLiter { get; set; }
         public bool IsNightShift { get; set; }
 
         public int SiteID { get; set; }
@@ -72,7 +72,7 @@ public class ConsumptionCmdCreateHandler : IRequestHandler<ConsumptionCreateCmd,
                 MaxSpeed = request.MaxSpeed,
                 AvgSpeed = request.AvgSpeed,
                 FuelLost = request.FuelLost,
-                IsKmperhr = request.IsKmperhr ? 1UL : 0UL,
+                IsKmperLiter = request.IsKmperLiter ? 1UL : 0UL,
                 IsNightShift = request.IsNightShift ? 1UL : 0UL,
                 SiteId = request.SiteID,
                 TotalDistance = request.TotalDistance,

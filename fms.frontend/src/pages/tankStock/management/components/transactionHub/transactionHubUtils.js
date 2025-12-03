@@ -89,6 +89,26 @@ export const renderChangeReason = (cellInfo) => {
 };
 
 /**
+ * Convert a local date to ISO string preserving local time
+ * This prevents timezone shifts when sending dates to the API
+ * @param {Date} date - The date to convert
+ * @returns {string|null} ISO formatted date string in local time
+ */
+export const toLocalISOString = (date) => {
+  if (!date) return null;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
+};
+
+/**
  * Build filters object for API calls
  * @param {Object} options - Filter options
  * @returns {Object} Filters object for API
@@ -101,18 +121,31 @@ export const buildFiltersObject = ({
   headerEndDate,
   useManualDispensing,
   showGpsVolume
-}) => ({
-  siteId: selectedSiteIds.length === 1 ? selectedSiteIds[0] : null,
-  tankId: selectedTankIds.length === 1 ? selectedTankIds[0] : null,
-  siteIds: selectedSiteIds.length > 0 ? selectedSiteIds : null,
-  tankIds: selectedTankIds.length > 0 ? selectedTankIds : null,
-  recordedBy: filterUserId,
-  startDate: headerStartDate?.toISOString(),
-  endDate: headerEndDate?.toISOString(),
-  includeVehicleNames: true,
-  useManualDispensing: useManualDispensing,
-  includeGpsData: showGpsVolume
-});
+}) => {
+  // Ensure end date covers the full day (23:59:59.999) if it's at midnight
+  let adjustedEndDate = headerEndDate;
+  if (headerEndDate) {
+    const endDateCopy = new Date(headerEndDate);
+    // If end date is at midnight (00:00:00), set it to end of day
+    if (endDateCopy.getHours() === 0 && endDateCopy.getMinutes() === 0 && endDateCopy.getSeconds() === 0) {
+      endDateCopy.setHours(23, 59, 59, 999);
+      adjustedEndDate = endDateCopy;
+    }
+  }
+
+  return {
+    siteId: selectedSiteIds.length === 1 ? selectedSiteIds[0] : null,
+    tankId: selectedTankIds.length === 1 ? selectedTankIds[0] : null,
+    siteIds: selectedSiteIds.length > 0 ? selectedSiteIds : null,
+    tankIds: selectedTankIds.length > 0 ? selectedTankIds : null,
+    recordedBy: filterUserId,
+    startDate: toLocalISOString(headerStartDate),
+    endDate: toLocalISOString(adjustedEndDate),
+    includeVehicleNames: true,
+    useManualDispensing: useManualDispensing,
+    includeGpsData: showGpsVolume
+  };
+};
 
 /**
  * Format date range for display

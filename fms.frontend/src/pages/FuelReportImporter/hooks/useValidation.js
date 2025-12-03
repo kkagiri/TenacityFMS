@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 
 /**
  * Hook for grid validation and interaction
@@ -24,8 +24,12 @@ const useValidation = ({
   sites,
   reportType,
   filteredData,
-  setShowPopover
+  setShowPopover,
+  fixedRows,
+  setFixedRows
 }) => {
+  // Ref to track pending updates to avoid multiple re-renders
+  const pendingUpdatesRef = useRef(false);
   // Track the current popover being shown
   const [showPopover, setInternalShowPopover] = useState(null); //Cursor
 
@@ -52,37 +56,44 @@ const useValidation = ({
 
   /**
    * Renders a cell with validation highlighting
+   * Optimized to minimize re-computations
    */
-  const cellRender = (cellData) => {
-    const { data, column, rowIndex: gridRowIndex } = cellData;
+  const cellRender = useCallback((cellData) => {
+    const { data, column } = cellData;
     if (!data) return null;
 
-    const dataRowIndex = parsedData.findIndex(
-      (item) => item._rowIndex === data._rowIndex
-    );
-
+    // Use the _rowIndex directly from data to avoid expensive findIndex
+    const rowKey = data._rowIndex;
     const fieldName = column.dataField;
+
+    // Check if row is fixed
+    const isRowFixed = data._isFixed;
+
+    // Find error for this specific cell
     const error = validationErrors.find(
-      (err) => err.rowIndex === dataRowIndex && err.field === fieldName
+      (err) => {
+        // Match by _rowIndex in parsedData
+        const errRowKey = parsedData[err.rowIndex]?._rowIndex;
+        return errRowKey === rowKey && err.field === fieldName;
+      }
     );
 
-    const isDuplicate =
-      error?.isDuplicate ||
-      validationErrors.some(
-        (err) =>
-          err.rowIndex === dataRowIndex &&
-          err.message &&
-          err.message.includes("Duplicate")
-      );
+    const isDuplicate = error?.isDuplicate || false;
 
     const cellStyle = error
       ? {
           color: isDuplicate ? "#9f1239" : "#dc2626",
           fontWeight: "bold",
-          backgroundColor: isDuplicate ? "rgba(255, 228, 230, 0.7)" : "",
-          border: isDuplicate ? "1px solid #be185d" : "",
+          backgroundColor: isDuplicate ? "rgba(255, 228, 230, 0.7)" : "rgba(254, 243, 199, 0.5)",
+          border: isDuplicate ? "1px solid #be185d" : "1px solid #f59e0b",
+          padding: "2px 4px",
+          borderRadius: "2px",
         }
-      : {};
+      : isRowFixed
+        ? {
+            backgroundColor: "rgba(209, 250, 229, 0.3)",
+          }
+        : {};
 
     const errorMessage = error?.message || "";
 
@@ -104,20 +115,15 @@ const useValidation = ({
       }
     }
 
-    const cellId = `cell-${dataRowIndex}-${fieldName}`;
-
     return (
       <div
-        id={cellId}
         style={cellStyle}
         title={errorMessage}
-        className={error ? "tw-relative tw-cursor-pointer" : ""}
-        onMouseEnter={() => error && handleCellMouseEnter(cellId)}
-        onMouseLeave={() => handleCellMouseLeave()}
+        className={error ? "tw-relative" : ""}
       >
         {displayValue}
         {error && (
-          <span className="tw-absolute tw-right-1 tw-top-1 tw-text-red-500 tw-opacity-80">
+          <span className="tw-absolute tw-right-1 tw-top-1/2 tw--translate-y-1/2 tw-text-red-500 tw-opacity-80">
             <i
               className={`fa-solid ${
                 isDuplicate ? "fa-copy" : "fa-circle-exclamation"
@@ -125,12 +131,9 @@ const useValidation = ({
             />
           </span>
         )}
-        {showPopover === cellId && error && (
-          <ErrorTooltip message={errorMessage} />
-        )}
       </div>
     );
-  };
+  }, [validationErrors, parsedData]);
 
   /**
    * Handles cell mouse enter event for showing popovers
@@ -244,6 +247,8 @@ const useValidation = ({
 
   /**
    * Configure editors for editable fields
+   * Now allows editing for ALL rows on key fields (not restricted to error rows only)
+   * This allows users to fix data even after validation or if marked as valid/fixed
    */
   const onEditorPreparing = (e) => {
     if (e.parentType !== "dataRow" || !e.row?.data) return;
@@ -251,11 +256,14 @@ const useValidation = ({
     const dataRowIndex = parsedData.findIndex(
       (item) => item._rowIndex === e.row.data._rowIndex
     );
-    const hasErrorForField = validationErrors.some(
-      (err) => err.rowIndex === dataRowIndex && err.field === e.dataField
-    );
 
-    if (!hasErrorForField) {
+    // Define always-editable fields - users can edit these on ANY row
+    const alwaysEditableFields = ["vehicleName", "locationName", "driverName", "date", "isNightShift"];
+
+    // Allow editing if field is in the editable list
+    const canEdit = alwaysEditableFields.includes(e.dataField);
+
+    if (!canEdit) {
       e.cancel = true;
       return;
     }
@@ -269,23 +277,10 @@ const useValidation = ({
       e.editorOptions.onValueChanged = (args) => {
         const selectedVehicle = vehicles.find((v) => v.hyoungNo === args.value);
         if (selectedVehicle) {
-          const gridRowIndex = e.row.rowIndex;
-          if (dataRowIndex >= 0) {
-            const newParsedData = [...parsedData];
-            newParsedData[dataRowIndex].vehicleName = selectedVehicle.hyoungNo;
-            newParsedData[dataRowIndex].vehicleId = selectedVehicle.vehicleId;
-            setParsedData(newParsedData);
-            e.component.cellValue(
-              gridRowIndex,
-              "vehicleName",
-              selectedVehicle.hyoungNo
-            );
-            e.component.cellValue(
-              gridRowIndex,
-              "vehicleId",
-              selectedVehicle.vehicleId
-            );
-          }
+          updateRowData(dataRowIndex, e.row.rowIndex, e.component, {
+            vehicleName: selectedVehicle.hyoungNo,
+            vehicleId: selectedVehicle.vehicleId
+          });
         }
       };
     }
@@ -299,36 +294,22 @@ const useValidation = ({
       e.editorOptions.onValueChanged = (args) => {
         const selectedSite = sites.find((s) => s.name === args.value);
         if (selectedSite) {
-          const gridRowIndex = e.row.rowIndex;
-          if (dataRowIndex >= 0) {
-            const newParsedData = [...parsedData];
-            newParsedData[dataRowIndex].locationName = selectedSite.name;
-            newParsedData[dataRowIndex].siteId = selectedSite.id;
-            setParsedData(newParsedData);
-            e.component.cellValue(
-              gridRowIndex,
-              "locationName",
-              selectedSite.name
-            );
-            e.component.cellValue(gridRowIndex, "siteId", selectedSite.id);
-          }
+          updateRowData(dataRowIndex, e.row.rowIndex, e.component, {
+            locationName: selectedSite.name,
+            siteId: selectedSite.id
+          });
         }
       };
     } else if (e.dataField === "locationName" && reportType === "km/l") {
-      // For km/l reports, locationName should not be editable as it comes from the site dropdown
       e.cancel = true;
     }
 
     if (e.dataField === "driverName") {
       e.editorName = "dxTextBox";
       e.editorOptions.onValueChanged = (args) => {
-        const gridRowIndex = e.row.rowIndex;
-        if (dataRowIndex >= 0) {
-          const newParsedData = [...parsedData];
-          newParsedData[dataRowIndex].driverName = args.value;
-          setParsedData(newParsedData);
-          e.component.cellValue(gridRowIndex, "driverName", args.value);
-        }
+        updateRowData(dataRowIndex, e.row.rowIndex, e.component, {
+          driverName: args.value
+        });
       };
     }
 
@@ -337,32 +318,232 @@ const useValidation = ({
       e.editorOptions.type = "date";
       e.editorOptions.displayFormat = "yyyy-MM-dd";
       e.editorOptions.onValueChanged = (args) => {
-        const gridRowIndex = e.row.rowIndex;
-        if (dataRowIndex >= 0) {
-          const newDate = args.value ? new Date(args.value) : null;
-          const newParsedData = [...parsedData];
-          newParsedData[dataRowIndex].date = newDate;
-          setParsedData(newParsedData);
-          e.component.cellValue(gridRowIndex, "date", newDate);
-        }
+        const newDate = args.value ? new Date(args.value) : null;
+        updateRowData(dataRowIndex, e.row.rowIndex, e.component, {
+          date: newDate
+        });
+      };
+    }
+
+    if (e.dataField === "isNightShift") {
+      e.editorName = "dxCheckBox";
+      e.editorOptions.onValueChanged = (args) => {
+        updateRowData(dataRowIndex, e.row.rowIndex, e.component, {
+          isNightShift: args.value
+        });
       };
     }
   };
 
   /**
+   * Helper function to update row data and remove validation errors
+   * Uses batching to prevent multiple re-renders
+   */
+  const updateRowData = useCallback((dataRowIndex, gridRowIndex, gridComponent, updates) => {
+    if (dataRowIndex < 0 || pendingUpdatesRef.current) return;
+
+    // Prevent multiple simultaneous updates
+    pendingUpdatesRef.current = true;
+
+    // Get the current row's _rowIndex for tracking
+    const rowKey = parsedData[dataRowIndex]?._rowIndex;
+
+    // Batch all state updates together
+    requestAnimationFrame(() => {
+      // Update parsed data (immutable update on specific row only)
+      const newParsedData = [...parsedData];
+      newParsedData[dataRowIndex] = {
+        ...newParsedData[dataRowIndex],
+        ...updates,
+        _isFixed: true // Mark as fixed
+      };
+      setParsedData(newParsedData);
+
+      // Remove validation errors for the updated fields
+      const updatedFields = Object.keys(updates);
+      const newValidationErrors = validationErrors.filter(err => {
+        if (err.rowIndex !== dataRowIndex) return true;
+        // Remove error if field was updated
+        if (updatedFields.includes(err.field)) return false;
+        return true;
+      });
+
+      // Check if all errors for this row are resolved
+      const remainingRowErrors = newValidationErrors.filter(err => err.rowIndex === dataRowIndex);
+
+      // If all errors for this row are fixed, add to fixedRows
+      if (remainingRowErrors.length === 0 && rowKey !== undefined && setFixedRows) {
+        setFixedRows(prev => {
+          const newSet = new Set(prev);
+          newSet.add(rowKey);
+          return newSet;
+        });
+      }
+
+      // Update validation errors if changed
+      if (newValidationErrors.length !== validationErrors.length) {
+        setValidationErrors(newValidationErrors);
+      }
+
+      // Allow next update after short delay
+      setTimeout(() => {
+        pendingUpdatesRef.current = false;
+      }, 100);
+    });
+  }, [parsedData, validationErrors, setParsedData, setValidationErrors, setFixedRows]);
+
+  /**
+   * Re-validates duplicate entries after isNightShift change
+   * This checks if the duplicate pair is now differentiated
+   */
+  const revalidateDuplicates = useCallback((updatedParsedData, changedRowIndex) => {
+    // Get the changed row
+    const changedRow = updatedParsedData[changedRowIndex];
+    if (!changedRow || !changedRow.vehicleId || !changedRow.date) return [];
+
+    const dateStr = new Date(changedRow.date).toISOString().split("T")[0];
+    const groupKey = `${changedRow.vehicleId}_${dateStr}`;
+
+    // Find all rows with same vehicle and date
+    const sameVehicleDateRows = updatedParsedData
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => {
+        if (!row.vehicleId || !row.date) return false;
+        const rowDateStr = new Date(row.date).toISOString().split("T")[0];
+        return row.vehicleId === changedRow.vehicleId && rowDateStr === dateStr;
+      });
+
+    // Group by shift
+    const dayShiftRows = sameVehicleDateRows.filter(({ row }) => !row.isNightShift);
+    const nightShiftRows = sameVehicleDateRows.filter(({ row }) => row.isNightShift);
+
+    const newDuplicateErrors = [];
+
+    // Check for duplicates in day shift
+    if (dayShiftRows.length > 1) {
+      dayShiftRows.forEach(({ row, index }, groupIndex) => {
+        const otherIndices = dayShiftRows
+          .filter((_, i) => i !== groupIndex)
+          .map(g => g.index);
+
+        newDuplicateErrors.push({
+          rowIndex: index,
+          field: "isNightShift",
+          isDuplicate: true,
+          duplicateGroupKey: groupKey,
+          duplicateWithRows: otherIndices,
+          message: `Duplicate entry: Vehicle ${row.vehicleName} on ${new Date(
+            row.date
+          ).toLocaleDateString()} (Day shift). Conflicts with row ${otherIndices.map(i => i + 1).join(", ")}. Set one as Night shift to resolve.`,
+        });
+      });
+    }
+
+    // Check for duplicates in night shift
+    if (nightShiftRows.length > 1) {
+      nightShiftRows.forEach(({ row, index }, groupIndex) => {
+        const otherIndices = nightShiftRows
+          .filter((_, i) => i !== groupIndex)
+          .map(g => g.index);
+
+        newDuplicateErrors.push({
+          rowIndex: index,
+          field: "isNightShift",
+          isDuplicate: true,
+          duplicateGroupKey: groupKey,
+          duplicateWithRows: otherIndices,
+          message: `Duplicate entry: Vehicle ${row.vehicleName} on ${new Date(
+            row.date
+          ).toLocaleDateString()} (Night shift). Conflicts with row ${otherIndices.map(i => i + 1).join(", ")}. Set one as Day shift to resolve.`,
+        });
+      });
+    }
+
+    return { newDuplicateErrors, affectedRows: sameVehicleDateRows.map(r => r.index), groupKey };
+  }, []);
+
+  /**
    * Update data model when row is edited
    */
-  const onRowUpdated = (e) => {
+  const onRowUpdated = useCallback((e) => {
     const dataRowIndex = parsedData.findIndex(
       (item) => item._rowIndex === e.key
     );
 
     if (dataRowIndex >= 0) {
+      // Update the parsed data with the edited values
       const newParsedData = [...parsedData];
-      newParsedData[dataRowIndex] = { ...newParsedData[dataRowIndex], ...e.data };
+      newParsedData[dataRowIndex] = {
+        ...newParsedData[dataRowIndex],
+        ...e.data,
+        _isFixed: true
+      };
+
+      const updatedFields = Object.keys(e.data);
+      const isNightShiftChanged = updatedFields.includes("isNightShift");
+
+      // Start with existing validation errors
+      let newValidationErrors = [...validationErrors];
+
+      if (isNightShiftChanged) {
+        // Re-validate duplicates for this vehicle/date group
+        const { newDuplicateErrors, affectedRows, groupKey } = revalidateDuplicates(newParsedData, dataRowIndex);
+
+        // Remove old duplicate errors for this group
+        newValidationErrors = newValidationErrors.filter(err => {
+          // Keep errors that are not duplicates
+          if (!err.isDuplicate) return true;
+          // Remove duplicate errors for affected rows in this group
+          if (err.duplicateGroupKey === groupKey) return false;
+          if (affectedRows.includes(err.rowIndex)) return false;
+          return true;
+        });
+
+        // Add new duplicate errors (if any still exist after the change)
+        newValidationErrors = [...newValidationErrors, ...newDuplicateErrors];
+
+        // If no more duplicate errors for this row, mark as fixed
+        const rowStillHasErrors = newDuplicateErrors.some(err => err.rowIndex === dataRowIndex);
+        if (!rowStillHasErrors && setFixedRows) {
+          setFixedRows(prev => {
+            const newSet = new Set(prev);
+            newSet.add(e.key);
+            // Also mark any other rows in the group that are now fixed
+            affectedRows.forEach(idx => {
+              const rowKey = newParsedData[idx]?._rowIndex;
+              if (rowKey !== undefined && !newDuplicateErrors.some(err => err.rowIndex === idx)) {
+                newSet.add(rowKey);
+              }
+            });
+            return newSet;
+          });
+        }
+      } else {
+        // For non-isNightShift changes, just remove errors for the updated fields
+        newValidationErrors = newValidationErrors.filter(err => {
+          if (err.rowIndex !== dataRowIndex) return true;
+          if (updatedFields.includes(err.field)) return false;
+          return true;
+        });
+
+        // Check if all errors for this row are resolved
+        const remainingRowErrors = newValidationErrors.filter(err => err.rowIndex === dataRowIndex);
+
+        // If all errors resolved, mark row as fixed
+        if (remainingRowErrors.length === 0 && setFixedRows) {
+          setFixedRows(prev => {
+            const newSet = new Set(prev);
+            newSet.add(e.key);
+            return newSet;
+          });
+        }
+      }
+
+      // Update states
       setParsedData(newParsedData);
+      setValidationErrors(newValidationErrors);
     }
-  };
+  }, [parsedData, validationErrors, setParsedData, setValidationErrors, setFixedRows, revalidateDuplicates]);
 
   /**
    * Handles page changes
@@ -381,7 +562,7 @@ const useValidation = ({
   /**
    * Clears all selected rows
    */
-  const clearSelections = () => {
+  const clearSelections = useCallback(() => {
     // Clear selection in the UI
     if (dataGridRef.current?.instance) {
       try {
@@ -394,14 +575,8 @@ const useValidation = ({
     // Clear selection in state
     setSelectedRows([]);
     setSelectedRowKeys([]);
-
-    // Force refresh to update UI elements
-    setTimeout(() => {
-      if (dataGridRef.current?.instance) {
-        dataGridRef.current.instance.refresh();
-      }
-    }, 50);
-  };
+    // Note: Removed the forced refresh - it was causing unnecessary re-rendering
+  }, [setSelectedRows, setSelectedRowKeys, dataGridRef]);
 
   /**
    * Handles filter value changes
@@ -595,25 +770,37 @@ const useValidation = ({
       // If duplicate filter is on, only show duplicates
       if (showDuplicateErrors) {
         relevantErrors = validationErrors.filter((err) => err.isDuplicate);
+      } else {
+        // When not filtering duplicates specifically, include all errors EXCEPT duplicates
+        // But ALWAYS include backend errors (they're server-side validation failures)
+        relevantErrors = validationErrors.filter((err) =>
+          err.isBackendError || !err.isDuplicate
+        );
       }
 
       // Create a Set of unique row indices for faster lookup
       const errorRowIndicesSet = new Set(
         relevantErrors
-          .filter(err => err && typeof err.rowIndex === 'number')
+          .filter(err => err && typeof err.rowIndex === 'number' && err.rowIndex >= 0)
           .map(err => err.rowIndex)
       );
 
+      console.log('Filtering errors - relevantErrors:', relevantErrors.length, 'errorRowIndicesSet:', Array.from(errorRowIndicesSet));
+
       // Return only rows with the relevant errors
-      return filteredData.filter((row) => {
+      const filtered = filteredData.filter((row) => {
         if (!row) return false;
 
         const dataRowIndex = parsedData.findIndex(
           (item) => item && item._rowIndex === row._rowIndex
         );
 
-        return errorRowIndicesSet.has(dataRowIndex);
+        const hasError = errorRowIndicesSet.has(dataRowIndex);
+        return hasError;
       });
+
+      console.log('Filtered data length:', filtered.length, 'from', filteredData.length);
+      return filtered;
     } catch (err) {
       console.error('Error filtering data:', err);
       return filteredData;

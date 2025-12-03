@@ -456,7 +456,7 @@ namespace FMS.Application.Features.FuelImport.Commands
                 validationErrors.Add($"The following records have invalid vehicle IDs: {string.Join(", ", invalidVehicleIds.Select(x => $"Row {x.Index + 1} (ID: {x.VehicleId})"))}");
             }
 
-            var requestedSiteIds = models.Where(c => c.SiteId > 0 && !c.IsKmPerHr).Select(c => c.SiteId).Distinct().ToList();
+            var requestedSiteIds = models.Where(c => c.SiteId > 0 && !c.IsKmperLiter).Select(c => c.SiteId).Distinct().ToList();
             if (requestedSiteIds.Any())
             {
                 var allDbSiteIds = await _context.Sites.Select(s => s.Id).ToListAsync(cancellationToken);
@@ -469,7 +469,7 @@ namespace FMS.Application.Features.FuelImport.Commands
                 }
             }
 
-            var invalidSiteIds = models.Where(c => !c.IsKmPerHr && c.SiteId <= 0).Select((item, index) => new { Index = index, SiteId = item.SiteId }).ToList();
+            var invalidSiteIds = models.Where(c => !c.IsKmperLiter && c.SiteId <= 0).Select((item, index) => new { Index = index, SiteId = item.SiteId }).ToList();
             if (invalidSiteIds.Any())
             {
                 validationErrors.Add($"The following records require valid site IDs (for L/Hr record type): {string.Join(", ", invalidSiteIds.Select(x => $"Row {x.Index + 1} (ID: {x.SiteId})"))}");

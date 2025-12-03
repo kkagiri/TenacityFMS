@@ -2,13 +2,16 @@
  * Step3TankPreview.js
  * Step 3: Tank Volume Data Preview
  *
-  * Shows selected tanks with their audit period data:
- * - Opening stock (at period start)
- * - Closing stock (at period end)
+ * Purpose: Collect and display tank volume data for user review.
+ * This data will be used in subsequent steps (Step 6 Review & Create).
+ *
+ * Shows selected tanks with their audit period data:
+ * - Opening stock (at period start date)
+ * - Closing stock (at period end date)
  * - Total deliveries
  * - Total dispensed
- * - Transfers in/out
- * - Expected closing vs actual closing (variance)
+ * - Transfers in (from other tanks)
+ * - Transfers out (to other tanks)
  *
  * Data comes from TankVolumeHistory via /fuelaudit/tank-preview endpoint
  */
@@ -78,24 +81,6 @@ const Step3TankPreview = memo(() => {
     };
   }, [tankPreview]);
 
-  // Render fuel type with color coding
-  const renderFuelType = (cellData) => {
-    const fuelType = cellData.data.fuelGradeName || 'Unknown';
-    const colorMap = {
-      'Diesel': 'tw-bg-yellow-100 tw-text-yellow-800',
-      'Petrol': 'tw-bg-blue-100 tw-text-blue-800',
-      'AGO': 'tw-bg-orange-100 tw-text-orange-800',
-      'PMS': 'tw-bg-purple-100 tw-text-purple-800'
-    };
-    const colorClass = colorMap[fuelType] || 'tw-bg-gray-100 tw-text-gray-800';
-
-    return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${colorClass}`}>
-        {fuelType}
-      </span>
-    );
-  };
-
   // Render data source indicator
   const renderDataSource = (cellData) => {
     const source = cellData.value;
@@ -108,78 +93,10 @@ const Step3TankPreview = memo(() => {
     );
   };
 
-  // Render variance with color coding
-  const renderVariance = (cellData) => {
-    const variance = cellData.data.variance || 0;
-    const variancePercent = cellData.data.variancePercent || 0;
-
-    let colorClass = 'tw-text-green-600';
-    if (Math.abs(variancePercent) > 5) {
-      colorClass = 'tw-text-red-600';
-    } else if (Math.abs(variancePercent) > 2) {
-      colorClass = 'tw-text-yellow-600';
-    }
-
-    return (
-      <div className={`tw-text-right ${colorClass}`}>
-        <span className="tw-font-medium">{variance.toFixed(1)} L</span>
-        <span className="tw-text-xs tw-ml-1">({variancePercent.toFixed(1)}%)</span>
-      </div>
-    );
-  };
-
-  // Render confidence indicator
-  const renderConfidence = (cellData) => {
-    const confidence = cellData.value || 'Low';
-    const colors = {
-      'High': 'tw-bg-green-100 tw-text-green-700',
-      'Medium': 'tw-bg-yellow-100 tw-text-yellow-700',
-      'Low': 'tw-bg-red-100 tw-text-red-700'
-    };
-    const icons = {
-      'High': 'fa-shield-check',
-      'Medium': 'fa-shield-halved',
-      'Low': 'fa-shield-exclamation'
-    };
-
-    return (
-      <span className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium tw-flex tw-items-center tw-gap-1 ${colors[confidence]}`}>
-        <i className={`fa-light ${icons[confidence]}`}></i>
-        {confidence}
-      </span>
-    );
-  };
-
-  // Render fill percentage with visual bar
-  const renderFillPercentage = (cellData) => {
-    const percentage = cellData.value || 0;
-
-    let bgColor = 'tw-bg-green-500';
-    if (percentage < 20) bgColor = 'tw-bg-red-500';
-    else if (percentage < 40) bgColor = 'tw-bg-yellow-500';
-
-    return (
-      <div className="tw-flex tw-items-center tw-gap-2">
-        <div className="tw-w-16 tw-h-2 tw-bg-gray-200 tw-rounded-full tw-overflow-hidden">
-          <div
-            className={`tw-h-full ${bgColor} tw-transition-all`}
-            style={{ width: `${Math.min(100, percentage)}%` }}
-          />
-        </div>
-        <span className="tw-text-xs tw-text-gray-600">{percentage.toFixed(0)}%</span>
-      </div>
-    );
-  };
-
   // Format date for display
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString();
-  };
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString();
   };
 
   const isLoading = loading.tankPreview;
@@ -235,219 +152,265 @@ const Step3TankPreview = memo(() => {
       {/* Tank preview data */}
       {!isLoading && previewData.length > 0 && (
         <>
-          {/* Summary Cards */}
-          <div className="tw-grid tw-grid-cols-4 tw-gap-4 tw-mb-4">
-            <div className="tw-bg-green-50 tw-p-4 tw-rounded-lg tw-border tw-border-green-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-                <i className="fa-light fa-sunrise tw-text-green-600 tw-text-xl"></i>
+          {/* Summary Cards - 6 columns */}
+          <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-mb-4">
+            {/* Opening */}
+            <div className="tw-bg-green-50 tw-p-3 tw-rounded-lg tw-border tw-border-green-200">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                <i className="fa-light fa-sunrise tw-text-green-600 tw-text-lg"></i>
                 <span className="tw-text-xs tw-text-green-600 tw-font-medium">Opening</span>
               </div>
-              <p className="tw-text-2xl tw-font-bold tw-text-green-700">
+              <p className="tw-text-xl tw-font-bold tw-text-green-700">
                 {summaryTotals.openingStock.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </p>
               <p className="tw-text-xs tw-text-green-600">Liters</p>
             </div>
 
-            <div className="tw-bg-orange-50 tw-p-4 tw-rounded-lg tw-border tw-border-orange-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-                <i className="fa-light fa-sunset tw-text-orange-600 tw-text-xl"></i>
+            {/* Deliveries */}
+            <div className="tw-bg-blue-50 tw-p-3 tw-rounded-lg tw-border tw-border-blue-200">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                <i className="fa-light fa-truck-ramp tw-text-blue-600 tw-text-lg"></i>
+                <span className="tw-text-xs tw-text-blue-600 tw-font-medium">Deliveries</span>
+              </div>
+              <p className="tw-text-xl tw-font-bold tw-text-blue-700">
+                +{summaryTotals.deliveries.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p className="tw-text-xs tw-text-blue-600">Received</p>
+            </div>
+
+            {/* Dispensed */}
+            <div className="tw-bg-purple-50 tw-p-3 tw-rounded-lg tw-border tw-border-purple-200">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                <i className="fa-light fa-gas-pump tw-text-purple-600 tw-text-lg"></i>
+                <span className="tw-text-xs tw-text-purple-600 tw-font-medium">Dispensed</span>
+              </div>
+              <p className="tw-text-xl tw-font-bold tw-text-purple-700">
+                -{summaryTotals.dispensed.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p className="tw-text-xs tw-text-purple-600">Issued</p>
+            </div>
+
+            {/* Transfer In */}
+            <div className="tw-bg-cyan-50 tw-p-3 tw-rounded-lg tw-border tw-border-cyan-200">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                <i className="fa-light fa-arrow-right-to-arc tw-text-cyan-600 tw-text-lg"></i>
+                <span className="tw-text-xs tw-text-cyan-600 tw-font-medium">Transfer In</span>
+              </div>
+              <p className="tw-text-xl tw-font-bold tw-text-cyan-700">
+                +{summaryTotals.transfersIn.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p className="tw-text-xs tw-text-cyan-600">From tanks</p>
+            </div>
+
+            {/* Transfer Out */}
+            <div className="tw-bg-pink-50 tw-p-3 tw-rounded-lg tw-border tw-border-pink-200">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                <i className="fa-light fa-arrow-right-from-arc tw-text-pink-600 tw-text-lg"></i>
+                <span className="tw-text-xs tw-text-pink-600 tw-font-medium">Transfer Out</span>
+              </div>
+              <p className="tw-text-xl tw-font-bold tw-text-pink-700">
+                -{summaryTotals.transfersOut.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </p>
+              <p className="tw-text-xs tw-text-pink-600">To tanks</p>
+            </div>
+
+            {/* Closing */}
+            <div className="tw-bg-orange-50 tw-p-3 tw-rounded-lg tw-border tw-border-orange-200">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                <i className="fa-light fa-sunset tw-text-orange-600 tw-text-lg"></i>
                 <span className="tw-text-xs tw-text-orange-600 tw-font-medium">Closing</span>
               </div>
-              <p className="tw-text-2xl tw-font-bold tw-text-orange-700">
+              <p className="tw-text-xl tw-font-bold tw-text-orange-700">
                 {summaryTotals.closingStock.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </p>
               <p className="tw-text-xs tw-text-orange-600">Liters</p>
             </div>
-
-            <div className="tw-bg-blue-50 tw-p-4 tw-rounded-lg tw-border tw-border-blue-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-                <i className="fa-light fa-truck-ramp tw-text-blue-600 tw-text-xl"></i>
-                <span className="tw-text-xs tw-text-blue-600 tw-font-medium">Deliveries</span>
-              </div>
-              <p className="tw-text-2xl tw-font-bold tw-text-blue-700">
-                +{summaryTotals.deliveries.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
-              <p className="tw-text-xs tw-text-blue-600">Liters received</p>
-            </div>
-
-            <div className="tw-bg-purple-50 tw-p-4 tw-rounded-lg tw-border tw-border-purple-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-                <i className="fa-light fa-gas-pump tw-text-purple-600 tw-text-xl"></i>
-                <span className="tw-text-xs tw-text-purple-600 tw-font-medium">Dispensed</span>
-              </div>
-              <p className="tw-text-2xl tw-font-bold tw-text-purple-700">
-                -{summaryTotals.dispensed.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
-              <p className="tw-text-xs tw-text-purple-600">Liters issued</p>
-            </div>
           </div>
-
-          {/* Transfers summary (if any) */}
-          {(summaryTotals.transfersIn > 0 || summaryTotals.transfersOut > 0) && (
-            <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mb-4">
-              <div className="tw-bg-cyan-50 tw-p-3 tw-rounded-lg tw-border tw-border-cyan-200 tw-flex tw-items-center tw-justify-between">
-                <div className="tw-flex tw-items-center tw-gap-2">
-                  <i className="fa-light fa-arrow-right-to-arc tw-text-cyan-600"></i>
-                  <span className="tw-text-sm tw-text-cyan-700">Transfers In</span>
-                </div>
-                <span className="tw-font-bold tw-text-cyan-700">
-                  +{summaryTotals.transfersIn.toLocaleString(undefined, { maximumFractionDigits: 0 })} L
-                </span>
-              </div>
-              <div className="tw-bg-pink-50 tw-p-3 tw-rounded-lg tw-border tw-border-pink-200 tw-flex tw-items-center tw-justify-between">
-                <div className="tw-flex tw-items-center tw-gap-2">
-                  <i className="fa-light fa-arrow-right-from-arc tw-text-pink-600"></i>
-                  <span className="tw-text-sm tw-text-pink-700">Transfers Out</span>
-                </div>
-                <span className="tw-font-bold tw-text-pink-700">
-                  -{summaryTotals.transfersOut.toLocaleString(undefined, { maximumFractionDigits: 0 })} L
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Per-tank DataGrid */}
           <DataGrid
             dataSource={previewData}
             keyExpr="tankId"
             showBorders={true}
+            showRowLines={true}
             columnAutoWidth={true}
             rowAlternationEnabled={true}
-            height={350}
+            height={400}
             wordWrapEnabled={true}
           >
-            <Column dataField="tankName" caption="Tank" width={150} />
-            <Column
-              dataField="fuelGradeName"
-              caption="Fuel"
-              width={80}
-              cellRender={renderFuelType}
-              alignment="center"
-            />
+            <Column dataField="tankName" caption="Tank" width={150} fixed={true} />
+
+            {/* Opening Stock with date indicator */}
             <Column
               dataField="openingStock"
-              caption="Opening (L)"
-              width={110}
+              caption={`Opening (L)\n${formatDate(wizard.periodStart)}`}
+              width={130}
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              headerCellRender={() => (
+                <div className="tw-text-center">
+                  <div className="tw-font-semibold">Opening (L)</div>
+                  <div className="tw-text-xs tw-text-gray-500">{formatDate(wizard.periodStart)}</div>
+                </div>
+              )}
             />
+
             <Column
               dataField="openingDataSource"
               caption="Source"
-              width={80}
+              width={90}
               cellRender={renderDataSource}
               alignment="center"
             />
+
+            {/* Deliveries */}
             <Column
               dataField="totalDeliveries"
               caption="Deliveries (L)"
-              width={110}
+              width={120}
               dataType="number"
-              format="+#,##0.0;-#,##0.0"
+              format="#,##0.0"
               alignment="right"
               cellRender={(cellData) => (
-                <span className="tw-text-blue-600">
-                  +{(cellData.value || 0).toFixed(1)}
+                <span className="tw-text-blue-600 tw-font-medium">
+                  +{(cellData.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                 </span>
               )}
             />
+
+            {/* Dispensed */}
             <Column
               dataField="totalDispensed"
               caption="Dispensed (L)"
-              width={110}
+              width={120}
               dataType="number"
               format="#,##0.0"
               alignment="right"
               cellRender={(cellData) => (
-                <span className="tw-text-purple-600">
-                  -{(cellData.value || 0).toFixed(1)}
+                <span className="tw-text-purple-600 tw-font-medium">
+                  -{(cellData.value || 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                 </span>
               )}
             />
+
+            {/* Transfers In */}
             <Column
-              dataField="closingStock"
-              caption="Closing (L)"
-              width={110}
+              dataField="totalTransfersIn"
+              caption="Transfer In (L)"
+              width={120}
               dataType="number"
               format="#,##0.0"
               alignment="right"
+              cellRender={(cellData) => {
+                const value = cellData.value || 0;
+                return value > 0 ? (
+                  <span className="tw-text-cyan-600 tw-font-medium">
+                    +{value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                  </span>
+                ) : (
+                  <span className="tw-text-gray-400">0.0</span>
+                );
+              }}
             />
+
+            {/* Transfers Out */}
             <Column
-              caption="Variance"
-              width={120}
-              cellRender={renderVariance}
+              dataField="totalTransfersOut"
+              caption="Transfer Out (L)"
+              width={130}
+              dataType="number"
+              format="#,##0.0"
               alignment="right"
+              cellRender={(cellData) => {
+                const value = cellData.value || 0;
+                return value > 0 ? (
+                  <span className="tw-text-pink-600 tw-font-medium">
+                    -{value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                  </span>
+                ) : (
+                  <span className="tw-text-gray-400">0.0</span>
+                );
+              }}
             />
+
+            {/* Closing Stock with date indicator */}
             <Column
-              dataField="fillPercentage"
-              caption="Fill %"
-              width={120}
-              cellRender={renderFillPercentage}
-              alignment="center"
-            />
-            <Column
-              dataField="dataConfidence"
-              caption="Confidence"
-              width={100}
-              cellRender={renderConfidence}
-              alignment="center"
+              dataField="closingStock"
+              caption={`Closing (L)\n${formatDate(wizard.periodEnd)}`}
+              width={130}
+              dataType="number"
+              format="#,##0.0"
+              alignment="right"
+              headerCellRender={() => (
+                <div className="tw-text-center">
+                  <div className="tw-font-semibold">Closing (L)</div>
+                  <div className="tw-text-xs tw-text-gray-500">{formatDate(wizard.periodEnd)}</div>
+                </div>
+              )}
             />
 
             <Summary>
               <TotalItem
+                column="tankName"
+                summaryType="count"
+                displayFormat="Total: {0} tanks"
+              />
+              <TotalItem
                 column="openingStock"
                 summaryType="sum"
-                displayFormat="Total: {0:n0} L"
+                valueFormat="#,##0.0"
+                displayFormat="{0} L"
               />
               <TotalItem
                 column="totalDeliveries"
                 summaryType="sum"
-                displayFormat="+{0:n0} L"
+                valueFormat="#,##0.0"
+                displayFormat="+{0} L"
               />
               <TotalItem
                 column="totalDispensed"
                 summaryType="sum"
-                displayFormat="-{0:n0} L"
+                valueFormat="#,##0.0"
+                displayFormat="-{0} L"
+              />
+              <TotalItem
+                column="totalTransfersIn"
+                summaryType="sum"
+                valueFormat="#,##0.0"
+                displayFormat="+{0} L"
+              />
+              <TotalItem
+                column="totalTransfersOut"
+                summaryType="sum"
+                valueFormat="#,##0.0"
+                displayFormat="-{0} L"
               />
               <TotalItem
                 column="closingStock"
                 summaryType="sum"
-                displayFormat="Total: {0:n0} L"
+                valueFormat="#,##0.0"
+                displayFormat="{0} L"
               />
             </Summary>
           </DataGrid>
 
-          {/* Variance alert if significant */}
-          {Math.abs(summaryTotals.variance) > 0 && (
-            <div className={`tw-mt-4 tw-p-3 tw-rounded-lg tw-border tw-flex tw-items-center tw-gap-3 ${
-              Math.abs(summaryTotals.variance / summaryTotals.closingStock * 100) > 5
-                ? 'tw-bg-red-50 tw-border-red-200'
-                : 'tw-bg-yellow-50 tw-border-yellow-200'
-            }`}>
-              <i className={`fa-light fa-triangle-exclamation tw-text-xl ${
-                Math.abs(summaryTotals.variance / summaryTotals.closingStock * 100) > 5
-                  ? 'tw-text-red-500'
-                  : 'tw-text-yellow-500'
-              }`}></i>
-              <div>
-                <p className="tw-font-medium tw-text-gray-800">
-                  Total Variance: {summaryTotals.variance.toFixed(1)} L
+          {/* Info note */}
+          <div className="tw-mt-4 tw-p-3 tw-bg-gray-100 tw-rounded-lg">
+            <div className="tw-flex tw-items-start tw-gap-2">
+              <i className="fa-light fa-info-circle tw-text-blue-500 tw-mt-0.5"></i>
+              <div className="tw-text-sm tw-text-gray-600">
+                <p className="tw-mb-2">
+                  <strong>Data Collection:</strong> This step collects tank volume data that will be used for the fuel audit review in Step 6.
                 </p>
-                <p className="tw-text-sm tw-text-gray-600">
-                  Review individual tank variances before proceeding.
+                <p className="tw-mb-1">
+                  <strong>Opening/Closing:</strong> "Manual" indicates explicit stock readings. "Calculated" means derived from the most recent transaction before the period boundary.
+                </p>
+                <p>
+                  <strong>Transfers:</strong> Transfer In shows fuel received from other tanks. Transfer Out shows fuel sent to other tanks.
                 </p>
               </div>
             </div>
-          )}
-
-          {/* Info note */}
-          <div className="tw-mt-4 tw-p-3 tw-bg-gray-100 tw-rounded-lg">
-            <p className="tw-text-sm tw-text-gray-600">
-              <i className="fa-light fa-info-circle tw-mr-2"></i>
-              <strong>Opening/Closing:</strong> "Manual" indicates explicit stock readings. "Calculated" means
-              derived from the most recent transaction before the period boundary.
-            </p>
           </div>
         </>
       )}

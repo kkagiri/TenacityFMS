@@ -1,5 +1,5 @@
 import {
-  uploadFuelReport,
+  uploadFuelReportAsync,
   resetImportProgress,
   retryFuelReportWithOverwrite,
   retryFuelReportExcludingDuplicates,
@@ -47,8 +47,9 @@ const useImportUtils = ({
   selectedRows,
   setDetectedSite,
   setShowSiteConfirmation,
-  siteSelectionMode, //Cursor
-  setSiteSelectionMode, //Cursor
+  siteSelectionMode,
+  setSiteSelectionMode,
+  setFixedRows,
 }) => {
   /**
    * Shows a toast message with the specified type
@@ -381,10 +382,41 @@ const useImportUtils = ({
       fuelEfficiency: fuelEfficiency,
       totalFuel: totalFuel,
       fuelLost: fuelLost,
-      comment: row["Comment"] || row["Comments"] || "",
+      comment: (() => {
+        // Try multiple variations of comment column names (case-insensitive)
+        let commentText = row["Comments"] ||
+                         row["Comment"] ||
+                         row["comments"] ||
+                         row["comment"] ||
+                         row["COMMENTS"] ||
+                         row["COMMENT"] ||
+                         row["Comments "] ||  // With trailing space
+                         row[" Comment"] ||   // With leading space
+                         row[" Comments"] ||  // With leading space
+                         "";
+
+        // If still empty, do case-insensitive lookup with normalization
+        if (!commentText && row) {
+          const commentKey = Object.keys(row).find(
+            key => {
+              if (!key) return false;
+              const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, ' ');
+              return normalizedKey === "comment" || normalizedKey === "comments";
+            }
+          );
+          if (commentKey) {
+            commentText = row[commentKey] || "";
+            console.log(`Found comment column: "${commentKey}" with value: "${commentText}"`);
+          } else {
+            // Debug: log all available column names
+            console.log("Available columns for comment lookup:", Object.keys(row));
+          }
+        }
+        return commentText;
+      })(),
       date: formatDate(row["Date"]),
       siteId: parseInt(selectedSite) || 0,
-      isKmperhr: true,
+      isKmperLiter: true,
       isNightShift: false,
       engHours: 0,
       flowMeterEngineHrs: 0,
@@ -411,8 +443,38 @@ const useImportUtils = ({
     }
     const siteInfo = findSiteByName(locationName);
 
-    const commentText = row["Comments"] || row["Comment"] || "";
-    const isNightShift = commentText.toLowerCase().includes("night shift");
+// Try multiple variations of comment column names (case-insensitive)
+    // First try common variations
+    let commentText = row["Comments"] ||
+                     row["Comment"] ||
+                     row["comments"] ||
+                     row["comment"] ||
+                     row["COMMENTS"] ||
+                     row["COMMENT"] ||
+                     row["Comments "] ||  // With trailing space
+                     row[" Comment"] ||   // With leading space
+                     row[" Comments"] ||  // With leading space
+                     "";
+
+    // If still empty, do case-insensitive lookup with normalization
+    if (!commentText && row) {
+      const commentKey = Object.keys(row).find(
+        key => {
+          if (!key) return false;
+          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, ' ');
+          return normalizedKey === "comment" || normalizedKey === "comments";
+        }
+      );
+      if (commentKey) {
+        commentText = row[commentKey] || "";
+        console.log(`Found comment column: "${commentKey}" with value: "${commentText}"`);
+      } else {
+        // Debug: log all available column names
+        console.log("Available columns for comment lookup:", Object.keys(row));
+      }
+    }
+
+    const isNightShift = commentText && commentText.toLowerCase().includes("night shift");
 
     const engHours =
       cleanNumericValue(row["Runtime Eng hrs"]) ??
@@ -469,7 +531,7 @@ const useImportUtils = ({
       date: formatDate(row["Date"]),
       siteId: siteInfo?.id || 0,
       locationName: locationName,
-      isKmperhr: false,
+      isKmperLiter: false,
       isNightShift: isNightShift,
       maxSpeed: 0,
       avgSpeed: 0,
@@ -549,6 +611,7 @@ const useImportUtils = ({
     });
 
     // Check for duplicate vehicle/date/shift combinations
+    // Group by vehicleId + date + shift
     const vehicleDateShiftGroups = {};
     data.forEach((row, index) => {
       // Skip rows that don't have required data for duplicate check
@@ -564,23 +627,60 @@ const useImportUtils = ({
       vehicleDateShiftGroups[key].push({ index, row });
     });
 
+    // Also check for same vehicle + same date with SAME shift (true duplicates in import file)
+    const vehicleDateGroups = {};
+    data.forEach((row, index) => {
+      if (!row.vehicleId || !row.date) return;
+
+      const dateStr = new Date(row.date).toISOString().split("T")[0];
+      const key = `${row.vehicleId}_${dateStr}`;
+
+      if (!vehicleDateGroups[key]) {
+        vehicleDateGroups[key] = [];
+      }
+      vehicleDateGroups[key].push({ index, row, isNightShift: row.isNightShift || false });
+    });
+
+    // Mark duplicates within same shift (same vehicleId + date + shift)
     Object.values(vehicleDateShiftGroups)
       .filter((group) => group.length > 1)
       .forEach((group) => {
-        const firstItem = group[0];
-        group.slice(1).forEach((item) => {
+        // Mark ALL items in the group as duplicates (not just the second one)
+        group.forEach((item, groupIndex) => {
+          const otherIndices = group
+            .filter((_, i) => i !== groupIndex)
+            .map(g => g.index);
+
           validationIssues.push({
             rowIndex: item.index,
-            field: "vehicleName",
-            message: `Potential duplicate: Vehicle ${
-              item.row.vehicleName
-            } appears to have another record for ${new Date(
+            field: "isNightShift",
+            isDuplicate: true,
+            duplicateGroupKey: `${item.row.vehicleId}_${new Date(item.row.date).toISOString().split("T")[0]}`,
+            duplicateWithRows: otherIndices,
+            message: `Duplicate entry: Vehicle ${item.row.vehicleName} on ${new Date(
               item.row.date
-            ).toLocaleDateString()} ${
-              item.row.isNightShift ? "night shift" : "day shift"
-            } in this import.`,
+            ).toLocaleDateString()} (${
+              item.row.isNightShift ? "Night" : "Day"
+            } shift). ${otherIndices.length > 0 ? `Conflicts with row ${otherIndices.map(i => i + 1).join(", ")}. Set different shifts to resolve.` : ''}`,
           });
         });
+      });
+
+    // Also flag potential duplicates: same vehicle + date but NOT yet differentiated by shift
+    // This helps user see they need to set one as night shift
+    Object.entries(vehicleDateGroups)
+      .filter(([_, group]) => group.length > 1)
+      .forEach(([key, group]) => {
+        // Check if all have the same shift value
+        const allSameShift = group.every(g => g.isNightShift === group[0].isNightShift);
+
+        if (allSameShift && group.length > 1) {
+          // Already handled above in vehicleDateShiftGroups
+          return;
+        }
+
+        // If they have different shifts, they're OK - no error needed
+        // This means user has already differentiated them
       });
 
     return validationIssues;
@@ -625,6 +725,11 @@ const useImportUtils = ({
     setValidationErrors([]);
     setDateRange({ start: null, end: null });
     setPreviewedOnce(false);
+
+    // Reset fixed rows tracking
+    if (setFixedRows) {
+      setFixedRows(new Set());
+    }
 
     // Reset UI state
     setShowValidationErrors(false);
@@ -797,15 +902,33 @@ const useImportUtils = ({
           FlowMeterEngineHrs: row.flowMeterEngineHrs || 0,
           ExcessWorkingHrsCost: row.excessWorkingHrsCost || 0,
           IsNightShift: Boolean(row.isNightShift),
-          IsKmPerHr: Boolean(row.isKmPerHr || row.isKmperhr),
+          // Use isKmperLiter - this determines if record is km/l (true/1) or l/hr (false/0)
+          IsKmperLiter: Boolean(row.isKmperLiter),
           // Add any other properties needed for the backend
           skipDuplicates: duplicateHandling === "skip",
           rowIndex: index,
+          // Include original _rowIndex for error mapping
+          _originalRowIndex: row._rowIndex,
+          // Include identifying info for error display
+          _vehicleName: row.vehicleName,
+          _date: row.date,
+          _locationName: row.locationName,
         };
       });
 
+      // Store the mapping for error handling
+      window._lastSubmittedDataMap = dataToSubmit.reduce((acc, item, idx) => {
+        acc[idx] = {
+          _rowIndex: item._originalRowIndex,
+          vehicleName: item._vehicleName,
+          date: item._date,
+          locationName: item._locationName,
+        };
+        return acc;
+      }, {});
+
       await dispatch(
-        uploadFuelReport(dataToSubmit, duplicateHandling === "overwrite")
+        uploadFuelReportAsync(dataToSubmit, duplicateHandling === "overwrite")
       );
     } catch (error) {
       console.error("Error in handleSubmitData:", error);

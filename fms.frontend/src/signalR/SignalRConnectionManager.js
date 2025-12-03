@@ -43,6 +43,8 @@ const ROUTE_PATTERNS = {
     /\/notifications$/,
     /\/issue-tracker$/,
     /\/active-alarms$/,
+    /^\/reports\/fuel-importer/, // Fuel importer needs SignalR for async import progress
+    /\/fuel-importer$/,
   ],
   // Routes that DON'T need any SignalR connection
   NO_SIGNALR: [

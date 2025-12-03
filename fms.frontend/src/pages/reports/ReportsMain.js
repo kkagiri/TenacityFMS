@@ -7,6 +7,7 @@ import TankVolumeHistoryReport from './TankVolumeHistoryReport';
 
 // Import existing report components
 import FuelReportImporter from '../FuelReportImporter/FuelReportImporter';
+import BatchImportPage from '../FuelReportImporter/components/BatchImportPage';
 import ConsumptionBasedOnRefills from './consumption/consumptionBasedonRefills';
 
 const ReportsMain = () => {
@@ -23,6 +24,7 @@ const ReportsMain = () => {
 
         {/* Data Import Routes */}
         <Route path="fuel-importer" element={<FuelReportImporter />} />
+        <Route path="fuel-importer/batch" element={<BatchImportPage />} />
         <Route path="fuel-importer/*" element={<FuelReportImporter />} />
 
         {/* Consumption Reports Routes */}

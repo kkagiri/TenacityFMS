@@ -28,7 +28,7 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
         public decimal? AvgSpeed { get; set; }
         public decimal? FuelLost { get; set; }
 
-        public bool IsKmperhr { get; set; }
+        public bool IsKmperLiter { get; set; }
 
         public bool IsNightShift { get; set; }
 
@@ -78,7 +78,7 @@ namespace FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update
             //map the request to the entity
             _mapper.Map(request, comsumption);
 
-            //update the entity 
+            //update the entity
             await _gpsdataContext.SaveChangesAsync(cancellationToken);
 
             return Unit.Value;

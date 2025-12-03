@@ -223,7 +223,7 @@ namespace FMS.Application.Services.Dashboard
             var query = _context.Vehicleconsumptions
                 .Where(vc => vc.Date >= startDate && vc.Date <= endDate)
                 .Where(vc => vc.TotalDistance.HasValue)
-                .Where(vc => vc.IsKmperhr == 1);
+                .Where(vc => vc.IsKmperLiter == 1);
             if (request.SiteIds != null && request.SiteIds.Any()) query = query.Where(vc => request.SiteIds.Contains(vc.SiteId));
 
             var total = await query.SumAsync(vc => vc.TotalDistance ?? 0);

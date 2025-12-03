@@ -1,6 +1,13 @@
+/**
+ * File: ImportForm.js
+ * Purpose: Form component for fuel report import with file selection and action buttons
+ * Dependencies: react-bootstrap, devextreme-react/button
+ * Last Modified: 2025-12-01
+ */
 import React from "react";
 import { Form } from "react-bootstrap";
-import Button from "devextreme-react/button"; //Cursor
+import Button from "devextreme-react/button";
+import "./ImportForm.scss";
 
 const ImportForm = ({
   reportTypes,
@@ -212,46 +219,41 @@ const ImportForm = ({
           </div>
         </Form.Group>
 
-        <div className="tw-flex tw-gap-3 tw-flex-wrap">
+        {/* Action Buttons - Segmented Group Style */}
+        <div className="fuel-import__action-buttons">
+          {/* Toggle Button: Preview Data / Clear Preview */}
           <Button
-            stylingMode="outlined"
+            text={parsedData.length > 0 ? "Clear Preview" : "Preview Data"}
+            icon={parsedData.length > 0 ? "fa-light fa-trash" : "fa-light fa-eye"}
             type="default"
-            text="Preview Data"
-            icon="eye"
-            onClick={handlePreviewData}
+            stylingMode="outlined"
+            onClick={parsedData.length > 0 ? handleClearPreview : handlePreviewData}
             disabled={
-              !file ||
+              parsedData.length === 0
+                ? (!file ||
               !reportType ||
               (reportType === "km/l" && siteSelectionMode === "manual" && !selectedSite) ||
-              fuelReportLoading
+                   fuelReportLoading)
+                : false
             }
-            elementAttr={{
-              class: "tw-font-medium",
-            }}
+            hint={parsedData.length > 0 ? "Clear the preview data" : "Preview data from the Excel file"}
+            className={`fuel-import__action-btn fuel-import__action-btn--first ${
+              parsedData.length > 0
+                ? "fuel-import__action-btn--clear-active"
+                : "fuel-import__action-btn--preview"
+            } ${parsedData.length === 0 ? "fuel-import__action-btn--last" : ""}`}
           />
-
+          {/* Import Button - Only shows after preview */}
           {parsedData.length > 0 && (
-            <>
               <Button
-                stylingMode="outlined"
-                type="normal"
-                text="Clear Preview"
-                icon="trash"
-                onClick={handleClearPreview}
-                elementAttr={{
-                  class: "tw-font-medium",
-                }}
-              />
-
-              <Button
-                stylingMode="contained"
-                type="default"
                 text={
                   getSelectedRowsCount() > 0
                     ? `Import ${getSelectedRowsCount()} Selected`
                     : `Import ${filteredData.length} Grid Rows`
                 }
-                icon="upload"
+              icon="fa-light fa-upload"
+              type="default"
+              stylingMode="outlined"
                 onClick={handlePrepareImport}
                 disabled={
                   !previewedOnce ||
@@ -261,18 +263,15 @@ const ImportForm = ({
                     ? selectedRowsHaveErrors()
                     : validationErrors.length > 0)
                 }
-                elementAttr={{
-                  class: "tw-font-medium",
-                  title:
+              hint={
                     getSelectedRowsCount() > 0 && selectedRowsHaveErrors()
                       ? "Selected rows contain validation errors"
-                      : validationErrors.length > 0 &&
-                        getSelectedRowsCount() === 0
+                  : validationErrors.length > 0 && getSelectedRowsCount() === 0
                       ? "Fix validation errors before importing"
-                      : "Import data",
-                }}
+                  : "Import data to the system"
+              }
+              className="fuel-import__action-btn fuel-import__action-btn--last fuel-import__action-btn--import"
               />
-            </>
           )}
         </div>
       </div>

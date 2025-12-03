@@ -107,8 +107,15 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
             endDate={endDate}
             onValueChanged={(e) => {
               if (e.value && e.value.length === 2) {
-                setStartDate(e.value[0]);
-                setEndDate(e.value[1]);
+                // Set start date to beginning of day (00:00:00.000)
+                const start = new Date(e.value[0]);
+                start.setHours(0, 0, 0, 0);
+                setStartDate(start);
+
+                // Set end date to end of day (23:59:59.999)
+                const end = new Date(e.value[1]);
+                end.setHours(23, 59, 59, 999);
+                setEndDate(end);
               }
             }}
             displayFormat="dd/MM/yyyy"

@@ -55,6 +55,52 @@ namespace FMS.Application.Communication.SignalR
             }
         }
 
+        // Method to broadcast fuel import job started (async import)
+        public async Task BroadcastFuelImportJobStarted(object jobInfo)
+        {
+            try
+            {
+                await Clients.All.SendAsync("FuelImportJobStarted", jobInfo);
+                _logger.LogInformation("Fuel import job started: {JobId}",
+                    jobInfo.GetType().GetProperty("JobId")?.GetValue(jobInfo));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting fuel import job started");
+            }
+        }
+
+        // Method to broadcast fuel import completion (async import)
+        public async Task BroadcastFuelImportCompleted(object result)
+        {
+            try
+            {
+                await Clients.All.SendAsync("FuelImportCompleted", result);
+                _logger.LogInformation("Fuel import completed: {JobId}",
+                    result.GetType().GetProperty("JobId")?.GetValue(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting fuel import completion");
+            }
+        }
+
+        // Method to broadcast fuel import error (async import)
+        public async Task BroadcastFuelImportError(object error)
+        {
+            try
+            {
+                await Clients.All.SendAsync("FuelImportError", error);
+                _logger.LogError("Fuel import error: {JobId} - {Message}",
+                    error.GetType().GetProperty("JobId")?.GetValue(error),
+                    error.GetType().GetProperty("Message")?.GetValue(error));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error broadcasting fuel import error");
+            }
+        }
+
         // Method to broadcast tank volume history updates
         public async Task BroadcastTankVolumeHistoryUpdate(object tankVolumeData)
         {

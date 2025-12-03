@@ -157,7 +157,7 @@
 //                     FlowMeterEngineHrs = VCserviceModel.FlowMeterEngineHrs,
 //                     ExcessWorkingHrsCost = 0,
 //                     IsNightShift = 0,
-//                     IsKmperhr = vehicle.AverageKmL ? 1UL : 0UL,
+//                     IsKmperLiter = vehicle.AverageKmL ? 1UL : 0UL,
 //                     ModifiedBy = 1, //getCurrentUserID
 //                     ModifiedDate = DateTime.Now,
 //                     IsModified = 0

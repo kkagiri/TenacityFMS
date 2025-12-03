@@ -16,6 +16,11 @@ export const RETRY_IMPORT_EXCLUDING_DUPLICATES =
   "RETRY_IMPORT_EXCLUDING_DUPLICATES";
 export const RETRY_IMPORT_WITH_OVERWRITE = "RETRY_IMPORT_WITH_OVERWRITE";
 
+// Async import action types
+export const ASYNC_IMPORT_JOB_STARTED = "ASYNC_IMPORT_JOB_STARTED";
+export const ASYNC_IMPORT_JOB_COMPLETED = "ASYNC_IMPORT_JOB_COMPLETED";
+export const ASYNC_IMPORT_JOB_ERROR = "ASYNC_IMPORT_JOB_ERROR";
+
 // Action creators
 export const uploadFuelReportRequest = () => ({
   type: UPLOAD_FUEL_REPORT_REQUEST,
@@ -60,6 +65,22 @@ export const retryImportExcludingDuplicates = (
 
 export const retryImportWithOverwrite = () => ({
   type: RETRY_IMPORT_WITH_OVERWRITE,
+});
+
+// Async import action creators
+export const asyncImportJobStarted = (jobData) => ({
+  type: ASYNC_IMPORT_JOB_STARTED,
+  payload: jobData,
+});
+
+export const asyncImportJobCompleted = (result) => ({
+  type: ASYNC_IMPORT_JOB_COMPLETED,
+  payload: result,
+});
+
+export const asyncImportJobError = (error) => ({
+  type: ASYNC_IMPORT_JOB_ERROR,
+  payload: error,
 });
 
 // Setup SignalR listener for import progress
@@ -168,7 +189,8 @@ const formatConsumptionData = (reportData) => {
       FlowMeterEngineHrs: item.flowMeterEngineHrs || 0,
       ExcessWorkingHrsCost: item.excessWorkingHrsCost || 0,
       IsNightShift: Boolean(item.isNightShift),
-      IsKmPerHr: Boolean(item.isKmPerHr || item.isKmperhr),
+      // Handle both casing variations: isKmperLiter (from single import) and isKmPerLiter (from batch import)
+      IsKmperLiter: Boolean(item.isKmperLiter ?? item.isKmPerLiter ?? false),
     };
   });
 };
@@ -502,3 +524,270 @@ export const retryFuelReportWithOverwrite =
       return false;
     }
   };
+
+/**
+ * Async Upload Fuel Report
+ * Uses the async endpoint which returns immediately with a job ID.
+ * Progress and completion are sent via SignalR.
+ */
+export const uploadFuelReportAsync =
+  (reportData, overwriteExisting = false) =>
+  async (dispatch) => {
+    dispatch(uploadFuelReportRequest());
+
+    // Ensure SignalR listener is set up
+    await dispatch(setupFuelImportProgressListener());
+
+    // Setup listeners for async import events
+    await dispatch(setupAsyncImportListeners());
+
+    // Check if data is already formatted (has PascalCase property names)
+    const isAlreadyFormatted =
+      reportData.length > 0 && reportData[0].VehicleId !== undefined;
+    // Check if any records have skipDuplicates flag set
+    const skipDuplicates = reportData.some((item) => item.skipDuplicates);
+
+    // Format the data only if needed
+    const formattedData = isAlreadyFormatted
+      ? reportData
+      : formatConsumptionData(reportData);
+
+    // Create the payload with the expected format
+    const payload = {
+      consumptions: formattedData,
+      overwriteExisting: overwriteExisting,
+      skipDuplicates: skipDuplicates,
+    };
+
+    try {
+      // Call the async endpoint - this returns immediately with job ID
+      const response = await axiosInstance.post(
+        "/consumption/import/async",
+        payload
+      );
+
+      if (response.data.isSuccess) {
+        const jobData = response.data.data;
+
+        // Dispatch job started action - this updates the progress bar UI
+        dispatch(asyncImportJobStarted(jobData));
+
+        // Note: Progress bar will show the status, no need for notification toast
+
+        // Return success - actual completion will come via SignalR
+        return {
+          success: true,
+          isAsync: true,
+          jobId: jobData.jobId,
+          message: "Import job started"
+        };
+      } else {
+        // Handle validation errors or other failures
+        dispatch(
+          uploadFuelReportFailure({
+            message: response.data.message || "Failed to start import",
+            validationErrors: response.data.validationErrors,
+          })
+        );
+        return response.data;
+      }
+    } catch (error) {
+      console.error("Error starting async fuel report upload:", error);
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Error starting fuel report import";
+
+      const validationErrors = error.response?.data?.validationErrors || [];
+
+      dispatch(
+        uploadFuelReportFailure({
+          message: errorMessage,
+          validationErrors: validationErrors.length > 0 ? validationErrors : null,
+        })
+      );
+
+      return {
+        success: false,
+        message: errorMessage,
+        validationErrors: validationErrors,
+      };
+    }
+  };
+
+/**
+ * Cancel an in-progress fuel import job
+ * @param {string} jobId - The job ID to cancel
+ */
+export const cancelFuelImport = (jobId) => async (dispatch) => {
+  if (!jobId) {
+    console.warn("[cancelFuelImport] No job ID provided");
+    return { success: false, message: "No job ID provided" };
+  }
+
+  try {
+    console.log("[cancelFuelImport] Cancelling job:", jobId);
+    const response = await axiosInstance.post(`/consumption/import/cancel/${jobId}`);
+
+    if (response.data.isSuccess) {
+      console.log("[cancelFuelImport] Job cancelled successfully");
+      return { success: true, message: response.data.message };
+    } else {
+      console.warn("[cancelFuelImport] Cancel failed:", response.data.message);
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    console.error("[cancelFuelImport] Error cancelling job:", error);
+    const errorMessage = error.response?.data?.message || error.message || "Failed to cancel import";
+    return { success: false, message: errorMessage };
+  }
+};
+
+/**
+ * Setup SignalR listeners for async import completion/error events
+ */
+export const setupAsyncImportListeners = () => async (dispatch) => {
+  try {
+    if (!businessSignalRService) {
+      console.warn("[SignalR] Business SignalR service not available");
+      return false;
+    }
+
+    const connected = await businessSignalRService.ensureConnection();
+    if (!connected) {
+      console.warn("[SignalR] Could not establish connection for async import events");
+      return false;
+    }
+
+    // Remove existing listeners to avoid duplicates
+    businessSignalRService.connection.off("FuelImportCompleted");
+    businessSignalRService.connection.off("FuelImportError");
+    businessSignalRService.connection.off("FuelImportJobStarted");
+
+    // Listen for job completion
+    businessSignalRService.connection.on("FuelImportCompleted", (data) => {
+      console.log("[SignalR] Fuel import completed - raw data:", JSON.stringify(data, null, 2));
+
+      // Handle both PascalCase (C#) and camelCase property names
+      const isSuccess = data.IsSuccess ?? data.isSuccess ?? false;
+      const resultData = data.Data || data.data || {};
+      const jobId = data.JobId || data.jobId;
+      const message = data.Message || data.message;
+
+      // Extract counts - handle both PascalCase and camelCase
+      const successCount = resultData.SuccessCount ?? resultData.successCount ?? 0;
+      const totalProcessed = resultData.TotalProcessed ?? resultData.totalProcessed ?? 0;
+      const skippedCount = resultData.SkippedCount ?? resultData.skippedCount ?? 0;
+      const duplicateCount = resultData.DuplicateCount ?? resultData.duplicateCount ?? 0;
+      const totalRecords = resultData.TotalRecords ?? resultData.totalRecords ?? 0;
+      const reportId = resultData.ReportId ?? resultData.reportId;
+      const duplicateRecords = resultData.DuplicateRecords ?? resultData.duplicateRecords ?? [];
+
+      console.log("[SignalR] Parsed import result:", {
+        isSuccess, successCount, totalProcessed, skippedCount, duplicateCount, totalRecords, reportId
+      });
+
+      if (isSuccess) {
+        // Normalize the result data for redux
+        const normalizedResult = {
+          reportId,
+          totalRecords,
+          totalProcessed,
+          successCount,
+          failureCount: resultData.FailureCount ?? resultData.failureCount ?? 0,
+          skippedCount,
+          duplicateCount,
+          duplicateRecords,
+        };
+
+        // Check if there were duplicates that were skipped
+        if (duplicateRecords.length > 0) {
+          dispatch(asyncImportJobCompleted({
+            ...normalizedResult,
+            jobId,
+            duplicateErrors: duplicateRecords.map(record => ({
+              rowIndex: record.RowIndex ?? record.rowIndex ?? -1,
+              field: "vehicleName",
+              message: record.Message ?? record.message ?? `Duplicate record for Vehicle ID ${record.VehicleId ?? record.vehicleId}`,
+              isDuplicate: true,
+              vehicleId: record.VehicleId ?? record.vehicleId,
+              date: record.Date ?? record.date,
+              isNightShift: record.IsNightShift ?? record.isNightShift,
+            }))
+          }));
+
+          dispatch(uploadFuelReportSuccess(normalizedResult));
+          // Progress bar shows completion status - minimal toast notification
+          console.log(`[SignalR] Import completed: ${successCount} records imported, ${skippedCount || duplicateRecords.length} duplicates skipped.`);
+        } else {
+          dispatch(asyncImportJobCompleted({
+            ...normalizedResult,
+            jobId
+          }));
+
+          dispatch(uploadFuelReportSuccess(normalizedResult));
+          // Progress bar shows completion status - minimal toast notification
+          console.log(`[SignalR] Import completed successfully! ${successCount || totalProcessed} records imported.`);
+        }
+      } else {
+        // Handle failed import
+        dispatch(asyncImportJobError({
+          message: message || "Import failed",
+          jobId,
+          ...resultData
+        }));
+
+        // Check if failure is due to duplicates
+        if (duplicateRecords.length > 0) {
+          dispatch(
+            uploadFuelReportFailure({
+              message: message || "Duplicate records detected",
+              duplicateErrors: duplicateRecords.map(record => ({
+                rowIndex: record.RowIndex ?? record.rowIndex ?? -1,
+                field: "vehicleName",
+                message: record.Message ?? record.message ?? `Duplicate record for Vehicle ID ${record.VehicleId ?? record.vehicleId}`,
+                isDuplicate: true,
+                vehicleId: record.VehicleId ?? record.vehicleId,
+                date: record.Date ?? record.date,
+                isNightShift: record.IsNightShift ?? record.isNightShift,
+              }))
+            })
+          );
+        } else {
+          dispatch(
+            uploadFuelReportFailure({
+              message: message || "Import failed"
+            })
+          );
+        }
+        // Error status will be shown in the progress bar
+        console.error(`[SignalR] Import failed: ${message || "Unknown error"}`);
+      }
+    });
+
+    // Listen for job errors
+    businessSignalRService.connection.on("FuelImportError", (data) => {
+      console.error("[SignalR] Fuel import error:", data);
+
+      dispatch(asyncImportJobError({
+        message: data.Message || data.message || "Import error occurred",
+        jobId: data.JobId || data.jobId
+      }));
+
+      dispatch(
+        uploadFuelReportFailure({
+          message: data.Message || data.message || "Import error occurred"
+        })
+      );
+      // Error status will be shown in the progress bar
+      console.error(`[SignalR] Import error: ${data.Message || data.message || "Unknown error"}`);
+    });
+
+    console.log("[SignalR] Async import listeners setup complete");
+    return true;
+  } catch (error) {
+    console.error("[SignalR] Error setting up async import listeners:", error);
+    return false;
+  }
+};

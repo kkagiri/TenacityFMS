@@ -7,6 +7,9 @@ import {
   RESET_IMPORT_PROGRESS,
   RETRY_IMPORT_EXCLUDING_DUPLICATES,
   RETRY_IMPORT_WITH_OVERWRITE,
+  ASYNC_IMPORT_JOB_STARTED,
+  ASYNC_IMPORT_JOB_COMPLETED,
+  ASYNC_IMPORT_JOB_ERROR,
 } from "../actions/fuelReportActions";
 
 const initialState = {
@@ -201,27 +204,34 @@ const fuelReportReducer = (state = initialState, action) => {
       };
 
     case UPDATE_IMPORT_PROGRESS:
+      // Handle both PascalCase (from C#) and camelCase property names
       const progress = action.payload;
+      const status = progress.Status ?? progress.status ?? "Processing";
+      const totalRecords = progress.TotalRecords ?? progress.totalRecords ?? 0;
+      const processedRecords = progress.ProcessedRecords ?? progress.processedRecords ?? 0;
+      const successCount = progress.SuccessCount ?? progress.successCount ?? 0;
+      const failureCount = progress.FailureCount ?? progress.failureCount ?? 0;
+      const skippedCount = progress.SkippedCount ?? progress.skippedCount ?? 0;
+      const duplicateCount = progress.DuplicateCount ?? progress.duplicateCount ?? 0;
+      const percentage = progress.ProgressPercentage ?? progress.progressPercentage ?? 0;
+      const reportId = progress.ReportId ?? progress.reportId;
+
       return {
         ...state,
         importProgress: {
-          inProgress:
-            progress.status !== "Completed" && progress.status !== "Failed",
-          totalRecords: progress.totalRecords,
-          processedRecords: progress.processedRecords,
-          successCount: progress.successCount,
-          failureCount: progress.failureCount,
-          skippedCount: progress.skippedCount || 0,
-          duplicateCount: progress.duplicateCount || 0,
-          status: progress.status,
-          percentage: progress.progressPercentage,
-          reportId: progress.reportId,
+          inProgress: status !== "Completed" && !status.includes("Failed"),
+          totalRecords,
+          processedRecords,
+          successCount,
+          failureCount,
+          skippedCount,
+          duplicateCount,
+          status,
+          percentage,
+          reportId,
         },
         // Update loading state based on progress
-        loading:
-          progress.status !== "Completed" &&
-          progress.status !== "Failed" &&
-          !progress.status.includes("Failed"),
+        loading: status !== "Completed" && !status.includes("Failed"),
       };
 
     // Reset import progress - used when starting a new import or when overwrite functionality is used
@@ -256,6 +266,73 @@ const fuelReportReducer = (state = initialState, action) => {
           ...initialState.importProgress,
           inProgress: true,
           status: "Retrying with overwrite",
+        },
+      };
+
+    // Async import job started - job is processing in background
+    case ASYNC_IMPORT_JOB_STARTED:
+      return {
+        ...state,
+        loading: true,
+        success: false,
+        error: null,
+        duplicateErrors: null,
+        validationErrors: null,
+        importProgress: {
+          inProgress: true,
+          totalRecords: action.payload.totalRecords || 0,
+          processedRecords: 0,
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 0,
+          duplicateCount: 0,
+          status: "Processing",
+          percentage: 0,
+          reportId: action.payload.jobId,
+        },
+      };
+
+    // Async import job completed successfully
+    case ASYNC_IMPORT_JOB_COMPLETED:
+      return {
+        ...state,
+        loading: false,
+        success: true,
+        error: null,
+        reportId: action.payload.reportId || action.payload.jobId,
+        duplicateErrors: action.payload.duplicateErrors || null,
+        validationErrors: action.payload.duplicateErrors || null,
+        importProgress: {
+          inProgress: false,
+          totalRecords: action.payload.totalRecords || 0,
+          processedRecords: action.payload.totalProcessed || action.payload.successCount || 0,
+          successCount: action.payload.successCount || 0,
+          failureCount: action.payload.failureCount || 0,
+          skippedCount: action.payload.skippedCount || 0,
+          duplicateCount: action.payload.duplicateCount || 0,
+          status: action.payload.skippedCount > 0 ? "Completed with Skipped Duplicates" : "Completed",
+          percentage: 100,
+          reportId: action.payload.reportId || action.payload.jobId,
+        },
+      };
+
+    // Async import job failed
+    case ASYNC_IMPORT_JOB_ERROR:
+      return {
+        ...state,
+        loading: false,
+        success: false,
+        error: action.payload.message || "Import failed",
+        duplicateErrors: action.payload.duplicateErrors || null,
+        validationErrors: action.payload.duplicateErrors || null,
+        importProgress: {
+          ...state.importProgress,
+          inProgress: false,
+          status: action.payload.duplicateErrors?.length > 0
+            ? "Failed: Duplicates Found"
+            : "Failed",
+          failureCount: action.payload.duplicateErrors?.length || 0,
+          duplicateCount: action.payload.duplicateErrors?.length || 0,
         },
       };
 

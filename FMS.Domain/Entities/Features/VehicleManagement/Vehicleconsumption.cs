@@ -46,10 +46,10 @@ public partial class Vehicleconsumption
     public ulong IsNightShift { get; set; }
 
     /// <summary>
-    /// Indicates whether speed is recorded in km/hr or
+    /// Indicates whether consumption is measured in km/liter or l/hr.
     /// </summary>
 
-    public ulong IsKmperhr { get; set; }
+    public ulong IsKmperLiter { get; set; }
 
     public int? ModifiedBy { get; set; }
 

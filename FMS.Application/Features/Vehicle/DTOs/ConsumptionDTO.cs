@@ -1,10 +1,12 @@
 using System;
 
-namespace FMS.Application.Features.Vehicle.DTOs {
+namespace FMS.Application.Features.Vehicle.DTOs
+{
     /// <summary>
     /// DTO for vehicle consumption data
     /// </summary>
-    public class ConsumptionDTO {
+    public class ConsumptionDTO
+    {
         public int Id { get; set; }
         public int VehicleId { get; set; }
         public int SiteId { get; set; }
@@ -18,7 +20,8 @@ namespace FMS.Application.Features.Vehicle.DTOs {
         /// <summary>
         /// Alternative name for EmployeeName, used by some clients
         /// </summary>
-        public string? DriverName {
+        public string? DriverName
+        {
             get { return EmployeeName; }
             set { EmployeeName = value; }
         }
@@ -34,7 +37,7 @@ namespace FMS.Application.Features.Vehicle.DTOs {
         public decimal? FlowMeterEngineHrs { get; set; }
         public decimal? ExcessWorkingHrsCost { get; set; }
         public bool IsNightShift { get; set; }
-        public bool IsKmPerHr { get; set; }
+        public bool IsKmperLiter { get; set; }
         public string? ReportId { get; set; }
 
         /// <summary>

@@ -1,6 +1,6 @@
 /**
  * Step5GpsPreview.js
- * Step 5: Fuel Data Preview by Vehicle Category
+ * Step 5: Vehicle Data Preview by Category
  *
  * This step shows fuel data preview for selected vehicles grouped by category:
  * 1. Site GPS Fleet - Fetch opening/closing from GPSGate REST API
@@ -14,7 +14,13 @@
 
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import DataGrid, { Column, Selection, Paging, Scrolling } from 'devextreme-react/data-grid';
+import DataGrid, {
+  Column,
+  Selection,
+  Paging,
+  Scrolling,
+  MasterDetail
+} from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { ProgressBar } from 'devextreme-react/progress-bar';
@@ -245,6 +251,67 @@ const Step5GpsPreview = memo(() => {
     );
   };
 
+  // Master-detail template for refill dates
+  const renderRefillDetails = useCallback((data) => {
+    const vehicle = data.data;
+    const refills = vehicle.refills || [];
+
+    if (!refills.length) {
+      return (
+        <div className="tw-p-4 tw-bg-gray-50 tw-text-center tw-text-gray-500">
+          <p className="tw-text-sm">No refill records available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="tw-p-4 tw-bg-gray-50">
+        <h5 className="tw-font-semibold tw-text-gray-700 tw-mb-3 tw-text-sm">
+          Refill History ({refills.length} refill{refills.length !== 1 ? 's' : ''})
+        </h5>
+        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-2">
+          {refills.map((refill, index) => (
+            <div
+              key={index}
+              className="tw-bg-white tw-rounded tw-p-3 tw-border tw-border-gray-200"
+            >
+              <div className="tw-flex tw-justify-between tw-items-start tw-mb-2">
+                <span className="tw-text-xs tw-font-medium tw-text-gray-700">
+                  Refill #{index + 1}
+                </span>
+                <span className="tw-text-xs tw-font-bold tw-text-blue-600">
+                  {refill.fuelAmount?.toFixed(1) || '0.0'} L
+                </span>
+              </div>
+              <div className="tw-text-xs tw-text-gray-600 tw-space-y-1">
+                <div className="tw-flex tw-justify-between">
+                  <span>Date:</span>
+                  <span className="tw-font-medium">
+                    {refill.refillDate ? new Date(refill.refillDate).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                {refill.tankName && (
+                  <div className="tw-flex tw-justify-between">
+                    <span>Tank:</span>
+                    <span className="tw-font-medium">{refill.tankName}</span>
+                  </div>
+                )}
+                {refill.currentMeter && (
+                  <div className="tw-flex tw-justify-between">
+                    <span>Odometer:</span>
+                    <span className="tw-font-medium">
+                      {refill.currentMeter.toLocaleString()} km
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }, []);
+
   // Render category title
   const renderCategoryTitle = (categoryId) => {
     const config = CATEGORY_CONFIG[categoryId];
@@ -333,10 +400,14 @@ const Step5GpsPreview = memo(() => {
           showBorders={false}
           columnAutoWidth={true}
           rowAlternationEnabled={true}
-          height={Math.min(200, vehicles.length * 40 + 50)}
+          height="auto"
         >
-          <Scrolling mode="virtual" />
-          <Paging enabled={false} />
+          <Scrolling mode="standard" />
+          <Paging enabled={true} pageSize={10} />
+          <MasterDetail
+            enabled={true}
+            render={renderRefillDetails}
+          />
 
           <Column dataField="vehicleNo" caption="Vehicle" width={120} />
           <Column dataField="vehicleTypeName" caption="Type" width={100} />
@@ -373,10 +444,31 @@ const Step5GpsPreview = memo(() => {
                 alignment="right"
                 cellRender={(cellData) => {
                   const value = cellData.value;
+                  const quality = cellData.data.openingDataQuality;
+
                   if (value === null || value === undefined) {
-                    return <span className="tw-text-gray-400 tw-italic">-</span>;
+                    return (
+                      <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                        <span className="tw-text-gray-400 tw-italic tw-text-xs">No data</span>
+                      </div>
+                    );
                   }
-                  return value.toFixed(1);
+
+                  const qualityColors = {
+                    'Exact': 'tw-text-green-600',
+                    'Interpolated': 'tw-text-yellow-600',
+                    'Low': 'tw-text-orange-600'
+                  };
+
+                  return (
+                    <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                      <span className={qualityColors[quality] || ''}>{value.toFixed(1)}</span>
+                      {quality && quality !== 'Exact' && (
+                        <i className="fa-light fa-exclamation-circle tw-text-xs tw-text-yellow-500"
+                           title={`Data Quality: ${quality}`}></i>
+                      )}
+                    </div>
+                  );
                 }}
               />
               <Column
@@ -388,16 +480,37 @@ const Step5GpsPreview = memo(() => {
                 alignment="right"
                 cellRender={(cellData) => {
                   const value = cellData.value;
+                  const quality = cellData.data.closingDataQuality;
+
                   if (value === null || value === undefined) {
-                    return <span className="tw-text-gray-400 tw-italic">-</span>;
+                    return (
+                      <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                        <span className="tw-text-gray-400 tw-italic tw-text-xs">No data</span>
+                      </div>
+                    );
                   }
-                  return value.toFixed(1);
+
+                  const qualityColors = {
+                    'Exact': 'tw-text-green-600',
+                    'Interpolated': 'tw-text-yellow-600',
+                    'Low': 'tw-text-orange-600'
+                  };
+
+                  return (
+                    <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                      <span className={qualityColors[quality] || ''}>{value.toFixed(1)}</span>
+                      {quality && quality !== 'Exact' && (
+                        <i className="fa-light fa-exclamation-circle tw-text-xs tw-text-yellow-500"
+                           title={`Data Quality: ${quality}`}></i>
+                      )}
+                    </div>
+                  );
                 }}
               />
               <Column
                 dataField="consumption"
-                caption="Used (L)"
-                width={90}
+                caption="Calc (L)"
+                width={85}
                 dataType="number"
                 format="#,##0.0"
                 alignment="right"
@@ -407,9 +520,61 @@ const Step5GpsPreview = memo(() => {
                     return <span className="tw-text-gray-400 tw-italic">-</span>;
                   }
                   return (
-                    <span className={value > 0 ? 'tw-text-red-600' : 'tw-text-green-600'}>
+                    <span className={value > 0 ? 'tw-text-gray-700' : 'tw-text-green-600'}>
                       {value.toFixed(1)}
                     </span>
+                  );
+                }}
+              />
+              {/* GPS Measured Consumption - NEW */}
+              <Column
+                dataField="gpsMeasuredConsumption"
+                caption="GPS (L)"
+                width={85}
+                dataType="number"
+                format="#,##0.0"
+                alignment="right"
+                cellRender={(cellData) => {
+                  const value = cellData.value;
+                  if (value === null || value === undefined || value === 0) {
+                    return <span className="tw-text-gray-400 tw-italic tw-text-xs">-</span>;
+                  }
+                  return (
+                    <span className="tw-text-blue-600 tw-font-medium">
+                      {value.toFixed(1)}
+                    </span>
+                  );
+                }}
+              />
+              {/* Vehicle Variance - NEW */}
+              <Column
+                dataField="vehicleVariance"
+                caption="Variance"
+                width={90}
+                dataType="number"
+                alignment="right"
+                cellRender={(cellData) => {
+                  const value = cellData.value;
+                  const hasFlag = cellData.data.hasVarianceFlag;
+                  const flagMessage = cellData.data.varianceFlagMessage;
+
+                  if (value === null || value === undefined) {
+                    return <span className="tw-text-gray-400 tw-italic tw-text-xs">-</span>;
+                  }
+
+                  const isNegative = value < 0;
+                  const absValue = Math.abs(value);
+
+                  return (
+                    <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                      <span className={`tw-font-medium ${hasFlag ? 'tw-text-red-600' : isNegative ? 'tw-text-orange-600' : 'tw-text-green-600'}`}>
+                        {isNegative ? '-' : '+'}{absValue.toFixed(1)}
+                      </span>
+                      {hasFlag && (
+                        <i className="fa-light fa-exclamation-triangle tw-text-xs tw-text-red-500"
+                           title={flagMessage || 'Variance exceeds threshold'}></i>
+                      )}
+                    </div>
                   );
                 }}
               />
@@ -428,47 +593,100 @@ const Step5GpsPreview = memo(() => {
     );
   };
 
-  // Calculate totals
+  // Calculate totals including variance
   const totals = useMemo(() => {
+    const gpsVehicles = selectedVehicles.filter(v => v.vehicleCategory === 1 && v.gpsDataLoaded);
+
     return {
       vehicles: selectedVehicles.length,
       fuelIssued: selectedVehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0),
       withGps: selectedVehicles.filter(v => [1, 4].includes(v.vehicleCategory)).length,
-      consumption: selectedVehicles.reduce((sum, v) => sum + (v.consumption || 0), 0)
+      consumption: selectedVehicles.reduce((sum, v) => sum + (v.consumption || 0), 0),
+      // NEW: Variance totals
+      gpsMeasuredConsumption: gpsVehicles.reduce((sum, v) => sum + (v.gpsMeasuredConsumption || 0), 0),
+      totalVehicleVariance: gpsVehicles.reduce((sum, v) => sum + (v.vehicleVariance || 0), 0),
+      vehiclesWithVariance: gpsVehicles.filter(v => v.hasVarianceFlag).length
     };
+  }, [selectedVehicles]);
+
+  // Debug: Log vehicles data to check GPS fields
+  useEffect(() => {
+    if (selectedVehicles.length > 0) {
+      console.log('Step 5 - Selected Vehicles:', selectedVehicles);
+      const gpsVehicles = selectedVehicles.filter(v => v.vehicleCategory === 1);
+      if (gpsVehicles.length > 0) {
+        console.log('GPS Vehicles (Category 1):', gpsVehicles);
+        console.log('Sample GPS Vehicle Data:', {
+          vehicleId: gpsVehicles[0].vehicleId,
+          vehicleNo: gpsVehicles[0].vehicleNo,
+          openingFuel: gpsVehicles[0].openingFuel,
+          closingFuel: gpsVehicles[0].closingFuel,
+          consumption: gpsVehicles[0].consumption,
+          gpsDataLoaded: gpsVehicles[0].gpsDataLoaded,
+          dataSourcePrimary: gpsVehicles[0].dataSourcePrimary
+        });
+      }
+    }
   }, [selectedVehicles]);
 
   return (
     <div className="wizard-step tw-p-6">
-      <h3 className="tw-text-lg tw-font-semibold tw-mb-2">
-        <i className="fa-light fa-chart-mixed tw-mr-2"></i>
-        Fuel Data Preview by Category
-      </h3>
+      <div className="tw-flex tw-items-center tw-mb-2">
+        <i className="fa-light fa-chart-mixed tw-mr-2 tw-text-lg"></i>
+        <h3 className="tw-text-lg tw-font-semibold">Vehicle Data Preview by Category</h3>
+      </div>
       <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
         Review fuel data for selected vehicles. Each category uses different data sources with varying confidence levels.
       </p>
 
       {/* Summary stats bar */}
-      <div className="tw-mb-4 tw-grid tw-grid-cols-4 tw-gap-3">
+      <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3">
         <div className="tw-bg-blue-50 tw-p-3 tw-rounded-lg tw-text-center tw-border tw-border-blue-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-blue-700">{totals.vehicles}</p>
-          <p className="tw-text-xs tw-text-blue-600">Vehicles Selected</p>
+          <p className="tw-text-xl tw-font-bold tw-text-blue-700">{totals.vehicles}</p>
+          <p className="tw-text-xs tw-text-blue-600">Vehicles</p>
         </div>
         <div className="tw-bg-green-50 tw-p-3 tw-rounded-lg tw-text-center tw-border tw-border-green-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-green-700">{totals.withGps}</p>
-          <p className="tw-text-xs tw-text-green-600">With GPS Data</p>
+          <p className="tw-text-xl tw-font-bold tw-text-green-700">{totals.withGps}</p>
+          <p className="tw-text-xs tw-text-green-600">With GPS</p>
         </div>
         <div className="tw-bg-orange-50 tw-p-3 tw-rounded-lg tw-text-center tw-border tw-border-orange-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-orange-700">
+          <p className="tw-text-xl tw-font-bold tw-text-orange-700">
             {totals.fuelIssued.toLocaleString(undefined, { maximumFractionDigits: 0 })} L
           </p>
-          <p className="tw-text-xs tw-text-orange-600">Total Fuel Issued</p>
+          <p className="tw-text-xs tw-text-orange-600">Fuel Issued</p>
         </div>
         <div className="tw-bg-purple-50 tw-p-3 tw-rounded-lg tw-text-center tw-border tw-border-purple-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-purple-700">
+          <p className="tw-text-xl tw-font-bold tw-text-purple-700">
             {totals.consumption > 0 ? totals.consumption.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—'} L
           </p>
-          <p className="tw-text-xs tw-text-purple-600">Consumption (GPS)</p>
+          <p className="tw-text-xs tw-text-purple-600">Calculated</p>
+        </div>
+        <div className="tw-bg-cyan-50 tw-p-3 tw-rounded-lg tw-text-center tw-border tw-border-cyan-200">
+          <p className="tw-text-xl tw-font-bold tw-text-cyan-700">
+            {totals.gpsMeasuredConsumption > 0 ? totals.gpsMeasuredConsumption.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—'} L
+          </p>
+          <p className="tw-text-xs tw-text-cyan-600">GPS Measured</p>
+        </div>
+        <div className={`tw-p-3 tw-rounded-lg tw-text-center tw-border ${
+          totals.vehiclesWithVariance > 0
+            ? 'tw-bg-red-50 tw-border-red-200'
+            : 'tw-bg-gray-50 tw-border-gray-200'
+        }`}>
+          <p className={`tw-text-xl tw-font-bold ${
+            totals.vehiclesWithVariance > 0 ? 'tw-text-red-700' : 'tw-text-gray-700'
+          }`}>
+            {totals.vehiclesWithVariance > 0 ? (
+              <>
+                {totals.vehiclesWithVariance}
+                <i className="fa-light fa-exclamation-triangle tw-ml-1 tw-text-sm"></i>
+              </>
+            ) : '✓'}
+          </p>
+          <p className={`tw-text-xs ${
+            totals.vehiclesWithVariance > 0 ? 'tw-text-red-600' : 'tw-text-gray-600'
+          }`}>
+            {totals.vehiclesWithVariance > 0 ? 'Variance Flags' : 'No Flags'}
+          </p>
         </div>
       </div>
 

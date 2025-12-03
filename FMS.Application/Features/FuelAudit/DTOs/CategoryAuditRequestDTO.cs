@@ -176,8 +176,30 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         /// <summary>Calculated consumption (Opening + Refills - Closing)</summary>
         public decimal? CalculatedConsumption { get; set; }
 
+        /// <summary>GPS-measured consumption from VehicleConsumption table (Category 1 only)</summary>
+        public decimal? GpsMeasuredConsumption { get; set; }
+
+        /// <summary>
+        /// Consumption variance = Calculated - GPS Measured
+        /// Positive = Calculated shows more consumption than GPS
+        /// Negative = GPS shows more consumption than calculated
+        /// </summary>
+        public decimal? ConsumptionVariance { get; set; }
+
+        /// <summary>
+        /// Vehicle variance = Actual Closing - Expected Closing
+        /// Expected Closing = Opening + Refueled - GPS Consumption
+        /// </summary>
+        public decimal? VehicleVariance { get; set; }
+
         /// <summary>External fuel consumed (not from site tanks)</summary>
         public decimal? ExternalFuel { get; set; }
+
+        /// <summary>Flag indicating variance exceeds threshold</summary>
+        public bool HasVarianceFlag { get; set; }
+
+        /// <summary>Variance flag message if threshold exceeded</summary>
+        public string? VarianceFlagMessage { get; set; }
 
         #endregion
 
@@ -231,7 +253,23 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         /// <summary>Total calculated consumption (liters)</summary>
         public decimal? TotalCalculatedConsumption { get; set; }
 
+        /// <summary>Total GPS-measured consumption (Category 1 only)</summary>
+        public decimal? TotalGpsMeasuredConsumption { get; set; }
+
+        /// <summary>Total consumption variance (Calculated - GPS Measured)</summary>
+        public decimal? TotalConsumptionVariance { get; set; }
+
+        /// <summary>Total vehicle variance (sum of all vehicle variances)</summary>
+        public decimal? TotalVehicleVariance { get; set; }
+
+        /// <summary>Number of vehicles with variance flags</summary>
+        public int VehiclesWithVarianceFlag { get; set; }
+
         /// <summary>Data quality breakdown by category</summary>
         public Dictionary<int, string> DataQualityByCategory { get; set; } = new();
+
+        /// <summary>Variance breakdown by category</summary>
+        public Dictionary<int, decimal?> VarianceByCategory { get; set; } = new();
     }
 }
+

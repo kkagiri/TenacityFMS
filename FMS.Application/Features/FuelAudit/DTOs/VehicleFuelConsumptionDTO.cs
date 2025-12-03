@@ -43,16 +43,16 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         // Calculated Efficiency
         /// <summary>
         /// Fuel efficiency value.
-        /// Check IsKmPerHr to determine if this is km/L or L/hr
+        /// Check IsKmperLiter to determine if this is km/L or L/hr
         /// </summary>
         public decimal? FuelEfficiency { get; set; }
 
         /// <summary>
         /// If true, FuelEfficiency is in km/L (kilometers per liter).
         /// If false, FuelEfficiency is in L/hr (liters per hour) - for stationary/generator vehicles.
-        /// Comes from Vehicleconsumption.IsKmperhr field.
+        /// Comes from Vehicleconsumption.IsKmperLiter field.
         /// </summary>
-        public bool IsKmPerHr { get; set; } = true;
+        public bool IsKmperLiter { get; set; } = true;
 
         /// <summary>Convenience property - Fuel efficiency (km/L)</summary>
         public decimal? FuelEfficiencyKmPerL { get; set; }

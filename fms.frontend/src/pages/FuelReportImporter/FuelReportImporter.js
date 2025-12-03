@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Container, Card } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import { Card } from "react-bootstrap";
 import ScrollView from "devextreme-react/scroll-view";
 import { Toast } from "devextreme-react/toast";
 import { Popup } from "devextreme-react/popup";
-import * as XLSX from "xlsx";
 
 // Components
 import ImportForm from "./components/ImportForm";
@@ -15,28 +15,21 @@ import ValidationAlerts from "./components/ValidationAlerts";
 import DataPreview from "./components/DataPreview";
 import SiteConfirmation from "./components/SiteConfirmation";
 import ImportCalendarPopup from "./components/ImportCalendarPopup";
-import BatchImportPopup from "./components/BatchImportPopup";
+import ImportResultDialog from "./components/ImportResultDialog";
 
 // Hooks and Utilities
 import useImportUtils from "./hooks/useImportUtils";
 import useDataProcessing from "./hooks/useDataProcessing";
 import useValidation from "./hooks/useValidation";
-import useToastMessages from "./hooks/useToastMessages";
 
 // Redux Actions
 import { fetchSiteList } from "../../redux/actions/siteActions";
 import { fetchVehicleList } from "../../redux/actions/vehicleActions";
-import { showNotification } from "../../redux/actions/notificationActions"; //Cursor
 import {
-  uploadFuelReport,
   clearFuelReportStatus,
   setupFuelImportProgressListener,
   removeFuelImportProgressListener,
-  retryFuelReportWithOverwrite,
-  retryFuelReportExcludingDuplicates,
-  resetImportProgress,
 } from "../../redux/actions/fuelReportActions";
-import { safeResetAllNotifications } from "../../redux/actions/notificationActions";
 
 import "./FuelReportImporter.css";
 
@@ -47,6 +40,7 @@ const reportTypes = [
 
 const FuelReportImporter = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const sites = useSelector((state) => state.site.sites);
   const vehicles = useSelector((state) => state.vehicle.vehicles);
   const {
@@ -97,7 +91,10 @@ const FuelReportImporter = () => {
   const [hideLoadingPanel, setHideLoadingPanel] = useState(false);
   const [hideProgressPanel, setHideProgressPanel] = useState(false);
   const [showCalendarPopup, setShowCalendarPopup] = useState(false);
-  const [showBatchImportPopup, setShowBatchImportPopup] = useState(false);
+  const [showResultDialog, setShowResultDialog] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  // Track rows that have been fixed/edited (rowIndex -> fixed status)
+  const [fixedRows, setFixedRows] = useState(new Set());
 
   const dataGridRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -154,6 +151,7 @@ const FuelReportImporter = () => {
     setShowSiteConfirmation,
     siteSelectionMode,
     setSiteSelectionMode,
+    setFixedRows,
   });
 
   // Data processing and validation hook
@@ -164,7 +162,6 @@ const FuelReportImporter = () => {
     mapKmLData,
     mapLHrData,
     validateData,
-    getFilteredData,
     getImportSummary,
     getSelectedRowsCount,
     selectedRowsHaveErrors,
@@ -198,6 +195,7 @@ const FuelReportImporter = () => {
     handleToggleDuplicateFilter,
     selectValidRowsOnly,
     handleGridInitialized,
+    getFilteredData, // Use getFilteredData from useValidation for error filtering
   } = useValidation({
     dataGridRef,
     parsedData,
@@ -220,6 +218,8 @@ const FuelReportImporter = () => {
     reportType,
     filteredData,
     setShowPopover,
+    fixedRows,
+    setFixedRows,
   });
 
   // Initialize data & set up listeners
@@ -242,15 +242,18 @@ const FuelReportImporter = () => {
     };
   }, [dispatch]);
 
-  // Handle error state changes
+  // Handle error state changes - show ImportResultDialog for errors
   useEffect(() => {
     if (fuelReportError) {
+      let resultType = "error";
+      let duplicateRecords = [];
+      let validationErrorsList = [];
+      let message = "";
+
       if (Array.isArray(fuelReportError)) {
+        validationErrorsList = fuelReportError;
+        message = `Import failed due to ${fuelReportError.length} validation issues.`;
         setValidationErrors(fuelReportError);
-        showToast(
-          `Import failed due to ${fuelReportError.length} validation issues. Please review the grid.`,
-          "error"
-        );
       } else if (
         typeof fuelReportError === "object" &&
         fuelReportError.validationErrors
@@ -261,70 +264,165 @@ const FuelReportImporter = () => {
           : [fuelReportError.validationErrors];
 
         // Convert simple string errors to properly formatted validation errors
+        // Map back to original _rowIndex using the stored mapping
+        const submittedDataMap = window._lastSubmittedDataMap || {};
+
+        console.log("Backend validation errors received:", errorArray);
+        console.log("Submitted data map:", submittedDataMap);
+        console.log("Parsed data length:", parsedData.length);
+
         const formattedErrors = errorArray.map((err, index) => {
           if (typeof err === "string") {
-            // Extract row number if present in the error message (e.g., "Row 1: Vehicle ID is missing")
+            // Parse row number from error message (e.g., "Row 4304: Site is required...")
             const rowMatch = err.match(/Row (\d+):/);
-            const rowIndex = rowMatch ? parseInt(rowMatch[1]) - 1 : index;
+            const submittedRowIndex = rowMatch ? parseInt(rowMatch[1]) - 1 : index;
 
-            return {
-              rowIndex: rowIndex,
-              field: "vehicleName", // Default to vehicleName as a general field
+            console.log(`Parsing error: "${err}", extracted row index: ${submittedRowIndex}`);
+
+            // Get the original row info from the mapping
+            const originalRowInfo = submittedDataMap[submittedRowIndex] || {};
+            console.log("Original row info from map:", originalRowInfo);
+
+            // Find the actual row in parsedData that matches
+            let actualRowIndex = submittedRowIndex;
+            if (originalRowInfo._rowIndex !== undefined) {
+              // Find the index in parsedData array by _rowIndex
+              const foundIndex = parsedData.findIndex(
+                (row) => row._rowIndex === originalRowInfo._rowIndex
+              );
+              if (foundIndex !== -1) {
+                actualRowIndex = foundIndex;
+              }
+              console.log(`Mapped to actualRowIndex: ${actualRowIndex} (from _rowIndex: ${originalRowInfo._rowIndex})`);
+            } else {
+              // If no mapping exists, the submittedRowIndex IS the parsedData index
+              // (happens when submitting all rows without selection)
+              console.log(`No mapping found, using submittedRowIndex: ${submittedRowIndex}`);
+
+              // Validate that this index exists in parsedData
+              if (submittedRowIndex >= 0 && submittedRowIndex < parsedData.length) {
+                actualRowIndex = submittedRowIndex;
+                // Get info from parsedData directly
+                const rowData = parsedData[submittedRowIndex];
+                if (rowData) {
+                  originalRowInfo.vehicleName = rowData.vehicleName;
+                  originalRowInfo.date = rowData.date;
+                  originalRowInfo.locationName = rowData.locationName;
+                  originalRowInfo._rowIndex = rowData._rowIndex;
+                }
+              } else {
+                // Row index is out of bounds - try to find by looking up in parsedData
+                // The row might have a different _rowIndex than its array position
+                console.warn(`Row index ${submittedRowIndex} is out of bounds (parsedData.length: ${parsedData.length})`);
+
+                // Try to find by _rowIndex matching the submitted index
+                const foundByRowIndex = parsedData.findIndex(row => row._rowIndex === submittedRowIndex);
+                if (foundByRowIndex !== -1) {
+                  actualRowIndex = foundByRowIndex;
+                  const rowData = parsedData[foundByRowIndex];
+                  originalRowInfo.vehicleName = rowData.vehicleName;
+                  originalRowInfo.date = rowData.date;
+                  originalRowInfo.locationName = rowData.locationName;
+                  originalRowInfo._rowIndex = rowData._rowIndex;
+                  console.log(`Found row by _rowIndex match at array index ${foundByRowIndex}`);
+                } else {
+                  // As a last resort, set to -1 to indicate we couldn't find it
+                  actualRowIndex = -1;
+                  console.warn(`Could not find row with index ${submittedRowIndex} in parsedData`);
+                }
+              }
+            }
+
+            // Determine which field has the error based on message content
+            let field = "vehicleName";
+            if (err.toLowerCase().includes("site")) {
+              field = "locationName";
+            } else if (err.toLowerCase().includes("driver")) {
+              field = "driverName";
+            } else if (err.toLowerCase().includes("date")) {
+              field = "date";
+            }
+
+            const formattedError = {
+              rowIndex: actualRowIndex,
+              field: field,
               message: err,
+              // Store additional info for display
+              vehicleName: originalRowInfo.vehicleName || parsedData[actualRowIndex]?.vehicleName,
+              date: originalRowInfo.date || parsedData[actualRowIndex]?.date,
+              locationName: originalRowInfo.locationName || parsedData[actualRowIndex]?.locationName,
+              isBackendError: true,
             };
+
+            console.log("Formatted error:", formattedError);
+            return formattedError;
           }
           return err;
         });
 
+        validationErrorsList = formattedErrors;
+        message = fuelReportError.message || "Validation failed";
         setValidationErrors(formattedErrors);
-        showToast(
-          `Import failed: ${fuelReportError.message || "Validation failed"}`,
-          "error"
-        );
         setShowValidationErrors(true);
+        // Also enable filter to show error rows
+        setFilterErrorsOnly(true);
       } else if (fuelReportError.duplicateErrors) {
         // Handle duplicate errors specifically
-        const duplicateErrors = fuelReportError.duplicateErrors;
-
-        // Format duplicate errors for validation display
-        const formattedDuplicates = duplicateErrors.map((duplicate) => ({
+        duplicateRecords = fuelReportError.duplicateErrors.map((duplicate) => ({
           rowIndex: duplicate.rowIndex !== undefined ? duplicate.rowIndex : -1,
-          field: "vehicleName",
-          message: duplicate.message || `Duplicate record found for vehicle`,
-          isDuplicate: true,
+          vehicleName: duplicate.vehicleName || `Vehicle ${duplicate.vehicleId}`,
           vehicleId: duplicate.vehicleId,
+          siteName: duplicate.siteName || "",
           date: duplicate.date,
           isNightShift: duplicate.isNightShift,
+          message: duplicate.message || `Duplicate record found for vehicle`,
         }));
 
+        message = fuelReportError.message || "Duplicate records found";
+        resultType = duplicateRecords.length > 0 ? "allDuplicates" : "error";
+
+        // Also set validation errors for grid highlighting
+        const formattedDuplicates = fuelReportError.duplicateErrors.map((dup) => ({
+          rowIndex: dup.rowIndex !== undefined ? dup.rowIndex : -1,
+          field: "vehicleName",
+          message: dup.message || `Duplicate record found for vehicle`,
+          isDuplicate: true,
+          vehicleId: dup.vehicleId,
+          date: dup.date,
+          isNightShift: dup.isNightShift,
+        }));
         setValidationErrors(formattedDuplicates);
-        showToast(
-          `Import failed: ${
-            fuelReportError.message || "Duplicate records found"
-          }`,
-          "error"
-        );
         setShowDuplicateErrors(true);
         setShowValidationErrors(true);
       } else {
-        // Display the error message directly
-        const errorMessage =
-          typeof fuelReportError === "object"
-            ? fuelReportError.message || "An unknown error occurred"
-            : fuelReportError;
+        message = typeof fuelReportError === "object"
+          ? fuelReportError.message || "An unknown error occurred"
+          : fuelReportError;
 
-        showToast(errorMessage, "error");
-
-        // Check if the response contains validation errors in another format
         if (typeof fuelReportError === "object" && fuelReportError.errors) {
+          validationErrorsList = fuelReportError.errors;
           setValidationErrors(fuelReportError.errors);
           setShowValidationErrors(true);
         } else {
           setValidationErrors([]);
         }
       }
+
+      // Show the ImportResultDialog
+      setImportResult({
+        type: resultType,
+        message: message,
+        successCount: 0,
+        skippedCount: duplicateRecords.length,
+        duplicateCount: duplicateRecords.length,
+        failureCount: validationErrorsList.length,
+        totalRecords: parsedData.length || 0,
+        duplicateRecords: duplicateRecords,
+        validationErrors: validationErrorsList,
+      });
+      setShowResultDialog(true);
     }
-  }, [fuelReportError]);
+  }, [fuelReportError, parsedData.length]);
 
   // Handle duplicate errors highlighting
   useEffect(() => {
@@ -343,10 +441,56 @@ const FuelReportImporter = () => {
     }
   }, [validationErrors, showDuplicateErrors]);
 
-  // Handle successful import
+  // Handle successful import - show ImportResultDialog
   useEffect(() => {
     if (fuelReportSuccess && uploadedReportId) {
-      // Store success information
+      const successCount = fuelReportSuccess.successCount || fuelReportSuccess.totalProcessed || 0;
+      const skippedCount = fuelReportSuccess.skippedCount || 0;
+      const duplicateCount = fuelReportSuccess.duplicateCount || 0;
+      const duplicateRecords = fuelReportSuccess.duplicateRecords || fuelReportSuccess.duplicateErrors || [];
+      const totalRecords = fuelReportSuccess.totalRecords || successCount + skippedCount;
+
+      // Determine result type
+      let resultType = "success";
+      if (skippedCount > 0 && successCount === 0) {
+        resultType = "allDuplicates";
+      } else if (skippedCount > 0 && successCount > 0) {
+        resultType = "partial";
+      }
+
+      // Format duplicate records for display
+      const formattedDuplicates = duplicateRecords.map((dup) => ({
+        rowIndex: dup.rowIndex !== undefined ? dup.rowIndex : -1,
+        vehicleName: dup.vehicleName || `Vehicle ${dup.vehicleId}`,
+        vehicleId: dup.vehicleId,
+        siteName: dup.siteName || "",
+        date: dup.date,
+        isNightShift: dup.isNightShift,
+        message: dup.message || `Duplicate record`,
+      }));
+
+      // Show the ImportResultDialog
+      setImportResult({
+        type: resultType,
+        message: fuelReportSuccess.message || (
+          resultType === "success"
+            ? `Successfully imported ${successCount} records.`
+            : resultType === "allDuplicates"
+            ? `All ${skippedCount} records already exist in the system.`
+            : `Imported ${successCount} records. ${skippedCount} duplicates were skipped.`
+        ),
+        successCount: successCount,
+        skippedCount: skippedCount,
+        duplicateCount: duplicateCount,
+        failureCount: 0,
+        totalRecords: totalRecords,
+        duplicateRecords: formattedDuplicates,
+        validationErrors: [],
+        reportId: uploadedReportId,
+      });
+      setShowResultDialog(true);
+
+      // Store success information for the SuccessAlert (legacy)
       setImportSuccessInfo({
         reportId: uploadedReportId,
         message: fuelReportSuccess.message || `Successfully imported data.`,
@@ -398,7 +542,8 @@ const FuelReportImporter = () => {
     }
   }, [reportType]);
 
-  // Filter data based on date range and validation errors
+  // Filter data based on date range only
+  // Note: Error filtering is handled by getFilteredData() from useValidation hook
   useEffect(() => {
     if (parsedData.length > 0) {
       let filtered = [...parsedData];
@@ -423,16 +568,8 @@ const FuelReportImporter = () => {
         });
       }
 
-      // Filter to show only rows with errors (works independently)
-      if (filterErrorsOnly && validationErrors.length > 0) {
-        const errorRowIndices = validationErrors.map((err) => err.rowIndex);
-        filtered = filtered.filter((row) => {
-          const dataRowIndex = parsedData.findIndex(
-            (item) => item._rowIndex === row._rowIndex
-          );
-          return errorRowIndices.includes(dataRowIndex);
-        });
-      }
+      // Note: filterErrorsOnly logic is now handled in getFilteredData() from useValidation
+      // This allows the DataGrid to properly show filtered results when checkbox is toggled
 
       setFilteredData(filtered);
 
@@ -452,9 +589,7 @@ const FuelReportImporter = () => {
   }, [
     parsedData,
     dateRange,
-    showValidationErrors,
-    validationErrors,
-    filterErrorsOnly,
+    // Note: showValidationErrors and filterErrorsOnly are handled by getFilteredData in useValidation
   ]);
 
   // Reset page index when data or validation changes
@@ -516,287 +651,119 @@ const FuelReportImporter = () => {
     }
   };
 
-  // Handle batch import for a single file
-  const handleBatchImportFile = async (fileData) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Read and parse the file
-        const reader = new FileReader();
+  // Handle deletion of selected rows
+  const handleDeleteSelectedRows = () => {
+    if (!selectedRowKeys || selectedRowKeys.length === 0) {
+      showToast("No rows selected for deletion", "warning");
+      return;
+    }
 
-        reader.onload = async (e) => {
-          try {
-            const data = e.target.result;
-            const workbook = XLSX.read(data, { type: "array" });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
+    // Create a Set of selected row keys for faster lookup
+    const selectedKeysSet = new Set(selectedRowKeys);
 
-            // Parse with skip rows
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-              range: fileData.skipRows,
-              raw: false,
-              defval: "",
-            });
+    // Filter out selected rows from parsedData
+    const newParsedData = parsedData.filter(
+      (row) => !selectedKeysSet.has(row._rowIndex)
+    );
 
-            // Map data based on report type
-            let mappedData;
-            if (fileData.reportType === "km/l") {
-              mappedData = jsonData.map((row, index) => {
-                // Try multiple column name variations for vehicle
-                const vehicleName = row["Vehicle Name"] || row["Vehicle"] || row["VEHICLE"] || row["Reg#"] || "";
-                const vehicle = findVehicleByName(vehicleName);
-                const site = sites.find(s => s.id === fileData.siteId);
+    // Get indices of deleted rows for cleanup
+    const deletedRowIndices = parsedData
+      .map((row, index) => (selectedKeysSet.has(row._rowIndex) ? index : -1))
+      .filter((index) => index !== -1);
 
-                // Debug: log vehicle lookup for first row
-                if (index === 0) {
-                  console.log(`[Batch Import km/l] Looking for vehicle: "${vehicleName}"`);
-                  console.log(`[Batch Import km/l] Vehicle found:`, vehicle);
-                  console.log(`[Batch Import km/l] Vehicle ID:`, vehicle?.vehicleId);
-                }
-
-                // Parse date
-                const dateValue = row["Date"] ? new Date(row["Date"]) : null;
-
-                return {
-                  date: dateValue,
-                  vehicleName: vehicleName,
-                  vehicleId: vehicle?.vehicleId || null,
-                  siteId: fileData.siteId,
-                  siteName: site?.name || "",
-                  driverName: row["Driver"] || row["Driver Name"] || "",
-                  totalDistance: parseFloat(row["Km Covered"] || row["Total Distance"]) || 0,
-                  totalFuel: parseFloat(row["Fuel"] || row["Total Fuel"]) || 0,
-                  fuelEfficiency: parseFloat(row["Km/ Litre"] || row["Fuel Efficiency"]) || 0,
-                  maxSpeed: parseFloat(row["Max Speed"]) || 0,
-                  avgSpeed: parseFloat(row["Avg Speed"]) || 0,
-                  comment: row["Comment"] || row["Comments"] || "",
-                  isNightShift: (row["Shift"]?.toLowerCase() || "").includes("night"),
-                  isKmPerHr: true, // This is a km/l report
-                  engHours: 0,
-                  workingExpectedAverage: parseFloat(row["Expected Average"]) || 0,
-                  fuelLost: parseFloat(row["Fuel Lost"]) || 0,
-                  _rowIndex: index,
-                  // Add duplicate handling flag if using skip mode
-                  skipDuplicates: fileData.duplicateHandling === "skip",
-                };
-              });
-            } else {
-              // l/hr mapping
-              mappedData = jsonData.map((row, index) => {
-                // Try multiple column name variations for vehicle
-                const vehicleName = row["Vehicle Name"] || row["Vehice Name"] || row["Vehicle"] || row["VEHICLE"] || row["Reg#"] || "";
-                const vehicle = findVehicleByName(vehicleName);
-
-                // For l/hr, site is selected by user, not from file
-                const site = sites.find(s => s.id === fileData.siteId);
-
-                // Debug: log vehicle lookup for first row
-                if (index === 0) {
-                  console.log(`[Batch Import l/hr] Looking for vehicle: "${vehicleName}"`);
-                  console.log(`[Batch Import l/hr] Vehicle found:`, vehicle);
-                  console.log(`[Batch Import l/hr] Vehicle ID:`, vehicle?.vehicleId);
-                  console.log(`[Batch Import l/hr] Site ID:`, fileData.siteId);
-                  console.log(`[Batch Import l/hr] Site Name:`, site?.name);
-                }
-
-                // Parse date
-                const dateValue = row["Date"] ? new Date(row["Date"]) : null;
-
-                // Check for night shift in comments
-                const commentText = row["Comments"] || row["Comment"] || "";
-                const isNightShift = (row["Shift"]?.toLowerCase() || commentText.toLowerCase() || "").includes("night");
-
-                return {
-                  date: dateValue,
-                  vehicleName: vehicleName,
-                  vehicleId: vehicle?.vehicleId || null,
-                  siteId: fileData.siteId, // From user selection
-                  siteName: site?.name || "",
-                  driverName: row["Driver"] || row["Driver Name"] || "",
-                  engHours: parseFloat(row["Working Hrs"] || row["Runtime Eng hrs"] || row["Engine Hours"]) || 0,
-                  totalFuel: parseFloat(row["Total fuel"] || row["Total Fuel"] || row["Fuel"]) || 0,
-                  fuelEfficiency: parseFloat(row["Fuel Eff (l/hr)"] || row["Ltr/Hr"] || row["Fuel Efficiency"]) || 0,
-                  workingExpectedAverage: parseFloat(row["Expected Fuel Eff"] || row["Expected Average"]) || 0,
-                  fuelLost: parseFloat(row["Fuel lost"] || row["Fuel Lost"]) || 0,
-                  flowMeterEngineHrs: parseFloat(row["Flow meter Eng Hrs"] || row["Flow Meter Engine Hrs"]) || 0,
-                  flowMeterFuelUsed: parseFloat(row["Flow meter Total fuel"] || row["Flow Meter Fuel Used"]) || 0,
-                  flowMeterEffiency: parseFloat(row["Flow meter Fuel eff"] || row["Flow Meter Efficiency"]) || 0,
-                  flowMeterFuelLost: parseFloat(row["Flow meter Fuel lost"] || row["Flow Meter Fuel Lost"]) || 0,
-                  excessWorkingHrsCost: parseFloat(row["Excessive Hours (10)"] || row["Excess Working Hrs Cost"]) || 0,
-                  totalDistance: parseFloat(row["Total Distance"]) || 0,
-                  comment: commentText,
-                  isNightShift: isNightShift,
-                  isKmPerHr: false, // This is a l/hr report
-                  maxSpeed: 0,
-                  avgSpeed: 0,
-                  _rowIndex: index,
-                  // Add duplicate handling flag if using skip mode
-                  skipDuplicates: fileData.duplicateHandling === "skip",
-                };
-              });
-            }
-
-            // Debug: Log mapped data to see what we have
-            console.log(`[Batch Import] ${fileData.fileName} - Total rows: ${mappedData.length}`);
-            console.log(`[Batch Import] ${fileData.fileName} - First row sample:`, mappedData[0]);
-
-            // Count validation issues
-            const recordsWithoutDate = mappedData.filter(row => !row.date).length;
-            const recordsWithoutVehicleId = mappedData.filter(row => !row.vehicleId).length;
-            const recordsWithoutBoth = mappedData.filter(row => !row.date && !row.vehicleId).length;
-
-            console.log(`[Batch Import] ${fileData.fileName} - Records without date: ${recordsWithoutDate}`);
-            console.log(`[Batch Import] ${fileData.fileName} - Records without vehicleId: ${recordsWithoutVehicleId}`);
-            console.log(`[Batch Import] ${fileData.fileName} - Records without both: ${recordsWithoutBoth}`);
-
-            // Filter to get only valid records (has date and vehicleId)
-            const validRecords = mappedData.filter(row => row.date && row.vehicleId);
-
-            // Check if we have valid records
-            if (validRecords.length === 0) {
-              // Provide more detailed error message
-              let errorDetails = [];
-              if (recordsWithoutDate > 0) {
-                errorDetails.push(`${recordsWithoutDate} rows missing dates`);
-              }
-              if (recordsWithoutVehicleId > 0) {
-                errorDetails.push(`${recordsWithoutVehicleId} rows with unmatched vehicle names`);
-              }
-
-              const errorMsg = `No valid consumption records found in ${fileData.fileName}. ${errorDetails.join(', ')}. Total rows in file: ${mappedData.length}`;
-
-              // Show error notification
-              dispatch(showNotification(errorMsg, {
-                type: "error",
-                title: `Import Failed: ${fileData.fileName}`,
-                autoClose: true,
-                duration: 7000,
-              }));
-
-              reject(new Error(errorMsg));
-              return;
-            }
-
-            console.log(`[Batch Import] ${fileData.fileName} - Valid records: ${validRecords.length}`);
-
-            // Dispatch the upload action with duplicate handling
-            // uploadFuelReport expects an array of consumptions, not an object
-            // overwriteExisting is true when duplicateHandling is "overwrite"
-            const overwriteExisting = fileData.duplicateHandling === "overwrite";
-            const result = await dispatch(uploadFuelReport(validRecords, overwriteExisting));
-
-            // Check the result from the API
-            if (!result || (!result.isSuccess && !result.success)) {
-              const errorMsg = result?.message || "Import failed";
-              const site = sites.find(s => s.id === fileData.siteId);
-              const siteName = site?.name || fileData.siteName || "Unknown Site";
-
-              // Check if there are duplicates to show
-              if (result?.data?.duplicateRecords && result.data.duplicateRecords.length > 0) {
-                const duplicates = result.data.duplicateRecords;
-
-                // Create detailed duplicate message
-                const duplicateList = duplicates.slice(0, 5).map(dup => {
-                  const date = new Date(dup.date).toLocaleDateString('en-GB');
-                  const shift = dup.isNightShift ? "night" : "day";
-                  return `• ${dup.vehicleName} on ${date} (${shift} shift)`;
-                }).join('\n');
-
-                const moreCount = duplicates.length > 5 ? `\n...and ${duplicates.length - 5} more` : '';
-
-                const detailedMsg = `Import skipped for ${fileData.fileName} - Site: ${siteName}\n\n` +
-                  `${result.data.skippedCount} duplicate record(s) found:\n${duplicateList}${moreCount}\n\n` +
-                  `Tip: Use "Overwrite" mode to replace existing records.`;
-
-                dispatch(showNotification(
-                  detailedMsg,
-                  {
-                    type: "warning",
-                    title: `Duplicates Found: ${fileData.fileName}`,
-                    autoClose: true,
-                    duration: 10000,
-                  }
-                ));
-
-                // Create detailed error object with duplicate info for popup
-                const error = new Error(errorMsg);
-                error.duplicates = duplicates;
-                error.siteName = siteName;
-                error.skippedCount = result.data.skippedCount;
-                reject(error);
-              } else {
-                // Show general error notification
-                dispatch(showNotification(
-                  `Failed to import ${fileData.fileName}: ${errorMsg}`,
-                  {
-                    type: "error",
-                    title: `Import Failed: ${fileData.fileName}`,
-                    autoClose: true,
-                    duration: 6000,
-                  }
-                ));
-
-                const error = new Error(errorMsg);
-                error.siteName = siteName;
-                reject(error);
-              }
-
-              return;
-            }
-
-            // Check for partial success (some records skipped)
-            if (result?.data?.skippedCount > 0) {
-              const successCount = result.data.successCount || 0;
-              const skippedCount = result.data.skippedCount || 0;
-              const site = sites.find(s => s.id === fileData.siteId);
-              const siteName = site?.name || fileData.siteName || "Unknown Site";
-
-              dispatch(showNotification(
-                `Partial import for ${fileData.fileName} - Site: ${siteName}\n` +
-                `✓ ${successCount} records imported\n` +
-                `⊘ ${skippedCount} duplicates skipped`,
-                {
-                  type: "warning",
-                  title: `Partial Success: ${fileData.fileName}`,
-                  autoClose: true,
-                  duration: 5000,
-                }
-              ));
-
-              resolve({ success: true, recordCount: successCount, skippedCount });
-              return;
-            }
-
-            // Full success - show notification for this file
-            const site = sites.find(s => s.id === fileData.siteId);
-            const siteName = site?.name || fileData.siteName || "Unknown Site";
-            const successCount = result.data?.successCount || validRecords.length;
-
-            dispatch(showNotification(
-              `Successfully imported ${successCount} records from ${fileData.fileName}\nSite: ${siteName}`,
-              {
-                type: "success",
-                title: `Import Success: ${fileData.fileName}`,
-                autoClose: true,
-                duration: 4000,
-              }
-            ));
-
-            resolve({ success: true, recordCount: successCount });
-          } catch (error) {
-            console.error("Error processing file:", error);
-            reject(error);
-          }
-        };
-
-        reader.onerror = () => {
-          reject(new Error("File reading failed"));
-        };
-
-        reader.readAsArrayBuffer(fileData.file);
-      } catch (error) {
-        reject(error);
-      }
+    // Remove validation errors for deleted rows
+    const newValidationErrors = validationErrors.filter((err) => {
+      // Check if error belongs to a deleted row
+      return !deletedRowIndices.includes(err.rowIndex);
     });
+
+    // Adjust row indices in remaining validation errors
+    // (since rows were removed, indices shift)
+    const adjustedValidationErrors = newValidationErrors.map((err) => {
+      let adjustedIndex = err.rowIndex;
+      // Count how many deleted rows were before this error's row
+      const deletedBefore = deletedRowIndices.filter(
+        (deletedIdx) => deletedIdx < err.rowIndex
+      ).length;
+      adjustedIndex = err.rowIndex - deletedBefore;
+      return {
+        ...err,
+        rowIndex: adjustedIndex,
+      };
+    });
+
+    // Remove deleted rows from fixedRows set
+    const newFixedRows = new Set(fixedRows);
+    selectedRowKeys.forEach((key) => {
+      newFixedRows.delete(key);
+    });
+
+    // Update states
+    setParsedData(newParsedData);
+    setValidationErrors(adjustedValidationErrors);
+    setFixedRows(newFixedRows);
+
+    // Clear selection
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
+
+    // Clear grid selection
+    if (dataGridRef.current?.instance) {
+      try {
+        dataGridRef.current.instance.clearSelection();
+      } catch (err) {
+        console.warn("Error clearing grid selection:", err);
+      }
+    }
+
+    // Show success message
+    showToast(
+      `Successfully deleted ${selectedRowKeys.length} row(s)`,
+      "success"
+    );
+  };
+
+  // Handle re-validation of data after user edits
+  const handleValidateData = () => {
+    if (!parsedData || parsedData.length === 0) {
+      showToast("No data to validate", "warning");
+      return;
+    }
+
+    // Re-run validation on the current parsed data
+    const newValidationErrors = validateData(parsedData);
+    setValidationErrors(newValidationErrors);
+
+    // Refresh the grid to update cell styling
+    if (dataGridRef.current?.instance) {
+      try {
+        dataGridRef.current.instance.refresh();
+      } catch (err) {
+        console.warn("Error refreshing grid:", err);
+      }
+    }
+
+    // Show result message
+    if (newValidationErrors.length === 0) {
+      showToast(
+        `All ${parsedData.length} rows validated successfully! No issues found.`,
+        "success"
+      );
+    } else {
+      const duplicateErrors = newValidationErrors.filter(err => err.isDuplicate);
+      const fieldErrors = newValidationErrors.filter(err => !err.isDuplicate);
+
+      let message = `Found ${newValidationErrors.length} validation issue(s)`;
+      if (duplicateErrors.length > 0 && fieldErrors.length > 0) {
+        message = `Found ${fieldErrors.length} field issue(s) and ${duplicateErrors.length} duplicate(s)`;
+      } else if (duplicateErrors.length > 0) {
+        message = `Found ${duplicateErrors.length} duplicate record(s)`;
+      } else {
+        message = `Found ${fieldErrors.length} field issue(s) - please fix and validate again`;
+      }
+
+      showToast(message, "warning");
+    }
   };
 
   return (
@@ -854,7 +821,7 @@ const FuelReportImporter = () => {
             <div className="tw-flex tw-gap-3 tw-ml-auto">
               <button
                 className="tw-bg-green-500 tw-text-white tw-px-4 tw-py-2 tw-rounded hover:tw-bg-green-600 tw-flex tw-items-center tw-gap-2 tw-border-0 tw-shadow-none tw-transition-colors"
-                onClick={() => setShowBatchImportPopup(true)}
+                onClick={() => navigate('/reports/fuel-importer/batch')}
                 title="Batch Import Multiple Files"
               >
                 <i className="fa-light fa-files"></i>
@@ -926,6 +893,48 @@ const FuelReportImporter = () => {
             showDuplicateErrors={showDuplicateErrors}
             onDismissValidation={() => setShowValidationErrors(false)}
             onDismissDuplicate={() => setShowDuplicateErrors(false)}
+            onFilterBackendErrors={() => {
+              // Filter to show only rows with backend errors
+              setFilterErrorsOnly(true);
+              setShowValidationErrors(true);
+            }}
+            onGoToRow={(rowIndex) => {
+              // Navigate to the specific row in the grid
+              if (dataGridRef.current?.instance) {
+                try {
+                  const grid = dataGridRef.current.instance;
+                  // Find the row's _rowIndex
+                  const targetRow = parsedData[rowIndex];
+                  if (targetRow) {
+                    // Calculate page and navigate
+                    const rowsPerPage = grid.pageSize() || 20;
+                    const pageIndex = Math.floor(rowIndex / rowsPerPage);
+                    grid.pageIndex(pageIndex);
+
+                    // After page change, scroll to and select the row
+                    setTimeout(() => {
+                      try {
+                        grid.selectRows([targetRow._rowIndex], false);
+                        // Try to scroll to the row
+                        const rowElement = grid.getRowElement(rowIndex % rowsPerPage);
+                        if (rowElement && rowElement[0]) {
+                          rowElement[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          // Flash highlight
+                          rowElement[0].style.backgroundColor = '#fef3c7';
+                          setTimeout(() => {
+                            rowElement[0].style.backgroundColor = '';
+                          }, 2000);
+                        }
+                      } catch (err) {
+                        console.warn("Could not scroll to row:", err);
+                      }
+                    }, 100);
+                  }
+                } catch (err) {
+                  console.warn("Could not navigate to row:", err);
+                }
+              }
+            }}
           />
 
           {parsedData.length > 0 && (
@@ -960,6 +969,9 @@ const FuelReportImporter = () => {
               selectValidRowsOnly={selectValidRowsOnly}
               vehicles={vehicles}
               sites={sites}
+              fixedRows={fixedRows}
+              onDeleteSelectedRows={handleDeleteSelectedRows}
+              onValidateData={handleValidateData}
             />
           )}
 
@@ -982,14 +994,23 @@ const FuelReportImporter = () => {
             sites={sites}
           />
 
-          {/* Batch Import Popup */}
-          <BatchImportPopup
-            visible={showBatchImportPopup}
-            onHiding={() => setShowBatchImportPopup(false)}
-            sites={sites}
-            reportTypes={reportTypes}
-            onBatchImport={handleBatchImportFile}
-            vehicles={vehicles}
+          {/* Import Result Dialog - unified result display for all import outcomes */}
+          <ImportResultDialog
+            visible={showResultDialog}
+            onHiding={() => {
+              setShowResultDialog(false);
+              setImportResult(null);
+            }}
+            result={importResult}
+            fileName={fileName}
+            onRetryWithOverwrite={() => {
+              setShowResultDialog(false);
+              handleRetryWithOverwrite();
+            }}
+            onRetrySkipDuplicates={() => {
+              setShowResultDialog(false);
+              handleRetryWithoutDuplicates();
+            }}
           />
         </Card.Body>
       </Card>

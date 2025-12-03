@@ -1005,6 +1005,13 @@ const fuelAuditSlice = createSlice({
                   openingFuel: vehicle.openingFuelLevel,
                   closingFuel: vehicle.closingFuelLevel,
                   consumption: vehicle.calculatedConsumption,
+                  // NEW: GPS-measured consumption and variance fields
+                  gpsMeasuredConsumption: vehicle.gpsMeasuredConsumption,
+                  consumptionVariance: vehicle.consumptionVariance,
+                  vehicleVariance: vehicle.vehicleVariance,
+                  hasVarianceFlag: vehicle.hasVarianceFlag,
+                  varianceFlagMessage: vehicle.varianceFlagMessage,
+                  // Existing fields
                   dataSourcePrimary: vehicle.dataSource,
                   dataConfidence: vehicle.confidence,
                   isAuditable: vehicle.isAuditable,
@@ -1016,7 +1023,7 @@ const fuelAuditSlice = createSlice({
             });
           });
 
-          // Store full category response for summary display
+          // Store full category response for summary display (includes variance summary)
           state.wizard.categoryAuditResult = action.payload.data;
         }
       })
