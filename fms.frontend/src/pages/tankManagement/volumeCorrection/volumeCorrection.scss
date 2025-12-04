@@ -1,0 +1,1508 @@
+// Tank Volume Correction Styling
+// Comprehensive styles for DETECT-ANALYZE-CORRECT-VERIFY workflow
+
+$color-primary: #3b82f6;
+$color-secondary: #8b5cf6;
+$color-tertiary: #06b6d4;
+$color-quaternary: #f97316;
+$color-success: #10b981;
+$color-warning: #f59e0b;
+$color-error: #ef4444;
+$color-critical: #dc2626;
+$color-gray-50: #f9fafb;
+$color-gray-100: #f3f4f6;
+$color-gray-200: #e5e7eb;
+$color-gray-300: #d1d5db;
+$color-gray-400: #9ca3af;
+$color-gray-500: #6b7280;
+$color-gray-600: #4b5563;
+$color-gray-700: #374151;
+$color-gray-800: #1f2937;
+$color-gray-900: #111827;
+
+$border-radius: 8px;
+$box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+$box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$transition: all 0.3s ease;
+
+// ============================================================================
+// Main Container
+// ============================================================================
+
+.tvcc-container {
+  width: 100%;
+  background-color: $color-gray-50;
+  min-height: 100vh;
+}
+
+.tvcc-header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+  color: white;
+  padding: 2rem;
+  box-shadow: $box-shadow-lg;
+
+  .tvcc-header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .tvcc-header-text {
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+      }
+
+      p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+      }
+    }
+  }
+}
+
+.tvcc-clear-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.625rem 1.25rem;
+  border-radius: $border-radius;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: $transition;
+
+  i {
+    margin-right: 0.5rem;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+// ============================================================================
+// Content Layout
+// ============================================================================
+
+.tvcc-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 2rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tvcc-tabs-wrapper {
+  background: white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  overflow: hidden;
+}
+
+.tvcc-tabs {
+  border-bottom: 1px solid $color-gray-200;
+}
+
+.tvcc-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+
+  i {
+    font-size: 1.125rem;
+  }
+
+  .tvcc-tab-text {
+    font-weight: 500;
+  }
+}
+
+.tvcc-tab-content {
+  padding: 2rem;
+  min-height: 500px;
+}
+
+// ============================================================================
+// Sidebar Info
+// ============================================================================
+
+.tvcc-info-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tvcc-info-card {
+  background: white;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+  box-shadow: $box-shadow;
+
+  h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: $color-gray-900;
+
+    i {
+      color: $color-primary;
+    }
+  }
+}
+
+.tvcc-workflow-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid $color-gray-200;
+
+    &:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .tvcc-step-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      background: $color-primary;
+      color: white;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    div {
+      flex: 1;
+
+      strong {
+        display: block;
+        font-size: 0.875rem;
+        color: $color-gray-900;
+        margin-bottom: 0.25rem;
+      }
+
+      p {
+        font-size: 0.8rem;
+        color: $color-gray-600;
+        margin: 0;
+      }
+    }
+  }
+}
+
+.tvcc-strategies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tvcc-strategy-item {
+  padding: 0.75rem;
+  background: $color-gray-50;
+  border-radius: 4px;
+  border-left: 3px solid $color-primary;
+
+  .tvcc-strategy-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &.tvcc-strategy-primary {
+      color: $color-primary;
+    }
+
+    &.tvcc-strategy-secondary {
+      color: $color-secondary;
+      border-left-color: $color-secondary;
+    }
+
+    &.tvcc-strategy-tertiary {
+      color: $color-tertiary;
+      border-left-color: $color-tertiary;
+    }
+
+    &.tvcc-strategy-quaternary {
+      color: $color-quaternary;
+      border-left-color: $color-quaternary;
+    }
+  }
+
+  p {
+    font-size: 0.8rem;
+    color: $color-gray-600;
+    margin: 0;
+  }
+}
+
+.tvcc-readonly-warning {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: $border-radius;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  i {
+    font-size: 1.25rem;
+  }
+}
+
+// ============================================================================
+// Card Styling
+// ============================================================================
+
+.tvcc-card {
+  background: white;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid $color-gray-100;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $color-gray-900;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    i {
+      color: $color-primary;
+      font-size: 1.25rem;
+    }
+  }
+
+  h4 {
+    margin: 1.5rem 0 1rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $color-gray-900;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      color: $color-secondary;
+    }
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  h5 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $color-gray-800;
+  }
+}
+
+.tvcc-error-card {
+  background: #fef2f2;
+  border-color: #fecaca;
+
+  .tvcc-error-content {
+    display: flex;
+    gap: 1rem;
+
+    i {
+      color: $color-error;
+      font-size: 1.5rem;
+      margin-top: 0.125rem;
+      flex-shrink: 0;
+    }
+
+    h4 {
+      color: #991b1b;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      color: #7f1d1d;
+      margin: 0;
+    }
+  }
+}
+
+.tvcc-loading-card {
+  text-align: center;
+  padding: 2rem;
+
+  p {
+    margin-top: 1rem;
+    color: $color-gray-600;
+  }
+}
+
+.tvcc-empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+
+  i {
+    font-size: 3rem;
+    color: $color-gray-300;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    color: $color-gray-700;
+  }
+
+  p {
+    margin: 0;
+    color: $color-gray-500;
+  }
+}
+
+.tvcc-permission-denied-tab,
+.tvcc-permission-denied {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+
+  .tvcc-permission-icon,
+  i {
+    font-size: 3.5rem;
+    color: $color-gray-300;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    margin: 0 0 0.5rem 0;
+    color: $color-gray-900;
+  }
+
+  p {
+    margin: 0.5rem 0;
+    color: $color-gray-600;
+  }
+
+  .tvcc-permission-hint {
+    font-size: 0.875rem;
+    color: $color-gray-500;
+  }
+}
+
+// ============================================================================
+// Forms and Controls
+// ============================================================================
+
+.tvcc-button-group,
+.tvcc-execution-controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.tvcc-parameters-grid,
+.tvcc-history-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tvcc-param-group,
+.tvcc-filter-group,
+.tvcc-form-group {
+  display: flex;
+  flex-direction: column;
+
+  label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    color: $color-gray-700;
+  }
+
+  input,
+  .dx-textbox,
+  .dx-selectbox,
+  .dx-datebox {
+    border-radius: 4px;
+    border-color: $color-gray-300;
+
+    &:focus {
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+}
+
+.tvcc-full-width {
+  grid-column: 1 / -1;
+}
+
+.tvcc-form-hint,
+.tvcc-form-text {
+  font-size: 0.8rem;
+  color: $color-gray-500;
+  margin-top: 0.375rem;
+}
+
+.tvcc-params-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+// ============================================================================
+// Mode Selector
+// ============================================================================
+
+.tvcc-mode-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tvcc-mode-button {
+  padding: 1.5rem;
+  background: $color-gray-50;
+  border: 2px solid $color-gray-200;
+  border-radius: $border-radius;
+  cursor: pointer;
+  transition: $transition;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+
+  i {
+    font-size: 2rem;
+    color: $color-gray-400;
+  }
+
+  span {
+    font-weight: 600;
+    color: $color-gray-900;
+  }
+
+  small {
+    font-size: 0.8rem;
+    color: $color-gray-500;
+  }
+
+  &:hover {
+    border-color: $color-primary;
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  &.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: $color-primary;
+
+    i {
+      color: $color-primary;
+    }
+
+    span {
+      color: $color-primary;
+    }
+  }
+}
+
+// ============================================================================
+// Severity Styling
+// ============================================================================
+
+.tvcc-severity-filter {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.tvcc-severity-badge {
+  padding: 0.5rem 1rem;
+  border: 1px solid $color-gray-300;
+  background: white;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: $transition;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  i {
+    font-size: 0.875rem;
+  }
+
+  &:hover {
+    border-color: $color-primary;
+    background: $color-gray-50;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: white;
+    border-color: $color-primary;
+  }
+
+  &.tvcc-severity-critical {
+    &:hover,
+    &.active {
+      background: $color-critical;
+      border-color: $color-critical;
+      color: white;
+    }
+  }
+
+  &.tvcc-severity-high {
+    &:hover,
+    &.active {
+      background: $color-error;
+      border-color: $color-error;
+      color: white;
+    }
+  }
+
+  &.tvcc-severity-medium {
+    &:hover,
+    &.active {
+      background: $color-warning;
+      border-color: $color-warning;
+      color: white;
+    }
+  }
+
+  &.tvcc-severity-low {
+    &:hover,
+    &.active {
+      background: #eab308;
+      border-color: #eab308;
+      color: white;
+    }
+  }
+
+  &.tvcc-severity-minimal {
+    &:hover,
+    &.active {
+      background: $color-success;
+      border-color: $color-success;
+      color: white;
+    }
+  }
+}
+
+.tvcc-severity-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  i {
+    font-size: 1rem;
+
+    &.tvcc-severity-critical {
+      color: $color-critical;
+    }
+
+    &.tvcc-severity-high {
+      color: $color-error;
+    }
+
+    &.tvcc-severity-medium {
+      color: $color-warning;
+    }
+
+    &.tvcc-severity-low {
+      color: #eab308;
+    }
+
+    &.tvcc-severity-minimal {
+      color: $color-success;
+    }
+  }
+}
+
+.tvcc-variance-cell {
+  font-weight: 600;
+
+  &.positive {
+    color: $color-error;
+  }
+
+  &.negative {
+    color: $color-success;
+  }
+}
+
+// ============================================================================
+// Strategy Selection
+// ============================================================================
+
+.tvcc-strategies-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tvcc-strategy-option {
+  padding: 1.5rem;
+  background: white;
+  border: 2px solid $color-gray-200;
+  border-radius: $border-radius;
+  cursor: pointer;
+  transition: $transition;
+  text-align: left;
+
+  .tvcc-strategy-option-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+
+    i {
+      font-size: 1.5rem;
+      color: $color-primary;
+    }
+  }
+
+  .tvcc-strategy-option-title {
+    font-weight: 600;
+    color: $color-gray-900;
+  }
+
+  .tvcc-strategy-option-desc {
+    font-size: 0.875rem;
+    color: $color-gray-600;
+    margin: 0.5rem 0 0.75rem 0;
+  }
+
+  .tvcc-strategy-option-best {
+    font-size: 0.8rem;
+    color: $color-gray-500;
+    margin: 0;
+  }
+
+  &:hover {
+    border-color: $color-primary;
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  &.selected {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: $color-primary;
+
+    .tvcc-strategy-option-header i {
+      color: $color-primary;
+    }
+
+    .tvcc-strategy-option-title {
+      color: $color-primary;
+    }
+  }
+}
+
+// ============================================================================
+// Strategy Info
+// ============================================================================
+
+.tvcc-strategy-info,
+.tvcc-strategies-reference {
+  margin-top: 1.5rem;
+}
+
+.tvcc-strategy-detail {
+  padding: 1rem;
+  border-left: 4px solid $color-primary;
+  background: $color-gray-50;
+  border-radius: 4px;
+
+  h5 {
+    margin: 0 0 0.5rem 0;
+    color: $color-gray-900;
+  }
+
+  .tvcc-strategy-desc,
+  .tvcc-strategy-best,
+  .tvcc-strategy-algo {
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+    color: $color-gray-700;
+
+    strong {
+      color: $color-gray-900;
+    }
+  }
+
+  &.tvcc-primary {
+    border-left-color: $color-primary;
+  }
+
+  &.tvcc-secondary {
+    border-left-color: $color-secondary;
+  }
+
+  &.tvcc-tertiary {
+    border-left-color: $color-tertiary;
+  }
+
+  &.tvcc-quaternary {
+    border-left-color: $color-quaternary;
+  }
+}
+
+.tvcc-strategies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.tvcc-strategy-card {
+  padding: 1.5rem;
+  background: $color-gray-50;
+  border: 1px solid $color-gray-200;
+  border-radius: $border-radius;
+  border-top: 3px solid $color-primary;
+
+  h5 {
+    margin: 0 0 0.5rem 0;
+    color: $color-gray-900;
+    font-size: 0.95rem;
+  }
+
+  .tvcc-desc,
+  .tvcc-best {
+    font-size: 0.8rem;
+    color: $color-gray-600;
+    margin: 0.5rem 0;
+  }
+
+  &.tvcc-primary {
+    border-top-color: $color-primary;
+  }
+
+  &.tvcc-secondary {
+    border-top-color: $color-secondary;
+  }
+
+  &.tvcc-tertiary {
+    border-top-color: $color-tertiary;
+  }
+
+  &.tvcc-quaternary {
+    border-top-color: $color-quaternary;
+  }
+}
+
+// ============================================================================
+// Results and Tables
+// ============================================================================
+
+.tvcc-results-card,
+.tvcc-breaks-table-section {
+  margin-top: 2rem;
+}
+
+.tvcc-tank-breaks-section {
+  margin-bottom: 2rem;
+  background: white;
+  border: 1px solid $color-gray-200;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .tvcc-tank-breaks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid $color-gray-200;
+
+    h5 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: $color-gray-900;
+
+      i {
+        color: $color-primary;
+      }
+    }
+
+    .tvcc-breaks-count {
+      font-size: 0.875rem;
+      color: $color-gray-500;
+      background: $color-gray-100;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+    }
+  }
+}
+
+.tvcc-grid-wrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+
+  .dx-datagrid {
+    width: 100%;
+    border: 1px solid $color-gray-200;
+    border-radius: 4px;
+  }
+}
+
+.tvcc-results-summary,
+.tvcc-plan-summary,
+.tvcc-input-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: $border-radius;
+}
+
+.tvcc-summary-stat,
+.tvcc-summary-box,
+.tvcc-plan-stat {
+  display: flex;
+  flex-direction: column;
+
+  .tvcc-stat-label,
+  .tvcc-summary-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: $color-gray-500;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .tvcc-stat-value,
+  .tvcc-summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $color-primary;
+  }
+
+  .tvcc-stat-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    background: $color-gray-200;
+    border-radius: 6px;
+    width: fit-content;
+
+    &.tvcc-primary {
+      background: rgba(59, 130, 246, 0.15);
+      color: $color-primary;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    &.tvcc-secondary {
+      background: rgba(139, 92, 246, 0.15);
+      color: $color-secondary;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    &.tvcc-tertiary {
+      background: rgba(6, 182, 212, 0.15);
+      color: $color-tertiary;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    &.tvcc-quaternary {
+      background: rgba(249, 115, 22, 0.15);
+      color: $color-quaternary;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+    }
+  }
+}
+
+.tvcc-summary-box {
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid $color-gray-200;
+}
+
+.tvcc-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tvcc-result-stat {
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: 4px;
+  border-left: 3px solid $color-warning;
+
+  &.success {
+    border-left-color: $color-success;
+    background: rgba(16, 185, 129, 0.05);
+  }
+
+  &.error {
+    border-left-color: $color-error;
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  .tvcc-result-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: $color-gray-500;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .tvcc-result-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $color-gray-900;
+  }
+}
+
+.tvcc-result-message {
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: 4px;
+  border-left: 3px solid $color-success;
+  margin-top: 1rem;
+
+  p {
+    margin: 0;
+    color: $color-gray-700;
+  }
+}
+
+// ============================================================================
+// Correction Steps
+// ============================================================================
+
+.tvcc-steps-section {
+  margin: 1.5rem 0;
+}
+
+.tvcc-tank-steps-group {
+  margin-bottom: 2rem;
+  background: white;
+  border: 1px solid $color-gray-200;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .tvcc-tank-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid $color-gray-200;
+
+    h5 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: $color-gray-900;
+
+      i {
+        color: $color-primary;
+      }
+    }
+
+    .tvcc-steps-count {
+      font-size: 0.875rem;
+      color: $color-gray-500;
+      background: $color-gray-100;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+    }
+  }
+}
+
+.tvcc-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tvcc-step-item {
+  padding: 1rem;
+  background: $color-gray-50;
+  border: 1px solid $color-gray-200;
+  border-radius: 4px;
+  border-left: 3px solid $color-primary;
+
+  .tvcc-step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
+    .tvcc-step-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      width: 32px;
+      height: 32px;
+      background: $color-primary;
+      color: white;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .tvcc-step-title-group {
+      flex: 1;
+
+      h5 {
+        margin: 0 0 0.25rem 0;
+        color: $color-gray-900;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: $color-gray-600;
+      }
+    }
+  }
+
+  .tvcc-step-details {
+    margin-top: 0.75rem;
+    margin-left: 3rem;
+
+    .tvcc-detail-badge {
+      display: inline-block;
+      padding: 0.375rem 0.75rem;
+      background: rgba(59, 130, 246, 0.1);
+      color: $color-primary;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+  }
+}
+
+// ============================================================================
+// Correction History Timeline
+// ============================================================================
+
+.tvcc-history-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tvcc-history-record {
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid $color-gray-200;
+  border-radius: $border-radius;
+  transition: $transition;
+
+  &:hover {
+    box-shadow: $box-shadow-lg;
+  }
+}
+
+.tvcc-record-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $color-gray-100;
+
+  .tvcc-record-index {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: $color-primary;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .tvcc-record-info {
+    flex: 1;
+
+    strong {
+      display: block;
+      color: $color-gray-900;
+      margin-bottom: 0.25rem;
+    }
+
+    .tvcc-record-date {
+      font-size: 0.8rem;
+      color: $color-gray-500;
+    }
+  }
+
+  .tvcc-record-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .tvcc-record-user {
+      font-size: 0.875rem;
+      color: $color-gray-600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+
+      i {
+        color: $color-gray-400;
+      }
+    }
+
+    .tvcc-record-success {
+      i {
+        font-size: 1.25rem;
+
+        &.tvcc-success {
+          color: $color-success;
+        }
+
+        &.tvcc-error {
+          color: $color-error;
+        }
+      }
+    }
+  }
+}
+
+.tvcc-record-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tvcc-record-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  strong {
+    color: $color-gray-700;
+    font-size: 0.875rem;
+    min-width: 100px;
+  }
+
+  p {
+    margin: 0;
+    color: $color-gray-600;
+    flex: 1;
+  }
+
+  .tvcc-strategy-tag {
+    padding: 0.375rem 0.75rem;
+    color: white;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+.tvcc-record-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: 4px;
+}
+
+.tvcc-record-stat {
+  span {
+    font-size: 0.8rem;
+    color: $color-gray-600;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  strong {
+    font-size: 1.25rem;
+    color: $color-primary;
+  }
+}
+
+.tvcc-record-comparison {
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: 4px;
+
+  .tvcc-comparison-table {
+    overflow-x: auto;
+    margin-top: 1rem;
+
+    table {
+      width: 100%;
+      font-size: 0.875rem;
+      border-collapse: collapse;
+
+      th {
+        text-align: left;
+        padding: 0.5rem;
+        border-bottom: 2px solid $color-gray-200;
+        font-weight: 600;
+        color: $color-gray-700;
+      }
+
+      td {
+        padding: 0.5rem;
+        border-bottom: 1px solid $color-gray-200;
+        color: $color-gray-600;
+
+        &.positive {
+          color: $color-error;
+          font-weight: 600;
+        }
+
+        &.negative {
+          color: $color-success;
+          font-weight: 600;
+        }
+      }
+
+      tr.changed {
+        background: rgba(59, 130, 246, 0.05);
+      }
+    }
+  }
+
+  .tvcc-comparison-more {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: $color-gray-500;
+  }
+}
+
+// ============================================================================
+// Summary Cards (History)
+// ============================================================================
+
+.tvcc-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tvcc-summary-card {
+  padding: 1.5rem;
+  background: $color-gray-50;
+  border: 1px solid $color-gray-200;
+  border-radius: $border-radius;
+  text-align: center;
+
+  .tvcc-summary-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: $color-gray-500;
+    margin-bottom: 0.75rem;
+  }
+
+  .tvcc-summary-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $color-primary;
+
+    &.tvcc-success {
+      color: $color-success;
+    }
+
+    &.tvcc-error {
+      color: $color-error;
+    }
+  }
+}
+
+.tvcc-strategy-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.tvcc-strategy-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .tvcc-strategy-color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 0.875rem;
+    color: $color-gray-700;
+  }
+}
+
+// ============================================================================
+// Info Panels
+// ============================================================================
+
+.tvcc-info-text {
+  font-size: 0.95rem;
+  color: $color-gray-600;
+  margin-bottom: 1rem;
+}
+
+.tvcc-info-panel {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 3px solid $color-primary;
+
+  .tvcc-info-content {
+    display: flex;
+    gap: 1rem;
+
+    i {
+      color: $color-primary;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    h4 {
+      margin: 0 0 0.75rem 0;
+      color: #1e40af;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.5rem;
+      color: #1e3a8a;
+
+      li {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+      }
+    }
+  }
+}
+
+.tvcc-empty-input {
+  text-align: center;
+  padding: 2rem;
+  background: $color-gray-50;
+  border-radius: $border-radius;
+
+  i {
+    font-size: 2.5rem;
+    color: $color-gray-300;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    margin: 0;
+    color: $color-gray-600;
+  }
+}
+
+// ============================================================================
+// Responsive Design
+// ============================================================================
+
+@media (max-width: 768px) {
+  .tvcc-header .tvcc-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .tvcc-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .tvcc-parameters-grid,
+  .tvcc-history-filters,
+  .tvcc-results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tvcc-strategies-selector,
+  .tvcc-mode-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .tvcc-severity-filter {
+    flex-direction: column;
+  }
+
+  .tvcc-tab-content {
+    padding: 1rem;
+  }
+
+  .tvcc-record-header {
+    flex-wrap: wrap;
+
+    .tvcc-record-meta {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+}
