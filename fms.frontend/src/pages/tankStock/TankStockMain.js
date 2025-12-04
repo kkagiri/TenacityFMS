@@ -7,10 +7,10 @@ import EnhancedTankStockDashboard from "./dashboard/EnhancedTankStockDashboard";
 import StockAnalytics from "./analytics/StockAnalytics";
 import StockManagement from "./management/StockManagement";
 import TankStockSettings from "./settings/TankStockSettings";
-import TransferReconciliation from "./analytics/TransferReconciliation";
 import ReconciliationMain from "../reconciliation/ReconciliationMain";
 import FuelDataComparisonMain from "./fueldatacomparison/FuelDataComparisonMain";
 import FuelAuditMain from "./fuelAudit/FuelAuditMain";
+import VolumeCorrectionMain from "../tankManagement/volumeCorrection/VolumeCorrectionMain";
 
 const TankStockMain = () => {
   return (
@@ -28,15 +28,13 @@ const TankStockMain = () => {
             <Route path="/stock-analytics" element={<StockAnalytics />} />
             <Route path="/stock-management" element={<StockManagement />} />
             <Route path="/reconciliation" element={<ReconciliationMain />} />
-            <Route
-              path="/transfer-reconciliation"
-              element={<TransferReconciliation />}
-            />
+
             <Route
               path="/fueldatacomparison/*"
               element={<FuelDataComparisonMain />}
             />
             <Route path="/fuel-audit/*" element={<FuelAuditMain />} />
+            <Route path="/volume-correction/*" element={<VolumeCorrectionMain />} />
             <Route path="/settings" element={<TankStockSettings />} />
 
             {/* Catch all - redirect to dashboard */}

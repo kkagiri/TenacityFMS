@@ -49,6 +49,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         showFilters: false,
         showUserFilter: false
       };
+    } else if (pathname.includes('/volume-correction')) {
+      return {
+        title: 'Tank Volume Correction',
+        subtitle: 'Detect, analyze, correct, and verify tank volume data integrity issues',
+        showFilters: false,
+        showUserFilter: false
+      };
     } else if (pathname.includes('/reconciliation')) {
       return {
         title: 'Data Reconciliation',
@@ -129,6 +136,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       title: 'Data Reconciliation',
       icon: 'fa-light fa-circle-check',
       path: tankStockRoutes.reconciliationControl,
+      badge: null,
+    },
+    {
+      id: 'volumeCorrection',
+      title: 'Volume Correction',
+      icon: 'fa-light fa-wand-magic-sparkles',
+      path: tankStockRoutes.volumeCorrection,
       badge: null,
     }
   ], []);

@@ -11,9 +11,9 @@ export const tankStockRoutes = {
   stockAnalytics: '/tankstock/stock-analytics',
   stockManagement: '/tankstock/stock-management',
   reconciliationControl: '/tankstock/reconciliation',
-  transferReconciliation: '/tankstock/transfer-reconciliation',
   fuelDataComparison: '/tankstock/fueldatacomparison',
   fuelAudit: '/tankstock/fuel-audit',
+  volumeCorrection: '/tankstock/volume-correction',
   settings: '/tankstock/settings'
 };
 
@@ -30,6 +30,9 @@ export const isActiveRoute = (currentPath, targetPath) => {
   }
   if (targetPath === '/tankstock/fuel-audit') {
     return currentPath.startsWith('/tankstock/fuel-audit');
+  }
+  if (targetPath === '/tankstock/volume-correction') {
+    return currentPath.startsWith('/tankstock/volume-correction');
   }
   return currentPath.startsWith(targetPath);
 };
