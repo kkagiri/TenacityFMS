@@ -23,7 +23,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
     /// Only authorized administrators should use these endpoints.
     /// </summary>
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/tankvolumedatacorrection")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class TankVolumeDataCorrectionController : ControllerBase
     {
