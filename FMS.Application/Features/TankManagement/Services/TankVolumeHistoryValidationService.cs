@@ -356,6 +356,7 @@ namespace FMS.Application.Features.TankManagement.Services
     {
         public int TotalBreaks { get; set; }
         public int AffectedTanks { get; set; }
+        public string RecommendedStrategy { get; set; } = "RECALCULATE";
         public Dictionary<int, List<SequenceBreak>> BreaksByTank { get; set; } = new();
         public Dictionary<int, List<CorrectionStep>> CorrectionSteps { get; set; } = new();
     }
