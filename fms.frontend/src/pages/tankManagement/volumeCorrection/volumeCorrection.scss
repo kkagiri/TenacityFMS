@@ -1462,6 +1462,44 @@ $transition: all 0.3s ease;
   }
 }
 
+.tvcc-tank-correction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: $border-radius;
+  margin-bottom: 1.5rem;
+
+  .tvcc-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    strong {
+      font-size: 0.875rem;
+      color: $color-gray-700;
+    }
+
+    span {
+      font-size: 0.95rem;
+      color: $color-gray-900;
+      font-weight: 600;
+    }
+  }
+}
+
+.tvcc-steps-preview {
+  margin-top: 1.5rem;
+
+  h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $color-gray-900;
+  }
+}
+
 // ============================================================================
 // Responsive Design
 // ============================================================================
