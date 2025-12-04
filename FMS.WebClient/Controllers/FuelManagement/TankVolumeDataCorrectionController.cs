@@ -7,6 +7,7 @@ using FMS.Application.Features.TankManagement.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace FMS.WebClient.Controllers.FuelManagement
 {
@@ -22,8 +23,8 @@ namespace FMS.WebClient.Controllers.FuelManagement
     /// Only authorized administrators should use these endpoints.
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class TankVolumeDataCorrectionController : ControllerBase
     {
         private readonly ITankVolumeHistoryValidationService _validationService;
