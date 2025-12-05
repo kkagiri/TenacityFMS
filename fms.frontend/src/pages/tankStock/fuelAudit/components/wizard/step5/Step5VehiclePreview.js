@@ -29,9 +29,8 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { ProgressBar } from 'devextreme-react/progress-bar';
-import { exportDataGrid } from 'devextreme/excel_exporter';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
+import { confirm } from 'devextreme/ui/dialog';
+import notify from 'devextreme/ui/notify';
 
 import {
   fetchCategoryAuditData,
@@ -42,9 +41,13 @@ import {
   gpsFetchProgress,
   gpsFetchCompleted,
   gpsFetchError,
-  clearGpsFetchJob
-} from '../../../../../redux/slices/fuelAuditSlice';
-import businessSignalRService from '../../../../../signalR/businessSignalRService';
+  clearGpsFetchJob,
+  saveDraftAudit,
+  selectWizardDraftAudit,
+  loadDraftToWizard
+} from '../../../../../../redux/slices/fuelAuditSlice';
+import { fetchFuelAuditById } from '../../../../../../redux/slices/fuelAuditThunks';
+import businessSignalRService from '../../../../../../signalR/businessSignalRService';
 
 // Import helpers and components from separate file
 import {
@@ -53,10 +56,17 @@ import {
   GPSDataDetailsPopup
 } from './Step5VehiclePreviewHelpers';
 
+// Import export utilities
+import {
+  exportCategoryToExcel,
+  exportAllCategoriesToExcel
+} from './Step5VehiclePreviewExport';
+
 const Step5VehiclePreview = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
   const gpsFetchJob = useSelector(selectGpsFetchJob);
+  const draftAudit = useSelector(selectWizardDraftAudit);
 
   // Refs for each category DataGrid (for export)
   const gridRefs = useRef({});
@@ -65,6 +75,7 @@ const Step5VehiclePreview = memo(() => {
   const [loadedCategories, setLoadedCategories] = useState({});
   const [loadingCategory, setLoadingCategory] = useState(null);
   const [categoryProgress, setCategoryProgress] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   // Use async SignalR mode for large datasets (can toggle for debugging)
   const useAsyncMode = true;
   // Expanded accordion items (by category)
@@ -124,6 +135,18 @@ const Step5VehiclePreview = memo(() => {
     // Completion
     const cleanupCompleted = businessSignalRService.on('GpsFetchCompleted', (data) => {
       console.log('[Step5] ✅ GPS Fetch Completed:', data);
+
+      // Debug: Log detailed vehicle data for Category 1
+      if (data.result?.categoryResults) {
+        const cat1 = data.result.categoryResults.find(cr => cr.category === 1);
+        if (cat1?.vehicles) {
+          console.log('[Step5] 🔍 Category 1 (Site GPS Fleet) vehicles:', cat1.vehicles.length);
+          cat1.vehicles.forEach(v => {
+            console.log(`[Step5] Vehicle ${v.vehicleId}: opening=${v.openingFuelLevel}, closing=${v.closingFuelLevel}, closingQuality=${v.closingDataQuality}`);
+          });
+        }
+      }
+
       dispatch(gpsFetchCompleted(data));
 
       // Mark processed categories as loaded based on result data
@@ -206,46 +229,137 @@ const Step5VehiclePreview = memo(() => {
     return stats;
   }, [vehiclesByCategory, loadedCategories]);
 
-  // Export handler for a specific category
-  const handleExportCategory = useCallback((categoryId) => {
-    const gridRef = gridRefs.current[categoryId];
-    if (!gridRef?.instance) return;
+  // Export handler for a specific category using utility function
+  const handleExportCategory = useCallback(async (categoryId) => {
+    const vehicles = vehiclesByCategory[categoryId];
+    if (!vehicles?.length) return;
 
-    const config = CATEGORY_CONFIG[categoryId];
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet(config.name);
-
-    exportDataGrid({
-      component: gridRef.instance,
-      worksheet,
-      autoFilterEnabled: true,
-      customizeCell: ({ gridCell, excelCell }) => {
-        // Style header row
-        if (gridCell.rowType === 'header') {
-          excelCell.font = { bold: true };
-          excelCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFE0E0E0' }
-          };
-        }
-        // Style totals row
-        if (gridCell.rowType === 'totalFooter') {
-          excelCell.font = { bold: true };
-          excelCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFF5F5F5' }
-          };
-        }
-      }
-    }).then(() => {
-      workbook.xlsx.writeBuffer().then((buffer) => {
-        const fileName = `FuelAudit_${config.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
-      });
+    await exportCategoryToExcel(categoryId, vehicles, {
+      siteName: wizard.siteName || 'Unknown Site',
+      startDate: wizard.periodStart,
+      endDate: wizard.periodEnd,
+      includeRefillDetails: true
     });
-  }, []);
+  }, [vehiclesByCategory, wizard.siteName, wizard.periodStart, wizard.periodEnd]);
+
+  // Export all categories to a single Excel file
+  const handleExportAllCategories = useCallback(async () => {
+    const hasData = Object.values(vehiclesByCategory).some(v => v?.length > 0);
+    if (!hasData) return;
+
+    await exportAllCategoriesToExcel(vehiclesByCategory, {
+      siteName: wizard.siteName || 'Unknown Site',
+      startDate: wizard.periodStart,
+      endDate: wizard.periodEnd,
+      includeRefillDetails: true
+    });
+  }, [vehiclesByCategory, wizard.siteName, wizard.periodStart, wizard.periodEnd]);
+
+  // Check if any vehicle data has been edited
+  const hasEditedVehicleData = useMemo(() => {
+    return selectedVehicles.some(v => v.isEdited) || false;
+  }, [selectedVehicles]);
+
+  // Save vehicle data to audit draft
+  const handleSaveToAudit = useCallback(async () => {
+    if (!draftAudit.auditId) {
+      notify('Please save the audit draft first (complete Step 1)', 'warning', 3000);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
+
+      // Prepare vehicle data for saving - map to VehicleGpsEditDTO format expected by backend
+      const vehicleGpsData = selectedVehicles.map(v => ({
+        vehicleId: v.vehicleId,
+        vehicleName: v.vehicleNo,
+        vehicleCategory: v.vehicleCategory,
+        openingFuel: v.openingFuel,
+        closingFuel: v.closingFuel,
+        consumption: v.fuelConsumed || v.consumption,
+        gpsMeasuredConsumption: v.gpsMeasuredConsumption,
+        vehicleVariance: v.vehicleVariance,
+        totalFuelRefilled: v.totalFuelAmount,
+        refillCount: v.refillCount,
+        dataSource: v.dataSourcePrimary,
+        openingDataQuality: v.openingDataQuality,
+        closingDataQuality: v.closingDataQuality,
+        openingTimestamp: v.openingReadingTime,
+        closingTimestamp: v.closingReadingTime,
+        hasVarianceFlag: v.hasVarianceFlag || false,
+        varianceFlagMessage: v.varianceFlagMessage,
+        gpsDataLoaded: v.gpsDataLoaded || false,
+        isEdited: v.isEdited || false
+      }));
+
+      console.log('[Step5] Saving vehicle data to audit:', {
+        auditId: draftAudit.auditId,
+        selectedVehicleIds: wizard.selectedVehicleIds,
+        vehicleGpsDataCount: vehicleGpsData.length,
+        vehicleGpsData: vehicleGpsData
+      });
+
+      await dispatch(saveDraftAudit({
+        auditId: draftAudit.auditId,
+        wizardStep: 5,
+        siteIds: siteIds,
+        periodStart: wizard.periodStart,
+        periodEnd: wizard.periodEnd,
+        selectedVehicleIds: wizard.selectedVehicleIds,
+        vehicleGpsData: vehicleGpsData
+      })).unwrap();
+
+      notify('Vehicle data saved to audit draft', 'success', 3000);
+    } catch (error) {
+      console.error('Error saving vehicle data:', error);
+      notify('Failed to save vehicle data', 'error', 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [dispatch, draftAudit.auditId, wizard.siteIds, wizard.periodStart, wizard.periodEnd, wizard.selectedVehicleIds, selectedVehicles]);
+
+  // Load saved vehicle data from draft (backend)
+  const handleLoadSaved = useCallback(async () => {
+    console.log('[Step5] handleLoadSaved called');
+    console.log('[Step5] draftAudit.auditId:', draftAudit.auditId);
+
+    if (!draftAudit.auditId) {
+      notify('No saved draft found', 'warning', 2000);
+      return;
+    }
+
+    setLoadingCategory('loadSaved');
+    try {
+      notify('Loading saved data...', 'info', 2000);
+      const result = await dispatch(fetchFuelAuditById({ auditId: draftAudit.auditId })).unwrap();
+      console.log('[Step5] fetchFuelAuditById result:', result);
+
+      if (result.isSuccess && result.data) {
+        console.log('[Step5] vehiclePositions from API:', result.data.vehiclePositions);
+
+        // Update wizard state with loaded data - loadDraftToWizard maps all fields
+        dispatch(loadDraftToWizard(result.data));
+
+        // Mark all categories as loaded since we loaded from DB
+        if (result.data.vehiclePositions?.length > 0) {
+          const loadedCats = {};
+          Object.keys(CATEGORY_CONFIG).forEach(catId => {
+            loadedCats[catId] = true;
+          });
+          setLoadedCategories(loadedCats);
+        }
+
+        notify('Saved data loaded successfully', 'success', 3000);
+      }
+    } catch (error) {
+      console.error('[Step5] Error loading saved data:', error);
+      notify('Failed to load saved data', 'error', 3000);
+    } finally {
+      setLoadingCategory(null);
+    }
+  }, [dispatch, draftAudit.auditId]);
 
   // Synchronous load for a single category (fallback)
   const loadCategorySync = useCallback(async (categoryId, vehicles, siteIds, forceRefresh) => {
@@ -844,10 +958,10 @@ const Step5VehiclePreview = memo(() => {
               onClick={() => handleRefreshCategory(categoryId)}
               disabled={isLoading}
             />
-            {/* Load GPS Data button (only for GPS categories that haven't loaded) */}
+            {/* Fetch Original button (only for GPS categories that haven't loaded) */}
             {config.canFetchGps && !loadedCategories[categoryId] && (
               <Button
-                text="Load GPS Data"
+                text="Fetch Original"
                 type="default"
                 stylingMode="outlined"
                 onClick={() => handleLoadCategoryData(categoryId)}
@@ -890,6 +1004,40 @@ const Step5VehiclePreview = memo(() => {
 
           <Column dataField="vehicleNo" caption="Vehicle" width={100} />
           <Column dataField="vehicleTypeName" caption="Type" width={90} />
+
+          {/* Fuel Sensor Status - Show for Category 1 only */}
+          {categoryId === 1 && (
+            <Column
+              caption="Fuel Sensor"
+              width={85}
+              alignment="center"
+              cellRender={(cellData) => {
+                const hasGPS = cellData.data.hasGPS;
+                const hasGpsData = cellData.data.gpsDataLoaded || cellData.data.openingFuel != null;
+
+                if (hasGPS) {
+                  return hasGpsData ? (
+                    <span className="tw-px-2 tw-py-0.5 tw-rounded tw-bg-green-100 tw-text-green-700 tw-text-xs"
+                          title="Vehicle has fuel sensor with GPS data">
+                      <i className="fa-light fa-check tw-mr-1"></i>Yes
+                    </span>
+                  ) : (
+                    <span className="tw-px-2 tw-py-0.5 tw-rounded tw-bg-yellow-100 tw-text-yellow-700 tw-text-xs"
+                          title="Vehicle has fuel sensor but no GPS data available for this period">
+                      <i className="fa-light fa-exclamation-triangle tw-mr-1"></i>No Data
+                    </span>
+                  );
+                }
+                return (
+                  <span className="tw-px-2 tw-py-0.5 tw-rounded tw-bg-gray-100 tw-text-gray-500 tw-text-xs"
+                        title="No fuel sensor configured">
+                    <i className="fa-light fa-times tw-mr-1"></i>No
+                  </span>
+                );
+              }}
+            />
+          )}
+
           <Column
             dataField="refillCount"
             caption="Refills"
@@ -1265,24 +1413,66 @@ const Step5VehiclePreview = memo(() => {
   return (
     <div className="wizard-step tw-p-6">
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-        <div className="tw-flex tw-items-center">
+        <div className="tw-flex tw-items-center tw-gap-3">
           <i className="fa-light fa-chart-mixed tw-mr-2 tw-text-lg"></i>
           <h3 className="tw-text-lg tw-font-semibold">Vehicle Data Preview by Category</h3>
+          {hasEditedVehicleData && (
+            <div className="tw-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-yellow-100 tw-rounded tw-border tw-border-yellow-300">
+              <i className="fa-light fa-pencil tw-text-yellow-600"></i>
+              <span className="tw-text-xs tw-text-yellow-700 tw-font-medium">Edited</span>
+            </div>
+          )}
         </div>
-        {/* Load All button */}
+        {/* Action buttons */}
         {selectedVehicles.length > 0 && (
-          <Button
-            text="Load All Data"
-            icon="download"
-            type="default"
-            onClick={handleLoadAllGpsData}
-            disabled={loadingCategory !== null}
-          />
+          <div className="tw-flex tw-gap-2">
+            <Button
+              text="Export All"
+              icon="exportxlsx"
+              type="default"
+              stylingMode="outlined"
+              onClick={handleExportAllCategories}
+              disabled={loadingCategory !== null}
+            />
+            <Button
+              text="Load Saved"
+              icon="refresh"
+              type="normal"
+              stylingMode="outlined"
+              onClick={handleLoadSaved}
+              disabled={loadingCategory !== null || !draftAudit.auditId}
+              hint="Reload data from last saved draft"
+            />
+            <Button
+              text="Fetch Original"
+              icon="download"
+              type="default"
+              stylingMode="outlined"
+              onClick={handleLoadAllGpsData}
+              disabled={loadingCategory !== null}
+              hint="Fetch fresh GPS data from GPSGate"
+            />
+            <Button
+              text="Save to Audit"
+              icon="save"
+              type="success"
+              stylingMode="contained"
+              onClick={handleSaveToAudit}
+              disabled={loadingCategory !== null || isSaving || !draftAudit.auditId}
+              hint={!draftAudit.auditId ? 'Complete Step 1 first to save' : 'Save current data to audit draft'}
+            />
+          </div>
         )}
       </div>
       <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
         Review fuel data for selected vehicles. Expand each row to see refill history. Use refresh to recalculate.
       </p>
+      {!draftAudit.auditId && selectedVehicles.length > 0 && (
+        <div className="tw-mb-4 tw-p-2 tw-bg-orange-50 tw-border tw-border-orange-200 tw-rounded tw-text-xs tw-text-orange-600">
+          <i className="fa-light fa-info-circle tw-mr-1"></i>
+          Complete Step 1 (Site &amp; Period) first to enable saving vehicle data to the audit draft
+        </div>
+      )}
 
       {/* Summary stats bar */}
       <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-4 lg:tw-grid-cols-7 tw-gap-2">
@@ -1430,7 +1620,7 @@ const Step5VehiclePreview = memo(() => {
       <GPSDataDetailsPopup
         visible={detailsPopupVisible}
         vehicleDetails={selectedVehicleDetails}
-        onClose={handleCloseDetails}
+        onHiding={handleCloseDetails}
       />
     </div>
   );

@@ -220,13 +220,13 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 if (result.Success)
                 {
                     _logger.LogInformation("RECALCULATE successful: {Message}", result.Message);
+                    return Ok(result);
                 }
                 else
                 {
                     _logger.LogError("RECALCULATE failed: {ErrorMessage}", result.ErrorMessage);
+                    return BadRequest(result);
                 }
-
-                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -276,13 +276,13 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 if (result.Success)
                 {
                     _logger.LogInformation("MANUAL correction successful: {Message}", result.Message);
+                    return Ok(result);
                 }
                 else
                 {
                     _logger.LogError("MANUAL correction failed: {ErrorMessage}", result.ErrorMessage);
+                    return BadRequest(result);
                 }
-
-                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -323,7 +323,15 @@ namespace FMS.WebClient.Controllers.FuelManagement
                     User.Identity?.Name ?? "System",
                     cancellationToken);
 
-                return Ok(result);
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    _logger.LogError("RECALCULATE_SINGLE failed: {ErrorMessage}", result.ErrorMessage);
+                    return BadRequest(result);
+                }
             }
             catch (Exception ex)
             {
@@ -367,7 +375,15 @@ namespace FMS.WebClient.Controllers.FuelManagement
                     User.Identity?.Name ?? "System",
                     cancellationToken);
 
-                return Ok(result);
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    _logger.LogError("RECALCULATE_FROM_POINT failed: {ErrorMessage}", result.ErrorMessage);
+                    return BadRequest(result);
+                }
             }
             catch (Exception ex)
             {

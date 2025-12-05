@@ -19,7 +19,7 @@ export const STEP_CONFIG = [
   { step: 4, title: 'Select Vehicles', icon: 'fa-truck', description: 'Choose vehicles to include' },
   { step: 5, title: 'Vehicle Preview', icon: 'fa-satellite', description: 'Preview GPS fuel data' },
   { step: 6, title: 'Reconciliation', icon: 'fa-scale-balanced', description: 'Fuel reconciliation view' },
-  { step: 7, title: 'Review & Create', icon: 'fa-check-circle', description: 'Review and create audit' }
+  { step: 7, title: 'Audit Report', icon: 'fa-file-invoice', description: 'Final report & complete' }
 ];
 
 // Total number of steps

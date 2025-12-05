@@ -31,7 +31,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
         // Throttling for parallel API calls (not DB operations)
         private const int MaxConcurrentApiCalls = 5;
-        private const int MaxDaysToSearchBack = 7;
+        private const int MaxDaysToSearchBack = 30;  // Extended from 7 to 30 days - search until we find data
         private static readonly SemaphoreSlim _apiThrottle = new(MaxConcurrentApiCalls);
 
         // Semaphore to ensure sequential DB operations
@@ -431,30 +431,63 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
             var isOpening = readingType.Equals("opening", StringComparison.OrdinalIgnoreCase);
 
-            // Determine time range based on reading type
-            string fromTime, untilTime;
-            if (isOpening)
-            {
-                fromTime = "00:00:00";
-                untilTime = "06:00:00";
-            }
-            else
-            {
-                fromTime = "18:00:00";
-                untilTime = "23:59:59";
-            }
-
             // Track whether we found any tracks at all (for distinguishing no data vs no fuel sensor)
             bool foundAnyTracks = false;
             bool foundTracksWithoutFuel = false;
 
-            // Try current date first, then search back up to 7 days for closing (1 day for opening)
-            int maxDaysBack = isOpening ? 1 : MaxDaysToSearchBack;
+            // STRATEGY:
+            // 1. First try preferred time window on the exact date (morning for opening, evening for closing)
+            // 2. If not found, try full day on the exact date
+            // 3. Search backwards day by day with full day search
+            //
+            // For Opening: We want the EARLIEST reading of the day (start of period)
+            // For Closing: We want the LATEST reading of the day (end of period)
+
+            int maxDaysBack = MaxDaysToSearchBack;
 
             for (int dayOffset = 0; dayOffset <= maxDaysBack; dayOffset++)
             {
                 var searchDate = date.AddDays(-dayOffset);
-                var tracks = await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, searchDate, fromTime, untilTime, cancellationToken);
+
+                // On the exact requested date, try preferred time window first
+                if (dayOffset == 0)
+                {
+                    string preferredFromTime, preferredUntilTime;
+                    if (isOpening)
+                    {
+                        // For opening, prefer early morning data
+                        preferredFromTime = "00:00:00";
+                        preferredUntilTime = "08:00:00";
+                    }
+                    else
+                    {
+                        // For closing, prefer late evening data
+                        preferredFromTime = "16:00:00";
+                        preferredUntilTime = "23:59:59";
+                    }
+
+                    var preferredTracks = await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, searchDate, preferredFromTime, preferredUntilTime, cancellationToken);
+
+                    if (preferredTracks != null && preferredTracks.Any())
+                    {
+                        foundAnyTracks = true;
+                        var trackWithFuel = isOpening
+                            ? preferredTracks.OrderBy(t => t.UTC).FirstOrDefault(t => HasFuelData(t))
+                            : preferredTracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => HasFuelData(t));
+
+                        if (trackWithFuel != null)
+                        {
+                            return CreateFuelPositionFromTrack(vehicleId, externalDeviceId, date, readingType, trackWithFuel, 0, searchDate);
+                        }
+                        else
+                        {
+                            foundTracksWithoutFuel = true;
+                        }
+                    }
+                }
+
+                // Try full day search
+                var tracks = await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, searchDate, "00:00:00", "23:59:59", cancellationToken);
 
                 if (tracks != null && tracks.Any())
                 {
@@ -467,29 +500,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                     if (trackWithFuel != null)
                     {
-                        var fuelLevel = ExtractFuelLevel(trackWithFuel.Variables);
-                        var timestamp = ParseTimestamp(trackWithFuel.UTC);
-                        var ignitionStatus = ExtractIgnitionStatus(trackWithFuel.Variables);
-
-                        return new VehicleFuelPositionDTO
-                        {
-                            VehicleId = vehicleId,
-                            ReadingDate = date,
-                            ReadingType = readingType,
-                            FuelLevel = fuelLevel,
-                            ReadingTimestamp = timestamp ?? searchDate,
-                            DataQuality = dayOffset == 0 ? FuelDataQuality.Exact : FuelDataQuality.Interpolated,
-                            DataQualityReason = dayOffset == 0 ? "Data from requested date" : $"Data from {dayOffset} day(s) prior",
-                            Latitude = trackWithFuel.Position?.Latitude != null ? (decimal)trackWithFuel.Position.Latitude : null,
-                            Longitude = trackWithFuel.Position?.Longitude != null ? (decimal)trackWithFuel.Position.Longitude : null,
-                            DaysFromRequestedDate = dayOffset,
-                            ActualDataDate = searchDate,
-                            WasOnline = true,
-                            IgnitionStatus = ignitionStatus,
-                            GPSDeviceId = externalDeviceId,
-                            TrackInfoId = trackWithFuel.TrackInfoId,
-                            RawData = JsonSerializer.Serialize(trackWithFuel.Variables)
-                        };
+                        return CreateFuelPositionFromTrack(vehicleId, externalDeviceId, date, readingType, trackWithFuel, dayOffset, searchDate);
                     }
                     else
                     {
@@ -546,6 +557,43 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Creates a VehicleFuelPositionDTO from a GPS track
+        /// </summary>
+        private VehicleFuelPositionDTO CreateFuelPositionFromTrack(
+            int vehicleId,
+            string externalDeviceId,
+            DateTime requestedDate,
+            string readingType,
+            GPSGateTrack track,
+            int dayOffset,
+            DateTime actualDataDate)
+        {
+            var fuelLevel = ExtractFuelLevel(track.Variables);
+            var timestamp = ParseTimestamp(track.UTC);
+            var ignitionStatus = ExtractIgnitionStatus(track.Variables);
+
+            return new VehicleFuelPositionDTO
+            {
+                VehicleId = vehicleId,
+                ReadingDate = requestedDate,
+                ReadingType = readingType,
+                FuelLevel = fuelLevel,
+                ReadingTimestamp = timestamp ?? actualDataDate,
+                DataQuality = dayOffset == 0 ? FuelDataQuality.Exact : FuelDataQuality.Interpolated,
+                DataQualityReason = dayOffset == 0 ? "Data from requested date" : $"Data from {dayOffset} day(s) prior",
+                Latitude = track.Position?.Latitude != null ? (decimal)track.Position.Latitude : null,
+                Longitude = track.Position?.Longitude != null ? (decimal)track.Position.Longitude : null,
+                DaysFromRequestedDate = dayOffset,
+                ActualDataDate = actualDataDate,
+                WasOnline = true,
+                IgnitionStatus = ignitionStatus,
+                GPSDeviceId = externalDeviceId,
+                TrackInfoId = track.TrackInfoId,
+                RawData = JsonSerializer.Serialize(track.Variables)
+            };
         }
 
         /// <summary>
@@ -1174,6 +1222,16 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     qualityReason += $" Next refill: {firstRefillAfterDate.ManualFuelrefillAmount}L in {daysUntilNextRefill} days.";
                 }
 
+                // IMPORTANT: When returning from manual refill fallback:
+                // - ActualDataDate should be the REQUESTED date (the audit date we need data for)
+                // - DaysFromRequestedDate should be 0 since we're providing context for the requested date
+                // - Only use FuelLevel if we can actually estimate it (e.g., full tank scenario)
+                // - ReadingTimestamp should be set to end of day for closing, start of day for opening
+                var isOpeningReading = readingType.Equals("opening", StringComparison.OrdinalIgnoreCase);
+                var readingTimestamp = isOpeningReading
+                    ? date.Date // Start of day for opening
+                    : date.Date.AddHours(23).AddMinutes(59).AddSeconds(59); // End of day for closing
+
                 return new VehicleFuelPositionDTO
                 {
                     VehicleId = vehicleId,
@@ -1182,11 +1240,11 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     ReadingType = readingType,
                     FuelLevel = estimatedFuelLevel,
                     FuelLevelUnit = "Liters",
-                    ReadingTimestamp = (DateTime?)lastRefillBeforeDate.Date,
+                    ReadingTimestamp = readingTimestamp,
                     DataQuality = dataQuality,
                     DataQualityReason = qualityReason,
-                    DaysFromRequestedDate = daysSinceRefill,
-                    ActualDataDate = (DateTime?)lastRefillBeforeDate.Date,
+                    DaysFromRequestedDate = 0, // We're providing context for the requested date
+                    ActualDataDate = date, // The date we need data for, not the refill date
                     WasOnline = false, // Not GPS data
                     RawData = JsonSerializer.Serialize(new
                     {

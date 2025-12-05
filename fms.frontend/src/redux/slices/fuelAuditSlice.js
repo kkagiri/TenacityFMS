@@ -1,454 +1,31 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import fuelAuditApi from '../../api/fuelAuditApi';
-
-// ============================================================
-// ASYNC THUNKS - GPS DATA
-// ============================================================
-
-/**
- * Get vehicle fuel position from GPS
- */
-export const fetchVehicleFuelPosition = createAsyncThunk(
-  'fuelAudit/fetchVehicleFuelPosition',
-  async (vehicleId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getVehicleFuelPosition(vehicleId);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Get fleet fuel positions
- */
-export const fetchFleetFuelPositions = createAsyncThunk(
-  'fuelAudit/fetchFleetFuelPositions',
-  async (vehicleIds, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getFleetFuelPositions(vehicleIds);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Get vehicle fuel consumption for period
- */
-export const fetchVehicleFuelConsumption = createAsyncThunk(
-  'fuelAudit/fetchVehicleFuelConsumption',
-  async ({ vehicleId, startDate, endDate }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getVehicleFuelConsumption(vehicleId, startDate, endDate);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Get vehicle refuel events
- */
-export const fetchVehicleRefuelEvents = createAsyncThunk(
-  'fuelAudit/fetchVehicleRefuelEvents',
-  async ({ vehicleId, startDate, endDate }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getVehicleRefuelEvents(vehicleId, startDate, endDate);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Refresh vehicle fuel data
- */
-export const refreshVehicleData = createAsyncThunk(
-  'fuelAudit/refreshVehicleData',
-  async (vehicleId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.refreshVehicleFuelData(vehicleId);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-// ============================================================
-// ASYNC THUNKS - WIZARD DATA (Tanks & Vehicles)
-// ============================================================
-
-/**
- * Fetch tanks for a site (wizard step 2)
- */
-export const fetchTanksForSite = createAsyncThunk(
-  'fuelAudit/fetchTanksForSite',
-  async (siteId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getTanksForSite(siteId);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch tank volume history preview (wizard step 3)
- */
-export const fetchTankVolumePreview = createAsyncThunk(
-  'fuelAudit/fetchTankVolumePreview',
-  async ({ tankIds, startDate, endDate, siteId }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getTankVolumeHistoryPreview({
-        tankIds,
-        startDate,
-        endDate,
-        siteId
-      });
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch vehicles for a site (wizard step 4)
- */
-export const fetchVehiclesForSite = createAsyncThunk(
-  'fuelAudit/fetchVehiclesForSite',
-  async (siteId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getVehiclesForSite(siteId);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch fuel refills from selected tanks for a period (wizard step 4)
- * Shows vehicles that were fueled from the selected tanks
- * Supports multi-site audits via siteIds array
- */
-export const fetchTankRefillsPreview = createAsyncThunk(
-  'fuelAudit/fetchTankRefillsPreview',
-  async ({ tankIds, startDate, endDate, siteIds }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getTankRefillsPreview({
-        tankIds,
-        startDate,
-        endDate,
-        siteIds: Array.isArray(siteIds) ? siteIds : (siteIds ? [siteIds] : [])
-      });
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch GPS fleet fuel positions for audit period (wizard step 5)
- */
-export const fetchFleetAuditPeriodFuel = createAsyncThunk(
-  'fuelAudit/fetchFleetAuditPeriodFuel',
-  async ({ vehicleIds, startDate, endDate, categoryId }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getFleetFuelPositionsForAuditPeriod({
-        vehicleIds,
-        auditPeriodStart: startDate,
-        auditPeriodEnd: endDate,
-        categoryId // Pass category to backend to determine REST vs SOAP
-      });
-      return { ...response, categoryId };
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch category-aware GPS data for fuel audit wizard Step 5.
- * Routes to appropriate data sources based on vehicle category.
- * @param {object} params
- * @param {object[]} params.vehicles - Array of vehicle objects with category info from Step 4
- * @param {string} params.startDate - Audit period start
- * @param {string} params.endDate - Audit period end
- * @param {number} [params.auditSiteId] - Site ID for audit context
- */
-export const fetchCategoryAuditData = createAsyncThunk(
-  'fuelAudit/fetchCategoryAuditData',
-  async ({ vehicles, startDate, endDate, auditSiteId }, { rejectWithValue }) => {
-    try {
-      // Transform vehicle data to match backend DTO
-      const vehicleDtos = vehicles.map(v => ({
-        vehicleId: v.vehicleId,
-        vehicleName: v.vehicleNo,
-        category: v.vehicleCategory || 5,
-        hasGPS: v.hasGPS || false,
-        isFullTankPolicy: v.isFullTankPolicy || false,
-        fuelTankCapacity: v.fuelTankCapacity,
-        averageEfficiency: v.efficiency,
-        isKmL: v.isKmL !== false, // Default to km/L
-        totalFuelRefilled: v.totalFuelAmount || 0,
-        refillCount: v.refillCount || 0
-      }));
-
-      const response = await fuelAuditApi.getCategoryAuditFuel({
-        vehicles: vehicleDtos,
-        startDate,
-        endDate,
-        auditSiteId
-      });
-
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Start async GPS data fetch with SignalR progress updates.
- * Returns immediately with a job ID - listen for SignalR events for progress.
- * @param {object} params
- * @param {object[]} params.vehicles - Array of vehicle objects with category info from Step 4
- * @param {string} params.startDate - Audit period start
- * @param {string} params.endDate - Audit period end
- * @param {number} [params.auditSiteId] - Site ID for audit context
- */
-export const startCategoryAuditAsync = createAsyncThunk(
-  'fuelAudit/startCategoryAuditAsync',
-  async ({ vehicles, startDate, endDate, auditSiteId }, { rejectWithValue }) => {
-    try {
-      // Transform vehicle data to match backend DTO
-      const vehicleDtos = vehicles.map(v => ({
-        vehicleId: v.vehicleId,
-        vehicleName: v.vehicleNo,
-        category: v.vehicleCategory || 5,
-        hasGPS: v.hasGPS || false,
-        isFullTankPolicy: v.isFullTankPolicy || false,
-        fuelTankCapacity: v.fuelTankCapacity,
-        averageEfficiency: v.efficiency,
-        isKmL: v.isKmL !== false, // Default to km/L
-        totalFuelRefilled: v.totalFuelAmount || 0,
-        refillCount: v.refillCount || 0
-      }));
-
-      const response = await fuelAuditApi.startCategoryAuditAsync({
-        vehicles: vehicleDtos,
-        startDate,
-        endDate,
-        auditSiteId
-      });
-
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Cancel an active GPS fetch job.
- * @param {string} jobId - Job ID to cancel
- */
-export const cancelCategoryAuditJob = createAsyncThunk(
-  'fuelAudit/cancelCategoryAuditJob',
-  async (jobId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.cancelCategoryAuditJob(jobId);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch GPS data for a specific vehicle category
- * Categories 1 & 4 support GPS data (REST & SOAP respectively)
- */
-export const fetchCategoryGpsData = createAsyncThunk(
-  'fuelAudit/fetchCategoryGpsData',
-  async ({ vehicleIds, startDate, endDate, categoryId, siteId }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getFleetFuelPositionsForAuditPeriod({
-        vehicleIds,
-        auditPeriodStart: startDate,
-        auditPeriodEnd: endDate,
-        categoryId,
-        siteId
-      });
-      return { data: response.data, categoryId, isSuccess: response.isSuccess };
-    } catch (error) {
-      return rejectWithValue({ error, categoryId });
-    }
-  }
-);
-
-/**
- * Check if a vehicle has fuel sensor
- */
-export const checkVehicleFuelSensor = createAsyncThunk(
-  'fuelAudit/checkVehicleFuelSensor',
-  async (vehicleId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.checkVehicleFuelSensor(vehicleId);
-      return { vehicleId, ...response };
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-// ============================================================
-// ASYNC THUNKS - AUDIT MANAGEMENT
-// ============================================================
-
-/**
- * Fetch list of fuel audits
- */
-export const fetchFuelAudits = createAsyncThunk(
-  'fuelAudit/fetchFuelAudits',
-  async (params = {}, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getFuelAudits(params);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch single audit by ID
- */
-export const fetchFuelAuditById = createAsyncThunk(
-  'fuelAudit/fetchFuelAuditById',
-  async ({ auditId, options = {} }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getFuelAuditById(auditId, options);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Create a new fuel audit
- */
-export const createNewAudit = createAsyncThunk(
-  'fuelAudit/createNewAudit',
-  async (auditData, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.createFuelAudit(auditData);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Calculate audit variances
- */
-export const calculateAuditVariances = createAsyncThunk(
-  'fuelAudit/calculateAuditVariances',
-  async ({ auditId, recalculate = false }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.calculateAudit(auditId, recalculate);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Submit tank reading
- */
-export const submitReading = createAsyncThunk(
-  'fuelAudit/submitReading',
-  async ({ auditId, readingData }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.submitTankerReading(auditId, readingData);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Finalize audit
- */
-export const finalizeAuditAction = createAsyncThunk(
-  'fuelAudit/finalizeAudit',
-  async (auditId, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.finalizeAudit(auditId);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Cancel audit
- */
-export const cancelAuditAction = createAsyncThunk(
-  'fuelAudit/cancelAudit',
-  async ({ auditId, reason }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.cancelAudit(auditId, reason);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Resolve flag
- */
-export const resolveFlagAction = createAsyncThunk(
-  'fuelAudit/resolveFlag',
-  async ({ flagId, resolution }, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.resolveFlag(flagId, resolution);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
-
-/**
- * Fetch audit thresholds
- */
-export const fetchAuditThresholds = createAsyncThunk(
-  'fuelAudit/fetchAuditThresholds',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await fuelAuditApi.getAuditThresholds();
-      return response;
-    } catch (error) {
-      return rejectWithValue(error);
-    }
-  }
-);
+import { createSlice } from '@reduxjs/toolkit';
+import {
+  fetchVehicleFuelPosition,
+  fetchFleetFuelPositions,
+  fetchVehicleFuelConsumption,
+  fetchVehicleRefuelEvents,
+  refreshVehicleData,
+  fetchTanksForSite,
+  fetchTankVolumePreview,
+  fetchVehiclesForSite,
+  fetchTankRefillsPreview,
+  fetchFleetAuditPeriodFuel,
+  fetchCategoryAuditData,
+  startCategoryAuditAsync,
+  cancelCategoryAuditJob,
+  fetchCategoryGpsData,
+  checkVehicleFuelSensor,
+  fetchFuelAudits,
+  fetchFuelAuditById,
+  createNewAudit,
+  saveDraftAudit,
+  calculateAuditVariances,
+  submitReading,
+  finalizeAuditAction,
+  cancelAuditAction,
+  resolveFlagAction,
+  fetchAuditThresholds
+} from './fuelAuditThunks';
 
 // ============================================================
 // INITIAL STATE
@@ -486,9 +63,13 @@ const initialState = {
   // Thresholds
   thresholds: [],
 
-  // Wizard data (for 6-step wizard)
+  // Wizard data (for 7-step wizard)
   wizard: {
     step: 1,
+    // Draft audit tracking - auto-saved from step 1
+    draftAuditId: null,
+    draftAuditNumber: null,
+    lastSavedAt: null,
     // Step 1 data - Multi-site support
     siteIds: [],  // Changed from siteId to siteIds array for multi-site selection
     periodStart: null,
@@ -507,7 +88,9 @@ const initialState = {
     includePickups: true,
     // Step 5 data - GPS preview
     gpsPreview: null,
-    // Step 6 data
+    // Step 6 data - Reconciliation edits
+    reconciliationData: null,
+    // Step 7 data
     notes: '',
     autoPopulateTankReadings: true,
     // Validation
@@ -517,7 +100,8 @@ const initialState = {
       step3: { valid: false, errors: [], warnings: [] },
       step4: { valid: false, errors: [] },
       step5: { valid: false, errors: [], warnings: [] },
-      step6: { valid: true, errors: [] }
+      step6: { valid: true, errors: [] },
+      step7: { valid: true, errors: [] }
     }
   },
 
@@ -526,6 +110,7 @@ const initialState = {
     audits: false,
     currentAudit: false,
     create: false,
+    saveDraft: false,
     calculate: false,
     submitReading: false,
     finalize: false,
@@ -549,6 +134,7 @@ const initialState = {
     audits: null,
     currentAudit: null,
     create: null,
+    saveDraft: null,
     calculate: null,
     submitReading: null,
     finalize: null,
@@ -619,6 +205,8 @@ const fuelAuditSlice = createSlice({
     },
     gpsFetchCompleted: (state, action) => {
       const { jobId, result } = action.payload;
+      console.log('[fuelAuditSlice] gpsFetchCompleted called, jobId:', jobId);
+
       if (state.gpsFetchJob.jobId === jobId || !state.gpsFetchJob.jobId) {
         state.gpsFetchJob.status = 'completed';
         state.gpsFetchJob.progressPercent = 100;
@@ -631,12 +219,19 @@ const fuelAuditSlice = createSlice({
         // This mirrors the logic in fetchCategoryAuditData.fulfilled
         if (result && result.categoryResults) {
           const categoryResults = result.categoryResults || [];
+          console.log('[fuelAuditSlice] Processing', categoryResults.length, 'category results');
+
           categoryResults.forEach(catResult => {
             const vehicles = catResult.vehicles || [];
+            console.log(`[fuelAuditSlice] Category ${catResult.category}: ${vehicles.length} vehicles`);
+
             vehicles.forEach(vehicle => {
               const idx = state.wizard.tankRefills?.findIndex(
                 v => v.vehicleId === vehicle.vehicleId
               );
+
+              console.log(`[fuelAuditSlice] Vehicle ${vehicle.vehicleId}: idx=${idx}, openingFuelLevel=${vehicle.openingFuelLevel}, closingFuelLevel=${vehicle.closingFuelLevel}`);
+
               if (idx >= 0 && state.wizard.tankRefills) {
                 state.wizard.tankRefills[idx] = {
                   ...state.wizard.tankRefills[idx],
@@ -731,10 +326,26 @@ const fuelAuditSlice = createSlice({
     },
 
     // Step 2: Select Tanks
+    // Note: Don't clear tankPreview if data has been edited - user explicitly saves/fetches
     setSelectedTanks: (state, action) => {
-      state.wizard.selectedTankIds = action.payload;
-      // Clear preview when selection changes
-      state.wizard.tankPreview = null;
+      const newSelectedIds = action.payload;
+      const oldSelectedIds = state.wizard.selectedTankIds || [];
+
+      // Check if any tank preview data was edited
+      const hasEditedData = state.wizard.tankPreview?.some(t => t.isEdited) || false;
+
+      // Only clear preview if:
+      // 1. Selection actually changed AND
+      // 2. No edited data exists
+      const selectionChanged = JSON.stringify(newSelectedIds.sort()) !== JSON.stringify(oldSelectedIds.sort());
+
+      state.wizard.selectedTankIds = newSelectedIds;
+
+      if (selectionChanged && !hasEditedData) {
+        // Selection changed and no edits - clear preview to fetch fresh data
+        state.wizard.tankPreview = null;
+      }
+      // If hasEditedData, keep tankPreview intact - user can manually fetch original if needed
     },
 
     // Step 2: Set tanks grouped by site (for multi-site)
@@ -754,10 +365,26 @@ const fuelAuditSlice = createSlice({
     },
 
     // Step 4: Select Vehicles
+    // Note: Don't clear vehicle data if it has been edited - user explicitly saves/fetches
     setSelectedVehicles: (state, action) => {
-      state.wizard.selectedVehicleIds = action.payload;
-      // Clear GPS preview when selection changes
-      state.wizard.gpsPreview = null;
+      const newSelectedIds = action.payload;
+      const oldSelectedIds = state.wizard.selectedVehicleIds || [];
+
+      // Check if any vehicle/tankRefills data was edited
+      const hasEditedVehicleData = state.wizard.tankRefills?.some(v => v.isEdited) || false;
+
+      // Only clear preview if:
+      // 1. Selection actually changed AND
+      // 2. No edited data exists
+      const selectionChanged = JSON.stringify(newSelectedIds.sort()) !== JSON.stringify(oldSelectedIds.sort());
+
+      state.wizard.selectedVehicleIds = newSelectedIds;
+
+      if (selectionChanged && !hasEditedVehicleData) {
+        // Selection changed and no edits - clear preview to fetch fresh data
+        state.wizard.gpsPreview = null;
+      }
+      // If hasEditedVehicleData, keep data intact - user can manually fetch original if needed
     },
 
     setVehicleOptions: (state, action) => {
@@ -769,6 +396,11 @@ const fuelAuditSlice = createSlice({
     // Step 6: Notes
     setWizardNotes: (state, action) => {
       state.wizard.notes = action.payload;
+    },
+
+    // Step 6: Reconciliation data
+    setReconciliationData: (state, action) => {
+      state.wizard.reconciliationData = action.payload;
     },
 
     // Validation
@@ -799,6 +431,52 @@ const fuelAuditSlice = createSlice({
       }
     },
 
+    /**
+     * Update vehicle fuel data in tankRefills (for editable grid in Step 5/6)
+     * Marks vehicle as manually edited when fuel values are changed
+     */
+    updateVehicleFuelData: (state, action) => {
+      const { vehicleId, changes } = action.payload;
+      if (state.wizard.tankRefills && Array.isArray(state.wizard.tankRefills)) {
+        const idx = state.wizard.tankRefills.findIndex(v => v.vehicleId === vehicleId);
+        if (idx >= 0) {
+          state.wizard.tankRefills[idx] = {
+            ...state.wizard.tankRefills[idx],
+            ...changes,
+            // Mark as manually edited
+            isEdited: true,
+            // Update data source to manual if opening/closing was changed
+            dataSourcePrimary: (changes.openingFuel !== undefined || changes.closingFuel !== undefined)
+              ? 'Manual'
+              : state.wizard.tankRefills[idx].dataSourcePrimary
+          };
+        }
+      }
+    },
+
+    /**
+     * Batch update multiple vehicles' fuel data (for efficiency)
+     * Used when multiple cells are edited in the datagrid
+     */
+    updateMultipleVehicleFuelData: (state, action) => {
+      const updates = action.payload; // Array of { vehicleId, changes }
+      if (state.wizard.tankRefills && Array.isArray(state.wizard.tankRefills) && Array.isArray(updates)) {
+        updates.forEach(({ vehicleId, changes }) => {
+          const idx = state.wizard.tankRefills.findIndex(v => v.vehicleId === vehicleId);
+          if (idx >= 0) {
+            state.wizard.tankRefills[idx] = {
+              ...state.wizard.tankRefills[idx],
+              ...changes,
+              isEdited: true,
+              dataSourcePrimary: (changes.openingFuel !== undefined || changes.closingFuel !== undefined)
+                ? 'Manual'
+                : state.wizard.tankRefills[idx].dataSourcePrimary
+            };
+          }
+        });
+      }
+    },
+
     // Reset wizard
     resetWizard: (state) => {
       state.wizard = initialState.wizard;
@@ -806,6 +484,143 @@ const fuelAuditSlice = createSlice({
       state.error.vehicles = null;
       state.error.tankPreview = null;
       state.error.gpsPreview = null;
+    },
+
+    /**
+     * Load a draft audit into the wizard for continuation.
+     * Called when user clicks "Continue Draft" on a draft audit.
+     * Populates wizard state from FuelAuditDetailDTO.
+     */
+    loadDraftToWizard: (state, action) => {
+      const audit = action.payload;
+      if (!audit) return;
+
+      // Reset wizard first
+      state.wizard = { ...initialState.wizard };
+
+      // Set draft audit tracking
+      state.wizard.draftAuditId = audit.id;
+      state.wizard.draftAuditNumber = audit.auditNumber;
+
+      // Step 1: Site & Period
+      // Multi-site support: Prefer siteIds array from API, fallback to single siteId
+      let siteIds = [];
+      if (audit.siteIds?.length > 0) {
+        // New multi-site support: use siteIds array from API
+        siteIds = [...audit.siteIds];
+      } else if (audit.siteId) {
+        // Legacy fallback: single siteId
+        siteIds.push(audit.siteId);
+      } else if (audit.tankerReadings?.length > 0) {
+        // Extract unique site IDs from tank readings if available
+        // For now, we'll need to load tanks separately
+      }
+      state.wizard.siteIds = siteIds;
+      state.wizard.periodStart = audit.startDate;
+      state.wizard.periodEnd = audit.endDate;
+      state.wizard.auditType = audit.auditType || 'Weekly';
+
+      // Step 2: Selected Tanks (from tanker readings)
+      if (audit.tankerReadings?.length > 0) {
+        state.wizard.selectedTankIds = audit.tankerReadings.map(r => r.tankId);
+
+        // Also populate tank preview from existing readings
+        state.wizard.tankPreview = audit.tankerReadings.map(r => ({
+          tankId: r.tankId,
+          tankName: r.tankName,
+          tankCapacity: r.tankCapacity,
+          openingStock: r.openingStock,
+          closingStock: r.closingStock,
+          totalDeliveries: r.fuelReceived,
+          totalDispensed: r.fuelDispensed,
+          totalTransfersIn: r.fuelTransferredIn,
+          totalTransfersOut: r.fuelTransferredOut,
+          expectedClosing: r.expectedClosing,
+          variance: r.variance,
+          variancePercent: r.variancePercent,
+          openingDataSource: r.openingMethod || 'Draft',
+          closingDataSource: r.closingMethod || 'Draft',
+          hasVarianceFlag: r.hasVarianceFlag,
+          isEdited: false
+        }));
+      }
+
+      // Step 4/5: Selected Vehicles (from vehicle positions)
+      if (audit.vehiclePositions?.length > 0) {
+        state.wizard.selectedVehicleIds = audit.vehiclePositions.map(vp => vp.vehicleId);
+
+        // Build a map of existing tankRefills to preserve refills array
+        const existingRefillsMap = {};
+        if (state.wizard.tankRefills?.length > 0) {
+          state.wizard.tankRefills.forEach(tr => {
+            if (tr.refills?.length > 0) {
+              existingRefillsMap[tr.vehicleId] = tr.refills;
+            }
+          });
+        }
+
+        // Populate tankRefills from vehicle positions with all fields for Step 5 display
+        // Preserve existing refills array if available
+        state.wizard.tankRefills = audit.vehiclePositions.map(vp => ({
+          vehicleId: vp.vehicleId,
+          vehicleNo: vp.vehicleName,
+          numberPlate: vp.plateNumber,
+          vehicleType: vp.vehicleType,
+          vehicleCategory: vp.vehicleType === 'GPS' ? 1 : (vp.vehicleType === 'FullTank' ? 2 : 5),
+          tankCapacity: vp.tankCapacity,
+          openingFuel: vp.openingStock,
+          openingReadingTime: vp.openingReadingTime,
+          openingDataQuality: vp.openingDataQuality,
+          closingFuel: vp.closingStock,
+          closingReadingTime: vp.closingReadingTime,
+          closingDataQuality: vp.closingDataQuality,
+          totalFuelAmount: vp.totalRefueled,
+          refillCount: vp.refuelCount,
+          fuelConsumed: vp.fuelConsumed,
+          gpsMeasuredConsumption: vp.gpsMeasuredConsumption,
+          consumption: vp.grossConsumption,
+          expectedClosing: vp.expectedClosing,
+          vehicleVariance: vp.variance,
+          variancePercent: vp.variancePercent,
+          hasVarianceFlag: vp.hasVarianceFlag,
+          varianceFlagMessage: vp.varianceFlagMessage,
+          dataSourcePrimary: vp.openingDataSource || vp.dataSource || 'Draft',
+          dataConfidence: vp.dataQuality,
+          gpsDataLoaded: true,
+          isEdited: vp.isManuallyEdited || false,
+          // Preserve existing refills array if available
+          refills: existingRefillsMap[vp.vehicleId] || []
+        }));
+      }
+
+      // Step 7: Notes
+      state.wizard.notes = audit.description || '';
+
+      // Use the saved wizard step from the database if available
+      // Otherwise, fall back to inferring from data completeness
+      if (audit.wizardStep && audit.wizardStep >= 1 && audit.wizardStep <= 7) {
+        state.wizard.step = audit.wizardStep;
+      } else {
+        // Legacy fallback: Determine which step to start at based on data completeness
+        // If we have tank data, start at step 2 or 3
+        // If we have vehicle data, start at step 4 or 5
+        let startStep = 1;
+        if (state.wizard.siteIds.length > 0 && state.wizard.periodStart && state.wizard.periodEnd) {
+          startStep = 2; // Can move to tank selection
+          if (state.wizard.selectedTankIds.length > 0) {
+            startStep = 3; // Can move to tank preview
+            if (state.wizard.tankPreview?.length > 0) {
+              startStep = 4; // Can move to vehicle selection
+              if (state.wizard.selectedVehicleIds.length > 0) {
+                startStep = 5; // Can move to GPS preview
+              }
+            }
+          }
+        }
+
+        // Default to step 2 if we have basic data, user can navigate
+        state.wizard.step = Math.max(startStep, 2);
+      }
     },
 
     // Optimistic update for flag resolution
@@ -881,6 +696,26 @@ const fuelAuditSlice = createSlice({
       .addCase(createNewAudit.rejected, (state, action) => {
         state.loading.create = false;
         state.error.create = action.payload;
+      });
+
+    // Save draft audit (wizard auto-save)
+    builder
+      .addCase(saveDraftAudit.pending, (state) => {
+        state.loading.saveDraft = true;
+        state.error.saveDraft = null;
+      })
+      .addCase(saveDraftAudit.fulfilled, (state, action) => {
+        state.loading.saveDraft = false;
+        if (action.payload.isSuccess && action.payload.data) {
+          // Store draft audit info in wizard state
+          state.wizard.draftAuditId = action.payload.data.auditId;
+          state.wizard.draftAuditNumber = action.payload.data.auditNumber;
+          state.wizard.lastSavedAt = action.payload.data.lastSavedAt;
+        }
+      })
+      .addCase(saveDraftAudit.rejected, (state, action) => {
+        state.loading.saveDraft = false;
+        state.error.saveDraft = action.payload;
       });
 
     // Calculate audit
@@ -1361,6 +1196,35 @@ const fuelAuditSlice = createSlice({
 // EXPORTS
 // ============================================================
 
+// Thunk exports
+export {
+  fetchVehicleFuelPosition,
+  fetchFleetFuelPositions,
+  fetchVehicleFuelConsumption,
+  fetchVehicleRefuelEvents,
+  refreshVehicleData,
+  fetchTanksForSite,
+  fetchTankVolumePreview,
+  fetchVehiclesForSite,
+  fetchTankRefillsPreview,
+  fetchFleetAuditPeriodFuel,
+  fetchCategoryAuditData,
+  startCategoryAuditAsync,
+  cancelCategoryAuditJob,
+  fetchCategoryGpsData,
+  checkVehicleFuelSensor,
+  fetchFuelAudits,
+  fetchFuelAuditById,
+  createNewAudit,
+  saveDraftAudit,
+  calculateAuditVariances,
+  submitReading,
+  finalizeAuditAction,
+  cancelAuditAction,
+  resolveFlagAction,
+  fetchAuditThresholds
+} from './fuelAuditThunks';
+
 // Actions
 export const {
   clearCurrentAudit,
@@ -1383,9 +1247,13 @@ export const {
   setSelectedVehicles,
   setVehicleOptions,
   setWizardNotes,
+  setReconciliationData,
   setStepValidation,
   updateTankPreviewData,
+  updateVehicleFuelData,
+  updateMultipleVehicleFuelData,
   resetWizard,
+  loadDraftToWizard,
   updateFlagStatus
 } = fuelAuditSlice.actions;
 
@@ -1405,6 +1273,11 @@ export const selectWizardTanksBySite = (state) => state.fuelAudit.wizard.tanksBy
 export const selectWizardTankRefills = (state) => state.fuelAudit.wizard.tankRefills;
 export const selectWizardTankPreview = (state) => state.fuelAudit.wizard.tankPreview;
 export const selectWizardGpsPreview = (state) => state.fuelAudit.wizard.gpsPreview;
+export const selectWizardDraftAudit = (state) => ({
+  auditId: state.fuelAudit.wizard.draftAuditId,
+  auditNumber: state.fuelAudit.wizard.draftAuditNumber,
+  lastSavedAt: state.fuelAudit.wizard.lastSavedAt
+});
 export const selectGpsFetchJob = (state) => state.fuelAudit.gpsFetchJob;
 export const selectLoading = (state) => state.fuelAudit.loading;
 export const selectError = (state) => state.fuelAudit.error;

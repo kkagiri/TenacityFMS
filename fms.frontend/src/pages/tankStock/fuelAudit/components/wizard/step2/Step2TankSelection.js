@@ -8,14 +8,14 @@
  * Multi-site: Loads tanks from all selected sites and groups them by site
  */
 
-import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, memo, useMemo, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, { Column, Selection, Paging, Scrolling, FilterRow } from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 
-import { setSelectedTanks, setTanksBySite, clearTanksData, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
-import { fetctTankbySiteId } from '../../../../../redux/actions/tankActions';
+import { setSelectedTanks, setTanksBySite, clearTanksData, selectWizard } from '../../../../../../redux/slices/fuelAuditSlice';
+import { fetctTankbySiteId } from '../../../../../../redux/actions/tankActions';
 
 const Step2TankSelection = memo(() => {
   const dispatch = useDispatch();
@@ -28,6 +28,9 @@ const Step2TankSelection = memo(() => {
   const [error, setError] = useState(null);
   // Local state for selection to avoid Redux immutability issues with DevExtreme
   const [selectedKeys, setSelectedKeys] = useState([]);
+
+  // Refs for DataGrid instances to ensure proper cleanup
+  const gridRefs = useRef({});
 
   // Get site IDs from wizard (ensure array)
   const siteIds = useMemo(() => {
@@ -60,6 +63,25 @@ const Step2TankSelection = memo(() => {
   useEffect(() => {
     setSelectedKeys(wizard.selectedTankIds ? [...wizard.selectedTankIds] : []);
   }, [wizard.selectedTankIds]);
+
+  // Cleanup DataGrid instances on unmount to prevent DOM errors
+  useEffect(() => {
+    // Store current refs for cleanup
+    const currentRefs = gridRefs.current;
+
+    return () => {
+      // Dispose all grid instances before unmounting
+      Object.values(currentRefs).forEach(ref => {
+        if (ref?.instance) {
+          try {
+            ref.instance.dispose();
+          } catch (e) {
+            // Ignore disposal errors
+          }
+        }
+      });
+    };
+  }, []);
 
   // Load tanks when site selection changes
   useEffect(() => {
@@ -167,6 +189,7 @@ const Step2TankSelection = memo(() => {
     const tanks = allTanks;
     return (
       <DataGrid
+        ref={(ref) => { gridRefs.current['single'] = ref; }}
         dataSource={tanks}
         keyExpr="id"
         showBorders={true}
@@ -256,6 +279,7 @@ const Step2TankSelection = memo(() => {
               {/* Site Tanks Grid */}
               {siteTanks.length > 0 ? (
                 <DataGrid
+                  ref={(ref) => { gridRefs.current[`site-${siteId}`] = ref; }}
                   dataSource={siteTanks}
                   keyExpr="id"
                   showBorders={false}

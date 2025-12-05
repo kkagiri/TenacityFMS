@@ -45,6 +45,7 @@ import vehicleDocumentReducer from "./vehicleDocumentReducer";
 import providerReducer from "./providerReducer";
 import maintenanceReducer from "./maintenanceReducer";
 import reconciliationReducer from "../slices/reconciliationSlice";
+import tankVolumeCorrectionReducer from "../slices/tankVolumeCorrectionSlice";
 import dailyTankReconciliationReducer from "./dailyTankReconciliationReducer";
 import fuelAuditReducer from "../slices/fuelAuditSlice";
 
@@ -95,6 +96,7 @@ const rootReducer = combineReducers({
   provider: providerReducer,
   maintenance: maintenanceReducer,
   reconciliation: reconciliationReducer,
+  tankVolumeCorrection: tankVolumeCorrectionReducer,
   dailyTankReconciliation: dailyTankReconciliationReducer,
   fuelAudit: fuelAuditReducer,
 });

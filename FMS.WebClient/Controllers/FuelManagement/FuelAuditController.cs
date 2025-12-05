@@ -103,6 +103,35 @@ namespace FMS.WebClient.Controllers.FuelManagement
         }
 
         /// <summary>
+        /// Save draft audit from wizard at any step.
+        /// Creates a new draft on Step 1, updates on subsequent steps.
+        /// </summary>
+        /// <param name="dto">Wizard step data</param>
+        /// <returns>Saved draft audit info</returns>
+        [HttpPost("save-draft")]
+        public async Task<IActionResult> SaveDraftAudit([FromBody] SaveDraftAuditDTO dto)
+        {
+            _logger.LogInformation("Saving draft audit at step {Step}, AuditId: {AuditId}",
+                dto.WizardStep, dto.AuditId);
+
+            // Set user ID from claims if not provided
+            if (string.IsNullOrEmpty(dto.UserId))
+            {
+                dto.UserId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            }
+
+            var command = new SaveDraftAuditCommand(dto);
+            var result = await _mediator.Send(command);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Submit or update tanker reading for an audit
         /// </summary>
         /// <param name="id">Audit ID</param>

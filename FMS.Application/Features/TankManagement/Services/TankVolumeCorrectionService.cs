@@ -55,8 +55,6 @@ namespace FMS.Application.Features.TankManagement.Services
             string executedBy,
             CancellationToken cancellationToken = default)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
             try
             {
                 _logger.LogInformation("Starting bulk recalculation for Tank {TankId} from {FromDate} to {ToDate}",
@@ -82,7 +80,6 @@ namespace FMS.Application.Features.TankManagement.Services
 
                 if (openingStock == null)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
                     result.Success = false;
                     result.ErrorMessage = $"No opening stock found for Tank {tankId} on {fromDate.Date:yyyy-MM-dd}. " +
                         "Cannot recalculate without valid opening stock baseline.";
@@ -154,7 +151,6 @@ namespace FMS.Application.Features.TankManagement.Services
 
                 // Save all corrections
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
 
                 // Prepare result
                 var changedCount = correctedTransactions.Count(c => c.Changed);
@@ -171,7 +167,6 @@ namespace FMS.Application.Features.TankManagement.Services
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Error during tank volume recalculation for Tank {TankId}", tankId);
 
                 return new CorrectionExecutionResult
@@ -197,8 +192,6 @@ namespace FMS.Application.Features.TankManagement.Services
             string executedBy,
             CancellationToken cancellationToken = default)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
             try
             {
                 _logger.LogInformation("Starting manual correction for Transaction {TransactionId}: NewVolume={NewVolume}L, Reason: {Reason}",
@@ -217,7 +210,6 @@ namespace FMS.Application.Features.TankManagement.Services
 
                 if (txn == null)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
                     result.Success = false;
                     result.ErrorMessage = $"Transaction {transactionId} not found";
                     return result;
@@ -253,7 +245,6 @@ namespace FMS.Application.Features.TankManagement.Services
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
 
                 result.Success = true;
                 result.TransactionsProcessed = 1;
@@ -267,7 +258,6 @@ namespace FMS.Application.Features.TankManagement.Services
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Error during manual correction for Transaction {TransactionId}", transactionId);
 
                 return new CorrectionExecutionResult
@@ -290,8 +280,6 @@ namespace FMS.Application.Features.TankManagement.Services
             string executedBy,
             CancellationToken cancellationToken = default)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
             try
             {
                 var txn = await _context.TankVolumeHistories
@@ -341,7 +329,6 @@ namespace FMS.Application.Features.TankManagement.Services
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
 
                 return new CorrectionExecutionResult
                 {
@@ -358,7 +345,6 @@ namespace FMS.Application.Features.TankManagement.Services
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
                 return new CorrectionExecutionResult
                 {
                     Success = false,
@@ -379,8 +365,6 @@ namespace FMS.Application.Features.TankManagement.Services
             string executedBy,
             CancellationToken cancellationToken = default)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
             try
             {
                 var startTxn = await _context.TankVolumeHistories
@@ -433,7 +417,6 @@ namespace FMS.Application.Features.TankManagement.Services
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
 
                 return new CorrectionExecutionResult
                 {
@@ -449,7 +432,6 @@ namespace FMS.Application.Features.TankManagement.Services
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(cancellationToken);
                 return new CorrectionExecutionResult
                 {
                     Success = false,

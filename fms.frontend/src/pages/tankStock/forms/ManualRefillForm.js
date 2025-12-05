@@ -10,9 +10,8 @@
  * - handleSaveAndClose/handleSaveAndNew: Persist data and coordinate UI feedback
  * - useTankStockFormData: Shared context for persisting date and site across forms
  */
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import { Form, SimpleItem, Label } from "devextreme-react/form";
 import Button from "devextreme-react/button";
 import LoadIndicator from "devextreme-react/load-indicator";
@@ -70,6 +69,9 @@ const ManualRefillForm = ({
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
+
+  // ✅ REF to guard against double submissions (refs update synchronously unlike state)
+  const isSubmittingRef = useRef(false);
   const [formData, setFormData] = useState({
     vehicleId: null,
     manualFuelrefillAmount: null,
@@ -394,6 +396,12 @@ const ManualRefillForm = ({
 
   // Handle form submission and close
   const handleSaveAndClose = useCallback(async () => {
+    // ✅ GUARD: Prevent double submission using ref (synchronous check)
+    if (isSubmittingRef.current) {
+      console.warn("ManualRefillForm: Submission already in progress, ignoring duplicate click");
+      return;
+    }
+
     setHasAttemptedSubmit(true);
     const errors = validateForm();
     setValidationErrors(errors);
@@ -411,6 +419,8 @@ const ManualRefillForm = ({
       return;
     }
 
+    // ✅ Set ref immediately (synchronous) to prevent race conditions
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -435,6 +445,8 @@ const ManualRefillForm = ({
       console.error("Error creating manual refill:", error);
       showNotification("Failed to record manual refill", "error");
     } finally {
+      // ✅ Reset both ref and state
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   }, [
@@ -448,6 +460,12 @@ const ManualRefillForm = ({
 
   // Handle save and new entry
   const handleSaveAndNew = useCallback(async () => {
+    // ✅ GUARD: Prevent double submission using ref (synchronous check)
+    if (isSubmittingRef.current) {
+      console.warn("ManualRefillForm: Submission already in progress, ignoring duplicate click");
+      return;
+    }
+
     setHasAttemptedSubmit(true);
     const errors = validateForm();
     setValidationErrors(errors);
@@ -465,6 +483,8 @@ const ManualRefillForm = ({
       return;
     }
 
+    // ✅ Set ref immediately (synchronous) to prevent race conditions
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -489,6 +509,8 @@ const ManualRefillForm = ({
       console.error("Error creating manual refill:", error);
       showNotification("Failed to record manual refill", "error");
     } finally {
+      // ✅ Reset both ref and state
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   }, [

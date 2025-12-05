@@ -77,6 +77,9 @@ const CorrectionExecution = () => {
     }
   }, [plan, selectedStrategy, dispatch]);
 
+  // Get selected tank data
+  const selectedTankData = affectedTanks.find(t => t.tankId === selectedTankId);
+
   // Handle tank selection
   const handleTankSelect = (tankId) => {
     setSelectedTankId(tankId);
@@ -86,7 +89,28 @@ const CorrectionExecution = () => {
     });
   };
 
-  const selectedTankData = affectedTanks.find(t => t.tankId === selectedTankId);
+  // Auto-populate dates for RECALCULATE strategy when tank is selected
+  useEffect(() => {
+    if (selectedStrategy === 'RECALCULATE' && selectedTankData?.breaks && selectedTankData.breaks.length > 0) {
+      // Extract dates from breaks for selected tank
+      const breakDates = selectedTankData.breaks
+        .map(b => b.transactionTimestamp ? new Date(b.transactionTimestamp) : null)
+        .filter(d => d !== null);
+
+      if (breakDates.length > 0) {
+        // Find min and max dates
+        const minDate = new Date(Math.min(...breakDates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max(...breakDates.map(d => d.getTime())));
+
+        // Auto-populate date range
+        setStrategyParams(prev => ({
+          ...prev,
+          fromDate: minDate,
+          toDate: maxDate
+        }));
+      }
+    }
+  }, [selectedStrategy, selectedTankId]);
 
   if (!canRead) {
     return (
@@ -449,6 +473,12 @@ const CorrectionExecution = () => {
                     displayFormat="dd/MM/yyyy"
                     showClearButton={true}
                   />
+                  {strategyParams.fromDate && selectedTankData?.breaks?.length > 0 && (
+                    <small className="tvcc-form-hint">
+                      <i className="fa-light fa-circle-info"></i>
+                      Auto-populated from earliest break ({selectedTankData.breaks.length} breaks detected)
+                    </small>
+                  )}
                 </div>
 
                 <div className="tvcc-form-group">
@@ -461,6 +491,12 @@ const CorrectionExecution = () => {
                     displayFormat="dd/MM/yyyy"
                     showClearButton={true}
                   />
+                  {strategyParams.toDate && selectedTankData?.breaks?.length > 0 && (
+                    <small className="tvcc-form-hint">
+                      <i className="fa-light fa-circle-info"></i>
+                      Auto-populated from latest break
+                    </small>
+                  )}
                 </div>
               </>
             )}

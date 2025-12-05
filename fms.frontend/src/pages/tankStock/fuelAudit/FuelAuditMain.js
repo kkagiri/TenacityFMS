@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Tabs from 'devextreme-react/tabs';
 import { Button } from 'devextreme-react/button';
@@ -14,8 +14,13 @@ import './FuelAuditMain.scss';
  * Fuel Audit Main Component
  * Main entry point for the Fuel Audit module under Tank Stock
  *
- * The Create Wizard is rendered as a full page (no tabs/header)
+ * The Create/Edit Wizard is rendered as a full page (no tabs/header)
  * Other views are rendered with tabs navigation
+ *
+ * Routes:
+ * - /tankstock/fuel-audit/create - New audit wizard
+ * - /tankstock/fuel-audit/edit/:reportId - Edit existing audit wizard
+ * - /tankstock/fuel-audit/edit/:reportId/step/:stepNumber - Edit at specific step
  */
 const FuelAuditMain = () => {
   const navigate = useNavigate();
@@ -23,25 +28,41 @@ const FuelAuditMain = () => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const { userInfo } = usePermissions();
 
+  // Delay mounting of DevExtreme components to prevent DOM conflicts
+  const [isReady, setIsReady] = useState(false);
+
+  // Check if we're on the create or edit wizard page - do this BEFORE useEffect
+  const isCreateWizard = location.pathname.includes('/fuel-audit/create');
+  const isEditWizard = location.pathname.includes('/fuel-audit/edit');
+  const isWizardMode = isCreateWizard || isEditWizard;
+
+  useEffect(() => {
+    // Skip delay for wizard page since it doesn't use DevExtreme tabs
+    if (isWizardMode) {
+      setIsReady(true);
+      return;
+    }
+    // Small delay to ensure React has fully mounted before DevExtreme components render
+    const timer = setTimeout(() => setIsReady(true), 100);
+    return () => clearTimeout(timer);
+  }, [isWizardMode]);
+
   // Check if user is admin
   const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
   const isAdmin = userRoles.some(role =>
     typeof role === 'string' && role.toLowerCase() === 'admin'
   );
 
-  // Check if we're on the create wizard page
-  const isCreateWizard = location.pathname.includes('/fuel-audit/create');
-
   // Tab configuration (excluding Create - it's a full page now)
   const tabData = useMemo(() => [
-    { text: "Dashboard", icon: "fa-light fa-chart-pie", path: "" },
-    { text: "Audit List", icon: "fa-light fa-list-check", path: "/list" },
-    { text: "GPS Fleet Monitor", icon: "fa-light fa-satellite", path: "/gps-monitor" }
+    { id: 0, text: "Dashboard", icon: "fa-light fa-chart-pie", path: "" },
+    { id: 1, text: "Audit List", icon: "fa-light fa-list-check", path: "/list" },
+    { id: 2, text: "GPS Fleet Monitor", icon: "fa-light fa-satellite", path: "/gps-monitor" }
   ], []);
 
   // Determine active tab from path
-  React.useEffect(() => {
-    if (isCreateWizard) return; // Don't update tabs when on wizard
+  useEffect(() => {
+    if (isWizardMode || !isReady) return; // Don't update tabs when on wizard or not ready
 
     const currentPath = location.pathname.replace('/tankstock/fuel-audit', '');
     const index = tabData.findIndex(tab => {
@@ -51,7 +72,7 @@ const FuelAuditMain = () => {
     if (index >= 0 && index !== activeTabIndex) {
       setActiveTabIndex(index);
     }
-  }, [location.pathname, tabData, activeTabIndex, isCreateWizard]);
+  }, [location.pathname, tabData, activeTabIndex, isWizardMode, isReady]);
 
   const handleTabChange = useCallback((e) => {
     const newIndex = e.itemIndex;
@@ -60,20 +81,28 @@ const FuelAuditMain = () => {
     navigate(`${basePath}${tabData[newIndex].path}`);
   }, [navigate, tabData]);
 
-  const renderTabItem = useCallback((item) => (
-    <div className="tw-flex tw-items-center tw-gap-2 tw-px-2">
-      <i className={item.icon}></i>
-      <span>{item.text}</span>
-    </div>
-  ), []);
-
-  // Render Create Wizard as full page (no header/tabs)
-  if (isCreateWizard) {
+  // Render Create/Edit Wizard as full page (no header/tabs)
+  if (isWizardMode) {
     return (
       <div className="fuel-audit-wizard-page tw-h-full tw-bg-gray-100">
         <Routes>
           <Route path="/create" element={<CreateAuditWizard />} />
+          <Route path="/edit/:reportId" element={<CreateAuditWizard />} />
+          <Route path="/edit/:reportId/step/:stepNumber" element={<CreateAuditWizard />} />
         </Routes>
+      </div>
+    );
+  }
+
+  // Show loading state until component is ready (prevents DevExtreme DOM conflicts)
+  // Use plain div spinner instead of <i> to avoid font-awesome conflicts
+  if (!isReady) {
+    return (
+      <div className="fuel-audit-main tw-h-full tw-flex tw-items-center tw-justify-center">
+        <div className="tw-text-center">
+          <div className="tw-w-8 tw-h-8 tw-border-4 tw-border-blue-600 tw-border-t-transparent tw-rounded-full tw-animate-spin tw-mx-auto tw-mb-3"></div>
+          <p className="tw-text-gray-500">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -86,7 +115,7 @@ const FuelAuditMain = () => {
         <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
           <div>
             <h1 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-flex tw-items-center tw-gap-3">
-              <i className="fa-light fa-file-invoice tw-text-blue-600"></i>
+              <span className="tw-text-blue-600">📋</span>
               Fuel Audit System
             </h1>
             <p className="tw-text-gray-500 tw-text-sm tw-mt-1">
@@ -98,7 +127,7 @@ const FuelAuditMain = () => {
               <Button
                 text="New Audit"
                 type="default"
-               stylingMode="outlined"
+                stylingMode="outlined"
                 icon="fa-light fa-plus"
                 onClick={() => navigate('/tankstock/fuel-audit/create')}
               />
@@ -106,12 +135,13 @@ const FuelAuditMain = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Use text-only tabs to avoid icon rendering issues */}
         <Tabs
           dataSource={tabData}
           selectedIndex={activeTabIndex}
           onItemClick={handleTabChange}
-          itemRender={renderTabItem}
+          keyExpr="id"
+          displayExpr="text"
           scrollByContent={true}
           showNavButtons={true}
           className="fuel-audit-tabs"

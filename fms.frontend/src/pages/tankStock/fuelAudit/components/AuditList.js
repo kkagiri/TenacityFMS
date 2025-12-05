@@ -31,6 +31,9 @@ const AuditList = () => {
   const pagination = useSelector(selectAuditsPagination);
   const loading = useSelector(selectLoading);
 
+  // Track initialization to prevent DevExtreme DOM conflicts
+  const [isInitialized, setIsInitialized] = useState(false);
+
   const [localFilters, setLocalFilters] = useState({
     status: 'all',
     fromDate: null,
@@ -54,7 +57,10 @@ const AuditList = () => {
       fromDate: localFilters.fromDate?.toISOString(),
       toDate: localFilters.toDate?.toISOString()
     };
-    dispatch(fetchFuelAudits(params));
+    dispatch(fetchFuelAudits(params)).finally(() => {
+      // Delay before allowing DevExtreme components to render
+      setTimeout(() => setIsInitialized(true), 100);
+    });
   }, [dispatch, localFilters]);
 
   const handleFilterChange = useCallback((field, value) => {
@@ -128,9 +134,28 @@ const AuditList = () => {
     );
   }, []);
 
+  // Handle continuing a draft audit
+  const handleContinueDraft = useCallback(async (e, audit) => {
+    e.stopPropagation();
+    // Navigate to edit mode with the audit ID
+    navigate(`/tankstock/fuel-audit/edit/${audit.id}`);
+  }, [navigate]);
+
   const renderActions = useCallback((cellData) => {
+    const isDraft = cellData.data.status === 'Draft';
+
     return (
       <div className="tw-flex tw-gap-2">
+        {/* Continue Draft button (only for Draft status) */}
+        {isDraft && (
+          <button
+            onClick={(e) => handleContinueDraft(e, cellData.data)}
+            className="tw-p-1 tw-text-green-600 hover:tw-bg-green-50 tw-rounded"
+            title="Continue Draft"
+          >
+            <i className="fa-light fa-pen-to-square"></i>
+          </button>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -143,7 +168,19 @@ const AuditList = () => {
         </button>
       </div>
     );
-  }, [navigate]);
+  }, [navigate, handleContinueDraft]);
+
+  // Show loading state until initialized (prevents DevExtreme DOM conflicts)
+  if (!isInitialized) {
+    return (
+      <div className="tw-p-6 tw-flex tw-items-center tw-justify-center tw-min-h-[400px]">
+        <div className="tw-text-center">
+          <div className="tw-w-10 tw-h-10 tw-border-4 tw-border-blue-600 tw-border-t-transparent tw-rounded-full tw-animate-spin tw-mx-auto tw-mb-4"></div>
+          <p className="tw-text-gray-500">Loading audits...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tw-p-6">

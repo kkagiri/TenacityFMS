@@ -1,0 +1,80 @@
+.fuel-refill-delete-modal {
+  .dx-dialog {
+    // Dialog styling
+    .dx-dialog-message {
+      padding: 0;
+    }
+  }
+
+  // Warning box styling
+  .tw-p-3 {
+    &.tw-bg-red-50 {
+      background-color: #fef2f2;
+      border-color: #fecaca;
+
+      .fa-triangle-exclamation {
+        color: #dc2626;
+      }
+
+      .tw-text-red-800 {
+        color: #7f1d1d;
+      }
+
+      .tw-text-red-600 {
+        color: #991b1b;
+      }
+    }
+  }
+
+  // Details box styling
+  .tw-bg-gray-50 {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+  }
+
+  // TextArea styling
+  .dx-textarea {
+    width: 100%;
+
+    .dx-texteditor-container {
+      border-color: #d1d5db;
+      border-radius: 0.375rem;
+
+      &:hover {
+        border-color: #9ca3af;
+      }
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  // Character counter
+  .tw-text-xs {
+    &.tw-text-gray-500 {
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+  }
+
+  // Button styling
+  .dx-button {
+    &.dx-state-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &.dx-button-danger {
+      background-color: #dc2626;
+      border-color: #dc2626;
+      color: #ffffff;
+
+      &:hover:not(.dx-state-disabled) {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+      }
+    }
+  }
+}

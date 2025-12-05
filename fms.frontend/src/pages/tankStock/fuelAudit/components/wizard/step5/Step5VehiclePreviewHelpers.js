@@ -131,7 +131,8 @@ export const GPSDataDetailsPopup = ({
   onHiding,
   vehicleDetails
 }) => {
-  if (!vehicleDetails) return null;
+  // Don't render if no vehicle details or missing required data
+  if (!vehicleDetails || !vehicleDetails.vehicleNo) return null;
 
   return (
     <Popup
@@ -141,7 +142,7 @@ export const GPSDataDetailsPopup = ({
       hideOnOutsideClick={true}
       showCloseButton={true}
       showTitle={true}
-      title={`GPS Data Details - ${vehicleDetails.vehicleNo}`}
+      title={`GPS Data Details - ${vehicleDetails.vehicleNo || 'Unknown'}`}
       width={550}
       height={520}
       contentRender={() => (

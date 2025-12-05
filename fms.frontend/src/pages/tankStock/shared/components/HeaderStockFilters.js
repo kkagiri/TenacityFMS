@@ -106,16 +106,22 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
             startDate={startDate}
             endDate={endDate}
             onValueChanged={(e) => {
-              if (e.value && e.value.length === 2) {
-                // Set start date to beginning of day (00:00:00.000)
-                const start = new Date(e.value[0]);
-                start.setHours(0, 0, 0, 0);
-                setStartDate(start);
+              // Only process if we have both valid dates
+              if (e.value && e.value.length === 2 && e.value[0] && e.value[1]) {
+                // Ensure both values are valid Date objects
+                const startVal = new Date(e.value[0]);
+                const endVal = new Date(e.value[1]);
 
-                // Set end date to end of day (23:59:59.999)
-                const end = new Date(e.value[1]);
-                end.setHours(23, 59, 59, 999);
-                setEndDate(end);
+                // Check if dates are valid (not NaN)
+                if (!isNaN(startVal.getTime()) && !isNaN(endVal.getTime())) {
+                  // Set start date to beginning of day (00:00:00.000)
+                  startVal.setHours(0, 0, 0, 0);
+                  setStartDate(startVal);
+
+                  // Set end date to end of day (23:59:59.999)
+                  endVal.setHours(23, 59, 59, 999);
+                  setEndDate(endVal);
+                }
               }
             }}
             displayFormat="dd/MM/yyyy"

@@ -1,0 +1,90 @@
+.fuel-refill-edit-modal {
+  .dx-dialog {
+    .dx-dialog-message {
+      overflow-y: auto;
+    }
+  }
+
+  // Input field styling
+  .dx-textbox {
+    width: 100%;
+
+    .dx-texteditor-container {
+      border-color: #d1d5db;
+
+      &:hover {
+        border-color: #9ca3af;
+      }
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  .dx-numberbox {
+    .dx-texteditor-container {
+      border-color: #d1d5db;
+
+      &:hover {
+        border-color: #9ca3af;
+      }
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  .dx-selectbox {
+    .dx-texteditor-container {
+      border-color: #d1d5db;
+
+      &:hover {
+        border-color: #9ca3af;
+      }
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  .dx-textarea {
+    .dx-texteditor-container {
+      border-color: #d1d5db;
+
+      &:hover {
+        border-color: #9ca3af;
+      }
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  // Label styling
+  label {
+    &.required {
+      &::after {
+        content: ' *';
+        color: #dc2626;
+      }
+    }
+  }
+
+  // Dialog buttons
+  .dx-button {
+    min-width: 100px;
+
+    &.dx-state-disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}

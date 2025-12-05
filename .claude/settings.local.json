@@ -26,7 +26,8 @@
       "Bash(Select-String -Pattern \"GetTankStockListQuery|Build succeeded|Build FAILED|error CS\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(Select-String -Pattern \"Build succeeded|Build FAILED|error CS\" -Context 2)"
     ],
     "deny": [],
     "ask": []

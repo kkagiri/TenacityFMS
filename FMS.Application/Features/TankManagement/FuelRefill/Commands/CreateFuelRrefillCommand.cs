@@ -118,12 +118,11 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     .FirstOrDefaultAsync(f =>
                         f.VehicleId == fuelRefilDto.VehicleId &&
                         f.Date.Value.Date == fuelRefilDto.Date.Value.Date &&
-                        f.PreviousMeterReading == fuelRefilDto.PreviousMeterReading &&
-                        f.CurrentMeterReading == fuelRefilDto.CurrentMeterReading &&
-                        f.ManualFuelrefillAmount == fuelRefilDto.ManualFuelrefillAmount,
+                        f.ManualFuelrefillAmount == fuelRefilDto.ManualFuelrefillAmount &&
+                        (f.IsDeleted != true),
                         cancellationToken);
 
-                if (existingRefuel != null) return new FMSResponseMessage(false, "Duplicate entry: A fuel refill with the same details already exists for this vehicle on the specified date.");
+                if (existingRefuel != null) return new FMSResponseMessage(false, $"Duplicate entry: A fuel refill for vehicle already exists on {fuelRefilDto.Date.Value.Date:yyyy-MM-dd} with the same volume ({fuelRefilDto.ManualFuelrefillAmount}L). Please check the existing entry or use a different volume.");
 
                 if (request.FuelRefilDTO.ManualFuelrefillAmount == null || request.FuelRefilDTO.ManualFuelrefillAmount <= 0) return new FMSResponseMessage(false, "Fuel refill amount should be greater than 0.");
 

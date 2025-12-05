@@ -33,9 +33,15 @@ const AuditDetail = () => {
   const [selectedFlag, setSelectedFlag] = useState(null);
   const [resolution, setResolution] = useState('');
 
+  // Track initialization to prevent DevExtreme DOM conflicts
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
     if (auditId) {
-      dispatch(fetchFuelAuditById({ auditId: parseInt(auditId) }));
+      dispatch(fetchFuelAuditById({ auditId: parseInt(auditId) })).finally(() => {
+        // Delay before allowing DevExtreme components to render
+        setTimeout(() => setIsInitialized(true), 100);
+      });
     }
     return () => {
       dispatch(clearCurrentAudit());
@@ -128,11 +134,20 @@ const AuditDetail = () => {
     return map[severity] || 'low';
   };
 
-  if (loading.currentAudit) {
+  // Handle continuing a draft audit in the wizard
+  const handleContinueDraft = useCallback(() => {
+    if (audit) {
+      // Navigate to edit mode with the audit ID
+      navigate(`/tankstock/fuel-audit/edit/${audit.id}`);
+    }
+  }, [navigate, audit]);
+
+  // Show loading state with CSS spinner (not <i> to avoid DOM conflicts)
+  if (loading.currentAudit || !isInitialized) {
     return (
       <div className="tw-p-6 tw-flex tw-items-center tw-justify-center tw-min-h-[400px]">
         <div className="tw-text-center">
-          <i className="fa-light fa-spinner-third fa-spin tw-text-4xl tw-text-blue-600 tw-mb-4"></i>
+          <div className="tw-w-10 tw-h-10 tw-border-4 tw-border-blue-600 tw-border-t-transparent tw-rounded-full tw-animate-spin tw-mx-auto tw-mb-4"></div>
           <p className="tw-text-gray-500">Loading audit details...</p>
         </div>
       </div>
@@ -143,14 +158,13 @@ const AuditDetail = () => {
     return (
       <div className="tw-p-6 tw-flex tw-items-center tw-justify-center tw-min-h-[400px]">
         <div className="tw-text-center">
-          <i className="fa-light fa-file-exclamation tw-text-4xl tw-text-gray-300 tw-mb-4"></i>
+          <div className="tw-text-4xl tw-text-gray-300 tw-mb-4">📄</div>
           <p className="tw-text-gray-500">Audit not found</p>
           <button
             onClick={() => navigate('/tankstock/fuel-audit/list')}
             className="tw-mt-4 tw-text-blue-600 hover:tw-text-blue-700"
           >
-            <i className="fa-light fa-arrow-left tw-mr-2"></i>
-            Back to List
+            ← Back to List
           </button>
         </div>
       </div>
@@ -160,6 +174,7 @@ const AuditDetail = () => {
   const isEditable = audit.status === 'Draft' || audit.status === 'Calculated';
   const canCalculate = audit.status === 'Draft';
   const canFinalize = audit.status === 'Calculated';
+  const canContinueDraft = audit.status === 'Draft';
 
   return (
     <div className="tw-p-6 audit-detail">
@@ -185,6 +200,15 @@ const AuditDetail = () => {
 
           {isEditable && (
             <div className="tw-flex tw-items-center tw-gap-2">
+              {canContinueDraft && (
+                <Button
+                  text="Continue Draft"
+                  icon="fa-light fa-pen-to-square"
+                  type="default"
+                  stylingMode="contained"
+                  onClick={handleContinueDraft}
+                />
+              )}
               {canCalculate && (
                 <Button
                   text="Calculate"

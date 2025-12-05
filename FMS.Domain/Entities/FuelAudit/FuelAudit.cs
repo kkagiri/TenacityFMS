@@ -174,6 +174,11 @@ namespace FMS.Domain.Entities.FuelAudit
 
         // ===== WORKFLOW =====
         /// <summary>
+        /// Current wizard step for draft audits (1-7)
+        /// </summary>
+        public int WizardStep { get; set; } = 1;
+
+        /// <summary>
         /// When reconciliation calculation was last run
         /// </summary>
         public DateTime? CalculatedAt { get; set; }
@@ -210,5 +215,10 @@ namespace FMS.Domain.Entities.FuelAudit
         public virtual ICollection<FuelAuditVariance> Variances { get; set; } = new List<FuelAuditVariance>();
         public virtual ICollection<FuelAuditFlag> Flags { get; set; } = new List<FuelAuditFlag>();
         public virtual ICollection<FuelAuditGPSReading> GPSReadings { get; set; } = new List<FuelAuditGPSReading>();
+
+        /// <summary>
+        /// Multi-site support: All sites included in this audit
+        /// </summary>
+        public virtual ICollection<FuelAuditSite> AuditSites { get; set; } = new List<FuelAuditSite>();
     }
 }

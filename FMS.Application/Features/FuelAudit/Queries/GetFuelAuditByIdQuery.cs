@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,6 +47,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         .ThenInclude(vp => vp.Vehicle)
                     .Include(a => a.Variances)
                     .Include(a => a.Flags)
+                    .Include(a => a.AuditSites)
                     .FirstOrDefaultAsync(a => a.Id == request.AuditId, cancellationToken);
 
                 if (audit == null)
@@ -68,6 +70,14 @@ namespace FMS.Application.Features.FuelAudit.Queries
                     EndDate = audit.EndDate,
                     Status = audit.Status,
                     Description = audit.Description,
+                    WizardStep = audit.WizardStep,
+
+                    // Site information - multi-site support
+                    SiteId = audit.SiteId,
+                    SiteIds = audit.AuditSites?
+                        .OrderBy(s => s.SiteOrder)
+                        .Select(s => s.SiteId)
+                        .ToList() ?? new List<int>(),
 
                     // Tanker/Storage readings
                     TankerOpeningStock = audit.TankerOpeningStock,
@@ -141,10 +151,27 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         VehicleId = vp.VehicleId,
                         VehicleName = vp.VehicleName ?? vp.Vehicle?.HyoungNo,
                         PlateNumber = vp.NumberPlate ?? vp.Vehicle?.NumberPlate,
+                        VehicleType = vp.VehicleType,
+                        TankCapacity = vp.TankCapacity ?? vp.Vehicle?.FuelTankCapacity,
                         OpeningStock = vp.OpeningStock,
+                        OpeningReadingTime = vp.OpeningReadingTime,
+                        OpeningDataQuality = vp.OpeningDataQuality,
+                        OpeningDataSource = vp.OpeningDataSource,
                         ClosingStock = vp.ClosingStock,
+                        ClosingReadingTime = vp.ClosingReadingTime,
+                        ClosingDataQuality = vp.ClosingDataQuality,
+                        ClosingDataSource = vp.ClosingDataSource,
                         TotalRefueled = vp.FuelRefueled,
+                        RefuelCount = vp.RefuelCount,
+                        FuelConsumed = vp.FuelConsumed,
+                        GpsMeasuredConsumption = vp.GpsMeasuredConsumption,
                         GrossConsumption = vp.FuelConsumed,
+                        ExpectedClosing = vp.ExpectedClosing,
+                        Variance = vp.Variance,
+                        VariancePercent = vp.VariancePercent,
+                        HasVarianceFlag = vp.HasVarianceFlag,
+                        VarianceFlagMessage = vp.VarianceFlagMessage,
+                        IsManuallyEdited = vp.IsManuallyEdited,
                         DistanceTraveled = vp.DistanceTraveled,
                         FuelEfficiency = vp.FuelEfficiency,
                         DataSource = vp.OpeningDataSource,

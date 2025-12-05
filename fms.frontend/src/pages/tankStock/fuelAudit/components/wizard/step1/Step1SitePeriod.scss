@@ -1,0 +1,61 @@
+/**
+ * Step1SitePeriod.scss
+ * Styles for Step 1 - Site and Period Selection
+ */
+
+.step1-site-period {
+  .site-selection-panel,
+  .date-range-panel {
+    @apply tw-bg-white;
+
+    h3 {
+      @apply tw-text-gray-800;
+    }
+  }
+
+  .sites-list {
+    // Custom scrollbar for sites list
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      @apply tw-bg-gray-100 tw-rounded;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      @apply tw-bg-gray-300 tw-rounded;
+
+      &:hover {
+        @apply tw-bg-gray-400;
+      }
+    }
+
+    label {
+      transition: background-color 0.15s ease;
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 1024px) {
+    .site-selection-panel,
+    .date-range-panel {
+      @apply tw-w-full;
+    }
+  }
+
+  // Input focus states
+  input[type="text"],
+  input[type="date"] {
+    @apply tw-transition-colors;
+
+    &:focus {
+      @apply tw-outline-none tw-ring-2 tw-ring-blue-500 tw-border-blue-500;
+    }
+  }
+
+  // Checkbox styling
+  input[type="checkbox"] {
+    @apply tw-accent-blue-500;
+  }
+}

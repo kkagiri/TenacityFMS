@@ -1,0 +1,39 @@
+.fuel-refill-tab {
+  .stat-card {
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .dx-datagrid {
+    border-color: #e5e7eb;
+
+    .dx-gridbase-container {
+      border-color: #e5e7eb;
+    }
+
+    .dx-row {
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+
+    .dx-header-row {
+      background-color: #f9fafb;
+      border-bottom: 2px solid #e5e7eb;
+
+      .dx-cell {
+        color: #374151;
+        font-weight: 600;
+      }
+    }
+
+    .dx-cell {
+      border-color: #f3f4f6;
+      padding: 12px;
+    }
+  }
+}

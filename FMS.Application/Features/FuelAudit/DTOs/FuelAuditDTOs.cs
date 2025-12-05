@@ -81,6 +81,16 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public string Status { get; set; } = "Draft";
         public string? Description { get; set; }
 
+        /// <summary>
+        /// Primary site ID (for backward compatibility)
+        /// </summary>
+        public int? SiteId { get; set; }
+
+        /// <summary>
+        /// All site IDs for multi-site audits
+        /// </summary>
+        public List<int> SiteIds { get; set; } = new();
+
         // ===== TANKER SECTION =====
         public decimal? TankerOpeningStock { get; set; }
         public decimal? TankerClosingStock { get; set; }
@@ -114,6 +124,11 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public int UnresolvedFlagCount { get; set; }
 
         // ===== WORKFLOW =====
+        /// <summary>
+        /// Current wizard step for draft audits (1-7)
+        /// </summary>
+        public int WizardStep { get; set; } = 1;
+
         public DateTime? CalculatedAt { get; set; }
         public DateTime? FinalizedAt { get; set; }
         public string? FinalizedBy { get; set; }
@@ -212,13 +227,34 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public long VehicleId { get; set; }
         public string? VehicleName { get; set; }
         public string? PlateNumber { get; set; }
+        public string? VehicleType { get; set; }
+        public decimal? TankCapacity { get; set; }
 
         // Fuel positions
         public decimal? OpeningStock { get; set; }
+        public DateTime? OpeningReadingTime { get; set; }
+        public string? OpeningDataQuality { get; set; }
+        public string? OpeningDataSource { get; set; }
+
         public decimal? ClosingStock { get; set; }
+        public DateTime? ClosingReadingTime { get; set; }
+        public string? ClosingDataQuality { get; set; }
+        public string? ClosingDataSource { get; set; }
+
         public decimal? TotalRefueled { get; set; }
+        public int? RefuelCount { get; set; }
+        public decimal? FuelConsumed { get; set; }
+        public decimal? GpsMeasuredConsumption { get; set; }
         public decimal? GrossConsumption { get; set; }
         public decimal? NetConsumption { get; set; }
+
+        // Calculated values
+        public decimal? ExpectedClosing { get; set; }
+        public decimal? Variance { get; set; }
+        public decimal? VariancePercent { get; set; }
+        public bool HasVarianceFlag { get; set; }
+        public string? VarianceFlagMessage { get; set; }
+        public bool IsManuallyEdited { get; set; }
 
         // Odometer
         public decimal? OdometerStart { get; set; }
@@ -407,5 +443,27 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public string? Description { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
+    }
+
+    /// <summary>
+    /// Request DTO for fleet audit period fuel positions.
+    /// Gets opening positions at StartDate and closing positions at EndDate.
+    /// </summary>
+    public class FleetAuditPeriodRequestDTO
+    {
+        /// <summary>List of vehicle IDs to fetch fuel positions for</summary>
+        public List<int> VehicleIds { get; set; } = new();
+
+        /// <summary>Audit period start date (opening stock date)</summary>
+        public DateTime StartDate { get; set; }
+
+        /// <summary>Audit period end date (closing stock date)</summary>
+        public DateTime EndDate { get; set; }
+
+        /// <summary>Optional audit ID for linking readings</summary>
+        public int? AuditId { get; set; }
+
+        /// <summary>User ID who triggered the request</summary>
+        public int? RequestedBy { get; set; }
     }
 }

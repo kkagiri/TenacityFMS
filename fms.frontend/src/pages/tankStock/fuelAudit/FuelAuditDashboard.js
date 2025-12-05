@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'devextreme-react/button';
@@ -20,6 +20,9 @@ const FuelAuditDashboard = () => {
   const loading = useSelector(selectLoading);
   const { userInfo } = usePermissions();
 
+  // Local state to track if initial load is complete (prevents DOM conflicts during first render)
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Check if user is admin
   const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
   const isAdmin = userRoles.some(role =>
@@ -27,7 +30,10 @@ const FuelAuditDashboard = () => {
   );
 
   useEffect(() => {
-    dispatch(fetchFuelAudits({ pageSize: 10 }));
+    dispatch(fetchFuelAudits({ pageSize: 10 })).finally(() => {
+      // Mark as initialized after fetch completes to allow proper re-render
+      setIsInitialized(true);
+    });
   }, [dispatch]);
 
   // Calculate summary stats
@@ -82,6 +88,19 @@ const FuelAuditDashboard = () => {
       year: 'numeric'
     });
   };
+
+  // Show loading indicator until initial fetch completes
+  // Use plain div spinner instead of <i> to avoid font-awesome/DevExtreme conflicts
+  if (!isInitialized) {
+    return (
+      <div className="tw-p-6 tw-flex tw-items-center tw-justify-center tw-h-64">
+        <div className="tw-text-center">
+          <div className="tw-w-10 tw-h-10 tw-border-4 tw-border-blue-600 tw-border-t-transparent tw-rounded-full tw-animate-spin tw-mx-auto tw-mb-4"></div>
+          <p className="tw-text-gray-500">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tw-p-6">

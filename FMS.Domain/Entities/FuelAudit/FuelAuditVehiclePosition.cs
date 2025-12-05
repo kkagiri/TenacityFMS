@@ -110,6 +110,11 @@ namespace FMS.Domain.Entities.FuelAudit
         public decimal? FuelConsumed { get; set; }
 
         /// <summary>
+        /// GPS-measured fuel consumption (from GPS fuel level monitoring)
+        /// </summary>
+        public decimal? GpsMeasuredConsumption { get; set; }
+
+        /// <summary>
         /// Distance traveled during period (km)
         /// </summary>
         public decimal? DistanceTraveled { get; set; }
@@ -139,6 +144,16 @@ namespace FMS.Domain.Entities.FuelAudit
         /// Flag if variance exceeds threshold
         /// </summary>
         public bool HasVarianceFlag { get; set; } = false;
+
+        /// <summary>
+        /// Message describing the variance flag reason
+        /// </summary>
+        public string? VarianceFlagMessage { get; set; }
+
+        /// <summary>
+        /// Indicates if values were manually edited by user
+        /// </summary>
+        public bool IsManuallyEdited { get; set; } = false;
 
         // ===== PICKUP FLEET SPECIFIC =====
         /// <summary>

@@ -1,0 +1,166 @@
+/**
+ * Step7AuditReport.scss
+ * Styles for the printable audit report
+ */
+
+.step7-audit-report {
+  .audit-report-content {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: white;
+  }
+
+  .report-section {
+    page-break-inside: avoid;
+  }
+
+  .report-header {
+    page-break-after: avoid;
+  }
+
+  .report-footer {
+    page-break-before: avoid;
+  }
+
+  // Table styles
+  table {
+    border-collapse: collapse;
+
+    th, td {
+      vertical-align: middle;
+    }
+
+    th {
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.025em;
+    }
+  }
+}
+
+// Print-specific styles
+@media print {
+  // Hide non-printable elements
+  .print\\:tw-hidden {
+    display: none !important;
+  }
+
+  .print\\:tw-block {
+    display: block !important;
+  }
+
+  // Reset page margins
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .step7-audit-report {
+    height: auto !important;
+    overflow: visible !important;
+
+    .audit-report-content {
+      padding: 0 !important;
+      overflow: visible !important;
+      max-width: none !important;
+    }
+
+    // Ensure backgrounds print
+    .tw-bg-blue-50,
+    .tw-bg-green-50,
+    .tw-bg-purple-50,
+    .tw-bg-yellow-50,
+    .tw-bg-red-50,
+    .tw-bg-orange-50,
+    .tw-bg-cyan-50,
+    .tw-bg-pink-50,
+    .tw-bg-gray-50,
+    .tw-bg-gray-100,
+    .tw-bg-gray-200 {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    // Table improvements for print
+    table {
+      font-size: 10pt;
+
+      th, td {
+        padding: 6px 8px;
+      }
+    }
+
+    // Signature section spacing
+    .report-section:last-of-type {
+      margin-top: 40px;
+    }
+
+    // Footer at bottom
+    .report-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 15mm;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+    }
+  }
+
+  // Hide scrollbars
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  // Hide DevExtreme buttons and form elements
+  .dx-button,
+  .dx-texteditor {
+    display: none !important;
+  }
+
+  // Ensure page breaks work correctly
+  .report-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h2 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}
+
+// Screen styles to preview print layout
+@media screen {
+  .step7-audit-report {
+    .audit-report-content {
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+      margin: 20px auto;
+      border-radius: 4px;
+    }
+  }
+}

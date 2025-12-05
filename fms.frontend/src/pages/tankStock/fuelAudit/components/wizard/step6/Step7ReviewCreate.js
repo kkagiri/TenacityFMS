@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { TextArea } from 'devextreme-react/text-area';
 import { CheckBox } from 'devextreme-react/check-box';
 
-import { setWizardNotes, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
+import { setWizardNotes, selectWizard } from '../../../../../../redux/slices/fuelAuditSlice';
 
 // Category configuration for display
 const CATEGORY_NAMES = {

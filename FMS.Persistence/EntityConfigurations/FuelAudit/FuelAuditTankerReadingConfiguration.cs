@@ -143,11 +143,11 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
             builder.HasIndex(r => r.AuditId);
             builder.HasIndex(r => r.TankId);
 
-            // Relationships
-            builder.HasOne(r => r.Tank)
-                .WithMany()
-                .HasForeignKey(r => r.TankId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Note: Tank relationship is intentionally NOT configured because:
+            // - FuelAuditTankerReading.TankId is long
+            // - Tank.Id is int
+            // This is a loose reference - use TankId to query tanks manually
+            builder.Ignore(r => r.Tank);
         }
     }
 }

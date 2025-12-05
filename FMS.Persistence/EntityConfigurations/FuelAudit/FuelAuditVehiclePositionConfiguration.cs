@@ -97,6 +97,10 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
                 .HasColumnName("fuel_consumed")
                 .HasColumnType("decimal(10,2)");
 
+            builder.Property(v => v.GpsMeasuredConsumption)
+                .HasColumnName("gps_measured_consumption")
+                .HasColumnType("decimal(10,2)");
+
             builder.Property(v => v.DistanceTraveled)
                 .HasColumnName("distance_traveled")
                 .HasColumnType("decimal(10,2)");
@@ -120,6 +124,15 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
 
             builder.Property(v => v.HasVarianceFlag)
                 .HasColumnName("has_variance_flag")
+                .HasColumnType("bit(1)")
+                .HasDefaultValue(false);
+
+            builder.Property(v => v.VarianceFlagMessage)
+                .HasColumnName("variance_flag_message")
+                .HasMaxLength(500);
+
+            builder.Property(v => v.IsManuallyEdited)
+                .HasColumnName("is_manually_edited")
                 .HasColumnType("bit(1)")
                 .HasDefaultValue(false);
 

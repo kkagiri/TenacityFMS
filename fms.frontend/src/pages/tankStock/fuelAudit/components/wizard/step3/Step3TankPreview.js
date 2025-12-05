@@ -20,7 +20,7 @@
  * Data comes from TankVolumeHistory via /fuelaudit/tank-preview endpoint
  */
 
-import React, { useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, memo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, {
   Column,
@@ -33,6 +33,7 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { Button } from 'devextreme-react/button';
+import { confirm } from 'devextreme/ui/dialog';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -43,32 +44,223 @@ import {
   selectLoading,
   fetchTankVolumePreview,
   selectWizardTankPreview,
-  updateTankPreviewData
-} from '../../../../../redux/slices/fuelAuditSlice';
+  updateTankPreviewData,
+  saveDraftAudit,
+  selectWizardDraftAudit,
+  loadDraftToWizard
+} from '../../../../../../redux/slices/fuelAuditSlice';
+import { fetchFuelAuditById } from '../../../../../../redux/slices/fuelAuditThunks';
 
 const Step3TankPreview = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
   const loading = useSelector(selectLoading);
   const tankPreview = useSelector(selectWizardTankPreview);
+  const draftAudit = useSelector(selectWizardDraftAudit);
   const gridRef = useRef(null);
 
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  // Track if data is ready to display (prevents rendering during async updates)
+  const [isDataReady, setIsDataReady] = useState(false);
+
+  // Track if save is in progress
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Create a mutable copy of tankPreview for DataGrid editing
+  // Redux state is immutable, so we need a local copy that DataGrid can modify
+  const [localPreviewData, setLocalPreviewData] = useState([]);
+
+  // Check if any data has been edited (marked with isEdited flag)
+  const hasEditedData = useMemo(() => {
+    return tankPreview?.some(t => t.isEdited) || false;
+  }, [tankPreview]);
+
   // Load tank preview data when step is reached
-  const loadPreviewData = useCallback(() => {
+  const loadPreviewData = useCallback(async () => {
+    console.log('[Step3] loadPreviewData called');
+    console.log('[Step3] selectedTankIds:', wizard.selectedTankIds);
+    console.log('[Step3] periodStart:', wizard.periodStart);
+    console.log('[Step3] periodEnd:', wizard.periodEnd);
+
     if (wizard.selectedTankIds?.length > 0 && wizard.periodStart && wizard.periodEnd) {
       // For multi-site, pass siteIds array; for single site compatibility
       const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : (wizard.siteIds ? [wizard.siteIds] : []);
-      dispatch(fetchTankVolumePreview({
+
+      console.log('[Step3] Fetching tank volume preview with params:', {
         tankIds: wizard.selectedTankIds,
         startDate: wizard.periodStart,
         endDate: wizard.periodEnd,
-        siteIds: siteIds  // Pass array of site IDs
-      }));
+        siteIds: siteIds
+      });
+
+      try {
+        const result = await dispatch(fetchTankVolumePreview({
+          tankIds: wizard.selectedTankIds,
+          startDate: wizard.periodStart,
+          endDate: wizard.periodEnd,
+          siteIds: siteIds  // Pass array of site IDs
+        })).unwrap();
+
+        console.log('[Step3] fetchTankVolumePreview result:', result);
+
+        // Only set data ready if still mounted
+        if (isMountedRef.current) {
+          setIsDataReady(true);
+        }
+      } catch (error) {
+        console.error('[Step3] Error loading tank preview:', error);
+        if (isMountedRef.current) {
+          setIsDataReady(true); // Still set ready so empty state shows
+        }
+      }
+    } else {
+      console.log('[Step3] Missing required data for preview - skipping fetch');
     }
   }, [dispatch, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.siteIds]);
 
+  // Fetch original data from database (with confirmation if edited data exists)
+  const handleFetchOriginal = useCallback(async () => {
+    console.log('[Step3] handleFetchOriginal called');
+    console.log('[Step3] hasEditedData:', hasEditedData);
+    console.log('[Step3] wizard.selectedTankIds:', wizard.selectedTankIds);
+    console.log('[Step3] wizard.periodStart:', wizard.periodStart);
+    console.log('[Step3] wizard.periodEnd:', wizard.periodEnd);
+
+    // Show notification immediately to confirm button click
+    notify('Fetching original data...', 'info', 1000);
+
+    if (hasEditedData) {
+      const result = await confirm(
+        'You have edited data that will be lost. Are you sure you want to fetch original data from the database?',
+        'Fetch Original Data'
+      );
+      if (!result) return;
+    }
+
+    console.log('[Step3] Calling loadPreviewData...');
+    await loadPreviewData();
+    notify('Data fetched from database', 'success', 2000);
+  }, [hasEditedData, loadPreviewData, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd]);
+
+  // Load saved data from draft (backend)
+  const handleLoadSaved = useCallback(async () => {
+    console.log('[Step3] handleLoadSaved called');
+    console.log('[Step3] draftAudit.auditId:', draftAudit.auditId);
+
+    if (!draftAudit.auditId) {
+      notify('No saved draft found', 'warning', 2000);
+      return;
+    }
+
+    try {
+      notify('Loading saved data...', 'info', 2000);
+      const result = await dispatch(fetchFuelAuditById({ auditId: draftAudit.auditId })).unwrap();
+      console.log('[Step3] fetchFuelAuditById result:', result);
+
+      if (result.isSuccess && result.data) {
+        console.log('[Step3] tankerReadings from API:', result.data.tankerReadings);
+
+        // Update wizard state with loaded data
+        dispatch(loadDraftToWizard(result.data));
+
+        // Also manually sync local data since loadDraftToWizard sets tankPreview
+        // This ensures the DataGrid updates immediately
+        if (result.data.tankerReadings?.length > 0) {
+          const mappedData = result.data.tankerReadings.map(r => ({
+            tankId: r.tankId,
+            tankName: r.tankName,
+            tankCapacity: r.tankCapacity,
+            openingStock: r.openingStock,
+            closingStock: r.closingStock,
+            totalDeliveries: r.fuelReceived,
+            totalDispensed: r.fuelDispensed,
+            totalTransfersIn: r.fuelTransferredIn,
+            totalTransfersOut: r.fuelTransferredOut,
+            expectedClosing: r.expectedClosing,
+            variance: r.variance,
+            variancePercent: r.variancePercent,
+            openingDataSource: r.openingMethod || 'Draft',
+            closingDataSource: r.closingMethod || 'Draft',
+            hasVarianceFlag: r.hasVarianceFlag,
+            isEdited: false
+          }));
+          console.log('[Step3] Mapped data for DataGrid:', mappedData);
+          setLocalPreviewData(mappedData);
+          setIsDataReady(true);
+        }
+
+        notify('Saved data loaded successfully', 'success', 3000);
+      }
+    } catch (error) {
+      console.error('[Step3] Error loading saved data:', error);
+      notify('Failed to load saved data', 'error', 3000);
+    }
+  }, [dispatch, draftAudit.auditId]);
+
+  // Save current data to audit draft
+  const handleSaveToAudit = useCallback(async () => {
+    if (!draftAudit.auditId) {
+      notify('Please save the audit draft first (complete Step 1)', 'warning', 3000);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
+
+      // Prepare tank preview data for saving
+      const tankPreviewData = localPreviewData.map(t => ({
+        tankId: t.tankId,
+        tankName: t.tankName,
+        openingStock: t.openingStock,
+        closingStock: t.closingStock,
+        totalDeliveries: t.totalDeliveries,
+        totalDispensed: t.totalDispensed,
+        totalTransfersIn: t.totalTransfersIn,
+        totalTransfersOut: t.totalTransfersOut,
+        openingDataSource: t.openingDataSource,
+        closingDataSource: t.closingDataSource,
+        isEdited: t.isEdited || false
+      }));
+
+      // Debug logging
+      console.log('[Step3] Saving tank data to audit:', {
+        auditId: draftAudit.auditId,
+        selectedTankIds: wizard.selectedTankIds,
+        tankPreviewDataCount: tankPreviewData.length,
+        tankPreviewData: tankPreviewData
+      });
+
+      await dispatch(saveDraftAudit({
+        auditId: draftAudit.auditId,
+        wizardStep: 3,
+        siteIds: siteIds,
+        periodStart: wizard.periodStart,
+        periodEnd: wizard.periodEnd,
+        selectedTankIds: wizard.selectedTankIds,
+        tankPreviewData: tankPreviewData
+      })).unwrap();
+
+      notify('Tank data saved to audit draft', 'success', 3000);
+    } catch (error) {
+      console.error('Error saving tank data:', error);
+      notify('Failed to save tank data', 'error', 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [dispatch, draftAudit.auditId, wizard.siteIds, wizard.periodStart, wizard.periodEnd, wizard.selectedTankIds, localPreviewData]);
+
   // Handle cell value changes (for editable columns)
   const handleRowUpdated = useCallback((e) => {
+    // Update local state with the edited value
+    setLocalPreviewData(prevData =>
+      prevData.map(item =>
+        item.tankId === e.key ? { ...item, ...e.data } : item
+      )
+    );
+
     // Update Redux state with the edited value
     dispatch(updateTankPreviewData({
       tankId: e.key,
@@ -120,16 +312,63 @@ const Step3TankPreview = memo(() => {
     });
   }, [wizard.periodStart, wizard.periodEnd]);
 
-  // Load on mount if we have required data
+  // Load on mount if we have required data AND no existing data
+  // Don't auto-fetch if:
+  // 1. Data already exists (tankPreview has items)
+  // 2. Data was edited (hasEditedData)
+  // This prevents losing edited data when navigating back from Step 4 to Step 2 and back to Step 3
   useEffect(() => {
-    if (wizard.selectedTankIds?.length > 0 && !tankPreview?.length) {
-      loadPreviewData();
+    if (wizard.selectedTankIds?.length > 0) {
+      if (tankPreview?.length > 0) {
+        // Data already exists (from draft or previous fetch), just mark as ready
+        setIsDataReady(true);
+      } else if (!hasEditedData) {
+        // No data exists and nothing was edited, fetch from database
+        loadPreviewData();
+      } else {
+        // Has edited data flag but no preview data - this shouldn't happen normally
+        setIsDataReady(true);
+      }
     }
-  }, [loadPreviewData, wizard.selectedTankIds, tankPreview]);
+  }, [wizard.selectedTankIds, tankPreview?.length, hasEditedData, loadPreviewData]);
 
-  // Calculate summary totals
+  // Sync Redux tankPreview to local mutable state for DataGrid editing
+  useEffect(() => {
+    console.log('[Step3] tankPreview sync useEffect triggered');
+    console.log('[Step3] tankPreview:', tankPreview);
+    console.log('[Step3] tankPreview length:', tankPreview?.length);
+
+    if (tankPreview && tankPreview.length > 0) {
+      // Create deep copy to make data mutable for DataGrid
+      console.log('[Step3] Setting localPreviewData from tankPreview');
+      setLocalPreviewData(tankPreview.map(item => ({ ...item })));
+    } else {
+      console.log('[Step3] tankPreview empty, clearing localPreviewData');
+      setLocalPreviewData([]);
+    }
+  }, [tankPreview]);
+
+  // Set mounted flag and cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      // Store the current ref value for cleanup
+      const grid = gridRef.current;
+      if (grid?.instance) {
+        try {
+          grid.instance.dispose();
+        } catch (e) {
+          // Ignore disposal errors
+        }
+      }
+    };
+  }, []);
+
+  // Calculate summary totals - use localPreviewData for accurate totals after edits
   const summaryTotals = useMemo(() => {
-    if (!tankPreview || tankPreview.length === 0) {
+    if (!localPreviewData || localPreviewData.length === 0) {
       return {
         openingStock: 0,
         closingStock: 0,
@@ -143,16 +382,16 @@ const Step3TankPreview = memo(() => {
     }
 
     return {
-      openingStock: tankPreview.reduce((sum, t) => sum + (t.openingStock || 0), 0),
-      closingStock: tankPreview.reduce((sum, t) => sum + (t.closingStock || 0), 0),
-      deliveries: tankPreview.reduce((sum, t) => sum + (t.totalDeliveries || 0), 0),
-      dispensed: tankPreview.reduce((sum, t) => sum + (t.totalDispensed || 0), 0),
-      transfersIn: tankPreview.reduce((sum, t) => sum + (t.totalTransfersIn || 0), 0),
-      transfersOut: tankPreview.reduce((sum, t) => sum + (t.totalTransfersOut || 0), 0),
-      variance: tankPreview.reduce((sum, t) => sum + (t.variance || 0), 0),
-      tankCount: tankPreview.length
+      openingStock: localPreviewData.reduce((sum, t) => sum + (t.openingStock || 0), 0),
+      closingStock: localPreviewData.reduce((sum, t) => sum + (t.closingStock || 0), 0),
+      deliveries: localPreviewData.reduce((sum, t) => sum + (t.totalDeliveries || 0), 0),
+      dispensed: localPreviewData.reduce((sum, t) => sum + (t.totalDispensed || 0), 0),
+      transfersIn: localPreviewData.reduce((sum, t) => sum + (t.totalTransfersIn || 0), 0),
+      transfersOut: localPreviewData.reduce((sum, t) => sum + (t.totalTransfersOut || 0), 0),
+      variance: localPreviewData.reduce((sum, t) => sum + (t.variance || 0), 0),
+      tankCount: localPreviewData.length
     };
-  }, [tankPreview]);
+  }, [localPreviewData]);
 
   // Render data source indicator
   const renderDataSource = (cellData) => {
@@ -173,7 +412,7 @@ const Step3TankPreview = memo(() => {
   };
 
   const isLoading = loading.tankPreview;
-  const previewData = tankPreview || [];
+  const previewData = localPreviewData || [];
 
   return (
     <div className="wizard-step tw-p-6">
@@ -188,29 +427,64 @@ const Step3TankPreview = memo(() => {
 
       {/* Period info header */}
       {wizard.periodStart && wizard.periodEnd && (
-        <div className="tw-mb-4 tw-p-3 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-200 tw-flex tw-items-center tw-justify-between">
-          <div className="tw-flex tw-items-center tw-gap-6">
-            <div>
-              <i className="fa-light fa-calendar tw-text-blue-600 tw-mr-2"></i>
-              <span className="tw-text-sm tw-text-blue-800">
-                {formatDate(wizard.periodStart)} — {formatDate(wizard.periodEnd)}
-              </span>
+        <div className="tw-mb-4 tw-p-3 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-200">
+          <div className="tw-flex tw-items-center tw-justify-between">
+            <div className="tw-flex tw-items-center tw-gap-6">
+              <div>
+                <i className="fa-light fa-calendar tw-text-blue-600 tw-mr-2"></i>
+                <span className="tw-text-sm tw-text-blue-800">
+                  {formatDate(wizard.periodStart)} — {formatDate(wizard.periodEnd)}
+                </span>
+              </div>
+              <div>
+                <i className="fa-light fa-database tw-text-blue-600 tw-mr-2"></i>
+                <span className="tw-text-sm tw-text-blue-800">
+                  {wizard.selectedTankIds?.length || 0} tank(s) selected
+                </span>
+              </div>
+              {hasEditedData && (
+                <div className="tw-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-yellow-100 tw-rounded tw-border tw-border-yellow-300">
+                  <i className="fa-light fa-pencil tw-text-yellow-600"></i>
+                  <span className="tw-text-xs tw-text-yellow-700 tw-font-medium">Edited</span>
+                </div>
+              )}
             </div>
-            <div>
-              <i className="fa-light fa-database tw-text-blue-600 tw-mr-2"></i>
-              <span className="tw-text-sm tw-text-blue-800">
-                {wizard.selectedTankIds?.length || 0} tank(s) selected
-              </span>
+            <div className="tw-flex tw-items-center tw-gap-2">
+              <Button
+                text="Load Saved"
+                icon="refresh"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleLoadSaved}
+                disabled={isLoading || !draftAudit.auditId}
+                hint="Reload data from last saved draft"
+              />
+              <Button
+                text="Fetch Original"
+                icon="download"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleFetchOriginal}
+                disabled={isLoading}
+                hint="Fetch fresh data from TankVolumeHistory table"
+              />
+              <Button
+                text="Save to Audit"
+                icon="save"
+                type="success"
+                stylingMode="contained"
+                onClick={handleSaveToAudit}
+                disabled={isLoading || isSaving || !draftAudit.auditId}
+                hint={!draftAudit.auditId ? 'Complete Step 1 first to save' : 'Save current data to audit draft'}
+              />
             </div>
           </div>
-          <Button
-            text="Refresh"
-            icon="refresh"
-            type="normal"
-            stylingMode="text"
-            onClick={loadPreviewData}
-            disabled={isLoading}
-          />
+          {!draftAudit.auditId && (
+            <div className="tw-mt-2 tw-text-xs tw-text-orange-600">
+              <i className="fa-light fa-info-circle tw-mr-1"></i>
+              Complete Step 1 (Site &amp; Period) first to enable saving
+            </div>
+          )}
         </div>
       )}
 
@@ -223,7 +497,7 @@ const Step3TankPreview = memo(() => {
       )}
 
       {/* Tank preview data */}
-      {!isLoading && previewData.length > 0 && (
+      {!isLoading && isDataReady && previewData.length > 0 && (
         <>
           {/* Summary Cards - 6 columns */}
           <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-mb-4">
@@ -516,7 +790,7 @@ const Step3TankPreview = memo(() => {
       )}
 
       {/* No data available */}
-      {!isLoading && previewData.length === 0 && wizard.selectedTankIds?.length > 0 && (
+      {!isLoading && isDataReady && previewData.length === 0 && wizard.selectedTankIds?.length > 0 && (
         <div className="tw-text-center tw-py-10 tw-bg-yellow-50 tw-rounded-lg tw-border tw-border-yellow-200">
           <i className="fa-light fa-database tw-text-4xl tw-text-yellow-500 tw-mb-3"></i>
           <p className="tw-text-gray-700 tw-font-medium">No volume history data found</p>

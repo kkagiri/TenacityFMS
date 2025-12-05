@@ -11,7 +11,8 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
     {
         public void Configure(EntityTypeBuilder<Domain.Entities.FuelAudit.FuelAudit> builder)
         {
-            builder.ToTable("fuel_audits");
+            // Match actual database table name: fuelaudits (no underscore)
+            builder.ToTable("fuelaudits");
 
             builder.HasKey(a => a.Id);
 
@@ -20,17 +21,17 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
                 .ValueGeneratedOnAdd();
 
             builder.Property(a => a.AuditNumber)
-                .HasColumnName("audit_number")
+                .HasColumnName("AuditNumber")
                 .HasMaxLength(50)
                 .IsRequired();
 
             builder.Property(a => a.StartDate)
-                .HasColumnName("start_date")
+                .HasColumnName("startdate")
                 .HasColumnType("date")
                 .IsRequired();
 
             builder.Property(a => a.EndDate)
-                .HasColumnName("end_date")
+                .HasColumnName("enddate")
                 .HasColumnType("date")
                 .IsRequired();
 
@@ -45,140 +46,144 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
                 .HasColumnType("text");
 
             builder.Property(a => a.SiteId)
-                .HasColumnName("site_id");
+                .HasColumnName("siteid");
 
             // System Totals (Opening)
             builder.Property(a => a.SystemOpeningStock)
-                .HasColumnName("system_opening_stock")
+                .HasColumnName("systemopening_stock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.TankerOpeningStock)
-                .HasColumnName("tanker_opening_stock")
+                .HasColumnName("tankeropening_stock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.GPSFleetOpeningStock)
-                .HasColumnName("gps_fleet_opening_stock")
+                .HasColumnName("gpsfleet_opening_stock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.PickupFleetOpeningStock)
-                .HasColumnName("pickup_fleet_opening_stock")
+                .HasColumnName("pickupfleetopening_stock")
                 .HasColumnType("decimal(15,2)");
 
             // Movements
             builder.Property(a => a.ExternalFuelIn)
-                .HasColumnName("external_fuel_in")
+                .HasColumnName("externalfuel_in")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.ExternalFuelOut)
-                .HasColumnName("external_fuel_out")
+                .HasColumnName("externalfuelout")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.TotalDispensed)
-                .HasColumnName("total_dispensed")
+                .HasColumnName("totaldispensed")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.GPSFleetConsumption)
-                .HasColumnName("gps_fleet_consumption")
+                .HasColumnName("gpsfleetconsumption")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.PickupFleetConsumption)
-                .HasColumnName("pickup_fleet_consumption")
+                .HasColumnName("pickupfleetconsumption")
                 .HasColumnType("decimal(15,2)");
 
             // System Totals (Closing)
             builder.Property(a => a.SystemClosingStock)
-                .HasColumnName("system_closing_stock")
+                .HasColumnName("systemclosingstock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.TankerClosingStock)
-                .HasColumnName("tanker_closing_stock")
+                .HasColumnName("tankerclosingstock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.GPSFleetClosingStock)
-                .HasColumnName("gps_fleet_closing_stock")
+                .HasColumnName("gpsfleetclosingstock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.PickupFleetClosingStock)
-                .HasColumnName("pickup_fleet_closing_stock")
+                .HasColumnName("pickupfleetclosingstock")
                 .HasColumnType("decimal(15,2)");
 
             // Expected vs Actual
             builder.Property(a => a.ExpectedClosingStock)
-                .HasColumnName("expected_closing_stock")
+                .HasColumnName("expectedclosingstock")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.SystemVariance)
-                .HasColumnName("system_variance")
+                .HasColumnName("systemvariance")
                 .HasColumnType("decimal(15,2)");
 
             builder.Property(a => a.SystemVariancePercent)
-                .HasColumnName("system_variance_percent")
+                .HasColumnName("systemvariancepercent")
                 .HasColumnType("decimal(5,2)");
 
             // Data Quality
             builder.Property(a => a.VehiclesWithExactData)
-                .HasColumnName("vehicles_with_exact_data");
+                .HasColumnName("vehicleswithexact_data");
 
             builder.Property(a => a.VehiclesWithEstimatedData)
-                .HasColumnName("vehicles_with_estimated_data");
+                .HasColumnName("vehicleswithestimated_data");
 
             builder.Property(a => a.VehiclesWithNoData)
-                .HasColumnName("vehicles_with_no_data");
+                .HasColumnName("vehicleswithnodata");
 
             builder.Property(a => a.DataConfidence)
-                .HasColumnName("data_confidence")
+                .HasColumnName("dataconfidence")
                 .HasMaxLength(20);
 
             // Counts
             builder.Property(a => a.TankerCount)
-                .HasColumnName("tanker_count");
+                .HasColumnName("tankercount");
 
             builder.Property(a => a.GPSVehicleCount)
-                .HasColumnName("gps_vehicle_count");
+                .HasColumnName("gpsvehiclecount");
 
             builder.Property(a => a.PickupVehicleCount)
-                .HasColumnName("pickup_vehicle_count");
+                .HasColumnName("pickupvehiclecount");
 
             builder.Property(a => a.FlagCount)
-                .HasColumnName("flag_count");
+                .HasColumnName("flagcount");
 
             builder.Property(a => a.UnresolvedFlagCount)
-                .HasColumnName("unresolved_flag_count");
+                .HasColumnName("unresolvedflagcount");
 
             // Workflow
+            builder.Property(a => a.WizardStep)
+                .HasColumnName("wizardstep")
+                .HasDefaultValue(1);
+
             builder.Property(a => a.CalculatedAt)
-                .HasColumnName("calculated_at")
+                .HasColumnName("calculatedat")
                 .HasColumnType("datetime");
 
             builder.Property(a => a.CalculatedBy)
-                .HasColumnName("calculated_by");
+                .HasColumnName("calculatedby");
 
             builder.Property(a => a.FinalizedAt)
-                .HasColumnName("finalized_at")
+                .HasColumnName("finalizedat")
                 .HasColumnType("datetime");
 
             builder.Property(a => a.FinalizedBy)
-                .HasColumnName("finalized_by");
+                .HasColumnName("finalizedby");
 
             builder.Property(a => a.FinalizationNotes)
-                .HasColumnName("finalization_notes")
+                .HasColumnName("finalizationnotes")
                 .HasColumnType("text");
 
             // Audit Trail
             builder.Property(a => a.CreatedAt)
-                .HasColumnName("created_at")
+                .HasColumnName("createdat")
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             builder.Property(a => a.CreatedBy)
-                .HasColumnName("created_by");
+                .HasColumnName("createdby");
 
             builder.Property(a => a.UpdatedAt)
-                .HasColumnName("updated_at")
+                .HasColumnName("updatedat")
                 .HasColumnType("datetime");
 
             builder.Property(a => a.UpdatedBy)
-                .HasColumnName("updated_by");
+                .HasColumnName("updatedby");
 
             // Indexes
             builder.HasIndex(a => a.AuditNumber).IsUnique();
