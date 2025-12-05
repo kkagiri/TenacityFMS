@@ -287,7 +287,9 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     // We continue even if volume history update fails, but log the error
                 }
 
-                return new FMSResponseMessage<Domain.Entities.FuelRefill>(true, "Fuel refill created successfully.", fuelRefil);
+                // Map to DTO to avoid serializing navigation properties (which causes massive response size)
+                var resultDto = _mapper.Map<FuelRefilDTO>(fuelRefil);
+                return new FMSResponseMessage<FuelRefilDTO>(true, "Fuel refill created successfully.", resultDto);
             }
             catch (Exception ex)
             {

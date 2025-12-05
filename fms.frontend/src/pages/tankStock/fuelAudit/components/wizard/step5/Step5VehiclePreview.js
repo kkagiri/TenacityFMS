@@ -62,6 +62,29 @@ import {
   exportAllCategoriesToExcel
 } from './Step5VehiclePreviewExport';
 
+// FuelDataQuality enum mapping (numeric value to string name)
+// Must match backend FMS.Application.Features.FuelAudit.DTOs.FuelDataQuality
+const FUEL_DATA_QUALITY_MAP = {
+  1: 'Exact',
+  2: 'Interpolated',
+  3: 'Unavailable',
+  4: 'NoSensor',
+  5: 'SensorNotReporting',
+  6: 'ManualEntry',
+  7: 'EstimatedFromRefill'
+};
+
+/**
+ * Convert numeric FuelDataQuality value to string name for backend DTO
+ * @param {number|string|null} value - Numeric enum value or already a string
+ * @returns {string|null} - String name or null
+ */
+const dataQualityToString = (value) => {
+  if (value == null) return null;
+  if (typeof value === 'string') return value; // Already a string
+  return FUEL_DATA_QUALITY_MAP[value] || null;
+};
+
 const Step5VehiclePreview = memo(() => {
   const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
@@ -284,8 +307,9 @@ const Step5VehiclePreview = memo(() => {
         totalFuelRefilled: v.totalFuelAmount,
         refillCount: v.refillCount,
         dataSource: v.dataSourcePrimary,
-        openingDataQuality: v.openingDataQuality,
-        closingDataQuality: v.closingDataQuality,
+        // Convert numeric FuelDataQuality enum values to string names for backend
+        openingDataQuality: dataQualityToString(v.openingDataQuality),
+        closingDataQuality: dataQualityToString(v.closingDataQuality),
         openingTimestamp: v.openingReadingTime,
         closingTimestamp: v.closingReadingTime,
         hasVarianceFlag: v.hasVarianceFlag || false,

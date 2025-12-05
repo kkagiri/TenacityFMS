@@ -263,7 +263,9 @@ const fuelAuditSlice = createSlice({
                   dataSourceSummary: vehicle.dataSourceSummary,
                   dataConfidence: vehicle.confidence,
                   isAuditable: vehicle.isAuditable,
-                  gpsDataLoaded: true
+                  gpsDataLoaded: true,
+                  // GPS Refill Events (for Category 4 Cross-Site SOAP data)
+                  gpsRefillEvents: vehicle.gpsRefillEvents || []
                 };
               }
             });
@@ -1063,7 +1065,9 @@ const fuelAuditSlice = createSlice({
                   dataSourceSummary: vehicle.dataSourceSummary,
                   dataConfidence: vehicle.confidence,
                   isAuditable: vehicle.isAuditable,
-                  gpsDataLoaded: true
+                  gpsDataLoaded: true,
+                  // GPS Refill Events (for Category 4 Cross-Site SOAP data)
+                  gpsRefillEvents: vehicle.gpsRefillEvents || []
                 };
               }
             });
