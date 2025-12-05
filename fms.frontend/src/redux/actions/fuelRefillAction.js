@@ -49,7 +49,11 @@ export const fetchFuelRefillsbyDateRange = (startDate, endDate) => async (dispat
 
 export const createFuelRefill = (fuelRefill) => async (dispatch) => {
     try {
-        const response = await axiosInstance.post('/fuelrefill', fuelRefill);
+        // Use extended timeout for this operation as it involves multiple DB operations
+        // on the backend (validation, tank history updates, etc.)
+        const response = await axiosInstance.post('/fuelrefill', fuelRefill, {
+            timeout: 60000 // 60 seconds timeout for slow networks
+        });
 
         // Check if the response indicates success
         if (response.data && response.data.success === true) {
@@ -82,9 +86,12 @@ export const createFuelRefill = (fuelRefill) => async (dispatch) => {
             } else {
                 errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
             }
+        } else if (error.code === 'ECONNABORTED') {
+            // Timeout error - request took too long
+            errorMessage = 'Request timeout: The server is taking too long to respond. Please try again.';
         } else if (error.request) {
-            // Network error
-            errorMessage = 'Network error: Unable to connect to server';
+            // Network error - no response received
+            errorMessage = 'Network error: Unable to connect to server. Please check your connection.';
         } else {
             // Other errors
             errorMessage = error.message || 'An unexpected error occurred';
@@ -97,13 +104,21 @@ export const createFuelRefill = (fuelRefill) => async (dispatch) => {
 
 export const updateFuelRefill = (id, fuelRefill) => async (dispatch) => {
     try {
-        const response =  await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill);
+        // Use extended timeout for this operation as it involves multiple DB operations
+        const response = await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill, {
+            timeout: 60000 // 60 seconds timeout for slow networks
+        });
         dispatch({ type: UPDATE_FUEL_REFILL_SUCCESS, payload: { id, fuelRefill } });
         return { success: true, message: response.data.message };
 
     } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message;
-        dispatch({ type: UPDATE_FUEL_REFILL_FAILURE, payload: errorMessage  });
+        let errorMessage;
+        if (error.code === 'ECONNABORTED') {
+            errorMessage = 'Request timeout: The server is taking too long to respond. Please try again.';
+        } else {
+            errorMessage = error.response?.data?.message || error.message;
+        }
+        dispatch({ type: UPDATE_FUEL_REFILL_FAILURE, payload: errorMessage });
         return { success: false, message: errorMessage };
     }
 };
