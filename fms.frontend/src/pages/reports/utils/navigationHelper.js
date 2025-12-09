@@ -6,6 +6,7 @@ export const reportsRoutes = {
   tankVolumeHistory: '/reports/tank-volume-history',
   fuelImporter: '/reports/fuel-importer',
   consumptionRefills: '/reports/consumption-refills',
+  vehicleConsumption: '/reports/vehicle-consumption',
 };
 
 export const getReportsRoute = (subPath = '') => {
