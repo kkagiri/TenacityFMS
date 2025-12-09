@@ -28,13 +28,6 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         showFilters: true,
         showUserFilter: false
       };
-    } else if (pathname.includes('/transfer-reconciliation')) {
-      return {
-        title: 'Transfer Reconciliation',
-        subtitle: 'Analyze transfer-based stock variance and reconcile discrepancies',
-        showFilters: true,
-        showUserFilter: false
-      };
     } else if (pathname.includes('/fueldatacomparison')) {
       return {
         title: 'Fuel Data Comparison',
@@ -108,13 +101,6 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       title: 'Stock Management',
       icon: 'fa-light fa-tank-water',
       path: tankStockRoutes.stockManagement,
-      badge: null,
-    },
-    {
-      id: 'transferReconciliation',
-      title: 'Transfer Reconciliation',
-      icon: 'fa-light fa-exchange-alt',
-      path: tankStockRoutes.transferReconciliation,
       badge: null,
     },
     {

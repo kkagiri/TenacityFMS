@@ -7,8 +7,6 @@ import PivotGridOptions from './components/reporting/PivotGridOptions';
 import PredictiveAnalytics from './components/PredictiveAnalytics';
 import KPIDashboard from './components/KPIDashboard';
 import VarianceAnalysis from './components/VarianceAnalysis';
-import DeliveryCycleAnalysis from './DeliveryCycleAnalysis';
-import TransferReconciliation from './TransferReconciliation';
 import DailyReconciliation from './dailyReconciliation/DailyReconciliation';
 import TankStockReportsService from '../../../services/tankStockReportsService';
 import LoadIndicator from 'devextreme-react/load-indicator';
@@ -49,9 +47,7 @@ const StockAnalytics = () => {
     { text: "Reports", icon: "fa-light fa-file-chart-line" },
     { text: "Pivot Grid", icon: "fa-light fa-chart-pivot" },
     { text: "Daily Reconciliation", icon: "fa-light fa-calendar-check" },
-    { text: "Variance Analysis", icon: "fa-light fa-chart-mixed" },
-    { text: "Delivery Cycle Analysis", icon: "fa-light fa-truck-clock" },
-    { text: "Transfer Reconciliation", icon: "fa-light fa-exchange-alt" }
+    { text: "Variance Analysis", icon: "fa-light fa-chart-mixed" }
     // { text: "Interactive Dashboard", icon: "fa-light fa-chart-line" },
     // { text: "Predictive Analytics", icon: "fa-light fa-chart-mixed" },
     // { text: "KPI Dashboard", icon: "fa-light fa-gauge-high" }
@@ -219,16 +215,6 @@ const StockAnalytics = () => {
         // Variance Analysis tab
         return loadedTabs.has(3) && (
           <VarianceAnalysis />
-        );
-      case 4:
-        // Delivery Cycle Analysis tab
-        return loadedTabs.has(4) && (
-          <DeliveryCycleAnalysis />
-        );
-      case 5:
-        // Transfer Reconciliation tab
-        return loadedTabs.has(5) && (
-          <TransferReconciliation />
         );
       default:
         return null;
