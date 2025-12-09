@@ -5,6 +5,7 @@ namespace FMS.Application.Features.FMS.FuelRefil {
     public class FuelRefilDTO {
         public int Id { get; set; }
         public int VehicleId { get; set; }
+        public string? HyoungNo { get; set; }
 
         public decimal? ManualFuelrefillAmount { get; set; }
 

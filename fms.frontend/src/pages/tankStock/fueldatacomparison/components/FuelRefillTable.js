@@ -82,9 +82,12 @@ const FuelRefillTable = ({ data = [], isLoading = false, onRefresh, sites = [], 
   }, [sites]);
 
   /**
-   * Get vehicle number by ID
+   * Get vehicle number by ID or use HyoungNo from data
    */
-  const getVehicleNo = useCallback((vehicleId) => {
+  const getVehicleNo = useCallback((vehicleId, hyoungNo) => {
+    // Prefer HyoungNo from the response
+    if (hyoungNo) return hyoungNo;
+    // Fallback to vehicle lookup
     const vehicle = vehicles.find(v => v.id === vehicleId);
     return vehicle ? vehicle.vehicleNo : `Vehicle ${vehicleId}`;
   }, [vehicles]);
@@ -270,7 +273,7 @@ const FuelRefillTable = ({ data = [], isLoading = false, onRefresh, sites = [], 
           dataField="vehicleId"
           caption="Vehicle"
           width={120}
-          cellRender={(cellData) => getVehicleNo(cellData.value)}
+          cellRender={(cellData) => getVehicleNo(cellData.value, cellData.data.hyoungNo)}
           alignment="left"
         />
 
@@ -365,6 +368,8 @@ const FuelRefillTable = ({ data = [], isLoading = false, onRefresh, sites = [], 
           allowSearch={false}
           cellRender={renderActionButtons}
           alignment="center"
+          fixed={true}
+          fixedPosition="right"
         />
       </DataGrid>
 
