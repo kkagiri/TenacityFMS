@@ -4,7 +4,6 @@ import { useStockFilters } from '../shared/context/StockFilterContext';
 import FuelAnalysisSummary from './components/reporting/FuelAnalysisSummary';
 import PivotGridReport from './components/reporting/PivotGridReport';
 import PivotGridOptions from './components/reporting/PivotGridOptions';
-import TankStockTable from './components/reporting/TankStockTable';
 import PredictiveAnalytics from './components/PredictiveAnalytics';
 import KPIDashboard from './components/KPIDashboard';
 import VarianceAnalysis from './components/VarianceAnalysis';
@@ -52,8 +51,7 @@ const StockAnalytics = () => {
     { text: "Daily Reconciliation", icon: "fa-light fa-calendar-check" },
     { text: "Variance Analysis", icon: "fa-light fa-chart-mixed" },
     { text: "Delivery Cycle Analysis", icon: "fa-light fa-truck-clock" },
-    { text: "Transfer Reconciliation", icon: "fa-light fa-exchange-alt" },
-    { text: "Tank Stock Table", icon: "fa-light fa-table" }
+    { text: "Transfer Reconciliation", icon: "fa-light fa-exchange-alt" }
     // { text: "Interactive Dashboard", icon: "fa-light fa-chart-line" },
     // { text: "Predictive Analytics", icon: "fa-light fa-chart-mixed" },
     // { text: "KPI Dashboard", icon: "fa-light fa-gauge-high" }
@@ -231,27 +229,6 @@ const StockAnalytics = () => {
         // Transfer Reconciliation tab
         return loadedTabs.has(5) && (
           <TransferReconciliation />
-        );
-      case 6:
-        // Tank Stock Table tab
-        return loadedTabs.has(6) && (
-          <div className="tw-mt-4">
-            <TankStockTable />
-          </div>
-        );
-      case 7:
-        return loadedTabs.has(7) && (
-          <PredictiveAnalytics
-            forecasts={forecasts}
-
-          />
-        );
-      case 8:
-        return loadedTabs.has(8) && (
-          <KPIDashboard
-            kpiMetrics={kpiMetrics}
-
-          />
         );
       default:
         return null;
