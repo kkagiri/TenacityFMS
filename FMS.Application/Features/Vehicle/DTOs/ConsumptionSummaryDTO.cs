@@ -35,6 +35,8 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public decimal TotalEngineHours { get; set; }
         public decimal AverageConsumption { get; set; }
         public decimal FuelEfficiency { get; set; }
+        public decimal ExpectedAverage { get; set; }
+        public decimal EfficiencyVariance { get; set; }
         public int RefillCount { get; set; }
         public bool IsKmPerLiter { get; set; }
         public DateTime? LastRefillDate { get; set; }
@@ -54,6 +56,27 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public decimal AverageEfficiency { get; set; }
         public decimal TotalDistance { get; set; }
         public decimal TotalEngineHours { get; set; }
+        public decimal ExpectedAverage { get; set; }
+        public decimal EfficiencyVariance { get; set; } // Difference from expected
+        public int RefillCount { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for consumption summary grouped by vehicle type (for comparison charts)
+    /// </summary>
+    public class ConsumptionByVehicleTypeDTO
+    {
+        public string VehicleType { get; set; }
+        public int VehicleCount { get; set; }
+        public int ModelCount { get; set; }
+        public decimal TotalFuelConsumed { get; set; }
+        public decimal TotalDistance { get; set; }
+        public decimal TotalEngineHours { get; set; }
+        public decimal AverageConsumption { get; set; }
+        public decimal AverageEfficiency { get; set; }
+        public decimal ExpectedAverage { get; set; }
+        public decimal EfficiencyVariance { get; set; }
+        public int RefillCount { get; set; }
     }
 
     /// <summary>
@@ -82,7 +105,31 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public ConsumptionOverallSummaryDTO OverallSummary { get; set; }
         public List<ConsumptionSummaryBySiteDTO> SiteSummaries { get; set; } = new List<ConsumptionSummaryBySiteDTO>();
         public List<ConsumptionByVehicleModelDTO> ModelSummaries { get; set; } = new List<ConsumptionByVehicleModelDTO>();
+        public List<ConsumptionByVehicleTypeDTO> TypeSummaries { get; set; } = new List<ConsumptionByVehicleTypeDTO>();
         public List<ConsumptionTrendDataDTO> TrendData { get; set; } = new List<ConsumptionTrendDataDTO>();
+        public List<VehicleComparisonDTO> VehicleComparisons { get; set; } = new List<VehicleComparisonDTO>();
+    }
+
+    /// <summary>
+    /// DTO for individual vehicle comparison data
+    /// </summary>
+    public class VehicleComparisonDTO
+    {
+        public int VehicleId { get; set; }
+        public string HyoungNo { get; set; }
+        public string VehicleType { get; set; }
+        public string VehicleModel { get; set; }
+        public string Manufacturer { get; set; }
+        public string SiteName { get; set; }
+        public decimal TotalFuelConsumed { get; set; }
+        public decimal TotalDistance { get; set; }
+        public decimal TotalEngineHours { get; set; }
+        public decimal AverageConsumption { get; set; }
+        public decimal FuelEfficiency { get; set; }
+        public decimal ExpectedAverage { get; set; }
+        public decimal EfficiencyVariance { get; set; }
+        public int RefillCount { get; set; }
+        public bool IsKmPerLiter { get; set; }
     }
 
     /// <summary>

@@ -120,6 +120,10 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         var distanceOrHours = vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0));
                         var consumption = CalculateConsumption(totalFuel, distanceOrHours, vehicle.AverageKmL);
 
+                        // Get expected average from vehicle's expected consumption setting
+                        var expectedAvg = vehicle.ExpectedAvg ?? 0;
+                        var efficiencyVariance = expectedAvg > 0 ? consumption - expectedAvg : 0;
+
                         siteSummary.Vehicles.Add(new ConsumptionByVehicleDTO
                         {
                             VehicleId = vehicle.VehicleId,
@@ -132,6 +136,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                             TotalEngineHours = !vehicle.AverageKmL ? distanceOrHours : 0,
                             AverageConsumption = consumption,
                             FuelEfficiency = consumption,
+                            ExpectedAverage = expectedAvg,
+                            EfficiencyVariance = Math.Round(efficiencyVariance, 2),
                             RefillCount = vehicleRefills.Count,
                             IsKmPerLiter = vehicle.AverageKmL,
                             LastRefillDate = vehicleRefills.LastOrDefault()?.Date
@@ -163,6 +169,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
                 foreach (var modelGroup in modelGroups)
                 {
+                    var avgExpected = modelGroup.Where(v => v.ExpectedAverage > 0).Select(v => v.ExpectedAverage).DefaultIfEmpty(0).Average();
+                    var avgConsumption = modelGroup.Average(v => v.AverageConsumption);
+
                     modelSummaries.Add(new ConsumptionByVehicleModelDTO
                     {
                         VehicleModel = modelGroup.Key.VehicleModel,
@@ -170,12 +179,64 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         Manufacturer = modelGroup.Key.Manufacturer,
                         VehicleCount = modelGroup.Count(),
                         TotalFuelConsumed = modelGroup.Sum(v => v.TotalFuelConsumed),
-                        AverageConsumption = modelGroup.Average(v => v.AverageConsumption),
-                        AverageEfficiency = modelGroup.Average(v => v.FuelEfficiency),
+                        AverageConsumption = Math.Round(avgConsumption, 2),
+                        AverageEfficiency = Math.Round(modelGroup.Average(v => v.FuelEfficiency), 2),
                         TotalDistance = modelGroup.Sum(v => v.TotalDistance),
-                        TotalEngineHours = modelGroup.Sum(v => v.TotalEngineHours)
+                        TotalEngineHours = modelGroup.Sum(v => v.TotalEngineHours),
+                        ExpectedAverage = Math.Round(avgExpected, 2),
+                        EfficiencyVariance = avgExpected > 0 ? Math.Round(avgConsumption - avgExpected, 2) : 0,
+                        RefillCount = modelGroup.Sum(v => v.RefillCount)
                     });
                 }
+
+                // Build vehicle type summaries (for comparison charts)
+                var typeSummaries = new List<ConsumptionByVehicleTypeDTO>();
+                var typeGroups = allVehicleData.GroupBy(v => v.VehicleType);
+
+                foreach (var typeGroup in typeGroups)
+                {
+                    var avgExpected = typeGroup.Where(v => v.ExpectedAverage > 0).Select(v => v.ExpectedAverage).DefaultIfEmpty(0).Average();
+                    var avgConsumption = typeGroup.Average(v => v.AverageConsumption);
+                    var distinctModels = typeGroup.Select(v => v.VehicleModel).Distinct().Count();
+
+                    typeSummaries.Add(new ConsumptionByVehicleTypeDTO
+                    {
+                        VehicleType = typeGroup.Key,
+                        VehicleCount = typeGroup.Count(),
+                        ModelCount = distinctModels,
+                        TotalFuelConsumed = typeGroup.Sum(v => v.TotalFuelConsumed),
+                        TotalDistance = typeGroup.Sum(v => v.TotalDistance),
+                        TotalEngineHours = typeGroup.Sum(v => v.TotalEngineHours),
+                        AverageConsumption = Math.Round(avgConsumption, 2),
+                        AverageEfficiency = Math.Round(typeGroup.Average(v => v.FuelEfficiency), 2),
+                        ExpectedAverage = Math.Round(avgExpected, 2),
+                        EfficiencyVariance = avgExpected > 0 ? Math.Round(avgConsumption - avgExpected, 2) : 0,
+                        RefillCount = typeGroup.Sum(v => v.RefillCount)
+                    });
+                }
+
+                // Build vehicle comparison list (for individual vehicle comparison)
+                var vehicleComparisons = allVehicleData
+                    .Select(v => new VehicleComparisonDTO
+                    {
+                        VehicleId = v.VehicleId,
+                        HyoungNo = v.HyoungNo,
+                        VehicleType = v.VehicleType,
+                        VehicleModel = v.VehicleModel,
+                        Manufacturer = v.Manufacturer,
+                        SiteName = siteSummaries.FirstOrDefault(s => s.Vehicles.Any(sv => sv.VehicleId == v.VehicleId))?.SiteName ?? "Unknown",
+                        TotalFuelConsumed = v.TotalFuelConsumed,
+                        TotalDistance = v.TotalDistance,
+                        TotalEngineHours = v.TotalEngineHours,
+                        AverageConsumption = v.AverageConsumption,
+                        FuelEfficiency = v.FuelEfficiency,
+                        ExpectedAverage = v.ExpectedAverage,
+                        EfficiencyVariance = v.EfficiencyVariance,
+                        RefillCount = v.RefillCount,
+                        IsKmPerLiter = v.IsKmPerLiter
+                    })
+                    .OrderByDescending(v => v.TotalFuelConsumed)
+                    .ToList();
 
                 // Build trend data
                 var trendData = BuildTrendData(fuelRefills, vehicles, request.GroupBy ?? "week");
@@ -185,8 +246,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 overallSummary.TotalSites = siteSummaries.Count;
                 if (allVehicleData.Any())
                 {
-                    overallSummary.AverageConsumption = allVehicleData.Average(v => v.AverageConsumption);
-                    overallSummary.AverageEfficiency = allVehicleData.Average(v => v.FuelEfficiency);
+                    overallSummary.AverageConsumption = Math.Round(allVehicleData.Average(v => v.AverageConsumption), 2);
+                    overallSummary.AverageEfficiency = Math.Round(allVehicleData.Average(v => v.FuelEfficiency), 2);
                 }
 
                 return new ConsumptionReportSummaryDTO
@@ -194,7 +255,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     OverallSummary = overallSummary,
                     SiteSummaries = siteSummaries.OrderBy(s => s.SiteName).ToList(),
                     ModelSummaries = modelSummaries.OrderByDescending(m => m.TotalFuelConsumed).ToList(),
-                    TrendData = trendData
+                    TypeSummaries = typeSummaries.OrderByDescending(t => t.TotalFuelConsumed).ToList(),
+                    TrendData = trendData,
+                    VehicleComparisons = vehicleComparisons
                 };
             }
             catch (Exception ex)

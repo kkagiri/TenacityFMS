@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     Chart,
     Series,
@@ -9,8 +9,7 @@ import {
     Tooltip,
     Label,
     Export,
-    Title,
-    Subtitle
+    Title
 } from 'devextreme-react/chart';
 import PieChart, {
     Series as PieSeries,
@@ -20,28 +19,81 @@ import PieChart, {
     Export as PieExport,
     Tooltip as PieTooltip
 } from 'devextreme-react/pie-chart';
+import SelectBox from 'devextreme-react/select-box';
+import TagBox from 'devextreme-react/tag-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 
+// Metric options for comparison
+const METRIC_OPTIONS = [
+    { value: 'totalFuelConsumed', text: 'Fuel Consumed (L)', color: '#8b5cf6' },
+    { value: 'totalDistance', text: 'Distance (km)', color: '#10b981' },
+    { value: 'totalEngineHours', text: 'Engine Hours', color: '#f59e0b' },
+    { value: 'averageConsumption', text: 'Avg Consumption', color: '#3b82f6' },
+    { value: 'fuelEfficiency', text: 'Fuel Efficiency', color: '#ec4899' },
+    { value: 'expectedAverage', text: 'Expected Average', color: '#6366f1' },
+    { value: 'efficiencyVariance', text: 'Efficiency Variance', color: '#ef4444' },
+    { value: 'refillCount', text: 'Refill Count', color: '#14b8a6' }
+];
+
+// Comparison dimension options
+const COMPARE_BY_OPTIONS = [
+    { value: 'type', text: 'By Vehicle Type' },
+    { value: 'model', text: 'By Vehicle Model' },
+    { value: 'vehicle', text: 'By Individual Vehicle' }
+];
+
 const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
-    // Prepare data for vehicle model chart
-    const modelChartData = useMemo(() => {
-        if (!summaryData || !summaryData.modelSummaries) return [];
-        return summaryData.modelSummaries
-            .slice(0, 10) // Top 10 models
-            .map(model => ({
-                model: model.vehicleModel || 'Unknown',
-                manufacturer: model.manufacturer || 'Unknown',
-                type: model.vehicleType || 'Unknown',
-                fuelConsumed: model.totalFuelConsumed,
-                avgConsumption: model.averageConsumption,
-                vehicleCount: model.vehicleCount,
-                label: `${model.manufacturer} ${model.vehicleModel}`
-            }));
+    // State for chart controls
+    const [selectedMetrics, setSelectedMetrics] = useState(['totalFuelConsumed', 'averageConsumption']);
+    const [compareBy, setCompareBy] = useState('type');
+    const [selectedVehicles, setSelectedVehicles] = useState([]);
+
+    // Get available vehicles for selection
+    const availableVehicles = useMemo(() => {
+        if (!summaryData?.vehicleComparisons) return [];
+        return summaryData.vehicleComparisons.map(v => ({
+            id: v.vehicleId,
+            name: `${v.hyoungNo} (${v.vehicleType})`
+        }));
     }, [summaryData]);
 
-    // Prepare data for trend chart
+    // Prepare comparison data based on selected dimension
+    const comparisonData = useMemo(() => {
+        if (!summaryData) return [];
+
+        switch (compareBy) {
+            case 'type':
+                return (summaryData.typeSummaries || []).map(t => ({
+                    label: t.vehicleType || 'Unknown',
+                    ...t
+                }));
+            case 'model':
+                return (summaryData.modelSummaries || []).slice(0, 15).map(m => ({
+                    label: `${m.manufacturer} ${m.vehicleModel}`,
+                    ...m
+                }));
+            case 'vehicle':
+                const vehicles = summaryData.vehicleComparisons || [];
+                if (selectedVehicles.length > 0) {
+                    return vehicles
+                        .filter(v => selectedVehicles.includes(v.vehicleId))
+                        .map(v => ({
+                            label: v.hyoungNo,
+                            ...v
+                        }));
+                }
+                return vehicles.slice(0, 10).map(v => ({
+                    label: v.hyoungNo,
+                    ...v
+                }));
+            default:
+                return [];
+        }
+    }, [summaryData, compareBy, selectedVehicles]);
+
+    // Prepare trend data
     const trendChartData = useMemo(() => {
-        if (!summaryData || !summaryData.trendData) return [];
+        if (!summaryData?.trendData) return [];
         return summaryData.trendData.map(trend => ({
             date: new Date(trend.date),
             dateLabel: formatTrendDate(trend.date, groupBy),
@@ -52,38 +104,19 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
         }));
     }, [summaryData, groupBy]);
 
-    // Prepare data for site pie chart
+    // Prepare site distribution data
     const sitePieData = useMemo(() => {
-        if (!summaryData || !summaryData.siteSummaries) return [];
+        if (!summaryData?.siteSummaries) return [];
         return summaryData.siteSummaries.map(site => ({
             site: site.siteName,
-            fuelConsumed: site.totalFuelConsumed,
-            percentage: 0 // Will be calculated by chart
+            fuelConsumed: site.totalFuelConsumed
         }));
     }, [summaryData]);
 
-    // Prepare data for vehicle type distribution
-    const vehicleTypeData = useMemo(() => {
-        if (!summaryData || !summaryData.modelSummaries) return [];
-
-        // Group by vehicle type
-        const typeGroups = {};
-        summaryData.modelSummaries.forEach(model => {
-            const type = model.vehicleType || 'Unknown';
-            if (!typeGroups[type]) {
-                typeGroups[type] = { type, fuelConsumed: 0, vehicleCount: 0 };
-            }
-            typeGroups[type].fuelConsumed += model.totalFuelConsumed;
-            typeGroups[type].vehicleCount += model.vehicleCount;
-        });
-
-        return Object.values(typeGroups);
-    }, [summaryData]);
-
-    // Format trend date based on groupBy
-    function formatTrendDate(dateStr, groupBy) {
+    // Format trend date
+    function formatTrendDate(dateStr, period) {
         const date = new Date(dateStr);
-        switch (groupBy) {
+        switch (period) {
             case 'week':
                 return `Week ${getWeekNumber(date)}`;
             case 'month':
@@ -106,19 +139,18 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
         return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
-    // Custom tooltip for bar chart
-    const customizeBarTooltip = (info) => {
-        return {
-            text: `${info.argumentText}\nFuel: ${info.valueText} L\nVehicles: ${info.point.data.vehicleCount}`
-        };
-    };
+    // Get metric info
+    const getMetricInfo = useCallback((metricValue) => {
+        return METRIC_OPTIONS.find(m => m.value === metricValue) || { text: metricValue, color: '#8b5cf6' };
+    }, []);
 
-    // Custom tooltip for trend chart
-    const customizeTrendTooltip = (info) => {
+    // Custom tooltip for comparison chart
+    const customizeComparisonTooltip = useCallback((info) => {
+        const metricInfo = getMetricInfo(info.seriesName);
         return {
-            text: `${info.argumentText}\nFuel: ${Number(info.value).toLocaleString()} L\nVehicles: ${info.point.data.vehicleCount}\nRefills: ${info.point.data.refillCount}`
+            text: `${info.argumentText}\n${metricInfo.text}: ${Number(info.value).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
         };
-    };
+    }, [getMetricInfo]);
 
     // Custom tooltip for pie chart
     const customizePieTooltip = (info) => {
@@ -147,55 +179,171 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
 
     return (
         <div className="consumption-charts tw-space-y-6">
-            {/* Top Row - Consumption by Vehicle Model & Site Distribution */}
+            {/* Comparison Controls */}
+            <div className="tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-border tw-border-gray-200">
+                <div className="tw-flex tw-flex-wrap tw-items-end tw-gap-4">
+                    {/* Compare By Selector */}
+                    <div className="tw-min-w-[180px]">
+                        <label className="tw-block tw-text-xs tw-text-gray-500 tw-mb-1">Compare By</label>
+                        <SelectBox
+                            items={COMPARE_BY_OPTIONS}
+                            displayExpr="text"
+                            valueExpr="value"
+                            value={compareBy}
+                            onValueChanged={(e) => setCompareBy(e.value)}
+                            stylingMode="outlined"
+                            width="100%"
+                        />
+                    </div>
+
+                    {/* Metrics Selector */}
+                    <div className="tw-flex-1 tw-min-w-[300px]">
+                        <label className="tw-block tw-text-xs tw-text-gray-500 tw-mb-1">Metrics to Compare</label>
+                        <TagBox
+                            items={METRIC_OPTIONS}
+                            displayExpr="text"
+                            valueExpr="value"
+                            value={selectedMetrics}
+                            onValueChanged={(e) => setSelectedMetrics(e.value)}
+                            stylingMode="outlined"
+                            showSelectionControls={true}
+                            maxDisplayedTags={4}
+                            placeholder="Select metrics..."
+                        />
+                    </div>
+
+                    {/* Vehicle Selector (when comparing by vehicle) */}
+                    {compareBy === 'vehicle' && (
+                        <div className="tw-flex-1 tw-min-w-[300px]">
+                            <label className="tw-block tw-text-xs tw-text-gray-500 tw-mb-1">Select Vehicles</label>
+                            <TagBox
+                                items={availableVehicles}
+                                displayExpr="name"
+                                valueExpr="id"
+                                value={selectedVehicles}
+                                onValueChanged={(e) => setSelectedVehicles(e.value)}
+                                stylingMode="outlined"
+                                showSelectionControls={true}
+                                maxDisplayedTags={5}
+                                placeholder="Select vehicles to compare..."
+                                searchEnabled={true}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Main Comparison Chart */}
+            <div className="consumption-chart-container">
+                <div className="chart-title">
+                    <i className="fa-light fa-chart-column"></i>
+                    Multi-Metric Comparison {compareBy === 'type' ? 'by Vehicle Type' : compareBy === 'model' ? 'by Model' : 'by Vehicle'}
+                </div>
+                {comparisonData.length > 0 && selectedMetrics.length > 0 ? (
+                    <Chart
+                        dataSource={comparisonData}
+                        rotated={comparisonData.length > 6}
+                        height={Math.max(350, comparisonData.length * 40)}
+                    >
+                        <CommonSeriesSettings
+                            argumentField="label"
+                            type="bar"
+                        />
+
+                        {selectedMetrics.map((metric) => {
+                            const metricInfo = getMetricInfo(metric);
+                            return (
+                                <Series
+                                    key={metric}
+                                    valueField={metric}
+                                    name={metricInfo.text}
+                                    color={metricInfo.color}
+                                />
+                            );
+                        })}
+
+                        <ArgumentAxis>
+                            <Label wordWrap="none" overlappingBehavior="stagger" />
+                        </ArgumentAxis>
+
+                        <ValueAxis>
+                            <Label format="#,##0.##" />
+                        </ValueAxis>
+
+                        <Tooltip enabled={true} customizeTooltip={customizeComparisonTooltip} />
+
+                        <Legend
+                            visible={true}
+                            verticalAlignment="bottom"
+                            horizontalAlignment="center"
+                        />
+
+                        <Export enabled={true} />
+                    </Chart>
+                ) : (
+                    <div className="tw-text-center tw-py-8 tw-text-gray-400">
+                        {selectedMetrics.length === 0 ? 'Select at least one metric to display' : 'No data available for comparison'}
+                    </div>
+                )}
+            </div>
+
+            {/* Two Column Layout */}
             <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
-                {/* Consumption by Vehicle Model */}
+                {/* Fuel vs Expected Average Comparison */}
                 <div className="consumption-chart-container">
                     <div className="chart-title">
-                        <i className="fa-light fa-truck"></i>
-                        Consumption by Vehicle Model
+                        <i className="fa-light fa-scale-balanced"></i>
+                        Actual vs Expected Consumption
                     </div>
-                    {modelChartData.length > 0 ? (
+                    {comparisonData.filter(d => d.expectedAverage > 0).length > 0 ? (
                         <Chart
-                            dataSource={modelChartData}
+                            dataSource={comparisonData.filter(d => d.expectedAverage > 0).slice(0, 10)}
                             rotated={true}
-                            height={400}
+                            height={350}
                         >
                             <CommonSeriesSettings
                                 argumentField="label"
                                 type="bar"
-                                hoverMode="allArgumentPoints"
-                                selectionMode="allArgumentPoints"
-                            >
-                                <Label visible={true} position="outside" format="#,##0" />
-                            </CommonSeriesSettings>
+                            />
 
                             <Series
-                                valueField="fuelConsumed"
-                                name="Fuel Consumed (L)"
+                                valueField="averageConsumption"
+                                name="Actual"
                                 color="#8b5cf6"
                             />
 
+                            <Series
+                                valueField="expectedAverage"
+                                name="Expected"
+                                color="#10b981"
+                            />
+
                             <ArgumentAxis>
-                                <Label wordWrap="none" overlappingBehavior="stagger" />
+                                <Label wordWrap="none" />
                             </ArgumentAxis>
 
                             <ValueAxis>
-                                <Label format="#,##0" />
+                                <Label format="#0.0" />
                             </ValueAxis>
 
-                            <Tooltip enabled={true} customizeTooltip={customizeBarTooltip} />
-                            <Legend visible={false} />
+                            <Tooltip enabled={true} />
+
+                            <Legend
+                                visible={true}
+                                verticalAlignment="bottom"
+                                horizontalAlignment="center"
+                            />
+
                             <Export enabled={true} />
                         </Chart>
                     ) : (
                         <div className="tw-text-center tw-py-8 tw-text-gray-400">
-                            No model data available
+                            No expected average data available
                         </div>
                     )}
                 </div>
 
-                {/* Site Distribution Pie Chart */}
+                {/* Site Distribution */}
                 <div className="consumption-chart-container">
                     <div className="chart-title">
                         <i className="fa-light fa-chart-pie"></i>
@@ -205,7 +353,7 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                         <PieChart
                             dataSource={sitePieData}
                             palette="Violet"
-                            height={400}
+                            height={350}
                         >
                             <PieSeries
                                 argumentField="site"
@@ -213,7 +361,6 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                             >
                                 <PieLabel
                                     visible={true}
-                                    format="#,##0 L"
                                     customizeText={(info) => `${info.argumentText}`}
                                 >
                                     <Connector visible={true} width={1} />
@@ -224,7 +371,6 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                                 visible={true}
                                 horizontalAlignment="right"
                                 verticalAlignment="top"
-                                itemTextPosition="right"
                             />
 
                             <PieTooltip enabled={true} customizeTooltip={customizePieTooltip} />
@@ -238,7 +384,149 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                 </div>
             </div>
 
-            {/* Trend Chart - Full Width */}
+            {/* Efficiency Variance Chart */}
+            <div className="consumption-chart-container">
+                <div className="chart-title">
+                    <i className="fa-light fa-chart-mixed"></i>
+                    Efficiency Variance (Actual - Expected)
+                    <span className="tw-text-xs tw-text-gray-400 tw-ml-2">
+                        Positive = underperforming | Negative = overperforming
+                    </span>
+                </div>
+                {comparisonData.filter(d => d.efficiencyVariance !== 0).length > 0 ? (
+                    <Chart
+                        dataSource={comparisonData.filter(d => d.efficiencyVariance !== 0).slice(0, 15)}
+                        height={300}
+                    >
+                        <CommonSeriesSettings
+                            argumentField="label"
+                            type="bar"
+                        />
+
+                        <Series
+                            valueField="efficiencyVariance"
+                            name="Variance"
+                            color="#ef4444"
+                        >
+                            <Label
+                                visible={true}
+                                position="outside"
+                                customizeText={(info) => {
+                                    const val = info.value;
+                                    return val > 0 ? `+${val.toFixed(2)}` : val.toFixed(2);
+                                }}
+                            />
+                        </Series>
+
+                        <ArgumentAxis>
+                            <Label wordWrap="none" overlappingBehavior="rotate" rotationAngle={-30} />
+                        </ArgumentAxis>
+
+                        <ValueAxis>
+                            <Label format="#0.00" />
+                        </ValueAxis>
+
+                        <Tooltip enabled={true} />
+                        <Legend visible={false} />
+                        <Export enabled={true} />
+                    </Chart>
+                ) : (
+                    <div className="tw-text-center tw-py-8 tw-text-gray-400">
+                        No efficiency variance data available
+                    </div>
+                )}
+            </div>
+
+            {/* Distance vs Engine Hours Comparison */}
+            <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
+                {/* Distance by Type/Model */}
+                <div className="consumption-chart-container">
+                    <div className="chart-title">
+                        <i className="fa-light fa-road"></i>
+                        Total Distance Comparison
+                    </div>
+                    {comparisonData.filter(d => d.totalDistance > 0).length > 0 ? (
+                        <Chart
+                            dataSource={comparisonData.filter(d => d.totalDistance > 0).slice(0, 10)}
+                            height={300}
+                        >
+                            <CommonSeriesSettings
+                                argumentField="label"
+                                type="bar"
+                            >
+                                <Label visible={true} position="outside" format="#,##0" />
+                            </CommonSeriesSettings>
+
+                            <Series
+                                valueField="totalDistance"
+                                name="Distance (km)"
+                                color="#10b981"
+                            />
+
+                            <ArgumentAxis>
+                                <Label wordWrap="none" overlappingBehavior="rotate" rotationAngle={-30} />
+                            </ArgumentAxis>
+
+                            <ValueAxis>
+                                <Label format="#,##0" />
+                            </ValueAxis>
+
+                            <Tooltip enabled={true} />
+                            <Legend visible={false} />
+                            <Export enabled={true} />
+                        </Chart>
+                    ) : (
+                        <div className="tw-text-center tw-py-8 tw-text-gray-400">
+                            No distance data available
+                        </div>
+                    )}
+                </div>
+
+                {/* Engine Hours by Type/Model */}
+                <div className="consumption-chart-container">
+                    <div className="chart-title">
+                        <i className="fa-light fa-clock"></i>
+                        Total Engine Hours Comparison
+                    </div>
+                    {comparisonData.filter(d => d.totalEngineHours > 0).length > 0 ? (
+                        <Chart
+                            dataSource={comparisonData.filter(d => d.totalEngineHours > 0).slice(0, 10)}
+                            height={300}
+                        >
+                            <CommonSeriesSettings
+                                argumentField="label"
+                                type="bar"
+                            >
+                                <Label visible={true} position="outside" format="#,##0.0" />
+                            </CommonSeriesSettings>
+
+                            <Series
+                                valueField="totalEngineHours"
+                                name="Engine Hours"
+                                color="#f59e0b"
+                            />
+
+                            <ArgumentAxis>
+                                <Label wordWrap="none" overlappingBehavior="rotate" rotationAngle={-30} />
+                            </ArgumentAxis>
+
+                            <ValueAxis>
+                                <Label format="#,##0.0" />
+                            </ValueAxis>
+
+                            <Tooltip enabled={true} />
+                            <Legend visible={false} />
+                            <Export enabled={true} />
+                        </Chart>
+                    ) : (
+                        <div className="tw-text-center tw-py-8 tw-text-gray-400">
+                            No engine hours data available
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Trend Chart */}
             <div className="consumption-chart-container">
                 <div className="chart-title">
                     <i className="fa-light fa-chart-line"></i>
@@ -255,18 +543,14 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                             valueField="fuelConsumed"
                             name="Total Fuel (L)"
                             color="#8b5cf6"
-                        >
-                            <Label visible={false} />
-                        </Series>
+                        />
 
                         <Series
-                            valueField="refillCount"
-                            name="Refill Count"
+                            valueField="avgConsumption"
+                            name="Avg Consumption"
                             color="#10b981"
-                            axis="refillAxis"
-                        >
-                            <Label visible={false} />
-                        </Series>
+                            axis="avgAxis"
+                        />
 
                         <ArgumentAxis>
                             <Label overlappingBehavior="rotate" rotationAngle={-45} />
@@ -277,12 +561,12 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                             <Title text="Fuel (L)" />
                         </ValueAxis>
 
-                        <ValueAxis name="refillAxis" position="right">
-                            <Label format="#,##0" />
-                            <Title text="Refills" />
+                        <ValueAxis name="avgAxis" position="right">
+                            <Label format="#0.0" />
+                            <Title text="Avg Consumption" />
                         </ValueAxis>
 
-                        <Tooltip enabled={true} customizeTooltip={customizeTrendTooltip} />
+                        <Tooltip enabled={true} />
 
                         <Legend
                             visible={true}
@@ -297,95 +581,6 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                         No trend data available
                     </div>
                 )}
-            </div>
-
-            {/* Bottom Row - Vehicle Type Distribution */}
-            <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
-                {/* Vehicle Type Distribution */}
-                <div className="consumption-chart-container">
-                    <div className="chart-title">
-                        <i className="fa-light fa-layer-group"></i>
-                        Consumption by Vehicle Type
-                    </div>
-                    {vehicleTypeData.length > 0 ? (
-                        <Chart
-                            dataSource={vehicleTypeData}
-                            height={300}
-                        >
-                            <CommonSeriesSettings
-                                argumentField="type"
-                                type="bar"
-                            >
-                                <Label visible={true} position="outside" format="#,##0" />
-                            </CommonSeriesSettings>
-
-                            <Series
-                                valueField="fuelConsumed"
-                                name="Fuel Consumed (L)"
-                                color="#f59e0b"
-                            />
-
-                            <ArgumentAxis>
-                                <Label wordWrap="none" />
-                            </ArgumentAxis>
-
-                            <ValueAxis>
-                                <Label format="#,##0" />
-                            </ValueAxis>
-
-                            <Tooltip enabled={true} />
-                            <Legend visible={false} />
-                            <Export enabled={true} />
-                        </Chart>
-                    ) : (
-                        <div className="tw-text-center tw-py-8 tw-text-gray-400">
-                            No vehicle type data available
-                        </div>
-                    )}
-                </div>
-
-                {/* Average Consumption by Vehicle Type */}
-                <div className="consumption-chart-container">
-                    <div className="chart-title">
-                        <i className="fa-light fa-gauge-high"></i>
-                        Average Consumption by Model
-                    </div>
-                    {modelChartData.length > 0 ? (
-                        <Chart
-                            dataSource={modelChartData.slice(0, 8)}
-                            height={300}
-                        >
-                            <CommonSeriesSettings
-                                argumentField="label"
-                                type="bar"
-                            >
-                                <Label visible={true} position="outside" format="#0.0" />
-                            </CommonSeriesSettings>
-
-                            <Series
-                                valueField="avgConsumption"
-                                name="Avg Consumption"
-                                color="#10b981"
-                            />
-
-                            <ArgumentAxis>
-                                <Label wordWrap="none" overlappingBehavior="rotate" rotationAngle={-30} />
-                            </ArgumentAxis>
-
-                            <ValueAxis>
-                                <Label format="#0.0" />
-                            </ValueAxis>
-
-                            <Tooltip enabled={true} />
-                            <Legend visible={false} />
-                            <Export enabled={true} />
-                        </Chart>
-                    ) : (
-                        <div className="tw-text-center tw-py-8 tw-text-gray-400">
-                            No consumption data available
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );
