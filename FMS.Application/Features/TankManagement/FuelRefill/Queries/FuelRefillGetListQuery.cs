@@ -56,6 +56,7 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
             }
 
             var fuelRefils = await query
+                .Include(f => f.Vehicle) // Include Vehicle to access HyoungNo
                 .OrderByDescending (x => x.Date)
                 .Skip (request.Skip)
                 .Take (request.Take)
