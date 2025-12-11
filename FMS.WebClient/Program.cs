@@ -100,14 +100,20 @@ public class Program
 
         // Don't configure Kestrel endpoints - let the default configuration from appsettings handle binding
         var currentEnvironment = builder.Environment.EnvironmentName;
-        var bindingIP = currentEnvironment == "Production" ? "10.0.10.153" : "10.0.11.90";
         if (isIIS)
         {
             Log.Information("Environment: {Environment} (IIS) - IIS site bindings / ASPNETCORE_URLS will govern external access (expected port 7009).", currentEnvironment);
         }
         else
         {
-            Log.Information("Environment: {Environment} (self-host) - Using URL configuration: http://{IP}:7009 and http://localhost:7009", currentEnvironment, bindingIP); //Cursor
+            if (currentEnvironment == "Development")
+            {
+                Log.Information("Environment: {Environment} (self-host) - Listening on http://localhost:7009 and http://0.0.0.0:7009", currentEnvironment);
+            }
+            else
+            {
+                Log.Information("Environment: {Environment} (self-host) - Using Kestrel configuration from appsettings", currentEnvironment);
+            }
         }
         var app = builder.Build();
 
