@@ -59,7 +59,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                                 f.Date <= adjustedEndDate)
                     .Include(f => f.Driver)
                     .Include(f => f.Site)
-                    .Include(f => f.User)
+                    .Include(f => f.FuelByNavigation)
                     .OrderBy(f => f.Date)
                     .ToListAsync(cancellationToken);
 
@@ -82,9 +82,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0),
                         vehicle.AverageKmL),
                     SiteName = f.Site?.Name ?? "Unknown",
-                    FuelBy = f.User?.DisplayName ?? f.User?.UserName ?? "Unknown",
+                    FuelBy = f.FuelByNavigation?.UserName ?? f.FuelByNavigation?.Email ?? "Unknown",
                     DriverName = f.Driver?.FullName ?? "Unknown",
-                    Comment = f.Comments ?? string.Empty
+                    Comment = f.Comment ?? string.Empty
                 }).ToList();
 
                 // Build daily consumption data (aggregated by day)

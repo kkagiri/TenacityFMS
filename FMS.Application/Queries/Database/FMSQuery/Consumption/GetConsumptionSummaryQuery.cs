@@ -46,6 +46,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     .Include(v => v.VehicleManufacturer)
                     .Include(v => v.VehicleModel)
                     .Include(v => v.WorkingSite)
+                    .Include(v => v.DefaultExptdAvg)
                     .AsQueryable();
 
                 if (request.SiteId.HasValue)
@@ -121,7 +122,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         var consumption = CalculateConsumption(totalFuel, distanceOrHours, vehicle.AverageKmL);
 
                         // Get expected average from vehicle's expected consumption setting
-                        var expectedAvg = vehicle.ExpectedAvg ?? 0;
+                        var expectedAvg = vehicle.DefaultExptdAvg?.ExpectedAverageValue ?? 0;
                         var efficiencyVariance = expectedAvg > 0 ? consumption - expectedAvg : 0;
 
                         siteSummary.Vehicles.Add(new ConsumptionByVehicleDTO
@@ -279,7 +280,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
         }
 
         private List<ConsumptionTrendDataDTO> BuildTrendData(
-            List<Domain.Entities.Features.TankStockManagement.Fuelrefill> fuelRefills,
+            List<Domain.Entities.FuelRefill> fuelRefills,
             List<Domain.Entities.Vehicle> vehicles,
             string groupBy)
         {
@@ -287,7 +288,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
             if (!fuelRefills.Any()) return result;
 
-            IEnumerable<IGrouping<DateTime, Domain.Entities.Features.TankStockManagement.Fuelrefill>> groupedRefills;
+            IEnumerable<IGrouping<DateTime, Domain.Entities.FuelRefill>> groupedRefills;
 
             switch (groupBy.ToLower())
             {
