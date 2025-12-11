@@ -376,6 +376,16 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public long AuditId { get; set; }
         public string? Notes { get; set; }
         public string? FinalizedBy { get; set; }
+
+        /// <summary>
+        /// If true, send the audit report via email after finalizing
+        /// </summary>
+        public bool SendReport { get; set; }
+
+        /// <summary>
+        /// Email addresses to send the report to
+        /// </summary>
+        public List<string> RecipientEmails { get; set; } = new();
     }
 
     /// <summary>

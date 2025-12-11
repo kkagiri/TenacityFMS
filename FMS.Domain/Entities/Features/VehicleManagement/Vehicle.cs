@@ -118,4 +118,9 @@ public partial class Vehicle
     public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction>();
     public virtual ICollection<FuelTag> Tags { get; set; } = new List<FuelTag>();
 
+    /// <summary>
+    /// Vehicle's expected fuel average assignments (can have multiple for different routes/conditions)
+    /// </summary>
+    public virtual ICollection<VehicleExpectedAverageAssignment> ExpectedAverageAssignments { get; set; } = new List<VehicleExpectedAverageAssignment>();
+
 }

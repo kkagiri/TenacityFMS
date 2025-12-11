@@ -514,5 +514,338 @@ export const exportAllCategoriesToExcel = async (vehiclesByCategory, options = {
   return safeFileName;
 };
 
+/**
+ * Export ONLY refill details for a single category to a separate Excel file
+ * This exports the detailed refill records (master-detail data) without the vehicle summary
+ * @param {number} categoryId - Category ID to export
+ * @param {Array} data - Vehicle data array for the category
+ * @param {Object} options - Export options
+ * @param {string} options.siteName - Site name
+ * @param {Date} options.startDate - Period start date
+ * @param {Date} options.endDate - Period end date
+ */
+export const exportRefillDetailsToExcel = async (categoryId, data, options = {}) => {
+  const {
+    siteName = 'Unknown Site',
+    startDate,
+    endDate,
+  } = options;
+
+  const config = CATEGORY_CONFIG[categoryId];
+  const categoryName = config?.name || `Category ${categoryId}`;
+
+  const workbook = new Workbook();
+
+  // Set workbook properties
+  workbook.creator = 'FMS Fuel Audit';
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  // Create single sheet for refill details
+  const worksheet = workbook.addWorksheet('Fuel Refill Details');
+
+  // Add title
+  const titleRow = worksheet.addRow([`${categoryName} - Fuel Refill Details`]);
+  titleRow.font = { bold: true, size: 14 };
+  worksheet.mergeCells('A1:H1');
+
+  // Add period info
+  const periodText = startDate && endDate
+    ? `Period: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`
+    : 'Period: Not specified';
+  const periodRow = worksheet.addRow([`Site: ${siteName}`, periodText]);
+  periodRow.font = { italic: true, color: { argb: 'FF666666' } };
+  worksheet.addRow([]); // Empty row
+
+  // Define columns based on category - matching the master-detail grid display
+  let columns;
+
+  // Category 1 (GPS Fleet) - Matches "GPS Refill Events (SOAP Report 212)" detail grid
+  if (categoryId === 1) {
+    columns = [
+      { header: 'Vehicle No', key: 'vehicleNo', width: 15 },
+      { header: 'Date', key: 'refillDate', width: 18 },
+      { header: 'Tank', key: 'tankName', width: 12 },
+      { header: 'Fuel Before', key: 'fuelBefore', width: 12 },
+      { header: 'Fuel After', key: 'fuelAfter', width: 12 },
+      { header: 'GPS Fuel', key: 'gpsFuel', width: 12 },
+      { header: 'Manual (L)', key: 'manualAmount', width: 12 },
+      { header: 'Variance', key: 'variance', width: 12 },
+      { header: 'Var %', key: 'variancePercent', width: 10 },
+      { header: 'At Site', key: 'atSite', width: 10 },
+    ];
+  }
+  // Category 2 (Full Tank) - Vehicle, Date, Tank, Fuel Issued, Odometer, Distance, km/L
+  else if (categoryId === 2) {
+    columns = [
+      { header: 'Vehicle No', key: 'vehicleNo', width: 15 },
+      { header: 'Refill Date', key: 'refillDate', width: 18 },
+      { header: 'Tank', key: 'tankName', width: 12 },
+      { header: 'Fuel Issued (L)', key: 'fuelAmount', width: 14 },
+      { header: 'Prev Odo', key: 'prevOdometer', width: 12 },
+      { header: 'Curr Odo', key: 'odometer', width: 12 },
+      { header: 'Distance (km)', key: 'distance', width: 13 },
+      { header: 'km/L', key: 'efficiency', width: 10 },
+    ];
+  }
+  // Category 4 (Cross-Site) - Same as Category 1 with GPS Refill Events
+  else if (categoryId === 4) {
+    columns = [
+      { header: 'Vehicle No', key: 'vehicleNo', width: 15 },
+      { header: 'Date', key: 'refillDate', width: 18 },
+      { header: 'Tank', key: 'tankName', width: 12 },
+      { header: 'Fuel Before', key: 'fuelBefore', width: 12 },
+      { header: 'Fuel After', key: 'fuelAfter', width: 12 },
+      { header: 'GPS Fuel', key: 'gpsFuel', width: 12 },
+      { header: 'Manual (L)', key: 'manualAmount', width: 12 },
+      { header: 'Variance', key: 'variance', width: 12 },
+      { header: 'Var %', key: 'variancePercent', width: 10 },
+      { header: 'At Site', key: 'atSite', width: 10 },
+    ];
+  }
+  // Category 3 & 5 (Equipment & External) - Vehicle, Date, Tank, Quantity
+  else {
+    columns = [
+      { header: 'Vehicle No', key: 'vehicleNo', width: 15 },
+      { header: 'Refill Date', key: 'refillDate', width: 18 },
+      { header: 'Tank', key: 'tankName', width: 12 },
+      { header: 'Quantity (L)', key: 'fuelAmount', width: 12 },
+      { header: 'Odometer', key: 'odometer', width: 12 },
+    ];
+  }
+
+  worksheet.columns = columns;
+
+  // Add header row at row 4
+  const headerRowNum = 4;
+  const headerValues = columns.map(col => col.header);
+  worksheet.getRow(headerRowNum).values = headerValues;
+  applyHeaderStyle(worksheet, headerRowNum);
+
+  // Helper function to merge GPS events with manual refills (same as UI)
+  const mergeGpsAndManualRefills = (gpsRefillEvents, manualRefills) => {
+    if (!gpsRefillEvents || gpsRefillEvents.length === 0) return [];
+
+    return gpsRefillEvents.map(gpsEvent => {
+      // Try to find a matching manual refill by date (same day)
+      const gpsDate = new Date(gpsEvent.refillDate);
+      const matchedRefill = manualRefills?.find(r => {
+        const refillDate = new Date(r.refillDate);
+        // Match if same date (within a day)
+        return Math.abs(gpsDate - refillDate) < 24 * 60 * 60 * 1000;
+      });
+
+      const manualAmount = matchedRefill?.fuelAmount || null;
+      const gpsAmount = gpsEvent.gpsRefillVolume || 0;
+
+      // Calculate variance: Manual - GPS (positive = manual shows more than GPS)
+      let variance = null;
+      let variancePercent = null;
+      if (manualAmount !== null && gpsAmount > 0) {
+        variance = manualAmount - gpsAmount;
+        variancePercent = (variance / manualAmount) * 100;
+      }
+
+      return {
+        ...gpsEvent,
+        manualRefillAmount: manualAmount,
+        variance: variance,
+        variancePercent: variancePercent,
+        tankName: matchedRefill?.tankName || gpsEvent.tankName,
+        fuelRefillId: matchedRefill?.refillId || gpsEvent.fuelRefillId
+      };
+    });
+  };
+
+  // Collect all refills from all vehicles with calculated fields
+  let rowIndex = headerRowNum + 1;
+  let totalFuelAmount = 0;
+  let totalGpsDispensed = 0;
+  let refillCount = 0;
+
+  data.forEach(vehicle => {
+    // For GPS Categories (1 and 4): merge gpsRefillEvents with manual refills (same as UI detail grid)
+    // For other categories: use refills or fuelRefills
+    // Also try to get tank name from vehicle level if not in refill
+    const vehicleTankName = vehicle.tankName || vehicle.tank || '';
+
+    const isGpsCategory = categoryId === 1 || categoryId === 4;
+    const gpsRefillEvents = vehicle.gpsRefillEvents || [];
+    const manualRefills = vehicle.refills || vehicle.fuelRefills || [];
+
+    // For GPS categories, merge GPS events with manual refills (same logic as UI)
+    const refills = (isGpsCategory && gpsRefillEvents.length > 0)
+      ? mergeGpsAndManualRefills(gpsRefillEvents, manualRefills)
+      : manualRefills;
+    let prevOdometer = null;
+
+    // Debug log to help identify data structure
+    if (refills.length > 0) {
+      console.log(`[Export] Vehicle ${vehicle.vehicleNo} - First refill keys:`, Object.keys(refills[0]));
+    }
+
+    refills.forEach((refill, idx) => {
+      // Handle different field names between GPS events and manual refills
+      // Try multiple field names for manual amount
+      const fuelAmount = refill.manualRefillAmount || refill.fuelAmount || refill.quantity || refill.amount || 0;
+      // Try multiple field names for GPS dispensed
+      const gpsDispensedValue = refill.gpsRefillVolume || refill.gpsDispensed || refill.gpsAmount || refill.gpsFuelAmount || null;
+      // Try multiple field names for tank
+      const tankName = refill.tankName || refill.tank || refill.fuelTankName || vehicleTankName || '';
+
+      totalFuelAmount += fuelAmount;
+      if (gpsDispensedValue != null) totalGpsDispensed += gpsDispensedValue;
+      refillCount++;
+
+      // Calculate distance and efficiency for Category 2
+      const currentOdometer = refill.odometer || refill.currentOdometer || 0;
+      const prevOdo = refill.previousOdometer || (idx > 0 ? refills[idx - 1]?.odometer : null) || prevOdometer;
+      const distance = prevOdo && currentOdometer ? (currentOdometer - prevOdo) : null;
+      const efficiency = distance && fuelAmount ? (distance / fuelAmount) : null;
+
+      // Get GPS fuel values - from refill data
+      const gpsFuelBefore = refill.fuelBefore ?? refill.gpsFuelBefore ?? null;
+      const gpsFuelAfter = refill.fuelAfter ?? refill.gpsFuelAfter ?? null;
+
+      // GPS Fuel = Fuel After - Fuel Before (what GPS sensor measured as dispensed)
+      const gpsFuel = gpsDispensedValue ?? ((gpsFuelBefore != null && gpsFuelAfter != null)
+        ? (gpsFuelAfter - gpsFuelBefore)
+        : null);
+
+      // Build row data based on category
+      let rowData;
+
+      // Calculate variance - Manual minus GPS (positive = manual higher than GPS)
+      const variance = (gpsFuel != null && fuelAmount)
+        ? (fuelAmount - gpsFuel)
+        : (refill.variance ?? null);
+
+      // Calculate variance percentage
+      const variancePercent = (variance != null && fuelAmount && fuelAmount !== 0)
+        ? ((variance / fuelAmount) * 100)
+        : (refill.variancePercent ?? null);
+
+      if (categoryId === 1) {
+        // Category 1: GPS Refill Events - matches detail grid columns exactly
+        rowData = {
+          vehicleNo: vehicle.vehicleNo,
+          refillDate: refill.refillDate ? new Date(refill.refillDate).toLocaleDateString() : '',
+          tankName: tankName,
+          fuelBefore: formatExportNumber(gpsFuelBefore, 1),
+          fuelAfter: formatExportNumber(gpsFuelAfter, 1),
+          gpsFuel: formatExportNumber(gpsFuel, 1),
+          manualAmount: formatExportNumber(fuelAmount, 1),
+          variance: formatExportNumber(variance, 1),
+          variancePercent: variancePercent != null ? `${formatExportNumber(variancePercent, 1)}%` : '',
+          atSite: refill.isAuditSiteRefill ? 'Yes' : 'No',
+        };
+      } else if (categoryId === 2) {
+        rowData = {
+          vehicleNo: vehicle.vehicleNo,
+          refillDate: refill.refillDate ? new Date(refill.refillDate).toLocaleDateString() : '',
+          tankName: tankName,
+          fuelAmount: formatExportNumber(fuelAmount),
+          prevOdometer: formatExportNumber(prevOdo, 0),
+          odometer: formatExportNumber(currentOdometer, 0),
+          distance: formatExportNumber(distance, 1),
+          efficiency: formatExportNumber(efficiency, 2),
+        };
+      } else if (categoryId === 4) {
+        // Category 4: Cross-Site GPS Refill Events - same structure as Category 1
+        rowData = {
+          vehicleNo: vehicle.vehicleNo,
+          refillDate: refill.refillDate ? new Date(refill.refillDate).toLocaleDateString() : '',
+          tankName: tankName,
+          fuelBefore: formatExportNumber(gpsFuelBefore, 1),
+          fuelAfter: formatExportNumber(gpsFuelAfter, 1),
+          gpsFuel: formatExportNumber(gpsFuel, 1),
+          manualAmount: formatExportNumber(fuelAmount, 1),
+          variance: formatExportNumber(variance, 1),
+          variancePercent: variancePercent != null ? `${formatExportNumber(variancePercent, 1)}%` : '',
+          atSite: refill.isAuditSiteRefill ? 'Yes' : 'No',
+        };
+      } else {
+        rowData = {
+          vehicleNo: vehicle.vehicleNo,
+          refillDate: refill.refillDate ? new Date(refill.refillDate).toLocaleDateString() : '',
+          tankName: tankName,
+          fuelAmount: formatExportNumber(fuelAmount),
+          odometer: formatExportNumber(currentOdometer, 0),
+        };
+      }
+
+      // Add row as array of values in column order
+      const rowValues = columns.map(col => rowData[col.key] ?? '');
+      worksheet.addRow(rowValues);
+      rowIndex++;
+
+      prevOdometer = currentOdometer;
+    });
+  });
+
+  // Apply alternating row colors
+  applyAlternatingRowColors(worksheet, headerRowNum + 1, rowIndex - 1);
+
+  // Add summary row
+  const summaryRow = worksheet.addRow([]);
+  summaryRow.getCell(1).value = 'TOTAL';
+  summaryRow.getCell(1).font = { bold: true };
+  summaryRow.getCell(2).value = `${refillCount} refill(s) from ${data.length} vehicle(s)`;
+
+  // Find the manual amount column and add total (for Categories 1 and 4)
+  const manualAmountColIdx = columns.findIndex(c => c.key === 'manualAmount') + 1;
+  if (manualAmountColIdx > 0) {
+    summaryRow.getCell(manualAmountColIdx).value = formatExportNumber(totalFuelAmount, 1);
+    summaryRow.getCell(manualAmountColIdx).font = { bold: true };
+  }
+
+  // Find the fuel amount column and add total (for Categories 2, 3, 5)
+  const fuelAmountColIdx = columns.findIndex(c => c.key === 'fuelAmount') + 1;
+  if (fuelAmountColIdx > 0) {
+    summaryRow.getCell(fuelAmountColIdx).value = formatExportNumber(totalFuelAmount);
+    summaryRow.getCell(fuelAmountColIdx).font = { bold: true };
+  }
+
+  // Find the GPS Fuel column and add total (for Category 1 and 4)
+  const gpsFuelColIdx = columns.findIndex(c => c.key === 'gpsFuel') + 1;
+  if (gpsFuelColIdx > 0 && totalGpsDispensed > 0) {
+    summaryRow.getCell(gpsFuelColIdx).value = formatExportNumber(totalGpsDispensed, 1);
+    summaryRow.getCell(gpsFuelColIdx).font = { bold: true };
+  }
+
+  summaryRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE2EFDA' }
+  };
+
+  // Add borders to all data cells
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber >= headerRowNum) {
+      row.eachCell(cell => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+    }
+  });
+
+  // Generate filename
+  const dateStr = new Date().toISOString().split('T')[0];
+  const periodStr = startDate && endDate
+    ? `_${new Date(startDate).toISOString().split('T')[0]}_to_${new Date(endDate).toISOString().split('T')[0]}`
+    : '';
+  const safeFileName = `FuelRefillDetails_${categoryName.replace(/[^a-zA-Z0-9]/g, '_')}${periodStr}_${dateStr}.xlsx`;
+
+  // Save the file
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), safeFileName);
+
+  return safeFileName;
+};
+
 // Re-export CATEGORY_CONFIG for convenience
 export { CATEGORY_CONFIG };

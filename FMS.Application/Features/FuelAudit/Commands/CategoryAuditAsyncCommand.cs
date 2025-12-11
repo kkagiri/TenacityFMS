@@ -121,6 +121,7 @@ namespace FMS.Application.Features.FuelAudit.Commands
                         auditRequest.EndDate,
                         auditRequest.AuditId,
                         auditRequest.RequestedBy,
+                        auditRequest.AuditTankIds,  // Pass audit tank IDs for cross-site matching
                         processedCategories,
                         totalCategories,
                         request.CancellationToken);
@@ -174,6 +175,7 @@ namespace FMS.Application.Features.FuelAudit.Commands
             DateTime endDate,
             int? auditId,
             int? requestedBy,
+            List<int>? auditTankIds,
             int currentCategoryIndex,
             int totalCategories,
             CancellationToken cancellationToken)
@@ -204,7 +206,7 @@ namespace FMS.Application.Features.FuelAudit.Commands
                         break;
 
                     case 4:
-                        await ProcessCrossSiteCategoryAsync(result, vehicles, startDate, endDate, cancellationToken);
+                        await ProcessCrossSiteCategoryAsync(result, vehicles, startDate, endDate, auditTankIds, cancellationToken);
                         break;
 
                     case 5:
@@ -307,6 +309,45 @@ namespace FMS.Application.Features.FuelAudit.Commands
                 }
             }
 
+            // Fetch GPS refill events from gpsgate_report_entries for Category 1 vehicles
+            var gpsRefillEventsByVehicle = new Dictionary<int, List<GpsRefillEventResultDTO>>();
+            try
+            {
+                var gpsRefillEntries = await _context.GpsGateReportEntries
+                    .AsNoTracking()
+                    .Where(e => vehicleIds.Contains(e.VehicleId))
+                    .Where(e => e.DispenseDate >= startDate && e.DispenseDate <= endDate)
+                    .Where(e => !e.IsDeleted)
+                    .OrderBy(e => e.DispenseDate)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var entry in gpsRefillEntries)
+                {
+                    if (!gpsRefillEventsByVehicle.ContainsKey(entry.VehicleId))
+                    {
+                        gpsRefillEventsByVehicle[entry.VehicleId] = new List<GpsRefillEventResultDTO>();
+                    }
+                    gpsRefillEventsByVehicle[entry.VehicleId].Add(new GpsRefillEventResultDTO
+                    {
+                        EntryId = entry.Id,
+                        RefillDate = entry.DispenseDate,
+                        StartTime = entry.StartTime,
+                        Duration = entry.Duration,
+                        FuelBefore = entry.FuelBefore,
+                        FuelAfter = entry.FuelAfter,
+                        GpsRefillVolume = entry.RefillVolume,
+                        IsAuditSiteRefill = true // Site GPS vehicles - all refills at site
+                    });
+                }
+
+                _logger.LogInformation("Fetched GPS refill events: {TotalEntries} entries for {VehicleCount} vehicles",
+                    gpsRefillEntries.Count, gpsRefillEventsByVehicle.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch GPS refill entries for Category 1 vehicles");
+            }
+
             // Variance thresholds
             const decimal VEHICLE_VARIANCE_THRESHOLD = 5.0m;
             const decimal CONSUMPTION_VARIANCE_THRESHOLD = 10.0m;
@@ -407,6 +448,12 @@ namespace FMS.Application.Features.FuelAudit.Commands
 
                 vehicleResult.IsAuditable = vehicleResult.OpeningFuelLevel.HasValue && vehicleResult.ClosingFuelLevel.HasValue;
 
+                // Add GPS refill events for this vehicle (SOAP Report 212 data)
+                if (gpsRefillEventsByVehicle.TryGetValue(vehicle.VehicleId, out var gpsRefillEvents))
+                {
+                    vehicleResult.GpsRefillEvents = gpsRefillEvents;
+                }
+
                 result.Vehicles.Add(vehicleResult);
             }
         }
@@ -468,11 +515,13 @@ namespace FMS.Application.Features.FuelAudit.Commands
             List<CategoryVehicleDTO> vehicles,
             DateTime startDate,
             DateTime endDate,
+            List<int>? auditTankIds,
             CancellationToken cancellationToken)
         {
             var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
 
-            var query = new GetCrossSiteGpsDataQuery(vehicleIds, startDate, endDate);
+            // Pass audit tank IDs to match GPS events with manual refills from those tanks
+            var query = new GetCrossSiteGpsDataQuery(vehicleIds, startDate, endDate, null, auditTankIds);
             var queryResult = await _mediator.Send(query, cancellationToken);
 
             if (queryResult.IsSuccess && queryResult.Data != null)

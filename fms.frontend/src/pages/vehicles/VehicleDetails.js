@@ -13,13 +13,12 @@ import VehicleEditForm from "./component/VehicleEditForm";
 import VehicleConsumptionHistory from "./component/VehicleConsumptionHistory";
 import VehicleMaintenanceHistory from "./component/VehicleMaintenanceHistory";
 import VehicleFuelingHistory from "./component/VehicleFuelingHistory";
-import VehicleSchedules from "./component/VehicleSchedules";
 import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
 import VehicleGPSInformation from "./component/VehicleGPSInformation";
 
 // Import popup components
 import TagAssignmentForm from "../../components/Tags/TagAssignmentForm/TagAssignmentForm";
-import ExpectedAverageForm from "./component/vehicledetails/ExpectedAverageForm";
+import EnhancedExpectedAverageForm from "./component/vehicledetails/EnhancedExpectedAverageForm";
 
 // Services
 import {
@@ -28,6 +27,7 @@ import {
 } from "../../redux/actions/vehicleActions";
 import { fetchTags } from "../../redux/actions/tagActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
+import axiosInstance from "../../api/axiosInstance";
 
 import "./VehicleDetails.scss";
 
@@ -49,6 +49,7 @@ const VehicleDetails = () => {
   const [showTagPopup, setShowTagPopup] = useState(false);
   const [showSitePopup, setShowSitePopup] = useState(false);
   const [showExpectedAvgPopup, setShowExpectedAvgPopup] = useState(false);
+  const [gpsData, setGpsData] = useState(null); // GPS data for fuel level
   const [tabLoadingStates, setTabLoadingStates] = useState({
     0: true, // Vehicle Information tab starts loading
     // Other tabs will be set to true only when selected
@@ -60,6 +61,7 @@ const VehicleDetails = () => {
   useEffect(() => {
     setDataLoaded(false);
     setVehicle(null);
+    setGpsData(null);
     setTabDataLoaded({});
     setTabLoadingStates({
       0: true,
@@ -88,6 +90,21 @@ const VehicleDetails = () => {
 
         // Ensure supporting data is loaded
         await Promise.all([dispatch(fetchTags()), dispatch(fetchSiteList())]);
+
+        // Load GPS data for fuel level if vehicle has GPS installed
+        if (vehicleData.hasGPSInstalled) {
+          try {
+            const gpsResponse = await axiosInstance.get(
+              `/vehicletracking/${id}/gps-information`
+            );
+            if (gpsResponse.data && gpsResponse.data.isSuccess) {
+              setGpsData(gpsResponse.data.data);
+            }
+          } catch (error) {
+            console.error("Error loading GPS information:", error);
+            // Don't show error notification, just log it - GPS data is optional
+          }
+        }
 
         setDataLoaded(true); // Mark as loaded
 
@@ -132,7 +149,7 @@ const VehicleDetails = () => {
   // Helper function to navigate to fueling history tab
   const handleViewFuelHistory = () => {
     // Navigate to the fuel history tab
-    setActiveTab(3); // Fueling History tab
+    setActiveTab(4); // Fueling History tab (index changed after removing Schedules and reordering)
   };
 
   const handleGenerateReport = () => {
@@ -238,7 +255,7 @@ const VehicleDetails = () => {
   }, [id]); // Only recreate if vehicle ID changes
 
   const maintenanceHistoryComponent = useMemo(() => {
-    if (!vehicle || tabLoadingStates[2]) return null;
+    if (!vehicle || tabLoadingStates[3]) return null;
     return (
       <VehicleMaintenanceHistory
         key={`maintenance-${vehicle?.vehicleId}`}
@@ -248,20 +265,10 @@ const VehicleDetails = () => {
   }, [vehicle, id, tabLoadingStates]);
 
   const fuelingHistoryComponent = useMemo(() => {
-    if (!vehicle || tabLoadingStates[3]) return null;
+    if (!vehicle || tabLoadingStates[4]) return null;
     return (
       <VehicleFuelingHistory
         key={`fueling-${vehicle?.vehicleId}`}
-        vehicleId={id}
-      />
-    );
-  }, [vehicle, id, tabLoadingStates]);
-
-  const schedulesComponent = useMemo(() => {
-    if (!vehicle || tabLoadingStates[4]) return null;
-    return (
-      <VehicleSchedules
-        key={`schedules-${vehicle?.vehicleId}`}
         vehicleId={id}
       />
     );
@@ -278,7 +285,7 @@ const VehicleDetails = () => {
   }, [vehicle, id, tabLoadingStates]);
 
   const gpsInformationComponent = useMemo(() => {
-    if (!vehicle || tabLoadingStates[6]) return null;
+    if (!vehicle || tabLoadingStates[1]) return null;
     return (
       <VehicleGPSInformation
         key={`gps-${vehicle?.vehicleId}`}
@@ -310,32 +317,32 @@ const VehicleDetails = () => {
           : vehicleEditFormComponent,
       },
       {
+        title: "GPS Information",
+        icon: "fa-solid fa-satellite",
+        component: tabLoadingStates[1]
+          ? loadingSpinner("GPS information")
+          : gpsInformationComponent,
+      },
+      {
         title: "Consumption History",
         icon: "fa-solid fa-gas-pump",
-        component: tabLoadingStates[1]
+        component: tabLoadingStates[2]
           ? loadingSpinner("consumption history")
           : consumptionHistoryComponent,
       },
       {
         title: "Maintenance History",
         icon: "fa-solid fa-wrench",
-        component: tabLoadingStates[2]
+        component: tabLoadingStates[3]
           ? loadingSpinner("maintenance history")
           : maintenanceHistoryComponent,
       },
       {
         title: "Fueling History",
         icon: "fa-solid fa-pump",
-        component: tabLoadingStates[3]
+        component: tabLoadingStates[4]
           ? loadingSpinner("fueling history")
           : fuelingHistoryComponent,
-      },
-      {
-        title: "Schedules",
-        icon: "fa-solid fa-calendar",
-        component: tabLoadingStates[4]
-          ? loadingSpinner("schedules")
-          : schedulesComponent,
       },
       {
         title: "Documents",
@@ -344,23 +351,15 @@ const VehicleDetails = () => {
           ? loadingSpinner("documents")
           : documentsComponent,
       },
-      {
-        title: "GPS Information",
-        icon: "fa-solid fa-satellite",
-        component: tabLoadingStates[6]
-          ? loadingSpinner("GPS information")
-          : gpsInformationComponent,
-      },
     ];
   }, [
     vehicle,
     vehicleEditFormComponent,
+    gpsInformationComponent,
     consumptionHistoryComponent,
     maintenanceHistoryComponent,
     fuelingHistoryComponent,
-    schedulesComponent,
     documentsComponent,
-    gpsInformationComponent,
     tabLoadingStates,
   ]);
 
@@ -436,6 +435,17 @@ const VehicleDetails = () => {
               <p className="tw-text-sm md:tw-text-base tw-text-gray-600">
                 {vehicle.vehicleManufacturer?.name} {vehicle.vehicleModel?.name}
               </p>
+              {/* Display current location address if available - clickable to go to GPS tab */}
+              {gpsData?.address && (
+                <p
+                  className="tw-text-sm tw-text-blue-600 tw-mt-1 tw-flex tw-items-center tw-gap-2 tw-cursor-pointer hover:tw-text-blue-800 hover:tw-underline"
+                  onClick={() => setActiveTab(1)}
+                  title="Click to view on map"
+                >
+                  <i className="fa-light fa-map-marker-alt"></i>
+                  <span>{gpsData.address}</span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -471,28 +481,30 @@ const VehicleDetails = () => {
         {/* Vehicle Metrics Dashboard - Modern Card Design */}
         <div className="vehicle-details__metrics">
           <div className="vehicle-details__metrics-grid tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-4">
-            {/* Status Card */}
+            {/* Default Driver Card */}
             <div className="vehicle-details__metric-card vehicle-details__metric-card--status">
               <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-circle-check"></i>
+                <i className="fa-light fa-user"></i>
               </div>
               <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Status</div>
+                <div className="vehicle-details__metric-label">Default Driver</div>
                 <div className="vehicle-details__metric-value">
-                  {vehicleMetrics.status}
+                  {vehicle.defaultDriver?.name || vehicle.defaultDriver?.fullName || "Not Assigned"}
                 </div>
               </div>
             </div>
 
-            {/* GPS Status Card */}
+            {/* Ignition Status Card */}
             <div className="vehicle-details__metric-card vehicle-details__metric-card--gps">
               <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-satellite"></i>
+                <i className="fa-light fa-key"></i>
               </div>
               <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">GPS Status</div>
+                <div className="vehicle-details__metric-label">Ignition</div>
                 <div className="vehicle-details__metric-value">
-                  {vehicleMetrics.gpsStatus}
+                  {gpsData?.sensorHealth?.ignitionStatus !== null && gpsData?.sensorHealth?.ignitionStatus !== undefined
+                    ? (gpsData.sensorHealth.ignitionStatus ? "ON" : "OFF")
+                    : "N/A"}
                 </div>
               </div>
             </div>
@@ -510,28 +522,30 @@ const VehicleDetails = () => {
               </div>
             </div>
 
-            {/* Default Driver Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--driver">
+            {/* GPS Signal Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--gps-signal">
               <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-user"></i>
+                <i className="fa-light fa-satellite"></i>
               </div>
               <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Default Driver</div>
+                <div className="vehicle-details__metric-label">GPS Signal</div>
                 <div className="vehicle-details__metric-value">
-                  {vehicle.defaultEmployee?.fullName || "Not Assigned"}
+                  {gpsData?.sensorHealth?.gpsSignalStrength || "N/A"}
                 </div>
               </div>
             </div>
 
-            {/* Vehicle Type Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--type">
+            {/* Fuel Level Card */}
+            <div className="vehicle-details__metric-card vehicle-details__metric-card--fuel">
               <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-car-side"></i>
+                <i className="fa-light fa-gas-pump"></i>
               </div>
               <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Vehicle Type</div>
+                <div className="vehicle-details__metric-label">Fuel Level</div>
                 <div className="vehicle-details__metric-value">
-                  {vehicle.vehicleType?.name || "Not Specified"}
+                  {gpsData?.sensorHealth?.fuelLevel !== null && gpsData?.sensorHealth?.fuelLevel !== undefined
+                    ? `${Math.floor(gpsData.sensorHealth.fuelLevel)} ${gpsData.sensorHealth.fuelLevelUnit || "L"}`
+                    : "N/A"}
                 </div>
               </div>
             </div>
@@ -668,22 +682,20 @@ const VehicleDetails = () => {
         title={`Set Expected Average for ${vehicle.hyoungNo}`}
         width="90%"
         height="auto"
-        maxWidth={600}
+        maxWidth={800}
         maxHeight="90%"
         showCloseButton={true}
       >
         <ScrollView width="100%" height="100%">
-          <div className="tw-p-4">
-            <ExpectedAverageForm
-              vehicle={vehicle}
-              onClose={() => setShowExpectedAvgPopup(false)}
-              onSuccess={(newAverage) => {
-                setVehicle({ ...vehicle, defaultExptdAvgid: newAverage });
-                setShowExpectedAvgPopup(false);
-                notify("Expected average updated successfully", "success", 3000);
-              }}
-            />
-          </div>
+          <EnhancedExpectedAverageForm
+            vehicle={vehicle}
+            onClose={() => setShowExpectedAvgPopup(false)}
+            onSuccess={(newAverage) => {
+              setVehicle({ ...vehicle, defaultExptdAvgid: newAverage });
+              setShowExpectedAvgPopup(false);
+              notify("Expected average updated successfully", "success", 3000);
+            }}
+          />
         </ScrollView>
       </Popup>
     </div>

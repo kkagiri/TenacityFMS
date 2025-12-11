@@ -1,0 +1,94 @@
+.expected-average-management {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  // DevExtreme TabPanel overrides
+  .dx-tabpanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .dx-multiview-wrapper {
+      border: none;
+      flex: 1;
+    }
+
+    .dx-multiview-item-content {
+      padding: 0;
+    }
+  }
+
+  // Grid container
+  .dx-datagrid {
+    .dx-datagrid-header-panel {
+      padding: 10px;
+    }
+  }
+
+  // Status Badges
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+
+    &.active {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    &.inactive {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+  }
+
+  // Measurement Badges
+  .measurement-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+
+    &.km-per-liter {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    &.liter-per-hour {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+  }
+
+  // Action Buttons
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+}
+
+// Popup Form Styles
+.template-form {
+  .dx-field-item-label-text {
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .dx-group-caption {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+  }
+}

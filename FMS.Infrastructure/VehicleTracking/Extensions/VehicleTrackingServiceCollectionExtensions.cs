@@ -73,6 +73,12 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.AddHttpClient<IGPSGateHealthService, GPSGateHealthService>();
             services.TryAddScoped<IGPSGateHealthService, GPSGateHealthService>();
 
+            services.AddHttpClient<IGPSGateGeocodingService, GPSGateGeocodingService>();
+            services.TryAddScoped<IGPSGateGeocodingService, GPSGateGeocodingService>();
+
+            services.AddHttpClient<IGPSGateViewsService, GPSGateViewsService>();
+            services.TryAddScoped<IGPSGateViewsService, GPSGateViewsService>();
+
             services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
             services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
 

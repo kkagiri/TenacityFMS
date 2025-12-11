@@ -235,27 +235,27 @@
       }
     }
 
-    // Default Driver Card
-    &--driver {
+    // GPS Signal Card
+    &--gps-signal {
       &::before {
-        background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+        background: linear-gradient(180deg, #3b82f6, #2563eb);
       }
 
       .vehicle-details__metric-icon {
-        background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-        color: #7c3aed;
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #2563eb;
       }
     }
 
-    // Vehicle Type Card
-    &--type {
+    // Fuel Level Card
+    &--fuel {
       &::before {
-        background: linear-gradient(180deg, #ef4444, #dc2626);
+        background: linear-gradient(180deg, #f59e0b, #d97706);
       }
 
       .vehicle-details__metric-icon {
-        background: linear-gradient(135deg, #fee2e2, #fecaca);
-        color: #dc2626;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #d97706;
       }
     }
 

@@ -307,13 +307,13 @@ const FuelSummarySection = ({ vehicleDetails }) => {
             </div>
           </div>
           <div className="tw-bg-orange-50 tw-p-2 tw-rounded tw-border tw-border-orange-200">
-            <div className="tw-text-xs tw-text-gray-500">GPS Consumption</div>
+            <div className="tw-text-xs tw-text-gray-500">Vehicle Consumption (GPS)</div>
             <div className="tw-font-semibold tw-text-orange-600">
               {vehicleDetails.gpsMeasuredConsumption?.toFixed(2) ?? '0.00'} L
             </div>
           </div>
           <div className="tw-bg-blue-50 tw-p-2 tw-rounded tw-border tw-border-blue-200">
-            <div className="tw-text-xs tw-text-gray-500">Calculated Used</div>
+            <div className="tw-text-xs tw-text-gray-500">Manual Fuel Consumed</div>
             <div className="tw-font-semibold tw-text-blue-600">
               {vehicleDetails.consumption?.toFixed(2) ?? '0.00'} L
             </div>

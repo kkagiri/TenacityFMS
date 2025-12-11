@@ -265,9 +265,8 @@ const FuelDataComparisonDashboard = () => {
         message: "",
       });
 
-      // Destructure fetchParams to pass individual parameters to API
-      const { startDate, endDate } = fetchParams;
-      const response = await fetchGpsData(startDate, endDate);
+      // Pass fetchParams object directly to API - it expects FetchGpsDataRequestDto
+      const response = await fetchGpsData(fetchParams);
 
       if (response.isSuccess) {
         const jobId = response.data.jobId;

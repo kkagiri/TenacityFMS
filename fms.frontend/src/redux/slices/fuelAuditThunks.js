@@ -225,10 +225,12 @@ export const fetchCategoryAuditData = createAsyncThunk(
  * @param {string} params.startDate - Audit period start
  * @param {string} params.endDate - Audit period end
  * @param {number} [params.auditSiteId] - Site ID for audit context
+ * @param {number[]} [params.auditSiteIds] - Site IDs for multi-site audit
+ * @param {number[]} [params.auditTankIds] - Tank IDs to match GPS events with manual refills
  */
 export const startCategoryAuditAsync = createAsyncThunk(
   'fuelAudit/startCategoryAuditAsync',
-  async ({ vehicles, startDate, endDate, auditSiteId }, { rejectWithValue }) => {
+  async ({ vehicles, startDate, endDate, auditSiteId, auditSiteIds, auditTankIds }, { rejectWithValue }) => {
     try {
       // Transform vehicle data to match backend DTO
       const vehicleDtos = vehicles.map(v => ({
@@ -248,7 +250,9 @@ export const startCategoryAuditAsync = createAsyncThunk(
         vehicles: vehicleDtos,
         startDate,
         endDate,
-        auditSiteId
+        auditSiteId,
+        auditSiteIds,
+        auditTankIds  // Pass tank IDs for GPS-to-manual refill matching
       });
 
       return response;
@@ -409,12 +413,17 @@ export const submitReading = createAsyncThunk(
 
 /**
  * Finalize audit
+ * @param {object} params - Finalization params
+ * @param {number} params.auditId - Audit ID
+ * @param {string} [params.notes] - Finalization notes
+ * @param {boolean} [params.sendReport] - Send report via email
+ * @param {string[]} [params.recipientEmails] - Email recipients
  */
 export const finalizeAuditAction = createAsyncThunk(
   'fuelAudit/finalizeAudit',
-  async (auditId, { rejectWithValue }) => {
+  async ({ auditId, notes, sendReport, recipientEmails }, { rejectWithValue }) => {
     try {
-      const response = await fuelAuditApi.finalizeAudit(auditId);
+      const response = await fuelAuditApi.finalizeAudit(auditId, { notes, sendReport, recipientEmails });
       return response;
     } catch (error) {
       return rejectWithValue(error);

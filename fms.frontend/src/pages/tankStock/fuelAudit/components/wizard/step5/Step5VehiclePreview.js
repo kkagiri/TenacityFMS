@@ -59,7 +59,8 @@ import {
 // Import export utilities
 import {
   exportCategoryToExcel,
-  exportAllCategoriesToExcel
+  exportAllCategoriesToExcel,
+  exportRefillDetailsToExcel
 } from './Step5VehiclePreviewExport';
 
 // FuelDataQuality enum mapping (numeric value to string name)
@@ -263,6 +264,29 @@ const Step5VehiclePreview = memo(() => {
       endDate: wizard.periodEnd,
       includeRefillDetails: true
     });
+  }, [vehiclesByCategory, wizard.siteName, wizard.periodStart, wizard.periodEnd]);
+
+  // Export ONLY refill details for a specific category as a separate file
+  const handleExportRefillDetails = useCallback(async (categoryId) => {
+    const vehicles = vehiclesByCategory[categoryId];
+    if (!vehicles?.length) return;
+
+    // Check if there are any refills to export (include gpsRefillEvents for Category 1)
+    const hasRefills = vehicles.some(v =>
+      (v.gpsRefillEvents || v.refills || v.fuelRefills || []).length > 0
+    );
+    if (!hasRefills) {
+      notify('No refill records to export for this category', 'warning', 3000);
+      return;
+    }
+
+    await exportRefillDetailsToExcel(categoryId, vehicles, {
+      siteName: wizard.siteName || 'Unknown Site',
+      startDate: wizard.periodStart,
+      endDate: wizard.periodEnd,
+    });
+
+    notify('Refill details exported successfully', 'success', 2000);
   }, [vehiclesByCategory, wizard.siteName, wizard.periodStart, wizard.periodEnd]);
 
   // Export all categories to a single Excel file
@@ -539,11 +563,13 @@ const Step5VehiclePreview = memo(() => {
 
         // Use async endpoint with SignalR progress updates
         console.log('[Step5] Starting async GPS data fetch via SignalR...');
+        console.log('[Step5] Passing auditTankIds:', wizard.selectedTankIds);
         const result = await dispatch(startCategoryAuditAsync({
           vehicles: selectedVehicles,
           startDate: wizard.periodStart,
           endDate: wizard.periodEnd,
-          auditSiteIds: siteIds
+          auditSiteIds: siteIds,
+          auditTankIds: wizard.selectedTankIds  // Pass selected tank IDs for GPS-to-manual matching
         })).unwrap();
 
         console.log('[Step5] Async job started:', result);
@@ -557,7 +583,7 @@ const Step5VehiclePreview = memo(() => {
       setLoadingCategory(null);
       setCategoryProgress(0);
     }
-  }, [selectedVehicles, wizard.periodStart, wizard.periodEnd, wizard.siteIds, dispatch, useAsyncMode, handleSyncLoad]);
+  }, [selectedVehicles, wizard.periodStart, wizard.periodEnd, wizard.siteIds, wizard.selectedTankIds, dispatch, useAsyncMode, handleSyncLoad]);
 
   // Handle cancel job
   const handleCancelJob = useCallback(() => {
@@ -579,6 +605,11 @@ const Step5VehiclePreview = memo(() => {
 
   // Helper function to match GPS events with manual refills and calculate variance
   const mergeGpsAndManualRefills = useCallback((gpsRefillEvents, manualRefills) => {
+    console.log('[Step5] mergeGpsAndManualRefills called:', {
+      gpsRefillEventsCount: gpsRefillEvents?.length || 0,
+      manualRefillsCount: manualRefills?.length || 0
+    });
+
     // Create a copy of GPS events with matched manual refill data
     return gpsRefillEvents.map(gpsEvent => {
       // Try to find a matching manual refill by date (same day)
@@ -587,6 +618,12 @@ const Step5VehiclePreview = memo(() => {
         const refillDate = new Date(r.refillDate);
         // Match if same date (within a day)
         return Math.abs(gpsDate - refillDate) < 24 * 60 * 60 * 1000;
+      });
+
+      console.log('[Step5] GPS event matching:', {
+        gpsDate: gpsEvent.refillDate,
+        gpsVolume: gpsEvent.gpsRefillVolume,
+        matchedRefill: matchedRefill ? { date: matchedRefill.refillDate, amount: matchedRefill.fuelAmount } : null
       });
 
       const manualAmount = matchedRefill?.fuelAmount || null;
@@ -619,6 +656,17 @@ const Step5VehiclePreview = memo(() => {
     const gpsRefillEvents = vehicle.gpsRefillEvents || [];
     const isGpsCategory = vehicle.vehicleCategory === 1 || vehicle.vehicleCategory === 4;
 
+    // Debug logging for cross-site data analysis
+    console.log('[Step5] renderRefillDetails for vehicle:', {
+      vehicleId: vehicle.vehicleId,
+      vehicleNo: vehicle.vehicleNo,
+      category: vehicle.vehicleCategory,
+      refillsCount: refills.length,
+      refills: refills.map(r => ({ date: r.refillDate, amount: r.fuelAmount, tank: r.tankName })),
+      gpsRefillEventsCount: gpsRefillEvents.length,
+      gpsRefillEvents: gpsRefillEvents.map(e => ({ date: e.refillDate, volume: e.gpsRefillVolume, before: e.fuelBefore, after: e.fuelAfter }))
+    });
+
     // For GPS categories (1 & 4), show GPS refill events if available
     if (isGpsCategory && gpsRefillEvents.length > 0) {
       // Merge GPS events with manual refill data for variance calculation
@@ -636,10 +684,13 @@ const Step5VehiclePreview = memo(() => {
             dataSource={mergedEvents}
             keyExpr="entryId"
             showBorders={true}
-            columnAutoWidth={true}
+            columnAutoWidth={false}
             rowAlternationEnabled={true}
             height="auto"
+            width="100%"
             wordWrapEnabled={true}
+            allowColumnResizing={true}
+            columnResizingMode="widget"
           >
             <Paging enabled={true} pageSize={5} />
             <Scrolling mode="standard" />
@@ -779,6 +830,160 @@ const Step5VehiclePreview = memo(() => {
       );
     }
 
+    // For Category 2 (Full Tank), show refill records with distance and efficiency
+    if (vehicle.vehicleCategory === 2) {
+      return (
+        <div className="tw-px-2 tw-py-1 tw-bg-gray-50">
+          {/* Header */}
+          <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
+            <div className="tw-flex tw-items-center tw-gap-2">
+              <i className="fa-light fa-gas-pump tw-text-amber-600"></i>
+              <span className="tw-text-xs tw-text-gray-600 tw-font-medium">
+                Refill Records - Full Tank Policy ({refills.length})
+              </span>
+            </div>
+            <div className="tw-text-xs tw-text-gray-500">
+              <span className="tw-mr-3">
+                <i className="fa-light fa-gauge-max tw-mr-1"></i>
+                Tank: {vehicle.fuelTankCapacity || '?'}L
+              </span>
+              <span className={`tw-px-1.5 tw-py-0.5 tw-rounded ${
+                vehicle.dataConfidence === 'HIGH' ? 'tw-bg-green-100 tw-text-green-700' :
+                vehicle.dataConfidence === 'MEDIUM' ? 'tw-bg-amber-100 tw-text-amber-700' :
+                'tw-bg-gray-100 tw-text-gray-600'
+              }`}>
+                {vehicle.dataConfidence || 'EST'}
+              </span>
+            </div>
+          </div>
+
+          {/* Refill Records Grid */}
+          {refills.length > 0 ? (
+            <DataGrid
+              dataSource={refills}
+              keyExpr="refillId"
+              showBorders={true}
+              columnAutoWidth={false}
+              rowAlternationEnabled={true}
+              height="auto"
+              width="100%"
+              wordWrapEnabled={true}
+              allowColumnResizing={true}
+              columnResizingMode="widget"
+            >
+              <Paging enabled={true} pageSize={5} />
+              <Scrolling mode="standard" />
+
+              <Column
+                dataField="refillDate"
+                caption="Date"
+                width={100}
+                dataType="date"
+                format="dd/MM/yyyy"
+                sortOrder="desc"
+              />
+              <Column
+                dataField="fuelAmount"
+                caption="Fuel Issued"
+                width={90}
+                dataType="number"
+                alignment="right"
+                cellRender={(cellData) => (
+                  <span className="tw-font-medium tw-text-green-600">
+                    +{cellData.value?.toFixed(1) || '0.0'} L
+                  </span>
+                )}
+              />
+              <Column
+                dataField="tankName"
+                caption="Tank"
+                width={100}
+              />
+              <Column
+                dataField="previousMeterReading"
+                caption="Prev Odo"
+                width={85}
+                dataType="number"
+                alignment="right"
+                cellRender={(cellData) => (
+                  <span className="tw-text-gray-500 tw-text-xs">
+                    {cellData.value ? cellData.value.toLocaleString() : '-'}
+                  </span>
+                )}
+              />
+              <Column
+                dataField="currentMeterReading"
+                caption="Curr Odo"
+                width={85}
+                dataType="number"
+                alignment="right"
+                cellRender={(cellData) => (
+                  <span className="tw-text-gray-700 tw-font-medium tw-text-xs">
+                    {cellData.value ? cellData.value.toLocaleString() : '-'}
+                  </span>
+                )}
+              />
+              <Column
+                caption="Distance"
+                width={85}
+                alignment="right"
+                calculateCellValue={(rowData) => {
+                  if (rowData.currentMeterReading && rowData.previousMeterReading) {
+                    return rowData.currentMeterReading - rowData.previousMeterReading;
+                  }
+                  return null;
+                }}
+                cellRender={(cellData) => (
+                  <span className="tw-text-blue-600 tw-font-medium">
+                    {cellData.value ? `${cellData.value.toLocaleString()} km` : '-'}
+                  </span>
+                )}
+              />
+              <Column
+                caption="km/L"
+                width={70}
+                alignment="right"
+                calculateCellValue={(rowData) => {
+                  const distance = rowData.currentMeterReading && rowData.previousMeterReading
+                    ? rowData.currentMeterReading - rowData.previousMeterReading
+                    : null;
+                  if (distance && rowData.fuelAmount && rowData.fuelAmount > 0) {
+                    return distance / rowData.fuelAmount;
+                  }
+                  return null;
+                }}
+                cellRender={(cellData) => (
+                  <span className="tw-text-purple-600 tw-font-medium">
+                    {cellData.value ? cellData.value.toFixed(1) : '-'}
+                  </span>
+                )}
+              />
+
+              <Summary>
+                <TotalItem
+                  column="fuelAmount"
+                  summaryType="sum"
+                  valueFormat="#,##0.0"
+                  displayFormat="Total Issued: {0} L"
+                />
+                <TotalItem
+                  column="Distance"
+                  summaryType="sum"
+                  valueFormat="#,##0"
+                  displayFormat="Total: {0} km"
+                />
+              </Summary>
+            </DataGrid>
+          ) : (
+            <div className="tw-text-center tw-text-gray-500 tw-py-3">
+              <i className="fa-light fa-inbox tw-text-xl tw-mb-1"></i>
+              <p className="tw-text-xs">No refill records during this period</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // For non-cross-site or when no GPS events available, show regular refill records
     if (!refills.length) {
       return (
@@ -795,10 +1000,13 @@ const Step5VehiclePreview = memo(() => {
           dataSource={refills}
           keyExpr="refillId"
           showBorders={true}
-          columnAutoWidth={true}
+          columnAutoWidth={false}
           rowAlternationEnabled={true}
           height="auto"
+          width="100%"
           wordWrapEnabled={true}
+          allowColumnResizing={true}
+          columnResizingMode="widget"
         >
           <Paging enabled={true} pageSize={5} />
           <Scrolling mode="standard" />
@@ -953,8 +1161,33 @@ const Step5VehiclePreview = memo(() => {
       );
     }
 
+    // Check if Category 4 vehicles have missing SOAP data (openingFuel is null/undefined)
+    const hasMissingSoapData = categoryId === 4 &&
+      vehicles.some(v => v.openingFuel === null || v.openingFuel === undefined);
+    const allMissingSoapData = categoryId === 4 &&
+      vehicles.every(v => v.openingFuel === null || v.openingFuel === undefined);
+
     return (
-      <div className={`tw-border tw-rounded-lg tw-overflow-hidden ${config.borderColor}`}>
+      <div className={`tw-border tw-rounded-lg tw-overflow-hidden tw-w-full ${config.borderColor}`}>
+        {/* SOAP data warning for Category 4 */}
+        {categoryId === 4 && hasMissingSoapData && (
+          <div className="tw-px-4 tw-py-2 tw-bg-yellow-50 tw-border-b tw-border-yellow-200">
+            <div className="tw-flex tw-items-start tw-gap-2">
+              <i className="fa-light fa-triangle-exclamation tw-text-yellow-600 tw-mt-0.5"></i>
+              <div className="tw-text-xs">
+                <p className="tw-font-medium tw-text-yellow-800">
+                  {allMissingSoapData ? 'No SOAP Report 212 data available' : 'Some vehicles missing SOAP data'}
+                </p>
+                <p className="tw-text-yellow-700 tw-mt-0.5">
+                  Cross-site vehicle data requires GPSGate Report 212. Please go to{' '}
+                  <strong>Tank Stock → Fuel Comparison</strong> and fetch GPS data for the audit period first,
+                  then return here and click "Fetch GPS Data".
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Category info bar with actions */}
         <div className={`tw-px-4 tw-py-2 tw-flex tw-items-center tw-justify-between ${config.bgColor}`}>
           <div>
@@ -964,13 +1197,22 @@ const Step5VehiclePreview = memo(() => {
             </p>
           </div>
           <div className="tw-flex tw-gap-2">
-            {/* Export button */}
+            {/* Export Summary button */}
             <Button
               icon="exportxlsx"
-              hint="Export to Excel"
+              hint="Export Summary to Excel"
               type="default"
               stylingMode="text"
               onClick={() => handleExportCategory(categoryId)}
+              disabled={isLoading}
+            />
+            {/* Export Refill Details button */}
+            <Button
+              icon="detailslayout"
+              hint="Export Refill Details to Excel"
+              type="default"
+              stylingMode="text"
+              onClick={() => handleExportRefillDetails(categoryId)}
               disabled={isLoading}
             />
             {/* Refresh button */}
@@ -1012,11 +1254,15 @@ const Step5VehiclePreview = memo(() => {
           ref={(ref) => { gridRefs.current[categoryId] = ref; }}
           dataSource={vehicles}
           keyExpr="vehicleId"
-          showBorders={false}
+          showBorders={true}
           columnAutoWidth={true}
           rowAlternationEnabled={true}
           height="auto"
+          width="100%"
           wordWrapEnabled={false}
+          allowColumnResizing={true}
+          columnResizingMode="nextColumn"
+          columnMinWidth={50}
         >
           <Scrolling mode="standard" />
           <Paging enabled={true} pageSize={10} />
@@ -1237,7 +1483,7 @@ const Step5VehiclePreview = memo(() => {
           {/* Calculated Consumption - Show for categories with showOpeningClosing=true */}
           {config.showOpeningClosing && (
             <Column
-              caption="Calc Used"
+              caption="Manual Fuel Consumed"
               width={80}
               dataType="number"
               alignment="right"
@@ -1284,7 +1530,7 @@ const Step5VehiclePreview = memo(() => {
           {config.canFetchGps && (
             <Column
               dataField="gpsMeasuredConsumption"
-              caption="GPS Fuel"
+              caption="Vehicle Consumption (GPS)"
               width={80}
               dataType="number"
               alignment="right"
@@ -1435,7 +1681,7 @@ const Step5VehiclePreview = memo(() => {
   }, [selectedVehicles]);
 
   return (
-    <div className="wizard-step tw-p-6">
+    <div className="wizard-step tw-p-4 tw-w-full">
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
         <div className="tw-flex tw-items-center tw-gap-3">
           <i className="fa-light fa-chart-mixed tw-mr-2 tw-text-lg"></i>
@@ -1568,7 +1814,7 @@ const Step5VehiclePreview = memo(() => {
 
       {/* Category accordions */}
       {selectedVehicles.length > 0 && (
-        <div className="tw-space-y-3">
+        <div className="tw-space-y-3 tw-w-full">
           {Object.keys(CATEGORY_CONFIG).map(catId => {
             const catIndex = parseInt(catId) - 1;
             const hasVehicles = vehiclesByCategory[catId]?.length > 0;
@@ -1576,7 +1822,7 @@ const Step5VehiclePreview = memo(() => {
             if (!hasVehicles) return null;
 
             return (
-              <div key={catId} className="tw-border tw-rounded-lg tw-overflow-hidden">
+              <div key={catId} className="tw-border tw-rounded-lg tw-overflow-hidden tw-w-full">
                 <button
                   className="tw-w-full tw-px-4 tw-py-3 tw-bg-white hover:tw-bg-gray-50 tw-flex tw-items-center tw-justify-between tw-transition-colors"
                   onClick={() => toggleCategory(catIndex)}
@@ -1585,7 +1831,7 @@ const Step5VehiclePreview = memo(() => {
                   <i className={`fa-light fa-chevron-${expandedCategories.includes(catIndex) ? 'up' : 'down'} tw-text-gray-400 tw-ml-2`}></i>
                 </button>
                 {expandedCategories.includes(catIndex) && (
-                  <div className="tw-border-t">
+                  <div className="tw-border-t tw-w-full">
                     {renderCategoryContent(parseInt(catId))}
                   </div>
                 )}
