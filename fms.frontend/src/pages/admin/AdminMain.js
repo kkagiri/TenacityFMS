@@ -22,6 +22,7 @@ import NotificationSettings from './notification-settings/NotificationSettings';
 import ProviderManagementMain from '../providermanagement/ProviderManagementMain';
 import TaskManagement from '../taskManagement';
 import LogManagementPage from './logManagement/LogManagementPage';
+import ExpectedAverageManagementPage from './expectedaverages/ExpectedAverageManagementPage';
 
 const AdminMain = () => {
   const location = useLocation();
@@ -75,6 +76,10 @@ const AdminMain = () => {
         {/* Log Management Route */}
         <Route path="logs" element={<LogManagementPage />} />
         <Route path="logs/*" element={<LogManagementPage />} />
+
+        {/* Expected Fuel Average Management Route */}
+        <Route path="expected-averages" element={<ExpectedAverageManagementPage />} />
+        <Route path="expected-averages/*" element={<ExpectedAverageManagementPage />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

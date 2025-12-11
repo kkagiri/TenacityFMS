@@ -59,10 +59,11 @@ namespace FMS.Application.Features.FuelAudit.Commands
                     return FMSResponse<FuelAuditSummaryDTO>.Failed("Cannot finalize a cancelled audit");
                 }
 
-                if (audit.Status != "Calculated")
+                // Allow finalization from Draft (wizard flow calculates on-the-fly) or Calculated status
+                if (audit.Status != "Draft" && audit.Status != "Calculated")
                 {
                     return FMSResponse<FuelAuditSummaryDTO>.Failed(
-                        "Audit must be calculated before finalizing");
+                        "Audit must be in Draft or Calculated status to finalize");
                 }
 
                 // Check for unresolved critical flags
@@ -89,6 +90,21 @@ namespace FMS.Application.Features.FuelAudit.Commands
 
                 _logger.LogInformation("Finalized audit {AuditNumber} (ID: {AuditId})",
                     audit.AuditNumber, audit.Id);
+
+                // Handle send report if requested
+                if (dto.SendReport && dto.RecipientEmails?.Count > 0)
+                {
+                    // TODO: Integrate with email service to send audit report
+                    // For now, just log the request
+                    _logger.LogInformation(
+                        "Email report requested for audit {AuditNumber} to {RecipientCount} recipient(s): {Recipients}",
+                        audit.AuditNumber,
+                        dto.RecipientEmails.Count,
+                        string.Join(", ", dto.RecipientEmails));
+
+                    // When email service is integrated:
+                    // await _emailService.SendAuditReportAsync(audit, dto.RecipientEmails);
+                }
 
                 var summary = new FuelAuditSummaryDTO
                 {

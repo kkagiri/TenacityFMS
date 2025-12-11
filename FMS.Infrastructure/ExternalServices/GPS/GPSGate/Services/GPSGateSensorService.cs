@@ -19,16 +19,19 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateSensorService> _logger;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
+         private readonly IGPSGateGeocodingService _geocodingService;
 
         public GPSGateSensorService(
             GpsdataContext context,
             HttpClient httpClient,
             IGPSGateConfigurationProvider configurationProvider,
+            IGPSGateGeocodingService geocodingService,
             ILogger<GPSGateSensorService> logger)
         {
             _context = context;
             _httpClient = httpClient;
             _configurationProvider = configurationProvider;
+            _geocodingService = geocodingService;
             _logger = logger;
         }
         public async Task<FMSResponse<VehicleGPSInformationDTO>> GetVehicleGPSInformationAsync(int vehicleId)
@@ -153,6 +156,25 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                             gpsInfo.SensorHealth.OverallHealth = "Warning";
                         else
                             gpsInfo.SensorHealth.OverallHealth = "Unknown";
+                    }
+                }
+
+                // Perform reverse geocoding to get address if we have valid coordinates
+                if (gpsInfo.Latitude.HasValue && gpsInfo.Longitude.HasValue)
+                {
+                    try
+                    {
+                        var geocodeResult = await _geocodingService.ReverseGeocodeAsync(gpsInfo.Longitude.Value, gpsInfo.Latitude.Value);
+                        if (geocodeResult.IsSuccess && geocodeResult.Data != null)
+                        {
+                            gpsInfo.Address = geocodeResult.Data.FormattedResult;
+                            _logger.LogDebug("Geocoded vehicle {VehicleId} location to: {Address}", vehicleId, gpsInfo.Address);
+                        }
+                    }
+                    catch (Exception geocodeEx)
+                    {
+                        // Don't fail the entire operation if geocoding fails
+                        _logger.LogWarning(geocodeEx, "Failed to geocode location for vehicle {VehicleId}", vehicleId);
                     }
                 }
 

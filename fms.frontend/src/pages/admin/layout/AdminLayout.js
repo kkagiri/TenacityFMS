@@ -93,6 +93,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'Log Management',
         subtitle: 'Download, view, and manage system log files'
       };
+    } else if (pathname.includes('/expected-averages')) {
+      return {
+        title: 'Expected Fuel Average Management',
+        subtitle: 'Configure expected fuel consumption benchmarks'
+      };
     } else {
       return {
         title: 'Admin Dashboard',
@@ -201,6 +206,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: 'Log Management',
       icon: 'fa-light fa-file-lines',
       path: adminRoutes.logs,
+    },
+    {
+      id: 'expected-averages',
+      title: 'Expected Averages',
+      icon: 'fa-light fa-chart-line-up',
+      path: adminRoutes.expectedAverages,
     }
 
   ];

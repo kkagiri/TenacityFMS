@@ -49,6 +49,7 @@ import tankVolumeCorrectionReducer from "../slices/tankVolumeCorrectionSlice";
 import dailyTankReconciliationReducer from "./dailyTankReconciliationReducer";
 import fuelAuditReducer from "../slices/fuelAuditSlice";
 import consumptionSummaryReducer from "./consumptionSummaryReducer";
+import expectedFuelAverageReducer from "../slices/expectedFuelAverageSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -101,6 +102,7 @@ const rootReducer = combineReducers({
   dailyTankReconciliation: dailyTankReconciliationReducer,
   fuelAudit: fuelAuditReducer,
   consumptionSummary: consumptionSummaryReducer,
+  expectedFuelAverage: expectedFuelAverageReducer,
 });
 
 export default rootReducer;

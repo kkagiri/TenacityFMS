@@ -11,6 +11,7 @@
  * - Flags and issues summary
  * - Signature/approval section
  * - Print and Finalize actions
+ * - Save Draft, Complete, Export Excel, Send Report options
  */
 
 import React, { useMemo, useCallback, useRef, useState } from 'react';
@@ -18,8 +19,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Button } from 'devextreme-react/button';
 import { TextArea } from 'devextreme-react/text-area';
+import { TextBox } from 'devextreme-react/text-box';
+import { CheckBox } from 'devextreme-react/check-box';
 import { Popup } from 'devextreme-react/popup';
+import { TagBox } from 'devextreme-react/tag-box';
 import notify from 'devextreme/ui/notify';
+import { confirm } from 'devextreme/ui/dialog';
 
 import {
   selectWizard,
@@ -27,7 +32,7 @@ import {
   setWizardNotes,
   resetWizard
 } from '../../../../../../redux/slices/fuelAuditSlice';
-import { finalizeAuditAction } from '../../../../../../redux/slices/fuelAuditSlice';
+import { finalizeAuditAction, saveDraftAudit } from '../../../../../../redux/slices/fuelAuditThunks';
 
 import './Step7AuditReport.scss';
 
@@ -40,7 +45,7 @@ const CATEGORY_CONFIG = {
   5: { name: 'External', icon: 'fa-user-plus', color: 'tw-text-pink-700', bgColor: 'tw-bg-pink-50' }
 };
 
-const Step7AuditReport = ({ onFinalize, onClose }) => {
+const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const reportRef = useRef(null);
@@ -48,10 +53,17 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
   const wizard = useSelector(selectWizard);
   const draftAudit = useSelector(selectWizardDraftAudit);
   const sites = useSelector((state) => state.site?.sites || []);
+  const currentUser = useSelector((state) => state.auth?.user || {});
 
   const [showFinalizePopup, setShowFinalizePopup] = useState(false);
+  const [showSendReportPopup, setShowSendReportPopup] = useState(false);
   const [finalizationNotes, setFinalizationNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [sendReportOnComplete, setSendReportOnComplete] = useState(false);
+  const [recipientEmails, setRecipientEmails] = useState([]);
+  const [customEmail, setCustomEmail] = useState('');
+  const [lastSavedTime, setLastSavedTime] = useState(wizard.lastSavedAt || null);
 
   // Get selected sites
   const selectedSites = useMemo(() => {
@@ -167,6 +179,62 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
     window.print();
   }, []);
 
+  // Save Draft handler
+  const handleSaveDraft = useCallback(async () => {
+    if (!draftAudit.auditId) {
+      notify('No audit to save', 'warning', 3000);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await dispatch(saveDraftAudit({
+        auditId: draftAudit.auditId,
+        wizardStep: 7,
+        siteIds: wizard.siteIds || [],
+        periodStart: wizard.periodStart,
+        periodEnd: wizard.periodEnd,
+        auditType: wizard.auditType,
+        selectedTankIds: wizard.selectedTankIds || [],
+        selectedVehicleIds: wizard.selectedVehicleIds || [],
+        notes: wizard.notes
+      })).unwrap();
+
+      if (result.isSuccess) {
+        setLastSavedTime(new Date());
+        notify('Audit draft saved successfully!', 'success', 3000);
+      } else {
+        notify(result.message || 'Failed to save draft', 'error', 4000);
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      notify('An error occurred while saving the draft', 'error', 4000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [dispatch, draftAudit.auditId, wizard]);
+
+  // Export to Excel handler - use parent's handler if provided
+  const handleExportExcel = useCallback(() => {
+    if (onExportExcel) {
+      onExportExcel();
+    } else {
+      notify('Excel export will be triggered from Step 6', 'info', 3000);
+    }
+  }, [onExportExcel]);
+
+  // Add email to recipients
+  const handleAddEmail = useCallback(() => {
+    if (!customEmail || !customEmail.includes('@')) {
+      notify('Please enter a valid email address', 'warning', 3000);
+      return;
+    }
+    if (!recipientEmails.includes(customEmail)) {
+      setRecipientEmails([...recipientEmails, customEmail]);
+    }
+    setCustomEmail('');
+  }, [customEmail, recipientEmails]);
+
   // Finalize/Complete handler
   const handleFinalize = useCallback(async () => {
     // Use the parent's onFinalize if provided
@@ -176,17 +244,40 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
       return;
     }
 
-    // Fallback to direct finalization if no parent handler
-    if (!draftAudit.auditId) {
-      notify('No audit to finalize', 'error', 3000);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      let auditId = draftAudit.auditId;
+
+      // If no audit ID exists, save the draft first to get one
+      if (!auditId) {
+        notify('Saving audit data...', 'info', 2000);
+        const saveResult = await dispatch(saveDraftAudit({
+          auditId: null,
+          wizardStep: 7,
+          siteIds: wizard.siteIds || [],
+          periodStart: wizard.periodStart,
+          periodEnd: wizard.periodEnd,
+          auditType: wizard.auditType || 'Weekly',
+          selectedTankIds: wizard.selectedTankIds || [],
+          selectedVehicleIds: wizard.selectedVehicleIds || [],
+          notes: finalizationNotes || wizard.notes
+        })).unwrap();
+
+        if (saveResult.isSuccess && saveResult.data?.auditId) {
+          auditId = saveResult.data.auditId;
+        } else {
+          notify(saveResult.message || 'Failed to save audit data', 'error', 4000);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Now finalize the audit
       const result = await dispatch(finalizeAuditAction({
-        auditId: draftAudit.auditId,
-        notes: finalizationNotes || wizard.notes
+        auditId: auditId,
+        notes: finalizationNotes || wizard.notes,
+        sendReport: sendReportOnComplete,
+        recipientEmails: sendReportOnComplete ? recipientEmails : []
       })).unwrap();
 
       if (result.isSuccess) {
@@ -203,33 +294,92 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [dispatch, navigate, draftAudit.auditId, finalizationNotes, wizard.notes, onFinalize]);
+  }, [dispatch, navigate, draftAudit.auditId, finalizationNotes, wizard.notes, onFinalize, sendReportOnComplete, recipientEmails]);
+
+  // Cancel/Discard draft handler
+  const handleDiscardDraft = useCallback(async () => {
+    const result = await confirm(
+      'Are you sure you want to discard this draft audit? This cannot be undone.',
+      'Discard Draft'
+    );
+    if (result) {
+      dispatch(resetWizard());
+      navigate('/tankstock/fuel-audit');
+    }
+  }, [dispatch, navigate]);
 
   return (
     <div className="step7-audit-report tw-h-full tw-flex tw-flex-col">
       {/* Action Bar - Not printed */}
-      <div className="tw-flex tw-items-center tw-justify-between tw-px-6 tw-py-3 tw-bg-gray-100 tw-border-b print:tw-hidden">
+      <div className="tw-flex tw-flex-col md:tw-flex-row tw-items-start md:tw-items-center tw-justify-between tw-px-6 tw-py-3 tw-bg-gray-100 tw-border-b print:tw-hidden tw-gap-3">
         <div className="tw-flex tw-items-center tw-gap-2">
           <i className="fa-light fa-file-invoice tw-text-blue-600"></i>
           <span className="tw-font-semibold tw-text-gray-700">Audit Report Preview</span>
           {draftAudit.auditNumber && (
             <span className="tw-text-sm tw-text-gray-500">({draftAudit.auditNumber})</span>
           )}
+          {lastSavedTime && (
+            <span className="tw-text-xs tw-text-gray-400 tw-ml-2">
+              <i className="fa-light fa-clock tw-mr-1"></i>
+              Saved: {formatDateTime(lastSavedTime)}
+            </span>
+          )}
         </div>
-        <div className="tw-flex tw-items-center tw-gap-3">
+        <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+          {/* Discard Draft */}
           <Button
-            text="Print Report"
+            text="Discard"
+            icon="fa-light fa-trash"
+            type="danger"
+            stylingMode="text"
+            onClick={handleDiscardDraft}
+            hint="Discard this draft audit"
+          />
+          {/* Save Draft */}
+          <Button
+            text={isSaving ? 'Saving...' : 'Save Draft'}
+            icon="fa-light fa-floppy-disk"
+            type="default"
+            stylingMode="outlined"
+            onClick={handleSaveDraft}
+            disabled={isSaving || !draftAudit.auditId}
+            hint="Save current progress"
+          />
+          {/* Export Excel */}
+          <Button
+            text="Export Excel"
+            icon="fa-light fa-file-excel"
+            type="default"
+            stylingMode="outlined"
+            onClick={handleExportExcel}
+            hint="Export detailed reconciliation to Excel"
+          />
+          {/* Print Report */}
+          <Button
+            text="Print"
             icon="fa-light fa-print"
             type="default"
             stylingMode="outlined"
             onClick={handlePrint}
+            hint="Print this report"
           />
+          {/* Send Report */}
+          <Button
+            text="Send Report"
+            icon="fa-light fa-envelope"
+            type="default"
+            stylingMode="outlined"
+            onClick={() => setShowSendReportPopup(true)}
+            hint="Email this report"
+          />
+          {/* Complete Audit */}
           <Button
             text="Complete Audit"
             icon="fa-light fa-check-circle"
             type="success"
             stylingMode="contained"
             onClick={() => setShowFinalizePopup(true)}
+            hint="Finalize and lock this audit"
           />
         </div>
       </div>
@@ -540,7 +690,7 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
         visible={showFinalizePopup}
         onHiding={() => setShowFinalizePopup(false)}
         title="Complete Audit"
-        width={450}
+        width={500}
         height="auto"
         showCloseButton={true}
         dragEnabled={false}
@@ -567,6 +717,60 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
               placeholder="Add any final notes or approval comments..."
               height={80}
             />
+          </div>
+
+          {/* Send Report Option */}
+          <div className="tw-mb-4 tw-p-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+              <CheckBox
+                value={sendReportOnComplete}
+                onValueChanged={(e) => setSendReportOnComplete(e.value)}
+              />
+              <span className="tw-text-sm tw-font-medium tw-text-gray-700">
+                <i className="fa-light fa-envelope tw-mr-1"></i>
+                Send report via email after completing
+              </span>
+            </div>
+            {sendReportOnComplete && (
+              <div className="tw-mt-3">
+                <label className="tw-text-xs tw-text-gray-600 tw-block tw-mb-1">
+                  Recipients (Press Enter to add)
+                </label>
+                <div className="tw-flex tw-gap-2">
+                  <TextBox
+                    value={customEmail}
+                    onValueChanged={(e) => setCustomEmail(e.value)}
+                    onEnterKey={handleAddEmail}
+                    placeholder="email@example.com"
+                    className="tw-flex-1"
+                  />
+                  <Button
+                    icon="fa-light fa-plus"
+                    type="default"
+                    stylingMode="outlined"
+                    onClick={handleAddEmail}
+                  />
+                </div>
+                {recipientEmails.length > 0 && (
+                  <div className="tw-flex tw-flex-wrap tw-gap-1 tw-mt-2">
+                    {recipientEmails.map((email, idx) => (
+                      <span
+                        key={idx}
+                        className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-blue-100 tw-text-blue-800 tw-rounded tw-text-xs"
+                      >
+                        {email}
+                        <button
+                          className="tw-text-blue-600 hover:tw-text-blue-800"
+                          onClick={() => setRecipientEmails(recipientEmails.filter((_, i) => i !== idx))}
+                        >
+                          <i className="fa-light fa-times"></i>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {reconciliation.flags.hasSystemFlag && (
@@ -597,6 +801,103 @@ const Step7AuditReport = ({ onFinalize, onClose }) => {
               icon="fa-light fa-check"
               disabled={isSubmitting}
               onClick={handleFinalize}
+            />
+          </div>
+        </div>
+      </Popup>
+
+      {/* Send Report Popup (standalone email without finalizing) */}
+      <Popup
+        visible={showSendReportPopup}
+        onHiding={() => setShowSendReportPopup(false)}
+        title="Send Audit Report"
+        width={450}
+        height="auto"
+        showCloseButton={true}
+        dragEnabled={false}
+      >
+        <div className="tw-p-4">
+          <div className="tw-mb-4">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-text-blue-700 tw-mb-2">
+              <i className="fa-light fa-envelope tw-text-xl"></i>
+              <span className="tw-font-semibold">Email Report</span>
+            </div>
+            <p className="tw-text-sm tw-text-gray-600">
+              Send audit report <strong>{draftAudit.auditNumber}</strong> via email.
+              This will not finalize the audit.
+            </p>
+          </div>
+
+          <div className="tw-mb-4">
+            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-block tw-mb-2">
+              Recipients
+            </label>
+            <div className="tw-flex tw-gap-2 tw-mb-2">
+              <TextBox
+                value={customEmail}
+                onValueChanged={(e) => setCustomEmail(e.value)}
+                onEnterKey={handleAddEmail}
+                placeholder="email@example.com"
+                className="tw-flex-1"
+              />
+              <Button
+                text="Add"
+                icon="fa-light fa-plus"
+                type="default"
+                stylingMode="outlined"
+                onClick={handleAddEmail}
+              />
+            </div>
+            {recipientEmails.length > 0 ? (
+              <div className="tw-flex tw-flex-wrap tw-gap-1">
+                {recipientEmails.map((email, idx) => (
+                  <span
+                    key={idx}
+                    className="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-blue-100 tw-text-blue-800 tw-rounded tw-text-xs"
+                  >
+                    {email}
+                    <button
+                      className="tw-text-blue-600 hover:tw-text-blue-800"
+                      onClick={() => setRecipientEmails(recipientEmails.filter((_, i) => i !== idx))}
+                    >
+                      <i className="fa-light fa-times"></i>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="tw-text-xs tw-text-gray-400 tw-italic">No recipients added yet</p>
+            )}
+          </div>
+
+          <div className="tw-mb-4">
+            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-block tw-mb-2">
+              Message (Optional)
+            </label>
+            <TextArea
+              value={wizard.notes || ''}
+              onValueChanged={(e) => dispatch(setWizardNotes(e.value))}
+              placeholder="Add a message to include with the report..."
+              height={80}
+            />
+          </div>
+
+          <div className="tw-flex tw-justify-end tw-gap-3 tw-pt-3 tw-border-t">
+            <Button
+              text="Cancel"
+              stylingMode="outlined"
+              onClick={() => setShowSendReportPopup(false)}
+            />
+            <Button
+              text="Send Report"
+              type="default"
+              stylingMode="contained"
+              icon="fa-light fa-paper-plane"
+              disabled={recipientEmails.length === 0}
+              onClick={() => {
+                notify('Report sending feature will be implemented with email service integration', 'info', 4000);
+                setShowSendReportPopup(false);
+              }}
             />
           </div>
         </div>

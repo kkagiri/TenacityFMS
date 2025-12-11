@@ -10,6 +10,7 @@ import TransactionHub from './components/TransactionHub';
 import DispensingManager from './components/DispensingManager';
 import BulkImportManager from './components/bulkImport/BulkImportManager';
 import DeliveryManager from './components/DeliveryManager';
+import TankStockTable from '../analytics/components/reporting/TankStockTable';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import Tabs from 'devextreme-react/tabs';
 import './StockManagement.scss';
@@ -47,6 +48,7 @@ const StockManagement = () => {
     { text: "Pump Transactions", icon: "fa-light fa-gas-pump" },
     { text: "Dispensing Volumes", icon: "fa-light fa-tint" },
     { text: "Bulk Import", icon: "fa-light fa-file-upload" },
+    { text: "Tank Stock Table", icon: "fa-light fa-table" },
   ];
 
   //Cursor - Custom tab item renderer
@@ -98,6 +100,12 @@ const StockManagement = () => {
       case 4:
         return loadedTabs.has(4) && (
           <BulkImportManager />
+        );
+      case 5:
+        return loadedTabs.has(5) && (
+          <div className="tw-mt-4">
+            <TankStockTable />
+          </div>
         );
       default:
         return null;

@@ -28,6 +28,12 @@ namespace FMS.Application.Features.FuelAudit.DTOs
 
         /// <summary>The audit site ID (for context)</summary>
         public int? AuditSiteId { get; set; }
+
+        /// <summary>Audit site IDs (for multi-site audits)</summary>
+        public List<int>? AuditSiteIds { get; set; }
+
+        /// <summary>Selected tank IDs for the audit (to match GPS events with manual refills)</summary>
+        public List<int>? AuditTankIds { get; set; }
     }
 
     /// <summary>

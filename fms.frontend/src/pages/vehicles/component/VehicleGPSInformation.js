@@ -36,7 +36,26 @@ const VehicleGPSInformation = ({ vehicleId }) => {
     if (mapApiKey && gpsData?.latitude && gpsData?.longitude) {
       loadGoogleMapsScript();
     }
-  }, [mapApiKey, gpsData]);
+  }, [mapApiKey, gpsData?.latitude, gpsData?.longitude]);
+
+  // Additional effect to ensure map initializes when component is visible
+  useEffect(() => {
+    if (mapApiKey && gpsData?.latitude && gpsData?.longitude && window.google && window.google.maps && mapRef.current) {
+      // Check if map is already initialized
+      if (!mapInstanceRef.current) {
+        // Use a small delay to ensure DOM is ready
+        const timer = setTimeout(() => {
+          if (mapRef.current && document.contains(mapRef.current)) {
+            const rect = mapRef.current.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              initializeMap();
+            }
+          }
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mapApiKey, gpsData?.latitude, gpsData?.longitude]);
 
   const loadGPSInformation = async () => {
     try {
@@ -45,7 +64,7 @@ const VehicleGPSInformation = ({ vehicleId }) => {
         `/vehicletracking/${vehicleId}/gps-information`
       );
 
-      if (response.data && response.data.isSuccess) {
+      if (response.data && (response.data.success || response.data.isSuccess)) {
         setGpsData(response.data.data);
       } else {
         notify(
@@ -65,13 +84,15 @@ const VehicleGPSInformation = ({ vehicleId }) => {
   const loadMapApiKey = async () => {
     try {
       const response = await axiosInstance.get(
-        "/api/v1/SystemConfiguration/by-key/GoogleMaps.ApiKey"
+        "/SystemConfiguration/by-key/GoogleMaps.ApiKey"
       );
 
-      if (response.data && response.data.isSuccess && response.data.data) {
-        setMapApiKey(response.data.data.configurationValue);
+      if (response.data && (response.data.success || response.data.isSuccess) && response.data.data) {
+        const apiKey = response.data.data.configurationValue;
+        console.log("Google Maps API key loaded successfully");
+        setMapApiKey(apiKey);
       } else {
-        console.error("Failed to load Google Maps API key from configuration");
+        console.error("Failed to load Google Maps API key from configuration", response.data);
         notify("Failed to load map configuration", "warning", 3000);
       }
     } catch (error) {
@@ -81,17 +102,45 @@ const VehicleGPSInformation = ({ vehicleId }) => {
   };
 
   const loadGoogleMapsScript = () => {
+    if (!mapApiKey) {
+      console.warn("Cannot load Google Maps: API key not available");
+      return;
+    }
+
     // Check if Google Maps script is already loaded
     if (window.google && window.google.maps) {
-      initializeMap();
+      console.log("Google Maps API already loaded, initializing map...");
+      // Wait a bit to ensure mapRef is ready
+      setTimeout(() => {
+        initializeMap();
+      }, 300);
       return;
     }
 
     // Check if script is already being loaded
-    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      console.log("Google Maps script already in DOM, waiting for load...");
+      // Script is loading, wait for it
+      const originalOnLoad = existingScript.onload;
+      existingScript.onload = () => {
+        setIsMapLoading(false);
+        if (originalOnLoad) originalOnLoad();
+        setTimeout(() => {
+          initializeMap();
+        }, 300);
+      };
+      const originalOnError = existingScript.onerror;
+      existingScript.onerror = () => {
+        setIsMapLoading(false);
+        console.error("Failed to load Google Maps script");
+        notify("Failed to load Google Maps", "error", 3000);
+        if (originalOnError) originalOnError();
+      };
       return;
     }
 
+    console.log("Loading Google Maps script...");
     setIsMapLoading(true);
 
     const script = document.createElement("script");
@@ -99,43 +148,103 @@ const VehicleGPSInformation = ({ vehicleId }) => {
     script.async = true;
     script.defer = true;
     script.onload = () => {
+      console.log("Google Maps script loaded successfully");
       setIsMapLoading(false);
-      initializeMap();
+      // Wait a bit to ensure mapRef is ready
+      setTimeout(() => {
+        initializeMap();
+      }, 300);
     };
-    script.onerror = () => {
+    script.onerror = (error) => {
       setIsMapLoading(false);
-      console.error("Failed to load Google Maps script");
-      notify("Failed to load Google Maps", "error", 3000);
+      console.error("Failed to load Google Maps script", error);
+      notify("Failed to load Google Maps. Please check your API key.", "error", 3000);
     };
 
     document.head.appendChild(script);
   };
 
   const initializeMap = () => {
-    if (!mapRef.current || !gpsData?.latitude || !gpsData?.longitude) {
-      return;
-    }
-
-    // Clear existing map if any
-    if (mapInstanceRef.current) {
-      return;
-    }
-
-    const position = {
-      lat: gpsData.latitude,
-      lng: gpsData.longitude,
-    };
-
-    // Create map with zoom level 10
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: position,
-      zoom: 10,
-      mapTypeId: "roadmap",
-      mapTypeControl: true,
-      streetViewControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
+    console.log("Attempting to initialize map...", {
+      hasMapRef: !!mapRef.current,
+      hasLatitude: !!gpsData?.latitude,
+      hasLongitude: !!gpsData?.longitude,
+      hasGoogleMaps: !!(window.google && window.google.maps),
+      mapRefInDOM: mapRef.current ? document.contains(mapRef.current) : false,
     });
+
+    if (!mapRef.current) {
+      console.warn("Cannot initialize map: mapRef is not available");
+      return;
+    }
+
+    if (!document.contains(mapRef.current)) {
+      console.warn("Cannot initialize map: mapRef is not in DOM yet");
+      // Retry after a short delay
+      setTimeout(() => {
+        if (document.contains(mapRef.current)) {
+          initializeMap();
+        }
+      }, 500);
+      return;
+    }
+
+    // Check if map container has dimensions
+    const rect = mapRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      console.warn("Cannot initialize map: map container has no dimensions", rect);
+      // Retry after a short delay in case it's just not visible yet
+      setTimeout(() => {
+        const retryRect = mapRef.current.getBoundingClientRect();
+        if (retryRect.width > 0 && retryRect.height > 0) {
+          initializeMap();
+        }
+      }, 500);
+      return;
+    }
+
+    if (!gpsData?.latitude || !gpsData?.longitude) {
+      console.warn("Cannot initialize map: missing GPS coordinates");
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.error("Google Maps API not loaded");
+      return;
+    }
+
+    // Clear existing map if any to allow re-initialization
+    if (mapInstanceRef.current) {
+      console.log("Clearing existing map instance");
+      mapInstanceRef.current = null;
+    }
+
+    try {
+      const position = {
+        lat: parseFloat(gpsData.latitude),
+        lng: parseFloat(gpsData.longitude),
+      };
+
+      // Validate coordinates
+      if (isNaN(position.lat) || isNaN(position.lng)) {
+        console.error("Invalid coordinates:", position);
+        return;
+      }
+
+      console.log("Creating Google Map with position:", position);
+
+      // Create map with zoom level 10
+      const map = new window.google.maps.Map(mapRef.current, {
+        center: position,
+        zoom: 10,
+        mapTypeId: "roadmap",
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+      });
+
+      console.log("Google Map created successfully");
 
     // Add marker for vehicle location
     const marker = new window.google.maps.Marker({
@@ -143,14 +252,7 @@ const VehicleGPSInformation = ({ vehicleId }) => {
       map: map,
       title: "Vehicle Location",
       animation: window.google.maps.Animation.DROP,
-      icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: "#4285F4",
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeWeight: 2,
-      },
+      // Using default red marker pin icon
     });
 
     // Add info window
@@ -166,12 +268,17 @@ const VehicleGPSInformation = ({ vehicleId }) => {
       `,
     });
 
-    marker.addListener("click", () => {
-      infoWindow.open(map, marker);
-    });
+      marker.addListener("click", () => {
+        infoWindow.open(map, marker);
+      });
 
-    mapInstanceRef.current = map;
-    markerRef.current = marker;
+      mapInstanceRef.current = map;
+      markerRef.current = marker;
+      console.log("Map initialization completed successfully");
+    } catch (error) {
+      console.error("Error initializing Google Maps:", error);
+      notify("Failed to initialize map: " + error.message, "error", 3000);
+    }
   };
 
   if (isLoading) {
@@ -459,7 +566,7 @@ const VehicleGPSInformation = ({ vehicleId }) => {
                     <div className="tw-text-sm tw-text-gray-600">Fuel Level</div>
                     <div className="tw-text-lg tw-font-bold tw-text-yellow-800">
                       {gpsData.sensorHealth.fuelLevel !== null
-                        ? `${gpsData.sensorHealth.fuelLevel} ${gpsData.sensorHealth.fuelLevelUnit || "L"}`
+                        ? `${Math.floor(gpsData.sensorHealth.fuelLevel)} ${gpsData.sensorHealth.fuelLevelUnit || "L"}`
                         : "N/A"}
                     </div>
                   </div>

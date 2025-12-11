@@ -1,5 +1,6 @@
 using FMS.Application.Features.Vehicle.Queries.VehicleTracking;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -14,15 +15,18 @@ namespace FMS.WebClient.Controllers
     {
         private readonly IMediator _mediator;
         private readonly IGPSService _gpsService;
+        private readonly IGPSGateViewsService _viewsService;
         private readonly ILogger<VehicleTrackingController> _logger;
 
         public VehicleTrackingController(
             IMediator mediator,
             IGPSService gpsService,
+            IGPSGateViewsService viewsService,
             ILogger<VehicleTrackingController> logger)
         {
             _mediator = mediator;
             _gpsService = gpsService;
+            _viewsService = viewsService;
             _logger = logger;
         }
 
@@ -232,6 +236,84 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting GPS information for vehicle {VehicleId}", vehicleId);
+                return StatusCode(500, new { Success = false, Message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get all views (vehicle groups) from GPS provider
+        /// </summary>
+        /// <returns>List of views</returns>
+        [HttpGet("views")]
+        public async Task<IActionResult> GetViews()
+        {
+            try
+            {
+                var result = await _viewsService.GetViewsAsync();
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting GPS views");
+                return StatusCode(500, new { Success = false, Message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get all tags from GPS provider
+        /// </summary>
+        /// <returns>List of tags</returns>
+        [HttpGet("tags")]
+        public async Task<IActionResult> GetTags()
+        {
+            try
+            {
+                var result = await _viewsService.GetTagsAsync();
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting GPS tags");
+                return StatusCode(500, new { Success = false, Message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get vehicles/users by tag ID with their current positions
+        /// </summary>
+        /// <param name="tagId">Tag ID</param>
+        /// <param name="fromIndex">Starting index for pagination</param>
+        /// <param name="pageSize">Number of records per page</param>
+        /// <returns>List of vehicles with positions</returns>
+        [HttpGet("tags/{tagId}/vehicles")]
+        public async Task<IActionResult> GetVehiclesByTag(int tagId, [FromQuery] int fromIndex = 0, [FromQuery] int pageSize = 1000)
+        {
+            try
+            {
+                var result = await _viewsService.GetUsersByTagAsync(tagId, fromIndex, pageSize);
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting vehicles for tag {TagId}", tagId);
                 return StatusCode(500, new { Success = false, Message = "Internal server error" });
             }
         }

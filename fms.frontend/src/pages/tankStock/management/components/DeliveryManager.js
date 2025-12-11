@@ -50,7 +50,7 @@ import {
 import { fetchTanks } from '../../../../redux/actions/tankActions';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
 import { fetchSuppliers } from '../../../../redux/actions/SupplierActions';
-import { usePermissions } from '../../../../hooks/usePermissions';
+// import { usePermissions } from '../../../../hooks/usePermissions'; // Removed - permissions disabled
 import DeliveryForm from './forms/DeliveryForm';
 import './DeliveryManager.scss';
 
@@ -61,12 +61,12 @@ const DeliveryManager = () => {
   // Get shared filters from header (site, tank, dates)
   const { startDate, endDate, selectedSiteIds, selectedTankIds } = useStockFilters();
 
-  // Permission checks using JWT token
-  const { hasPermission } = usePermissions();
-  const canReadDelivery = hasPermission('_Read_Delivery');
-  const canCreateDelivery = hasPermission('_Create_Delivery');
-  const canUpdateDelivery = hasPermission('_Update_Delivery');
-  const canDeleteDelivery = hasPermission('_Delete_Delivery');
+  // Permission checks disabled - accessible to all users
+  // const { hasPermission } = usePermissions();
+  const canReadDelivery = true; // hasPermission('_Read_Delivery');
+  const canCreateDelivery = true; // hasPermission('_Create_Delivery');
+  const canUpdateDelivery = true; // hasPermission('_Update_Delivery');
+  const canDeleteDelivery = true; // hasPermission('_Delete_Delivery');
 
   // Redux state
   const tanks = useSelector((state) => state.tank.tanks);

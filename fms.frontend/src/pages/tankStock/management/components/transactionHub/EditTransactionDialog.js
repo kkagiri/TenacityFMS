@@ -12,6 +12,7 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Popup from 'devextreme-react/popup';
+import ScrollView from 'devextreme-react/scroll-view';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
 import { CheckBox } from 'devextreme-react/check-box';
@@ -186,14 +187,18 @@ export const EditTransactionDialog = ({
       onHiding={handleCancel}
       showTitle={true}
       title="Edit Transaction (Admin)"
-      width={500}
+      width="auto"
+      minWidth={300}
+      maxWidth={500}
       height="auto"
       maxHeight="90vh"
       showCloseButton={!isUpdating}
       dragEnabled={!isUpdating}
       hideOnOutsideClick={false}
+      wrapperAttr={{ class: 'edit-transaction-popup' }}
     >
-      <div className="tw-p-4">
+      <ScrollView height="100%" width="100%" showScrollbar="onScroll">
+        <div className="tw-p-4">
         {/* Not Editable */}
         {!isEditable && (
           <>
@@ -342,7 +347,8 @@ export const EditTransactionDialog = ({
             )}
           </>
         )}
-      </div>
+        </div>
+      </ScrollView>
     </Popup>
   );
 };

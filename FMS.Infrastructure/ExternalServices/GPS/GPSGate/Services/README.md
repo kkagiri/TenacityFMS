@@ -52,6 +52,30 @@ var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProvi
 - Monitors GPS provider system health
 - Provides connectivity checks
 
+#### GPSGateGeocodingService
+- Performs reverse geocoding to convert GPS coordinates to human-readable addresses
+- Uses GPSGate's reverse geocode API endpoint
+- Supports both coordinate-based and vehicle-based geocoding
+- Address is automatically included in `GetVehicleGPSInformationAsync` response
+
+**Example API endpoint**: `/applications/{appId}/reversegeocode?lon={longitude}&lat={latitude}`
+
+**Response format**:
+```json
+{
+  "geocoderProviderSource": "Geofence(1)",
+  "location": {
+    "position": {
+      "altitude": 0,
+      "longitude": 36.873313,
+      "latitude": -1.334225
+    },
+    "address": "Industrial plot",
+    "formattedResult": "Industrial plot"
+  }
+}
+```
+
 ## Migration from AppSettings
 
 ### Before (Old Way)
