@@ -29,8 +29,18 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
       };
     } else if (pathname.includes('/consumption-refills')) {
       return {
-        title: 'Consumption Reports',
+        title: 'Consumption by Refills',
         subtitle: 'Analyze vehicle fuel consumption based on refill data'
+      };
+    } else if (pathname.includes('/vehicle-consumption/details')) {
+      return {
+        title: 'Vehicle Consumption Details',
+        subtitle: 'Detailed consumption analysis for a specific vehicle'
+      };
+    } else if (pathname.includes('/vehicle-consumption')) {
+      return {
+        title: 'Vehicle Consumption Report',
+        subtitle: 'Analyze consumption by site, vehicle type and model'
       };
     } else {
       return {
@@ -78,9 +88,15 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
     },
     {
       id: 'consumption-refills',
-      title: 'Consumption Reports',
+      title: 'Consumption by Refills',
       icon: 'fa-light fa-chart-bar',
       path: reportsRoutes.consumptionRefills,
+    },
+    {
+      id: 'vehicle-consumption',
+      title: 'Vehicle Consumption',
+      icon: 'fa-light fa-truck-fast',
+      path: reportsRoutes.vehicleConsumption,
     },
   ], []);
 

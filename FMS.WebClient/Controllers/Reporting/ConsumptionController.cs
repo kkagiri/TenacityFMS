@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using FMS.Application.Features.Vehicle.DTOs;
 
 namespace FMS.WebClient.Controllers
 {
@@ -961,6 +962,125 @@ namespace FMS.WebClient.Controllers
                 }
             }
             return validationErrors;
+        }
+
+        /// <summary>
+        /// Get consumption summary report grouped by site and vehicle model
+        /// </summary>
+        /// <param name="startDate">Start date (yyyy-MM-dd)</param>
+        /// <param name="endDate">End date (yyyy-MM-dd)</param>
+        /// <param name="siteId">Optional site ID filter</param>
+        /// <param name="vehicleType">Optional vehicle type filter</param>
+        /// <param name="groupBy">Period grouping: week, month, quarter, year (default: week)</param>
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetConsumptionSummary(
+            [FromQuery] string startDate,
+            [FromQuery] string endDate,
+            [FromQuery] int? siteId = null,
+            [FromQuery] string? vehicleType = null,
+            [FromQuery] string groupBy = "week")
+        {
+            try
+            {
+                var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                if (_startDate == default(DateTime) || _endDate == default(DateTime))
+                {
+                    return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+                }
+
+                if (_startDate > _endDate)
+                {
+                    return BadRequest("Start date cannot be after end date.");
+                }
+
+                var query = new GetConsumptionSummaryQuery
+                {
+                    StartDate = _startDate,
+                    EndDate = _endDate,
+                    SiteId = siteId,
+                    VehicleType = vehicleType,
+                    GroupBy = groupBy
+                };
+
+                var result = await _mediator.Send(query);
+
+                _logger.LogInformation(
+                    "Consumption summary retrieved successfully. " +
+                    "Date range: {StartDate} to {EndDate}, Sites: {SiteCount}, Vehicles: {VehicleCount}",
+                    _startDate, _endDate, result?.SiteSummaries?.Count ?? 0, result?.OverallSummary?.TotalVehicles ?? 0);
+
+                return Ok(result);
+            }
+            catch (FormatException)
+            {
+                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving consumption summary");
+                return StatusCode(500, new { message = "Error retrieving consumption summary", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get detailed consumption data for a specific vehicle
+        /// </summary>
+        /// <param name="vehicleId">Vehicle ID</param>
+        /// <param name="startDate">Start date (yyyy-MM-dd)</param>
+        /// <param name="endDate">End date (yyyy-MM-dd)</param>
+        [HttpGet("vehicleDetail/{vehicleId}")]
+        public async Task<IActionResult> GetVehicleConsumptionDetail(
+            int vehicleId,
+            [FromQuery] string startDate,
+            [FromQuery] string endDate)
+        {
+            try
+            {
+                if (vehicleId <= 0)
+                {
+                    return BadRequest("Invalid vehicle ID.");
+                }
+
+                var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                if (_startDate == default(DateTime) || _endDate == default(DateTime))
+                {
+                    return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+                }
+
+                var query = new GetVehicleConsumptionDetailQuery
+                {
+                    VehicleId = vehicleId,
+                    StartDate = _startDate,
+                    EndDate = _endDate
+                };
+
+                var result = await _mediator.Send(query);
+
+                if (result == null)
+                {
+                    return NotFound(new { message = $"Vehicle with ID {vehicleId} not found." });
+                }
+
+                _logger.LogInformation(
+                    "Vehicle consumption detail retrieved for vehicle {VehicleId}. " +
+                    "Date range: {StartDate} to {EndDate}, Refills: {RefillCount}",
+                    vehicleId, _startDate, _endDate, result.RefillHistory?.Count ?? 0);
+
+                return Ok(result);
+            }
+            catch (FormatException)
+            {
+                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving vehicle consumption detail for vehicle {VehicleId}", vehicleId);
+                return StatusCode(500, new { message = "Error retrieving vehicle consumption detail", details = ex.Message });
+            }
         }
     }
 }

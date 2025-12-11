@@ -10,6 +10,10 @@ import FuelReportImporter from '../FuelReportImporter/FuelReportImporter';
 import BatchImportPage from '../FuelReportImporter/components/BatchImportPage';
 import ConsumptionBasedOnRefills from './consumption/consumptionBasedonRefills';
 
+// Vehicle Consumption Report components
+import VehicleConsumptionReport from './vehicleConsumption/VehicleConsumptionReport';
+import VehicleConsumptionDetails from './vehicleConsumption/VehicleConsumptionDetails';
+
 const ReportsMain = () => {
   return (
     <ReportsLayout>
@@ -30,6 +34,10 @@ const ReportsMain = () => {
         {/* Consumption Reports Routes */}
         <Route path="consumption-refills" element={<ConsumptionBasedOnRefills />} />
         <Route path="consumption-refills/*" element={<ConsumptionBasedOnRefills />} />
+
+        {/* Vehicle Consumption Report Routes */}
+        <Route path="vehicle-consumption" element={<VehicleConsumptionReport />} />
+        <Route path="vehicle-consumption/details/:vehicleId" element={<VehicleConsumptionDetails />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/reports/dashboard" replace />} />
