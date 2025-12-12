@@ -15,14 +15,13 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { setWizardSiteAndPeriod, selectWizard } from '../../../../../redux/slices/fuelAuditSlice';
 import { AUDIT_TYPES } from './wizardConstants';
 
-// Helper: Get default dates (1 month range ending today)
+// Helper: Get default dates (30 days ago to now)
 const getDefaultDates = () => {
-  const endDate = new Date();
-  endDate.setHours(23, 59, 59, 999); // End of today
+  const endDate = new Date(); // Current time (now)
 
   const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 1);
-  startDate.setHours(0, 0, 0, 0); // Start of day, 1 month ago
+  startDate.setDate(startDate.getDate() - 30); // 30 days ago
+  startDate.setHours(0, 0, 0, 0); // Start of day
 
   return { startDate, endDate };
 };
@@ -45,11 +44,11 @@ const Step1SitePeriod = () => {
 
   // Date validation error
   const [dateError, setDateError] = useState(null);
-  const [initialized, setInitialized] = useState(false);
 
-  // Set default dates on first render if not already set
+  // Set default dates on mount if not already set
   useEffect(() => {
-    if (!initialized && !wizard.periodStart && !wizard.periodEnd) {
+    // Always set defaults if periodStart or periodEnd is not set
+    if (!wizard.periodStart || !wizard.periodEnd) {
       const { startDate, endDate } = getDefaultDates();
       dispatch(setWizardSiteAndPeriod({
         siteId: wizard.siteId,
@@ -57,9 +56,9 @@ const Step1SitePeriod = () => {
         periodEnd: endDate,
         auditType: wizard.auditType || 'Weekly'
       }));
-      setInitialized(true);
     }
-  }, [initialized, wizard.periodStart, wizard.periodEnd, wizard.siteId, wizard.auditType, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Validate date range
   const validateDateRange = (start, end) => {

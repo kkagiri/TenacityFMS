@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { Button } from 'devextreme-react/button';
 import {
   fetchFuelAudits,
   selectAudits,
   selectLoading
 } from '../../../redux/slices/fuelAuditSlice';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 /**
  * Fuel Audit Dashboard
@@ -16,6 +18,13 @@ const FuelAuditDashboard = () => {
   const dispatch = useDispatch();
   const audits = useSelector(selectAudits);
   const loading = useSelector(selectLoading);
+  const { userInfo } = usePermissions();
+
+  // Check if user is admin
+  const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
+  const isAdmin = userRoles.some(role =>
+    typeof role === 'string' && role.toLowerCase() === 'admin'
+  );
 
   useEffect(() => {
     dispatch(fetchFuelAudits({ pageSize: 10 }));
@@ -142,32 +151,46 @@ const FuelAuditDashboard = () => {
 
       {/* Quick Actions */}
       <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-3 tw-gap-6 tw-mb-8">
-        <button
-          onClick={() => navigate('/tankstock/fuel-audit/create')}
-          className="tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-700 tw-text-white tw-rounded-xl tw-p-6 tw-text-left hover:tw-from-blue-700 hover:tw-to-blue-800 tw-transition-all tw-shadow-lg"
-        >
-          <i className="fa-light fa-plus-circle tw-text-3xl tw-mb-3 tw-block"></i>
-          <h3 className="tw-text-lg tw-font-semibold tw-mb-1">Create New Audit</h3>
-          <p className="tw-text-blue-100 tw-text-sm">Start a new fuel reconciliation audit</p>
-        </button>
+        {isAdmin && (
+          <Button
+            type="default"
+            stylingMode="outlined"
+            onClick={() => navigate('/tankstock/fuel-audit/create')}
+            className="quick-action-btn"
+          >
+            <div className="tw-flex tw-flex-col tw-items-start tw-p-4">
+              <i className="fa-light fa-plus-circle tw-text-3xl tw-mb-3"></i>
+              <h3 className="tw-text-lg tw-font-semibold tw-mb-1">Create New Audit</h3>
+              <p className="tw-text-sm tw-opacity-70">Start a new fuel reconciliation audit</p>
+            </div>
+          </Button>
+        )}
 
-        <button
+        <Button
+          type="default"
+          stylingMode="outlined"
           onClick={() => navigate('/tankstock/fuel-audit/gps-monitor')}
-          className="tw-bg-gradient-to-r tw-from-purple-600 tw-to-purple-700 tw-text-white tw-rounded-xl tw-p-6 tw-text-left hover:tw-from-purple-700 hover:tw-to-purple-800 tw-transition-all tw-shadow-lg"
+          className="quick-action-btn"
         >
-          <i className="fa-light fa-satellite tw-text-3xl tw-mb-3 tw-block"></i>
-          <h3 className="tw-text-lg tw-font-semibold tw-mb-1">GPS Fleet Monitor</h3>
-          <p className="tw-text-purple-100 tw-text-sm">Real-time vehicle fuel positions</p>
-        </button>
+          <div className="tw-flex tw-flex-col tw-items-start tw-p-4">
+            <i className="fa-light fa-satellite tw-text-3xl tw-mb-3"></i>
+            <h3 className="tw-text-lg tw-font-semibold tw-mb-1">GPS Fleet Monitor</h3>
+            <p className="tw-text-sm tw-opacity-70">Real-time vehicle fuel positions</p>
+          </div>
+        </Button>
 
-        <button
+        <Button
+          type="default"
+          stylingMode="outlined"
           onClick={() => navigate('/tankstock/fuel-audit/list')}
-          className="tw-bg-gradient-to-r tw-from-gray-600 tw-to-gray-700 tw-text-white tw-rounded-xl tw-p-6 tw-text-left hover:tw-from-gray-700 hover:tw-to-gray-800 tw-transition-all tw-shadow-lg"
+          className="quick-action-btn"
         >
-          <i className="fa-light fa-list-check tw-text-3xl tw-mb-3 tw-block"></i>
-          <h3 className="tw-text-lg tw-font-semibold tw-mb-1">View All Audits</h3>
-          <p className="tw-text-gray-300 tw-text-sm">Browse and manage all audits</p>
-        </button>
+          <div className="tw-flex tw-flex-col tw-items-start tw-p-4">
+            <i className="fa-light fa-list-check tw-text-3xl tw-mb-3"></i>
+            <h3 className="tw-text-lg tw-font-semibold tw-mb-1">View All Audits</h3>
+            <p className="tw-text-sm tw-opacity-70">Browse and manage all audits</p>
+          </div>
+        </Button>
       </div>
 
       {/* Recent Audits */}
@@ -177,12 +200,14 @@ const FuelAuditDashboard = () => {
             <i className="fa-light fa-clock tw-text-gray-400"></i>
             Recent Audits
           </h2>
-          <button
+          <Button
+            text="View All"
+            type="default"
+            stylingMode="outlined"
+            icon="fa-light fa-arrow-right"
+            rtlEnabled={true}
             onClick={() => navigate('/tankstock/fuel-audit/list')}
-            className="tw-text-blue-600 hover:tw-text-blue-700 tw-text-sm tw-font-medium"
-          >
-            View All <i className="fa-light fa-arrow-right tw-ml-1"></i>
-          </button>
+          />
         </div>
 
         {loading.audits ? (
@@ -195,13 +220,15 @@ const FuelAuditDashboard = () => {
             <i className="fa-light fa-file-invoice tw-text-4xl tw-text-gray-300 tw-mb-4"></i>
             <h3 className="tw-text-lg tw-font-medium tw-text-gray-600 tw-mb-2">No Audits Yet</h3>
             <p className="tw-text-gray-500 tw-mb-4">Create your first fuel audit to get started</p>
-            <button
-              onClick={() => navigate('/tankstock/fuel-audit/create')}
-              className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg hover:tw-bg-blue-700"
-            >
-              <i className="fa-light fa-plus tw-mr-2"></i>
-              Create Audit
-            </button>
+            {isAdmin && (
+              <Button
+                text="Create Audit"
+                type="default"
+                stylingMode="outlined"
+                icon="fa-light fa-plus"
+                onClick={() => navigate('/tankstock/fuel-audit/create')}
+              />
+            )}
           </div>
         ) : (
           <div className="tw-divide-y tw-divide-gray-100">

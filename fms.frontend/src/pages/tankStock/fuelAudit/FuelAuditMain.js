@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Tabs from 'devextreme-react/tabs';
+import { Button } from 'devextreme-react/button';
 import FuelAuditDashboard from './FuelAuditDashboard';
 import AuditList from './components/AuditList';
 import AuditDetail from './components/AuditDetail';
 import CreateAuditWizard from './components/CreateAuditWizard';
 import GPSFleetMonitor from './components/GPSFleetMonitor';
+import { usePermissions } from '../../../hooks/usePermissions';
 import './FuelAuditMain.scss';
 
 /**
@@ -19,6 +21,13 @@ const FuelAuditMain = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const { userInfo } = usePermissions();
+
+  // Check if user is admin
+  const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
+  const isAdmin = userRoles.some(role =>
+    typeof role === 'string' && role.toLowerCase() === 'admin'
+  );
 
   // Check if we're on the create wizard page
   const isCreateWizard = location.pathname.includes('/fuel-audit/create');
@@ -85,13 +94,15 @@ const FuelAuditMain = () => {
             </p>
           </div>
           <div className="tw-flex tw-items-center tw-gap-3">
-            <button
-              onClick={() => navigate('/tankstock/fuel-audit/create')}
-              className="tw-bg-blue-600 tw-text-white tw-px-4 tw-py-2 tw-rounded-lg tw-flex tw-items-center tw-gap-2 hover:tw-bg-blue-700 tw-transition-colors"
-            >
-              <i className="fa-light fa-plus"></i>
-              New Audit
-            </button>
+            {isAdmin && (
+              <Button
+                text="New Audit"
+                type="default"
+               stylingMode="outlined"
+                icon="fa-light fa-plus"
+                onClick={() => navigate('/tankstock/fuel-audit/create')}
+              />
+            )}
           </div>
         </div>
 

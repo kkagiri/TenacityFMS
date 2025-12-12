@@ -151,12 +151,7 @@ const Step2TankSelection = () => {
             <Paging enabled={false} />
 
             <Column dataField="name" caption="Tank Name" width={180} />
-            <Column
-              dataField="fuelGradeName"
-              caption="Fuel Type"
-              width={110}
-              cellRender={renderFuelType}
-            />
+
             <Column
               dataField="tankVolume"
               caption="Capacity (L)"

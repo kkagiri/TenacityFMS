@@ -78,26 +78,8 @@ const Step3TankPreview = () => {
     };
   }, [tankPreview]);
 
-  // Render fuel type with color coding
-  const renderFuelType = (cellData) => {
-    const fuelType = cellData.data.fuelGradeName || 'Unknown';
-    const colorMap = {
-      'Diesel': 'tw-bg-yellow-100 tw-text-yellow-800',
-      'Petrol': 'tw-bg-blue-100 tw-text-blue-800',
-      'AGO': 'tw-bg-orange-100 tw-text-orange-800',
-      'PMS': 'tw-bg-purple-100 tw-text-purple-800'
-    };
-    const colorClass = colorMap[fuelType] || 'tw-bg-gray-100 tw-text-gray-800';
-
-    return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${colorClass}`}>
-        {fuelType}
-      </span>
-    );
-  };
-
-  // Render data source indicator
-  const renderDataSource = (cellData) => {
+  // Memoized cell render functions to prevent DOM reconciliation issues with DevExtreme
+  const renderDataSource = useCallback((cellData) => {
     const source = cellData.value;
     const isManual = source === 'Manual';
     return (
@@ -106,10 +88,9 @@ const Step3TankPreview = () => {
         {source}
       </span>
     );
-  };
+  }, []);
 
-  // Render variance with color coding
-  const renderVariance = (cellData) => {
+  const renderVariance = useCallback((cellData) => {
     const variance = cellData.data.variance || 0;
     const variancePercent = cellData.data.variancePercent || 0;
 
@@ -126,10 +107,9 @@ const Step3TankPreview = () => {
         <span className="tw-text-xs tw-ml-1">({variancePercent.toFixed(1)}%)</span>
       </div>
     );
-  };
+  }, []);
 
-  // Render confidence indicator
-  const renderConfidence = (cellData) => {
+  const renderConfidence = useCallback((cellData) => {
     const confidence = cellData.value || 'Low';
     const colors = {
       'High': 'tw-bg-green-100 tw-text-green-700',
@@ -148,10 +128,9 @@ const Step3TankPreview = () => {
         {confidence}
       </span>
     );
-  };
+  }, []);
 
-  // Render fill percentage with visual bar
-  const renderFillPercentage = (cellData) => {
+  const renderFillPercentage = useCallback((cellData) => {
     const percentage = cellData.value || 0;
 
     let bgColor = 'tw-bg-green-500';
@@ -169,7 +148,24 @@ const Step3TankPreview = () => {
         <span className="tw-text-xs tw-text-gray-600">{percentage.toFixed(0)}%</span>
       </div>
     );
-  };
+  }, []);
+
+  // Memoized inline cell renders for numeric columns
+  const renderDeliveries = useCallback((cellData) => (
+    <span className="tw-text-blue-600">+{(cellData.value || 0).toFixed(1)}</span>
+  ), []);
+
+  const renderDispensed = useCallback((cellData) => (
+    <span className="tw-text-purple-600">-{(cellData.value || 0).toFixed(1)}</span>
+  ), []);
+
+  const renderTransfersIn = useCallback((cellData) => (
+    <span className="tw-text-cyan-600">+{(cellData.value || 0).toFixed(1)}</span>
+  ), []);
+
+  const renderTransfersOut = useCallback((cellData) => (
+    <span className="tw-text-pink-600">-{(cellData.value || 0).toFixed(1)}</span>
+  ), []);
 
   // Format date for display
   const formatDate = (dateStr) => {
@@ -183,7 +179,9 @@ const Step3TankPreview = () => {
   };
 
   const isLoading = loading.tankPreview;
-  const previewData = tankPreview || [];
+
+  // Memoize preview data to prevent unnecessary re-renders
+  const previewData = useMemo(() => tankPreview || [], [tankPreview]);
 
   return (
     <div className="wizard-step tw-p-6">
@@ -318,16 +316,9 @@ const Step3TankPreview = () => {
           >
             <Column dataField="tankName" caption="Tank" width={150} />
             <Column
-              dataField="fuelGradeName"
-              caption="Fuel"
-              width={80}
-              cellRender={renderFuelType}
-              alignment="center"
-            />
-            <Column
               dataField="openingStock"
               caption="Opening (L)"
-              width={110}
+              width={100}
               dataType="number"
               format="#,##0.0"
               alignment="right"
@@ -335,61 +326,71 @@ const Step3TankPreview = () => {
             <Column
               dataField="openingDataSource"
               caption="Source"
-              width={80}
+              width={70}
               cellRender={renderDataSource}
               alignment="center"
             />
             <Column
               dataField="totalDeliveries"
               caption="Deliveries (L)"
-              width={110}
+              width={100}
               dataType="number"
               format="+#,##0.0;-#,##0.0"
               alignment="right"
-              cellRender={(cellData) => (
-                <span className="tw-text-blue-600">
-                  +{(cellData.value || 0).toFixed(1)}
-                </span>
-              )}
+              cellRender={renderDeliveries}
             />
             <Column
               dataField="totalDispensed"
               caption="Dispensed (L)"
-              width={110}
+              width={100}
               dataType="number"
               format="#,##0.0"
               alignment="right"
-              cellRender={(cellData) => (
-                <span className="tw-text-purple-600">
-                  -{(cellData.value || 0).toFixed(1)}
-                </span>
-              )}
+              cellRender={renderDispensed}
+            />
+            <Column
+              dataField="totalTransfersIn"
+              caption="Trans. In (L)"
+              width={95}
+              dataType="number"
+              format="#,##0.0"
+              alignment="right"
+              cellRender={renderTransfersIn}
+            />
+            <Column
+              dataField="totalTransfersOut"
+              caption="Trans. Out (L)"
+              width={95}
+              dataType="number"
+              format="#,##0.0"
+              alignment="right"
+              cellRender={renderTransfersOut}
             />
             <Column
               dataField="closingStock"
               caption="Closing (L)"
-              width={110}
+              width={100}
               dataType="number"
               format="#,##0.0"
               alignment="right"
             />
             <Column
               caption="Variance"
-              width={120}
+              width={110}
               cellRender={renderVariance}
               alignment="right"
             />
             <Column
               dataField="fillPercentage"
               caption="Fill %"
-              width={120}
+              width={100}
               cellRender={renderFillPercentage}
               alignment="center"
             />
             <Column
               dataField="dataConfidence"
               caption="Confidence"
-              width={100}
+              width={90}
               cellRender={renderConfidence}
               alignment="center"
             />
@@ -407,6 +408,16 @@ const Step3TankPreview = () => {
               />
               <TotalItem
                 column="totalDispensed"
+                summaryType="sum"
+                displayFormat="-{0:n0} L"
+              />
+              <TotalItem
+                column="totalTransfersIn"
+                summaryType="sum"
+                displayFormat="+{0:n0} L"
+              />
+              <TotalItem
+                column="totalTransfersOut"
                 summaryType="sum"
                 displayFormat="-{0:n0} L"
               />

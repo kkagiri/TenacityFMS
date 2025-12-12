@@ -264,19 +264,21 @@ const Step4VehicleSelection = () => {
         <div className={`tw-px-4 tw-py-2 tw-flex tw-items-center tw-justify-between ${config.bgColor}`}>
           <p className="tw-text-xs tw-text-gray-600">{config.description}</p>
           <div className="tw-flex tw-gap-2">
-            <button
-              className="tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline"
+            <Button
+              text="Select all"
+              type="default"
+              stylingMode="outlined"
+              elementAttr={{ class: "tw-text-xs" }}
               onClick={() => handleSelectCategory(categoryId)}
-            >
-              Select all
-            </button>
+            />
             {categorySelectedKeys.length > 0 && (
-              <button
-                className="tw-text-xs tw-text-red-600 hover:tw-text-red-800 hover:tw-underline"
+              <Button
+                text="Clear"
+                type="default"
+                stylingMode="outlined"
+                elementAttr={{ class: "tw-text-xs" }}
                 onClick={() => handleDeselectCategory(categoryId)}
-              >
-                Clear
-              </button>
+              />
             )}
           </div>
         </div>
@@ -461,19 +463,19 @@ const Step4VehicleSelection = () => {
             </div>
             <div className="tw-flex tw-gap-3">
               {selectedKeys.length > 0 && (
-                <button
-                  className="tw-text-sm tw-text-red-600 hover:tw-text-red-800 tw-font-medium"
+                <Button
+                  text="Clear all"
+                  type="default"
+                  stylingMode="outlined"
                   onClick={handleClearSelection}
-                >
-                  Clear all
-                </button>
+                />
               )}
-              <button
-                className="tw-text-sm tw-text-blue-600 hover:tw-text-blue-800 tw-font-medium"
+              <Button
+                text="Select all"
+                type="default"
+                stylingMode="outlined"
                 onClick={handleSelectAll}
-              >
-                Select all
-              </button>
+              />
             </div>
           </div>
         </>
