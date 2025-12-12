@@ -28,6 +28,13 @@ const FuelAuditMain = () => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const { userInfo } = usePermissions();
 
+  // Check if user is admin
+  const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
+  const isAdmin = userRoles.some(role =>
+    typeof role === 'string' && role.toLowerCase() === 'admin'
+  );
+
+
   // Delay mounting of DevExtreme components to prevent DOM conflicts
   const [isReady, setIsReady] = useState(false);
 
@@ -46,12 +53,6 @@ const FuelAuditMain = () => {
     const timer = setTimeout(() => setIsReady(true), 100);
     return () => clearTimeout(timer);
   }, [isWizardMode]);
-
-  // Check if user is admin
-  const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
-  const isAdmin = userRoles.some(role =>
-    typeof role === 'string' && role.toLowerCase() === 'admin'
-  );
 
   // Tab configuration (excluding Create - it's a full page now)
   const tabData = useMemo(() => [
@@ -128,6 +129,7 @@ const FuelAuditMain = () => {
                 text="New Audit"
                 type="default"
                 stylingMode="outlined"
+
                 icon="fa-light fa-plus"
                 onClick={() => navigate('/tankstock/fuel-audit/create')}
               />

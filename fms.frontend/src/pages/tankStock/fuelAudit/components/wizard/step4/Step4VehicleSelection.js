@@ -246,6 +246,7 @@ const Step4VehicleSelection = memo(() => {
               onClick={() => handleExportCategory(categoryId)}
             />
             <Button
+
               text="Select all"
               type="default"
               stylingMode="outlined"
