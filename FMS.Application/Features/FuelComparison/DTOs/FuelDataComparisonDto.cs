@@ -118,5 +118,34 @@ namespace FMS.Application.Features.FuelComparison.DTOs
         /// Tank name for display
         /// </summary>
         public string TankName { get; set; }
+
+        #region GPS Refueling Event Details (from GpsGateReportEntry)
+
+        /// <summary>
+        /// GPSGate vehicle ID for chart lookup
+        /// </summary>
+        public int? GpsGateVehicleId { get; set; }
+
+        /// <summary>
+        /// Start time of refueling (from GPS report)
+        /// </summary>
+        public TimeSpan? GpsStartTime { get; set; }
+
+        /// <summary>
+        /// Duration of refueling event
+        /// </summary>
+        public TimeSpan? GpsDuration { get; set; }
+
+        /// <summary>
+        /// Fuel level before refueling (liters)
+        /// </summary>
+        public decimal? GpsFuelBefore { get; set; }
+
+        /// <summary>
+        /// Fuel level after refueling (liters)
+        /// </summary>
+        public decimal? GpsFuelAfter { get; set; }
+
+        #endregion
     }
 }

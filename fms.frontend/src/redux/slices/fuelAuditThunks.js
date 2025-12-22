@@ -1,5 +1,34 @@
-import { createAsyncThunk } from '@reduxjs/toolkit';
-import fuelAuditApi from '../../api/fuelAuditApi';
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import fuelAuditApi from "../../api/fuelAuditApi";
+
+const serializeAxiosError = (error) => {
+  const status = error?.response?.status;
+  const statusText = error?.response?.statusText;
+  const url = error?.config?.url;
+  const method = error?.config?.method;
+  const baseURL = error?.config?.baseURL;
+
+  let responseData;
+  try {
+    responseData = error?.response?.data;
+    if (responseData !== undefined) {
+      JSON.stringify(responseData);
+    }
+  } catch {
+    responseData = undefined;
+  }
+
+  return {
+    message: error?.message || "Request failed",
+    code: error?.code,
+    status,
+    statusText,
+    url,
+    method,
+    baseURL,
+    data: responseData,
+  };
+};
 
 // ============================================================
 // ASYNC THUNKS - GPS DATA
@@ -9,13 +38,13 @@ import fuelAuditApi from '../../api/fuelAuditApi';
  * Get vehicle fuel position from GPS
  */
 export const fetchVehicleFuelPosition = createAsyncThunk(
-  'fuelAudit/fetchVehicleFuelPosition',
+  "fuelAudit/fetchVehicleFuelPosition",
   async (vehicleId, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getVehicleFuelPosition(vehicleId);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -24,13 +53,13 @@ export const fetchVehicleFuelPosition = createAsyncThunk(
  * Get fleet fuel positions
  */
 export const fetchFleetFuelPositions = createAsyncThunk(
-  'fuelAudit/fetchFleetFuelPositions',
+  "fuelAudit/fetchFleetFuelPositions",
   async (vehicleIds, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getFleetFuelPositions(vehicleIds);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -39,13 +68,17 @@ export const fetchFleetFuelPositions = createAsyncThunk(
  * Get vehicle fuel consumption for period
  */
 export const fetchVehicleFuelConsumption = createAsyncThunk(
-  'fuelAudit/fetchVehicleFuelConsumption',
+  "fuelAudit/fetchVehicleFuelConsumption",
   async ({ vehicleId, startDate, endDate }, { rejectWithValue }) => {
     try {
-      const response = await fuelAuditApi.getVehicleFuelConsumption(vehicleId, startDate, endDate);
+      const response = await fuelAuditApi.getVehicleFuelConsumption(
+        vehicleId,
+        startDate,
+        endDate
+      );
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -54,13 +87,17 @@ export const fetchVehicleFuelConsumption = createAsyncThunk(
  * Get vehicle refuel events
  */
 export const fetchVehicleRefuelEvents = createAsyncThunk(
-  'fuelAudit/fetchVehicleRefuelEvents',
+  "fuelAudit/fetchVehicleRefuelEvents",
   async ({ vehicleId, startDate, endDate }, { rejectWithValue }) => {
     try {
-      const response = await fuelAuditApi.getVehicleRefuelEvents(vehicleId, startDate, endDate);
+      const response = await fuelAuditApi.getVehicleRefuelEvents(
+        vehicleId,
+        startDate,
+        endDate
+      );
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -69,13 +106,13 @@ export const fetchVehicleRefuelEvents = createAsyncThunk(
  * Refresh vehicle fuel data
  */
 export const refreshVehicleData = createAsyncThunk(
-  'fuelAudit/refreshVehicleData',
+  "fuelAudit/refreshVehicleData",
   async (vehicleId, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.refreshVehicleFuelData(vehicleId);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -88,13 +125,13 @@ export const refreshVehicleData = createAsyncThunk(
  * Fetch tanks for a site (wizard step 2)
  */
 export const fetchTanksForSite = createAsyncThunk(
-  'fuelAudit/fetchTanksForSite',
+  "fuelAudit/fetchTanksForSite",
   async (siteId, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getTanksForSite(siteId);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -103,18 +140,18 @@ export const fetchTanksForSite = createAsyncThunk(
  * Fetch tank volume history preview (wizard step 3)
  */
 export const fetchTankVolumePreview = createAsyncThunk(
-  'fuelAudit/fetchTankVolumePreview',
+  "fuelAudit/fetchTankVolumePreview",
   async ({ tankIds, startDate, endDate, siteId }, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getTankVolumeHistoryPreview({
         tankIds,
         startDate,
         endDate,
-        siteId
+        siteId,
       });
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -123,13 +160,13 @@ export const fetchTankVolumePreview = createAsyncThunk(
  * Fetch vehicles for a site (wizard step 4)
  */
 export const fetchVehiclesForSite = createAsyncThunk(
-  'fuelAudit/fetchVehiclesForSite',
+  "fuelAudit/fetchVehiclesForSite",
   async (siteId, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getVehiclesForSite(siteId);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -140,18 +177,18 @@ export const fetchVehiclesForSite = createAsyncThunk(
  * Supports multi-site audits via siteIds array
  */
 export const fetchTankRefillsPreview = createAsyncThunk(
-  'fuelAudit/fetchTankRefillsPreview',
+  "fuelAudit/fetchTankRefillsPreview",
   async ({ tankIds, startDate, endDate, siteIds }, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getTankRefillsPreview({
         tankIds,
         startDate,
         endDate,
-        siteIds: Array.isArray(siteIds) ? siteIds : (siteIds ? [siteIds] : [])
+        siteIds: Array.isArray(siteIds) ? siteIds : siteIds ? [siteIds] : [],
       });
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -160,18 +197,21 @@ export const fetchTankRefillsPreview = createAsyncThunk(
  * Fetch GPS fleet fuel positions for audit period (wizard step 5)
  */
 export const fetchFleetAuditPeriodFuel = createAsyncThunk(
-  'fuelAudit/fetchFleetAuditPeriodFuel',
-  async ({ vehicleIds, startDate, endDate, categoryId }, { rejectWithValue }) => {
+  "fuelAudit/fetchFleetAuditPeriodFuel",
+  async (
+    { vehicleIds, startDate, endDate, categoryId },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await fuelAuditApi.getFleetFuelPositionsForAuditPeriod({
         vehicleIds,
         auditPeriodStart: startDate,
         auditPeriodEnd: endDate,
-        categoryId // Pass category to backend to determine REST vs SOAP
+        categoryId, // Pass category to backend to determine REST vs SOAP
       });
       return { ...response, categoryId };
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -186,11 +226,14 @@ export const fetchFleetAuditPeriodFuel = createAsyncThunk(
  * @param {number} [params.auditSiteId] - Site ID for audit context
  */
 export const fetchCategoryAuditData = createAsyncThunk(
-  'fuelAudit/fetchCategoryAuditData',
-  async ({ vehicles, startDate, endDate, auditSiteId }, { rejectWithValue }) => {
+  "fuelAudit/fetchCategoryAuditData",
+  async (
+    { vehicles, startDate, endDate, auditSiteId },
+    { rejectWithValue }
+  ) => {
     try {
       // Transform vehicle data to match backend DTO
-      const vehicleDtos = vehicles.map(v => ({
+      const vehicleDtos = vehicles.map((v) => ({
         vehicleId: v.vehicleId,
         vehicleName: v.vehicleNo,
         category: v.vehicleCategory || 5,
@@ -200,19 +243,19 @@ export const fetchCategoryAuditData = createAsyncThunk(
         averageEfficiency: v.efficiency,
         isKmL: v.isKmL !== false, // Default to km/L
         totalFuelRefilled: v.totalFuelAmount || 0,
-        refillCount: v.refillCount || 0
+        refillCount: v.refillCount || 0,
       }));
 
       const response = await fuelAuditApi.getCategoryAuditFuel({
         vehicles: vehicleDtos,
         startDate,
         endDate,
-        auditSiteId
+        auditSiteId,
       });
 
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -229,11 +272,14 @@ export const fetchCategoryAuditData = createAsyncThunk(
  * @param {number[]} [params.auditTankIds] - Tank IDs to match GPS events with manual refills
  */
 export const startCategoryAuditAsync = createAsyncThunk(
-  'fuelAudit/startCategoryAuditAsync',
-  async ({ vehicles, startDate, endDate, auditSiteId, auditSiteIds, auditTankIds }, { rejectWithValue }) => {
+  "fuelAudit/startCategoryAuditAsync",
+  async (
+    { vehicles, startDate, endDate, auditSiteId, auditSiteIds, auditTankIds },
+    { rejectWithValue }
+  ) => {
     try {
       // Transform vehicle data to match backend DTO
-      const vehicleDtos = vehicles.map(v => ({
+      const vehicleDtos = vehicles.map((v) => ({
         vehicleId: v.vehicleId,
         vehicleName: v.vehicleNo,
         category: v.vehicleCategory || 5,
@@ -243,7 +289,7 @@ export const startCategoryAuditAsync = createAsyncThunk(
         averageEfficiency: v.efficiency,
         isKmL: v.isKmL !== false, // Default to km/L
         totalFuelRefilled: v.totalFuelAmount || 0,
-        refillCount: v.refillCount || 0
+        refillCount: v.refillCount || 0,
       }));
 
       const response = await fuelAuditApi.startCategoryAuditAsync({
@@ -252,12 +298,12 @@ export const startCategoryAuditAsync = createAsyncThunk(
         endDate,
         auditSiteId,
         auditSiteIds,
-        auditTankIds  // Pass tank IDs for GPS-to-manual refill matching
+        auditTankIds, // Pass tank IDs for GPS-to-manual refill matching
       });
 
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -267,13 +313,13 @@ export const startCategoryAuditAsync = createAsyncThunk(
  * @param {string} jobId - Job ID to cancel
  */
 export const cancelCategoryAuditJob = createAsyncThunk(
-  'fuelAudit/cancelCategoryAuditJob',
+  "fuelAudit/cancelCategoryAuditJob",
   async (jobId, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.cancelCategoryAuditJob(jobId);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -283,19 +329,22 @@ export const cancelCategoryAuditJob = createAsyncThunk(
  * Categories 1 & 4 support GPS data (REST & SOAP respectively)
  */
 export const fetchCategoryGpsData = createAsyncThunk(
-  'fuelAudit/fetchCategoryGpsData',
-  async ({ vehicleIds, startDate, endDate, categoryId, siteId }, { rejectWithValue }) => {
+  "fuelAudit/fetchCategoryGpsData",
+  async (
+    { vehicleIds, startDate, endDate, categoryId, siteId },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await fuelAuditApi.getFleetFuelPositionsForAuditPeriod({
         vehicleIds,
         auditPeriodStart: startDate,
         auditPeriodEnd: endDate,
         categoryId,
-        siteId
+        siteId,
       });
       return { data: response.data, categoryId, isSuccess: response.isSuccess };
     } catch (error) {
-      return rejectWithValue({ error, categoryId });
+      return rejectWithValue({ categoryId, error: serializeAxiosError(error) });
     }
   }
 );
@@ -304,13 +353,13 @@ export const fetchCategoryGpsData = createAsyncThunk(
  * Check if a vehicle has fuel sensor
  */
 export const checkVehicleFuelSensor = createAsyncThunk(
-  'fuelAudit/checkVehicleFuelSensor',
+  "fuelAudit/checkVehicleFuelSensor",
   async (vehicleId, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.checkVehicleFuelSensor(vehicleId);
       return { vehicleId, ...response };
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -323,13 +372,13 @@ export const checkVehicleFuelSensor = createAsyncThunk(
  * Fetch list of fuel audits
  */
 export const fetchFuelAudits = createAsyncThunk(
-  'fuelAudit/fetchFuelAudits',
+  "fuelAudit/fetchFuelAudits",
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getFuelAudits(params);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -338,13 +387,13 @@ export const fetchFuelAudits = createAsyncThunk(
  * Fetch single audit by ID
  */
 export const fetchFuelAuditById = createAsyncThunk(
-  'fuelAudit/fetchFuelAuditById',
+  "fuelAudit/fetchFuelAuditById",
   async ({ auditId, options = {} }, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getFuelAuditById(auditId, options);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -353,13 +402,13 @@ export const fetchFuelAuditById = createAsyncThunk(
  * Create a new fuel audit
  */
 export const createNewAudit = createAsyncThunk(
-  'fuelAudit/createNewAudit',
+  "fuelAudit/createNewAudit",
   async (auditData, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.createFuelAudit(auditData);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -370,13 +419,13 @@ export const createNewAudit = createAsyncThunk(
  * @param {object} data - Wizard step data
  */
 export const saveDraftAudit = createAsyncThunk(
-  'fuelAudit/saveDraftAudit',
+  "fuelAudit/saveDraftAudit",
   async (data, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.saveDraftAudit(data);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -385,13 +434,13 @@ export const saveDraftAudit = createAsyncThunk(
  * Calculate audit variances
  */
 export const calculateAuditVariances = createAsyncThunk(
-  'fuelAudit/calculateAuditVariances',
+  "fuelAudit/calculateAuditVariances",
   async ({ auditId, recalculate = false }, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.calculateAudit(auditId, recalculate);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -400,13 +449,16 @@ export const calculateAuditVariances = createAsyncThunk(
  * Submit tank reading
  */
 export const submitReading = createAsyncThunk(
-  'fuelAudit/submitReading',
+  "fuelAudit/submitReading",
   async ({ auditId, readingData }, { rejectWithValue }) => {
     try {
-      const response = await fuelAuditApi.submitTankerReading(auditId, readingData);
+      const response = await fuelAuditApi.submitTankerReading(
+        auditId,
+        readingData
+      );
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -420,13 +472,20 @@ export const submitReading = createAsyncThunk(
  * @param {string[]} [params.recipientEmails] - Email recipients
  */
 export const finalizeAuditAction = createAsyncThunk(
-  'fuelAudit/finalizeAudit',
-  async ({ auditId, notes, sendReport, recipientEmails }, { rejectWithValue }) => {
+  "fuelAudit/finalizeAudit",
+  async (
+    { auditId, notes, sendReport, recipientEmails },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await fuelAuditApi.finalizeAudit(auditId, { notes, sendReport, recipientEmails });
+      const response = await fuelAuditApi.finalizeAudit(auditId, {
+        notes,
+        sendReport,
+        recipientEmails,
+      });
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -435,13 +494,13 @@ export const finalizeAuditAction = createAsyncThunk(
  * Cancel audit
  */
 export const cancelAuditAction = createAsyncThunk(
-  'fuelAudit/cancelAudit',
+  "fuelAudit/cancelAudit",
   async ({ auditId, reason }, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.cancelAudit(auditId, reason);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -450,13 +509,13 @@ export const cancelAuditAction = createAsyncThunk(
  * Resolve flag
  */
 export const resolveFlagAction = createAsyncThunk(
-  'fuelAudit/resolveFlag',
+  "fuelAudit/resolveFlag",
   async ({ flagId, resolution }, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.resolveFlag(flagId, resolution);
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );
@@ -465,13 +524,13 @@ export const resolveFlagAction = createAsyncThunk(
  * Fetch audit thresholds
  */
 export const fetchAuditThresholds = createAsyncThunk(
-  'fuelAudit/fetchAuditThresholds',
+  "fuelAudit/fetchAuditThresholds",
   async (_, { rejectWithValue }) => {
     try {
       const response = await fuelAuditApi.getAuditThresholds();
       return response;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(serializeAxiosError(error));
     }
   }
 );

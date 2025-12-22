@@ -73,10 +73,9 @@ namespace FMS.Application.Features.FuelAudit.Commands
                 var auditNumber = dto.AuditNumber;
                 if (string.IsNullOrEmpty(auditNumber))
                 {
-                    var year = dto.StartDate.Year;
-                    var count = await _context.FuelAudits
-                        .CountAsync(a => a.StartDate.Year == year, cancellationToken);
-                    auditNumber = $"FA-{year}-{(count + 1):D3}";
+                    // Generate: FA - YYYY-MM-DD HH:mm:ss
+                    var now = DateTime.UtcNow;
+                    auditNumber = $"FA - {now:yyyy-MM-dd HH:mm:ss}";
                 }
 
                 // Check for duplicate audit number

@@ -1,4 +1,3 @@
-
 /**
  * Step6Reconciliation.js
  * Step 6: Comprehensive Fuel Audit Review
@@ -34,22 +33,30 @@
  * - Export to Excel functionality
  */
 
-import React, { useMemo, useState, useCallback, memo } from 'react';
-import { useSelector } from 'react-redux';
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  memo,
+  useEffect,
+  useRef,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
 import DataGrid, {
   Column,
   Paging,
   Scrolling,
   Summary,
   TotalItem,
-  MasterDetail
-} from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
-import { Workbook } from 'exceljs';
-import { saveAs } from 'file-saver';
-import notify from 'devextreme/ui/notify';
+  MasterDetail,
+} from "devextreme-react/data-grid";
+import { Button } from "devextreme-react/button";
+import { Workbook } from "exceljs";
+import { saveAs } from "file-saver";
+import notify from "devextreme/ui/notify";
 
-import { selectWizard } from '../../../../../../redux/slices/fuelAuditSlice';
+import { selectWizard } from "../../../../../../redux/slices/fuelAuditSlice";
+import { fetchTankRefillsPreview } from "../../../../../../redux/slices/fuelAuditThunks";
 
 // ============================================================================
 // CATEGORY CONFIGURATION
@@ -57,75 +64,75 @@ import { selectWizard } from '../../../../../../redux/slices/fuelAuditSlice';
 
 const CATEGORY_CONFIG = {
   1: {
-    name: 'GPS Site Fleet',
-    icon: 'fa-satellite',
-    bgColor: 'tw-bg-green-50',
-    borderColor: 'tw-border-green-200',
-    headerBg: 'tw-bg-green-600',
-    textColor: 'tw-text-green-700',
-    badgeColor: 'tw-bg-green-100 tw-text-green-800',
-    confidence: 'HIGH',
-    description: 'Vehicles with GPS + Fuel Sensor belonging to this site',
+    name: "GPS Site Fleet",
+    icon: "fa-satellite",
+    bgColor: "tw-bg-green-50",
+    borderColor: "tw-border-green-200",
+    headerBg: "tw-bg-green-600",
+    textColor: "tw-text-green-700",
+    badgeColor: "tw-bg-green-100 tw-text-green-800",
+    confidence: "HIGH",
+    description: "Vehicles with GPS + Fuel Sensor belonging to this site",
     showGpsConsumption: true,
     showGpsDispensed: true,
-    showOpeningClosing: true
+    showOpeningClosing: true,
   },
   2: {
-    name: 'Site Full Tank',
-    icon: 'fa-gas-pump',
-    bgColor: 'tw-bg-yellow-50',
-    borderColor: 'tw-border-yellow-200',
-    headerBg: 'tw-bg-yellow-500',
-    textColor: 'tw-text-yellow-700',
-    badgeColor: 'tw-bg-yellow-100 tw-text-yellow-800',
-    confidence: 'MEDIUM',
-    description: 'Vehicles always filled to tank capacity',
+    name: "Site Full Tank",
+    icon: "fa-gas-pump",
+    bgColor: "tw-bg-yellow-50",
+    borderColor: "tw-border-yellow-200",
+    headerBg: "tw-bg-yellow-500",
+    textColor: "tw-text-yellow-700",
+    badgeColor: "tw-bg-yellow-100 tw-text-yellow-800",
+    confidence: "MEDIUM",
+    description: "Vehicles always filled to tank capacity",
     showGpsConsumption: false,
     showGpsDispensed: false,
-    showOpeningClosing: true
+    showOpeningClosing: true,
   },
   3: {
-    name: 'Site Equipment',
-    icon: 'fa-gear',
-    bgColor: 'tw-bg-orange-50',
-    borderColor: 'tw-border-orange-200',
-    headerBg: 'tw-bg-orange-500',
-    textColor: 'tw-text-orange-700',
-    badgeColor: 'tw-bg-orange-100 tw-text-orange-800',
-    confidence: 'LOW',
-    description: 'Equipment without GPS/sensor - fuel issued only',
+    name: "Site Equipment",
+    icon: "fa-gear",
+    bgColor: "tw-bg-orange-50",
+    borderColor: "tw-border-orange-200",
+    headerBg: "tw-bg-orange-500",
+    textColor: "tw-text-orange-700",
+    badgeColor: "tw-bg-orange-100 tw-text-orange-800",
+    confidence: "LOW",
+    description: "Equipment without GPS/sensor - fuel issued only",
     showGpsConsumption: false,
     showGpsDispensed: false,
-    showOpeningClosing: false
+    showOpeningClosing: false,
   },
   4: {
-    name: 'Cross-Site Company',
-    icon: 'fa-arrow-right-arrow-left',
-    bgColor: 'tw-bg-cyan-50',
-    borderColor: 'tw-border-cyan-200',
-    headerBg: 'tw-bg-cyan-600',
-    textColor: 'tw-text-cyan-700',
-    badgeColor: 'tw-bg-cyan-100 tw-text-cyan-800',
-    confidence: 'HIGH',
-    description: 'Company vehicles from other sites with GPS',
+    name: "Cross-Site Company",
+    icon: "fa-arrow-right-arrow-left",
+    bgColor: "tw-bg-cyan-50",
+    borderColor: "tw-border-cyan-200",
+    headerBg: "tw-bg-cyan-600",
+    textColor: "tw-text-cyan-700",
+    badgeColor: "tw-bg-cyan-100 tw-text-cyan-800",
+    confidence: "HIGH",
+    description: "Company vehicles from other sites with GPS",
     showGpsConsumption: true,
     showGpsDispensed: true,
-    showOpeningClosing: true
+    showOpeningClosing: true,
   },
   5: {
-    name: 'External Non-Company',
-    icon: 'fa-user-plus',
-    bgColor: 'tw-bg-pink-50',
-    borderColor: 'tw-border-pink-200',
-    headerBg: 'tw-bg-pink-500',
-    textColor: 'tw-text-pink-700',
-    badgeColor: 'tw-bg-pink-100 tw-text-pink-800',
-    confidence: 'ACCOUNTED',
-    description: 'External/contractor vehicles - accounting only',
+    name: "External Non-Company",
+    icon: "fa-user-plus",
+    bgColor: "tw-bg-pink-50",
+    borderColor: "tw-border-pink-200",
+    headerBg: "tw-bg-pink-500",
+    textColor: "tw-text-pink-700",
+    badgeColor: "tw-bg-pink-100 tw-text-pink-800",
+    confidence: "ACCOUNTED",
+    description: "External/contractor vehicles - accounting only",
     showGpsConsumption: false,
     showGpsDispensed: false,
-    showOpeningClosing: false
-  }
+    showOpeningClosing: false,
+  },
 };
 
 // ============================================================================
@@ -133,28 +140,37 @@ const CATEGORY_CONFIG = {
 // ============================================================================
 
 const formatNumber = (value, decimals = 1) => {
-  if (value === null || value === undefined || isNaN(value)) return '-';
-  return value.toLocaleString('en-US', {
+  if (value === null || value === undefined || isNaN(value)) return "-";
+  return value.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+    maximumFractionDigits: decimals,
   });
 };
 
 const getVarianceClass = (variance, thresholds = [5, 15]) => {
   const absVar = Math.abs(variance || 0);
-  if (absVar < thresholds[0]) return 'tw-bg-green-100 tw-text-green-800';
-  if (absVar < thresholds[1]) return 'tw-bg-yellow-100 tw-text-yellow-800';
-  return 'tw-bg-red-100 tw-text-red-800';
+  if (absVar < thresholds[0]) return "tw-bg-green-100 tw-text-green-800";
+  if (absVar < thresholds[1]) return "tw-bg-yellow-100 tw-text-yellow-800";
+  return "tw-bg-red-100 tw-text-red-800";
 };
 
 const getConfidenceBadge = (confidence) => {
   const styles = {
-    HIGH: 'tw-bg-green-600 tw-text-white',
-    MEDIUM: 'tw-bg-yellow-500 tw-text-white',
-    LOW: 'tw-bg-red-500 tw-text-white',
-    ACCOUNTED: 'tw-bg-gray-500 tw-text-white'
+    HIGH: "tw-bg-green-600 tw-text-white",
+    MEDIUM: "tw-bg-yellow-500 tw-text-white",
+    LOW: "tw-bg-red-500 tw-text-white",
+    ACCOUNTED: "tw-bg-gray-500 tw-text-white",
   };
   return styles[confidence] || styles.MEDIUM;
+};
+
+const toLocalDateKey = (value) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 
 /**
@@ -171,17 +187,31 @@ const mergeGpsAndManualRefills = (gpsRefillEvents, manualRefills) => {
     return [];
   }
 
+  // Normalize GPS events - handle both field name formats
+  // Backend returns: refillDate, gpsRefillVolume, fuelBefore, fuelAfter
+  // Some sources may use: date, volume, before, after
+  const normalizedGpsEvents = gpsRefillEvents.map((e) => ({
+    ...e,
+    refillDate: e.refillDate || e.date,
+    gpsRefillVolume: e.gpsRefillVolume ?? e.volume ?? 0,
+    fuelBefore: e.fuelBefore ?? e.before,
+    fuelAfter: e.fuelAfter ?? e.after,
+    entryId: e.entryId || e.id || `gps_${Date.now()}_${Math.random()}`,
+  }));
+
   // Step 1: Deduplicate GPS events by date
   // Group by date string (YYYY-MM-DD)
   const gpsEventsByDate = new Map();
 
-  gpsRefillEvents.forEach((gpsEvent) => {
-    const dateKey = new Date(gpsEvent.refillDate).toISOString().split('T')[0];
+  normalizedGpsEvents.forEach((gpsEvent) => {
+    const dateKey =
+      toLocalDateKey(gpsEvent.refillDate) || `unknown_${gpsEventsByDate.size}`;
 
     if (gpsEventsByDate.has(dateKey)) {
       // Aggregate: sum GPS volumes for same date
       const existing = gpsEventsByDate.get(dateKey);
-      existing.gpsRefillVolume = (existing.gpsRefillVolume || 0) + (gpsEvent.gpsRefillVolume || 0);
+      existing.gpsRefillVolume =
+        (existing.gpsRefillVolume || 0) + (gpsEvent.gpsRefillVolume || 0);
       // Keep the first entry's other fields, but track count
       existing._count = (existing._count || 1) + 1;
     } else {
@@ -189,29 +219,29 @@ const mergeGpsAndManualRefills = (gpsRefillEvents, manualRefills) => {
       gpsEventsByDate.set(dateKey, {
         ...gpsEvent,
         _dateKey: dateKey,
-        _count: 1
+        _count: 1,
       });
     }
   });
 
   // Convert to array and sort by date
-  const uniqueGpsEvents = Array.from(gpsEventsByDate.values())
-    .sort((a, b) => new Date(a.refillDate) - new Date(b.refillDate));
+  const uniqueGpsEvents = Array.from(gpsEventsByDate.values()).sort(
+    (a, b) => new Date(a.refillDate) - new Date(b.refillDate)
+  );
 
   // Step 2: Track which manual refills have been matched
   const usedManualRefillIds = new Set();
 
   return uniqueGpsEvents.map((gpsEvent, index) => {
     // Try to find a matching manual refill by date (same day) that hasn't been used
-    const gpsDate = new Date(gpsEvent.refillDate);
-    const gpsDateKey = gpsDate.toISOString().split('T')[0];
+    const gpsDateKey = toLocalDateKey(gpsEvent.refillDate);
 
-    const matchedRefill = manualRefills?.find(r => {
+    const matchedRefill = manualRefills?.find((r) => {
       if (usedManualRefillIds.has(r.refillId)) {
         return false; // Already matched
       }
-      const refillDateKey = new Date(r.refillDate).toISOString().split('T')[0];
-      return refillDateKey === gpsDateKey;
+      const refillDateKey = toLocalDateKey(r.refillDate);
+      return gpsDateKey && refillDateKey && refillDateKey === gpsDateKey;
     });
 
     // Mark this manual refill as used
@@ -238,7 +268,7 @@ const mergeGpsAndManualRefills = (gpsRefillEvents, manualRefills) => {
       variance: variance,
       variancePercent: variancePercent,
       tankName: matchedRefill?.tankName || gpsEvent.tankName,
-      fuelRefillId: matchedRefill?.refillId || gpsEvent.fuelRefillId
+      fuelRefillId: matchedRefill?.refillId || gpsEvent.fuelRefillId,
     };
   });
 };
@@ -248,7 +278,10 @@ const mergeGpsAndManualRefills = (gpsRefillEvents, manualRefills) => {
 // ============================================================================
 
 const Step6Reconciliation = memo(() => {
+  const dispatch = useDispatch();
   const wizard = useSelector(selectWizard);
+
+  const hasRequestedRefillsRef = useRef(false);
 
   // Expanded sections state
   const [expandedTanks, setExpandedTanks] = useState({});
@@ -262,13 +295,68 @@ const Step6Reconciliation = memo(() => {
   // Get selected vehicles from Step 5
   const selectedVehicles = useMemo(() => {
     const tankRefills = wizard.tankRefills || [];
-    return tankRefills.filter(v => wizard.selectedVehicleIds?.includes(v.vehicleId));
+    return tankRefills.filter((v) =>
+      wizard.selectedVehicleIds?.includes(v.vehicleId)
+    );
   }, [wizard.tankRefills, wizard.selectedVehicleIds]);
+
+  // Step 6 needs per-refill detail rows for per-tank worksheets. If the user lands on Step 6
+  // from a saved audit, vehiclePositions may be loaded without the original refills array.
+  // In that case, fetch the refill preview again (merged into existing tankRefills in the slice).
+  useEffect(() => {
+    if (hasRequestedRefillsRef.current) return;
+
+    const hasVehicles = selectedVehicles.length > 0;
+    const allMissingRefills =
+      hasVehicles &&
+      selectedVehicles.every((v) => !v.refills || v.refills.length === 0);
+
+    const tankIds = wizard.selectedTankIds || [];
+    const canRequest =
+      Array.isArray(tankIds) &&
+      tankIds.length > 0 &&
+      wizard.periodStart &&
+      wizard.periodEnd;
+
+    // Debug logging
+    console.log("[Step6] Refill check:", {
+      hasVehicles,
+      allMissingRefills,
+      canRequest,
+      vehicleCount: selectedVehicles.length,
+      sampleRefills: selectedVehicles.slice(0, 2).map((v) => ({
+        id: v.vehicleId,
+        no: v.vehicleNo,
+        refillCount: v.refills?.length || 0,
+      })),
+    });
+
+    if (allMissingRefills && canRequest) {
+      hasRequestedRefillsRef.current = true;
+      notify("Loading refill details for export...", "info", 1500);
+      console.log("[Step6] Dispatching fetchTankRefillsPreview...");
+      dispatch(
+        fetchTankRefillsPreview({
+          tankIds,
+          startDate: wizard.periodStart,
+          endDate: wizard.periodEnd,
+          siteIds: wizard.siteIds,
+        })
+      );
+    }
+  }, [
+    dispatch,
+    selectedVehicles,
+    wizard.periodStart,
+    wizard.periodEnd,
+    wizard.selectedTankIds,
+    wizard.siteIds,
+  ]);
 
   // Group vehicles by category
   const vehiclesByCategory = useMemo(() => {
     const grouped = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    selectedVehicles.forEach(v => {
+    selectedVehicles.forEach((v) => {
       const cat = v.vehicleCategory || 5;
       if (grouped[cat]) {
         grouped[cat].push(v);
@@ -280,19 +368,36 @@ const Step6Reconciliation = memo(() => {
   // Calculate totals per category
   const categoryTotals = useMemo(() => {
     const totals = {};
-    Object.keys(CATEGORY_CONFIG).forEach(catId => {
+    Object.keys(CATEGORY_CONFIG).forEach((catId) => {
       const vehicles = vehiclesByCategory[catId] || [];
       totals[catId] = {
         vehicleCount: vehicles.length,
-        totalDispensed: vehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0),
-        totalGpsConsumption: vehicles.reduce((sum, v) => sum + (v.gpsMeasuredConsumption || 0), 0),
-        totalOpening: vehicles.reduce((sum, v) => sum + (v.openingFuel || 0), 0),
-        totalClosing: vehicles.reduce((sum, v) => sum + (v.closingFuel || 0), 0),
-        totalRefills: vehicles.reduce((sum, v) => sum + (v.refillCount || 0), 0)
+        totalDispensed: vehicles.reduce(
+          (sum, v) => sum + (v.totalFuelAmount || 0),
+          0
+        ),
+        totalGpsConsumption: vehicles.reduce(
+          (sum, v) => sum + (v.gpsMeasuredConsumption || 0),
+          0
+        ),
+        totalOpening: vehicles.reduce(
+          (sum, v) => sum + (v.openingFuel || 0),
+          0
+        ),
+        totalClosing: vehicles.reduce(
+          (sum, v) => sum + (v.closingFuel || 0),
+          0
+        ),
+        totalRefills: vehicles.reduce(
+          (sum, v) => sum + (v.refillCount || 0),
+          0
+        ),
       };
       // Calculate variance for GPS categories
       if (CATEGORY_CONFIG[catId].showGpsConsumption) {
-        totals[catId].variance = totals[catId].totalDispensed - Math.abs(totals[catId].totalGpsConsumption);
+        totals[catId].variance =
+          totals[catId].totalDispensed -
+          Math.abs(totals[catId].totalGpsConsumption);
       }
     });
     return totals;
@@ -303,42 +408,71 @@ const Step6Reconciliation = memo(() => {
     return {
       tanks: {
         count: tankPreview.length,
-        totalOpening: tankPreview.reduce((sum, t) => sum + (t.openingStock || 0), 0),
-        totalClosing: tankPreview.reduce((sum, t) => sum + (t.closingStock || 0), 0),
-        totalDeliveries: tankPreview.reduce((sum, t) => sum + (t.totalDeliveries || 0), 0),
-        totalDispensed: tankPreview.reduce((sum, t) => sum + (t.totalDispensed || 0), 0),
-        totalTransferIn: tankPreview.reduce((sum, t) => sum + (t.totalTransfersIn || 0), 0),
-        totalTransferOut: tankPreview.reduce((sum, t) => sum + (t.totalTransfersOut || 0), 0)
+        totalOpening: tankPreview.reduce(
+          (sum, t) => sum + (t.openingStock || 0),
+          0
+        ),
+        totalClosing: tankPreview.reduce(
+          (sum, t) => sum + (t.closingStock || 0),
+          0
+        ),
+        totalDeliveries: tankPreview.reduce(
+          (sum, t) => sum + (t.totalDeliveries || 0),
+          0
+        ),
+        totalDispensed: tankPreview.reduce(
+          (sum, t) => sum + (t.totalDispensed || 0),
+          0
+        ),
+        totalTransferIn: tankPreview.reduce(
+          (sum, t) => sum + (t.totalTransfersIn || 0),
+          0
+        ),
+        totalTransferOut: tankPreview.reduce(
+          (sum, t) => sum + (t.totalTransfersOut || 0),
+          0
+        ),
       },
       vehicles: {
         count: selectedVehicles.length,
-        totalDispensed: Object.values(categoryTotals).reduce((sum, c) => sum + c.totalDispensed, 0),
-        totalGpsConsumption: Object.values(categoryTotals).reduce((sum, c) => sum + Math.abs(c.totalGpsConsumption), 0),
-        totalRefills: Object.values(categoryTotals).reduce((sum, c) => sum + c.totalRefills, 0)
-      }
+        totalDispensed: Object.values(categoryTotals).reduce(
+          (sum, c) => sum + c.totalDispensed,
+          0
+        ),
+        totalGpsConsumption: Object.values(categoryTotals).reduce(
+          (sum, c) => sum + Math.abs(c.totalGpsConsumption),
+          0
+        ),
+        totalRefills: Object.values(categoryTotals).reduce(
+          (sum, c) => sum + c.totalRefills,
+          0
+        ),
+      },
     };
   }, [tankPreview, selectedVehicles, categoryTotals]);
 
   // Toggle tank expansion
   const toggleTank = useCallback((tankId) => {
-    setExpandedTanks(prev => ({
+    setExpandedTanks((prev) => ({
       ...prev,
-      [tankId]: !prev[tankId]
+      [tankId]: !prev[tankId],
     }));
   }, []);
 
   // Toggle category expansion
   const toggleCategory = useCallback((categoryId) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
-      [categoryId]: !prev[categoryId]
+      [categoryId]: !prev[categoryId],
     }));
   }, []);
 
   // Expand/collapse all
   const expandAll = useCallback(() => {
     const allTanks = {};
-    tankPreview.forEach(t => { allTanks[t.tankId] = true; });
+    tankPreview.forEach((t) => {
+      allTanks[t.tankId] = true;
+    });
     setExpandedTanks(allTanks);
     setExpandedCategories({ 1: true, 2: true, 3: true, 4: true, 5: true });
   }, [tankPreview]);
@@ -351,42 +485,89 @@ const Step6Reconciliation = memo(() => {
   // Export to Excel - Comprehensive Fuel Audit Report
   const handleExportToExcel = useCallback(async () => {
     try {
+      // Debug: log vehicle and refill info at export time
+      console.log("[Step6 Export] Starting export with:", {
+        vehicleCount: selectedVehicles.length,
+        vehicles: selectedVehicles.map((v) => ({
+          id: v.vehicleId,
+          no: v.vehicleNo,
+          category: v.vehicleCategory,
+          refillCount: v.refills?.length || 0,
+          gpsEventsCount: v.gpsRefillEvents?.length || 0,
+          totalFuel: v.totalFuelAmount,
+        })),
+      });
+
+      const allMissingRefills =
+        selectedVehicles.length > 0 &&
+        selectedVehicles.every((v) => !v.refills || v.refills.length === 0);
+
+      const tankIds = wizard.selectedTankIds || [];
+      const canRequest =
+        Array.isArray(tankIds) &&
+        tankIds.length > 0 &&
+        wizard.periodStart &&
+        wizard.periodEnd;
+
+      if (allMissingRefills && canRequest) {
+        notify(
+          "Refill details are not loaded yet. Loading now—please export again in a moment.",
+          "info",
+          2500
+        );
+        dispatch(
+          fetchTankRefillsPreview({
+            tankIds,
+            startDate: wizard.periodStart,
+            endDate: wizard.periodEnd,
+            siteIds: wizard.siteIds,
+          })
+        );
+        return;
+      }
+
       const workbook = new Workbook();
-      workbook.creator = 'FMS Fuel Audit';
+      workbook.creator = "FMS Fuel Audit";
       workbook.created = new Date();
       workbook.modified = new Date();
 
       // Format dates
       const periodStart = wizard.periodStart
-        ? new Date(wizard.periodStart).toISOString().replace('T', ' ').substring(0, 16)
-        : 'N/A';
+        ? new Date(wizard.periodStart)
+            .toISOString()
+            .replace("T", " ")
+            .substring(0, 16)
+        : "N/A";
       const periodEnd = wizard.periodEnd
-        ? new Date(wizard.periodEnd).toISOString().replace('T', ' ').substring(0, 16)
-        : 'N/A';
-      const siteName = wizard.selectedSiteName || 'Unknown Site';
+        ? new Date(wizard.periodEnd)
+            .toISOString()
+            .replace("T", " ")
+            .substring(0, 16)
+        : "N/A";
+      const siteName = wizard.selectedSiteName || "Unknown Site";
 
       // Color definitions
       const COLORS = {
-        tankHeader: 'FF1F4E79',       // Dark blue
-        tankHeaderText: 'FFFFFFFF',
-        cat1Header: 'FF70AD47',       // Green - GPS Site Fleet
-        cat1Vehicle: 'FFE2EFDA',      // Light green for vehicle rows
-        cat2Header: 'FFFFC000',       // Yellow/Gold - Full Tank
-        cat2Vehicle: 'FFFFF2CC',      // Light yellow
-        cat3Header: 'FFED7D31',       // Orange - Equipment
-        cat3Vehicle: 'FFFBE5D6',      // Light orange
-        cat4Header: 'FF00B0F0',       // Cyan - Cross-Site
-        cat4Vehicle: 'FFDDEBF7',      // Light cyan
-        cat5Header: 'FFC00000',       // Dark red - External
-        cat5Vehicle: 'FFFCE4D6',      // Light red/pink
-        categoryTotal: 'FF4472C4',    // Blue
-        grandTotal: 'FF1F4E79',       // Dark blue
-        headerText: 'FFFFFFFF',
-        refillHeader: 'FFD9E1F2',     // Light blue-gray
-        positive: 'FFC6EFCE',         // Light green
-        negative: 'FFFFC7CE',         // Light red
-        yellow: 'FFFFFF00',           // Yellow highlight
-        white: 'FFFFFFFF'
+        tankHeader: "FF1F4E79", // Dark blue
+        tankHeaderText: "FFFFFFFF",
+        cat1Header: "FF70AD47", // Green - GPS Site Fleet
+        cat1Vehicle: "FFE2EFDA", // Light green for vehicle rows
+        cat2Header: "FFFFC000", // Yellow/Gold - Full Tank
+        cat2Vehicle: "FFFFF2CC", // Light yellow
+        cat3Header: "FFED7D31", // Orange - Equipment
+        cat3Vehicle: "FFFBE5D6", // Light orange
+        cat4Header: "FF00B0F0", // Cyan - Cross-Site
+        cat4Vehicle: "FFDDEBF7", // Light cyan
+        cat5Header: "FFC00000", // Dark red - External
+        cat5Vehicle: "FFFCE4D6", // Light red/pink
+        categoryTotal: "FF4472C4", // Blue
+        grandTotal: "FF1F4E79", // Dark blue
+        headerText: "FFFFFFFF",
+        refillHeader: "FFD9E1F2", // Light blue-gray
+        positive: "FFC6EFCE", // Light green
+        negative: "FFFFC7CE", // Light red
+        yellow: "FFFFFF00", // Yellow highlight
+        white: "FFFFFFFF",
       };
 
       const CATEGORY_COLORS = {
@@ -394,20 +575,24 @@ const Step6Reconciliation = memo(() => {
         2: { header: COLORS.cat2Header, vehicle: COLORS.cat2Vehicle },
         3: { header: COLORS.cat3Header, vehicle: COLORS.cat3Vehicle },
         4: { header: COLORS.cat4Header, vehicle: COLORS.cat4Vehicle },
-        5: { header: COLORS.cat5Header, vehicle: COLORS.cat5Vehicle }
+        5: { header: COLORS.cat5Header, vehicle: COLORS.cat5Vehicle },
       };
 
       // Helper function to style a header row
       const styleHeaderRow = (row, bgColor, textColor = COLORS.headerText) => {
         row.font = { bold: true, color: { argb: textColor } };
-        row.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+        row.eachCell((cell) => {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: bgColor },
+          };
           cell.font = { bold: true, color: { argb: textColor } };
           cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
           };
         });
       };
@@ -415,13 +600,17 @@ const Step6Reconciliation = memo(() => {
       // Helper to style vehicle row with background
       const styleVehicleRow = (row, bgColor) => {
         row.font = { bold: true };
-        row.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+        row.eachCell((cell) => {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: bgColor },
+          };
           cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
           };
         });
       };
@@ -429,39 +618,68 @@ const Step6Reconciliation = memo(() => {
       // Helper to format variance cell
       const formatVarianceCell = (cell, value) => {
         if (value > 0) {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.negative },
+          };
         } else if (value < 0) {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.positive } };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.positive },
+          };
         }
       };
 
       // ========================================
       // SHEET 1: EXECUTIVE SUMMARY
       // ========================================
-      const summarySheet = workbook.addWorksheet('Executive Summary');
+      const summarySheet = workbook.addWorksheet("Executive Summary");
       let summaryRow = 1;
 
       // Title
-      summarySheet.addRow(['FUEL AUDIT RECONCILIATION - EXECUTIVE SUMMARY']);
-      summarySheet.mergeCells('A1:H1');
-      summarySheet.getRow(1).font = { bold: true, size: 16, color: { argb: COLORS.headerText } };
-      summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.grandTotal } };
-      summarySheet.getRow(1).alignment = { horizontal: 'center' };
+      summarySheet.addRow(["FUEL AUDIT RECONCILIATION - EXECUTIVE SUMMARY"]);
+      summarySheet.mergeCells("A1:H1");
+      summarySheet.getRow(1).font = {
+        bold: true,
+        size: 16,
+        color: { argb: COLORS.headerText },
+      };
+      summarySheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: COLORS.grandTotal },
+      };
+      summarySheet.getRow(1).alignment = { horizontal: "center" };
       summaryRow++;
 
-      summarySheet.addRow([`Site: ${siteName}`, '', `Period: ${periodStart} to ${periodEnd}`]);
+      summarySheet.addRow([
+        `Site: ${siteName}`,
+        "",
+        `Period: ${periodStart} to ${periodEnd}`,
+      ]);
       summarySheet.addRow([`Generated: ${new Date().toLocaleString()}`]);
       summarySheet.addRow([]);
       summaryRow += 3;
 
       // TANK SUMMARY TABLE
-      summarySheet.addRow(['TANK SUMMARY']);
+      summarySheet.addRow(["TANK SUMMARY"]);
       summarySheet.getRow(summaryRow).font = { bold: true, size: 14 };
       summaryRow++;
 
       const tankSummaryHeader = summarySheet.addRow([
-        'Tank Name', 'Capacity', 'Opening', 'Deliveries', 'Transfer In', 'Transfer Out',
-        'Closing', 'Dispensed', 'Expected', 'Variance', 'Var %'
+        "Tank Name",
+        "Capacity",
+        "Opening",
+        "Deliveries",
+        "Transfer In",
+        "Transfer Out",
+        "Closing",
+        "Dispensed",
+        "Expected",
+        "Variance",
+        "Var %",
       ]);
       styleHeaderRow(tankSummaryHeader, COLORS.tankHeader);
       summaryRow++;
@@ -469,17 +687,21 @@ const Step6Reconciliation = memo(() => {
       let totalTankDispensed = 0;
       let totalTankVariance = 0;
 
-      tankPreview.forEach(tank => {
-        const expected = (tank.openingStock || 0) + (tank.totalDeliveries || 0) +
-                        (tank.totalTransfersIn || 0) - (tank.totalTransfersOut || 0) - (tank.totalDispensed || 0);
+      tankPreview.forEach((tank) => {
+        const expected =
+          (tank.openingStock || 0) +
+          (tank.totalDeliveries || 0) +
+          (tank.totalTransfersIn || 0) -
+          (tank.totalTransfersOut || 0) -
+          (tank.totalDispensed || 0);
         const variance = (tank.closingStock || 0) - expected;
-        const varPct = expected !== 0 ? ((variance / expected) * 100) : 0;
+        const varPct = expected !== 0 ? (variance / expected) * 100 : 0;
 
         totalTankDispensed += tank.totalDispensed || 0;
         totalTankVariance += variance;
 
         const row = summarySheet.addRow([
-          tank.tankName || '',
+          tank.tankName || "",
           tank.tankCapacity || 0,
           tank.openingStock || 0,
           tank.totalDeliveries || 0,
@@ -489,7 +711,7 @@ const Step6Reconciliation = memo(() => {
           tank.totalDispensed || 0,
           expected,
           variance,
-          `${varPct.toFixed(1)}%`
+          `${varPct.toFixed(1)}%`,
         ]);
         formatVarianceCell(row.getCell(10), variance);
         summaryRow++;
@@ -497,16 +719,17 @@ const Step6Reconciliation = memo(() => {
 
       // Tank totals
       const tankTotalRow = summarySheet.addRow([
-        'TOTAL', '',
+        "TOTAL",
+        "",
         grandTotals.tanks.totalOpening,
         grandTotals.tanks.totalDeliveries,
         grandTotals.tanks.totalTransferIn,
         grandTotals.tanks.totalTransferOut,
         grandTotals.tanks.totalClosing,
         totalTankDispensed,
-        '',
+        "",
         totalTankVariance,
-        ''
+        "",
       ]);
       styleHeaderRow(tankTotalRow, COLORS.categoryTotal);
       summaryRow++;
@@ -516,13 +739,20 @@ const Step6Reconciliation = memo(() => {
       summaryRow += 2;
 
       // VEHICLE CATEGORY SUMMARY TABLE
-      summarySheet.addRow(['VEHICLE SUMMARY BY CATEGORY']);
+      summarySheet.addRow(["VEHICLE SUMMARY BY CATEGORY"]);
       summarySheet.getRow(summaryRow).font = { bold: true, size: 14 };
       summaryRow++;
 
       const catSummaryHeader = summarySheet.addRow([
-        'Category', 'Description', 'Confidence', 'Vehicles', 'Refills',
-        'Manual Dispensed (L)', 'GPS Consumed (L)', 'Variance (L)', 'Var %'
+        "Category",
+        "Description",
+        "Confidence",
+        "Vehicles",
+        "Refills",
+        "Manual Dispensed (L)",
+        "GPS Consumed (L)",
+        "Variance (L)",
+        "Var %",
       ]);
       styleHeaderRow(catSummaryHeader, COLORS.cat1Header);
       summaryRow++;
@@ -536,11 +766,21 @@ const Step6Reconciliation = memo(() => {
         const vehicles = vehiclesByCategory[catId] || [];
         if (vehicles.length === 0) return;
 
-        const catManualDisp = vehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0);
-        const catGpsConsumed = vehicles.reduce((sum, v) => sum + Math.abs(v.gpsMeasuredConsumption || 0), 0);
-        const catRefills = vehicles.reduce((sum, v) => sum + (v.refillCount || 0), 0);
+        const catManualDisp = vehicles.reduce(
+          (sum, v) => sum + (v.totalFuelAmount || 0),
+          0
+        );
+        const catGpsConsumed = vehicles.reduce(
+          (sum, v) => sum + Math.abs(v.gpsMeasuredConsumption || 0),
+          0
+        );
+        const catRefills = vehicles.reduce(
+          (sum, v) => sum + (v.refillCount || 0),
+          0
+        );
         const catVariance = catManualDisp - catGpsConsumed;
-        const catVarPct = catManualDisp !== 0 ? ((catVariance / catManualDisp) * 100) : 0;
+        const catVarPct =
+          catManualDisp !== 0 ? (catVariance / catManualDisp) * 100 : 0;
 
         totalVehicles += vehicles.length;
         totalRefills += catRefills;
@@ -554,21 +794,38 @@ const Step6Reconciliation = memo(() => {
           vehicles.length,
           catRefills,
           catManualDisp,
-          config.showGpsConsumption ? catGpsConsumed : 'N/A',
-          config.showGpsConsumption ? catVariance : 'N/A',
-          config.showGpsConsumption ? `${catVarPct.toFixed(1)}%` : 'N/A'
+          config.showGpsConsumption ? catGpsConsumed : "N/A",
+          config.showGpsConsumption ? catVariance : "N/A",
+          config.showGpsConsumption ? `${catVarPct.toFixed(1)}%` : "N/A",
         ]);
-        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CATEGORY_COLORS[catId].header } };
-        row.getCell(1).font = { bold: true, color: { argb: COLORS.headerText } };
+        row.getCell(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: CATEGORY_COLORS[catId].header },
+        };
+        row.getCell(1).font = {
+          bold: true,
+          color: { argb: COLORS.headerText },
+        };
         summaryRow++;
       });
 
       // Category totals
       const totalVariance = totalManualDispensed - totalGpsConsumed;
-      const totalVarPct = totalManualDispensed !== 0 ? ((totalVariance / totalManualDispensed) * 100) : 0;
+      const totalVarPct =
+        totalManualDispensed !== 0
+          ? (totalVariance / totalManualDispensed) * 100
+          : 0;
       const catTotalRow = summarySheet.addRow([
-        'GRAND TOTAL', '', '', totalVehicles, totalRefills,
-        totalManualDispensed, totalGpsConsumed, totalVariance, `${totalVarPct.toFixed(1)}%`
+        "GRAND TOTAL",
+        "",
+        "",
+        totalVehicles,
+        totalRefills,
+        totalManualDispensed,
+        totalGpsConsumed,
+        totalVariance,
+        `${totalVarPct.toFixed(1)}%`,
       ]);
       styleHeaderRow(catTotalRow, COLORS.grandTotal);
       summaryRow++;
@@ -582,34 +839,56 @@ const Step6Reconciliation = memo(() => {
       // Formula: Variance = Opening + Manual Dispensed - Other Cats Dispensed - GPS Consumption - Closing
       // This accounts for fuel that went to other categories (not tracked by GPS)
       // ========================================
-      summarySheet.addRow(['CAT1 VEHICLE FUEL RECONCILIATION']);
+      summarySheet.addRow(["CAT1 VEHICLE FUEL RECONCILIATION"]);
       summarySheet.getRow(summaryRow).font = { bold: true, size: 14 };
       summaryRow++;
 
-      summarySheet.addRow(['Formula: Variance = Opening + Cat1 Dispensed - Other Cats Dispensed - GPS Consumed - Closing']);
-      summarySheet.getRow(summaryRow).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+      summarySheet.addRow([
+        "Formula: Variance = Opening + Cat1 Dispensed - Other Cats Dispensed - GPS Consumed - Closing",
+      ]);
+      summarySheet.getRow(summaryRow).font = {
+        italic: true,
+        size: 10,
+        color: { argb: "FF666666" },
+      };
       summaryRow++;
 
-      summarySheet.addRow(['Accounts for fuel dispensed to other categories (Cat2-5) that is not tracked by GPS']);
-      summarySheet.getRow(summaryRow).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+      summarySheet.addRow([
+        "Accounts for fuel dispensed to other categories (Cat2-5) that is not tracked by GPS",
+      ]);
+      summarySheet.getRow(summaryRow).font = {
+        italic: true,
+        size: 10,
+        color: { argb: "FF666666" },
+      };
       summaryRow++;
 
       summarySheet.addRow([]);
       summaryRow++;
 
       // Get Cat1 vehicles only (GPS tracked site fleet)
-      const cat1Vehicles = selectedVehicles.filter(v => v.vehicleCategory === 1);
+      const cat1Vehicles = selectedVehicles.filter(
+        (v) => v.vehicleCategory === 1
+      );
 
       // Calculate other categories dispensed (Cat2-5)
       const otherCatsDispensed = selectedVehicles
-        .filter(v => v.vehicleCategory !== 1)
+        .filter((v) => v.vehicleCategory !== 1)
         .reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0);
 
       if (cat1Vehicles.length > 0) {
         // Header for vehicle reconciliation
         const vehReconHeader = summarySheet.addRow([
-          'Vehicle', 'Type', 'Refills', 'Manual Dispensed', 'GPS Consumption', 'Opening Stock', 'Closing Stock',
-          'Expected Consumption', 'VARIANCE', 'Var %'
+          "Vehicle",
+          "Type",
+          "Refills",
+          "Manual Dispensed",
+          "GPS Consumption",
+          "Opening Stock",
+          "Closing Stock",
+          "Expected Consumption",
+          "VARIANCE",
+          "Var %",
         ]);
         styleHeaderRow(vehReconHeader, COLORS.cat1Header);
         summaryRow++;
@@ -620,7 +899,7 @@ const Step6Reconciliation = memo(() => {
         let totalClosingStock = 0;
 
         // Row for each Cat1 vehicle
-        cat1Vehicles.forEach(vehicle => {
+        cat1Vehicles.forEach((vehicle) => {
           const manualDisp = vehicle.totalFuelAmount || 0;
           const gpsCons = Math.abs(vehicle.gpsMeasuredConsumption || 0);
           const openingStock = vehicle.openingFuel || 0;
@@ -634,7 +913,7 @@ const Step6Reconciliation = memo(() => {
           // = Opening + Manual Dispensed - GPS Consumption - Closing
           // Positive variance = unaccounted fuel (possible loss/theft)
           const variance = openingStock + manualDisp - gpsCons - closingStock;
-          const varPct = manualDisp !== 0 ? ((variance / manualDisp) * 100) : 0;
+          const varPct = manualDisp !== 0 ? (variance / manualDisp) * 100 : 0;
 
           totalManualDisp += manualDisp;
           totalGpsCons += gpsCons;
@@ -642,8 +921,8 @@ const Step6Reconciliation = memo(() => {
           totalClosingStock += closingStock;
 
           const row = summarySheet.addRow([
-            vehicle.vehicleNo || '',
-            vehicle.vehicleTypeName || '',
+            vehicle.vehicleNo || "",
+            vehicle.vehicleTypeName || "",
             vehicle.refillCount || 0,
             manualDisp.toFixed(1),
             gpsCons.toFixed(1),
@@ -651,36 +930,52 @@ const Step6Reconciliation = memo(() => {
             closingStock.toFixed(1),
             expectedConsumption.toFixed(1),
             variance.toFixed(1),
-            `${varPct.toFixed(1)}%`
+            `${varPct.toFixed(1)}%`,
           ]);
 
           // Style
           row.getCell(1).font = { bold: true };
-          row.getCell(4).font = { color: { argb: 'FF0066CC' } }; // Blue for manual
-          row.getCell(5).font = { color: { argb: 'FF00B050' } }; // Green for GPS
+          row.getCell(4).font = { color: { argb: "FF0066CC" } }; // Blue for manual
+          row.getCell(5).font = { color: { argb: "FF00B050" } }; // Green for GPS
           row.getCell(8).font = { bold: true };
 
           // Variance coloring
           const varianceCell = row.getCell(9);
           varianceCell.font = { bold: true };
           if (variance > 20) {
-            varianceCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+            varianceCell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: COLORS.negative },
+            };
           } else if (variance > 5) {
-            varianceCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.yellow } };
+            varianceCell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: COLORS.yellow },
+            };
           } else if (variance < -5) {
-            varianceCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9999FF' } }; // Light blue for negative (unusual)
+            varianceCell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF9999FF" },
+            }; // Light blue for negative (unusual)
           } else {
-            varianceCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.positive } };
+            varianceCell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: COLORS.positive },
+            };
           }
 
           // Borders
           row.eachCell((cell, colNum) => {
             if (colNum <= 10) {
               cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
+                top: { style: "thin" },
+                left: { style: "thin" },
+                bottom: { style: "thin" },
+                right: { style: "thin" },
               };
             }
           });
@@ -690,31 +985,50 @@ const Step6Reconciliation = memo(() => {
 
         // Total row
         // Expected Consumption = Opening + Dispensed - Closing
-        const totalExpectedConsumption = totalOpeningStock + totalManualDisp - totalClosingStock;
+        const totalExpectedConsumption =
+          totalOpeningStock + totalManualDisp - totalClosingStock;
 
         // Total Variance = Opening + Cat1 Dispensed - Other Cats Dispensed - GPS Consumed - Closing
         // For Cat1 totals, we account for fuel dispensed to other categories
-        const totalVarianceCalc = totalOpeningStock + totalManualDisp - otherCatsDispensed - totalGpsCons - totalClosingStock;
-        const totalVarPctCalc = totalManualDisp !== 0 ? ((totalVarianceCalc / totalManualDisp) * 100) : 0;
+        const totalVarianceCalc =
+          totalOpeningStock +
+          totalManualDisp -
+          otherCatsDispensed -
+          totalGpsCons -
+          totalClosingStock;
+        const totalVarPctCalc =
+          totalManualDisp !== 0
+            ? (totalVarianceCalc / totalManualDisp) * 100
+            : 0;
 
         const totRow = summarySheet.addRow([
-          'TOTAL CAT1 VEHICLES', '', cat1Vehicles.reduce((s, v) => s + (v.refillCount || 0), 0),
+          "TOTAL CAT1 VEHICLES",
+          "",
+          cat1Vehicles.reduce((s, v) => s + (v.refillCount || 0), 0),
           totalManualDisp.toFixed(1),
           totalGpsCons.toFixed(1),
           totalOpeningStock.toFixed(1),
           totalClosingStock.toFixed(1),
           totalExpectedConsumption.toFixed(1),
           totalVarianceCalc.toFixed(1),
-          `${totalVarPctCalc.toFixed(1)}%`
+          `${totalVarPctCalc.toFixed(1)}%`,
         ]);
         styleHeaderRow(totRow, COLORS.grandTotal);
 
         // Variance coloring for total
         const totVarCell = totRow.getCell(9);
         if (Math.abs(totalVarianceCalc) > 50) {
-          totVarCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+          totVarCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.negative },
+          };
         } else if (Math.abs(totalVarianceCalc) > 20) {
-          totVarCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.yellow } };
+          totVarCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.yellow },
+          };
         }
         summaryRow++;
 
@@ -722,35 +1036,51 @@ const Step6Reconciliation = memo(() => {
         summaryRow++;
 
         // Summary box with correct formula
-        summarySheet.addRow(['RECONCILIATION SUMMARY']);
+        summarySheet.addRow(["RECONCILIATION SUMMARY"]);
         summarySheet.getRow(summaryRow).font = { bold: true, size: 12 };
         summaryRow++;
 
         const summaryBoxData = [
-          ['Total Cat1 Opening Stock (A)', totalOpeningStock.toFixed(1), 'L'],
-          ['Total Cat1 Manual Dispensed (B)', totalManualDisp.toFixed(1), 'L'],
-          ['Other Categories Dispensed (C)', otherCatsDispensed.toFixed(1), 'L'],
-          ['Total GPS Consumption (D)', totalGpsCons.toFixed(1), 'L'],
-          ['Total Cat1 Closing Stock (E)', totalClosingStock.toFixed(1), 'L'],
-          ['VARIANCE: A + B - C - D - E', totalVarianceCalc.toFixed(1), 'L'],
-          ['Variance %', `${totalVarPctCalc.toFixed(1)}%`, '']
+          ["Total Cat1 Opening Stock (A)", totalOpeningStock.toFixed(1), "L"],
+          ["Total Cat1 Manual Dispensed (B)", totalManualDisp.toFixed(1), "L"],
+          [
+            "Other Categories Dispensed (C)",
+            otherCatsDispensed.toFixed(1),
+            "L",
+          ],
+          ["Total GPS Consumption (D)", totalGpsCons.toFixed(1), "L"],
+          ["Total Cat1 Closing Stock (E)", totalClosingStock.toFixed(1), "L"],
+          ["VARIANCE: A + B - C - D - E", totalVarianceCalc.toFixed(1), "L"],
+          ["Variance %", `${totalVarPctCalc.toFixed(1)}%`, ""],
         ];
 
         summaryBoxData.forEach(([label, value, unit]) => {
           const row = summarySheet.addRow([label, value, unit]);
-          row.getCell(1).font = { bold: label.includes('VARIANCE') };
+          row.getCell(1).font = { bold: label.includes("VARIANCE") };
           row.getCell(2).font = { bold: true };
-          if (label.includes('VARIANCE')) {
-            row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
-            row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
+          if (label.includes("VARIANCE")) {
+            row.getCell(1).fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFE0B2" },
+            };
+            row.getCell(2).fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFE0B2" },
+            };
             if (totalVarianceCalc > 50) {
-              row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+              row.getCell(2).fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: COLORS.negative },
+              };
             }
           }
           summaryRow++;
         });
       } else {
-        summarySheet.addRow(['No Cat1 (GPS Site Fleet) vehicles found']);
+        summarySheet.addRow(["No Cat1 (GPS Site Fleet) vehicles found"]);
         summaryRow++;
       }
 
@@ -761,16 +1091,28 @@ const Step6Reconciliation = memo(() => {
       // ========================================
       // TANK RECONCILIATION SUMMARY
       // ========================================
-      summarySheet.addRow(['TANK STOCK RECONCILIATION']);
+      summarySheet.addRow(["TANK STOCK RECONCILIATION"]);
       summarySheet.getRow(summaryRow).font = { bold: true, size: 14 };
       summaryRow++;
 
-      summarySheet.addRow(['Expected = Opening + Deliveries + TransIn - TransOut - Cat1Disp - OtherCatsDisp']);
-      summarySheet.getRow(summaryRow).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+      summarySheet.addRow([
+        "Expected = Opening + Deliveries + TransIn - TransOut - Cat1Disp - OtherCatsDisp",
+      ]);
+      summarySheet.getRow(summaryRow).font = {
+        italic: true,
+        size: 10,
+        color: { argb: "FF666666" },
+      };
       summaryRow++;
 
-      summarySheet.addRow(['Adjusted = Tank Closing + Other Categories Dispensed | Variance = Expected - Adjusted']);
-      summarySheet.getRow(summaryRow).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+      summarySheet.addRow([
+        "Adjusted = Tank Closing + Other Categories Dispensed | Variance = Expected - Adjusted",
+      ]);
+      summarySheet.getRow(summaryRow).font = {
+        italic: true,
+        size: 10,
+        color: { argb: "FF666666" },
+      };
       summaryRow++;
 
       summarySheet.addRow([]);
@@ -778,44 +1120,72 @@ const Step6Reconciliation = memo(() => {
 
       // Calculate category dispensed totals
       const cat1TotalDispensed = selectedVehicles
-        .filter(v => v.vehicleCategory === 1)
+        .filter((v) => v.vehicleCategory === 1)
         .reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0);
 
       const otherCatsTotalDispensed = selectedVehicles
-        .filter(v => v.vehicleCategory !== 1)
+        .filter((v) => v.vehicleCategory !== 1)
         .reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0);
 
       // For each tank, show reconciliation with adjusted closing
-      tankPreview.forEach(tank => {
-        const tankName = tank.tankName || 'Unknown Tank';
+      tankPreview.forEach((tank) => {
+        const tankName = tank.tankName || "Unknown Tank";
 
         // Tank header row
         const tankHeaderRow = summarySheet.addRow([
-          `🛢️ ${tankName}`, '', '', '', '', '', '', '', '', ''
+          `🛢️ ${tankName}`,
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
         ]);
-        tankHeaderRow.font = { bold: true, size: 12, color: { argb: COLORS.headerText } };
-        tankHeaderRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.tankHeader } };
+        tankHeaderRow.font = {
+          bold: true,
+          size: 12,
+          color: { argb: COLORS.headerText },
+        };
+        tankHeaderRow.getCell(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: COLORS.tankHeader },
+        };
         summarySheet.mergeCells(summaryRow, 1, summaryRow, 10);
         summaryRow++;
 
         // Column headers
         const reconHeader = summarySheet.addRow([
-          'Opening', 'Deliveries', 'Trans In', 'Trans Out', 'Cat1 Disp.', 'Other Cats', '= Expected', 'Tank Closing', '= Adjusted', 'Variance'
+          "Opening",
+          "Deliveries",
+          "Trans In",
+          "Trans Out",
+          "Cat1 Disp.",
+          "Other Cats",
+          "= Expected",
+          "Tank Closing",
+          "= Adjusted",
+          "Variance",
         ]);
         styleHeaderRow(reconHeader, COLORS.tankHeader);
         summaryRow++;
 
         // Calculate
         // Expected = Opening + Deliveries + TransIn - TransOut - Cat1Dispensed - OtherCatsDispensed
-        const expectedClosing = (tank.openingStock || 0)
-          + (tank.totalDeliveries || 0)
-          + (tank.totalTransfersIn || 0)
-          - (tank.totalTransfersOut || 0)
-          - cat1TotalDispensed
-          - otherCatsTotalDispensed;
+        const expectedClosing =
+          (tank.openingStock || 0) +
+          (tank.totalDeliveries || 0) +
+          (tank.totalTransfersIn || 0) -
+          (tank.totalTransfersOut || 0) -
+          cat1TotalDispensed -
+          otherCatsTotalDispensed;
 
         // Adjusted Actual = Tank Closing Stock + Other Categories Dispensed
-        const adjustedActual = (tank.closingStock || 0) + otherCatsTotalDispensed;
+        const adjustedActual =
+          (tank.closingStock || 0) + otherCatsTotalDispensed;
 
         // Variance = Expected - Adjusted Actual
         const tankVarianceVal = expectedClosing - adjustedActual;
@@ -830,11 +1200,11 @@ const Step6Reconciliation = memo(() => {
           expectedClosing.toFixed(1),
           tank.closingStock || 0,
           adjustedActual.toFixed(1),
-          tankVarianceVal.toFixed(1)
+          tankVarianceVal.toFixed(1),
         ]);
 
-        dataRow.getCell(5).font = { color: { argb: 'FFFF0000' } }; // Red for Cat1 dispensed
-        dataRow.getCell(6).font = { color: { argb: 'FFFF6600' } }; // Orange for other cats dispensed
+        dataRow.getCell(5).font = { color: { argb: "FFFF0000" } }; // Red for Cat1 dispensed
+        dataRow.getCell(6).font = { color: { argb: "FFFF6600" } }; // Orange for other cats dispensed
         dataRow.getCell(7).font = { bold: true };
         dataRow.getCell(8).font = { bold: true };
         dataRow.getCell(9).font = { bold: true };
@@ -843,21 +1213,33 @@ const Step6Reconciliation = memo(() => {
         const varCell = dataRow.getCell(10);
         varCell.font = { bold: true };
         if (Math.abs(tankVarianceVal) > 50) {
-          varCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+          varCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.negative },
+          };
         } else if (Math.abs(tankVarianceVal) > 20) {
-          varCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.yellow } };
+          varCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.yellow },
+          };
         } else {
-          varCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.positive } };
+          varCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.positive },
+          };
         }
 
         // Borders
         dataRow.eachCell((cell, colNum) => {
           if (colNum <= 10) {
             cell.border = {
-              top: { style: 'thin' },
-              left: { style: 'thin' },
-              bottom: { style: 'thin' },
-              right: { style: 'thin' }
+              top: { style: "thin" },
+              left: { style: "thin" },
+              bottom: { style: "thin" },
+              right: { style: "thin" },
             };
           }
         });
@@ -869,8 +1251,16 @@ const Step6Reconciliation = memo(() => {
 
       // Set summary column widths
       summarySheet.columns = [
-        { width: 22 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 16 },
-        { width: 14 }, { width: 14 }, { width: 16 }, { width: 12 }, { width: 10 }
+        { width: 22 },
+        { width: 14 },
+        { width: 12 },
+        { width: 12 },
+        { width: 16 },
+        { width: 14 },
+        { width: 14 },
+        { width: 16 },
+        { width: 12 },
+        { width: 10 },
       ];
 
       // ========================================
@@ -884,7 +1274,14 @@ const Step6Reconciliation = memo(() => {
 
         // TANK HEADER
         const tankTitleRow = sheet.addRow([
-          `🛢️ ${tankName}`, '', '', `Period: ${periodStart} to ${periodEnd}`, '', '', '', `Capacity: ${tank.tankCapacity || 0}`
+          `🛢️ ${tankName}`,
+          "",
+          "",
+          `Period: ${periodStart} to ${periodEnd}`,
+          "",
+          "",
+          "",
+          `Capacity: ${tank.tankCapacity || 0}`,
         ]);
         styleHeaderRow(tankTitleRow, COLORS.tankHeader);
         sheet.mergeCells(currentRow, 1, currentRow, 3);
@@ -893,7 +1290,14 @@ const Step6Reconciliation = memo(() => {
 
         // Tank details header
         const tankDetailHeader = sheet.addRow([
-          'Opening Date', 'Dispensed', 'Transfer In', 'Transfer Out', 'Closing Date', 'Opening', 'Closing', ''
+          "Opening Date",
+          "Dispensed",
+          "Transfer In",
+          "Transfer Out",
+          "Closing Date",
+          "Opening",
+          "Closing",
+          "",
         ]);
         styleHeaderRow(tankDetailHeader, COLORS.tankHeader);
         currentRow++;
@@ -907,23 +1311,37 @@ const Step6Reconciliation = memo(() => {
           periodEnd,
           tank.openingStock || 0,
           tank.closingStock || 0,
-          ''
+          "",
         ]);
         currentRow++;
 
         // Tank variance row
-        const expected = (tank.openingStock || 0) + (tank.totalDeliveries || 0) +
-                        (tank.totalTransfersIn || 0) - (tank.totalTransfersOut || 0) - (tank.totalDispensed || 0);
+        const expected =
+          (tank.openingStock || 0) +
+          (tank.totalDeliveries || 0) +
+          (tank.totalTransfersIn || 0) -
+          (tank.totalTransfersOut || 0) -
+          (tank.totalDispensed || 0);
         const tankVariance = (tank.closingStock || 0) - expected;
-        const tankVarPct = expected !== 0 ? ((tankVariance / expected) * 100) : 0;
+        const tankVarPct = expected !== 0 ? (tankVariance / expected) * 100 : 0;
 
         const varianceRow = sheet.addRow([
-          'Tank Variance:', `Expected: ${expected.toFixed(1)}L`, `Actual: ${(tank.closingStock || 0).toFixed(1)}L`,
-          '', `Variance: ${tankVariance.toFixed(1)}L`, `(${tankVarPct.toFixed(1)}%)`, '', ''
+          "Tank Variance:",
+          `Expected: ${expected.toFixed(1)}L`,
+          `Actual: ${(tank.closingStock || 0).toFixed(1)}L`,
+          "",
+          `Variance: ${tankVariance.toFixed(1)}L`,
+          `(${tankVarPct.toFixed(1)}%)`,
+          "",
+          "",
         ]);
         varianceRow.font = { bold: true };
         if (Math.abs(tankVariance) > 50) {
-          varianceRow.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+          varianceRow.getCell(5).fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: COLORS.negative },
+          };
         }
         currentRow++;
 
@@ -933,47 +1351,115 @@ const Step6Reconciliation = memo(() => {
         // Filter vehicles to only include those with refills from THIS tank
         // And recalculate their totals based only on refills from this tank
         const tankId = tank.tankId;
+        const tankIdNum =
+          tankId !== undefined && tankId !== null ? Number(tankId) : null;
+        const tankNameNorm = (tankName || "").toString().trim().toLowerCase();
+
+        // Debug: log tank filtering info
+        console.log(
+          `[Step6 Export] Processing tank "${tankName}" (id=${tankId}):`,
+          {
+            selectedVehiclesCount: selectedVehicles.length,
+            sampleVehicleRefills: selectedVehicles.slice(0, 2).map((v) => ({
+              id: v.vehicleId,
+              no: v.vehicleNo,
+              category: v.vehicleCategory,
+              refillsCount: v.refills?.length || 0,
+              gpsRefillEventsCount: v.gpsRefillEvents?.length || 0,
+              sampleRefills: (v.refills || []).slice(0, 2).map((r) => ({
+                tankId: r.tankId,
+                tankName: r.tankName,
+                fuelAmount: r.fuelAmount,
+              })),
+              sampleGpsEvents: (v.gpsRefillEvents || [])
+                .slice(0, 2)
+                .map((e) => ({
+                  entryId: e.entryId,
+                  refillDate: e.refillDate,
+                  gpsRefillVolume: e.gpsRefillVolume,
+                })),
+            })),
+          }
+        );
+
         const tankVehicles = selectedVehicles
-          .map(vehicle => {
+          .map((vehicle) => {
             // Filter manual refills for this specific tank
-            const tankRefills = (vehicle.refills || []).filter(r =>
-              r.tankId === tankId || r.tankName === tankName
-            );
+            const tankRefills = (vehicle.refills || []).filter((r) => {
+              const rTankIdNum =
+                r.tankId !== undefined && r.tankId !== null
+                  ? Number(r.tankId)
+                  : null;
+              const rTankNameNorm = (r.tankName || "")
+                .toString()
+                .trim()
+                .toLowerCase();
+              const idMatch = tankIdNum !== null && rTankIdNum === tankIdNum;
+              const nameMatch = tankNameNorm && rTankNameNorm === tankNameNorm;
+              return idMatch || nameMatch;
+            });
 
             if (tankRefills.length === 0) {
               return null; // Vehicle has no refills from this tank
             }
 
             // Calculate fuel dispensed from OTHER tanks (not this tank)
-            const otherTanksRefills = (vehicle.refills || []).filter(r =>
-              r.tankId !== tankId && r.tankName !== tankName
+            const otherTanksRefills = (vehicle.refills || []).filter((r) => {
+              const rTankIdNum =
+                r.tankId !== undefined && r.tankId !== null
+                  ? Number(r.tankId)
+                  : null;
+              const rTankNameNorm = (r.tankName || "")
+                .toString()
+                .trim()
+                .toLowerCase();
+              const idDifferent =
+                tankIdNum !== null ? rTankIdNum !== tankIdNum : true;
+              const nameDifferent = tankNameNorm
+                ? rTankNameNorm !== tankNameNorm
+                : true;
+              return idDifferent && nameDifferent;
+            });
+            const fuelFromOtherTanks = otherTanksRefills.reduce(
+              (sum, r) => sum + (r.fuelAmount || 0),
+              0
             );
-            const fuelFromOtherTanks = otherTanksRefills.reduce((sum, r) => sum + (r.fuelAmount || 0), 0);
 
             // For GPS categories (1 and 4), we need to match GPS refill events
             // with manual refills from this tank by date
-            const isGpsCategory = vehicle.vehicleCategory === 1 || vehicle.vehicleCategory === 4;
+            const isGpsCategory =
+              vehicle.vehicleCategory === 1 || vehicle.vehicleCategory === 4;
             let tankGpsRefillEvents = [];
 
             if (isGpsCategory && vehicle.gpsRefillEvents) {
               // Get dates of refills from this tank
               const tankRefillDates = new Set(
-                tankRefills.map(r => new Date(r.refillDate).toISOString().split('T')[0])
+                tankRefills
+                  .map((r) => toLocalDateKey(r.refillDate))
+                  .filter(Boolean)
               );
 
               // Filter GPS events that match dates of refills from this tank
-              tankGpsRefillEvents = (vehicle.gpsRefillEvents || []).filter(gpsEvent => {
-                const gpsDate = new Date(gpsEvent.refillDate).toISOString().split('T')[0];
-                return tankRefillDates.has(gpsDate);
-              });
+              tankGpsRefillEvents = (vehicle.gpsRefillEvents || []).filter(
+                (gpsEvent) => {
+                  const gpsDate = toLocalDateKey(gpsEvent.refillDate);
+                  return tankRefillDates.has(gpsDate);
+                }
+              );
             }
 
             // Recalculate totals for this tank only
-            const tankTotalFuelAmount = tankRefills.reduce((sum, r) => sum + (r.fuelAmount || 0), 0);
+            const tankTotalFuelAmount = tankRefills.reduce(
+              (sum, r) => sum + (r.fuelAmount || 0),
+              0
+            );
             const tankRefillCount = tankRefills.length;
 
             // Calculate GPS consumption for this tank based on matched GPS events
-            const tankGpsConsumption = tankGpsRefillEvents.reduce((sum, e) => sum + (e.gpsRefillVolume || 0), 0);
+            const tankGpsConsumption = tankGpsRefillEvents.reduce(
+              (sum, e) => sum + (e.gpsRefillVolume || 0),
+              0
+            );
 
             // Adjusted closing = Vehicle Closing - Fuel from Other Tanks
             // This represents the closing stock attributable to this tank's dispensing
@@ -988,25 +1474,34 @@ const Step6Reconciliation = memo(() => {
               refillCount: tankRefillCount,
               // Store both original and adjusted closing
               originalClosingFuel: originalClosing,
-              closingFuel: adjustedClosing,  // Use adjusted closing for this tank
+              closingFuel: adjustedClosing, // Use adjusted closing for this tank
               fuelFromOtherTanks: fuelFromOtherTanks,
               // Override GPS consumption with tank-specific calculation
-              gpsMeasuredConsumption: isGpsCategory ? tankGpsConsumption : (vehicle.gpsMeasuredConsumption || 0)
+              gpsMeasuredConsumption: isGpsCategory
+                ? tankGpsConsumption
+                : vehicle.gpsMeasuredConsumption || 0,
             };
           })
-          .filter(v => v !== null);
+          .filter((v) => v !== null);
 
         // Pre-calculate dispensed totals for each category (needed for reconciliation)
         const categoryDispensed = {};
         const categoryOrder = [1, 4, 2, 5, 3]; // Order as in your images
-        categoryOrder.forEach(catId => {
-          const catVehicles = tankVehicles.filter(v => v.vehicleCategory === catId);
-          categoryDispensed[catId] = catVehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0);
+        categoryOrder.forEach((catId) => {
+          const catVehicles = tankVehicles.filter(
+            (v) => v.vehicleCategory === catId
+          );
+          categoryDispensed[catId] = catVehicles.reduce(
+            (sum, v) => sum + (v.totalFuelAmount || 0),
+            0
+          );
         });
 
         // Process each category
-        categoryOrder.forEach(catId => {
-          const catVehicles = tankVehicles.filter(v => v.vehicleCategory === catId);
+        categoryOrder.forEach((catId) => {
+          const catVehicles = tankVehicles.filter(
+            (v) => v.vehicleCategory === catId
+          );
           if (catVehicles.length === 0) return;
 
           const config = CATEGORY_CONFIG[catId];
@@ -1015,8 +1510,14 @@ const Step6Reconciliation = memo(() => {
 
           // CATEGORY HEADER (collapsible group start)
           const catHeaderRow = sheet.addRow([
-            `📁 Category ${catId}: ${config.name}`, '', `${config.description}`, '', '',
-            `Vehicles: ${catVehicles.length}`, '', `Confidence: ${config.confidence}`
+            `📁 Category ${catId}: ${config.name}`,
+            "",
+            `${config.description}`,
+            "",
+            "",
+            `Vehicles: ${catVehicles.length}`,
+            "",
+            `Confidence: ${config.confidence}`,
           ]);
           styleHeaderRow(catHeaderRow, catColors.header);
           sheet.mergeCells(currentRow, 1, currentRow, 2);
@@ -1036,22 +1537,58 @@ const Step6Reconciliation = memo(() => {
           let vehicleColumns;
           if (catId === 1 || catId === 4) {
             // GPS categories - show reference data but note that GPS values are vehicle totals
-            vehicleColumns = ['Vehicle', 'Type', 'Refills', 'Manual Disp.', '', '', '', ''];
+            vehicleColumns = [
+              "Vehicle",
+              "Type",
+              "Refills",
+              "Manual Disp.",
+              "",
+              "",
+              "",
+              "",
+            ];
           } else if (catId === 2) {
             // Full Tank - Tank Capacity, no Opening/Closing
-            vehicleColumns = ['Vehicle', 'Type', 'Tank Cap.', 'Refills', 'Manual Dispensed', '', '', ''];
+            vehicleColumns = [
+              "Vehicle",
+              "Type",
+              "Tank Cap.",
+              "Refills",
+              "Manual Dispensed",
+              "",
+              "",
+              "",
+            ];
           } else if (catId === 5) {
             // External - with Owner
-            vehicleColumns = ['Vehicle', 'Type', 'Owner', 'Refills', 'Manual Dispensed', '', '', ''];
+            vehicleColumns = [
+              "Vehicle",
+              "Type",
+              "Owner",
+              "Refills",
+              "Manual Dispensed",
+              "",
+              "",
+              "",
+            ];
           } else {
             // Equipment (Cat 3)
-            vehicleColumns = ['Vehicle', 'Type', 'Refills', 'Manual Dispensed', '', '', '', ''];
+            vehicleColumns = [
+              "Vehicle",
+              "Type",
+              "Refills",
+              "Manual Dispensed",
+              "",
+              "",
+              "",
+              "",
+            ];
           }
 
           let catTotalManualDisp = 0;
 
           // Process each vehicle
-          catVehicles.forEach(vehicle => {
+          catVehicles.forEach((vehicle) => {
             const vManualDisp = vehicle.totalFuelAmount || 0;
 
             catTotalManualDisp += vManualDisp;
@@ -1066,37 +1603,47 @@ const Step6Reconciliation = memo(() => {
             let vehicleData;
             if (catId === 1 || catId === 4) {
               vehicleData = [
-                vehicle.vehicleNo || '',
-                vehicle.vehicleTypeName || '',
+                vehicle.vehicleNo || "",
+                vehicle.vehicleTypeName || "",
                 vehicle.refillCount || 0,
                 vManualDisp,
-                '', '', '', ''
+                "",
+                "",
+                "",
+                "",
               ];
             } else if (catId === 2) {
               vehicleData = [
-                vehicle.vehicleNo || '',
-                vehicle.vehicleTypeName || '',
+                vehicle.vehicleNo || "",
+                vehicle.vehicleTypeName || "",
                 vehicle.tankCapacity || 0,
                 vehicle.refillCount || 0,
                 vManualDisp,
-                '', '', ''
+                "",
+                "",
+                "",
               ];
             } else if (catId === 5) {
               vehicleData = [
-                vehicle.vehicleNo || '',
-                vehicle.vehicleTypeName || '',
-                vehicle.ownerName || vehicle.externalOwner || '',
+                vehicle.vehicleNo || "",
+                vehicle.vehicleTypeName || "",
+                vehicle.ownerName || vehicle.externalOwner || "",
                 vehicle.refillCount || 0,
                 vManualDisp,
-                '', '', ''
+                "",
+                "",
+                "",
               ];
             } else {
               vehicleData = [
-                vehicle.vehicleNo || '',
-                vehicle.vehicleTypeName || '',
+                vehicle.vehicleNo || "",
+                vehicle.vehicleTypeName || "",
                 vehicle.refillCount || 0,
                 vManualDisp,
-                '', '', '', ''
+                "",
+                "",
+                "",
+                "",
               ];
             }
 
@@ -1109,10 +1656,55 @@ const Step6Reconciliation = memo(() => {
             // For other categories, use manual refills directly
             const isGpsCategory = catId === 1 || catId === 4;
             let refills;
+            let hasGpsData = false; // Track if we have actual GPS refill data
+
             if (isGpsCategory) {
               const gpsEvents = vehicle.gpsRefillEvents || [];
               const manualRefillsList = vehicle.refills || [];
-              refills = mergeGpsAndManualRefills(gpsEvents, manualRefillsList);
+
+              // If no GPS events exist, fall back to manual refills directly
+              // (GPS SOAP data may not be available for all vehicles/periods)
+              if (gpsEvents.length === 0) {
+                // Transform manual refills to have consistent properties
+                refills = manualRefillsList.map((r, idx) => ({
+                  ...r,
+                  entryId: r.refillId || `manual_${idx}`,
+                  gpsRefillVolume: null, // No GPS data - will show as N/A
+                  manualRefillAmount: r.fuelAmount,
+                  variance: null,
+                  variancePercent: null,
+                }));
+                hasGpsData = false;
+              } else {
+                hasGpsData = true;
+                const merged = mergeGpsAndManualRefills(
+                  gpsEvents,
+                  manualRefillsList
+                );
+                const manualIdSet = new Set(
+                  (manualRefillsList || []).map((r) => r.refillId)
+                );
+
+                // Prefer only rows that matched a manual refill from this tank.
+                // If matching fails (date mismatches, missing refillId), fall back to merged GPS rows.
+                // If merged is also empty, fall back to manual refills.
+                const matchedOnly = merged.filter((e) =>
+                  manualIdSet.has(e.fuelRefillId)
+                );
+                refills =
+                  matchedOnly.length > 0
+                    ? matchedOnly
+                    : merged.length > 0
+                    ? merged
+                    : manualRefillsList.map((r, idx) => ({
+                        ...r,
+                        entryId: r.refillId || `manual_${idx}`,
+                        gpsRefillVolume: null,
+                        manualRefillAmount: r.fuelAmount,
+                        variance: null,
+                        variancePercent: null,
+                      }));
+              }
             } else {
               refills = vehicle.refills || [];
             }
@@ -1121,16 +1713,38 @@ const Step6Reconciliation = memo(() => {
               // Refill header
               let refillColumns;
               if (isGpsCategory) {
-                refillColumns = ['Date', 'Tank', 'GPS Dispensed', 'Manual Disp.', 'Variance', 'Var %', '', ''];
+                refillColumns = [
+                  "Date",
+                  "Tank",
+                  "GPS Dispensed",
+                  "Manual Disp.",
+                  "Variance",
+                  "Var %",
+                  "",
+                  "",
+                ];
               } else {
-                refillColumns = ['Date', 'Tank', 'Manual Dispensed', '', '', '', '', ''];
+                refillColumns = [
+                  "Date",
+                  "Tank",
+                  "Manual Dispensed",
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
+                ];
               }
 
               const refillHeaderRow = sheet.addRow(refillColumns);
               refillHeaderRow.font = { bold: true, size: 10 };
               refillHeaderRow.eachCell((cell, colNum) => {
                 if (isGpsCategory ? colNum <= 6 : colNum <= 3) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.refillHeader } };
+                  cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: COLORS.refillHeader },
+                  };
                 }
               });
               currentRow++;
@@ -1139,47 +1753,74 @@ const Step6Reconciliation = memo(() => {
               let refillTotalGps = 0;
 
               // Refill data rows
-              refills.forEach(refill => {
+              refills.forEach((refill) => {
                 // For GPS categories, gpsRefillVolume is the GPS-measured amount
                 // manualRefillAmount or fuelAmount is the manual amount
-                const rGps = refill.gpsRefillVolume || 0;
-                const rManual = refill.manualRefillAmount || refill.fuelAmount || 0;
-                const rVariance = rManual - rGps;
-                const rVarPct = rManual !== 0 ? ((rVariance / rManual) * 100) : 0;
+                // gpsRefillVolume can be null if no GPS SOAP data exists
+                const hasGpsValue =
+                  refill.gpsRefillVolume !== null &&
+                  refill.gpsRefillVolume !== undefined;
+                const rGps = hasGpsValue ? refill.gpsRefillVolume : 0;
+                const rManual =
+                  refill.manualRefillAmount || refill.fuelAmount || 0;
+                const rVariance = hasGpsValue ? rManual - rGps : null;
+                const rVarPct =
+                  hasGpsValue && rManual !== 0
+                    ? ((rManual - rGps) / rManual) * 100
+                    : null;
                 const refillTankName = refill.tankName || tankName;
 
                 refillTotalManual += rManual;
-                refillTotalGps += rGps;
+                if (hasGpsValue) refillTotalGps += rGps;
 
                 let refillData;
                 if (isGpsCategory) {
                   refillData = [
-                    refill.refillDate ? new Date(refill.refillDate).toISOString().split('T')[0] : '',
+                    refill.refillDate
+                      ? toLocalDateKey(refill.refillDate) || ""
+                      : "",
                     refillTankName,
-                    rGps,
+                    hasGpsValue ? rGps : "N/A", // Show N/A if no GPS data
                     rManual,
-                    rVariance,
-                    `${rVarPct.toFixed(1)}%`,
-                    '', ''
+                    hasGpsValue ? rVariance : "N/A",
+                    hasGpsValue ? `${rVarPct.toFixed(1)}%` : "N/A",
+                    "",
+                    "",
                   ];
                 } else {
                   // For non-GPS categories, use fuelAmount as manual dispensed
                   const manualAmt = refill.fuelAmount || 0;
                   refillData = [
-                    refill.refillDate ? new Date(refill.refillDate).toISOString().split('T')[0] : '',
+                    refill.refillDate
+                      ? toLocalDateKey(refill.refillDate) || ""
+                      : "",
                     refillTankName,
                     manualAmt,
-                    '', '', '', '', ''
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
                   ];
                 }
 
                 const rRow = sheet.addRow(refillData);
                 rRow.font = { size: 10 };
-                rRow.getCell(3).font = { color: { argb: 'FF00B050' }, size: 10 }; // Green
+                rRow.getCell(3).font = {
+                  color: { argb: "FF00B050" },
+                  size: 10,
+                }; // Green
                 if (isGpsCategory) {
-                  rRow.getCell(4).font = { color: { argb: 'FF00B050' }, size: 10 }; // Green
+                  rRow.getCell(4).font = {
+                    color: { argb: "FF00B050" },
+                    size: 10,
+                  }; // Green
                   if (Math.abs(rVariance) > 10) {
-                    rRow.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.yellow } };
+                    rRow.getCell(5).fill = {
+                      type: "pattern",
+                      pattern: "solid",
+                      fgColor: { argb: COLORS.yellow },
+                    };
                   }
                 }
                 // Set row outline level for grouping (collapsible)
@@ -1190,27 +1831,63 @@ const Step6Reconciliation = memo(() => {
               // REFILL TOTAL ROW
               let refillTotalData;
               const refillVariance = refillTotalManual - refillTotalGps;
-              const refillVarPct = refillTotalManual !== 0 ? ((refillVariance / refillTotalManual) * 100) : 0;
+              const refillVarPct =
+                refillTotalManual !== 0
+                  ? (refillVariance / refillTotalManual) * 100
+                  : 0;
 
               if (isGpsCategory) {
                 refillTotalData = [
-                  '', 'TOTAL:', refillTotalGps.toFixed(1), refillTotalManual.toFixed(1),
-                  refillVariance.toFixed(1), `${refillVarPct.toFixed(1)}%`, '', ''
+                  "",
+                  "TOTAL:",
+                  refillTotalGps.toFixed(1),
+                  refillTotalManual.toFixed(1),
+                  refillVariance.toFixed(1),
+                  `${refillVarPct.toFixed(1)}%`,
+                  "",
+                  "",
                 ];
               } else {
                 refillTotalData = [
-                  '', 'TOTAL:', refillTotalManual.toFixed(1), '', '', '', '', ''
+                  "",
+                  "TOTAL:",
+                  refillTotalManual.toFixed(1),
+                  "",
+                  "",
+                  "",
+                  "",
+                  "",
                 ];
               }
 
               const refillTotalRow = sheet.addRow(refillTotalData);
               refillTotalRow.font = { bold: true, size: 10 };
-              refillTotalRow.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.refillHeader } };
-              refillTotalRow.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.refillHeader } };
+              refillTotalRow.getCell(2).fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: COLORS.refillHeader },
+              };
+              refillTotalRow.getCell(3).fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: COLORS.refillHeader },
+              };
               if (isGpsCategory) {
-                refillTotalRow.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.refillHeader } };
-                refillTotalRow.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.refillHeader } };
-                refillTotalRow.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.refillHeader } };
+                refillTotalRow.getCell(4).fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: COLORS.refillHeader },
+                };
+                refillTotalRow.getCell(5).fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: COLORS.refillHeader },
+                };
+                refillTotalRow.getCell(6).fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: COLORS.refillHeader },
+                };
               }
               sheet.getRow(currentRow).outlineLevel = 2;
               currentRow++;
@@ -1223,8 +1900,14 @@ const Step6Reconciliation = memo(() => {
 
           // CATEGORY TOTAL ROW - for tank worksheets, only show manual dispensed from this tank
           const catTotalData = [
-            `Category ${catId} Total (${catVehicles.length} vehicles)`, '', '',
-            `Manual Dispensed: ${catTotalManualDisp.toFixed(1)}L`, '', '', '', ''
+            `Category ${catId} Total (${catVehicles.length} vehicles)`,
+            "",
+            "",
+            `Manual Dispensed: ${catTotalManualDisp.toFixed(1)}L`,
+            "",
+            "",
+            "",
+            "",
           ];
 
           const catTotalRowEl = sheet.addRow(catTotalData);
@@ -1245,36 +1928,69 @@ const Step6Reconciliation = memo(() => {
             .reduce((sum, [, val]) => sum + val, 0);
 
           // Calculate expected closing based on this category's dispensing
-          const catExpectedClosing = (tank.openingStock || 0)
-            + (tank.totalDeliveries || 0)
-            + (tank.totalTransfersIn || 0)
-            - catTotalManualDisp
-            - (tank.totalTransfersOut || 0);
+          const catExpectedClosing =
+            (tank.openingStock || 0) +
+            (tank.totalDeliveries || 0) +
+            (tank.totalTransfersIn || 0) -
+            catTotalManualDisp -
+            (tank.totalTransfersOut || 0);
 
           // What we should see: Closing Stock + Other Categories Dispensed
-          const actualPlusOthers = (tank.closingStock || 0) + otherCatsDispensed;
+          const actualPlusOthers =
+            (tank.closingStock || 0) + otherCatsDispensed;
 
           // Variance for this category
           const catReconcileVariance = catExpectedClosing - actualPlusOthers;
 
           // Reconciliation Header
           const reconHeaderRow = sheet.addRow([
-            `📊 Cat ${catId} Reconciliation`, '', '', '', '', '', '', ''
+            `📊 Cat ${catId} Reconciliation`,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
           ]);
-          reconHeaderRow.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
-          reconHeaderRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: catColors.header.replace('#', '') } };
+          reconHeaderRow.font = {
+            bold: true,
+            size: 11,
+            color: { argb: "FFFFFFFF" },
+          };
+          reconHeaderRow.getCell(1).fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: catColors.header.replace("#", "") },
+          };
           sheet.mergeCells(currentRow, 1, currentRow, 8);
           currentRow++;
 
           // Left side calculation header
           const reconCalcHeaderRow = sheet.addRow([
-            'Opening', 'Delivery', 'Transfer In', `Cat${catId} Disp.`, 'Transfer Out', '= Expected', '', ''
+            "Opening",
+            "Delivery",
+            "Transfer In",
+            `Cat${catId} Disp.`,
+            "Transfer Out",
+            "= Expected",
+            "",
+            "",
           ]);
           reconCalcHeaderRow.font = { bold: true, size: 10 };
           reconCalcHeaderRow.eachCell((cell, colNum) => {
             if (colNum <= 6) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-              cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFE0E0E0" },
+              };
+              cell.border = {
+                top: { style: "thin" },
+                left: { style: "thin" },
+                bottom: { style: "thin" },
+                right: { style: "thin" },
+              };
             }
           });
           currentRow++;
@@ -1287,28 +2003,51 @@ const Step6Reconciliation = memo(() => {
             `-${catTotalManualDisp.toFixed(1)}`,
             `-${(tank.totalTransfersOut || 0).toFixed(1)}`,
             `=${catExpectedClosing.toFixed(1)}`,
-            '', ''
+            "",
+            "",
           ]);
           reconCalcValuesRow.eachCell((cell, colNum) => {
             if (colNum <= 6) {
-              cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+              cell.border = {
+                top: { style: "thin" },
+                left: { style: "thin" },
+                bottom: { style: "thin" },
+                right: { style: "thin" },
+              };
             }
-            if (colNum === 4) cell.font = { color: { argb: 'FFFF0000' } }; // Red for dispensed
-            if (colNum === 5) cell.font = { color: { argb: 'FFFF0000' } }; // Red for transfer out
-            if (colNum === 2 || colNum === 3) cell.font = { color: { argb: 'FF00B050' } }; // Green for additions
+            if (colNum === 4) cell.font = { color: { argb: "FFFF0000" } }; // Red for dispensed
+            if (colNum === 5) cell.font = { color: { argb: "FFFF0000" } }; // Red for transfer out
+            if (colNum === 2 || colNum === 3)
+              cell.font = { color: { argb: "FF00B050" } }; // Green for additions
             if (colNum === 6) cell.font = { bold: true };
           });
           currentRow++;
 
           // Right side comparison header
           const reconCompHeaderRow = sheet.addRow([
-            'Closing', 'Other Cats Disp.', '= Actual+Others', 'VARIANCE', '', '', '', ''
+            "Closing",
+            "Other Cats Disp.",
+            "= Actual+Others",
+            "VARIANCE",
+            "",
+            "",
+            "",
+            "",
           ]);
           reconCompHeaderRow.font = { bold: true, size: 10 };
           reconCompHeaderRow.eachCell((cell, colNum) => {
             if (colNum <= 4) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-              cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFE0E0E0" },
+              };
+              cell.border = {
+                top: { style: "thin" },
+                left: { style: "thin" },
+                bottom: { style: "thin" },
+                right: { style: "thin" },
+              };
             }
           });
           currentRow++;
@@ -1319,22 +2058,42 @@ const Step6Reconciliation = memo(() => {
             `+${otherCatsDispensed.toFixed(1)}`,
             `=${actualPlusOthers.toFixed(1)}`,
             catReconcileVariance.toFixed(1),
-            '', '', '', ''
+            "",
+            "",
+            "",
+            "",
           ]);
           reconCompValuesRow.eachCell((cell, colNum) => {
             if (colNum <= 4) {
-              cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+              cell.border = {
+                top: { style: "thin" },
+                left: { style: "thin" },
+                bottom: { style: "thin" },
+                right: { style: "thin" },
+              };
             }
-            if (colNum === 2) cell.font = { color: { argb: 'FF00B050' } }; // Green for other cats
+            if (colNum === 2) cell.font = { color: { argb: "FF00B050" } }; // Green for other cats
             if (colNum === 3) cell.font = { bold: true };
             if (colNum === 4) {
               cell.font = { bold: true };
               if (Math.abs(catReconcileVariance) > 50) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.negative } };
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: COLORS.negative },
+                };
               } else if (Math.abs(catReconcileVariance) > 10) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.yellow } };
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: COLORS.yellow },
+                };
               } else {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.positive } };
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: COLORS.positive },
+                };
               }
             }
           });
@@ -1345,7 +2104,10 @@ const Step6Reconciliation = memo(() => {
 
           // Set outline level for category grouping
           for (let i = catStartRow + 1; i < currentRow - 1; i++) {
-            if (sheet.getRow(i).outlineLevel === undefined || sheet.getRow(i).outlineLevel < 1) {
+            if (
+              sheet.getRow(i).outlineLevel === undefined ||
+              sheet.getRow(i).outlineLevel < 1
+            ) {
               sheet.getRow(i).outlineLevel = 1;
             }
           }
@@ -1353,14 +2115,22 @@ const Step6Reconciliation = memo(() => {
 
         // TANK TOTAL ROW
         const allTankVehicleCount = tankVehicles.length;
-        const totalCalcDispensed = tankVehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0);
+        const totalCalcDispensed = tankVehicles.reduce(
+          (sum, v) => sum + (v.totalFuelAmount || 0),
+          0
+        );
         const tankRecordDispensed = tank.totalDispensed || 0;
         const tankDiff = totalCalcDispensed - tankRecordDispensed;
 
         const tankTotalRowEl = sheet.addRow([
-          `TANK TOTAL: ${tankName}`, `Vehicles: ${allTankVehicleCount}`, '',
-          `Calculated: ${totalCalcDispensed.toFixed(1)}L`, `Tank Record: ${tankRecordDispensed.toFixed(1)}L`,
-          `Diff: ${tankDiff.toFixed(1)}L`, '', ''
+          `TANK TOTAL: ${tankName}`,
+          `Vehicles: ${allTankVehicleCount}`,
+          "",
+          `Calculated: ${totalCalcDispensed.toFixed(1)}L`,
+          `Tank Record: ${tankRecordDispensed.toFixed(1)}L`,
+          `Diff: ${tankDiff.toFixed(1)}L`,
+          "",
+          "",
         ]);
         styleHeaderRow(tankTotalRowEl, COLORS.grandTotal);
         currentRow++;
@@ -1370,16 +2140,28 @@ const Step6Reconciliation = memo(() => {
 
         // GRAND TOTAL ROW
         const grandTotalRowEl = sheet.addRow([
-          '🏁 GRAND TOTAL - ALL CATEGORIES', '', '',
-          `Total Fuel Dispensed: ${totalCalcDispensed.toFixed(1)} Liters`, '', '', '', ''
+          "🏁 GRAND TOTAL - ALL CATEGORIES",
+          "",
+          "",
+          `Total Fuel Dispensed: ${totalCalcDispensed.toFixed(1)} Liters`,
+          "",
+          "",
+          "",
+          "",
         ]);
         styleHeaderRow(grandTotalRowEl, COLORS.grandTotal);
         sheet.mergeCells(currentRow, 4, currentRow, 8);
 
         // Set column widths
         sheet.columns = [
-          { width: 20 }, { width: 16 }, { width: 16 }, { width: 16 },
-          { width: 16 }, { width: 16 }, { width: 14 }, { width: 12 }
+          { width: 20 },
+          { width: 16 },
+          { width: 16 },
+          { width: 16 },
+          { width: 16 },
+          { width: 16 },
+          { width: 14 },
+          { width: 12 },
         ];
 
         // Enable outline/grouping
@@ -1387,28 +2169,41 @@ const Step6Reconciliation = memo(() => {
         sheet.properties.outlineLevelRow = 2;
         sheet.properties.outlineProperties = {
           summaryBelow: false,
-          summaryRight: false
+          summaryRight: false,
         };
       });
 
       // Generate filename and save
       const fileStartDate = wizard.periodStart
-        ? new Date(wizard.periodStart).toISOString().split('T')[0]
-        : 'start';
+        ? new Date(wizard.periodStart).toISOString().split("T")[0]
+        : "start";
       const fileEndDate = wizard.periodEnd
-        ? new Date(wizard.periodEnd).toISOString().split('T')[0]
-        : 'end';
-      const fileName = `Fuel_Audit_${siteName.replace(/[^a-zA-Z0-9]/g, '_')}_${fileStartDate}_to_${fileEndDate}.xlsx`;
+        ? new Date(wizard.periodEnd).toISOString().split("T")[0]
+        : "end";
+      const fileName = `Fuel_Audit_${siteName.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_${fileStartDate}_to_${fileEndDate}.xlsx`;
 
       const buffer = await workbook.xlsx.writeBuffer();
-      saveAs(new Blob([buffer], { type: 'application/octet-stream' }), fileName);
+      saveAs(
+        new Blob([buffer], { type: "application/octet-stream" }),
+        fileName
+      );
 
-      notify('Fuel audit report exported successfully!', 'success', 3000);
+      notify("Fuel audit report exported successfully!", "success", 3000);
     } catch (error) {
-      console.error('Export error:', error);
-      notify('Failed to export report. Please try again.', 'error', 3000);
+      console.error("Export error:", error);
+      notify("Failed to export report. Please try again.", "error", 3000);
     }
-  }, [wizard, tankPreview, selectedVehicles, vehiclesByCategory, grandTotals]);
+  }, [
+    dispatch,
+    wizard,
+    tankPreview,
+    selectedVehicles,
+    vehiclesByCategory,
+    grandTotals,
+  ]);
 
   // Render refill details for a vehicle (master-detail)
   const renderRefillDetails = useCallback((vehicle) => {
@@ -1426,12 +2221,27 @@ const Step6Reconciliation = memo(() => {
     if (isGpsCategory) {
       const gpsEvents = vehicle.data?.gpsRefillEvents || [];
       const manualRefills = vehicle.data?.refills || [];
-      // Merge GPS events with manual refills to populate manualRefillAmount and variance
-      refills = mergeGpsAndManualRefills(gpsEvents, manualRefills);
-      keyField = 'entryId';
+
+      // If no GPS events exist, fall back to manual refills directly
+      // (GPS SOAP data may not be available for all vehicles/periods)
+      if (gpsEvents.length === 0) {
+        refills = manualRefills.map((r, idx) => ({
+          ...r,
+          entryId: r.refillId || `manual_${idx}`,
+          gpsRefillVolume: null, // No GPS data available
+          manualRefillAmount: r.fuelAmount,
+          variance: null,
+          variancePercent: null,
+        }));
+        keyField = "entryId";
+      } else {
+        // Merge GPS events with manual refills to populate manualRefillAmount and variance
+        refills = mergeGpsAndManualRefills(gpsEvents, manualRefills);
+        keyField = "entryId";
+      }
     } else {
       refills = vehicle.data?.refills || [];
-      keyField = 'refillId';
+      keyField = "refillId";
     }
 
     if (refills.length === 0) {
@@ -1467,11 +2277,7 @@ const Step6Reconciliation = memo(() => {
             format="dd/MM/yyyy"
             sortOrder="desc"
           />
-          <Column
-            dataField="tankName"
-            caption="Tank"
-            width={120}
-          />
+          <Column dataField="tankName" caption="Tank" width={120} />
           {config.showGpsDispensed && (
             <Column
               dataField="gpsRefillVolume"
@@ -1481,13 +2287,17 @@ const Step6Reconciliation = memo(() => {
               alignment="right"
               cellRender={(cellData) => (
                 <span className="tw-font-medium tw-text-blue-600">
-                  +{formatNumber(cellData.value)}
+                  {cellData.value != null
+                    ? formatNumber(cellData.value)
+                    : "N/A"}
                 </span>
               )}
             />
           )}
           <Column
-            dataField={config.showGpsDispensed ? "manualRefillAmount" : "fuelAmount"}
+            dataField={
+              config.showGpsDispensed ? "manualRefillAmount" : "fuelAmount"
+            }
             caption="Manual Disp."
             width={110}
             dataType="number"
@@ -1508,372 +2318,508 @@ const Step6Reconciliation = memo(() => {
               width={90}
               alignment="right"
               calculateCellValue={(rowData) => {
+                // Only calculate variance if GPS data exists
+                if (rowData.gpsRefillVolume == null) return null;
                 const gps = rowData.gpsRefillVolume || 0;
-                const manual = rowData.manualRefillAmount || rowData.fuelAmount || 0;
+                const manual =
+                  rowData.manualRefillAmount || rowData.fuelAmount || 0;
                 return manual - gps;
               }}
               cellRender={(cellData) => {
+                // Show N/A if variance couldn't be calculated (no GPS data)
+                if (cellData.value == null) {
+                  return <span className="tw-text-gray-400">N/A</span>;
+                }
                 const value = cellData.value || 0;
                 return (
-                  <span className={`tw-font-medium tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(value)}`}>
-                    {value >= 0 ? '+' : ''}{formatNumber(value)}
+                  <span
+                    className={`tw-font-medium tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(
+                      value
+                    )}`}
+                  >
+                    {value >= 0 ? "+" : ""}
+                    {formatNumber(value)}
                   </span>
                 );
               }}
             />
           )}
-          <Column
-            dataField="operatorName"
-            caption="Operator"
-            width={120}
-          />
+          <Column dataField="operatorName" caption="Operator" width={120} />
         </DataGrid>
       </div>
     );
   }, []);
 
   // Render vehicle grid for a category
-  const renderCategoryVehicles = useCallback((categoryId) => {
-    const vehicles = vehiclesByCategory[categoryId] || [];
-    const config = CATEGORY_CONFIG[categoryId];
+  const renderCategoryVehicles = useCallback(
+    (categoryId) => {
+      const vehicles = vehiclesByCategory[categoryId] || [];
+      const config = CATEGORY_CONFIG[categoryId];
 
-    if (vehicles.length === 0) return null;
+      if (vehicles.length === 0) return null;
 
-    return (
-      <DataGrid
-        dataSource={vehicles}
-        keyExpr="vehicleId"
-        showBorders={true}
-        columnAutoWidth={true}
-        rowAlternationEnabled={true}
-        height="auto"
-        width="100%"
-        allowColumnResizing={true}
-        columnResizingMode="nextColumn"
-        columnMinWidth={50}
-      >
-        <Paging enabled={true} pageSize={10} />
-        <Scrolling mode="standard" />
-        <MasterDetail
-          enabled={true}
-          render={renderRefillDetails}
-        />
+      return (
+        <DataGrid
+          dataSource={vehicles}
+          keyExpr="vehicleId"
+          showBorders={true}
+          columnAutoWidth={true}
+          rowAlternationEnabled={true}
+          height="auto"
+          width="100%"
+          allowColumnResizing={true}
+          columnResizingMode="nextColumn"
+          columnMinWidth={50}
+        >
+          <Paging enabled={true} pageSize={10} />
+          <Scrolling mode="standard" />
+          <MasterDetail enabled={true} render={renderRefillDetails} />
 
-        <Column dataField="vehicleNo" caption="Vehicle" width={100} />
-        <Column dataField="vehicleTypeName" caption="Type" width={100} />
-        <Column
-          dataField="refillCount"
-          caption="Refills"
-          width={70}
-          alignment="center"
-          cellRender={(cellData) => (
-            <span className="tw-px-2 tw-py-0.5 tw-rounded tw-bg-gray-100 tw-text-gray-700 tw-text-xs">
-              {cellData.value || 0}
-            </span>
-          )}
-        />
-
-        {config.showOpeningClosing && (
+          <Column dataField="vehicleNo" caption="Vehicle" width={100} />
+          <Column dataField="vehicleTypeName" caption="Type" width={100} />
           <Column
-            dataField="openingFuel"
-            caption="Opening (L)"
+            dataField="refillCount"
+            caption="Refills"
+            width={70}
+            alignment="center"
+            cellRender={(cellData) => (
+              <span className="tw-px-2 tw-py-0.5 tw-rounded tw-bg-gray-100 tw-text-gray-700 tw-text-xs">
+                {cellData.value || 0}
+              </span>
+            )}
+          />
+
+          {config.showOpeningClosing && (
+            <Column
+              dataField="openingFuel"
+              caption="Opening (L)"
+              width={100}
+              dataType="number"
+              alignment="right"
+              cellRender={(cellData) => (
+                <span className="tw-text-gray-700">
+                  {formatNumber(cellData.value, 0)}
+                </span>
+              )}
+            />
+          )}
+
+          <Column
+            dataField="totalFuelAmount"
+            caption="Manual Disp."
             width={100}
             dataType="number"
             alignment="right"
             cellRender={(cellData) => (
-              <span className="tw-text-gray-700">
-                {formatNumber(cellData.value, 0)}
+              <span className="tw-font-medium tw-text-green-600">
+                +{formatNumber(cellData.value, 0)}
               </span>
             )}
           />
-        )}
 
-        <Column
-          dataField="totalFuelAmount"
-          caption="Manual Disp."
-          width={100}
-          dataType="number"
-          alignment="right"
-          cellRender={(cellData) => (
-            <span className="tw-font-medium tw-text-green-600">
-              +{formatNumber(cellData.value, 0)}
-            </span>
-          )}
-        />
-
-        {config.showGpsConsumption && (
-          <Column
-            dataField="gpsMeasuredConsumption"
-            caption="Vehicle Consumption (GPS)"
-            width={140}
-            dataType="number"
-            alignment="right"
-            cellRender={(cellData) => {
-              const value = cellData.value;
-              if (value === null || value === undefined) {
-                return <span className="tw-text-gray-400">-</span>;
-              }
-              return (
-                <span className="tw-font-medium tw-text-blue-600">
-                  -{formatNumber(Math.abs(value), 0)}
-                </span>
-              );
-            }}
-          />
-        )}
-
-        {config.showOpeningClosing && (
-          <Column
-            dataField="closingFuel"
-            caption="Closing (L)"
-            width={100}
-            dataType="number"
-            alignment="right"
-            cellRender={(cellData) => (
-              <span className="tw-text-gray-700">
-                {formatNumber(cellData.value, 0)}
-              </span>
-            )}
-          />
-        )}
-
-        {config.showGpsConsumption && (
-          <Column
-            caption="Variance"
-            width={90}
-            alignment="right"
-            calculateCellValue={(rowData) => {
-              const dispensed = rowData.totalFuelAmount || 0;
-              const consumed = Math.abs(rowData.gpsMeasuredConsumption || 0);
-              return dispensed - consumed;
-            }}
-            cellRender={(cellData) => {
-              const value = cellData.value || 0;
-              return (
-                <span className={`tw-font-medium tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(value, [10, 50])}`}>
-                  {value >= 0 ? '+' : ''}{formatNumber(value, 0)}
-                </span>
-              );
-            }}
-          />
-        )}
-
-        <Summary>
-          <TotalItem
-            column="refillCount"
-            summaryType="sum"
-            displayFormat="Total: {0}"
-          />
-          <TotalItem
-            column="totalFuelAmount"
-            summaryType="sum"
-            valueFormat="#,##0.0"
-            displayFormat="{0} L"
-          />
           {config.showGpsConsumption && (
+            <Column
+              dataField="gpsMeasuredConsumption"
+              caption="Vehicle Consumption (GPS)"
+              width={140}
+              dataType="number"
+              alignment="right"
+              cellRender={(cellData) => {
+                const value = cellData.value;
+                if (value === null || value === undefined) {
+                  return <span className="tw-text-gray-400">-</span>;
+                }
+                return (
+                  <span className="tw-font-medium tw-text-blue-600">
+                    -{formatNumber(Math.abs(value), 0)}
+                  </span>
+                );
+              }}
+            />
+          )}
+
+          {config.showOpeningClosing && (
+            <Column
+              dataField="closingFuel"
+              caption="Closing (L)"
+              width={100}
+              dataType="number"
+              alignment="right"
+              cellRender={(cellData) => (
+                <span className="tw-text-gray-700">
+                  {formatNumber(cellData.value, 0)}
+                </span>
+              )}
+            />
+          )}
+
+          {config.showGpsConsumption && (
+            <Column
+              caption="Variance"
+              width={90}
+              alignment="right"
+              calculateCellValue={(rowData) => {
+                const dispensed = rowData.totalFuelAmount || 0;
+                const consumed = Math.abs(rowData.gpsMeasuredConsumption || 0);
+                return dispensed - consumed;
+              }}
+              cellRender={(cellData) => {
+                const value = cellData.value || 0;
+                return (
+                  <span
+                    className={`tw-font-medium tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(
+                      value,
+                      [10, 50]
+                    )}`}
+                  >
+                    {value >= 0 ? "+" : ""}
+                    {formatNumber(value, 0)}
+                  </span>
+                );
+              }}
+            />
+          )}
+
+          <Summary>
             <TotalItem
-              column="gpsMeasuredConsumption"
+              column="refillCount"
+              summaryType="sum"
+              displayFormat="Total: {0}"
+            />
+            <TotalItem
+              column="totalFuelAmount"
               summaryType="sum"
               valueFormat="#,##0.0"
               displayFormat="{0} L"
             />
-          )}
-        </Summary>
-      </DataGrid>
-    );
-  }, [vehiclesByCategory, renderRefillDetails]);
+            {config.showGpsConsumption && (
+              <TotalItem
+                column="gpsMeasuredConsumption"
+                summaryType="sum"
+                valueFormat="#,##0.0"
+                displayFormat="{0} L"
+              />
+            )}
+          </Summary>
+        </DataGrid>
+      );
+    },
+    [vehiclesByCategory, renderRefillDetails]
+  );
 
   // Render category section
-  const renderCategorySection = useCallback((categoryId) => {
-    const vehicles = vehiclesByCategory[categoryId] || [];
-    const config = CATEGORY_CONFIG[categoryId];
-    const totals = categoryTotals[categoryId];
-    const isExpanded = expandedCategories[categoryId];
+  const renderCategorySection = useCallback(
+    (categoryId) => {
+      const vehicles = vehiclesByCategory[categoryId] || [];
+      const config = CATEGORY_CONFIG[categoryId];
+      const totals = categoryTotals[categoryId];
+      const isExpanded = expandedCategories[categoryId];
 
-    if (vehicles.length === 0) return null;
+      if (vehicles.length === 0) return null;
 
-    return (
-      <div key={categoryId} className={`tw-border tw-rounded-lg tw-overflow-hidden tw-mb-3 ${config.borderColor}`}>
-        {/* Category Header */}
-        <button
-          className={`tw-w-full tw-px-4 tw-py-3 ${config.bgColor} tw-flex tw-items-center tw-justify-between tw-transition-colors hover:tw-opacity-90`}
-          onClick={() => toggleCategory(categoryId)}
+      return (
+        <div
+          key={categoryId}
+          className={`tw-border tw-rounded-lg tw-overflow-hidden tw-mb-3 ${config.borderColor}`}
         >
-          <div className="tw-flex tw-items-center tw-gap-3">
-            <i className={`fa-light ${config.icon} ${config.textColor} tw-text-lg`}></i>
-            <span className={`tw-font-semibold ${config.textColor}`}>
-              Category {categoryId}: {config.name}
-            </span>
-            <span className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${getConfidenceBadge(config.confidence)}`}>
-              {config.confidence}
-            </span>
-            <span className="tw-text-gray-500 tw-text-sm">
-              ({vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''})
-            </span>
-          </div>
-          <div className="tw-flex tw-items-center tw-gap-4">
-            <span className="tw-text-sm tw-text-gray-600">
-              Dispensed: <span className="tw-font-semibold tw-text-green-700">+{formatNumber(totals.totalDispensed, 0)} L</span>
-            </span>
-            {config.showGpsConsumption && totals.variance !== undefined && (
-              <span className={`tw-text-sm tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(totals.variance, [50, 100])}`}>
-                Variance: {totals.variance >= 0 ? '+' : ''}{formatNumber(totals.variance, 0)} L
+          {/* Category Header */}
+          <button
+            className={`tw-w-full tw-px-4 tw-py-3 ${config.bgColor} tw-flex tw-items-center tw-justify-between tw-transition-colors hover:tw-opacity-90`}
+            onClick={() => toggleCategory(categoryId)}
+          >
+            <div className="tw-flex tw-items-center tw-gap-3">
+              <i
+                className={`fa-light ${config.icon} ${config.textColor} tw-text-lg`}
+              ></i>
+              <span className={`tw-font-semibold ${config.textColor}`}>
+                Category {categoryId}: {config.name}
               </span>
-            )}
-            <i className={`fa-light fa-chevron-${isExpanded ? 'up' : 'down'} tw-text-gray-400`}></i>
-          </div>
-        </button>
-
-        {/* Category Description */}
-        {isExpanded && (
-          <div className="tw-px-4 tw-py-2 tw-bg-gray-50 tw-border-b tw-text-xs tw-text-gray-500">
-            <i className="fa-light fa-info-circle tw-mr-1"></i>
-            {config.description}
-          </div>
-        )}
-
-        {/* Vehicle Grid */}
-        {isExpanded && (
-          <div className="tw-border-t">
-            {renderCategoryVehicles(categoryId)}
-          </div>
-        )}
-
-        {/* Category Subtotal */}
-        {isExpanded && (
-          <div className={`tw-px-4 tw-py-2 tw-border-t ${config.bgColor} tw-flex tw-justify-between tw-items-center`}>
-            <span className={`tw-font-semibold tw-text-sm ${config.textColor}`}>
-              {config.name} Total ({vehicles.length} vehicles)
-            </span>
-            <div className="tw-flex tw-gap-4 tw-text-sm">
-              <span>
-                Manual Disp.: <span className="tw-font-bold tw-text-green-700">{formatNumber(totals.totalDispensed, 0)} L</span>
+              <span
+                className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${getConfidenceBadge(
+                  config.confidence
+                )}`}
+              >
+                {config.confidence}
               </span>
-              {config.showGpsConsumption && (
-                <>
-                  <span>
-                    GPS Consumed: <span className="tw-font-bold tw-text-blue-700">{formatNumber(Math.abs(totals.totalGpsConsumption), 0)} L</span>
-                  </span>
-                  <span className={`tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(totals.variance, [50, 100])}`}>
-                    Variance: {totals.variance >= 0 ? '+' : ''}{formatNumber(totals.variance, 0)} L
-                  </span>
-                </>
-              )}
+              <span className="tw-text-gray-500 tw-text-sm">
+                ({vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""})
+              </span>
             </div>
-          </div>
-        )}
-      </div>
-    );
-  }, [vehiclesByCategory, categoryTotals, expandedCategories, toggleCategory, renderCategoryVehicles]);
+            <div className="tw-flex tw-items-center tw-gap-4">
+              <span className="tw-text-sm tw-text-gray-600">
+                Dispensed:{" "}
+                <span className="tw-font-semibold tw-text-green-700">
+                  +{formatNumber(totals.totalDispensed, 0)} L
+                </span>
+              </span>
+              {config.showGpsConsumption && totals.variance !== undefined && (
+                <span
+                  className={`tw-text-sm tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(
+                    totals.variance,
+                    [50, 100]
+                  )}`}
+                >
+                  Variance: {totals.variance >= 0 ? "+" : ""}
+                  {formatNumber(totals.variance, 0)} L
+                </span>
+              )}
+              <i
+                className={`fa-light fa-chevron-${
+                  isExpanded ? "up" : "down"
+                } tw-text-gray-400`}
+              ></i>
+            </div>
+          </button>
+
+          {/* Category Description */}
+          {isExpanded && (
+            <div className="tw-px-4 tw-py-2 tw-bg-gray-50 tw-border-b tw-text-xs tw-text-gray-500">
+              <i className="fa-light fa-info-circle tw-mr-1"></i>
+              {config.description}
+            </div>
+          )}
+
+          {/* Vehicle Grid */}
+          {isExpanded && (
+            <div className="tw-border-t">
+              {renderCategoryVehicles(categoryId)}
+            </div>
+          )}
+
+          {/* Category Subtotal */}
+          {isExpanded && (
+            <div
+              className={`tw-px-4 tw-py-2 tw-border-t ${config.bgColor} tw-flex tw-justify-between tw-items-center`}
+            >
+              <span
+                className={`tw-font-semibold tw-text-sm ${config.textColor}`}
+              >
+                {config.name} Total ({vehicles.length} vehicles)
+              </span>
+              <div className="tw-flex tw-gap-4 tw-text-sm">
+                <span>
+                  Manual Disp.:{" "}
+                  <span className="tw-font-bold tw-text-green-700">
+                    {formatNumber(totals.totalDispensed, 0)} L
+                  </span>
+                </span>
+                {config.showGpsConsumption && (
+                  <>
+                    <span>
+                      GPS Consumed:{" "}
+                      <span className="tw-font-bold tw-text-blue-700">
+                        {formatNumber(Math.abs(totals.totalGpsConsumption), 0)}{" "}
+                        L
+                      </span>
+                    </span>
+                    <span
+                      className={`tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(
+                        totals.variance,
+                        [50, 100]
+                      )}`}
+                    >
+                      Variance: {totals.variance >= 0 ? "+" : ""}
+                      {formatNumber(totals.variance, 0)} L
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    },
+    [
+      vehiclesByCategory,
+      categoryTotals,
+      expandedCategories,
+      toggleCategory,
+      renderCategoryVehicles,
+    ]
+  );
 
   // Render tank section
-  const renderTankSection = useCallback((tank) => {
-    const isExpanded = expandedTanks[tank.tankId];
+  const renderTankSection = useCallback(
+    (tank) => {
+      const isExpanded = expandedTanks[tank.tankId];
 
-    // Calculate tank variance
-    const expectedClosing = (tank.openingStock || 0) + (tank.totalDeliveries || 0) + (tank.totalTransfersIn || 0)
-                          - (tank.totalDispensed || 0) - (tank.totalTransfersOut || 0);
-    const tankVariance = (tank.closingStock || 0) - expectedClosing;
+      // Calculate tank variance
+      const expectedClosing =
+        (tank.openingStock || 0) +
+        (tank.totalDeliveries || 0) +
+        (tank.totalTransfersIn || 0) -
+        (tank.totalDispensed || 0) -
+        (tank.totalTransfersOut || 0);
+      const tankVariance = (tank.closingStock || 0) - expectedClosing;
 
-    return (
-      <div key={tank.tankId} className="tw-border tw-rounded-lg tw-overflow-hidden tw-mb-4 tw-border-blue-300">
-        {/* Tank Header */}
-        <button
-          className="tw-w-full tw-px-4 tw-py-3 tw-bg-blue-800 tw-text-white tw-flex tw-items-center tw-justify-between hover:tw-bg-blue-700 tw-transition-colors"
-          onClick={() => toggleTank(tank.tankId)}
+      return (
+        <div
+          key={tank.tankId}
+          className="tw-border tw-rounded-lg tw-overflow-hidden tw-mb-4 tw-border-blue-300"
         >
-          <div className="tw-flex tw-items-center tw-gap-3">
-            <i className="fa-light fa-oil-can tw-text-xl"></i>
-            <span className="tw-font-bold tw-text-lg">{tank.tankName}</span>
-            <span className="tw-text-blue-200 tw-text-sm">
-              | {tank.siteName}
-            </span>
-          </div>
-          <div className="tw-flex tw-items-center tw-gap-4">
-            <span className="tw-text-blue-200 tw-text-sm">
-              Period: {wizard.periodStart} to {wizard.periodEnd}
-            </span>
-            <i className={`fa-light fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
-          </div>
-        </button>
-
-        {isExpanded && (
-          <>
-            {/* Tank Data Row */}
-            <div className="tw-bg-blue-600 tw-text-white">
-              <div className="tw-grid tw-grid-cols-8 tw-text-center tw-text-xs tw-font-semibold tw-py-2 tw-border-b tw-border-blue-500">
-                <div>Opening Date</div>
-                <div>Dispensed</div>
-                <div>Transfer In</div>
-                <div>Transfer Out</div>
-                <div>Closing Date</div>
-                <div>Opening (L)</div>
-                <div>Closing (L)</div>
-                <div>Capacity (L)</div>
-              </div>
-              <div className="tw-grid tw-grid-cols-8 tw-text-center tw-py-2 tw-bg-blue-100 tw-text-gray-800">
-                <div className="tw-text-sm">{wizard.periodStart}</div>
-                <div className="tw-font-semibold tw-text-red-600">-{formatNumber(tank.totalDispensed, 0)}</div>
-                <div className="tw-font-semibold tw-text-green-600">+{formatNumber(tank.totalTransfersIn, 0)}</div>
-                <div className="tw-font-semibold tw-text-red-600">-{formatNumber(tank.totalTransfersOut, 0)}</div>
-                <div className="tw-text-sm">{wizard.periodEnd}</div>
-                <div className="tw-font-semibold">{formatNumber(tank.openingStock, 0)}</div>
-                <div className="tw-font-semibold">{formatNumber(tank.closingStock, 0)}</div>
-                <div className="tw-text-gray-600">{formatNumber(tank.tankCapacity, 0)}</div>
-              </div>
+          {/* Tank Header */}
+          <button
+            className="tw-w-full tw-px-4 tw-py-3 tw-bg-blue-800 tw-text-white tw-flex tw-items-center tw-justify-between hover:tw-bg-blue-700 tw-transition-colors"
+            onClick={() => toggleTank(tank.tankId)}
+          >
+            <div className="tw-flex tw-items-center tw-gap-3">
+              <i className="fa-light fa-oil-can tw-text-xl"></i>
+              <span className="tw-font-bold tw-text-lg">{tank.tankName}</span>
+              <span className="tw-text-blue-200 tw-text-sm">
+                | {tank.siteName}
+              </span>
             </div>
-
-            {/* Tank Variance Row */}
-            <div className={`tw-px-4 tw-py-2 tw-flex tw-justify-between tw-items-center ${getVarianceClass(tankVariance, [50, 100])}`}>
-              <span className="tw-font-semibold">Tank Variance:</span>
-              <div className="tw-flex tw-gap-6 tw-text-sm">
-                <span>Expected Closing: <span className="tw-font-bold">{formatNumber(expectedClosing, 0)} L</span></span>
-                <span>Actual Closing: <span className="tw-font-bold">{formatNumber(tank.closingStock, 0)} L</span></span>
-                <span className="tw-font-bold">
-                  Variance: {tankVariance >= 0 ? '+' : ''}{formatNumber(tankVariance, 0)} L
-                </span>
-              </div>
+            <div className="tw-flex tw-items-center tw-gap-4">
+              <span className="tw-text-blue-200 tw-text-sm">
+                Period: {wizard.periodStart} to {wizard.periodEnd}
+              </span>
+              <i
+                className={`fa-light fa-chevron-${isExpanded ? "up" : "down"}`}
+              ></i>
             </div>
+          </button>
 
-            {/* Categories Section */}
-            <div className="tw-p-4 tw-bg-white">
-              <h4 className="tw-font-semibold tw-text-gray-700 tw-mb-3 tw-flex tw-items-center tw-gap-2">
-                <i className="fa-light fa-truck tw-text-blue-500"></i>
-                Vehicle Categories
-              </h4>
-
-              {/* Render categories in order: 1, 4, 2, 3, 5 */}
-              {[1, 4, 2, 3, 5].map(catId => renderCategorySection(catId))}
-
-              {/* Tank Total */}
-              <div className="tw-mt-4 tw-bg-blue-100 tw-rounded-lg tw-p-4 tw-border tw-border-blue-300">
-                <div className="tw-flex tw-justify-between tw-items-center">
-                  <span className="tw-font-bold tw-text-blue-900">
-                    TANK TOTAL: {tank.tankName}
-                  </span>
-                  <div className="tw-flex tw-gap-6 tw-text-sm">
-                    <span>
-                      Vehicles: <span className="tw-font-bold">{selectedVehicles.length}</span>
-                    </span>
-                    <span>
-                      Total Dispensed: <span className="tw-font-bold tw-text-green-700">{formatNumber(grandTotals.vehicles.totalDispensed, 0)} L</span>
-                    </span>
-                    <span>
-                      Tank Record: <span className="tw-font-bold">{formatNumber(tank.totalDispensed, 0)} L</span>
-                    </span>
-                    <span className={`tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(grandTotals.vehicles.totalDispensed - tank.totalDispensed, [20, 50])}`}>
-                      Diff: {(grandTotals.vehicles.totalDispensed - tank.totalDispensed) >= 0 ? '+' : ''}
-                      {formatNumber(grandTotals.vehicles.totalDispensed - tank.totalDispensed, 0)} L
-                    </span>
+          {isExpanded && (
+            <>
+              {/* Tank Data Row */}
+              <div className="tw-bg-blue-600 tw-text-white">
+                <div className="tw-grid tw-grid-cols-8 tw-text-center tw-text-xs tw-font-semibold tw-py-2 tw-border-b tw-border-blue-500">
+                  <div>Opening Date</div>
+                  <div>Dispensed</div>
+                  <div>Transfer In</div>
+                  <div>Transfer Out</div>
+                  <div>Closing Date</div>
+                  <div>Opening (L)</div>
+                  <div>Closing (L)</div>
+                  <div>Capacity (L)</div>
+                </div>
+                <div className="tw-grid tw-grid-cols-8 tw-text-center tw-py-2 tw-bg-blue-100 tw-text-gray-800">
+                  <div className="tw-text-sm">{wizard.periodStart}</div>
+                  <div className="tw-font-semibold tw-text-red-600">
+                    -{formatNumber(tank.totalDispensed, 0)}
+                  </div>
+                  <div className="tw-font-semibold tw-text-green-600">
+                    +{formatNumber(tank.totalTransfersIn, 0)}
+                  </div>
+                  <div className="tw-font-semibold tw-text-red-600">
+                    -{formatNumber(tank.totalTransfersOut, 0)}
+                  </div>
+                  <div className="tw-text-sm">{wizard.periodEnd}</div>
+                  <div className="tw-font-semibold">
+                    {formatNumber(tank.openingStock, 0)}
+                  </div>
+                  <div className="tw-font-semibold">
+                    {formatNumber(tank.closingStock, 0)}
+                  </div>
+                  <div className="tw-text-gray-600">
+                    {formatNumber(tank.tankCapacity, 0)}
                   </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }, [expandedTanks, wizard.periodStart, wizard.periodEnd, toggleTank, renderCategorySection, selectedVehicles.length, grandTotals]);
+
+              {/* Tank Variance Row */}
+              <div
+                className={`tw-px-4 tw-py-2 tw-flex tw-justify-between tw-items-center ${getVarianceClass(
+                  tankVariance,
+                  [50, 100]
+                )}`}
+              >
+                <span className="tw-font-semibold">Tank Variance:</span>
+                <div className="tw-flex tw-gap-6 tw-text-sm">
+                  <span>
+                    Expected Closing:{" "}
+                    <span className="tw-font-bold">
+                      {formatNumber(expectedClosing, 0)} L
+                    </span>
+                  </span>
+                  <span>
+                    Actual Closing:{" "}
+                    <span className="tw-font-bold">
+                      {formatNumber(tank.closingStock, 0)} L
+                    </span>
+                  </span>
+                  <span className="tw-font-bold">
+                    Variance: {tankVariance >= 0 ? "+" : ""}
+                    {formatNumber(tankVariance, 0)} L
+                  </span>
+                </div>
+              </div>
+
+              {/* Categories Section */}
+              <div className="tw-p-4 tw-bg-white">
+                <h4 className="tw-font-semibold tw-text-gray-700 tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                  <i className="fa-light fa-truck tw-text-blue-500"></i>
+                  Vehicle Categories
+                </h4>
+
+                {/* Render categories in order: 1, 4, 2, 3, 5 */}
+                {[1, 4, 2, 3, 5].map((catId) => renderCategorySection(catId))}
+
+                {/* Tank Total */}
+                <div className="tw-mt-4 tw-bg-blue-100 tw-rounded-lg tw-p-4 tw-border tw-border-blue-300">
+                  <div className="tw-flex tw-justify-between tw-items-center">
+                    <span className="tw-font-bold tw-text-blue-900">
+                      TANK TOTAL: {tank.tankName}
+                    </span>
+                    <div className="tw-flex tw-gap-6 tw-text-sm">
+                      <span>
+                        Vehicles:{" "}
+                        <span className="tw-font-bold">
+                          {selectedVehicles.length}
+                        </span>
+                      </span>
+                      <span>
+                        Total Dispensed:{" "}
+                        <span className="tw-font-bold tw-text-green-700">
+                          {formatNumber(grandTotals.vehicles.totalDispensed, 0)}{" "}
+                          L
+                        </span>
+                      </span>
+                      <span>
+                        Tank Record:{" "}
+                        <span className="tw-font-bold">
+                          {formatNumber(tank.totalDispensed, 0)} L
+                        </span>
+                      </span>
+                      <span
+                        className={`tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(
+                          grandTotals.vehicles.totalDispensed -
+                            tank.totalDispensed,
+                          [20, 50]
+                        )}`}
+                      >
+                        Diff:{" "}
+                        {grandTotals.vehicles.totalDispensed -
+                          tank.totalDispensed >=
+                        0
+                          ? "+"
+                          : ""}
+                        {formatNumber(
+                          grandTotals.vehicles.totalDispensed -
+                            tank.totalDispensed,
+                          0
+                        )}{" "}
+                        L
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    },
+    [
+      expandedTanks,
+      wizard.periodStart,
+      wizard.periodEnd,
+      toggleTank,
+      renderCategorySection,
+      selectedVehicles.length,
+      grandTotals,
+    ]
+  );
 
   // ============================================================================
   // MAIN RENDER
@@ -1885,7 +2831,9 @@ const Step6Reconciliation = memo(() => {
       <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
         <div className="tw-flex tw-items-center tw-gap-3">
           <i className="fa-light fa-chart-pie tw-text-xl tw-text-blue-600"></i>
-          <h3 className="tw-text-lg tw-font-semibold">Comprehensive Fuel Audit Review</h3>
+          <h3 className="tw-text-lg tw-font-semibold">
+            Comprehensive Fuel Audit Review
+          </h3>
         </div>
         <div className="tw-flex tw-gap-2">
           <Button
@@ -1914,36 +2862,61 @@ const Step6Reconciliation = memo(() => {
 
       {/* Description */}
       <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
-        Review the complete fuel audit data combining tank volumes (Step 3) and vehicle dispensing records (Step 5).
-        Expand sections to view detailed breakdowns by category and individual vehicles.
+        Review the complete fuel audit data combining tank volumes (Step 3) and
+        vehicle dispensing records (Step 5). Expand sections to view detailed
+        breakdowns by category and individual vehicles.
       </p>
 
       {/* Summary Stats */}
       <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-4 lg:tw-grid-cols-6 tw-gap-3">
         <div className="tw-bg-blue-50 tw-p-3 tw-rounded-lg tw-border tw-border-blue-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-blue-700">{grandTotals.tanks.count}</p>
+          <p className="tw-text-2xl tw-font-bold tw-text-blue-700">
+            {grandTotals.tanks.count}
+          </p>
           <p className="tw-text-xs tw-text-blue-600">Tanks</p>
         </div>
         <div className="tw-bg-green-50 tw-p-3 tw-rounded-lg tw-border tw-border-green-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-green-700">{grandTotals.vehicles.count}</p>
+          <p className="tw-text-2xl tw-font-bold tw-text-green-700">
+            {grandTotals.vehicles.count}
+          </p>
           <p className="tw-text-xs tw-text-green-600">Vehicles</p>
         </div>
         <div className="tw-bg-purple-50 tw-p-3 tw-rounded-lg tw-border tw-border-purple-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-purple-700">{grandTotals.vehicles.totalRefills}</p>
+          <p className="tw-text-2xl tw-font-bold tw-text-purple-700">
+            {grandTotals.vehicles.totalRefills}
+          </p>
           <p className="tw-text-xs tw-text-purple-600">Total Refills</p>
         </div>
         <div className="tw-bg-orange-50 tw-p-3 tw-rounded-lg tw-border tw-border-orange-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-orange-700">{formatNumber(grandTotals.tanks.totalDispensed, 0)}</p>
+          <p className="tw-text-2xl tw-font-bold tw-text-orange-700">
+            {formatNumber(grandTotals.tanks.totalDispensed, 0)}
+          </p>
           <p className="tw-text-xs tw-text-orange-600">Tank Dispensed (L)</p>
         </div>
         <div className="tw-bg-cyan-50 tw-p-3 tw-rounded-lg tw-border tw-border-cyan-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-cyan-700">{formatNumber(grandTotals.vehicles.totalDispensed, 0)}</p>
+          <p className="tw-text-2xl tw-font-bold tw-text-cyan-700">
+            {formatNumber(grandTotals.vehicles.totalDispensed, 0)}
+          </p>
           <p className="tw-text-xs tw-text-cyan-600">Vehicle Dispensed (L)</p>
         </div>
-        <div className={`tw-p-3 tw-rounded-lg tw-border ${getVarianceClass(grandTotals.vehicles.totalDispensed - grandTotals.tanks.totalDispensed, [20, 50])}`}>
+        <div
+          className={`tw-p-3 tw-rounded-lg tw-border ${getVarianceClass(
+            grandTotals.vehicles.totalDispensed -
+              grandTotals.tanks.totalDispensed,
+            [20, 50]
+          )}`}
+        >
           <p className="tw-text-2xl tw-font-bold">
-            {(grandTotals.vehicles.totalDispensed - grandTotals.tanks.totalDispensed) >= 0 ? '+' : ''}
-            {formatNumber(grandTotals.vehicles.totalDispensed - grandTotals.tanks.totalDispensed, 0)}
+            {grandTotals.vehicles.totalDispensed -
+              grandTotals.tanks.totalDispensed >=
+            0
+              ? "+"
+              : ""}
+            {formatNumber(
+              grandTotals.vehicles.totalDispensed -
+                grandTotals.tanks.totalDispensed,
+              0
+            )}
           </p>
           <p className="tw-text-xs">Variance (L)</p>
         </div>
@@ -1953,12 +2926,14 @@ const Step6Reconciliation = memo(() => {
       {tankPreview.length === 0 && selectedVehicles.length === 0 && (
         <div className="tw-text-center tw-py-12 tw-bg-gray-50 tw-rounded-lg tw-border">
           <i className="fa-light fa-inbox tw-text-4xl tw-text-gray-300 tw-mb-4"></i>
-          <p className="tw-text-gray-500">No data available. Please complete Steps 3 and 5 first.</p>
+          <p className="tw-text-gray-500">
+            No data available. Please complete Steps 3 and 5 first.
+          </p>
         </div>
       )}
 
       {/* Tank Sections */}
-      {tankPreview.map(tank => renderTankSection(tank))}
+      {tankPreview.map((tank) => renderTankSection(tank))}
 
       {/* Grand Total Section */}
       {(tankPreview.length > 0 || selectedVehicles.length > 0) && (
@@ -1966,7 +2941,9 @@ const Step6Reconciliation = memo(() => {
           <div className="tw-flex tw-justify-between tw-items-center">
             <div className="tw-flex tw-items-center tw-gap-3">
               <i className="fa-light fa-flag-checkered tw-text-2xl"></i>
-              <span className="tw-font-bold tw-text-xl">GRAND TOTAL - ALL CATEGORIES</span>
+              <span className="tw-font-bold tw-text-xl">
+                GRAND TOTAL - ALL CATEGORIES
+              </span>
             </div>
             <div className="tw-text-right">
               <p className="tw-text-2xl tw-font-bold">
@@ -1988,11 +2965,20 @@ const Step6Reconciliation = memo(() => {
         </h4>
         <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-5 tw-gap-3 tw-text-xs">
           {Object.entries(CATEGORY_CONFIG).map(([catId, config]) => (
-            <div key={catId} className={`tw-flex tw-items-center tw-gap-2 tw-p-2 tw-rounded ${config.bgColor}`}>
+            <div
+              key={catId}
+              className={`tw-flex tw-items-center tw-gap-2 tw-p-2 tw-rounded ${config.bgColor}`}
+            >
               <i className={`fa-light ${config.icon} ${config.textColor}`}></i>
               <div>
-                <span className={`tw-font-medium ${config.textColor}`}>{config.name}</span>
-                <span className={`tw-ml-1 tw-px-1 tw-rounded tw-text-xs ${getConfidenceBadge(config.confidence)}`}>
+                <span className={`tw-font-medium ${config.textColor}`}>
+                  {config.name}
+                </span>
+                <span
+                  className={`tw-ml-1 tw-px-1 tw-rounded tw-text-xs ${getConfidenceBadge(
+                    config.confidence
+                  )}`}
+                >
                   {config.confidence}
                 </span>
               </div>

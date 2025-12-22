@@ -1,0 +1,482 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  RefreshControl,
+  Dimensions,
+} from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { fetchDevicesBySite } from "../redux/slices/deviceSlice";
+
+const { width } = Dimensions.get("window");
+const isSmallScreen = width < 380;
+
+const STORAGE_KEYS = {
+  DEFAULT_SITE: "fms_default_site",
+};
+
+const HomeScreen = ({ navigation }) => {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { ptsDeviceList, isLoading } = useSelector((state) => state.device);
+
+  const [defaultSite, setDefaultSite] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Get display name from user object - handle both PascalCase and camelCase
+  const displayName =
+    user?.FullName ||
+    user?.fullName ||
+    user?.UserName ||
+    user?.userName ||
+    user?.username ||
+    user?.name ||
+    "User";
+
+  // Menu items configuration
+  const menuItems = [
+    {
+      id: "fueling",
+      name: "Fueling",
+      icon: "gas-pump",
+      color: "#2563eb",
+      description: "Start fueling process",
+      onPress: () => navigation.navigate("Devices"),
+    },
+    {
+      id: "transactions",
+      name: "Transactions",
+      icon: "history",
+      color: "#10b981",
+      description: "View pump transactions",
+      onPress: () => navigation.navigate("History"),
+    },
+    {
+      id: "transactionHub",
+      name: "Transaction Hub",
+      icon: "exchange-alt",
+      color: "#8b5cf6",
+      description: "Tank volume history",
+      onPress: () => navigation.navigate("TankTransactionHub"),
+    },
+    {
+      id: "stocks",
+      name: "Stock Management",
+      icon: "warehouse",
+      color: "#f59e0b",
+      description: "Manage tank stocks",
+      onPress: () => navigation.navigate("ManageStocks"),
+    },
+    {
+      id: "settings",
+      name: "Settings",
+      icon: "cog",
+      color: "#6b7280",
+      description: "App configuration",
+      onPress: () => navigation.navigate("Settings"),
+    },
+  ];
+
+  // Load saved site on mount
+  useEffect(() => {
+    loadSavedSite();
+  }, []);
+
+  // Fetch devices when site changes
+  useEffect(() => {
+    if (defaultSite?.id) {
+      dispatch(fetchDevicesBySite(defaultSite.id));
+    }
+  }, [defaultSite, dispatch]);
+
+  const loadSavedSite = async () => {
+    try {
+      const savedSite = await AsyncStorage.getItem(STORAGE_KEYS.DEFAULT_SITE);
+      if (savedSite) {
+        setDefaultSite(JSON.parse(savedSite));
+      }
+    } catch (error) {
+      console.error("Error loading saved site:", error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadSavedSite();
+    if (defaultSite?.id) {
+      await dispatch(fetchDevicesBySite(defaultSite.id));
+    }
+    setRefreshing(false);
+  };
+
+  // Calculate online devices count
+  const onlineDevices = ptsDeviceList?.filter((d) => d.isOnline)?.length || 0;
+  const totalDevices = ptsDeviceList?.length || 0;
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Header Section */}
+      <View style={styles.header}>
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>Welcome back,</Text>
+          <Text style={styles.userName}>{displayName}</Text>
+        </View>
+
+        {/* Site Badge */}
+        {defaultSite ? (
+          <View style={styles.siteBadge}>
+            <Icon name="map-marker-alt" size={12} color="#2563eb" />
+            <Text style={styles.siteText}>{defaultSite.name}</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.selectSiteBadge}
+            onPress={() => navigation.navigate("Settings")}
+          >
+            <Icon name="exclamation-circle" size={12} color="#f59e0b" />
+            <Text style={styles.selectSiteText}>Select a site</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Quick Stats Card */}
+      <View style={styles.statsCard}>
+        <View style={styles.statItem}>
+          <View style={[styles.statIcon, { backgroundColor: "#dcfce7" }]}>
+            <Icon name="gas-pump" size={18} color="#22c55e" />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{onlineDevices}</Text>
+            <Text style={styles.statLabel}>Online Devices</Text>
+          </View>
+        </View>
+
+        <View style={styles.statDivider} />
+
+        <View style={styles.statItem}>
+          <View style={[styles.statIcon, { backgroundColor: "#e0e7ff" }]}>
+            <Icon name="server" size={18} color="#6366f1" />
+          </View>
+          <View style={styles.statInfo}>
+            <Text style={styles.statValue}>{totalDevices}</Text>
+            <Text style={styles.statLabel}>Total Devices</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Menu Grid */}
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+
+        <View style={styles.menuGrid}>
+          {menuItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuItem}
+              onPress={item.onPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconContainer}>
+                <Icon name={item.icon} size={26} color={item.color} />
+              </View>
+              <Text style={styles.menuName}>{item.name}</Text>
+              <Text style={styles.menuDescription}>{item.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Recent Activity Section (placeholder for future) */}
+      <View style={styles.activitySection}>
+        <View style={styles.activityHeader}>
+          <Text style={styles.sectionTitle}>Device Status</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Devices")}>
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {!defaultSite ? (
+          <View style={styles.emptyState}>
+            <Icon name="map-marker-alt" size={40} color="#d1d5db" />
+            <Text style={styles.emptyText}>Select a site in Settings</Text>
+            <Text style={styles.emptySubtext}>to see your PTS devices</Text>
+          </View>
+        ) : isLoading ? (
+          <View style={styles.loadingState}>
+            <Text style={styles.loadingText}>Loading devices...</Text>
+          </View>
+        ) : ptsDeviceList?.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Icon name="gas-pump" size={40} color="#d1d5db" />
+            <Text style={styles.emptyText}>No devices found</Text>
+            <Text style={styles.emptySubtext}>for the selected site</Text>
+          </View>
+        ) : (
+          <View style={styles.deviceList}>
+            {ptsDeviceList.slice(0, 3).map((device) => (
+              <TouchableOpacity
+                key={device.ptsid || device.id}
+                style={styles.deviceItem}
+                onPress={() =>
+                  navigation.navigate("FuelingProcess", {
+                    ptsId: device.ptsid,
+                    deviceName: device.name || `Device ${device.ptsid}`,
+                  })
+                }
+              >
+                <View
+                  style={[
+                    styles.deviceStatus,
+                    {
+                      backgroundColor: device.isOnline ? "#22c55e" : "#ef4444",
+                    },
+                  ]}
+                />
+                <View style={styles.deviceInfo}>
+                  <Text style={styles.deviceName}>
+                    {device.name || `PTS ${device.ptsid}`}
+                  </Text>
+                  <Text style={styles.deviceSubtext}>
+                    {device.isOnline ? "Online" : "Offline"} •{" "}
+                    {device.pumpCount || 0} pumps
+                  </Text>
+                </View>
+                <Icon name="chevron-right" size={14} color="#9ca3af" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f3f4f6",
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  header: {
+    marginBottom: 20,
+  },
+  welcomeSection: {
+    marginBottom: 12,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  siteBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  siteText: {
+    marginLeft: 6,
+    fontSize: 13,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  selectSiteBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  selectSiteText: {
+    marginLeft: 6,
+    fontSize: 13,
+    color: "#d97706",
+    fontWeight: "500",
+  },
+  statsCard: {
+    flexDirection: "row",
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statInfo: {
+    marginLeft: 12,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "#e5e7eb",
+    marginHorizontal: 12,
+  },
+  menuSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 16,
+  },
+  menuGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  menuItem: {
+    width: "48%",
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  menuIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f5f5f5",
+    marginBottom: 10,
+  },
+  menuName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+    textAlign: "center",
+  },
+  menuDescription: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  activitySection: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  activityHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  viewAllText: {
+    fontSize: 13,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  loadingState: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  deviceList: {
+    marginTop: -8,
+  },
+  deviceItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  deviceStatus: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 12,
+  },
+  deviceInfo: {
+    flex: 1,
+  },
+  deviceName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1f2937",
+  },
+  deviceSubtext: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+});
+
+export default HomeScreen;

@@ -15,20 +15,36 @@
  * Data comes from FuelRefill table via /fuelaudit/tank-refills-preview endpoint
  */
 
-import React, { useEffect, useState, useCallback, useMemo, memo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import DataGrid, { Column, Selection, Paging, Scrolling, Export } from 'devextreme-react/data-grid';
-import { LoadIndicator } from 'devextreme-react/load-indicator';
-import { Button } from 'devextreme-react/button';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  memo,
+  useRef,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import DataGrid, {
+  Column,
+  Selection,
+  Paging,
+  Scrolling,
+  Export,
+} from "devextreme-react/data-grid";
+import { LoadIndicator } from "devextreme-react/load-indicator";
+import { Button } from "devextreme-react/button";
 
 import {
   setSelectedVehicles,
   selectWizard,
   selectLoading,
-  fetchTankRefillsPreview
-} from '../../../../../../redux/slices/fuelAuditSlice';
+  fetchTankRefillsPreview,
+} from "../../../../../../redux/slices/fuelAuditSlice";
 
-import { CATEGORY_CONFIG, exportCategoryFromGrid } from './Step4VehicleSelectionExport';
+import {
+  CATEGORY_CONFIG,
+  exportCategoryFromGrid,
+} from "./Step4VehicleSelectionExport";
 
 const Step4VehicleSelection = memo(() => {
   const dispatch = useDispatch();
@@ -52,7 +68,9 @@ const Step4VehicleSelection = memo(() => {
 
   // Sync local selection with Redux state
   useEffect(() => {
-    setSelectedKeys(wizard.selectedVehicleIds ? [...wizard.selectedVehicleIds] : []);
+    setSelectedKeys(
+      wizard.selectedVehicleIds ? [...wizard.selectedVehicleIds] : []
+    );
   }, [wizard.selectedVehicleIds]);
 
   // Track previous tank selection to detect changes
@@ -61,31 +79,67 @@ const Step4VehicleSelection = memo(() => {
 
   // Load refill data when step is reached
   const loadRefillData = useCallback(() => {
-    if (wizard.selectedTankIds?.length > 0 && wizard.periodStart && wizard.periodEnd) {
+    if (
+      wizard.selectedTankIds?.length > 0 &&
+      wizard.periodStart &&
+      wizard.periodEnd
+    ) {
       // For multi-site, pass siteIds array
-      const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : (wizard.siteIds ? [wizard.siteIds] : []);
-      dispatch(fetchTankRefillsPreview({
-        tankIds: wizard.selectedTankIds,
-        startDate: wizard.periodStart,
-        endDate: wizard.periodEnd,
-        siteIds: siteIds  // Pass array of site IDs
-      }));
+      const siteIds = Array.isArray(wizard.siteIds)
+        ? wizard.siteIds
+        : wizard.siteIds
+        ? [wizard.siteIds]
+        : [];
+      dispatch(
+        fetchTankRefillsPreview({
+          tankIds: wizard.selectedTankIds,
+          startDate: wizard.periodStart,
+          endDate: wizard.periodEnd,
+          siteIds: siteIds, // Pass array of site IDs
+        })
+      );
     }
-  }, [dispatch, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.siteIds]);
+  }, [
+    dispatch,
+    wizard.selectedTankIds,
+    wizard.periodStart,
+    wizard.periodEnd,
+    wizard.siteIds,
+  ]);
 
   // Load on mount or when tank selection/period changes
   useEffect(() => {
-    if (wizard.selectedTankIds?.length > 0 && wizard.periodStart && wizard.periodEnd) {
+    if (
+      wizard.selectedTankIds?.length > 0 &&
+      wizard.periodStart &&
+      wizard.periodEnd
+    ) {
       // Create a signature to detect changes
-      const currentTankIds = JSON.stringify([...(wizard.selectedTankIds || [])].sort());
+      const currentTankIds = JSON.stringify(
+        [...(wizard.selectedTankIds || [])].sort()
+      );
       const currentPeriod = `${wizard.periodStart}-${wizard.periodEnd}`;
 
       // Check if tank selection or period has changed
-      const tankSelectionChanged = prevTankIdsRef.current !== null && prevTankIdsRef.current !== currentTankIds;
-      const periodChanged = prevPeriodRef.current !== null && prevPeriodRef.current !== currentPeriod;
+      const tankSelectionChanged =
+        prevTankIdsRef.current !== null &&
+        prevTankIdsRef.current !== currentTankIds;
+      const periodChanged =
+        prevPeriodRef.current !== null &&
+        prevPeriodRef.current !== currentPeriod;
 
-      // Load if no data exists OR if selection/period changed
-      if (!wizard.tankRefills?.length || tankSelectionChanged || periodChanged) {
+      // Check if vehicles exist but refills array is missing (happens when loading saved audits)
+      const hasVehiclesWithoutRefills =
+        wizard.tankRefills?.length > 0 &&
+        wizard.tankRefills.every((v) => !v.refills || v.refills.length === 0);
+
+      // Load if no data exists OR if selection/period changed OR if refills are missing
+      if (
+        !wizard.tankRefills?.length ||
+        tankSelectionChanged ||
+        periodChanged ||
+        hasVehiclesWithoutRefills
+      ) {
         loadRefillData();
       }
 
@@ -93,7 +147,13 @@ const Step4VehicleSelection = memo(() => {
       prevTankIdsRef.current = currentTankIds;
       prevPeriodRef.current = currentPeriod;
     }
-  }, [loadRefillData, wizard.selectedTankIds, wizard.periodStart, wizard.periodEnd, wizard.tankRefills?.length]);
+  }, [
+    loadRefillData,
+    wizard.selectedTankIds,
+    wizard.periodStart,
+    wizard.periodEnd,
+    wizard.tankRefills,
+  ]);
 
   // Group vehicles by category
   const vehiclesByCategory = useMemo(() => {
@@ -106,7 +166,7 @@ const Step4VehicleSelection = memo(() => {
     }
 
     // Group vehicles
-    tankRefills.forEach(vehicle => {
+    tankRefills.forEach((vehicle) => {
       const category = vehicle.vehicleCategory || 5;
       if (grouped[category]) {
         grouped[category].push(vehicle);
@@ -119,45 +179,70 @@ const Step4VehicleSelection = memo(() => {
   // Calculate category statistics
   const categoryStats = useMemo(() => {
     const stats = {};
-    Object.keys(vehiclesByCategory).forEach(cat => {
+    Object.keys(vehiclesByCategory).forEach((cat) => {
       const vehicles = vehiclesByCategory[cat];
       stats[cat] = {
         count: vehicles.length,
-        totalFuel: vehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0),
-        selected: vehicles.filter(v => selectedKeys.includes(v.vehicleId)).length
+        totalFuel: vehicles.reduce(
+          (sum, v) => sum + (v.totalFuelAmount || 0),
+          0
+        ),
+        selected: vehicles.filter((v) => selectedKeys.includes(v.vehicleId))
+          .length,
       };
     });
     return stats;
   }, [vehiclesByCategory, selectedKeys]);
 
   // Handle selection change for a specific category
-  const handleCategorySelectionChanged = useCallback((categoryId, e) => {
-    const categoryVehicleIds = vehiclesByCategory[categoryId].map(v => v.vehicleId);
-    const otherSelectedIds = selectedKeys.filter(id => !categoryVehicleIds.includes(id));
-    const newSelection = [...otherSelectedIds, ...e.selectedRowKeys];
-    setSelectedKeys(newSelection);
-    dispatch(setSelectedVehicles(newSelection));
-  }, [vehiclesByCategory, selectedKeys, dispatch]);
+  const handleCategorySelectionChanged = useCallback(
+    (categoryId, e) => {
+      const categoryVehicleIds = vehiclesByCategory[categoryId].map(
+        (v) => v.vehicleId
+      );
+      const otherSelectedIds = selectedKeys.filter(
+        (id) => !categoryVehicleIds.includes(id)
+      );
+      const newSelection = [...otherSelectedIds, ...e.selectedRowKeys];
+      setSelectedKeys(newSelection);
+      dispatch(setSelectedVehicles(newSelection));
+    },
+    [vehiclesByCategory, selectedKeys, dispatch]
+  );
 
   // Select all in a category
-  const handleSelectCategory = useCallback((categoryId) => {
-    const categoryVehicleIds = vehiclesByCategory[categoryId].map(v => v.vehicleId);
-    const newSelection = [...new Set([...selectedKeys, ...categoryVehicleIds])];
-    setSelectedKeys(newSelection);
-    dispatch(setSelectedVehicles(newSelection));
-  }, [vehiclesByCategory, selectedKeys, dispatch]);
+  const handleSelectCategory = useCallback(
+    (categoryId) => {
+      const categoryVehicleIds = vehiclesByCategory[categoryId].map(
+        (v) => v.vehicleId
+      );
+      const newSelection = [
+        ...new Set([...selectedKeys, ...categoryVehicleIds]),
+      ];
+      setSelectedKeys(newSelection);
+      dispatch(setSelectedVehicles(newSelection));
+    },
+    [vehiclesByCategory, selectedKeys, dispatch]
+  );
 
   // Deselect all in a category
-  const handleDeselectCategory = useCallback((categoryId) => {
-    const categoryVehicleIds = new Set(vehiclesByCategory[categoryId].map(v => v.vehicleId));
-    const newSelection = selectedKeys.filter(id => !categoryVehicleIds.has(id));
-    setSelectedKeys(newSelection);
-    dispatch(setSelectedVehicles(newSelection));
-  }, [vehiclesByCategory, selectedKeys, dispatch]);
+  const handleDeselectCategory = useCallback(
+    (categoryId) => {
+      const categoryVehicleIds = new Set(
+        vehiclesByCategory[categoryId].map((v) => v.vehicleId)
+      );
+      const newSelection = selectedKeys.filter(
+        (id) => !categoryVehicleIds.has(id)
+      );
+      setSelectedKeys(newSelection);
+      dispatch(setSelectedVehicles(newSelection));
+    },
+    [vehiclesByCategory, selectedKeys, dispatch]
+  );
 
   // Select all vehicles
   const handleSelectAll = useCallback(() => {
-    const allIds = (wizard.tankRefills || []).map(v => v.vehicleId);
+    const allIds = (wizard.tankRefills || []).map((v) => v.vehicleId);
     setSelectedKeys(allIds);
     dispatch(setSelectedVehicles(allIds));
   }, [wizard.tankRefills, dispatch]);
@@ -170,15 +255,15 @@ const Step4VehicleSelection = memo(() => {
 
   // Format date
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
+    if (!dateStr) return "-";
     return new Date(dateStr).toLocaleDateString();
   };
 
   // Toggle category expansion
   const toggleCategory = (catIndex) => {
-    setExpandedCategories(prev =>
+    setExpandedCategories((prev) =>
       prev.includes(catIndex)
-        ? prev.filter(i => i !== catIndex)
+        ? prev.filter((i) => i !== catIndex)
         : [...prev, catIndex]
     );
   };
@@ -191,18 +276,24 @@ const Step4VehicleSelection = memo(() => {
     return (
       <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-py-1">
         <div className="tw-flex tw-items-center tw-gap-3">
-          <div className={`tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center ${config.bgColor}`}>
+          <div
+            className={`tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center ${config.bgColor}`}
+          >
             <i className={`fa-light ${config.icon} ${config.textColor}`}></i>
           </div>
           <div>
-            <span className="tw-font-semibold tw-text-gray-800">{config.name}</span>
+            <span className="tw-font-semibold tw-text-gray-800">
+              {config.name}
+            </span>
             <span className="tw-text-gray-500 tw-text-sm tw-ml-2">
-              ({stats.count} vehicle{stats.count !== 1 ? 's' : ''})
+              ({stats.count} vehicle{stats.count !== 1 ? "s" : ""})
             </span>
           </div>
         </div>
         <div className="tw-flex tw-items-center tw-gap-3">
-          <span className={`tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${config.badgeColor}`}>
+          <span
+            className={`tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${config.badgeColor}`}
+          >
             {config.confidence}
           </span>
           {stats.count > 0 && (
@@ -219,23 +310,31 @@ const Step4VehicleSelection = memo(() => {
   const renderCategoryGrid = (categoryId) => {
     const vehicles = vehiclesByCategory[categoryId];
     const config = CATEGORY_CONFIG[categoryId];
-    const categorySelectedKeys = selectedKeys.filter(id =>
-      vehicles.some(v => v.vehicleId === id)
+    const categorySelectedKeys = selectedKeys.filter((id) =>
+      vehicles.some((v) => v.vehicleId === id)
     );
 
     if (vehicles.length === 0) {
       return (
-        <div className={`tw-p-4 tw-text-center tw-text-gray-500 ${config.bgColor} tw-rounded-lg`}>
-          <i className={`fa-light ${config.icon} tw-text-2xl tw-mb-2 ${config.textColor}`}></i>
+        <div
+          className={`tw-p-4 tw-text-center tw-text-gray-500 ${config.bgColor} tw-rounded-lg`}
+        >
+          <i
+            className={`fa-light ${config.icon} tw-text-2xl tw-mb-2 ${config.textColor}`}
+          ></i>
           <p>No vehicles in this category</p>
         </div>
       );
     }
 
     return (
-      <div className={`tw-border tw-rounded-lg tw-overflow-hidden ${config.borderColor}`}>
+      <div
+        className={`tw-border tw-rounded-lg tw-overflow-hidden ${config.borderColor}`}
+      >
         {/* Category action bar */}
-        <div className={`tw-px-4 tw-py-2 tw-flex tw-items-center tw-justify-between ${config.bgColor}`}>
+        <div
+          className={`tw-px-4 tw-py-2 tw-flex tw-items-center tw-justify-between ${config.bgColor}`}
+        >
           <p className="tw-text-xs tw-text-gray-600">{config.description}</p>
           <div className="tw-flex tw-gap-2">
             <Button
@@ -246,7 +345,6 @@ const Step4VehicleSelection = memo(() => {
               onClick={() => handleExportCategory(categoryId)}
             />
             <Button
-
               text="Select all"
               type="default"
               stylingMode="outlined"
@@ -267,7 +365,9 @@ const Step4VehicleSelection = memo(() => {
 
         {/* DataGrid */}
         <DataGrid
-          ref={(ref) => { gridRefs.current[categoryId] = ref; }}
+          ref={(ref) => {
+            gridRefs.current[categoryId] = ref;
+          }}
           dataSource={vehicles}
           keyExpr="vehicleId"
           showBorders={false}
@@ -275,13 +375,14 @@ const Step4VehicleSelection = memo(() => {
           rowAlternationEnabled={true}
           height={Math.min(250, vehicles.length * 40 + 50)}
           selectedRowKeys={categorySelectedKeys}
-          onSelectionChanged={(e) => handleCategorySelectionChanged(categoryId, e)}
+          onSelectionChanged={(e) =>
+            handleCategorySelectionChanged(categoryId, e)
+          }
         >
           <Selection mode="multiple" showCheckBoxesMode="always" />
           <Scrolling mode="virtual" />
           <Paging enabled={false} />
           <Export enabled={false} /> {/* We use custom export button */}
-
           <Column dataField="vehicleNo" caption="Vehicle" width={110} />
           <Column dataField="vehicleTypeName" caption="Type" width={90} />
           <Column dataField="driverName" caption="Driver" width={120} />
@@ -310,8 +411,10 @@ const Step4VehicleSelection = memo(() => {
                 return <span className="tw-text-gray-400 tw-text-xs">N/A</span>;
               }
               return (
-                <span className="tw-text-xs" title={source || 'Unknown source'}>
-                  {value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                <span className="tw-text-xs" title={source || "Unknown source"}>
+                  {value.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}
                 </span>
               );
             }}
@@ -325,7 +428,10 @@ const Step4VehicleSelection = memo(() => {
             alignment="right"
             cellRender={(cellData) => (
               <span className="tw-text-green-600 tw-font-medium tw-text-xs">
-                +{cellData.value?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || 0}
+                +
+                {cellData.value?.toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                }) || 0}
               </span>
             )}
           />
@@ -343,8 +449,10 @@ const Step4VehicleSelection = memo(() => {
                 return <span className="tw-text-gray-400 tw-text-xs">N/A</span>;
               }
               return (
-                <span className="tw-text-xs" title={source || 'Unknown source'}>
-                  {value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                <span className="tw-text-xs" title={source || "Unknown source"}>
+                  {value.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}
                 </span>
               );
             }}
@@ -364,8 +472,15 @@ const Step4VehicleSelection = memo(() => {
               }
               const consumption = opening + added - closing;
               return (
-                <span className={`tw-text-xs tw-font-medium ${consumption >= 0 ? 'tw-text-red-600' : 'tw-text-blue-600'}`}>
-                  {consumption >= 0 ? '-' : '+'}{Math.abs(consumption).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                <span
+                  className={`tw-text-xs tw-font-medium ${
+                    consumption >= 0 ? "tw-text-red-600" : "tw-text-blue-600"
+                  }`}
+                >
+                  {consumption >= 0 ? "-" : "+"}
+                  {Math.abs(consumption).toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}
                 </span>
               );
             }}
@@ -379,18 +494,26 @@ const Step4VehicleSelection = memo(() => {
               const hasFuelSensor = cellData.data.hasFuelSensor;
               const hasGPS = cellData.data.hasGPS;
               const colors = {
-                'GPS_REST': 'tw-bg-green-100 tw-text-green-700',
-                'GPS_SOAP': 'tw-bg-cyan-100 tw-text-cyan-700',
-                'FullTank': 'tw-bg-yellow-100 tw-text-yellow-700',
-                'FullTank_GPS': 'tw-bg-yellow-100 tw-text-yellow-700',
-                'FuelRefill': 'tw-bg-gray-100 tw-text-gray-700',
-                'Unavailable': 'tw-bg-red-100 tw-text-red-700'
+                GPS_REST: "tw-bg-green-100 tw-text-green-700",
+                GPS_SOAP: "tw-bg-cyan-100 tw-text-cyan-700",
+                FullTank: "tw-bg-yellow-100 tw-text-yellow-700",
+                FullTank_GPS: "tw-bg-yellow-100 tw-text-yellow-700",
+                FuelRefill: "tw-bg-gray-100 tw-text-gray-700",
+                Unavailable: "tw-bg-red-100 tw-text-red-700",
               };
-              const displayText = source === 'FullTank_GPS' ? 'Full Tank' : (source?.replace('_', ' ') || 'N/A');
-              const tooltip = hasGPS && !hasFuelSensor ? 'GPS tracking (no fuel sensor)' : source;
+              const displayText =
+                source === "FullTank_GPS"
+                  ? "Full Tank"
+                  : source?.replace("_", " ") || "N/A";
+              const tooltip =
+                hasGPS && !hasFuelSensor
+                  ? "GPS tracking (no fuel sensor)"
+                  : source;
               return (
                 <span
-                  className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${colors[source] || 'tw-bg-gray-100'}`}
+                  className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${
+                    colors[source] || "tw-bg-gray-100"
+                  }`}
                   title={tooltip}
                 >
                   {displayText}
@@ -409,14 +532,18 @@ const Step4VehicleSelection = memo(() => {
               return (
                 <div className="tw-flex tw-gap-1 tw-justify-center">
                   <span
-                    className={`tw-text-xs ${hasGPS ? 'tw-text-blue-500' : 'tw-text-gray-300'}`}
-                    title={hasGPS ? 'GPS Tracking' : 'No GPS'}
+                    className={`tw-text-xs ${
+                      hasGPS ? "tw-text-blue-500" : "tw-text-gray-300"
+                    }`}
+                    title={hasGPS ? "GPS Tracking" : "No GPS"}
                   >
                     <i className="fa-light fa-location-dot"></i>
                   </span>
                   <span
-                    className={`tw-text-xs ${hasFuelSensor ? 'tw-text-green-500' : 'tw-text-gray-300'}`}
-                    title={hasFuelSensor ? 'Fuel Sensor' : 'No Fuel Sensor'}
+                    className={`tw-text-xs ${
+                      hasFuelSensor ? "tw-text-green-500" : "tw-text-gray-300"
+                    }`}
+                    title={hasFuelSensor ? "Fuel Sensor" : "No Fuel Sensor"}
                   >
                     <i className="fa-light fa-gauge"></i>
                   </span>
@@ -439,8 +566,9 @@ const Step4VehicleSelection = memo(() => {
         Select Vehicles for Audit
       </h3>
       <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
-        Vehicles are grouped by category based on GPS availability and site assignment.
-        Each category has different data sources and confidence levels.
+        Vehicles are grouped by category based on GPS availability and site
+        assignment. Each category has different data sources and confidence
+        levels.
       </p>
 
       {/* Period and tanks info */}
@@ -450,7 +578,8 @@ const Step4VehicleSelection = memo(() => {
             <div>
               <i className="fa-light fa-calendar tw-text-blue-600 tw-mr-2"></i>
               <span className="tw-text-sm tw-text-blue-800">
-                {formatDate(wizard.periodStart)} — {formatDate(wizard.periodEnd)}
+                {formatDate(wizard.periodStart)} —{" "}
+                {formatDate(wizard.periodEnd)}
               </span>
             </div>
             <div>
@@ -481,7 +610,9 @@ const Step4VehicleSelection = memo(() => {
       {isLoading && (
         <div className="tw-flex tw-items-center tw-justify-center tw-py-12">
           <LoadIndicator />
-          <span className="tw-ml-3 tw-text-gray-600">Loading fuel refill data...</span>
+          <span className="tw-ml-3 tw-text-gray-600">
+            Loading fuel refill data...
+          </span>
         </div>
       )}
 
@@ -498,11 +629,18 @@ const Step4VehicleSelection = memo(() => {
                   className={`tw-p-2 tw-rounded-lg tw-text-center tw-border ${config.borderColor} ${config.bgColor}`}
                 >
                   <div className="tw-flex tw-items-center tw-justify-center tw-gap-1">
-                    <i className={`fa-light ${config.icon} ${config.textColor} tw-text-sm`}></i>
-                    <span className={`tw-font-bold ${config.textColor}`}>{stats.count}</span>
+                    <i
+                      className={`fa-light ${config.icon} ${config.textColor} tw-text-sm`}
+                    ></i>
+                    <span className={`tw-font-bold ${config.textColor}`}>
+                      {stats.count}
+                    </span>
                   </div>
-                  <p className="tw-text-xs tw-text-gray-600 tw-truncate" title={config.name}>
-                    {config.name.split(' ')[0]}
+                  <p
+                    className="tw-text-xs tw-text-gray-600 tw-truncate"
+                    title={config.name}
+                  >
+                    {config.name.split(" ")[0]}
                   </p>
                 </div>
               );
@@ -511,16 +649,23 @@ const Step4VehicleSelection = memo(() => {
 
           {/* Category accordions */}
           <div className="tw-space-y-3">
-            {Object.keys(CATEGORY_CONFIG).map(catId => {
+            {Object.keys(CATEGORY_CONFIG).map((catId) => {
               const catIndex = parseInt(catId) - 1;
               return (
-                <div key={catId} className="tw-border tw-rounded-lg tw-overflow-hidden">
+                <div
+                  key={catId}
+                  className="tw-border tw-rounded-lg tw-overflow-hidden"
+                >
                   <button
                     className="tw-w-full tw-px-4 tw-py-3 tw-bg-white hover:tw-bg-gray-50 tw-flex tw-items-center tw-justify-between tw-transition-colors"
                     onClick={() => toggleCategory(catIndex)}
                   >
                     {renderCategoryTitle(parseInt(catId))}
-                    <i className={`fa-light fa-chevron-${expandedCategories.includes(catIndex) ? 'up' : 'down'} tw-text-gray-400 tw-ml-2`}></i>
+                    <i
+                      className={`fa-light fa-chevron-${
+                        expandedCategories.includes(catIndex) ? "up" : "down"
+                      } tw-text-gray-400 tw-ml-2`}
+                    ></i>
                   </button>
                   {expandedCategories.includes(catIndex) && (
                     <div className="tw-border-t">
@@ -540,9 +685,12 @@ const Step4VehicleSelection = memo(() => {
                 {selectedKeys.length} of {tankRefills.length} vehicles selected
               </span>
               <span className="tw-text-sm tw-text-gray-500">
-                Total fuel: {tankRefills.filter(v => selectedKeys.includes(v.vehicleId))
+                Total fuel:{" "}
+                {tankRefills
+                  .filter((v) => selectedKeys.includes(v.vehicleId))
                   .reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0)
-                  .toLocaleString(undefined, { maximumFractionDigits: 0 })} L
+                  .toLocaleString(undefined, { maximumFractionDigits: 0 })}{" "}
+                L
               </span>
             </div>
             <div className="tw-flex tw-gap-3">
@@ -566,35 +714,41 @@ const Step4VehicleSelection = memo(() => {
       )}
 
       {/* No refills found */}
-      {!isLoading && tankRefills.length === 0 && wizard.selectedTankIds?.length > 0 && (
-        <div className="tw-text-center tw-py-10 tw-bg-yellow-50 tw-rounded-lg tw-border tw-border-yellow-200">
-          <i className="fa-light fa-gas-pump tw-text-4xl tw-text-yellow-500 tw-mb-3"></i>
-          <p className="tw-text-gray-700 tw-font-medium">No fuel refills found</p>
-          <p className="tw-text-sm tw-text-gray-500 tw-mt-2">
-            No vehicles were fueled from the selected tanks during this period.
-          </p>
-          <Button
-            text="Refresh Data"
-            icon="refresh"
-            type="default"
-            className="tw-mt-4"
-            onClick={loadRefillData}
-          />
-        </div>
-      )}
+      {!isLoading &&
+        tankRefills.length === 0 &&
+        wizard.selectedTankIds?.length > 0 && (
+          <div className="tw-text-center tw-py-10 tw-bg-yellow-50 tw-rounded-lg tw-border tw-border-yellow-200">
+            <i className="fa-light fa-gas-pump tw-text-4xl tw-text-yellow-500 tw-mb-3"></i>
+            <p className="tw-text-gray-700 tw-font-medium">
+              No fuel refills found
+            </p>
+            <p className="tw-text-sm tw-text-gray-500 tw-mt-2">
+              No vehicles were fueled from the selected tanks during this
+              period.
+            </p>
+            <Button
+              text="Refresh Data"
+              icon="refresh"
+              type="default"
+              className="tw-mt-4"
+              onClick={loadRefillData}
+            />
+          </div>
+        )}
 
       {/* No tanks selected */}
       {!wizard.selectedTankIds?.length && (
         <div className="tw-text-center tw-py-10 tw-bg-gray-50 tw-rounded-lg">
           <i className="fa-light fa-database tw-text-4xl tw-text-gray-400 tw-mb-3"></i>
-          <p className="tw-text-gray-600">Please select tanks in Step 2 first.</p>
+          <p className="tw-text-gray-600">
+            Please select tanks in Step 2 first.
+          </p>
         </div>
       )}
     </div>
   );
-}
-);
+});
 
-Step4VehicleSelection.displayName = 'Step4VehicleSelection';
+Step4VehicleSelection.displayName = "Step4VehicleSelection";
 
 export default Step4VehicleSelection;

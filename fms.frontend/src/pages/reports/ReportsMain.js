@@ -1,18 +1,18 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import ReportsLayout from './layout/ReportsLayout';
-import ReportsDashboard from './ReportsDashboard';
-import ReportGallery from './ReportGallery';
-import TankVolumeHistoryReport from './TankVolumeHistoryReport';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import ReportsLayout from "./layout/ReportsLayout";
+import ReportsDashboard from "./ReportsDashboard";
+import ReportGallery from "./ReportGallery";
+import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
 
 // Import existing report components
-import FuelReportImporter from '../FuelReportImporter/FuelReportImporter';
-import BatchImportPage from '../FuelReportImporter/components/BatchImportPage';
-import ConsumptionBasedOnRefills from './consumption/consumptionBasedonRefills';
+import FuelReportImporter from "../FuelReportImporter/FuelReportImporter";
+import BatchImportPage from "../FuelReportImporter/components/batch/BatchImportPage";
+import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
 
 // Vehicle Consumption Report components
-import VehicleConsumptionReport from './vehicleConsumption/VehicleConsumptionReport';
-import VehicleConsumptionDetails from './vehicleConsumption/VehicleConsumptionDetails';
+import VehicleConsumptionReport from "./vehicleConsumption/VehicleConsumptionReport";
+import VehicleConsumptionDetails from "./vehicleConsumption/VehicleConsumptionDetails";
 
 const ReportsMain = () => {
   return (
@@ -24,7 +24,10 @@ const ReportsMain = () => {
 
         {/* DevExtreme Reports */}
         <Route path="gallery" element={<ReportGallery />} />
-        <Route path="tank-volume-history" element={<TankVolumeHistoryReport />} />
+        <Route
+          path="tank-volume-history"
+          element={<TankVolumeHistoryReport />}
+        />
 
         {/* Data Import Routes */}
         <Route path="fuel-importer" element={<FuelReportImporter />} />
@@ -32,15 +35,30 @@ const ReportsMain = () => {
         <Route path="fuel-importer/*" element={<FuelReportImporter />} />
 
         {/* Consumption Reports Routes */}
-        <Route path="consumption-refills" element={<ConsumptionBasedOnRefills />} />
-        <Route path="consumption-refills/*" element={<ConsumptionBasedOnRefills />} />
+        <Route
+          path="consumption-refills"
+          element={<ConsumptionBasedOnRefills />}
+        />
+        <Route
+          path="consumption-refills/*"
+          element={<ConsumptionBasedOnRefills />}
+        />
 
         {/* Vehicle Consumption Report Routes */}
-        <Route path="vehicle-consumption" element={<VehicleConsumptionReport />} />
-        <Route path="vehicle-consumption/details/:vehicleId" element={<VehicleConsumptionDetails />} />
+        <Route
+          path="vehicle-consumption"
+          element={<VehicleConsumptionReport />}
+        />
+        <Route
+          path="vehicle-consumption/details/:vehicleId"
+          element={<VehicleConsumptionDetails />}
+        />
 
         {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/reports/dashboard" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to="/reports/dashboard" replace />}
+        />
       </Routes>
     </ReportsLayout>
   );

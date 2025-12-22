@@ -90,6 +90,9 @@ namespace FMS.Application.Features.FuelComparison.Queries
                     gpsQuery = gpsQuery.Where(g => !g.IsDeleted);
                 }
 
+                var gpsGateVehicleMappings = _context.VehicleProviderMappings
+                    .Where(m => m.IsActive && m.ProviderConfiguration != null && m.ProviderConfiguration.Name == "GPSGate");
+
                 var gpsEntries = await gpsQuery
                     .Include(g => g.ModifiedByNavigation)
                     .Include(g => g.Vehicle)
@@ -103,11 +106,29 @@ namespace FMS.Application.Features.FuelComparison.Queries
                         g.ModificationReason,
                         ModifiedBy = g.ModifiedByNavigation != null ? g.ModifiedByNavigation.UserName : null,
                         g.IsDeleted,
-                        VehicleName = g.Vehicle != null ? g.Vehicle.HyoungNo : null
+                        VehicleName = g.Vehicle != null ? g.Vehicle.HyoungNo : null,
+                        // GPS refueling details for chart display
+                        g.StartTime,
+                        g.Duration,
+                        g.FuelBefore,
+                        g.FuelAfter,
+                        GpsGateExternalDeviceId = gpsGateVehicleMappings
+                            .Where(m => m.VehicleId == g.VehicleId)
+                            .Select(m => m.ExternalDeviceId)
+                            .FirstOrDefault()
                     })
                     .ToListAsync(cancellationToken);
 
-                _logger.LogInformation($"Retrieved {gpsEntries.Count} GPS entries from database");
+                _logger.LogInformation($"Retrieved {gpsEntries.Count()} GPS entries from database");
+
+                // Log GPS entry details for debugging
+                foreach (var gpsEntry in gpsEntries.Take(5))
+                {
+                    _logger.LogInformation($"GPS Entry Debug - Id: {gpsEntry.Id}, VehicleId: {gpsEntry.VehicleId}, " +
+                        $"StartTime: {gpsEntry.StartTime}, Duration: {gpsEntry.Duration}, " +
+                        $"FuelBefore: {gpsEntry.FuelBefore}, FuelAfter: {gpsEntry.FuelAfter}, " +
+                        $"RefillVolume: {gpsEntry.RefillVolume}, GpsGateExternalDeviceId: {gpsEntry.GpsGateExternalDeviceId}");
+                }
 
                 // Get vehicle info for display names
                 var vehicleIds = manualRefills.Select(m => m.VehicleId)
@@ -243,7 +264,15 @@ namespace FMS.Application.Features.FuelComparison.Queries
                             VehicleTypeId = vehicle.VehicleTypeId,
                             VehicleTypeName = vehicle.VehicleTypeName,
                             TankId = manualEntry?.TankId,
-                            TankName = tankInfo?.TankName
+                            TankName = tankInfo?.TankName,
+                            // GPS refueling details for chart display
+                            GpsGateVehicleId = gpsEntry != null && int.TryParse(gpsEntry.GpsGateExternalDeviceId, out var gpsGateVehicleId)
+                                ? gpsGateVehicleId
+                                : (int?)null,
+                            GpsStartTime = gpsEntry?.StartTime,
+                            GpsDuration = gpsEntry?.Duration,
+                            GpsFuelBefore = gpsEntry?.FuelBefore,
+                            GpsFuelAfter = gpsEntry?.FuelAfter
                         });
                     }
                 }

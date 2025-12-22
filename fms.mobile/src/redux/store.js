@@ -1,22 +1,24 @@
-import {configureStore, combineReducers} from '@reduxjs/toolkit';
-import {persistStore, persistReducer} from 'redux-persist';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { persistStore, persistReducer } from "redux-persist";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Import reducers
-import authReducer from './slices/authSlice';
-import deviceReducer from './slices/deviceSlice';
-import fuelingReducer from './slices/fuelingSlice';
-import vehicleReducer from './slices/vehicleSlice';
-import tagReducer from './slices/tagSlice';
-import siteReducer from './slices/siteSlice';
-import fuelingEventReducer from './slices/fuelingEventSlice';
-import transactionReducer from './slices/transactionSlice';
+import authReducer from "./slices/authSlice";
+import deviceReducer from "./slices/deviceSlice";
+import fuelingReducer from "./slices/fuelingSlice";
+import vehicleReducer from "./slices/vehicleSlice";
+import tagReducer from "./slices/tagSlice";
+import siteReducer from "./slices/siteSlice";
+import fuelingEventReducer from "./slices/fuelingEventSlice";
+import transactionReducer from "./slices/transactionSlice";
+import tankReducer from "./slices/tankSlice";
+import tankVolumeHistoryReducer from "./slices/tankVolumeHistorySlice";
 
 const persistConfig = {
-  key: 'root',
+  key: "root",
   storage: AsyncStorage,
-  whitelist: ['auth', 'device', 'site'], // Only persist essential data
-  blacklist: ['fueling'], // Don't persist real-time fueling data
+  whitelist: ["auth", "device", "site"], // Only persist essential data
+  blacklist: ["fueling", "tank", "tankVolumeHistory"], // Don't persist real-time data
 };
 
 const rootReducer = combineReducers({
@@ -28,16 +30,18 @@ const rootReducer = combineReducers({
   site: siteReducer,
   fuelingEvent: fuelingEventReducer,
   transaction: transactionReducer,
+  tank: tankReducer,
+  tankVolumeHistory: tankVolumeHistoryReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
   reducer: persistedReducer,
-  middleware: getDefaultMiddleware =>
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
       },
     }),
   devTools: __DEV__,

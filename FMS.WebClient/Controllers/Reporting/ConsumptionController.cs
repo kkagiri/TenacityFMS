@@ -373,6 +373,7 @@ namespace FMS.WebClient.Controllers
         /// Imports a fuel report with multiple consumption records after validating them.
         /// </summary>
         [HttpPost("import")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> ImportFuelReport([FromBody] object requestObj)
         {
             try
@@ -545,7 +546,35 @@ namespace FMS.WebClient.Controllers
                 }
 
                 // Get user ID from claims for tracking
-                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                // Try the full URI format first
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse(c.Value, out _));
+
+                // Fallback to short form if full URI not found
+                if (userIdClaim == null)
+                {
+                    userIdClaim = User.Claims.FirstOrDefault(c =>
+                        c.Type == System.Security.Claims.ClaimTypes.NameIdentifier &&
+                        Guid.TryParse(c.Value, out _));
+                }
+
+                string userId;
+                if (userIdClaim != null)
+                {
+                    userId = userIdClaim.Value;
+                    _logger.LogInformation("Import initiated by user: {UserId}", userId);
+                }
+                else
+                {
+                    // Log all available claims for debugging
+                    _logger.LogWarning("User ID claim not found. Available claims: {Claims}",
+                        string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+
+                    // Use "System" as fallback but log it
+                    userId = "System";
+                    _logger.LogWarning("Falling back to System as user ID for fuel import");
+                }
 
                 // Set the skipDuplicates flag properly at the command level
                 var command = new FMS.Application.Features.FuelImport.Commands.ImportFuelReportCommand
@@ -593,6 +622,7 @@ namespace FMS.WebClient.Controllers
         /// Progress and completion are sent via SignalR.
         /// </summary>
         [HttpPost("import/async")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> ImportFuelReportAsync([FromBody] object requestObj)
         {
             try
@@ -666,9 +696,38 @@ namespace FMS.WebClient.Controllers
 
                 // Generate job ID
                 var jobId = Guid.NewGuid().ToString("N");
-                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
 
-                _logger.LogInformation("Starting async import job {JobId} with {Count} records", jobId, models.Count);
+                // Get user ID from claims for tracking
+                // Try the full URI format first
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse(c.Value, out _));
+
+                // Fallback to short form if full URI not found
+                if (userIdClaim == null)
+                {
+                    userIdClaim = User.Claims.FirstOrDefault(c =>
+                        c.Type == System.Security.Claims.ClaimTypes.NameIdentifier &&
+                        Guid.TryParse(c.Value, out _));
+                }
+
+                string userId;
+                if (userIdClaim != null)
+                {
+                    userId = userIdClaim.Value;
+                }
+                else
+                {
+                    // Log all available claims for debugging
+                    _logger.LogWarning("User ID claim not found for async import. Available claims: {Claims}",
+                        string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+
+                    // Use "System" as fallback but log it
+                    userId = "System";
+                    _logger.LogWarning("Falling back to System as user ID for async fuel import");
+                }
+
+                _logger.LogInformation("Starting async import job {JobId} with {Count} records for user {UserId}", jobId, models.Count, userId);
 
                 // Validate data first (quick validation before returning)
                 var validationErrors = ValidateFuelReportData(models);
@@ -736,7 +795,8 @@ namespace FMS.WebClient.Controllers
                             Models = models,
                             SkipDuplicates = skipDuplicates,
                             OverwriteExisting = overwriteExisting,
-                            UserId = userId
+                            UserId = userId,
+                            JobId = jobId
                         };
 
                         // Use the scoped mediator for background work
@@ -830,6 +890,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="jobId">The job ID to cancel</param>
         /// <returns>Success or error response</returns>
         [HttpPost("import/cancel/{jobId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CancelFuelImport(string jobId)
         {
             try

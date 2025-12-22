@@ -32,26 +32,41 @@ namespace FMS.WebClient.Controllers
         [HttpGet("simple")]
         public async Task<IActionResult> GetSimpleVehicleList()
         {
-            // Try to get from cache first
+            // Try to get from cache first, but don't let cache failures break the endpoint
             var cacheKey = "SimpleVehicleList";
-            var cachedData = await _cache.GetStringAsync(cacheKey);
-
-            if (!string.IsNullOrEmpty(cachedData))
+            try
             {
-                var cachedVehicles = JsonSerializer.Deserialize<List<VehicleDTO>>(cachedData);
-                return Ok(cachedVehicles);
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    var cachedVehicles = JsonSerializer.Deserialize<List<VehicleDTO>>(cachedData);
+                    return Ok(cachedVehicles);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log cache error but continue - Redis timeout shouldn't break the API
+                Console.WriteLine($"Cache read error for {cacheKey}: {ex.Message}");
             }
 
-            // If not in cache, get from database
+            // If not in cache or cache failed, get from database
             var query = new GetSimpleVehicleQuery();
             var vehicles = await _mediator.Send(query);
 
-            // Store in cache
-            var cacheOptions = new DistributedCacheEntryOptions
+            // Try to store in cache, but don't fail if cache write fails
+            try
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
-            };
-            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(vehicles), cacheOptions);
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+                };
+                await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(vehicles), cacheOptions);
+            }
+            catch (Exception ex)
+            {
+                // Log but continue - cache write failure shouldn't break the response
+                Console.WriteLine($"Cache write error for {cacheKey}: {ex.Message}");
+            }
 
             return Ok(vehicles);
         }
@@ -61,26 +76,34 @@ namespace FMS.WebClient.Controllers
         [RequirePermission("_Read_Vehicle")]
         public async Task<IActionResult> GetVehicleList([FromQuery] string? siteIds = null)
         {
-            // Try to get from cache first
+            // Try to get from cache first, but don't let cache failures break the endpoint
             var cacheKey = "VehicleList";
-            var cachedData = await _cache.GetStringAsync(cacheKey);
-
-            if (!string.IsNullOrEmpty(cachedData))
+            try
             {
-                var cachedVehicles = JsonSerializer.Deserialize<List<VehicleDTO>>(cachedData);
-                if (!string.IsNullOrWhiteSpace(siteIds) && cachedVehicles != null)
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
                 {
-                    var set = siteIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .Select(s => int.TryParse(s, out var id) ? id : (int?)null)
-                        .Where(id => id.HasValue)
-                        .Select(id => id!.Value)
-                        .ToHashSet();
-                    if (set.Count > 0)
-                        cachedVehicles = cachedVehicles.Where(v => v.WorkingSiteId.HasValue && set.Contains(v.WorkingSiteId.Value)).ToList();
+                    var cachedVehicles = JsonSerializer.Deserialize<List<VehicleDTO>>(cachedData);
+                    if (!string.IsNullOrWhiteSpace(siteIds) && cachedVehicles != null)
+                    {
+                        var set = siteIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .Select(s => int.TryParse(s, out var id) ? id : (int?)null)
+                            .Where(id => id.HasValue)
+                            .Select(id => id!.Value)
+                            .ToHashSet();
+                        if (set.Count > 0)
+                            cachedVehicles = cachedVehicles.Where(v => v.WorkingSiteId.HasValue && set.Contains(v.WorkingSiteId.Value)).ToList();
+                    }
+                    return Ok(cachedVehicles);
                 }
-                return Ok(cachedVehicles);
+            }
+            catch (Exception ex)
+            {
+                // Log cache error but continue - Redis timeout/error shouldn't break the API
+                Console.WriteLine($"Cache read error for {cacheKey}: {ex.Message}");
             }
 
+            // If not in cache or cache failed, get from database
             var query = new GetVehicleQuery();
             var vehicles = await _mediator.Send(query);
             if (!string.IsNullOrWhiteSpace(siteIds) && vehicles != null)
@@ -94,12 +117,20 @@ namespace FMS.WebClient.Controllers
                     vehicles = vehicles.Where(v => v.WorkingSiteId.HasValue && set.Contains(v.WorkingSiteId.Value)).ToList();
             }
 
-            // Store in cache
-            var cacheOptions = new DistributedCacheEntryOptions
+            // Try to store in cache, but don't fail if cache write fails
+            try
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
-            };
-            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(vehicles), cacheOptions);
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+                };
+                await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(vehicles), cacheOptions);
+            }
+            catch (Exception ex)
+            {
+                // Log but continue - cache write failure shouldn't break the response
+                Console.WriteLine($"Cache write error for {cacheKey}: {ex.Message}");
+            }
 
             return Ok(vehicles);
         }
@@ -109,26 +140,40 @@ namespace FMS.WebClient.Controllers
         [RequirePermission("_Read_Vehicle")]
         public async Task<IActionResult> GetVehicleByID(int id)
         {
-            // Try to get from cache first
+            // Try to get from cache first, but don't let cache failures break the endpoint
             var cacheKey = $"Vehicle:{id}";
-            var cachedData = await _cache.GetStringAsync(cacheKey);
-
-            if (!string.IsNullOrEmpty(cachedData))
+            try
             {
-                var cachedVehicle = JsonSerializer.Deserialize<VehicleDTO>(cachedData);
-                return Ok(cachedVehicle);
+                var cachedData = await _cache.GetStringAsync(cacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    var cachedVehicle = JsonSerializer.Deserialize<VehicleDTO>(cachedData);
+                    return Ok(cachedVehicle);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log cache error but continue
+                Console.WriteLine($"Cache read error for {cacheKey}: {ex.Message}");
             }
 
             var query = new GetVehicleByIDQuery(id);
             var vehicle = await _mediator.Send(query);
             if (vehicle == null) return NotFound();
 
-            // Store in cache
-            var cacheOptions = new DistributedCacheEntryOptions
+            // Try to store in cache
+            try
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
-            };
-            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(vehicle), cacheOptions);
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                };
+                await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(vehicle), cacheOptions);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cache write error for {cacheKey}: {ex.Message}");
+            }
 
             return Ok(vehicle);
         }
@@ -175,15 +220,22 @@ namespace FMS.WebClient.Controllers
 
             if (result.Success)
             {
-                // Invalidate cache
-                await _cache.RemoveAsync("VehicleList");
-                await _cache.RemoveAsync("SimpleVehicleList");
-
-                // Invalidate individual vehicle caches
-                foreach (var vehicle in vehicleDTOs)
+                // Invalidate cache - don't let cache errors break the response
+                try
                 {
-                    if (vehicle.VehicleId > 0)
-                        await _cache.RemoveAsync($"Vehicle:{vehicle.VehicleId}");
+                    await _cache.RemoveAsync("VehicleList");
+                    await _cache.RemoveAsync("SimpleVehicleList");
+
+                    // Invalidate individual vehicle caches
+                    foreach (var vehicle in vehicleDTOs)
+                    {
+                        if (vehicle.VehicleId > 0)
+                            await _cache.RemoveAsync($"Vehicle:{vehicle.VehicleId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Cache invalidation error: {ex.Message}");
                 }
             }
 
@@ -215,10 +267,17 @@ namespace FMS.WebClient.Controllers
 
             if (result.Success)
             {
-                // Invalidate cache
-                await _cache.RemoveAsync("VehicleList");
-                await _cache.RemoveAsync("SimpleVehicleList");
-                await _cache.RemoveAsync($"Vehicle:{id}");
+                // Invalidate cache - don't let cache errors break the response
+                try
+                {
+                    await _cache.RemoveAsync("VehicleList");
+                    await _cache.RemoveAsync("SimpleVehicleList");
+                    await _cache.RemoveAsync($"Vehicle:{id}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Cache invalidation error: {ex.Message}");
+                }
             }
 
             if (!result.Success) return BadRequest(result.Message);
@@ -244,10 +303,17 @@ namespace FMS.WebClient.Controllers
 
             if (result.Success)
             {
-                // Invalidate cache
-                await _cache.RemoveAsync("VehicleList");
-                await _cache.RemoveAsync("SimpleVehicleList");
-                await _cache.RemoveAsync($"Vehicle:{id}");
+                // Invalidate cache - don't let cache errors break the response
+                try
+                {
+                    await _cache.RemoveAsync("VehicleList");
+                    await _cache.RemoveAsync("SimpleVehicleList");
+                    await _cache.RemoveAsync($"Vehicle:{id}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Cache invalidation error: {ex.Message}");
+                }
             }
 
             if (!result.Success) return BadRequest(result.Message);

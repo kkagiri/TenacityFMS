@@ -1,0 +1,164 @@
+// GPS Fuel Level Chart Styles
+// This is a shared/global component that can be used throughout the application
+
+.gps-fuel-chart {
+  @apply tw-w-full;
+
+  // Statistics cards grid
+  .chart-stat-card {
+    @apply tw-flex tw-items-center tw-gap-3 tw-p-3 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm;
+
+    .chart-stat-icon {
+      @apply tw-flex tw-items-center tw-justify-center tw-w-10 tw-h-10 tw-rounded-lg tw-text-lg;
+    }
+
+    .chart-stat-content {
+      @apply tw-flex tw-flex-col;
+
+      .chart-stat-value {
+        @apply tw-text-lg tw-font-semibold tw-text-gray-800;
+      }
+
+      .chart-stat-label {
+        @apply tw-text-xs tw-text-gray-500;
+      }
+    }
+  }
+
+  // Chart container
+  .chart-container {
+    @apply tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4;
+
+    // DevExtreme chart customizations
+    .dx-chart {
+      // Tooltip styling
+      .dxc-tooltip {
+        @apply tw-shadow-lg;
+
+        .dxc-text {
+          font-family: inherit !important;
+        }
+      }
+    }
+  }
+
+  // Range selector container
+  .range-selector-container {
+    @apply tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4;
+
+    .dx-range-selector {
+      // Range selector track styling
+      .dxrs-slider {
+        fill: #3b82f6;
+      }
+    }
+  }
+
+  // Refueling events list
+  .refueling-events-list {
+    animation: fadeIn 0.3s ease-in-out;
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+
+  // Retry button styling
+  button.tw-bg-blue-500 {
+    &:hover {
+      @apply tw-bg-blue-600;
+    }
+
+    &:active {
+      @apply tw-bg-blue-700;
+    }
+  }
+}
+
+// Loading state
+.gps-fuel-chart-loading {
+  @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12;
+
+  .loading-text {
+    @apply tw-mt-4 tw-text-gray-600;
+  }
+}
+
+// Error state
+.gps-fuel-chart-error {
+  @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12;
+
+  .error-icon {
+    @apply tw-text-4xl tw-text-yellow-500 tw-mb-4;
+  }
+
+  .error-title {
+    @apply tw-text-gray-700 tw-font-medium tw-mb-2;
+  }
+
+  .error-message {
+    @apply tw-text-gray-500 tw-text-sm tw-text-center tw-max-w-md;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .gps-fuel-chart {
+    .chart-stat-card {
+      @apply tw-p-2;
+
+      .chart-stat-icon {
+        @apply tw-w-8 tw-h-8 tw-text-sm;
+      }
+
+      .chart-stat-content {
+        .chart-stat-value {
+          @apply tw-text-base;
+        }
+
+        .chart-stat-label {
+          @apply tw-text-[10px];
+        }
+      }
+    }
+
+    .chart-container {
+      @apply tw-p-2;
+    }
+
+    .range-selector-container {
+      @apply tw-p-2;
+    }
+  }
+}
+
+// Dark mode support (if applicable)
+.dark {
+  .gps-fuel-chart {
+    .chart-stat-card {
+      @apply tw-bg-gray-800 tw-border-gray-700;
+
+      .chart-stat-content {
+        .chart-stat-value {
+          @apply tw-text-gray-100;
+        }
+
+        .chart-stat-label {
+          @apply tw-text-gray-400;
+        }
+      }
+    }
+
+    .chart-container,
+    .range-selector-container {
+      @apply tw-bg-gray-800 tw-border-gray-700;
+    }
+  }
+}

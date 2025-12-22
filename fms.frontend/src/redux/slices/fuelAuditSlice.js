@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 import {
   fetchVehicleFuelPosition,
   fetchFleetFuelPositions,
@@ -24,8 +24,8 @@ import {
   finalizeAuditAction,
   cancelAuditAction,
   resolveFlagAction,
-  fetchAuditThresholds
-} from './fuelAuditThunks';
+  fetchAuditThresholds,
+} from "./fuelAuditThunks";
 
 // ============================================================
 // INITIAL STATE
@@ -38,7 +38,7 @@ const initialState = {
     pageNumber: 1,
     pageSize: 20,
     totalCount: 0,
-    totalPages: 0
+    totalPages: 0,
   },
 
   // Current audit detail
@@ -55,9 +55,9 @@ const initialState = {
     jobId: null,
     status: null, // 'started' | 'processing' | 'completed' | 'cancelled' | 'error'
     progressPercent: 0,
-    message: '',
+    message: "",
     result: null,
-    error: null
+    error: null,
   },
 
   // Thresholds
@@ -70,19 +70,21 @@ const initialState = {
     draftAuditId: null,
     draftAuditNumber: null,
     lastSavedAt: null,
+    // User-editable audit identifier (maps to backend Create/SaveDraft AuditNumber)
+    auditNumber: "",
     // Step 1 data - Multi-site support
-    siteIds: [],  // Changed from siteId to siteIds array for multi-site selection
+    siteIds: [], // Changed from siteId to siteIds array for multi-site selection
     periodStart: null,
     periodEnd: null,
-    auditType: 'Weekly',
+    auditType: "Weekly",
     // Step 2 data - tanks (grouped by site)
-    tanks: [],  // All tanks from all selected sites
-    tanksBySite: {},  // Tanks grouped by siteId: { siteId: [tanks] }
+    tanks: [], // All tanks from all selected sites
+    tanksBySite: {}, // Tanks grouped by siteId: { siteId: [tanks] }
     selectedTankIds: [],
     // Step 3 data - tank preview
     tankPreview: null,
     // Step 4 data - vehicles/refills from tanks
-    tankRefills: [],  // Vehicle refill summaries from selected tanks
+    tankRefills: [], // Vehicle refill summaries from selected tanks
     selectedVehicleIds: [],
     includeGpsFleet: true,
     includePickups: true,
@@ -91,7 +93,7 @@ const initialState = {
     // Step 6 data - Reconciliation edits
     reconciliationData: null,
     // Step 7 data
-    notes: '',
+    notes: "",
     autoPopulateTankReadings: true,
     // Validation
     validation: {
@@ -101,8 +103,8 @@ const initialState = {
       step4: { valid: false, errors: [] },
       step5: { valid: false, errors: [], warnings: [] },
       step6: { valid: true, errors: [] },
-      step7: { valid: true, errors: [] }
-    }
+      step7: { valid: true, errors: [] },
+    },
   },
 
   // Loading states
@@ -126,7 +128,7 @@ const initialState = {
     tankRefills: false,
     tankPreview: false,
     gpsPreview: false,
-    refreshVehicle: false
+    refreshVehicle: false,
   },
 
   // Error states
@@ -149,17 +151,17 @@ const initialState = {
     tanks: null,
     tankRefills: null,
     tankPreview: null,
-    gpsPreview: null
+    gpsPreview: null,
   },
 
   // UI state
   activeTab: 0,
-  filterStatus: 'all',
+  filterStatus: "all",
   filterSiteId: null,
   filterDateRange: {
     from: null,
-    to: null
-  }
+    to: null,
+  },
 };
 
 // ============================================================
@@ -167,7 +169,7 @@ const initialState = {
 // ============================================================
 
 const fuelAuditSlice = createSlice({
-  name: 'fuelAudit',
+  name: "fuelAudit",
   initialState,
   reducers: {
     // Clear states
@@ -187,9 +189,9 @@ const fuelAuditSlice = createSlice({
         jobId: null,
         status: null,
         progressPercent: 0,
-        message: '',
+        message: "",
         result: null,
-        error: null
+        error: null,
       };
     },
 
@@ -205,12 +207,12 @@ const fuelAuditSlice = createSlice({
     },
     gpsFetchCompleted: (state, action) => {
       const { jobId, result } = action.payload;
-      console.log('[fuelAuditSlice] gpsFetchCompleted called, jobId:', jobId);
+      console.log("[fuelAuditSlice] gpsFetchCompleted called, jobId:", jobId);
 
       if (state.gpsFetchJob.jobId === jobId || !state.gpsFetchJob.jobId) {
-        state.gpsFetchJob.status = 'completed';
+        state.gpsFetchJob.status = "completed";
         state.gpsFetchJob.progressPercent = 100;
-        state.gpsFetchJob.message = 'GPS data fetch completed';
+        state.gpsFetchJob.message = "GPS data fetch completed";
         state.gpsFetchJob.result = result;
         state.wizard.gpsPreview = result;
         state.loading.gpsPreview = false;
@@ -219,18 +221,26 @@ const fuelAuditSlice = createSlice({
         // This mirrors the logic in fetchCategoryAuditData.fulfilled
         if (result && result.categoryResults) {
           const categoryResults = result.categoryResults || [];
-          console.log('[fuelAuditSlice] Processing', categoryResults.length, 'category results');
+          console.log(
+            "[fuelAuditSlice] Processing",
+            categoryResults.length,
+            "category results"
+          );
 
-          categoryResults.forEach(catResult => {
+          categoryResults.forEach((catResult) => {
             const vehicles = catResult.vehicles || [];
-            console.log(`[fuelAuditSlice] Category ${catResult.category}: ${vehicles.length} vehicles`);
+            console.log(
+              `[fuelAuditSlice] Category ${catResult.category}: ${vehicles.length} vehicles`
+            );
 
-            vehicles.forEach(vehicle => {
+            vehicles.forEach((vehicle) => {
               const idx = state.wizard.tankRefills?.findIndex(
-                v => v.vehicleId === vehicle.vehicleId
+                (v) => v.vehicleId === vehicle.vehicleId
               );
 
-              console.log(`[fuelAuditSlice] Vehicle ${vehicle.vehicleId}: idx=${idx}, openingFuelLevel=${vehicle.openingFuelLevel}, closingFuelLevel=${vehicle.closingFuelLevel}`);
+              console.log(
+                `[fuelAuditSlice] Vehicle ${vehicle.vehicleId}: idx=${idx}, openingFuelLevel=${vehicle.openingFuelLevel}, closingFuelLevel=${vehicle.closingFuelLevel}`
+              );
 
               if (idx >= 0 && state.wizard.tankRefills) {
                 state.wizard.tankRefills[idx] = {
@@ -265,7 +275,7 @@ const fuelAuditSlice = createSlice({
                   isAuditable: vehicle.isAuditable,
                   gpsDataLoaded: true,
                   // GPS Refill Events (for Category 4 Cross-Site SOAP data)
-                  gpsRefillEvents: vehicle.gpsRefillEvents || []
+                  gpsRefillEvents: vehicle.gpsRefillEvents || [],
                 };
               }
             });
@@ -279,7 +289,7 @@ const fuelAuditSlice = createSlice({
     gpsFetchError: (state, action) => {
       const { jobId, error } = action.payload;
       if (state.gpsFetchJob.jobId === jobId) {
-        state.gpsFetchJob.status = 'error';
+        state.gpsFetchJob.status = "error";
         state.gpsFetchJob.error = error;
         state.gpsFetchJob.message = `Error: ${error}`;
         state.loading.gpsPreview = false;
@@ -312,11 +322,17 @@ const fuelAuditSlice = createSlice({
     setWizardSiteAndPeriod: (state, action) => {
       const { siteIds, periodStart, periodEnd, auditType } = action.payload;
       // Handle both array and single siteId for backward compatibility
-      state.wizard.siteIds = Array.isArray(siteIds) ? siteIds : (siteIds ? [siteIds] : []);
+      state.wizard.siteIds = Array.isArray(siteIds)
+        ? siteIds
+        : siteIds
+        ? [siteIds]
+        : [];
       // Convert Date objects to ISO strings for Redux serialization
-      state.wizard.periodStart = periodStart instanceof Date ? periodStart.toISOString() : periodStart;
-      state.wizard.periodEnd = periodEnd instanceof Date ? periodEnd.toISOString() : periodEnd;
-      state.wizard.auditType = auditType || 'Weekly';
+      state.wizard.periodStart =
+        periodStart instanceof Date ? periodStart.toISOString() : periodStart;
+      state.wizard.periodEnd =
+        periodEnd instanceof Date ? periodEnd.toISOString() : periodEnd;
+      state.wizard.auditType = auditType || "Weekly";
       // Clear downstream data when sites/period changes
       state.wizard.tanks = [];
       state.wizard.tanksBySite = {};
@@ -327,6 +343,10 @@ const fuelAuditSlice = createSlice({
       state.wizard.gpsPreview = null;
     },
 
+    setWizardAuditNumber: (state, action) => {
+      state.wizard.auditNumber = action.payload || "";
+    },
+
     // Step 2: Select Tanks
     // Note: Don't clear tankPreview if data has been edited - user explicitly saves/fetches
     setSelectedTanks: (state, action) => {
@@ -334,12 +354,15 @@ const fuelAuditSlice = createSlice({
       const oldSelectedIds = state.wizard.selectedTankIds || [];
 
       // Check if any tank preview data was edited
-      const hasEditedData = state.wizard.tankPreview?.some(t => t.isEdited) || false;
+      const hasEditedData =
+        state.wizard.tankPreview?.some((t) => t.isEdited) || false;
 
       // Only clear preview if:
       // 1. Selection actually changed AND
       // 2. No edited data exists
-      const selectionChanged = JSON.stringify(newSelectedIds.sort()) !== JSON.stringify(oldSelectedIds.sort());
+      const selectionChanged =
+        JSON.stringify(newSelectedIds.sort()) !==
+        JSON.stringify(oldSelectedIds.sort());
 
       state.wizard.selectedTankIds = newSelectedIds;
 
@@ -373,12 +396,15 @@ const fuelAuditSlice = createSlice({
       const oldSelectedIds = state.wizard.selectedVehicleIds || [];
 
       // Check if any vehicle/tankRefills data was edited
-      const hasEditedVehicleData = state.wizard.tankRefills?.some(v => v.isEdited) || false;
+      const hasEditedVehicleData =
+        state.wizard.tankRefills?.some((v) => v.isEdited) || false;
 
       // Only clear preview if:
       // 1. Selection actually changed AND
       // 2. No edited data exists
-      const selectionChanged = JSON.stringify(newSelectedIds.sort()) !== JSON.stringify(oldSelectedIds.sort());
+      const selectionChanged =
+        JSON.stringify(newSelectedIds.sort()) !==
+        JSON.stringify(oldSelectedIds.sort());
 
       state.wizard.selectedVehicleIds = newSelectedIds;
 
@@ -391,8 +417,10 @@ const fuelAuditSlice = createSlice({
 
     setVehicleOptions: (state, action) => {
       const { includeGpsFleet, includePickups } = action.payload;
-      if (includeGpsFleet !== undefined) state.wizard.includeGpsFleet = includeGpsFleet;
-      if (includePickups !== undefined) state.wizard.includePickups = includePickups;
+      if (includeGpsFleet !== undefined)
+        state.wizard.includeGpsFleet = includeGpsFleet;
+      if (includePickups !== undefined)
+        state.wizard.includePickups = includePickups;
     },
 
     // Step 6: Notes
@@ -411,7 +439,7 @@ const fuelAuditSlice = createSlice({
       state.wizard.validation[`step${step}`] = {
         valid,
         errors: errors || [],
-        warnings: warnings || []
+        warnings: warnings || [],
       };
     },
 
@@ -419,15 +447,23 @@ const fuelAuditSlice = createSlice({
     updateTankPreviewData: (state, action) => {
       const { tankId, changes } = action.payload;
       if (state.wizard.tankPreview && Array.isArray(state.wizard.tankPreview)) {
-        const idx = state.wizard.tankPreview.findIndex(t => t.tankId === tankId);
+        const idx = state.wizard.tankPreview.findIndex(
+          (t) => t.tankId === tankId
+        );
         if (idx >= 0) {
           state.wizard.tankPreview[idx] = {
             ...state.wizard.tankPreview[idx],
             ...changes,
             // Mark as manually edited
             isEdited: true,
-            openingDataSource: changes.openingStock !== undefined ? 'manual' : state.wizard.tankPreview[idx].openingDataSource,
-            closingDataSource: changes.closingStock !== undefined ? 'manual' : state.wizard.tankPreview[idx].closingDataSource
+            openingDataSource:
+              changes.openingStock !== undefined
+                ? "manual"
+                : state.wizard.tankPreview[idx].openingDataSource,
+            closingDataSource:
+              changes.closingStock !== undefined
+                ? "manual"
+                : state.wizard.tankPreview[idx].closingDataSource,
           };
         }
       }
@@ -440,7 +476,9 @@ const fuelAuditSlice = createSlice({
     updateVehicleFuelData: (state, action) => {
       const { vehicleId, changes } = action.payload;
       if (state.wizard.tankRefills && Array.isArray(state.wizard.tankRefills)) {
-        const idx = state.wizard.tankRefills.findIndex(v => v.vehicleId === vehicleId);
+        const idx = state.wizard.tankRefills.findIndex(
+          (v) => v.vehicleId === vehicleId
+        );
         if (idx >= 0) {
           state.wizard.tankRefills[idx] = {
             ...state.wizard.tankRefills[idx],
@@ -448,9 +486,11 @@ const fuelAuditSlice = createSlice({
             // Mark as manually edited
             isEdited: true,
             // Update data source to manual if opening/closing was changed
-            dataSourcePrimary: (changes.openingFuel !== undefined || changes.closingFuel !== undefined)
-              ? 'Manual'
-              : state.wizard.tankRefills[idx].dataSourcePrimary
+            dataSourcePrimary:
+              changes.openingFuel !== undefined ||
+              changes.closingFuel !== undefined
+                ? "Manual"
+                : state.wizard.tankRefills[idx].dataSourcePrimary,
           };
         }
       }
@@ -462,17 +502,25 @@ const fuelAuditSlice = createSlice({
      */
     updateMultipleVehicleFuelData: (state, action) => {
       const updates = action.payload; // Array of { vehicleId, changes }
-      if (state.wizard.tankRefills && Array.isArray(state.wizard.tankRefills) && Array.isArray(updates)) {
+      if (
+        state.wizard.tankRefills &&
+        Array.isArray(state.wizard.tankRefills) &&
+        Array.isArray(updates)
+      ) {
         updates.forEach(({ vehicleId, changes }) => {
-          const idx = state.wizard.tankRefills.findIndex(v => v.vehicleId === vehicleId);
+          const idx = state.wizard.tankRefills.findIndex(
+            (v) => v.vehicleId === vehicleId
+          );
           if (idx >= 0) {
             state.wizard.tankRefills[idx] = {
               ...state.wizard.tankRefills[idx],
               ...changes,
               isEdited: true,
-              dataSourcePrimary: (changes.openingFuel !== undefined || changes.closingFuel !== undefined)
-                ? 'Manual'
-                : state.wizard.tankRefills[idx].dataSourcePrimary
+              dataSourcePrimary:
+                changes.openingFuel !== undefined ||
+                changes.closingFuel !== undefined
+                  ? "Manual"
+                  : state.wizard.tankRefills[idx].dataSourcePrimary,
             };
           }
         });
@@ -497,12 +545,28 @@ const fuelAuditSlice = createSlice({
       const audit = action.payload;
       if (!audit) return;
 
+      // Debug: log GPS refill events from loaded audit
+      const vehiclesWithGpsEvents = (audit.vehiclePositions || []).filter(
+        (vp) => vp.gpsRefillEvents?.length > 0
+      );
+      console.log("[loadDraftToWizard] GPS refill events from API:", {
+        totalVehiclePositions: audit.vehiclePositions?.length || 0,
+        vehiclesWithGpsEvents: vehiclesWithGpsEvents.length,
+        sampleGpsEvents: vehiclesWithGpsEvents.slice(0, 2).map((vp) => ({
+          vehicleId: vp.vehicleId,
+          vehicleName: vp.vehicleName,
+          gpsEventsCount: vp.gpsRefillEvents?.length || 0,
+          firstEvent: vp.gpsRefillEvents?.[0],
+        })),
+      });
+
       // Reset wizard first
       state.wizard = { ...initialState.wizard };
 
       // Set draft audit tracking
       state.wizard.draftAuditId = audit.id;
       state.wizard.draftAuditNumber = audit.auditNumber;
+      state.wizard.auditNumber = audit.auditNumber || "";
 
       // Step 1: Site & Period
       // Multi-site support: Prefer siteIds array from API, fallback to single siteId
@@ -520,14 +584,16 @@ const fuelAuditSlice = createSlice({
       state.wizard.siteIds = siteIds;
       state.wizard.periodStart = audit.startDate;
       state.wizard.periodEnd = audit.endDate;
-      state.wizard.auditType = audit.auditType || 'Weekly';
+      state.wizard.auditType = audit.auditType || "Weekly";
 
       // Step 2: Selected Tanks (from tanker readings)
       if (audit.tankerReadings?.length > 0) {
-        state.wizard.selectedTankIds = audit.tankerReadings.map(r => r.tankId);
+        state.wizard.selectedTankIds = audit.tankerReadings.map(
+          (r) => r.tankId
+        );
 
         // Also populate tank preview from existing readings
-        state.wizard.tankPreview = audit.tankerReadings.map(r => ({
+        state.wizard.tankPreview = audit.tankerReadings.map((r) => ({
           tankId: r.tankId,
           tankName: r.tankName,
           tankCapacity: r.tankCapacity,
@@ -540,21 +606,23 @@ const fuelAuditSlice = createSlice({
           expectedClosing: r.expectedClosing,
           variance: r.variance,
           variancePercent: r.variancePercent,
-          openingDataSource: r.openingMethod || 'Draft',
-          closingDataSource: r.closingMethod || 'Draft',
+          openingDataSource: r.openingMethod || "Draft",
+          closingDataSource: r.closingMethod || "Draft",
           hasVarianceFlag: r.hasVarianceFlag,
-          isEdited: false
+          isEdited: false,
         }));
       }
 
       // Step 4/5: Selected Vehicles (from vehicle positions)
       if (audit.vehiclePositions?.length > 0) {
-        state.wizard.selectedVehicleIds = audit.vehiclePositions.map(vp => vp.vehicleId);
+        state.wizard.selectedVehicleIds = audit.vehiclePositions.map(
+          (vp) => vp.vehicleId
+        );
 
         // Build a map of existing tankRefills to preserve refills array
         const existingRefillsMap = {};
         if (state.wizard.tankRefills?.length > 0) {
-          state.wizard.tankRefills.forEach(tr => {
+          state.wizard.tankRefills.forEach((tr) => {
             if (tr.refills?.length > 0) {
               existingRefillsMap[tr.vehicleId] = tr.refills;
             }
@@ -563,12 +631,33 @@ const fuelAuditSlice = createSlice({
 
         // Populate tankRefills from vehicle positions with all fields for Step 5 display
         // Preserve existing refills array if available
-        state.wizard.tankRefills = audit.vehiclePositions.map(vp => ({
+        const inferVehicleCategoryFromPosition = (vp) => {
+          // Prefer explicit category if the backend ever provides it
+          if (vp?.vehicleCategory != null) return vp.vehicleCategory;
+
+          const vehicleType = vp?.vehicleType;
+          const source = `${vp?.openingDataSource || vp?.dataSource || ""}`;
+
+          // Backend persists both Category 1 and Category 4 as VehicleType = "GPS".
+          // Distinguish Cross-Site by the SOAP-derived data source.
+          if (vehicleType === "GPS") {
+            if (source.toUpperCase().includes("GPS_SOAP")) return 4;
+            return 1;
+          }
+
+          if (vehicleType === "FullTank") return 2;
+          if (vehicleType === "Equipment") return 3;
+          if (vehicleType === "External") return 5;
+
+          return 5;
+        };
+
+        state.wizard.tankRefills = audit.vehiclePositions.map((vp) => ({
           vehicleId: vp.vehicleId,
           vehicleNo: vp.vehicleName,
           numberPlate: vp.plateNumber,
           vehicleType: vp.vehicleType,
-          vehicleCategory: vp.vehicleType === 'GPS' ? 1 : (vp.vehicleType === 'FullTank' ? 2 : 5),
+          vehicleCategory: inferVehicleCategoryFromPosition(vp),
           tankCapacity: vp.tankCapacity,
           openingFuel: vp.openingStock,
           openingReadingTime: vp.openingReadingTime,
@@ -586,17 +675,19 @@ const fuelAuditSlice = createSlice({
           variancePercent: vp.variancePercent,
           hasVarianceFlag: vp.hasVarianceFlag,
           varianceFlagMessage: vp.varianceFlagMessage,
-          dataSourcePrimary: vp.openingDataSource || vp.dataSource || 'Draft',
+          dataSourcePrimary: vp.openingDataSource || vp.dataSource || "Draft",
           dataConfidence: vp.dataQuality,
           gpsDataLoaded: true,
           isEdited: vp.isManuallyEdited || false,
           // Preserve existing refills array if available
-          refills: existingRefillsMap[vp.vehicleId] || []
+          refills: existingRefillsMap[vp.vehicleId] || [],
+          // Restore GPS refill events from saved audit (for GPS categories 1 & 4)
+          gpsRefillEvents: vp.gpsRefillEvents || [],
         }));
       }
 
       // Step 7: Notes
-      state.wizard.notes = audit.description || '';
+      state.wizard.notes = audit.description || "";
 
       // Use the saved wizard step from the database if available
       // Otherwise, fall back to inferring from data completeness
@@ -607,7 +698,11 @@ const fuelAuditSlice = createSlice({
         // If we have tank data, start at step 2 or 3
         // If we have vehicle data, start at step 4 or 5
         let startStep = 1;
-        if (state.wizard.siteIds.length > 0 && state.wizard.periodStart && state.wizard.periodEnd) {
+        if (
+          state.wizard.siteIds.length > 0 &&
+          state.wizard.periodStart &&
+          state.wizard.periodEnd
+        ) {
           startStep = 2; // Can move to tank selection
           if (state.wizard.selectedTankIds.length > 0) {
             startStep = 3; // Can move to tank preview
@@ -629,14 +724,14 @@ const fuelAuditSlice = createSlice({
     updateFlagStatus: (state, action) => {
       const { flagId, status, resolution } = action.payload;
       if (state.currentAudit?.flags) {
-        const flag = state.currentAudit.flags.find(f => f.id === flagId);
+        const flag = state.currentAudit.flags.find((f) => f.id === flagId);
         if (flag) {
           flag.status = status;
           flag.resolution = resolution;
           flag.resolvedAt = new Date().toISOString();
         }
       }
-    }
+    },
   },
   extraReducers: (builder) => {
     // Fetch audits
@@ -648,13 +743,14 @@ const fuelAuditSlice = createSlice({
       .addCase(fetchFuelAudits.fulfilled, (state, action) => {
         state.loading.audits = false;
         if (action.payload.isSuccess) {
-          state.audits = action.payload.data?.items || action.payload.data || [];
+          state.audits =
+            action.payload.data?.items || action.payload.data || [];
           if (action.payload.data?.pageNumber) {
             state.auditsPagination = {
               pageNumber: action.payload.data.pageNumber,
               pageSize: action.payload.data.pageSize,
               totalCount: action.payload.data.totalCount,
-              totalPages: action.payload.data.totalPages
+              totalPages: action.payload.data.totalPages,
             };
           }
         }
@@ -712,6 +808,8 @@ const fuelAuditSlice = createSlice({
           // Store draft audit info in wizard state
           state.wizard.draftAuditId = action.payload.data.auditId;
           state.wizard.draftAuditNumber = action.payload.data.auditNumber;
+          state.wizard.auditNumber =
+            action.payload.data.auditNumber || state.wizard.auditNumber;
           state.wizard.lastSavedAt = action.payload.data.lastSavedAt;
         }
       })
@@ -734,7 +832,7 @@ const fuelAuditSlice = createSlice({
             state.currentAudit = {
               ...state.currentAudit,
               ...action.payload.data,
-              status: 'Calculated'
+              status: "Calculated",
             };
           }
         }
@@ -755,14 +853,16 @@ const fuelAuditSlice = createSlice({
         if (action.payload.isSuccess && state.currentAudit) {
           const newReading = action.payload.data;
           const existingIndex = state.currentAudit.tankerReadings?.findIndex(
-            r => r.tankId === newReading.tankId && r.readingType === newReading.readingType
+            (r) =>
+              r.tankId === newReading.tankId &&
+              r.readingType === newReading.readingType
           );
           if (existingIndex >= 0) {
             state.currentAudit.tankerReadings[existingIndex] = newReading;
           } else {
             state.currentAudit.tankerReadings = [
               ...(state.currentAudit.tankerReadings || []),
-              newReading
+              newReading,
             ];
           }
         }
@@ -783,7 +883,9 @@ const fuelAuditSlice = createSlice({
         if (action.payload.isSuccess) {
           state.currentAudit = action.payload.data;
           // Update in list
-          const index = state.audits.findIndex(a => a.id === action.payload.data.id);
+          const index = state.audits.findIndex(
+            (a) => a.id === action.payload.data.id
+          );
           if (index >= 0) {
             state.audits[index] = action.payload.data;
           }
@@ -804,7 +906,9 @@ const fuelAuditSlice = createSlice({
         state.loading.cancel = false;
         if (action.payload.isSuccess) {
           state.currentAudit = action.payload.data;
-          const index = state.audits.findIndex(a => a.id === action.payload.data.id);
+          const index = state.audits.findIndex(
+            (a) => a.id === action.payload.data.id
+          );
           if (index >= 0) {
             state.audits[index] = action.payload.data;
           }
@@ -825,7 +929,9 @@ const fuelAuditSlice = createSlice({
         state.loading.resolveFlag = false;
         if (action.payload.isSuccess && state.currentAudit?.flags) {
           const updatedFlag = action.payload.data;
-          const index = state.currentAudit.flags.findIndex(f => f.id === updatedFlag.id);
+          const index = state.currentAudit.flags.findIndex(
+            (f) => f.id === updatedFlag.id
+          );
           if (index >= 0) {
             state.currentAudit.flags[index] = updatedFlag;
           }
@@ -968,7 +1074,119 @@ const fuelAuditSlice = createSlice({
       .addCase(fetchTankRefillsPreview.fulfilled, (state, action) => {
         state.loading.tankRefills = false;
         if (action.payload.isSuccess) {
-          state.wizard.tankRefills = action.payload.data || [];
+          const incoming = action.payload.data || [];
+
+          // Debug logging
+          console.log("[fuelAuditSlice] fetchTankRefillsPreview.fulfilled:", {
+            incomingCount: incoming.length,
+            existingCount: state.wizard.tankRefills?.length || 0,
+            sampleIncoming: incoming.slice(0, 2).map((v) => ({
+              id: v.vehicleId,
+              no: v.vehicleNo,
+              refillsCount: v.refills?.length || 0,
+            })),
+          });
+
+          // If we already have tankRefills (often enriched in Step 5 with GPS data and edits),
+          // merge refill detail rows instead of overwriting the whole array.
+          if (
+            Array.isArray(state.wizard.tankRefills) &&
+            state.wizard.tankRefills.length > 0
+          ) {
+            const existingList = state.wizard.tankRefills;
+            const existingByVehicleId = new Map(
+              existingList.map((v) => [v.vehicleId, v])
+            );
+
+            const mergedIncoming = incoming.map((inc) => {
+              const existing = existingByVehicleId.get(inc.vehicleId);
+              if (!existing) return inc;
+
+              const keepIfDefined = (preferred, fallback) =>
+                preferred !== undefined && preferred !== null
+                  ? preferred
+                  : fallback;
+
+              // Preserve GPS-enriched fields and manual edits; update refill list and basic metadata.
+              // Always take the latest refill list from preview for per-tank exports.
+              const merged = {
+                ...existing,
+                ...inc,
+
+                // Preserve user edits
+                isEdited: existing.isEdited || inc.isEdited || false,
+
+                // Preserve step 5 GPS fields if present
+                openingFuel: keepIfDefined(
+                  existing.openingFuel,
+                  inc.openingFuel
+                ),
+                openingTimestamp: keepIfDefined(
+                  existing.openingTimestamp,
+                  inc.openingTimestamp
+                ),
+                openingDataQuality: keepIfDefined(
+                  existing.openingDataQuality,
+                  inc.openingDataQuality
+                ),
+                openingDataQualityReason: keepIfDefined(
+                  existing.openingDataQualityReason,
+                  inc.openingDataQualityReason
+                ),
+                closingFuel: keepIfDefined(
+                  existing.closingFuel,
+                  inc.closingFuel
+                ),
+                closingTimestamp: keepIfDefined(
+                  existing.closingTimestamp,
+                  inc.closingTimestamp
+                ),
+                closingDataQuality: keepIfDefined(
+                  existing.closingDataQuality,
+                  inc.closingDataQuality
+                ),
+                closingDataQualityReason: keepIfDefined(
+                  existing.closingDataQualityReason,
+                  inc.closingDataQualityReason
+                ),
+
+                // Preserve GPS refill events if already fetched (prefer existing if has data)
+                gpsRefillEvents:
+                  Array.isArray(existing.gpsRefillEvents) &&
+                  existing.gpsRefillEvents.length > 0
+                    ? existing.gpsRefillEvents
+                    : inc.gpsRefillEvents || [],
+              };
+
+              // Refill details (critical for Step 6 per-tank worksheets)
+              merged.refills = Array.isArray(inc.refills)
+                ? inc.refills
+                : existing.refills || [];
+
+              return merged;
+            });
+
+            const incomingIds = new Set(incoming.map((v) => v.vehicleId));
+            const extras = existingList.filter(
+              (v) => !incomingIds.has(v.vehicleId)
+            );
+
+            // Debug: log merge results including GPS events
+            console.log("[fuelAuditSlice] Merge result:", {
+              mergedCount: mergedIncoming.length,
+              extrasCount: extras.length,
+              sampleMerged: mergedIncoming.slice(0, 2).map((v) => ({
+                id: v.vehicleId,
+                no: v.vehicleNo,
+                refillsCount: v.refills?.length || 0,
+                gpsEventsCount: v.gpsRefillEvents?.length || 0,
+              })),
+            });
+
+            state.wizard.tankRefills = [...mergedIncoming, ...extras];
+          } else {
+            state.wizard.tankRefills = incoming;
+          }
         }
       })
       .addCase(fetchTankRefillsPreview.rejected, (state, action) => {
@@ -991,9 +1209,9 @@ const fuelAuditSlice = createSlice({
 
           if (categoryId && state.wizard.tankRefills?.length > 0) {
             // Update tankRefills with GPS data for this category
-            gpsVehicles.forEach(gpsData => {
+            gpsVehicles.forEach((gpsData) => {
               const idx = state.wizard.tankRefills.findIndex(
-                v => v.vehicleId === gpsData.vehicleId
+                (v) => v.vehicleId === gpsData.vehicleId
               );
               if (idx >= 0) {
                 state.wizard.tankRefills[idx] = {
@@ -1002,7 +1220,7 @@ const fuelAuditSlice = createSlice({
                   closingFuel: gpsData.closingFuel,
                   consumption: gpsData.consumption,
                   distance: gpsData.distance,
-                  gpsDataLoaded: true
+                  gpsDataLoaded: true,
                 };
               }
             });
@@ -1028,11 +1246,11 @@ const fuelAuditSlice = createSlice({
           const categoryResults = action.payload.data.categoryResults || [];
 
           // Merge category data into tankRefills for display
-          categoryResults.forEach(catResult => {
+          categoryResults.forEach((catResult) => {
             const vehicles = catResult.vehicles || [];
-            vehicles.forEach(vehicle => {
+            vehicles.forEach((vehicle) => {
               const idx = state.wizard.tankRefills?.findIndex(
-                v => v.vehicleId === vehicle.vehicleId
+                (v) => v.vehicleId === vehicle.vehicleId
               );
               if (idx >= 0 && state.wizard.tankRefills) {
                 state.wizard.tankRefills[idx] = {
@@ -1067,7 +1285,7 @@ const fuelAuditSlice = createSlice({
                   isAuditable: vehicle.isAuditable,
                   gpsDataLoaded: true,
                   // GPS Refill Events (for Category 4 Cross-Site SOAP data)
-                  gpsRefillEvents: vehicle.gpsRefillEvents || []
+                  gpsRefillEvents: vehicle.gpsRefillEvents || [],
                 };
               }
             });
@@ -1089,44 +1307,47 @@ const fuelAuditSlice = createSlice({
         state.error.gpsPreview = null;
         state.gpsFetchJob = {
           jobId: null,
-          status: 'starting',
+          status: "starting",
           progressPercent: 0,
-          message: 'Starting GPS data fetch...',
+          message: "Starting GPS data fetch...",
           result: null,
-          error: null
+          error: null,
         };
       })
       .addCase(startCategoryAuditAsync.fulfilled, (state, action) => {
         // Job started - now waiting for SignalR progress updates
         if (action.payload.isSuccess && action.payload.data) {
           state.gpsFetchJob.jobId = action.payload.data.jobId;
-          state.gpsFetchJob.status = 'started';
-          state.gpsFetchJob.message = action.payload.data.message || 'GPS data fetch started';
+          state.gpsFetchJob.status = "started";
+          state.gpsFetchJob.message =
+            action.payload.data.message || "GPS data fetch started";
         } else {
           state.loading.gpsPreview = false;
-          state.gpsFetchJob.status = 'error';
-          state.gpsFetchJob.error = action.payload.message || 'Failed to start GPS fetch';
+          state.gpsFetchJob.status = "error";
+          state.gpsFetchJob.error =
+            action.payload.message || "Failed to start GPS fetch";
         }
       })
       .addCase(startCategoryAuditAsync.rejected, (state, action) => {
         state.loading.gpsPreview = false;
         state.error.gpsPreview = action.payload;
-        state.gpsFetchJob.status = 'error';
-        state.gpsFetchJob.error = action.payload?.message || 'Failed to start GPS fetch';
+        state.gpsFetchJob.status = "error";
+        state.gpsFetchJob.error =
+          action.payload?.message || "Failed to start GPS fetch";
       });
 
     // Cancel category audit job
     builder
       .addCase(cancelCategoryAuditJob.fulfilled, (state, action) => {
         if (action.payload.isSuccess) {
-          state.gpsFetchJob.status = 'cancelled';
-          state.gpsFetchJob.message = 'Job cancelled by user';
+          state.gpsFetchJob.status = "cancelled";
+          state.gpsFetchJob.message = "Job cancelled by user";
           state.loading.gpsPreview = false;
         }
       })
       .addCase(cancelCategoryAuditJob.rejected, (state, action) => {
         // Cancellation failed, but job may have already completed
-        console.warn('Failed to cancel GPS fetch job:', action.payload);
+        console.warn("Failed to cancel GPS fetch job:", action.payload);
       });
 
     // Fetch category-specific GPS data (for parallel loading)
@@ -1147,9 +1368,9 @@ const fuelAuditSlice = createSlice({
 
         if (isSuccess && data?.vehicles) {
           // Merge GPS data into tankRefills
-          data.vehicles.forEach(gpsData => {
+          data.vehicles.forEach((gpsData) => {
             const idx = state.wizard.tankRefills.findIndex(
-              v => v.vehicleId === gpsData.vehicleId
+              (v) => v.vehicleId === gpsData.vehicleId
             );
             if (idx >= 0) {
               state.wizard.tankRefills[idx] = {
@@ -1159,7 +1380,7 @@ const fuelAuditSlice = createSlice({
                 consumption: gpsData.consumption,
                 distance: gpsData.distance,
                 gpsDataLoaded: true,
-                dataSourcePrimary: categoryId === 1 ? 'GPS_REST' : 'GPS_SOAP'
+                dataSourcePrimary: categoryId === 1 ? "GPS_REST" : "GPS_SOAP",
               };
             }
           });
@@ -1183,7 +1404,7 @@ const fuelAuditSlice = createSlice({
         if (action.payload.isSuccess && state.wizard.gpsPreview?.vehicles) {
           const updatedVehicle = action.payload.data;
           const index = state.wizard.gpsPreview.vehicles.findIndex(
-            v => v.vehicleId === updatedVehicle.vehicleId
+            (v) => v.vehicleId === updatedVehicle.vehicleId
           );
           if (index >= 0) {
             state.wizard.gpsPreview.vehicles[index] = updatedVehicle;
@@ -1193,7 +1414,7 @@ const fuelAuditSlice = createSlice({
       .addCase(refreshVehicleData.rejected, (state) => {
         state.loading.refreshVehicle = false;
       });
-  }
+  },
 });
 
 // ============================================================
@@ -1226,8 +1447,8 @@ export {
   finalizeAuditAction,
   cancelAuditAction,
   resolveFlagAction,
-  fetchAuditThresholds
-} from './fuelAuditThunks';
+  fetchAuditThresholds,
+} from "./fuelAuditThunks";
 
 // Actions
 export const {
@@ -1245,6 +1466,7 @@ export const {
   // Wizard actions
   setWizardStep,
   setWizardSiteAndPeriod,
+  setWizardAuditNumber,
   setSelectedTanks,
   setTanksBySite,
   clearTanksData,
@@ -1258,29 +1480,35 @@ export const {
   updateMultipleVehicleFuelData,
   resetWizard,
   loadDraftToWizard,
-  updateFlagStatus
+  updateFlagStatus,
 } = fuelAuditSlice.actions;
 
 // Selectors
 export const selectAudits = (state) => state.fuelAudit.audits;
-export const selectAuditsPagination = (state) => state.fuelAudit.auditsPagination;
+export const selectAuditsPagination = (state) =>
+  state.fuelAudit.auditsPagination;
 export const selectCurrentAudit = (state) => state.fuelAudit.currentAudit;
 export const selectFleetPositions = (state) => state.fuelAudit.fleetPositions;
 export const selectVehiclePosition = (state) => state.fuelAudit.vehiclePosition;
-export const selectVehicleConsumption = (state) => state.fuelAudit.vehicleConsumption;
+export const selectVehicleConsumption = (state) =>
+  state.fuelAudit.vehicleConsumption;
 export const selectRefuelEvents = (state) => state.fuelAudit.refuelEvents;
 export const selectThresholds = (state) => state.fuelAudit.thresholds;
 export const selectWizard = (state) => state.fuelAudit.wizard;
 export const selectWizardSiteIds = (state) => state.fuelAudit.wizard.siteIds;
 export const selectWizardTanks = (state) => state.fuelAudit.wizard.tanks;
-export const selectWizardTanksBySite = (state) => state.fuelAudit.wizard.tanksBySite;
-export const selectWizardTankRefills = (state) => state.fuelAudit.wizard.tankRefills;
-export const selectWizardTankPreview = (state) => state.fuelAudit.wizard.tankPreview;
-export const selectWizardGpsPreview = (state) => state.fuelAudit.wizard.gpsPreview;
+export const selectWizardTanksBySite = (state) =>
+  state.fuelAudit.wizard.tanksBySite;
+export const selectWizardTankRefills = (state) =>
+  state.fuelAudit.wizard.tankRefills;
+export const selectWizardTankPreview = (state) =>
+  state.fuelAudit.wizard.tankPreview;
+export const selectWizardGpsPreview = (state) =>
+  state.fuelAudit.wizard.gpsPreview;
 export const selectWizardDraftAudit = (state) => ({
   auditId: state.fuelAudit.wizard.draftAuditId,
   auditNumber: state.fuelAudit.wizard.draftAuditNumber,
-  lastSavedAt: state.fuelAudit.wizard.lastSavedAt
+  lastSavedAt: state.fuelAudit.wizard.lastSavedAt,
 });
 export const selectGpsFetchJob = (state) => state.fuelAudit.gpsFetchJob;
 export const selectLoading = (state) => state.fuelAudit.loading;
@@ -1289,7 +1517,7 @@ export const selectActiveTab = (state) => state.fuelAudit.activeTab;
 export const selectFilters = (state) => ({
   status: state.fuelAudit.filterStatus,
   siteId: state.fuelAudit.filterSiteId,
-  dateRange: state.fuelAudit.filterDateRange
+  dateRange: state.fuelAudit.filterDateRange,
 });
 
 // Reducer

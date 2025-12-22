@@ -32,6 +32,11 @@ namespace FMS.Application.Features.ATG {
         public string? VehicleName { get; set; } // This will be HyoungNo from Vehicle entity
         public string? VehicleNumberPlate { get; set; }
 
+        /// <summary>
+        /// Vehicle odometer reading at time of fueling (in kilometers or miles)
+        /// </summary>
+        public decimal? Odometer { get; set; }
+
         // Processing flag
         public bool HasBeenProcessed { get; set; } = false; //Cursor
     }

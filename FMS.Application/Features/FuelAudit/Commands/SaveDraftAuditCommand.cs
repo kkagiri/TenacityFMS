@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -27,6 +28,11 @@ namespace FMS.Application.Features.FuelAudit.Commands
         /// Existing audit ID if updating, null if creating new
         /// </summary>
         public long? AuditId { get; set; }
+
+        /// <summary>
+        /// User-defined audit name/number (optional override for auto-generated number)
+        /// </summary>
+        public string? AuditNumber { get; set; }
 
         /// <summary>
         /// Current wizard step (1-7)
@@ -152,6 +158,28 @@ namespace FMS.Application.Features.FuelAudit.Commands
         public string? VarianceFlagMessage { get; set; }
         public bool IsEdited { get; set; }
         public bool GpsDataLoaded { get; set; }
+
+        /// <summary>
+        /// GPS refill events for Categories 1 & 4 (from SOAP Report 212)
+        /// </summary>
+        public List<GpsRefillEventSaveDTO>? GpsRefillEvents { get; set; }
+    }
+
+    /// <summary>
+    /// Simplified GPS refill event for save/load
+    /// </summary>
+    public class GpsRefillEventSaveDTO
+    {
+        public int EntryId { get; set; }
+        public DateTime RefillDate { get; set; }
+        public decimal? FuelBefore { get; set; }
+        public decimal? FuelAfter { get; set; }
+        public decimal GpsRefillVolume { get; set; }
+        public decimal? ManualRefillAmount { get; set; }
+        public decimal? Variance { get; set; }
+        public decimal? VariancePercent { get; set; }
+        public int? FuelRefillId { get; set; }
+        public string? TankName { get; set; }
     }
 
     /// <summary>
@@ -247,11 +275,18 @@ namespace FMS.Application.Features.FuelAudit.Commands
                         return FMSResponse<SaveDraftAuditResponseDTO>.Failed("Period start and end dates are required");
                     }
 
-                    // Generate audit number
-                    var year = dto.PeriodStart.Value.Year;
-                    var count = await _context.FuelAudits
-                        .CountAsync(a => a.StartDate.Year == year, cancellationToken);
-                    var auditNumber = $"FA-{year}-{(count + 1):D3}";
+                    // Use provided audit number or generate one
+                    string auditNumber;
+                    if (!string.IsNullOrWhiteSpace(dto.AuditNumber))
+                    {
+                        auditNumber = dto.AuditNumber;
+                    }
+                    else
+                    {
+                        // Generate: FA - YYYY-MM-DD HH:mm:ss
+                        var now = DateTime.UtcNow;
+                        auditNumber = $"FA - {now:yyyy-MM-dd HH:mm:ss}";
+                    }
 
                     audit = new FuelAuditEntity
                     {
@@ -305,6 +340,10 @@ namespace FMS.Application.Features.FuelAudit.Commands
             SaveDraftAuditDTO dto,
             CancellationToken cancellationToken)
         {
+            // Update audit number if provided
+            if (!string.IsNullOrWhiteSpace(dto.AuditNumber))
+                audit.AuditNumber = dto.AuditNumber;
+
             // Update period if changed
             if (dto.PeriodStart.HasValue)
                 audit.StartDate = dto.PeriodStart.Value.Date;
@@ -442,6 +481,12 @@ namespace FMS.Application.Features.FuelAudit.Commands
                             existing.UpdatedAt = DateTime.UtcNow;
                             existing.UpdatedBy = long.TryParse(dto.UserId, out var uid) ? uid : null;
 
+                            // Save GPS refill events as JSON for Categories 1 & 4
+                            if (vehicleData.GpsRefillEvents != null && vehicleData.GpsRefillEvents.Any())
+                            {
+                                existing.GpsRefillEventsJson = JsonSerializer.Serialize(vehicleData.GpsRefillEvents);
+                            }
+
                             // Recalculate variance after update
                             existing.ExpectedClosing = (existing.OpeningStock ?? 0)
                                 + (existing.FuelRefueled ?? 0)
@@ -482,8 +527,12 @@ namespace FMS.Application.Features.FuelAudit.Commands
                                 HasVarianceFlag = vehicleData.HasVarianceFlag,
                                 VarianceFlagMessage = vehicleData.VarianceFlagMessage,
                                 IsManuallyEdited = vehicleData.IsEdited,
+                                // Save GPS refill events as JSON for Categories 1 & 4
+                                GpsRefillEventsJson = vehicleData.GpsRefillEvents != null && vehicleData.GpsRefillEvents.Any()
+                                    ? JsonSerializer.Serialize(vehicleData.GpsRefillEvents)
+                                    : null,
                                 CreatedAt = DateTime.UtcNow,
-                                CreatedBy = long.TryParse(dto.UserId, out var uid) ? uid : null
+                                CreatedBy = long.TryParse(dto.UserId, out var uid2) ? uid2 : null
                             };
 
                             // Calculate expected closing

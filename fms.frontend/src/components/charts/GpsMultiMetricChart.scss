@@ -1,0 +1,120 @@
+// GPS Multi-Metric Chart Styles
+// Flexible chart component for displaying multiple GPS metrics with filtering
+
+.gps-multi-metric-chart {
+  @apply tw-w-full;
+
+  // Metric filter bar
+  .metric-filter-bar {
+    .metric-checkbox-item {
+      @apply tw-cursor-pointer;
+
+      &:hover {
+        @apply tw-opacity-80;
+      }
+
+      // DevExtreme checkbox customization
+      .dx-checkbox {
+        .dx-checkbox-icon {
+          @apply tw-rounded;
+        }
+      }
+    }
+  }
+
+  // Chart container
+  .chart-container {
+    @apply tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4;
+
+    // DevExtreme chart customizations
+    .dx-chart {
+      // Tooltip styling
+      .dxc-tooltip {
+        @apply tw-shadow-lg;
+
+        .dxc-text {
+          font-family: inherit !important;
+        }
+      }
+
+      // Legend styling
+      .dxc-legend {
+        .dxc-item {
+          @apply tw-cursor-pointer;
+
+          &:hover {
+            @apply tw-opacity-80;
+          }
+        }
+      }
+    }
+  }
+
+  // Range selector container
+  .range-selector-container {
+    @apply tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4;
+
+    .dx-range-selector {
+      // Range selector track styling
+      .dxrs-slider {
+        fill: #3b82f6;
+      }
+
+      .dxrs-selected-range {
+        fill: rgba(59, 130, 246, 0.2);
+      }
+    }
+  }
+}
+
+// Empty state
+.gps-multi-metric-chart-empty {
+  @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-12;
+
+  .empty-icon {
+    @apply tw-text-4xl tw-text-gray-400 tw-mb-4;
+  }
+
+  .empty-text {
+    @apply tw-text-gray-600;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .gps-multi-metric-chart {
+    .metric-filter-bar {
+      @apply tw-flex-col tw-items-start tw-gap-2;
+
+      .metric-checkbox-item {
+        @apply tw-w-full;
+      }
+    }
+
+    .chart-container {
+      @apply tw-p-2;
+    }
+
+    .range-selector-container {
+      @apply tw-p-2;
+    }
+  }
+}
+
+// Dark mode support
+.dark {
+  .gps-multi-metric-chart {
+    .metric-filter-bar {
+      @apply tw-bg-gray-800 tw-border-gray-700;
+
+      span {
+        @apply tw-text-gray-300;
+      }
+    }
+
+    .chart-container,
+    .range-selector-container {
+      @apply tw-bg-gray-800 tw-border-gray-700;
+    }
+  }
+}

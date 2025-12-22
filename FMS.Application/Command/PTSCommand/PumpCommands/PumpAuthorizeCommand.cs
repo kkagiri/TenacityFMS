@@ -66,6 +66,11 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         // Cursor: User ID from controller for auto-assign master tag feature
         public string? UserId { get; set; }
 
+        /// <summary>
+        /// Vehicle odometer reading at time of fueling (in kilometers or miles)
+        /// </summary>
+        public decimal? Odometer { get; set; }
+
     }
 
     public class PumpAuthorizeCommandHandler : IRequestHandler<PumpAuthorizeCommand, FMSResponse<PumpAuthorizeConfirmation>>
@@ -462,7 +467,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     }
 
                     //Cursor: Store transaction context in Redis for later correlation with connection type and configuration
-                    await StoreTransactionContextInRedis(request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, configuredAutoClose, siteId);
+                    await StoreTransactionContextInRedis(request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, configuredAutoClose, siteId, request.Odometer);
 
                     //Cursor: Start monitoring the transaction after successful authorization
                     await _transactionMonitoringService.StartMonitoringTransaction(request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
@@ -499,7 +504,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         }
 
         //Cursor: Enhanced method to store transaction context in Redis with complete data
-        private async Task StoreTransactionContextInRedis(string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction, int? siteId = null)
+        private async Task StoreTransactionContextInRedis(string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction, int? siteId = null, decimal? odometer = null)
         {
             try
             {
@@ -511,6 +516,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     TankId = tankId,
                     VehicleId = vehicleId,
                     SiteId = siteId, //Cursor: Add site ID for configuration lookup
+                    Odometer = odometer, //Cursor: Add odometer reading for vehicle tracking
                     AuthorizedAt = DateTime.UtcNow,
                     ConnectionType = connectionType,
                     AutoCloseTransaction = autoCloseTransaction,
@@ -525,8 +531,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // This prevents stuck transactions from accumulating in Redis indefinitely
                 await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromMinutes(10));
 
-                _logger.LogInformation("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, connection: {ConnectionType}, expiry: 10min",
-                    deviceId, pumpId, transactionId, vehicleId, tankId, connectionType);
+                _logger.LogInformation("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, Odometer: {Odometer}, connection: {ConnectionType}, expiry: 10min",
+                    deviceId, pumpId, transactionId, vehicleId, tankId, odometer, connectionType);
             }
             catch (Exception ex)
             {

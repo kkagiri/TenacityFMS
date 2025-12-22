@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext (HTTP) traffic for development and production servers -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Android Emulator localhost -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <!-- Local network IP for physical devices -->
+        <domain includeSubdomains="true">10.0.13.50</domain>
+        <domain includeSubdomains="true">10.0.11.99</domain>
+        <!-- Production server -->
+        <domain includeSubdomains="true">197.254.33.227</domain>
+    </domain-config>
+</network-security-config>

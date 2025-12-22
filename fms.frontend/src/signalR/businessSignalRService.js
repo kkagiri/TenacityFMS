@@ -26,7 +26,9 @@ import {
   createAccessTokenFactory,
   getConnectionInfo as getBaseConnectionInfo,
   ensureValidToken,
+  getAuthToken,
 } from "./signalRBaseService";
+import { getUserInfoFromToken } from "../utils/jwtUtils";
 
 // Re-export for backward compatibility
 export { ConnectionState, SignalRError };
@@ -142,7 +144,9 @@ class BusinessSignalRService {
     // This will automatically refresh the token if it's expired or about to expire
     const token = await ensureValidToken("Business");
     if (!token) {
-      console.warn("[Business SignalR] No valid auth token available - skipping connection (user not authenticated or token refresh failed)");
+      console.warn(
+        "[Business SignalR] No valid auth token available - skipping connection (user not authenticated or token refresh failed)"
+      );
       this.state = ConnectionState.DISCONNECTED;
       return;
     }
@@ -624,6 +628,59 @@ class BusinessSignalRService {
       },
       0
     ); // No debounce for notifications
+
+    // System Notification (from NotificationService)
+    // Now includes targetUserId filtering for broadcast notifications
+    registerEvent(
+      "SystemNotification",
+      (data) => {
+        if (data) {
+          const notification = data.data || data;
+          const targetUserId = notification.targetUserId;
+
+          // If notification has a targetUserId, filter to only show for that user
+          if (targetUserId) {
+            const token = getAuthToken();
+            const currentUser = token ? getUserInfoFromToken(token) : null;
+            const currentUserId = currentUser?.id;
+
+            if (currentUserId && targetUserId !== currentUserId) {
+              // This notification is targeted at a different user, ignore it
+              console.log(
+                "[Business SignalR] Ignoring notification targeted at different user:",
+                targetUserId,
+                "current:",
+                currentUserId
+              );
+              return;
+            }
+          }
+
+          this.notifyListeners("systemNotification", data);
+          if (store) {
+            // Map to notification created action so it appears in NotificationCenter
+            store.dispatch({
+              type: "NOTIFICATION_CREATED",
+              payload: {
+                id: notification.id || data.id,
+                notificationId: notification.id || data.id,
+                title: notification.title || data.message,
+                message: notification.message || data.message,
+                type: notification.type || data.type || "info",
+                priority: notification.priority || "medium",
+                createdAt:
+                  notification.timestamp ||
+                  data.timestamp ||
+                  new Date().toISOString(),
+                data: notification.data || data.data,
+                isRead: false,
+              },
+            });
+          }
+        }
+      },
+      0
+    ); // No debounce for system notifications
 
     // Alarm Test Broadcast
     registerEvent(

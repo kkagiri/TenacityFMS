@@ -330,6 +330,7 @@ namespace FMS.Application.Services {
                     ConfigurationId = data.Value<string> ("ConfigurationId"),
                     TankId = data.Value<int?> ("TankId"), //Cursor: Now enriched from authorization context
                     VehicleId = data.Value<int?> ("VehicleId"), //Cursor: Now enriched from authorization context
+                    Odometer = data.Value<decimal?> ("Odometer"), //Cursor: Add odometer from authorization context
                     HasBeenProcessed = false // Will be set to true after processing
             };
         }

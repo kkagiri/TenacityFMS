@@ -14,35 +14,63 @@
  * - Save Draft, Complete, Export Excel, Send Report options
  */
 
-import React, { useMemo, useCallback, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { Button } from 'devextreme-react/button';
-import { TextArea } from 'devextreme-react/text-area';
-import { TextBox } from 'devextreme-react/text-box';
-import { CheckBox } from 'devextreme-react/check-box';
-import { Popup } from 'devextreme-react/popup';
-import { TagBox } from 'devextreme-react/tag-box';
-import notify from 'devextreme/ui/notify';
-import { confirm } from 'devextreme/ui/dialog';
+import React, { useMemo, useCallback, useRef, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { Button } from "devextreme-react/button";
+import { TextArea } from "devextreme-react/text-area";
+import { TextBox } from "devextreme-react/text-box";
+import { CheckBox } from "devextreme-react/check-box";
+import { Popup } from "devextreme-react/popup";
+import { TagBox } from "devextreme-react/tag-box";
+import notify from "devextreme/ui/notify";
+import { confirm } from "devextreme/ui/dialog";
 
 import {
   selectWizard,
   selectWizardDraftAudit,
   setWizardNotes,
-  resetWizard
-} from '../../../../../../redux/slices/fuelAuditSlice';
-import { finalizeAuditAction, saveDraftAudit } from '../../../../../../redux/slices/fuelAuditThunks';
+  resetWizard,
+} from "../../../../../../redux/slices/fuelAuditSlice";
+import {
+  finalizeAuditAction,
+  saveDraftAudit,
+} from "../../../../../../redux/slices/fuelAuditThunks";
 
-import './Step7AuditReport.scss';
+import "./Step7AuditReport.scss";
 
 // Category configuration for display
 const CATEGORY_CONFIG = {
-  1: { name: 'GPS Fleet', icon: 'fa-satellite', color: 'tw-text-green-700', bgColor: 'tw-bg-green-50' },
-  2: { name: 'Full Tank Policy', icon: 'fa-gas-pump', color: 'tw-text-yellow-700', bgColor: 'tw-bg-yellow-50' },
-  3: { name: 'Equipment', icon: 'fa-gear', color: 'tw-text-orange-700', bgColor: 'tw-bg-orange-50' },
-  4: { name: 'Cross-Site', icon: 'fa-arrow-right-arrow-left', color: 'tw-text-cyan-700', bgColor: 'tw-bg-cyan-50' },
-  5: { name: 'External', icon: 'fa-user-plus', color: 'tw-text-pink-700', bgColor: 'tw-bg-pink-50' }
+  1: {
+    name: "GPS Fleet",
+    icon: "fa-satellite",
+    color: "tw-text-green-700",
+    bgColor: "tw-bg-green-50",
+  },
+  2: {
+    name: "Full Tank Policy",
+    icon: "fa-gas-pump",
+    color: "tw-text-yellow-700",
+    bgColor: "tw-bg-yellow-50",
+  },
+  3: {
+    name: "Equipment",
+    icon: "fa-gear",
+    color: "tw-text-orange-700",
+    bgColor: "tw-bg-orange-50",
+  },
+  4: {
+    name: "Cross-Site",
+    icon: "fa-arrow-right-arrow-left",
+    color: "tw-text-cyan-700",
+    bgColor: "tw-bg-cyan-50",
+  },
+  5: {
+    name: "External",
+    icon: "fa-user-plus",
+    color: "tw-text-pink-700",
+    bgColor: "tw-bg-pink-50",
+  },
 };
 
 const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
@@ -57,24 +85,26 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
 
   const [showFinalizePopup, setShowFinalizePopup] = useState(false);
   const [showSendReportPopup, setShowSendReportPopup] = useState(false);
-  const [finalizationNotes, setFinalizationNotes] = useState('');
+  const [finalizationNotes, setFinalizationNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [sendReportOnComplete, setSendReportOnComplete] = useState(false);
   const [recipientEmails, setRecipientEmails] = useState([]);
-  const [customEmail, setCustomEmail] = useState('');
-  const [lastSavedTime, setLastSavedTime] = useState(wizard.lastSavedAt || null);
+  const [customEmail, setCustomEmail] = useState("");
+  const [lastSavedTime, setLastSavedTime] = useState(
+    wizard.lastSavedAt || null
+  );
 
   // Get selected sites
   const selectedSites = useMemo(() => {
     const siteIds = Array.isArray(wizard.siteIds) ? wizard.siteIds : [];
-    return sites.filter(s => siteIds.includes(s.id || s.siteId));
+    return sites.filter((s) => siteIds.includes(s.id || s.siteId));
   }, [sites, wizard.siteIds]);
 
   // Get site names for display
   const siteNamesDisplay = useMemo(() => {
-    if (selectedSites.length === 0) return 'N/A';
-    return selectedSites.map(s => s.name || s.siteName).join(', ');
+    if (selectedSites.length === 0) return "N/A";
+    return selectedSites.map((s) => s.name || s.siteName).join(", ");
   }, [selectedSites]);
 
   // Get tank data
@@ -85,10 +115,12 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
   // Get vehicle data grouped by category
   const vehicleData = useMemo(() => {
     const tankRefills = wizard.tankRefills || [];
-    const selected = tankRefills.filter(v => wizard.selectedVehicleIds?.includes(v.vehicleId));
+    const selected = tankRefills.filter((v) =>
+      wizard.selectedVehicleIds?.includes(v.vehicleId)
+    );
 
     const grouped = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    selected.forEach(v => {
+    selected.forEach((v) => {
       const cat = v.vehicleCategory || 3;
       if (grouped[cat]) grouped[cat].push(v);
     });
@@ -99,79 +131,142 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
   // Calculate reconciliation totals
   const reconciliation = useMemo(() => {
     // Tank totals
-    const tankOpening = tankData.reduce((sum, t) => sum + (t.openingStock || 0), 0);
-    const tankClosing = tankData.reduce((sum, t) => sum + (t.closingStock || 0), 0);
-    const tankDeliveries = tankData.reduce((sum, t) => sum + (t.totalDeliveries || 0), 0);
-    const tankDispensed = tankData.reduce((sum, t) => sum + (t.totalDispensed || 0), 0);
+    const tankOpening = tankData.reduce(
+      (sum, t) => sum + (t.openingStock || 0),
+      0
+    );
+    const tankClosing = tankData.reduce(
+      (sum, t) => sum + (t.closingStock || 0),
+      0
+    );
+    const tankDeliveries = tankData.reduce(
+      (sum, t) => sum + (t.totalDeliveries || 0),
+      0
+    );
+    const tankDispensed = tankData.reduce(
+      (sum, t) => sum + (t.totalDispensed || 0),
+      0
+    );
     const tankExpected = tankOpening + tankDeliveries - tankDispensed;
     const tankVariance = tankClosing - tankExpected;
 
     // Vehicle totals by category
     const catTotals = {};
-    Object.keys(vehicleData.grouped).forEach(cat => {
+    Object.keys(vehicleData.grouped).forEach((cat) => {
       const vehicles = vehicleData.grouped[cat];
       catTotals[cat] = {
         count: vehicles.length,
         opening: vehicles.reduce((sum, v) => sum + (v.openingFuel || 0), 0),
         closing: vehicles.reduce((sum, v) => sum + (v.closingFuel || 0), 0),
-        refueled: vehicles.reduce((sum, v) => sum + (v.totalFuelAmount || 0), 0),
-        consumption: vehicles.reduce((sum, v) => sum + (v.consumption || v.gpsMeasuredConsumption || 0), 0),
-        variance: vehicles.reduce((sum, v) => sum + (v.vehicleVariance || 0), 0),
-        withFlags: vehicles.filter(v => v.hasVarianceFlag).length
+        refueled: vehicles.reduce(
+          (sum, v) => sum + (v.totalFuelAmount || 0),
+          0
+        ),
+        consumption: vehicles.reduce(
+          (sum, v) => sum + (v.consumption || v.gpsMeasuredConsumption || 0),
+          0
+        ),
+        variance: vehicles.reduce(
+          (sum, v) => sum + (v.vehicleVariance || 0),
+          0
+        ),
+        withFlags: vehicles.filter((v) => v.hasVarianceFlag).length,
       };
     });
 
     // System totals
-    const vehicleOpening = Object.values(catTotals).reduce((sum, c) => sum + c.opening, 0);
-    const vehicleClosing = Object.values(catTotals).reduce((sum, c) => sum + c.closing, 0);
-    const totalRefueled = Object.values(catTotals).reduce((sum, c) => sum + c.refueled, 0);
-    const totalConsumption = Object.values(catTotals).reduce((sum, c) => sum + c.consumption, 0);
+    const vehicleOpening = Object.values(catTotals).reduce(
+      (sum, c) => sum + c.opening,
+      0
+    );
+    const vehicleClosing = Object.values(catTotals).reduce(
+      (sum, c) => sum + c.closing,
+      0
+    );
+    const totalRefueled = Object.values(catTotals).reduce(
+      (sum, c) => sum + c.refueled,
+      0
+    );
+    const totalConsumption = Object.values(catTotals).reduce(
+      (sum, c) => sum + c.consumption,
+      0
+    );
 
     const systemOpening = tankOpening + vehicleOpening;
     const systemClosing = tankClosing + vehicleClosing;
     const expectedClosing = systemOpening + tankDeliveries - totalConsumption;
     const systemVariance = systemClosing - expectedClosing;
-    const systemVariancePct = systemOpening > 0 ? (systemVariance / systemOpening) * 100 : 0;
+    const systemVariancePct =
+      systemOpening > 0 ? (systemVariance / systemOpening) * 100 : 0;
 
     // Confidence calculation
     const totalVehicles = vehicleData.all.length;
-    const vehiclesWithGPS = vehicleData.grouped[1].length + vehicleData.grouped[4].length;
-    const confidenceScore = totalVehicles > 0 ? (vehiclesWithGPS / totalVehicles) * 100 : 0;
-    const confidenceLevel = confidenceScore >= 70 ? 'HIGH' : confidenceScore >= 40 ? 'MEDIUM' : 'LOW';
+    const vehiclesWithGPS =
+      vehicleData.grouped[1].length + vehicleData.grouped[4].length;
+    const confidenceScore =
+      totalVehicles > 0 ? (vehiclesWithGPS / totalVehicles) * 100 : 0;
+    const confidenceLevel =
+      confidenceScore >= 70 ? "HIGH" : confidenceScore >= 40 ? "MEDIUM" : "LOW";
 
     // Flags
-    const totalFlags = vehicleData.all.filter(v => v.hasVarianceFlag).length;
+    const totalFlags = vehicleData.all.filter((v) => v.hasVarianceFlag).length;
     const hasSystemFlag = Math.abs(systemVariancePct) > 1.0;
 
     return {
-      tank: { opening: tankOpening, closing: tankClosing, deliveries: tankDeliveries, dispensed: tankDispensed, expected: tankExpected, variance: tankVariance },
-      vehicle: { opening: vehicleOpening, closing: vehicleClosing, refueled: totalRefueled, consumption: totalConsumption },
+      tank: {
+        opening: tankOpening,
+        closing: tankClosing,
+        deliveries: tankDeliveries,
+        dispensed: tankDispensed,
+        expected: tankExpected,
+        variance: tankVariance,
+      },
+      vehicle: {
+        opening: vehicleOpening,
+        closing: vehicleClosing,
+        refueled: totalRefueled,
+        consumption: totalConsumption,
+      },
       byCategory: catTotals,
-      system: { opening: systemOpening, closing: systemClosing, expected: expectedClosing, variance: systemVariance, variancePct: systemVariancePct },
+      system: {
+        opening: systemOpening,
+        closing: systemClosing,
+        expected: expectedClosing,
+        variance: systemVariance,
+        variancePct: systemVariancePct,
+      },
       confidence: { score: confidenceScore, level: confidenceLevel },
-      flags: { total: totalFlags, hasSystemFlag }
+      flags: { total: totalFlags, hasSystemFlag },
     };
   }, [tankData, vehicleData]);
 
   // Format helpers
   const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-GB', {
-      year: 'numeric', month: 'short', day: 'numeric'
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const formatDateTime = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleString('en-GB', {
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+    if (!date) return "N/A";
+    return new Date(date).toLocaleString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatNumber = (num, decimals = 0) => {
-    if (num === null || num === undefined) return '-';
-    return num.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    if (num === null || num === undefined) return "-";
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   };
 
   // Print handler
@@ -182,33 +277,36 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
   // Save Draft handler
   const handleSaveDraft = useCallback(async () => {
     if (!draftAudit.auditId) {
-      notify('No audit to save', 'warning', 3000);
+      notify("No audit to save", "warning", 3000);
       return;
     }
 
     setIsSaving(true);
     try {
-      const result = await dispatch(saveDraftAudit({
-        auditId: draftAudit.auditId,
-        wizardStep: 7,
-        siteIds: wizard.siteIds || [],
-        periodStart: wizard.periodStart,
-        periodEnd: wizard.periodEnd,
-        auditType: wizard.auditType,
-        selectedTankIds: wizard.selectedTankIds || [],
-        selectedVehicleIds: wizard.selectedVehicleIds || [],
-        notes: wizard.notes
-      })).unwrap();
+      const result = await dispatch(
+        saveDraftAudit({
+          auditId: draftAudit.auditId,
+          auditNumber: wizard.auditNumber,
+          wizardStep: 7,
+          siteIds: wizard.siteIds || [],
+          periodStart: wizard.periodStart,
+          periodEnd: wizard.periodEnd,
+          auditType: wizard.auditType,
+          selectedTankIds: wizard.selectedTankIds || [],
+          selectedVehicleIds: wizard.selectedVehicleIds || [],
+          notes: wizard.notes,
+        })
+      ).unwrap();
 
       if (result.isSuccess) {
         setLastSavedTime(new Date());
-        notify('Audit draft saved successfully!', 'success', 3000);
+        notify("Audit draft saved successfully!", "success", 3000);
       } else {
-        notify(result.message || 'Failed to save draft', 'error', 4000);
+        notify(result.message || "Failed to save draft", "error", 4000);
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
-      notify('An error occurred while saving the draft', 'error', 4000);
+      console.error("Error saving draft:", error);
+      notify("An error occurred while saving the draft", "error", 4000);
     } finally {
       setIsSaving(false);
     }
@@ -219,20 +317,20 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
     if (onExportExcel) {
       onExportExcel();
     } else {
-      notify('Excel export will be triggered from Step 6', 'info', 3000);
+      notify("Excel export will be triggered from Step 6", "info", 3000);
     }
   }, [onExportExcel]);
 
   // Add email to recipients
   const handleAddEmail = useCallback(() => {
-    if (!customEmail || !customEmail.includes('@')) {
-      notify('Please enter a valid email address', 'warning', 3000);
+    if (!customEmail || !customEmail.includes("@")) {
+      notify("Please enter a valid email address", "warning", 3000);
       return;
     }
     if (!recipientEmails.includes(customEmail)) {
       setRecipientEmails([...recipientEmails, customEmail]);
     }
-    setCustomEmail('');
+    setCustomEmail("");
   }, [customEmail, recipientEmails]);
 
   // Finalize/Complete handler
@@ -250,61 +348,79 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
 
       // If no audit ID exists, save the draft first to get one
       if (!auditId) {
-        notify('Saving audit data...', 'info', 2000);
-        const saveResult = await dispatch(saveDraftAudit({
-          auditId: null,
-          wizardStep: 7,
-          siteIds: wizard.siteIds || [],
-          periodStart: wizard.periodStart,
-          periodEnd: wizard.periodEnd,
-          auditType: wizard.auditType || 'Weekly',
-          selectedTankIds: wizard.selectedTankIds || [],
-          selectedVehicleIds: wizard.selectedVehicleIds || [],
-          notes: finalizationNotes || wizard.notes
-        })).unwrap();
+        notify("Saving audit data...", "info", 2000);
+        const saveResult = await dispatch(
+          saveDraftAudit({
+            auditId: null,
+            auditNumber: wizard.auditNumber,
+            wizardStep: 7,
+            siteIds: wizard.siteIds || [],
+            periodStart: wizard.periodStart,
+            periodEnd: wizard.periodEnd,
+            auditType: wizard.auditType || "Weekly",
+            selectedTankIds: wizard.selectedTankIds || [],
+            selectedVehicleIds: wizard.selectedVehicleIds || [],
+            notes: finalizationNotes || wizard.notes,
+          })
+        ).unwrap();
 
         if (saveResult.isSuccess && saveResult.data?.auditId) {
           auditId = saveResult.data.auditId;
         } else {
-          notify(saveResult.message || 'Failed to save audit data', 'error', 4000);
+          notify(
+            saveResult.message || "Failed to save audit data",
+            "error",
+            4000
+          );
           setIsSubmitting(false);
           return;
         }
       }
 
       // Now finalize the audit
-      const result = await dispatch(finalizeAuditAction({
-        auditId: auditId,
-        notes: finalizationNotes || wizard.notes,
-        sendReport: sendReportOnComplete,
-        recipientEmails: sendReportOnComplete ? recipientEmails : []
-      })).unwrap();
+      const result = await dispatch(
+        finalizeAuditAction({
+          auditId: auditId,
+          notes: finalizationNotes || wizard.notes,
+          sendReport: sendReportOnComplete,
+          recipientEmails: sendReportOnComplete ? recipientEmails : [],
+        })
+      ).unwrap();
 
       if (result.isSuccess) {
-        notify('Audit finalized successfully!', 'success', 3000);
+        notify("Audit finalized successfully!", "success", 3000);
         setShowFinalizePopup(false);
         dispatch(resetWizard());
-        navigate('/tankstock/fuel-audit');
+        navigate("/tankstock");
       } else {
-        notify(result.message || 'Failed to finalize audit', 'error', 4000);
+        notify(result.message || "Failed to finalize audit", "error", 4000);
       }
     } catch (error) {
-      console.error('Error finalizing audit:', error);
-      notify('An error occurred while finalizing the audit', 'error', 4000);
+      console.error("Error finalizing audit:", error);
+      notify("An error occurred while finalizing the audit", "error", 4000);
     } finally {
       setIsSubmitting(false);
     }
-  }, [dispatch, navigate, draftAudit.auditId, finalizationNotes, wizard.notes, onFinalize, sendReportOnComplete, recipientEmails]);
+  }, [
+    dispatch,
+    navigate,
+    draftAudit.auditId,
+    finalizationNotes,
+    wizard.notes,
+    onFinalize,
+    sendReportOnComplete,
+    recipientEmails,
+  ]);
 
   // Cancel/Discard draft handler
   const handleDiscardDraft = useCallback(async () => {
     const result = await confirm(
-      'Are you sure you want to discard this draft audit? This cannot be undone.',
-      'Discard Draft'
+      "Are you sure you want to discard this draft audit? This cannot be undone.",
+      "Discard Draft"
     );
     if (result) {
       dispatch(resetWizard());
-      navigate('/tankstock/fuel-audit');
+      navigate("/tankstock/fuel-audit");
     }
   }, [dispatch, navigate]);
 
@@ -314,9 +430,13 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
       <div className="tw-flex tw-flex-col md:tw-flex-row tw-items-start md:tw-items-center tw-justify-between tw-px-6 tw-py-3 tw-bg-gray-100 tw-border-b print:tw-hidden tw-gap-3">
         <div className="tw-flex tw-items-center tw-gap-2">
           <i className="fa-light fa-file-invoice tw-text-blue-600"></i>
-          <span className="tw-font-semibold tw-text-gray-700">Audit Report Preview</span>
+          <span className="tw-font-semibold tw-text-gray-700">
+            Audit Report Preview
+          </span>
           {draftAudit.auditNumber && (
-            <span className="tw-text-sm tw-text-gray-500">({draftAudit.auditNumber})</span>
+            <span className="tw-text-sm tw-text-gray-500">
+              ({draftAudit.auditNumber})
+            </span>
           )}
           {lastSavedTime && (
             <span className="tw-text-xs tw-text-gray-400 tw-ml-2">
@@ -337,7 +457,7 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
           />
           {/* Save Draft */}
           <Button
-            text={isSaving ? 'Saving...' : 'Save Draft'}
+            text={isSaving ? "Saving..." : "Save Draft"}
             icon="fa-light fa-floppy-disk"
             type="default"
             stylingMode="outlined"
@@ -385,17 +505,28 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
       </div>
 
       {/* Printable Report Content */}
-      <div ref={reportRef} className="audit-report-content tw-flex-1 tw-overflow-auto tw-p-6 tw-bg-white">
+      <div
+        ref={reportRef}
+        className="audit-report-content tw-flex-1 tw-overflow-auto tw-p-6 tw-bg-white"
+      >
         {/* Report Header */}
         <div className="report-header tw-border-b-2 tw-border-gray-800 tw-pb-4 tw-mb-6">
           <div className="tw-flex tw-justify-between tw-items-start">
             <div>
-              <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">FUEL AUDIT REPORT</h1>
-              <p className="tw-text-lg tw-text-gray-600 tw-mt-1">{wizard.auditType || 'Weekly'} Reconciliation</p>
+              <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">
+                FUEL AUDIT REPORT
+              </h1>
+              <p className="tw-text-lg tw-text-gray-600 tw-mt-1">
+                {wizard.auditType || "Weekly"} Reconciliation
+              </p>
             </div>
             <div className="tw-text-right">
-              <p className="tw-text-lg tw-font-bold tw-text-blue-700">{draftAudit.auditNumber || 'DRAFT'}</p>
-              <p className="tw-text-sm tw-text-gray-500">Generated: {formatDateTime(new Date())}</p>
+              <p className="tw-text-lg tw-font-bold tw-text-blue-700">
+                {draftAudit.auditNumber || "DRAFT"}
+              </p>
+              <p className="tw-text-sm tw-text-gray-500">
+                Generated: {formatDateTime(new Date())}
+              </p>
             </div>
           </div>
         </div>
@@ -408,15 +539,21 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
           <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4 tw-text-sm">
             <div>
               <p className="tw-text-gray-500">Site(s)</p>
-              <p className="tw-font-semibold tw-text-gray-800">{siteNamesDisplay}</p>
+              <p className="tw-font-semibold tw-text-gray-800">
+                {siteNamesDisplay}
+              </p>
             </div>
             <div>
               <p className="tw-text-gray-500">Period Start</p>
-              <p className="tw-font-semibold tw-text-gray-800">{formatDate(wizard.periodStart)}</p>
+              <p className="tw-font-semibold tw-text-gray-800">
+                {formatDate(wizard.periodStart)}
+              </p>
             </div>
             <div>
               <p className="tw-text-gray-500">Period End</p>
-              <p className="tw-font-semibold tw-text-gray-800">{formatDate(wizard.periodEnd)}</p>
+              <p className="tw-font-semibold tw-text-gray-800">
+                {formatDate(wizard.periodEnd)}
+              </p>
             </div>
             <div>
               <p className="tw-text-gray-500">Status</p>
@@ -435,24 +572,45 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
           <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4">
             <div className="tw-bg-blue-50 tw-rounded-lg tw-p-4 tw-text-center">
               <p className="tw-text-xs tw-text-gray-500 tw-uppercase">Tanks</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-blue-700">{tankData.length}</p>
+              <p className="tw-text-2xl tw-font-bold tw-text-blue-700">
+                {tankData.length}
+              </p>
             </div>
             <div className="tw-bg-purple-50 tw-rounded-lg tw-p-4 tw-text-center">
-              <p className="tw-text-xs tw-text-gray-500 tw-uppercase">Vehicles</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-purple-700">{vehicleData.all.length}</p>
+              <p className="tw-text-xs tw-text-gray-500 tw-uppercase">
+                Vehicles
+              </p>
+              <p className="tw-text-2xl tw-font-bold tw-text-purple-700">
+                {vehicleData.all.length}
+              </p>
             </div>
             <div className="tw-bg-green-50 tw-rounded-lg tw-p-4 tw-text-center">
-              <p className="tw-text-xs tw-text-gray-500 tw-uppercase">Total Dispensed</p>
-              <p className="tw-text-2xl tw-font-bold tw-text-green-700">{formatNumber(reconciliation.vehicle.refueled)} L</p>
+              <p className="tw-text-xs tw-text-gray-500 tw-uppercase">
+                Total Dispensed
+              </p>
+              <p className="tw-text-2xl tw-font-bold tw-text-green-700">
+                {formatNumber(reconciliation.vehicle.refueled)} L
+              </p>
             </div>
-            <div className={`tw-rounded-lg tw-p-4 tw-text-center ${
-              reconciliation.flags.hasSystemFlag ? 'tw-bg-red-50' : 'tw-bg-green-50'
-            }`}>
-              <p className="tw-text-xs tw-text-gray-500 tw-uppercase">System Variance</p>
-              <p className={`tw-text-2xl tw-font-bold ${
-                reconciliation.flags.hasSystemFlag ? 'tw-text-red-700' : 'tw-text-green-700'
-              }`}>
-                {reconciliation.system.variancePct >= 0 ? '+' : ''}{formatNumber(reconciliation.system.variancePct, 2)}%
+            <div
+              className={`tw-rounded-lg tw-p-4 tw-text-center ${
+                reconciliation.flags.hasSystemFlag
+                  ? "tw-bg-red-50"
+                  : "tw-bg-green-50"
+              }`}
+            >
+              <p className="tw-text-xs tw-text-gray-500 tw-uppercase">
+                System Variance
+              </p>
+              <p
+                className={`tw-text-2xl tw-font-bold ${
+                  reconciliation.flags.hasSystemFlag
+                    ? "tw-text-red-700"
+                    : "tw-text-green-700"
+                }`}
+              >
+                {reconciliation.system.variancePct >= 0 ? "+" : ""}
+                {formatNumber(reconciliation.system.variancePct, 2)}%
               </p>
             </div>
           </div>
@@ -466,37 +624,83 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
           <table className="tw-w-full tw-text-sm tw-border tw-border-gray-300">
             <thead className="tw-bg-gray-100">
               <tr>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-left">Tank</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Opening (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Deliveries (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Dispensed (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Expected (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Closing (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Variance (L)</th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-left">
+                  Tank
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Opening (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Deliveries (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Dispensed (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Expected (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Closing (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Variance (L)
+                </th>
               </tr>
             </thead>
             <tbody>
-              {tankData.length > 0 ? tankData.map((tank, idx) => {
-                const expected = (tank.openingStock || 0) + (tank.totalDeliveries || 0) - (tank.totalDispensed || 0);
-                const variance = (tank.closingStock || 0) - expected;
-                return (
-                  <tr key={tank.tankId || idx} className={idx % 2 === 0 ? 'tw-bg-white' : 'tw-bg-gray-50'}>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-font-medium">{tank.tankName}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(tank.openingStock)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-600">+{formatNumber(tank.totalDeliveries)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-600">-{formatNumber(tank.totalDispensed)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(expected)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-font-semibold">{formatNumber(tank.closingStock)}</td>
-                    <td className={`tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-font-semibold ${
-                      variance < 0 ? 'tw-text-red-600' : variance > 0 ? 'tw-text-green-600' : ''
-                    }`}>
-                      {variance >= 0 ? '+' : ''}{formatNumber(variance)}
-                    </td>
-                  </tr>
-                );
-              }) : (
+              {tankData.length > 0 ? (
+                tankData.map((tank, idx) => {
+                  const expected =
+                    (tank.openingStock || 0) +
+                    (tank.totalDeliveries || 0) -
+                    (tank.totalDispensed || 0);
+                  const variance = (tank.closingStock || 0) - expected;
+                  return (
+                    <tr
+                      key={tank.tankId || idx}
+                      className={
+                        idx % 2 === 0 ? "tw-bg-white" : "tw-bg-gray-50"
+                      }
+                    >
+                      <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-font-medium">
+                        {tank.tankName}
+                      </td>
+                      <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                        {formatNumber(tank.openingStock)}
+                      </td>
+                      <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-600">
+                        +{formatNumber(tank.totalDeliveries)}
+                      </td>
+                      <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-600">
+                        -{formatNumber(tank.totalDispensed)}
+                      </td>
+                      <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                        {formatNumber(expected)}
+                      </td>
+                      <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-font-semibold">
+                        {formatNumber(tank.closingStock)}
+                      </td>
+                      <td
+                        className={`tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-font-semibold ${
+                          variance < 0
+                            ? "tw-text-red-600"
+                            : variance > 0
+                            ? "tw-text-green-600"
+                            : ""
+                        }`}
+                      >
+                        {variance >= 0 ? "+" : ""}
+                        {formatNumber(variance)}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
                 <tr>
-                  <td colSpan="7" className="tw-border tw-border-gray-300 tw-px-3 tw-py-4 tw-text-center tw-text-gray-500">
+                  <td
+                    colSpan="7"
+                    className="tw-border tw-border-gray-300 tw-px-3 tw-py-4 tw-text-center tw-text-gray-500"
+                  >
                     No tank data available
                   </td>
                 </tr>
@@ -504,16 +708,33 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
             </tbody>
             <tfoot className="tw-bg-gray-200 tw-font-semibold">
               <tr>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2">TOTAL</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(reconciliation.tank.opening)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-700">+{formatNumber(reconciliation.tank.deliveries)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-700">-{formatNumber(reconciliation.tank.dispensed)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(reconciliation.tank.expected)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(reconciliation.tank.closing)}</td>
-                <td className={`tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right ${
-                  reconciliation.tank.variance < 0 ? 'tw-text-red-700' : 'tw-text-green-700'
-                }`}>
-                  {reconciliation.tank.variance >= 0 ? '+' : ''}{formatNumber(reconciliation.tank.variance)}
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2">
+                  TOTAL
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  {formatNumber(reconciliation.tank.opening)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-700">
+                  +{formatNumber(reconciliation.tank.deliveries)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-700">
+                  -{formatNumber(reconciliation.tank.dispensed)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  {formatNumber(reconciliation.tank.expected)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  {formatNumber(reconciliation.tank.closing)}
+                </td>
+                <td
+                  className={`tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right ${
+                    reconciliation.tank.variance < 0
+                      ? "tw-text-red-700"
+                      : "tw-text-green-700"
+                  }`}
+                >
+                  {reconciliation.tank.variance >= 0 ? "+" : ""}
+                  {formatNumber(reconciliation.tank.variance)}
                 </td>
               </tr>
             </tfoot>
@@ -523,18 +744,33 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
         {/* Vehicle Summary by Category */}
         <div className="report-section tw-mb-6">
           <h2 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-border-b tw-pb-2 tw-mb-3">
-            <i className="fa-light fa-truck tw-mr-2"></i>Vehicle Summary by Category
+            <i className="fa-light fa-truck tw-mr-2"></i>Vehicle Summary by
+            Category
           </h2>
           <table className="tw-w-full tw-text-sm tw-border tw-border-gray-300">
             <thead className="tw-bg-gray-100">
               <tr>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-left">Category</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">Vehicles</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Opening (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Refueled (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Consumption (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">Closing (L)</th>
-                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">Flags</th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-left">
+                  Category
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">
+                  Vehicles
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Opening (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Refueled (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Consumption (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  Closing (L)
+                </th>
+                <th className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">
+                  Flags
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -543,25 +779,41 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
                 const catData = reconciliation.byCategory[cat];
                 if (catData.count === 0) return null;
                 return (
-                  <tr key={cat} className={idx % 2 === 0 ? 'tw-bg-white' : 'tw-bg-gray-50'}>
+                  <tr
+                    key={cat}
+                    className={idx % 2 === 0 ? "tw-bg-white" : "tw-bg-gray-50"}
+                  >
                     <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2">
                       <span className={`tw-font-medium ${catConfig.color}`}>
                         <i className={`fa-light ${catConfig.icon} tw-mr-2`}></i>
                         {catConfig.name}
                       </span>
                     </td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">{catData.count}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(catData.opening)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-600">+{formatNumber(catData.refueled)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-600">-{formatNumber(catData.consumption)}</td>
-                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-font-semibold">{formatNumber(catData.closing)}</td>
+                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">
+                      {catData.count}
+                    </td>
+                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                      {formatNumber(catData.opening)}
+                    </td>
+                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-600">
+                      +{formatNumber(catData.refueled)}
+                    </td>
+                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-600">
+                      -{formatNumber(catData.consumption)}
+                    </td>
+                    <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-font-semibold">
+                      {formatNumber(catData.closing)}
+                    </td>
                     <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">
                       {catData.withFlags > 0 ? (
                         <span className="tw-text-red-600 tw-font-semibold">
-                          <i className="fa-light fa-flag tw-mr-1"></i>{catData.withFlags}
+                          <i className="fa-light fa-flag tw-mr-1"></i>
+                          {catData.withFlags}
                         </span>
                       ) : (
-                        <span className="tw-text-green-600"><i className="fa-light fa-check"></i></span>
+                        <span className="tw-text-green-600">
+                          <i className="fa-light fa-check"></i>
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -570,15 +822,29 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
             </tbody>
             <tfoot className="tw-bg-gray-200 tw-font-semibold">
               <tr>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2">TOTAL</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">{vehicleData.all.length}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(reconciliation.vehicle.opening)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-700">+{formatNumber(reconciliation.vehicle.refueled)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-700">-{formatNumber(reconciliation.vehicle.consumption)}</td>
-                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">{formatNumber(reconciliation.vehicle.closing)}</td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2">
+                  TOTAL
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">
+                  {vehicleData.all.length}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  {formatNumber(reconciliation.vehicle.opening)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-green-700">
+                  +{formatNumber(reconciliation.vehicle.refueled)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right tw-text-red-700">
+                  -{formatNumber(reconciliation.vehicle.consumption)}
+                </td>
+                <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-right">
+                  {formatNumber(reconciliation.vehicle.closing)}
+                </td>
                 <td className="tw-border tw-border-gray-300 tw-px-3 tw-py-2 tw-text-center">
                   {reconciliation.flags.total > 0 ? (
-                    <span className="tw-text-red-700">{reconciliation.flags.total}</span>
+                    <span className="tw-text-red-700">
+                      {reconciliation.flags.total}
+                    </span>
                   ) : (
                     <span className="tw-text-green-700">0</span>
                   )}
@@ -591,45 +857,67 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
         {/* System Reconciliation Summary */}
         <div className="report-section tw-mb-6">
           <h2 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-border-b tw-pb-2 tw-mb-3">
-            <i className="fa-light fa-scale-balanced tw-mr-2"></i>System Reconciliation
+            <i className="fa-light fa-scale-balanced tw-mr-2"></i>System
+            Reconciliation
           </h2>
-          <div className={`tw-p-4 tw-rounded-lg tw-border-2 ${
-            reconciliation.flags.hasSystemFlag
-              ? 'tw-bg-red-50 tw-border-red-300'
-              : 'tw-bg-green-50 tw-border-green-300'
-          }`}>
+          <div
+            className={`tw-p-4 tw-rounded-lg tw-border-2 ${
+              reconciliation.flags.hasSystemFlag
+                ? "tw-bg-red-50 tw-border-red-300"
+                : "tw-bg-green-50 tw-border-green-300"
+            }`}
+          >
             <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4 tw-mb-4">
               <div>
                 <p className="tw-text-xs tw-text-gray-500">System Opening</p>
-                <p className="tw-text-xl tw-font-bold tw-text-gray-800">{formatNumber(reconciliation.system.opening)} L</p>
+                <p className="tw-text-xl tw-font-bold tw-text-gray-800">
+                  {formatNumber(reconciliation.system.opening)} L
+                </p>
               </div>
               <div>
                 <p className="tw-text-xs tw-text-gray-500">Expected Closing</p>
-                <p className="tw-text-xl tw-font-bold tw-text-gray-800">{formatNumber(reconciliation.system.expected)} L</p>
+                <p className="tw-text-xl tw-font-bold tw-text-gray-800">
+                  {formatNumber(reconciliation.system.expected)} L
+                </p>
               </div>
               <div>
                 <p className="tw-text-xs tw-text-gray-500">Actual Closing</p>
-                <p className="tw-text-xl tw-font-bold tw-text-gray-800">{formatNumber(reconciliation.system.closing)} L</p>
+                <p className="tw-text-xl tw-font-bold tw-text-gray-800">
+                  {formatNumber(reconciliation.system.closing)} L
+                </p>
               </div>
               <div>
                 <p className="tw-text-xs tw-text-gray-500">Variance</p>
-                <p className={`tw-text-xl tw-font-bold ${
-                  reconciliation.flags.hasSystemFlag ? 'tw-text-red-700' : 'tw-text-green-700'
-                }`}>
-                  {reconciliation.system.variance >= 0 ? '+' : ''}{formatNumber(reconciliation.system.variance)} L
-                  ({reconciliation.system.variancePct >= 0 ? '+' : ''}{formatNumber(reconciliation.system.variancePct, 2)}%)
+                <p
+                  className={`tw-text-xl tw-font-bold ${
+                    reconciliation.flags.hasSystemFlag
+                      ? "tw-text-red-700"
+                      : "tw-text-green-700"
+                  }`}
+                >
+                  {reconciliation.system.variance >= 0 ? "+" : ""}
+                  {formatNumber(reconciliation.system.variance)} L (
+                  {reconciliation.system.variancePct >= 0 ? "+" : ""}
+                  {formatNumber(reconciliation.system.variancePct, 2)}%)
                 </p>
               </div>
             </div>
             <div className="tw-flex tw-items-center tw-justify-between tw-pt-3 tw-border-t tw-border-gray-300">
               <div className="tw-flex tw-items-center tw-gap-2">
-                <span className="tw-text-sm tw-text-gray-600">Data Confidence:</span>
-                <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-semibold ${
-                  reconciliation.confidence.level === 'HIGH' ? 'tw-bg-green-100 tw-text-green-700' :
-                  reconciliation.confidence.level === 'MEDIUM' ? 'tw-bg-yellow-100 tw-text-yellow-700' :
-                  'tw-bg-red-100 tw-text-red-700'
-                }`}>
-                  {reconciliation.confidence.level} ({formatNumber(reconciliation.confidence.score, 0)}%)
+                <span className="tw-text-sm tw-text-gray-600">
+                  Data Confidence:
+                </span>
+                <span
+                  className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-semibold ${
+                    reconciliation.confidence.level === "HIGH"
+                      ? "tw-bg-green-100 tw-text-green-700"
+                      : reconciliation.confidence.level === "MEDIUM"
+                      ? "tw-bg-yellow-100 tw-text-yellow-700"
+                      : "tw-bg-red-100 tw-text-red-700"
+                  }`}
+                >
+                  {reconciliation.confidence.level} (
+                  {formatNumber(reconciliation.confidence.score, 0)}%)
                 </span>
               </div>
               {reconciliation.flags.hasSystemFlag && (
@@ -649,14 +937,18 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
           </h2>
           <div className="print:tw-hidden">
             <TextArea
-              value={wizard.notes || ''}
+              value={wizard.notes || ""}
               onValueChanged={(e) => dispatch(setWizardNotes(e.value))}
               placeholder="Add any notes, observations, or comments for this audit report..."
               height={100}
             />
           </div>
           <div className="tw-hidden print:tw-block tw-p-3 tw-bg-gray-50 tw-rounded tw-min-h-[80px]">
-            {wizard.notes || <span className="tw-text-gray-400 tw-italic">No notes provided</span>}
+            {wizard.notes || (
+              <span className="tw-text-gray-400 tw-italic">
+                No notes provided
+              </span>
+            )}
           </div>
         </div>
 
@@ -664,16 +956,24 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
         <div className="report-section tw-mt-8 tw-pt-6 tw-border-t-2 tw-border-gray-300">
           <div className="tw-grid tw-grid-cols-2 tw-gap-8">
             <div>
-              <p className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-12">Prepared By:</p>
+              <p className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-12">
+                Prepared By:
+              </p>
               <div className="tw-border-b tw-border-gray-400 tw-mb-2"></div>
               <p className="tw-text-xs tw-text-gray-500">Name & Signature</p>
-              <p className="tw-text-xs tw-text-gray-500 tw-mt-1">Date: ________________</p>
+              <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                Date: ________________
+              </p>
             </div>
             <div>
-              <p className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-12">Approved By:</p>
+              <p className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-12">
+                Approved By:
+              </p>
               <div className="tw-border-b tw-border-gray-400 tw-mb-2"></div>
               <p className="tw-text-xs tw-text-gray-500">Name & Signature</p>
-              <p className="tw-text-xs tw-text-gray-500 tw-mt-1">Date: ________________</p>
+              <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                Date: ________________
+              </p>
             </div>
           </div>
         </div>
@@ -681,7 +981,10 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
         {/* Footer */}
         <div className="report-footer tw-mt-8 tw-pt-4 tw-border-t tw-text-center tw-text-xs tw-text-gray-400">
           <p>This is a system-generated report from FMS Fuel Audit System</p>
-          <p>Report ID: {draftAudit.auditNumber || 'DRAFT'} | Generated: {formatDateTime(new Date())}</p>
+          <p>
+            Report ID: {draftAudit.auditNumber || "DRAFT"} | Generated:{" "}
+            {formatDateTime(new Date())}
+          </p>
         </div>
       </div>
 
@@ -702,8 +1005,9 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
               <span className="tw-font-semibold">Ready to Complete</span>
             </div>
             <p className="tw-text-sm tw-text-gray-600">
-              This will finalize audit <strong>{draftAudit.auditNumber}</strong> and lock it for further editing.
-              The report will be marked as complete.
+              This will finalize audit <strong>{draftAudit.auditNumber}</strong>{" "}
+              and lock it for further editing. The report will be marked as
+              complete.
             </p>
           </div>
 
@@ -761,7 +1065,11 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
                         {email}
                         <button
                           className="tw-text-blue-600 hover:tw-text-blue-800"
-                          onClick={() => setRecipientEmails(recipientEmails.filter((_, i) => i !== idx))}
+                          onClick={() =>
+                            setRecipientEmails(
+                              recipientEmails.filter((_, i) => i !== idx)
+                            )
+                          }
                         >
                           <i className="fa-light fa-times"></i>
                         </button>
@@ -778,10 +1086,14 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
               <div className="tw-flex tw-items-start tw-gap-2">
                 <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mt-0.5"></i>
                 <div className="tw-text-sm">
-                  <p className="tw-font-medium tw-text-yellow-800">Variance Warning</p>
+                  <p className="tw-font-medium tw-text-yellow-800">
+                    Variance Warning
+                  </p>
                   <p className="tw-text-yellow-700">
-                    System variance ({formatNumber(reconciliation.system.variancePct, 2)}%) exceeds threshold.
-                    Are you sure you want to complete this audit?
+                    System variance (
+                    {formatNumber(reconciliation.system.variancePct, 2)}%)
+                    exceeds threshold. Are you sure you want to complete this
+                    audit?
                   </p>
                 </div>
               </div>
@@ -823,8 +1135,8 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
               <span className="tw-font-semibold">Email Report</span>
             </div>
             <p className="tw-text-sm tw-text-gray-600">
-              Send audit report <strong>{draftAudit.auditNumber}</strong> via email.
-              This will not finalize the audit.
+              Send audit report <strong>{draftAudit.auditNumber}</strong> via
+              email. This will not finalize the audit.
             </p>
           </div>
 
@@ -858,7 +1170,11 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
                     {email}
                     <button
                       className="tw-text-blue-600 hover:tw-text-blue-800"
-                      onClick={() => setRecipientEmails(recipientEmails.filter((_, i) => i !== idx))}
+                      onClick={() =>
+                        setRecipientEmails(
+                          recipientEmails.filter((_, i) => i !== idx)
+                        )
+                      }
                     >
                       <i className="fa-light fa-times"></i>
                     </button>
@@ -866,7 +1182,9 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
                 ))}
               </div>
             ) : (
-              <p className="tw-text-xs tw-text-gray-400 tw-italic">No recipients added yet</p>
+              <p className="tw-text-xs tw-text-gray-400 tw-italic">
+                No recipients added yet
+              </p>
             )}
           </div>
 
@@ -875,7 +1193,7 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
               Message (Optional)
             </label>
             <TextArea
-              value={wizard.notes || ''}
+              value={wizard.notes || ""}
               onValueChanged={(e) => dispatch(setWizardNotes(e.value))}
               placeholder="Add a message to include with the report..."
               height={80}
@@ -895,7 +1213,11 @@ const Step7AuditReport = ({ onFinalize, onClose, onExportExcel }) => {
               icon="fa-light fa-paper-plane"
               disabled={recipientEmails.length === 0}
               onClick={() => {
-                notify('Report sending feature will be implemented with email service integration', 'info', 4000);
+                notify(
+                  "Report sending feature will be implemented with email service integration",
+                  "info",
+                  4000
+                );
                 setShowSendReportPopup(false);
               }}
             />

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -176,7 +177,11 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         FuelEfficiency = vp.FuelEfficiency,
                         DataSource = vp.OpeningDataSource,
                         DataQuality = vp.OpeningDataQuality,
-                        Notes = vp.EstimationNotes
+                        Notes = vp.EstimationNotes,
+                        // Deserialize GPS refill events from JSON
+                        GpsRefillEvents = !string.IsNullOrEmpty(vp.GpsRefillEventsJson)
+                            ? JsonSerializer.Deserialize<List<DTOs.GpsRefillEventDTO>>(vp.GpsRefillEventsJson)
+                            : null
                     }).ToList(),
 
                     Variances = audit.Variances.Select(v => new VarianceDTO

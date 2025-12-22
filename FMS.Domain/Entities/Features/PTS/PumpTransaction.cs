@@ -59,6 +59,12 @@ public partial class Pumptransaction {
     public int? VehicleId { get; set; }
 
     /// <summary>
+    /// Vehicle odometer reading at time of fueling (in kilometers or miles)
+    /// Captured during pump authorization and stored with transaction
+    /// </summary>
+    public decimal? Odometer { get; set; }
+
+    /// <summary>
     /// Indicates whether this transaction has been processed by business logic
     /// </summary>
     public bool HasBeenProcessed { get; set; } = false; //Cursor

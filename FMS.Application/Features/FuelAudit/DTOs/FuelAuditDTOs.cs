@@ -267,6 +267,30 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public string? DataQuality { get; set; } // High, Medium, Low, NoData
         public int GPSReadingsCount { get; set; }
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// GPS refill events from SOAP Report 212 for this vehicle.
+        /// Only populated for GPS categories (1 and 4).
+        /// Stored as JSON in the database for audit persistence.
+        /// </summary>
+        public List<GpsRefillEventDTO>? GpsRefillEvents { get; set; }
+    }
+
+    /// <summary>
+    /// Simplified GPS refill event DTO for storage in VehiclePosition
+    /// </summary>
+    public class GpsRefillEventDTO
+    {
+        public int EntryId { get; set; }
+        public DateTime RefillDate { get; set; }
+        public decimal? FuelBefore { get; set; }
+        public decimal? FuelAfter { get; set; }
+        public decimal GpsRefillVolume { get; set; }
+        public decimal? ManualRefillAmount { get; set; }
+        public decimal? Variance { get; set; }
+        public decimal? VariancePercent { get; set; }
+        public int? FuelRefillId { get; set; }
+        public string? TankName { get; set; }
     }
 
     /// <summary>

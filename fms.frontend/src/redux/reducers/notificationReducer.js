@@ -163,7 +163,7 @@ const notificationReducer = (state = initialState, action) => {
     case MARK_NOTIFICATION_READ_SUCCESS:
       return {
         ...state,
-        backendNotifications: state.backendNotifications.map(notification =>
+        backendNotifications: state.backendNotifications.map((notification) =>
           notification.id === action.payload
             ? { ...notification, isRead: true }
             : notification
@@ -173,7 +173,7 @@ const notificationReducer = (state = initialState, action) => {
     case ACKNOWLEDGE_NOTIFICATION_SUCCESS:
       return {
         ...state,
-        backendNotifications: state.backendNotifications.map(notification =>
+        backendNotifications: state.backendNotifications.map((notification) =>
           notification.id === action.payload
             ? { ...notification, isAcknowledged: true }
             : notification
@@ -236,7 +236,7 @@ const notificationReducer = (state = initialState, action) => {
       return {
         ...state,
         notificationPolicies: state.notificationPolicies.filter(
-          policy => policy.id !== action.payload
+          (policy) => policy.id !== action.payload
         ),
       };
 
@@ -314,6 +314,43 @@ const notificationReducer = (state = initialState, action) => {
         loading: { ...state.loading, categories: false },
         errors: { ...state.errors, categories: action.payload },
       };
+
+    // Real-time notification from SignalR (e.g., FuelImport, Alarms)
+    case "NOTIFICATION_CREATED": {
+      const newNotification = action.payload;
+      // Avoid duplicates by checking if notification already exists
+      const exists = state.backendNotifications.some(
+        (n) =>
+          n.id === newNotification.id ||
+          n.notificationId === newNotification.notificationId
+      );
+      if (exists) {
+        return state;
+      }
+
+      // Check if this is a FuelImport notification to clear the temporary progress UI
+      const isFuelImportNotification =
+        newNotification.title?.includes("Fuel Import") ||
+        newNotification.data?.ReportId ||
+        newNotification.data?.reportId;
+
+      return {
+        ...state,
+        // Clear import progress when final notification arrives
+        importProgress: isFuelImportNotification ? null : state.importProgress,
+        backendNotifications: [
+          {
+            ...newNotification,
+            id: newNotification.id || newNotification.notificationId,
+            isRead: false,
+            timestamp: new Date(
+              newNotification.createdAt || new Date()
+            ).getTime(),
+          },
+          ...state.backendNotifications,
+        ],
+      };
+    }
 
     default:
       return state;

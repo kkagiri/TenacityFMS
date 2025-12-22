@@ -86,6 +86,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     ConfigurationId = request.PumpTransactionDto.ConfigurationId,
                     TankId = request.PumpTransactionDto.TankId,
                     VehicleId = request.PumpTransactionDto.VehicleId,
+                    Odometer = request.PumpTransactionDto.Odometer, //Cursor: Add odometer reading
                     HasBeenProcessed = false
                 };
 

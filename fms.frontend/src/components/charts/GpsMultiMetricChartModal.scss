@@ -1,0 +1,58 @@
+// GPS Multi-Metric Chart Modal Styles
+
+.gps-multi-metric-chart-modal {
+  // Modal popup styling
+  .dx-popup-content {
+    @apply tw-p-0;
+    overflow: auto;
+  }
+
+  .dx-popup-title {
+    @apply tw-border-b tw-border-gray-200;
+    padding: 12px 16px;
+    background: #fafafa;
+  }
+
+  // Title content styling
+  .modal-title-content {
+    .modal-title-icon {
+      flex-shrink: 0;
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .dx-popup-content {
+      padding: 8px;
+    }
+
+    .modal-title-content {
+      .modal-title-icon {
+        @apply tw-w-8 tw-h-8;
+      }
+
+      .tw-font-semibold {
+        @apply tw-text-base;
+      }
+    }
+  }
+}
+
+// Dark mode support
+.dark {
+  .gps-multi-metric-chart-modal {
+    .dx-popup-title {
+      @apply tw-bg-gray-800 tw-border-gray-700;
+    }
+
+    .modal-title-content {
+      .tw-font-semibold {
+        @apply tw-text-gray-100;
+      }
+
+      .tw-text-gray-500 {
+        @apply tw-text-gray-400;
+      }
+    }
+  }
+}

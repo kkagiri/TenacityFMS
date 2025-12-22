@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo } from 'react';
-import DateRangeBox from 'devextreme-react/date-range-box';
-import { TagBox } from 'devextreme-react/tag-box';
-import { Button } from 'devextreme-react/button';
-import { useSelector, useDispatch } from 'react-redux';
-import { fetchSiteList } from '../../../../redux/actions/siteActions';
-import { fetchTanks } from '../../../../redux/actions/tankActions';
-import { fetchUsersForFilter } from '../../../../redux/actions/userActions';
-import { useStockFilters } from '../context/StockFilterContext';
-import notify from 'devextreme/ui/notify';
-import PropTypes from 'prop-types';
-import './HeaderStockFilters.scss';
+import React, { useEffect, useMemo } from "react";
+import DateRangeBox from "devextreme-react/date-range-box";
+import { TagBox } from "devextreme-react/tag-box";
+import { Button } from "devextreme-react/button";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchSiteList } from "../../../../redux/actions/siteActions";
+import { fetchTanks } from "../../../../redux/actions/tankActions";
+import { fetchUsersForFilter } from "../../../../redux/actions/userActions";
+import { useStockFilters } from "../context/StockFilterContext";
+import notify from "devextreme/ui/notify";
+import PropTypes from "prop-types";
+import "./HeaderStockFilters.scss";
 
 /**
  * HeaderStockFilters - Compact filter panel for TankStockLayout header
@@ -28,7 +28,7 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
     setSelectedSiteIds,
     setSelectedTankIds,
     setSelectedUserIds,
-    resetFilters
+    resetFilters,
   } = useStockFilters();
 
   const sites = useSelector((state) => state.site?.sites || []);
@@ -49,14 +49,16 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
     if (!selectedSiteIds || selectedSiteIds.length === 0) {
       return tanks;
     }
-    return tanks.filter(tank => selectedSiteIds.includes(tank.siteId));
+    return tanks.filter((tank) => selectedSiteIds.includes(tank.siteId));
   }, [tanks, selectedSiteIds]);
 
   // Clear tank selection when site selection changes
   useEffect(() => {
+    if (!selectedSiteIds || !selectedTankIds) return;
+
     if (selectedSiteIds.length > 0 && selectedTankIds.length > 0) {
-      const validTankIds = selectedTankIds.filter(tankId =>
-        filteredTanks.some(tank => tank.id === tankId)
+      const validTankIds = selectedTankIds.filter((tankId) =>
+        filteredTanks.some((tank) => tank.id === tankId)
       );
       if (validTankIds.length !== selectedTankIds.length) {
         setSelectedTankIds(validTankIds);
@@ -67,18 +69,18 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
   const handleApply = () => {
     if (!startDate || !endDate) {
       notify({
-        message: 'Please select both start and end dates',
-        type: 'warning',
-        displayTime: 3000
+        message: "Please select both start and end dates",
+        type: "warning",
+        displayTime: 3000,
       });
       return;
     }
 
     if (startDate > endDate) {
       notify({
-        message: 'Start date cannot be greater than end date.',
-        type: 'warning',
-        displayTime: 3000
+        message: "Start date cannot be greater than end date.",
+        type: "warning",
+        displayTime: 3000,
       });
       return;
     }
@@ -143,7 +145,7 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
             searchEnabled={true}
             stylingMode="outlined"
             multiline={false}
-            maxDisplayedTags = {3}
+            maxDisplayedTags={3}
           />
         </div>
 
@@ -153,8 +155,7 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
             value={selectedTankIds}
             onValueChanged={(e) => setSelectedTankIds(e.value)}
             dataSource={filteredTanks}
-                        maxDisplayedTags = {3}
-
+            maxDisplayedTags={3}
             displayExpr="name"
             valueExpr="id"
             placeholder="All Tanks"
@@ -212,7 +213,7 @@ const HeaderStockFilters = ({ showUserFilter = false, onApplyFilters }) => {
 
 HeaderStockFilters.propTypes = {
   showUserFilter: PropTypes.bool,
-  onApplyFilters: PropTypes.func
+  onApplyFilters: PropTypes.func,
 };
 
 export default HeaderStockFilters;

@@ -126,7 +126,7 @@ public class FetchAndStoreGpsDataCommandHandler
 
             // Step 3: Poll Report Status (30-70%)
             var isReportReady = false;
-            var maxPollingAttempts = 180; // 180 attempts * 2 seconds = 6 minutes max (for large date ranges)
+            var maxPollingAttempts = 500; //    500 attempts * 2 seconds = 16 minutes max (for large date ranges)
             var pollingAttempt = 0;
 
             while (!isReportReady && pollingAttempt < maxPollingAttempts)
@@ -261,6 +261,48 @@ public class FetchAndStoreGpsDataCommandHandler
             // Track unmapped vehicles (GPSGate vehicles not in vehicle_provider_mappings)
             var unmappedVehicles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            static DateTime NormalizeDispenseDate(DateTime refuelDate, TimeSpan? startTime)
+            {
+                // Some report payloads provide a date-only field plus a separate StartTime.
+                // Normalize to a full timestamp so the same event is consistently identified.
+                if (startTime.HasValue && refuelDate.TimeOfDay == TimeSpan.Zero)
+                {
+                    return refuelDate.Date.Add(startTime.Value);
+                }
+
+                return refuelDate;
+            }
+
+            static string BuildEventKey(int vehicleId, DateTime dispenseDate, TimeSpan? startTime)
+            {
+                // Use both dispenseDate (full timestamp) and startTime (when present) to avoid
+                // collisions when dispenseDate is date-only in some payloads.
+                return $"{vehicleId}|{dispenseDate:O}|{(startTime?.Ticks ?? 0)}";
+            }
+
+            // Preload existing entries in the requested period for mapped vehicles.
+            // This prevents duplicates when the same date range is fetched multiple times.
+            var mappedVehicleIds = providerMappings
+                .Select(m => m.VehicleId)
+                .Distinct()
+                .ToList();
+
+            var rangeStart = request.StartDate.Date;
+            var rangeEndExclusive = request.EndDate.Date.AddDays(1);
+
+            var existingEntriesInRange = await _context.GpsGateReportEntries
+                .Where(e => !e.IsDeleted &&
+                            mappedVehicleIds.Contains(e.VehicleId) &&
+                            e.DispenseDate >= rangeStart &&
+                            e.DispenseDate < rangeEndExclusive)
+                .ToListAsync(cancellationToken);
+
+            var existingEntriesByKey = existingEntriesInRange
+                .GroupBy(e => BuildEventKey(e.VehicleId, e.DispenseDate, e.StartTime))
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
+
+            var processedKeysThisRun = new HashSet<string>(StringComparer.Ordinal);
+
             var processedCount = 0;
             foreach (var dto in refuelingData)
             {
@@ -334,15 +376,19 @@ public class FetchAndStoreGpsDataCommandHandler
                     continue;
                 }
 
-                // Check if record already exists (by ReportId + VehicleId + DispenseDate)
-                // Note: ReportId here refers to gpsgate_reports.Id (the auto-increment PK), not the GPSGate report type ID
-                var existingEntry = await _context.GpsGateReportEntries
-                    .FirstOrDefaultAsync(e =>
-                        e.ReportId == gpsGateReport.Id &&
-                        e.VehicleId == vehicleId.Value &&
-                        e.DispenseDate == refuelDate &&
-                        !e.IsDeleted,
-                        cancellationToken);
+                var dispenseDate = NormalizeDispenseDate(refuelDate, dto.StartTime);
+                var eventKey = BuildEventKey(vehicleId.Value, dispenseDate, dto.StartTime);
+
+                // If the same event appears multiple times within the same fetched payload, skip duplicates.
+                if (!processedKeysThisRun.Add(eventKey))
+                {
+                    result.DuplicatesSkipped++;
+                    continue;
+                }
+
+                // Check if record already exists for this vehicle and timestamp (across all reports)
+                // to avoid inserting duplicates when fetching overlapping ranges multiple times.
+                existingEntriesByKey.TryGetValue(eventKey, out var existingEntry);
 
                 if (existingEntry != null)
                 {
@@ -353,6 +399,12 @@ public class FetchAndStoreGpsDataCommandHandler
                     existingEntry.StartTime = dto.StartTime;
                     existingEntry.Duration = dto.Duration;
                     existingEntry.ModifiedAt = DateTime.UtcNow;
+
+                    // Keep linkage to the latest report run
+                    if (existingEntry.ReportId != gpsGateReport.Id)
+                    {
+                        existingEntry.ReportId = gpsGateReport.Id;
+                    }
 
                     result.RecordsUpdated++;
                 }
@@ -368,7 +420,7 @@ public class FetchAndStoreGpsDataCommandHandler
                     {
                         ReportId = gpsGateReport.Id,
                         VehicleId = vehicleId.Value,
-                        DispenseDate = refuelDate,
+                        DispenseDate = dispenseDate,
                         StartTime = dto.StartTime,
                         Duration = dto.Duration,
                         FuelBefore = dto.FuelBefore,
@@ -381,6 +433,7 @@ public class FetchAndStoreGpsDataCommandHandler
                     };
 
                     _context.GpsGateReportEntries.Add(newEntry);
+                    existingEntriesByKey[eventKey] = newEntry;
                     result.NewRecordsSaved++;
                 }
             }
@@ -401,7 +454,6 @@ public class FetchAndStoreGpsDataCommandHandler
 
             // Populate unmapped vehicles list for the response
             result.UnmappedVehicles = unmappedVehicles.OrderBy(v => v).ToList();
-            result.DuplicatesSkipped = result.TotalRecordsFetched - result.NewRecordsSaved - result.RecordsUpdated - result.UnmappedVehiclesCount;
             result.FetchEndTime = DateTime.UtcNow;
 
             _logger.LogInformation(

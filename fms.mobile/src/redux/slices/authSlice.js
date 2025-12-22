@@ -1,11 +1,11 @@
-import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import ApiService from '../../services/apiService';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ApiService from "../../services/apiService";
 
 // Async thunk for login
 export const loginUser = createAsyncThunk(
-  'auth/loginUser',
-  async (credentials, {rejectWithValue}) => {
+  "auth/loginUser",
+  async (credentials, { rejectWithValue }) => {
     try {
       const response = await ApiService.login(credentials);
       return response;
@@ -17,8 +17,8 @@ export const loginUser = createAsyncThunk(
 
 // Async thunk for logout
 export const logoutUser = createAsyncThunk(
-  'auth/logoutUser',
-  async (_, {rejectWithValue}) => {
+  "auth/logoutUser",
+  async (_, { rejectWithValue }) => {
     try {
       await ApiService.logout();
       return {};
@@ -30,23 +30,26 @@ export const logoutUser = createAsyncThunk(
 
 // Async thunk for checking authentication status
 export const checkAuthStatus = createAsyncThunk(
-  'auth/checkAuthStatus',
-  async (_, {rejectWithValue}) => {
+  "auth/checkAuthStatus",
+  async (_, { rejectWithValue }) => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const userData = await AsyncStorage.getItem('user_data');
+      const token = await AsyncStorage.getItem("auth_token");
+      const refreshToken = await AsyncStorage.getItem("refresh_token");
+      const userData = await AsyncStorage.getItem("user_data");
 
       if (token && userData) {
         return {
           token,
+          refreshToken,
           user: JSON.parse(userData),
-          isAuthenticated: true
+          isAuthenticated: true,
         };
       }
       return {
         token: null,
+        refreshToken: null,
         user: null,
-        isAuthenticated: false
+        isAuthenticated: false,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -57,6 +60,7 @@ export const checkAuthStatus = createAsyncThunk(
 const initialState = {
   user: null,
   token: null,
+  refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -65,11 +69,11 @@ const initialState = {
     rememberLogin: false,
     biometricEnabled: false,
     notifications: true,
-  }
+  },
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -81,12 +85,12 @@ const authSlice = createSlice({
     updatePreferences: (state, action) => {
       state.preferences = {
         ...state.preferences,
-        ...action.payload
+        ...action.payload,
       };
     },
     resetAuthState: (state) => {
       return initialState;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -100,6 +104,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
         state.error = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -107,6 +112,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+        state.refreshToken = null;
         state.error = action.payload;
       })
       // Logout cases
@@ -124,6 +130,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+        state.refreshToken = null;
       })
       // Check auth status cases
       .addCase(checkAuthStatus.pending, (state) => {
@@ -134,6 +141,7 @@ const authSlice = createSlice({
         state.isAuthenticated = action.payload.isAuthenticated;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
         state.isLoading = false;
@@ -141,15 +149,12 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+        state.refreshToken = null;
       });
   },
 });
 
-export const {
-  clearError,
-  setMasterTag,
-  updatePreferences,
-  resetAuthState
-} = authSlice.actions;
+export const { clearError, setMasterTag, updatePreferences, resetAuthState } =
+  authSlice.actions;
 
 export default authSlice.reducer;

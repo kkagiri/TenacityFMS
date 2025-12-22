@@ -113,8 +113,11 @@ const LoginScreen = ({navigation}) => {
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Icon name="gas-pump" size={60} color="#2563eb" />
-            <Text style={styles.logoText}>FMS Mobile</Text>
+            <Image
+              source={require('../assets/images/hyoung-logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.tagline}>Fuel Management System</Text>
           </View>
         </View>
@@ -254,6 +257,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
+  },
+  logo: {
+    width: 200,
+    height: 100,
+    marginBottom: 16,
   },
   logoText: {
     fontSize: 32,

@@ -59,6 +59,26 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// API endpoint to get PTS devices filtered by site ID
+        /// </summary>
+        /// <param name="siteId">The site ID to filter devices by</param>
+        /// <returns>List of PTS devices for the specified site</returns>
+        [HttpGet("site/{siteId:int}")]
+        public async Task<IActionResult> GetDevicesBySite(int siteId)
+        {
+            try
+            {
+                var devices = await _mediator.Send(new GetPTSDevicesBySiteQuery(siteId));
+                return Ok(devices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching PTS devices for site {SiteId}", siteId);
+                return StatusCode(500, "Error fetching devices for site");
+            }
+        }
+
+        /// <summary>
         /// API endpoint to get a summary of the device connections
         /// </summary>
         /// <returns></returns>

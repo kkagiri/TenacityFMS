@@ -157,17 +157,21 @@ const NotificationCenter = () => {
     // Combine UI notifications and backend notifications
     const allNotifications = [
       ...notifications,
-      ...(backendNotifications || []).map(backendNotification => ({
+      ...(backendNotifications || []).map((backendNotification) => ({
         ...backendNotification,
-        id: backendNotification.id || `backend-${backendNotification.notificationId}`,
-        type: backendNotification.type || 'info',
-        title: backendNotification.title || 'Notification',
+        id:
+          backendNotification.id ||
+          `backend-${backendNotification.notificationId}`,
+        type: backendNotification.type || "info",
+        title: backendNotification.title || "Notification",
         message: backendNotification.message || backendNotification.content,
-        timestamp: new Date(backendNotification.createdAt || backendNotification.timestamp).getTime(),
+        timestamp: new Date(
+          backendNotification.createdAt || backendNotification.timestamp
+        ).getTime(),
         isBackendNotification: true,
-        isRead: backendNotification.isRead === true // Strict boolean check
-      }))
-    ];    // Sort notifications by timestamp (latest first), with fallback sorting
+        isRead: backendNotification.isRead === true, // Strict boolean check
+      })),
+    ]; // Sort notifications by timestamp (latest first), with fallback sorting
     const sortedNotifications = allNotifications.sort((a, b) => {
       const timeA = a.timestamp || a.createdAt || 0;
       const timeB = b.timestamp || b.createdAt || 0;
@@ -177,8 +181,8 @@ const NotificationCenter = () => {
       if (timeDiff !== 0) return timeDiff;
 
       // Secondary sort: by ID (higher ID first - newer records)
-      const idA = typeof a.id === 'number' ? a.id : parseInt(a.id) || 0;
-      const idB = typeof b.id === 'number' ? b.id : parseInt(b.id) || 0;
+      const idA = typeof a.id === "number" ? a.id : parseInt(a.id) || 0;
+      const idB = typeof b.id === "number" ? b.id : parseInt(b.id) || 0;
       return idB - idA;
     });
 
@@ -213,8 +217,11 @@ const NotificationCenter = () => {
 
   // Check for unread notifications
   useEffect(() => {
-    const unreadBackendCount = (backendNotifications || []).filter(n => !n.isRead).length;
-    const hasAnyUnread = notifications.length > 0 || !!importProgress || unreadBackendCount > 0;
+    const unreadBackendCount = (backendNotifications || []).filter(
+      (n) => !n.isRead
+    ).length;
+    const hasAnyUnread =
+      notifications.length > 0 || !!importProgress || unreadBackendCount > 0;
     setHasUnread(hasAnyUnread);
   }, [notifications, importProgress, backendNotifications]);
 
@@ -253,7 +260,7 @@ const NotificationCenter = () => {
 
   // Navigate to notification preferences
   const handlePreferences = useCallback(() => {
-    navigate('/notifications/preferences');
+    navigate("/notifications/preferences");
     setIsOpen(false); // Close the notification center
   }, [navigate]);
 
@@ -324,18 +331,20 @@ const NotificationCenter = () => {
           <div className="tw-text-xs tw-text-gray-500 tw-mr-2">{timeAgo}</div>
         </div>
 
-        <div className="tw-flex tw-items-center tw-mb-2">
-          <div className={`tw-ml-8 ${statusColor} tw-flex tw-items-center`}>
+        <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-mb-2">
+          <div
+            className={`tw-ml-8 ${statusColor} tw-flex tw-items-center tw-min-w-0`}
+          >
             <i className={`${statusIcon} tw-mr-2`}></i>
-            {statusText}
+            <span className="tw-truncate">{statusText}</span>
           </div>
-          <div className="tw-ml-auto tw-text-xs tw-mr-2">
-            {processedRecords} of {totalRecords}
+          <div className="tw-text-xs tw-text-gray-600 tw-whitespace-nowrap tw-mr-2">
+            {processedRecords}/{totalRecords}    {percentage}%
           </div>
         </div>
 
-        {/* Progress bar - with fixed width to prevent overflow */}
-        <div className="tw-ml-8 tw-w-[230px] tw-bg-gray-200 tw-h-2 tw-mb-2 tw-rounded-full">
+        {/* Progress bar */}
+        <div className="tw-ml-8 tw-w-full tw-max-w-[230px] tw-bg-gray-200 tw-h-2 tw-mb-2 tw-rounded-full tw-overflow-hidden">
           <div
             className={`tw-h-2 tw-rounded-full ${
               statusText.includes("Failed")
@@ -351,6 +360,16 @@ const NotificationCenter = () => {
           ></div>
         </div>
 
+        {(importProgress.successCount > 0 ||
+          importProgress.skippedCount > 0 ||
+          importProgress.failureCount > 0) && (
+          <div className="tw-ml-8 tw-text-xs tw-text-gray-600 tw-mb-1">
+            {importProgress.successCount || 0} success,{" "}
+            {importProgress.skippedCount || 0} skipped,{" "}
+            {importProgress.failureCount || 0} failed
+          </div>
+        )}
+
         {/* Display additional info based on status */}
         {importProgress.failureCount > 0 && (
           <div className="tw-ml-8 tw-text-xs tw-text-red-500 tw-mb-1">
@@ -365,7 +384,7 @@ const NotificationCenter = () => {
         )}
 
         {/* Report ID */}
-        <div className="tw-ml-8 tw-text-xs tw-text-gray-500">
+        <div className="tw-ml-8 tw-text-xs tw-text-gray-500 tw-break-all">
           Report ID: {importProgress.id || importProgress.reportId}
         </div>
       </div>
@@ -376,7 +395,16 @@ const NotificationCenter = () => {
   const renderNotificationItem = (item) => {
     if (!item || !item.id) return null;
 
-    const { id, title, message, type, timestamp, data, isBackendNotification, isRead } = item;
+    const {
+      id,
+      title,
+      message,
+      type,
+      timestamp,
+      data,
+      isBackendNotification,
+      isRead,
+    } = item;
     const timeAgo = formatTimeAgo(timestamp || Date.now());
 
     // Determine icon based on notification type
@@ -415,52 +443,65 @@ const NotificationCenter = () => {
     }
 
     return (
-      <div className={`notification-item tw-py-3 tw-border-t tw-border-gray-200 ${isBackendNotification && !isRead ? 'tw-bg-blue-50' : ''}`}>
-        <div className="tw-flex tw-justify-between tw-items-start">
-          <div className="tw-flex tw-items-start">
-            <div className="tw-w-6 tw-h-6 tw-mr-2 tw-flex tw-items-center tw-justify-center">
-              <i className={`${icon} ${iconColor}`}></i>
-            </div>
-            <div className="tw-flex-grow tw-max-w-[300px]">
-              {title && <div className={`tw-font-semibold ${isBackendNotification && !isRead ? 'tw-text-gray-900' : ''}`}>{title}</div>}
-              <div className="tw-text-sm">{message || "Notification"}</div>
-
-              {/* Show device ID if present in data */}
-              {data?.deviceId && (
-                <div className="tw-text-xs tw-text-blue-600 tw-mt-1">
-                  Device ID: {data.deviceId}
-                </div>
-              )}
-
-              <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
-                {timeAgo}
-                {isBackendNotification && !isRead && (
-                  <span className="tw-ml-2 tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-bg-blue-100 tw-text-blue-800">
-                    Unread
-                  </span>
-                )}
+      <div
+        className={`notification-item tw-py-2 tw-px-2 tw-border-t tw-border-gray-200 ${
+          isBackendNotification && !isRead ? "tw-bg-blue-50" : ""
+        }`}
+      >
+        <div className="tw-flex tw-gap-2">
+          {/* Icon */}
+          <div className="tw-flex-shrink-0 tw-w-5 tw-h-5 tw-flex tw-items-center tw-justify-center tw-mt-0.5">
+            <i className={`${icon} ${iconColor}`}></i>
+          </div>
+          {/* Content */}
+          <div className="tw-flex-1 tw-min-w-0">
+            {title && (
+              <div
+                className={`tw-text-sm tw-font-semibold tw-leading-tight ${
+                  isBackendNotification && !isRead
+                    ? "tw-text-gray-900"
+                    : "tw-text-gray-800"
+                }`}
+              >
+                {title}
               </div>
+            )}
+            <div className="tw-text-xs tw-text-gray-600 tw-leading-snug tw-mt-0.5">
+              {message || "Notification"}
+            </div>
+            {/* Device ID */}
+            {data?.deviceId && (
+              <div className="tw-text-xs tw-text-blue-600 tw-mt-0.5">
+                Device: {data.deviceId}
+              </div>
+            )}
+            {/* Time + unread badge */}
+            <div className="tw-text-xs tw-text-gray-400 tw-mt-1 tw-flex tw-items-center tw-gap-2">
+              <span>{timeAgo}</span>
+              {isBackendNotification && !isRead && (
+                <span className="tw-px-1.5 tw-py-0.5 tw-rounded tw-text-[10px] tw-font-medium tw-bg-blue-100 tw-text-blue-700">
+                  New
+                </span>
+              )}
             </div>
           </div>
-          {/* Action buttons on the right side */}
-          <div className="tw-flex tw-items-center tw-space-x-1 tw-ml-2 tw-min-w-[40px]">
-            {/* Only show read button for unread backend notifications */}
+          {/* Action button */}
+          <div className="tw-flex-shrink-0 tw-flex tw-items-start">
             {isBackendNotification && !isRead && (
               <button
-                className="tw-bg-blue-100 tw-text-blue-600 hover:tw-bg-blue-200 hover:tw-text-blue-800 tw-transition-colors tw-p-2 tw-text-lg tw-rounded-full tw-border tw-border-blue-300"
+                className="tw-w-6 tw-h-6 tw-flex tw-items-center tw-justify-center tw-bg-blue-100 tw-text-blue-600 hover:tw-bg-blue-200 tw-rounded-full tw-border tw-border-blue-300 tw-text-xs"
                 onClick={() => dispatch(markNotificationAsRead(item.id))}
                 title="Mark as read"
               >
                 <i className="fa-solid fa-check"></i>
               </button>
             )}
-            {/* Show check-circle for read notifications (no click action) */}
             {isBackendNotification && isRead && (
               <div
-                className="tw-bg-green-100 tw-text-green-600 tw-p-2 tw-text-lg tw-rounded-full tw-border tw-border-green-300 tw-opacity-60"
+                className="tw-w-6 tw-h-6 tw-flex tw-items-center tw-justify-center tw-bg-green-100 tw-text-green-500 tw-rounded-full tw-border tw-border-green-200 tw-text-xs tw-opacity-60"
                 title="Read"
               >
-                <i className="fa-solid fa-check-circle"></i>
+                <i className="fa-solid fa-check"></i>
               </div>
             )}
           </div>
@@ -470,11 +511,15 @@ const NotificationCenter = () => {
   };
 
   // Calculate unread count
-  const unreadBackendCount = (backendNotifications || []).filter(n => !n.isRead).length;
-  const unreadCount = notifications.length + unreadBackendCount + (importProgress ? 1 : 0);
+  const unreadBackendCount = (backendNotifications || []).filter(
+    (n) => !n.isRead
+  ).length;
+  const unreadCount =
+    notifications.length + unreadBackendCount + (importProgress ? 1 : 0);
 
   // Check if we need to show the "Show More" button
-  const totalNotifications = notifications.length + (backendNotifications || []).length;
+  const totalNotifications =
+    notifications.length + (backendNotifications || []).length;
   const hasMoreNotifications = totalNotifications > MAX_VISIBLE_NOTIFICATIONS;
 
   return (

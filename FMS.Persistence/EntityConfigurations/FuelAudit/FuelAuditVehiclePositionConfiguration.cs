@@ -169,6 +169,11 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
                 .HasColumnType("bit(1)")
                 .HasDefaultValue(false);
 
+            // GPS Refill Events (stored as JSON string for MySQL 5.5.x compatibility)
+            builder.Property(v => v.GpsRefillEventsJson)
+                .HasColumnName("gps_refill_events_json")
+                .HasColumnType("longtext");
+
             // Audit Trail
             builder.Property(v => v.CreatedAt)
                 .HasColumnName("created_at")

@@ -493,6 +493,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.AutomatedReconciliation.Services.AutomatedReconciliationService>();
         services.AddHttpClient<DeviceHttpCommandPusher>().SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+        // GPSGate Services - Use AddHttpClient to properly inject HttpClient for API calls
+        services.AddHttpClient<FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.IGPSGateTracksService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.GPSGateTracksService>();
+
         // Fuel Audit Services
         services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.FuelAuditGPSService>();
         services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditTankStockService, FMS.Application.Features.FuelAudit.Services.FuelAuditTankStockService>();

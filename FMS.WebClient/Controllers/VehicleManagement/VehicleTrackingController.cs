@@ -1,10 +1,12 @@
 using FMS.Application.Features.Vehicle.Queries.VehicleTracking;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
+using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FMS.WebClient.Controllers
 {
@@ -16,17 +18,23 @@ namespace FMS.WebClient.Controllers
         private readonly IMediator _mediator;
         private readonly IGPSService _gpsService;
         private readonly IGPSGateViewsService _viewsService;
+        private readonly IGPSGateTracksService _tracksService;
+        private readonly GpsdataContext _context;
         private readonly ILogger<VehicleTrackingController> _logger;
 
         public VehicleTrackingController(
             IMediator mediator,
             IGPSService gpsService,
             IGPSGateViewsService viewsService,
+            IGPSGateTracksService tracksService,
+            GpsdataContext context,
             ILogger<VehicleTrackingController> logger)
         {
             _mediator = mediator;
             _gpsService = gpsService;
             _viewsService = viewsService;
+            _tracksService = tracksService;
+            _context = context;
             _logger = logger;
         }
 
@@ -314,6 +322,83 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting vehicles for tag {TagId}", tagId);
+                return StatusCode(500, new { Success = false, Message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get all fuel levels throughout the day for a vehicle
+        /// </summary>
+        /// <param name="vehicleId">Vehicle ID</param>
+        /// <param name="date">Date to get fuel levels for (defaults to today)</param>
+        /// <returns>List of fuel level readings with timestamps</returns>
+        [HttpGet("{vehicleId}/fuel-levels/day")]
+        public async Task<IActionResult> GetVehicleDayFuelLevels(int vehicleId, [FromQuery] DateTime? date = null)
+        {
+            try
+            {
+                var targetDate = date ?? DateTime.Today;
+
+                // Get device mapping for the vehicle
+                var deviceMapping = await _context.VehicleProviderMappings
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.VehicleId == vehicleId
+                        && m.IsActive
+                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.ProviderConfiguration.IsEnabled)
+                    .FirstOrDefaultAsync();
+
+                if (deviceMapping == null || string.IsNullOrEmpty(deviceMapping.ExternalDeviceId))
+                {
+                    // Try legacy DeviceId fallback
+                    var vehicle = await _context.Vehicles
+                        .Where(v => v.VehicleId == vehicleId && v.DeviceId.HasValue)
+                        .FirstOrDefaultAsync();
+
+                    if (vehicle?.DeviceId != null)
+                    {
+                        _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
+                        deviceMapping = new FMS.Domain.Entities.VehicleTracking.VehicleProviderMappingEntity
+                        {
+                            ExternalDeviceId = vehicle.DeviceId.Value.ToString()
+                        };
+                    }
+                    else
+                    {
+                        return NotFound(new
+                        {
+                            Success = false,
+                            Message = $"Vehicle {vehicleId} is not configured for GPS tracking"
+                        });
+                    }
+                }
+
+                // Get fuel levels from GPS provider
+                var fuelLevels = await _tracksService.GetDayFuelLevelsAsync(
+                    deviceMapping.ExternalDeviceId!,
+                    targetDate,
+                    CancellationToken.None);
+
+                if (fuelLevels == null || !fuelLevels.Any())
+                {
+                    return Ok(new
+                    {
+                        Success = true,
+                        Data = new List<object>(),
+                        Message = $"No fuel level data available for vehicle {vehicleId} on {targetDate:yyyy-MM-dd}"
+                    });
+                }
+
+                return Ok(new
+                {
+                    Success = true,
+                    Data = fuelLevels,
+                    Message = $"Retrieved {fuelLevels.Count} fuel level readings for vehicle {vehicleId}"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting day fuel levels for vehicle {VehicleId}", vehicleId);
                 return StatusCode(500, new { Success = false, Message = "Internal server error" });
             }
         }

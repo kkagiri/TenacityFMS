@@ -70,6 +70,23 @@
         cursor: not-allowed;
       }
     }
+
+    // Custom action buttons
+    .action-btn {
+      @apply tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded tw-border-0 tw-bg-transparent tw-cursor-pointer tw-transition-all tw-duration-150;
+
+      i {
+        @apply tw-text-base;
+      }
+
+      &:hover:not(:disabled) {
+        @apply tw-scale-110;
+      }
+
+      &:active:not(:disabled) {
+        @apply tw-scale-95;
+      }
+    }
   }
 
   // Toolbar styling

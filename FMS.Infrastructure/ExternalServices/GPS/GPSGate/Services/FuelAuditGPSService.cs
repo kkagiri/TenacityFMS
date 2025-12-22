@@ -25,7 +25,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
     public class FuelAuditGPSService : IFuelAuditGPSService
     {
         private readonly GpsdataContext _context;
-        private readonly HttpClient _httpClient;
+        private readonly IGPSGateTracksService _tracksService;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
         private readonly ILogger<FuelAuditGPSService> _logger;
 
@@ -37,20 +37,14 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         // Semaphore to ensure sequential DB operations
         private static readonly SemaphoreSlim _dbSemaphore = new(1, 1);
 
-        // Known fuel sensor variable names (case-insensitive)
-        private static readonly HashSet<string> FuelVariableNames = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "fuel level", "fuellevel", "rawfuel", "fuel"
-        };
-
         public FuelAuditGPSService(
             GpsdataContext context,
-            HttpClient httpClient,
+            IGPSGateTracksService tracksService,
             IGPSGateConfigurationProvider configurationProvider,
             ILogger<FuelAuditGPSService> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _tracksService = tracksService ?? throw new ArgumentNullException(nameof(tracksService));
             _configurationProvider = configurationProvider ?? throw new ArgumentNullException(nameof(configurationProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -257,7 +251,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 }
 
                 // Get all track points for the day
-                var tracks = await FetchDayTracksAsync(deviceMapping.ExternalDeviceId, date, cancellationToken);
+                var tracks = await _tracksService.FetchDayTracksAsync(deviceMapping.ExternalDeviceId, date, cancellationToken);
                 if (tracks == null || !tracks.Any())
                 {
                     return FMSResponse<List<RefuelEventDTO>>.Success(new List<RefuelEventDTO>());
@@ -269,7 +263,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 foreach (var track in tracks.OrderBy(t => t.UTC))
                 {
-                    var currentFuelLevel = ExtractFuelLevel(track.Variables);
+                    var currentFuelLevel = _tracksService.ExtractFuelLevel(track);
                     if (!currentFuelLevel.HasValue)
                         continue;
 
@@ -371,27 +365,23 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<bool>.Success(false);
                 }
 
-                // Try to get current status and check for fuel variables
-                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
-                var statusUrl = $"{baseUrl}/applications/{applicationId}/users/{deviceMapping.ExternalDeviceId}/status";
+                // Try to get today's tracks and check for fuel variables
+                var tracks = await _tracksService.FetchDayTracksAsync(
+                    deviceMapping.ExternalDeviceId,
+                    DateTime.Today,
+                    cancellationToken);
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, statusUrl);
-                request.Headers.Authorization = authHeader;
-
-                var response = await _httpClient.SendAsync(request, cancellationToken);
-                if (!response.IsSuccessStatusCode)
+                if (tracks == null || !tracks.Any())
                 {
-                    return FMSResponse<bool>.Success(false);
+                    // No tracks today, try yesterday
+                    tracks = await _tracksService.FetchDayTracksAsync(
+                        deviceMapping.ExternalDeviceId,
+                        DateTime.Today.AddDays(-1),
+                        cancellationToken);
                 }
 
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                var status = JsonSerializer.Deserialize<GPSGateUserStatus>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                var hasFuelSensor = status?.Variables?.Any(v =>
-                    FuelVariableNames.Contains(v.Name?.Trim() ?? "")) == true;
+                // Check if any track has fuel data
+                var hasFuelSensor = tracks?.Any(t => _tracksService.HasFuelData(t)) == true;
 
                 return FMSResponse<bool>.Success(hasFuelSensor);
             }
@@ -466,14 +456,14 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         preferredUntilTime = "23:59:59";
                     }
 
-                    var preferredTracks = await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, searchDate, preferredFromTime, preferredUntilTime, cancellationToken);
+                    var preferredTracks = await _tracksService.FetchTracksAsync(externalDeviceId, searchDate, preferredFromTime, preferredUntilTime, cancellationToken);
 
                     if (preferredTracks != null && preferredTracks.Any())
                     {
                         foundAnyTracks = true;
                         var trackWithFuel = isOpening
-                            ? preferredTracks.OrderBy(t => t.UTC).FirstOrDefault(t => HasFuelData(t))
-                            : preferredTracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => HasFuelData(t));
+                            ? preferredTracks.OrderBy(t => t.UTC).FirstOrDefault(t => _tracksService.HasFuelData(t))
+                            : preferredTracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => _tracksService.HasFuelData(t));
 
                         if (trackWithFuel != null)
                         {
@@ -487,7 +477,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 }
 
                 // Try full day search
-                var tracks = await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, searchDate, "00:00:00", "23:59:59", cancellationToken);
+                var tracks = await _tracksService.FetchDayTracksAsync(externalDeviceId, searchDate, cancellationToken);
 
                 if (tracks != null && tracks.Any())
                 {
@@ -495,8 +485,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                     // Find track with fuel data (first for opening, last for closing)
                     var trackWithFuel = isOpening
-                        ? tracks.OrderBy(t => t.UTC).FirstOrDefault(t => HasFuelData(t))
-                        : tracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => HasFuelData(t));
+                        ? tracks.OrderBy(t => t.UTC).FirstOrDefault(t => _tracksService.HasFuelData(t))
+                        : tracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => _tracksService.HasFuelData(t));
 
                     if (trackWithFuel != null)
                     {
@@ -571,9 +561,9 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             int dayOffset,
             DateTime actualDataDate)
         {
-            var fuelLevel = ExtractFuelLevel(track.Variables);
+            var fuelLevel = _tracksService.ExtractFuelLevel(track);
             var timestamp = ParseTimestamp(track.UTC);
-            var ignitionStatus = ExtractIgnitionStatus(track.Variables);
+            var ignitionStatus = _tracksService.ExtractIgnitionStatus(track);
 
             return new VehicleFuelPositionDTO
             {
@@ -619,19 +609,19 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 // For opening, search full day to find first available track
                 // For closing, search full day to find last available track
-                var tracks = await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, searchDate, "00:00:00", "23:59:59", cancellationToken);
+                var tracks = await _tracksService.FetchDayTracksAsync(externalDeviceId, searchDate, cancellationToken);
 
                 if (tracks != null && tracks.Any())
                 {
                     var trackWithFuel = isOpening
-                        ? tracks.OrderBy(t => t.UTC).FirstOrDefault(t => HasFuelData(t))
-                        : tracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => HasFuelData(t));
+                        ? tracks.OrderBy(t => t.UTC).FirstOrDefault(t => _tracksService.HasFuelData(t))
+                        : tracks.OrderByDescending(t => t.UTC).FirstOrDefault(t => _tracksService.HasFuelData(t));
 
                     if (trackWithFuel != null)
                     {
-                        var fuelLevel = ExtractFuelLevel(trackWithFuel.Variables);
+                        var fuelLevel = _tracksService.ExtractFuelLevel(trackWithFuel);
                         var timestamp = ParseTimestamp(trackWithFuel.UTC);
-                        var ignitionStatus = ExtractIgnitionStatus(trackWithFuel.Variables);
+                        var ignitionStatus = _tracksService.ExtractIgnitionStatus(trackWithFuel);
 
                         _logger.LogInformation(
                             "Found nearest fuel data for vehicle on {ActualDate} ({DaysAway} days {Direction} from {RequestedDate})",
@@ -658,141 +648,6 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         };
                     }
                 }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Extracts ignition status from GPS variables
-        /// </summary>
-        private bool? ExtractIgnitionStatus(List<GPSGateVariable>? variables)
-        {
-            if (variables == null || !variables.Any())
-                return null;
-
-            var ignitionVar = variables.FirstOrDefault(v =>
-                v.Name?.Trim().Equals("Ignition", StringComparison.OrdinalIgnoreCase) == true ||
-                v.Name?.Trim().Equals("ignition", StringComparison.OrdinalIgnoreCase) == true);
-
-            if (ignitionVar != null)
-            {
-                if (bool.TryParse(ignitionVar.Value, out var ignition))
-                    return ignition;
-
-                // Handle "1"/"0" or "on"/"off"
-                if (ignitionVar.Value?.Equals("1", StringComparison.OrdinalIgnoreCase) == true ||
-                    ignitionVar.Value?.Equals("on", StringComparison.OrdinalIgnoreCase) == true)
-                    return true;
-
-                if (ignitionVar.Value?.Equals("0", StringComparison.OrdinalIgnoreCase) == true ||
-                    ignitionVar.Value?.Equals("off", StringComparison.OrdinalIgnoreCase) == true)
-                    return false;
-            }
-
-            return null;
-        }
-
-        private async Task<List<GPSGateTrack>?> FetchTracksAsync(
-            string baseUrl,
-            int applicationId,
-            System.Net.Http.Headers.AuthenticationHeaderValue authHeader,
-            string externalDeviceId,
-            DateTime date,
-            string fromTime,
-            string untilTime,
-            CancellationToken cancellationToken)
-        {
-            // Don't proceed if already cancelled
-            if (cancellationToken.IsCancellationRequested)
-            {
-                _logger.LogDebug("Skipping fetch for device {DeviceId} - operation already cancelled", externalDeviceId);
-                return null;
-            }
-
-            try
-            {
-                var tracksUrl = $"{baseUrl}/applications/{applicationId}/users/{externalDeviceId}/tracks?Date={date:yyyy-MM-dd}&From={fromTime}&Until={untilTime}";
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, tracksUrl);
-                request.Headers.Authorization = authHeader;
-
-                // Use a separate timeout that doesn't affect the main cancellation token
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-
-                var response = await _httpClient.SendAsync(request, timeoutCts.Token);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Failed to fetch tracks for device {DeviceId}. Status: {StatusCode}",
-                        externalDeviceId, response.StatusCode);
-                    return null;
-                }
-
-                var content = await response.Content.ReadAsStringAsync(timeoutCts.Token);
-
-
-                return JsonSerializer.Deserialize<List<GPSGateTrack>>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-            catch (TaskCanceledException)
-            {
-                // Timeout or cancellation - don't log as error, just return null
-                _logger.LogWarning("GPSGate API timeout for device {DeviceId} - request took too long", externalDeviceId);
-                return null;
-            }
-            catch (HttpRequestException ex)
-            {
-                // Network error - log and return null
-                _logger.LogWarning("GPSGate network error for device {DeviceId}: {Message}", externalDeviceId, ex.Message);
-                return null;
-            }
-            catch (IOException ex)
-            {
-                // Socket/transport error - log and return null
-                _logger.LogWarning("GPSGate I/O error for device {DeviceId}: {Message}", externalDeviceId, ex.Message);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error fetching tracks for device {DeviceId}", externalDeviceId);
-                return null;
-            }
-        }
-
-        private async Task<List<GPSGateTrack>?> FetchDayTracksAsync(
-            string externalDeviceId,
-            DateTime date,
-            CancellationToken cancellationToken)
-        {
-            var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
-            return await FetchTracksAsync(baseUrl, applicationId, authHeader, externalDeviceId, date, "00:00:00", "23:59:59", cancellationToken);
-        }
-
-        private bool HasFuelData(GPSGateTrack track)
-        {
-            return track.Variables?.Any(v =>
-                FuelVariableNames.Contains(v.Name?.Trim() ?? "") &&
-                decimal.TryParse(v.Value, out _)) == true;
-        }
-
-        private decimal? ExtractFuelLevel(List<GPSGateVariable>? variables)
-        {
-            if (variables == null || !variables.Any())
-                return null;
-
-            // Prefer "Fuel level" over "Rawfuel"
-            var fuelVar = variables.FirstOrDefault(v =>
-                v.Name?.Trim().Equals("Fuel level", StringComparison.OrdinalIgnoreCase) == true);
-
-            fuelVar ??= variables.FirstOrDefault(v =>
-                FuelVariableNames.Contains(v.Name?.Trim() ?? ""));
-
-            if (fuelVar != null && decimal.TryParse(fuelVar.Value, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var fuelLevel))
-            {
-                return fuelLevel;
             }
 
             return null;

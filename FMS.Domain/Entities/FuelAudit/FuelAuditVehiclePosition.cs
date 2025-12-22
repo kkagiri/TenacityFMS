@@ -197,6 +197,12 @@ namespace FMS.Domain.Entities.FuelAudit
         /// </summary>
         public bool HasRefuelMismatchFlag { get; set; } = false;
 
+        /// <summary>
+        /// GPS refill events stored as JSON. Contains refill events from SOAP Report 212
+        /// for GPS-tracked vehicles (categories 1 and 4).
+        /// </summary>
+        public string? GpsRefillEventsJson { get; set; }
+
         // ===== AUDIT TRAIL =====
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public long? CreatedBy { get; set; }

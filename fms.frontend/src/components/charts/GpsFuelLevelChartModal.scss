@@ -1,0 +1,38 @@
+// GPS Fuel Level Chart Modal Styles - Simplified for reusability
+
+.gps-fuel-level-chart-modal {
+  // Modal title styling
+  .modal-title-content {
+    .modal-title-icon {
+      @apply tw-flex tw-items-center tw-justify-center;
+    }
+  }
+}
+
+// DevExtreme popup overrides
+.dx-popup-wrapper.gps-fuel-level-chart-modal {
+  .dx-popup-title {
+    @apply tw-border-b tw-border-gray-200;
+
+    .dx-toolbar-items-container {
+      @apply tw-py-2;
+    }
+  }
+
+  .dx-popup-content {
+    @apply tw-p-0;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .gps-fuel-level-chart-modal {
+    .modal-title-content {
+      .modal-title-icon {
+        width: 2rem;
+        height: 2rem;
+        font-size: 1rem;
+      }
+    }
+  }
+}

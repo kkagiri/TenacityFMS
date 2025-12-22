@@ -1,111 +1,133 @@
-//Cursor - Mobile pump selection step component
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Dimensions,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome5';
-import FuelingUtils from '../../utils/FuelingUtils';
-
-const {width} = Dimensions.get('window');
-const ITEM_WIDTH = (width - 48) / 2; // 2 columns with padding
+  ActivityIndicator,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import FuelingUtils from "../../utils/FuelingUtils";
 
 const PumpSelectionStep = ({
   pumps = [],
   activePumps = [],
   onPumpSelect,
+  onRefresh,
   connectionStatus,
+  isMockData = false,
+  isRefreshing = false,
+  nozzleConfig = {},
 }) => {
-  const renderPumpItem = ({item: pump}) => {
-    const isActive = activePumps.some(ap => ap.pumpId === pump.id);
-    const isSelectable = pump.status === 'idle' || pump.status === 'nozzleUp';
+  // Auto-proceed when pump is selected
+  const handlePumpSelect = (pump) => {
+    onPumpSelect(pump);
+    // Selection auto-proceeds in parent - no delay needed as parent handles next step
+  };
+
+  const renderPumpItem = ({ item: pump }) => {
+    const isActive = activePumps.some((ap) => ap.pumpId === pump.id);
+    const isSelectable = pump.status === "idle" || pump.status === "nozzleUp";
     const statusColor = FuelingUtils.getPumpStatusColor(pump.status);
     const statusIcon = FuelingUtils.getPumpStatusIcon(pump.status);
+    const pumpNozzles = nozzleConfig[pump.id] || [];
+    const nozzleCount = pumpNozzles.length;
 
     return (
       <TouchableOpacity
         style={[
-          styles.pumpItem,
-          {borderColor: statusColor},
-          !isSelectable && styles.pumpItemDisabled,
+          styles.pumpCard,
+          isSelectable && styles.pumpCardSelectable,
+          !isSelectable && styles.pumpCardDisabled,
         ]}
-        onPress={() => isSelectable && onPumpSelect(pump)}
+        onPress={() => isSelectable && handlePumpSelect(pump)}
         activeOpacity={0.7}
-        disabled={!isSelectable}>
-
-        {/* Status indicator */}
-        <View style={[styles.statusIndicator, {backgroundColor: statusColor}]}>
-          <Icon name={statusIcon} size={16} color="white" />
+        disabled={!isSelectable}
+      >
+        {/* Icon Container */}
+        <View
+          style={[
+            styles.pumpIconContainer,
+            { backgroundColor: statusColor + "20" },
+          ]}
+        >
+          <Icon name="gas-pump" size={24} color={statusColor} />
         </View>
 
-        {/* Pump icon */}
-        <View style={styles.pumpIcon}>
-          <Icon name="gas-pump" size={32} color={statusColor} />
-        </View>
+        {/* Pump Info */}
+        <View style={styles.pumpInfo}>
+          <Text style={styles.pumpName}>{pump.name}</Text>
 
-        {/* Pump info */}
-        <Text style={styles.pumpName}>{pump.name}</Text>
-        <Text style={[styles.pumpStatus, {color: statusColor}]}>
-          {pump.status.toUpperCase()}
-        </Text>
-
-        {/* Additional info */}
-        {pump.status === 'idle' && pump.lastVolume > 0 && (
-          <View style={styles.lastTransactionInfo}>
-            <Text style={styles.lastTransactionLabel}>Last Transaction:</Text>
-            <Text style={styles.lastTransactionText}>
-              {FuelingUtils.formatVolume(pump.lastVolume)}
+          {/* Status Badge */}
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusColor + "20" },
+            ]}
+          >
+            <Icon name={statusIcon} size={10} color={statusColor} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {pump.status.toUpperCase()}
             </Text>
           </View>
-        )}
 
-        {pump.status === 'fueling' && (
-          <View style={styles.fuelingInfo}>
-            <Text style={styles.fuelingText}>
-              {FuelingUtils.formatVolume(pump.currentVolume || 0)}
-            </Text>
-            <Text style={styles.fuelingText}>
-              {FuelingUtils.formatCurrency(pump.currentAmount || 0)}
-            </Text>
-          </View>
-        )}
-
-        {pump.status === 'nozzleUp' && (
-          <View style={styles.nozzleUpContainer}>
-            <Text style={styles.nozzleUpText}>
-              Nozzle {pump.nozzleUp} Up
-            </Text>
-            {pump.lastVolume > 0 && (
-              <Text style={styles.lastTransactionText}>
-                {FuelingUtils.formatVolume(pump.lastVolume)}
+          {/* Nozzle count */}
+          {nozzleCount > 0 && (
+            <View style={styles.nozzleInfo}>
+              <Icon name="fill-drip" size={10} color="#6366f1" />
+              <Text style={styles.nozzleText}>
+                {nozzleCount} Nozzle{nozzleCount > 1 ? "s" : ""}
               </Text>
-            )}
-          </View>
-        )}
+            </View>
+          )}
+        </View>
 
-        {pump.status === 'endOfTransaction' && (
-          <View style={styles.completedInfo}>
-            <Text style={styles.completedText}>
-              Transaction {pump.transaction} Complete
-            </Text>
-          </View>
-        )}
+        {/* Selection indicator */}
+        <View style={styles.selectIndicator}>
+          {isSelectable ? (
+            <Icon name="chevron-right" size={16} color="#9ca3af" />
+          ) : (
+            <Icon name="times-circle" size={16} color="#ef4444" />
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>Select Pump</Text>
-      <Text style={styles.subtitle}>
-        Choose an available pump to start fueling
-      </Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.title}>Select Pump</Text>
+          <Text style={styles.subtitle}>Tap an available pump to continue</Text>
+        </View>
+        {onRefresh && (
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color="#6366f1" />
+            ) : (
+              <Icon name="sync" size={18} color="#6366f1" />
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
 
-      {connectionStatus !== 'connected' && (
+      {/* Mock Data Banner */}
+      {isMockData && (
+        <View style={styles.mockBanner}>
+          <Icon name="flask" size={14} color="#f59e0b" />
+          <Text style={styles.mockText}>
+            Using simulated pump data from PTS
+          </Text>
+        </View>
+      )}
+
+      {connectionStatus !== "connected" && !isMockData && (
         <View style={styles.connectionWarning}>
           <Icon name="exclamation-triangle" size={16} color="#f59e0b" />
           <Text style={styles.connectionText}>
@@ -118,25 +140,18 @@ const PumpSelectionStep = ({
 
   const renderFooter = () => (
     <View style={styles.footer}>
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Status Legend:</Text>
-        <View style={styles.legendItems}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, {backgroundColor: '#10B981'}]} />
-            <Text style={styles.legendText}>Available</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, {backgroundColor: '#F59E0B'}]} />
-            <Text style={styles.legendText}>Nozzle Up</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, {backgroundColor: '#3B82F6'}]} />
-            <Text style={styles.legendText}>Fueling</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, {backgroundColor: '#EF4444'}]} />
-            <Text style={styles.legendText}>Offline</Text>
-          </View>
+      <View style={styles.legendRow}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: "#10B981" }]} />
+          <Text style={styles.legendText}>Available</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: "#F59E0B" }]} />
+          <Text style={styles.legendText}>Nozzle Up</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
+          <Text style={styles.legendText}>Offline</Text>
         </View>
       </View>
     </View>
@@ -146,9 +161,7 @@ const PumpSelectionStep = ({
     <FlatList
       data={pumps}
       renderItem={renderPumpItem}
-      keyExtractor={item => item.id.toString()}
-      numColumns={2}
-      columnWrapperStyle={styles.row}
+      keyExtractor={(item) => item.id.toString()}
       ListHeaderComponent={renderHeader}
       ListFooterComponent={renderFooter}
       contentContainerStyle={styles.container}
@@ -160,156 +173,158 @@ const PumpSelectionStep = ({
 const styles = StyleSheet.create({
   container: {
     paddingBottom: 20,
+    paddingHorizontal: 16,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#eef2ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1f2937",
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 16,
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  mockBanner: {
+    backgroundColor: "#fef3c7",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  mockText: {
+    fontSize: 13,
+    color: "#92400e",
+    marginLeft: 8,
+    fontWeight: "500",
   },
   connectionWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff3cd',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff3cd",
     padding: 12,
     borderRadius: 8,
-    marginBottom: 16,
+    marginTop: 12,
   },
   connectionText: {
     marginLeft: 8,
-    color: '#856404',
+    color: "#856404",
     fontSize: 14,
   },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  pumpItem: {
-    width: ITEM_WIDTH,
-    backgroundColor: 'white',
+  pumpCard: {
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    position: 'relative',
-  },
-  pumpItemDisabled: {
-    opacity: 0.6,
-  },
-  statusIndicator: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  pumpIcon: {
     marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  pumpCardSelectable: {
+    borderColor: "#e5e7eb",
+  },
+  pumpCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: "#f9fafb",
+  },
+  pumpIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pumpInfo: {
+    flex: 1,
+    marginLeft: 14,
   },
   pumpName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#1f2937",
   },
-  pumpStatus: {
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  nozzleInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  nozzleText: {
     fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 8,
+    color: "#6366f1",
+    fontWeight: "500",
+    marginLeft: 4,
   },
-  lastTransactionInfo: {
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  lastTransactionLabel: {
-    fontSize: 10,
-    color: '#9ca3af',
-    marginBottom: 2,
-  },
-  lastTransactionText: {
-    fontSize: 12,
-    color: '#10b981',
-    fontWeight: '600',
-  },
-  fuelingInfo: {
-    alignItems: 'center',
-  },
-  fuelingText: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  nozzleUpContainer: {
-    alignItems: 'center',
-  },
-  nozzleUpText: {
-    fontSize: 12,
-    color: '#f59e0b',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  completedInfo: {
-    alignItems: 'center',
-  },
-  completedText: {
-    fontSize: 12,
-    color: '#8b5cf6',
-    fontWeight: '500',
-    textAlign: 'center',
+  selectIndicator: {
+    marginLeft: 8,
   },
   footer: {
-    marginTop: 24,
+    marginTop: 12,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: "#e5e7eb",
   },
-  legend: {
-    alignItems: 'center',
-  },
-  legendTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  legendItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+  legendRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
   },
   legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 8,
     marginBottom: 8,
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 4,
   },
   legendText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
   },
 });
 

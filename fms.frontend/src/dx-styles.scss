@@ -1,7 +1,6 @@
 @import "./themes/generated/variables.base.scss";
 
 .app {
-  background-color: darken($base-bg, 5);
   display: flex;
   height: 100%;
   width: 100%;
@@ -87,6 +86,7 @@ body {
 }
 
 #root {
+  display: flex;
   height: 100%;
 }
 
@@ -145,4 +145,45 @@ body {
 }
 .layout-body .menu-container.theme-dependent {
   padding-top: 0;
+}
+
+/* Global fix for DevExtreme clear button size (X icon) - applies to all textboxes, dateboxes, tagboxes, selectboxes, etc. */
+.dx-clear-button-area {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+
+  .dx-icon-clear {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
+    line-height: 16px !important;
+  }
+}
+
+/* Explicitly target TagBox, SelectBox, DateBox, and other dropdown editors */
+.dx-tagbox .dx-clear-button-area,
+.dx-selectbox .dx-clear-button-area,
+.dx-datebox .dx-clear-button-area,
+.dx-dropdownbox .dx-clear-button-area,
+.dx-lookup .dx-clear-button-area,
+.dx-dropdowneditor .dx-clear-button-area,
+.dx-textbox .dx-clear-button-area,
+.dx-texteditor .dx-clear-button-area {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+
+  .dx-icon-clear {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
+    line-height: 16px !important;
+  }
 }

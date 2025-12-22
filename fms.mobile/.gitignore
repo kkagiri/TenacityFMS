@@ -1,0 +1,86 @@
+# React Native Mobile App - .gitignore
+
+# ============================================
+# Build Outputs
+# ============================================
+
+# Android build outputs
+android/app/build/
+android/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+android/captures/
+android/*.iml
+android/app/*.iml
+
+# iOS build outputs
+ios/build/
+ios/Pods/
+ios/*.xcworkspace
+ios/DerivedData/
+ios/.xcode.env.local
+
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+package-lock.json
+
+# ============================================
+# Metro Bundler
+# ============================================
+.metro-health-check*
+
+# ============================================
+# Debug & Logs
+# ============================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# ============================================
+# IDE & Editor
+# ============================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.jest/
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# ============================================
+# Generated Files
+# ============================================
+*.jsbundle
+*.hbc
+*.bundle
+
+# ============================================
+# Environment Files
+# ============================================
+# Keep .env for now as it doesn't contain secrets
+# .env
+.env.local
+.env.*.local
+
+# ============================================
+# Documentation (Optional - can be committed)
+# ============================================
+# Keep documentation files like MOCK_DATA_TANK_SELECTION.md
+# TANK_SELECTION_GUIDE.md

@@ -8,6 +8,7 @@ using FMS.Application.Features.FuelComparison.Commands;
 using FMS.Application.Features.FuelComparison.DTOs;
 using FMS.Application.Features.FuelComparison.Queries;
 using FMS.Application.Features.GPSGate.Commands;
+using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -24,12 +25,13 @@ namespace FMS.WebClient.Controllers
     /// Compares manual entries, PTS transactions, and GPSGate data
     /// </summary>
     [ApiController]
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/fuel-comparison")]
     public class FuelComparisonController : ControllerBase
     {
         private readonly IMediator _mediator;
         private readonly ILogger<FuelComparisonController> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly GpsdataContext _context;
 
         // Static dictionary to track cancellation tokens for GPS fetch jobs
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> _activeJobs
@@ -38,11 +40,13 @@ namespace FMS.WebClient.Controllers
         public FuelComparisonController(
             IMediator mediator,
             ILogger<FuelComparisonController> logger,
-            IServiceScopeFactory serviceScopeFactory)
+            IServiceScopeFactory serviceScopeFactory,
+            GpsdataContext context)
         {
             _mediator = mediator;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
+            _context = context;
         }
 
         /// <summary>
@@ -115,7 +119,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userId = "ec18aed0-2f9d-411c-9bbe-6079084ab2a5"; // TESTING: Hardcoded
+                var userId = "ec18aed0-2f9d-411c-9bbe-6079084ab2a5"; // TESTING: Todo: Hardcoded
                 // Removed user authentication check for testing
                 // if (userId == 0)
                 // {
@@ -461,6 +465,251 @@ namespace FMS.WebClient.Controllers
 
             // Try to parse GUID as int (using hash code)
             return Math.Abs(Guid.Parse(hardcodedGuid).GetHashCode());
+        }
+
+        /// <summary>
+        /// Get status of active GPS fetch jobs
+        /// Returns information about any currently running GPS fetch operations
+        /// Checks both in-memory jobs and database for processing reports
+        /// </summary>
+        /// <returns>Active job status</returns>
+        [HttpGet("active-jobs")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetActiveJobs()
+        {
+            try
+            {
+                // Check in-memory active jobs
+                var activeJobIds = _activeJobs.Keys.ToList();
+
+                // Check database for reports with "Processing" status
+                var processingReports = await _context.GPSGateReports
+                    .Where(r => r.Status == "Processing")
+                    .OrderByDescending(r => r.RequestedAt)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.JobId,
+                        r.ReportId,
+                        r.Status,
+                        r.RequestedAt,
+                        r.StartDate,
+                        r.EndDate,
+                        r.HandleId,
+                        r.SessionId
+                    })
+                    .ToListAsync();
+
+                var dbJobIds = processingReports
+                    .Where(r => !string.IsNullOrEmpty(r.JobId))
+                    .Select(r => r.JobId!)
+                    .ToList();
+
+                // Combine both sources
+                var allActiveJobIds = activeJobIds.Union(dbJobIds).Distinct().ToList();
+                var hasActiveJob = allActiveJobIds.Any() || processingReports.Any();
+
+                return Ok(FMSResponse<object>.Success(new
+                {
+                    hasActiveJob,
+                    activeJobCount = allActiveJobIds.Count,
+                    activeJobIds = allActiveJobIds,
+                    inMemoryJobs = activeJobIds.Count,
+                    databaseProcessingReports = processingReports.Count,
+                    processingReports = processingReports.Select(r => new
+                    {
+                        r.Id,
+                        r.JobId,
+                        r.ReportId,
+                        r.Status,
+                        requestedAt = r.RequestedAt,
+                        dateRange = $"{r.StartDate:yyyy-MM-dd} to {r.EndDate:yyyy-MM-dd}",
+                        handleId = r.HandleId,
+                        isInMemory = activeJobIds.Contains(r.JobId ?? "")
+                    }),
+                    message = hasActiveJob
+                        ? $"Found {processingReports.Count} report(s) processing in database, {activeJobIds.Count} tracked in memory"
+                        : "No active GPS fetch jobs"
+                }, hasActiveJob ? "Active jobs found" : "No active jobs"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting active jobs");
+                return StatusCode(500, FMSResponse<object>.Failed($"Internal server error: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Resume a stuck GPS fetch job that has a valid handle_id
+        /// Use this when a job is stuck in "Processing" status but has a handle_id
+        /// (meaning the report was generated on GPSGate but processing failed)
+        /// </summary>
+        /// <param name="reportId">Report ID from gpsgate_reports table</param>
+        /// <returns>Job result</returns>
+        [HttpPost("resume-gps-fetch/{reportId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public IActionResult ResumeGpsFetch(int reportId)
+        {
+            try
+            {
+                // Check if there's already an active job in memory
+                if (_activeJobs.Count > 0)
+                {
+                    return BadRequest(FMSResponse<object>.Failed(
+                        "GPSGate is currently processing another report. Please wait or cancel the existing job first."));
+                }
+
+                _logger.LogInformation("Starting resume for report {ReportId}", reportId);
+
+                // Generate a new job ID for tracking
+                var jobId = Guid.NewGuid().ToString();
+
+                // Create cancellation token source
+                var cts = new CancellationTokenSource();
+                _activeJobs.TryAdd(jobId, cts);
+
+                // Fire-and-forget: Start the resume operation in background
+                _ = Task.Run(async () =>
+                {
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var scopedMediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                    var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<FuelComparisonController>>();
+
+                    try
+                    {
+                        var command = new ResumeGpsFetchCommand(reportId);
+                        await scopedMediator.Send(command, cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        scopedLogger.LogInformation("Resume job {JobId} was cancelled", jobId);
+                    }
+                    catch (Exception ex)
+                    {
+                        scopedLogger.LogError(ex, "Resume job {JobId} failed", jobId);
+                    }
+                    finally
+                    {
+                        if (_activeJobs.TryRemove(jobId, out var removedCts))
+                        {
+                            removedCts?.Dispose();
+                        }
+                    }
+                }, cts.Token);
+
+                return Ok(FMSResponse<object>.Success(
+                    new { jobId, reportId },
+                    "Resume operation started. You will receive progress updates via SignalR."
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting resume for report {ReportId}", reportId);
+                return StatusCode(500, FMSResponse<object>.Failed($"Failed to start resume: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Mark a stuck Processing report as Failed
+        /// Use this when a job cannot be resumed (e.g., GPSGate expired the handle)
+        /// </summary>
+        /// <param name="reportId">Report ID from gpsgate_reports table</param>
+        /// <returns>Success confirmation</returns>
+        [HttpPost("mark-failed/{reportId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> MarkReportFailed(int reportId)
+        {
+            try
+            {
+                var report = await _context.GPSGateReports.FindAsync(reportId);
+
+                if (report == null)
+                {
+                    return NotFound(FMSResponse<object>.Failed($"Report {reportId} not found"));
+                }
+
+                if (report.Status != "Processing")
+                {
+                    return BadRequest(FMSResponse<object>.Failed(
+                        $"Report {reportId} is not in Processing status (current: {report.Status})"));
+                }
+
+                report.Status = "Failed";
+                report.ErrorMessage = "Manually marked as failed";
+                report.CompletedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Report {ReportId} marked as failed manually", reportId);
+
+                return Ok(FMSResponse<object>.Success(
+                    new { reportId, status = "Failed" },
+                    "Report marked as failed"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking report {ReportId} as failed", reportId);
+                return StatusCode(500, FMSResponse<object>.Failed($"Failed to update report: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Get status of a specific GPS fetch job
+        /// Checks both in-memory tracking and database
+        /// </summary>
+        /// <param name="jobId">Job ID to check</param>
+        /// <returns>Job status</returns>
+        [HttpGet("job-status/{jobId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetJobStatus(string jobId)
+        {
+            try
+            {
+                var isActiveInMemory = _activeJobs.ContainsKey(jobId);
+
+                // Check database for this job
+                var dbReport = await _context.GPSGateReports
+                    .Where(r => r.JobId == jobId)
+                    .OrderByDescending(r => r.RequestedAt)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.Status,
+                        r.RequestedAt,
+                        r.CompletedAt,
+                        r.StartDate,
+                        r.EndDate,
+                        r.ErrorMessage
+                    })
+                    .FirstOrDefaultAsync();
+
+                var isActiveInDb = dbReport?.Status == "Processing";
+                var isActive = isActiveInMemory || isActiveInDb;
+
+                return Ok(FMSResponse<object>.Success(new
+                {
+                    jobId,
+                    isActive,
+                    isActiveInMemory,
+                    isActiveInDb,
+                    status = dbReport?.Status ?? (isActiveInMemory ? "running" : "not_found"),
+                    dbReport = dbReport != null ? new
+                    {
+                        dbReport.Id,
+                        dbReport.Status,
+                        dbReport.RequestedAt,
+                        dbReport.CompletedAt,
+                        dateRange = $"{dbReport.StartDate:yyyy-MM-dd} to {dbReport.EndDate:yyyy-MM-dd}",
+                        dbReport.ErrorMessage
+                    } : null
+                }, isActive ? "Job is still running" : (dbReport != null ? $"Job status: {dbReport.Status}" : "Job not found")));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting job status for {JobId}", jobId);
+                return StatusCode(500, FMSResponse<object>.Failed($"Internal server error: {ex.Message}"));
+            }
         }
     }
 }

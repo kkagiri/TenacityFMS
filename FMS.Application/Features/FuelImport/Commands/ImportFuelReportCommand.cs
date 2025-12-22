@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Communication.SignalR;
+using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
+using FMS.Application.Features.Notification.Enums;
+using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.FuelImport;
@@ -24,6 +28,7 @@ namespace FMS.Application.Features.FuelImport.Commands
         public bool SkipDuplicates { get; set; } = false;
         public bool OverwriteExisting { get; set; } = false;
         public string UserId { get; set; } // For tracking who imported
+        public string JobId { get; set; } // Async job correlation ID (optional)
     }
 
     public class ImportFuelReportResult
@@ -51,6 +56,7 @@ namespace FMS.Application.Features.FuelImport.Commands
 
     public class ImportProgressInfo
     {
+        public string JobId { get; set; }
         public int TotalRecords { get; set; } = 0;
         public int ProcessedRecords { get; set; } = 0;
         public int SuccessCount { get; set; } = 0;
@@ -78,18 +84,21 @@ namespace FMS.Application.Features.FuelImport.Commands
         private readonly IMapper _mapper;
         private readonly ILogger<ImportFuelReportCommandHandler> _logger;
         private readonly IHubContext<FrontEndHub> _hubContext;
+        private readonly INotificationService _notificationService;
         private ImportProgressInfo _progressInfo = new ImportProgressInfo();
 
         public ImportFuelReportCommandHandler(
             GpsdataContext context,
             IMapper mapper,
             ILogger<ImportFuelReportCommandHandler> logger,
-            IHubContext<FrontEndHub> hubContext)
+            IHubContext<FrontEndHub> hubContext,
+            INotificationService notificationService)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
             _hubContext = hubContext;
+            _notificationService = notificationService;
         }
 
         private async Task UpdateProgressAsync(int processedRecords, int? successCount = null, int? failureCount = null, string status = null)
@@ -125,6 +134,7 @@ namespace FMS.Application.Features.FuelImport.Commands
 
             _progressInfo = new ImportProgressInfo
             {
+                JobId = request.JobId,
                 ReportId = reportId,
                 TotalRecords = request.Models.Count,
                 ProcessedRecords = 0,
@@ -133,6 +143,8 @@ namespace FMS.Application.Features.FuelImport.Commands
             };
 
             // Send initial progress
+            _progressInfo.Status = "Validating";
+            _progressInfo.UpdatePercentage();
             await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
 
             _logger.LogInformation("Starting import of {Count} fuel consumption records", request.Models.Count);
@@ -165,6 +177,9 @@ namespace FMS.Application.Features.FuelImport.Commands
             var validationErrors = await ValidateImportData(request.Models, cancellationToken);
             if (validationErrors.Any())
             {
+                _progressInfo.Status = "Failed: Validation";
+                _progressInfo.UpdatePercentage();
+                await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
                 return new FMSResponse<ImportFuelReportResult>
                 {
                     IsSuccess = false,
@@ -175,16 +190,33 @@ namespace FMS.Application.Features.FuelImport.Commands
 
             // Check for duplicates
             List<DuplicateRecordInfo> duplicateCheck = new List<DuplicateRecordInfo>();
-            bool skipDuplicateCheck = request.SkipDuplicates || request.Models.Any(c => c.OverwriteExisting == true);
 
-            if (!skipDuplicateCheck)
+            // Only fail the import if we're NOT skipping duplicates AND NOT overwriting
+            bool shouldFailOnDuplicates = !request.SkipDuplicates && !request.Models.Any(c => c.OverwriteExisting == true);
+
+            if (shouldFailOnDuplicates)
             {
+                _progressInfo.Status = "Checking duplicates";
+                _progressInfo.UpdatePercentage();
+                await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
                 duplicateCheck = await CheckForExistingDuplicates(request.Models, cancellationToken);
                 if (duplicateCheck.Any())
                 {
                     _progressInfo.DuplicateCount = duplicateCheck.Count();
                     _progressInfo.Status = "Failed: Duplicate Records";
                     await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
+
+                    // Create persistent notification for duplicate detection
+                    await CreateImportNotificationAsync(
+                        reportId,
+                        request.UserId,
+                        isSuccess: false,
+                        successCount: 0,
+                        failedCount: 0,
+                        skippedCount: duplicateCheck.Count(),
+                        duplicateCount: duplicateCheck.Count(),
+                        errorMessage: $"{duplicateCheck.Count()} duplicate record(s) detected - import stopped.",
+                        cancellationToken: cancellationToken);
 
                     return new FMSResponse<ImportFuelReportResult>
                     {
@@ -211,45 +243,74 @@ namespace FMS.Application.Features.FuelImport.Commands
             {
                 await HandleOverwriteLogic(modelsToOverwrite, cancellationToken);
             }
-            else if (request.SkipDuplicates)
+
+            // Handle skip duplicates logic - this should run independently of the above
+            if (request.SkipDuplicates)
             {
+                _logger.LogInformation($"SkipDuplicates=true, checking for duplicates in {request.Models.Count} records");
+
+                // Ensure all models have a RowIndex set for proper tracking
+                for (int idx = 0; idx < request.Models.Count; idx++)
+                {
+                    if (request.Models[idx].RowIndex == null)
+                    {
+                        request.Models[idx].RowIndex = idx;
+                    }
+                }
+
+                // First, check for duplicates WITHIN the import file itself (intra-batch duplicates)
+                var intraBatchDuplicates = await FindIntraBatchDuplicatesAsync(request.Models, cancellationToken);
+                if (intraBatchDuplicates.Any())
+                {
+                    _logger.LogInformation($"Found {intraBatchDuplicates.Count} intra-batch duplicates (same vehicle/date/shift within import file)");
+                    skippedDuplicates.AddRange(intraBatchDuplicates.Cast<ImportDuplicateError>());
+                    var intraBatchIndicesToSkip = intraBatchDuplicates.Select(d => d.RowIndex).ToHashSet();
+                    var beforeCount = request.Models.Count;
+                    request.Models = request.Models.Where(c => !intraBatchIndicesToSkip.Contains(c.RowIndex ?? -1)).ToList();
+                    _logger.LogDebug($"After intra-batch filtering: {beforeCount} -> {request.Models.Count} records remaining");
+                }
+
+                // Then check for duplicates against existing database records
                 var duplicateRecords = await CheckForExistingDuplicates(request.Models, cancellationToken);
                 if (duplicateRecords.Any())
                 {
-                    _logger.LogInformation($"Skipping {duplicateRecords.Count()} duplicate records");
-                    skippedDuplicates = duplicateRecords.Cast<ImportDuplicateError>().ToList();
+                    _logger.LogInformation($"Found {duplicateRecords.Count()} duplicate records in database, filtering them out");
+                    skippedDuplicates.AddRange(duplicateRecords.Cast<ImportDuplicateError>());
                     var indicesToSkip = duplicateRecords.Select(d => d.RowIndex).ToHashSet();
+                    var beforeCount = request.Models.Count;
                     request.Models = request.Models.Where(c => !indicesToSkip.Contains(c.RowIndex ?? -1)).ToList();
-
-                    _progressInfo.DuplicateCount = duplicateRecords.Count();
-                    _progressInfo.SkippedCount = duplicateRecords.Count();
-
-                    if (!request.Models.Any())
-                    {
-                        return new FMSResponse<ImportFuelReportResult>
-                        {
-                            IsSuccess = true,
-                            Message = $"All {duplicateRecords.Count()} records were duplicates and skipped.",
-                            Data = new ImportFuelReportResult
-                            {
-                                DuplicateRecords = duplicateRecords.Cast<ImportDuplicateError>().ToList(),
-                                TotalRecords = 0,
-                                TotalProcessed = 0,
-                                SuccessCount = 0,
-                                FailureCount = 0,
-                                SkippedCount = duplicateRecords.Count(),
-                                ReportId = reportId,
-                                DuplicateCount = duplicateRecords.Count()
-                            }
-                        };
-                    }
-
-                    _progressInfo.TotalRecords = request.Models.Count;
-                    await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
+                    _logger.LogInformation($"After filtering: {beforeCount} -> {request.Models.Count} records remaining");
                 }
+
+                _progressInfo.DuplicateCount = skippedDuplicates.Count;
+                _progressInfo.SkippedCount = skippedDuplicates.Count;
+
+                if (!request.Models.Any())
+                {
+                    return new FMSResponse<ImportFuelReportResult>
+                    {
+                        IsSuccess = true,
+                        Message = $"All {skippedDuplicates.Count} records were duplicates and skipped.",
+                        Data = new ImportFuelReportResult
+                        {
+                            DuplicateRecords = skippedDuplicates,
+                            TotalRecords = 0,
+                            TotalProcessed = 0,
+                            SuccessCount = 0,
+                            FailureCount = 0,
+                            SkippedCount = skippedDuplicates.Count,
+                            ReportId = reportId,
+                            DuplicateCount = skippedDuplicates.Count
+                        }
+                    };
+                }
+
+                _progressInfo.TotalRecords = request.Models.Count;
+                await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
             }
 
             _logger.LogInformation("Using GUID ReportId: {ReportId}", reportId);
+            _logger.LogInformation("Starting to process {Count} records for import", request.Models.Count);
 
             // Process in batches
             const int batchSize = 100;
@@ -280,12 +341,15 @@ namespace FMS.Application.Features.FuelImport.Commands
                 await UpdateProgressAsync(processedCount, processedCount, processedWithErrors);
             }
 
+            _logger.LogInformation("Prepared {Count} vehicle consumption entities for database insert", vehicleConsumptions.Count);
             await _context.Vehicleconsumptions.AddRangeAsync(vehicleConsumptions, cancellationToken);
 
             try
             {
                 await UpdateProgressAsync(processedCount, processedCount, processedWithErrors, "Saving");
+                _logger.LogInformation("Attempting to save {Count} records to database...", vehicleConsumptions.Count);
                 await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Successfully saved {Count} records to database", vehicleConsumptions.Count);
 
                 // ✅ NEW: Track import history for calendar visualization
                 await TrackImportHistory(request.Models, reportId, request.UserId, "Success", cancellationToken);
@@ -331,15 +395,132 @@ namespace FMS.Application.Features.FuelImport.Commands
                     };
                 }
 
+                // Create persistent notification for successful import
+                await CreateImportNotificationAsync(
+                    reportId,
+                    request.UserId,
+                    isSuccess: true,
+                    successCount: successResponse.Data.SuccessCount,
+                    failedCount: successResponse.Data.FailureCount,
+                    skippedCount: successResponse.Data.SkippedCount,
+                    duplicateCount: successResponse.Data.DuplicateCount,
+                    cancellationToken: cancellationToken);
+
                 return successResponse;
             }
             catch (DbUpdateException ex)
             {
-                await UpdateProgressAsync(processedCount, 0, processedCount, "Failed: Database Error");
-                await TrackImportHistory(request.Models, reportId, request.UserId, "Failed", cancellationToken, ex.Message);
-
                 bool isUniqueConstraint = IsUniqueConstraintViolation(ex);
                 bool isForeignKeyViolation = IsForeignKeyViolation(ex);
+
+                // If SkipDuplicates is true and we got a unique constraint error, retry one-by-one
+                if (request.SkipDuplicates && isUniqueConstraint)
+                {
+                    _logger.LogWarning("Batch insert failed with duplicate error. SkipDuplicates=true, retrying records one-by-one...");
+
+                    // Clear the change tracker to remove the failed batch
+                    foreach (var entity in vehicleConsumptions)
+                    {
+                        _context.Entry(entity).State = EntityState.Detached;
+                    }
+
+                    var savedCount = 0;
+                    var failedDuplicates = new List<ImportDuplicateError>();
+
+                    foreach (var entity in vehicleConsumptions)
+                    {
+                        try
+                        {
+                            _context.Vehicleconsumptions.Add(entity);
+                            await _context.SaveChangesAsync(cancellationToken);
+                            savedCount++;
+                            resultConsumptions.Add(_mapper.Map<ConsumptionDTO>(entity));
+                        }
+                        catch (DbUpdateException innerEx)
+                        {
+                            // Detach the failed entity
+                            _context.Entry(entity).State = EntityState.Detached;
+
+                            if (IsUniqueConstraintViolation(innerEx))
+                            {
+                                _logger.LogDebug($"Skipping duplicate: VehicleId={entity.VehicleId}, Date={entity.Date:yyyy-MM-dd}, IsNightShift={entity.IsNightShift}");
+                                failedDuplicates.Add(new ImportDuplicateError
+                                {
+                                    VehicleId = entity.VehicleId,
+                                    Date = entity.Date,
+                                    IsNightShift = entity.IsNightShift == 1UL,
+                                    Message = $"Duplicate: Vehicle {entity.VehicleId} on {entity.Date:yyyy-MM-dd} {(entity.IsNightShift == 1UL ? "night" : "day")} shift already exists"
+                                });
+                            }
+                            else
+                            {
+                                _logger.LogError(innerEx, $"Non-duplicate error for VehicleId={entity.VehicleId}");
+                                processedWithErrors++;
+                            }
+                        }
+                    }
+
+                    // Combine with any previously skipped duplicates
+                    skippedDuplicates.AddRange(failedDuplicates);
+
+                    if (savedCount > 0)
+                    {
+                        await TrackImportHistory(request.Models, reportId, request.UserId, "Partial", cancellationToken);
+
+                        var partialResponse = new FMSResponse<ImportFuelReportResult>
+                        {
+                            IsSuccess = true,
+                            Message = $"Imported {savedCount} records successfully. {skippedDuplicates.Count} duplicate records were skipped.",
+                            Data = new ImportFuelReportResult
+                            {
+                                ReportId = reportId,
+                                TotalRecords = vehicleConsumptions.Count + skippedDuplicates.Count,
+                                TotalProcessed = savedCount,
+                                SuccessCount = savedCount,
+                                FailureCount = processedWithErrors,
+                                SkippedCount = skippedDuplicates.Count,
+                                DuplicateCount = skippedDuplicates.Count,
+                                DuplicateRecords = skippedDuplicates
+                            }
+                        };
+
+                        await CreateImportNotificationAsync(
+                            reportId,
+                            request.UserId,
+                            isSuccess: true,
+                            successCount: savedCount,
+                            failedCount: processedWithErrors,
+                            skippedCount: skippedDuplicates.Count,
+                            duplicateCount: skippedDuplicates.Count,
+                            cancellationToken: cancellationToken);
+
+                        return partialResponse;
+                    }
+                    else
+                    {
+                        // All records were duplicates
+                        return new FMSResponse<ImportFuelReportResult>
+                        {
+                            IsSuccess = true,
+                            Message = $"All {skippedDuplicates.Count} records were duplicates and skipped.",
+                            Data = new ImportFuelReportResult
+                            {
+                                ReportId = reportId,
+                                TotalRecords = skippedDuplicates.Count,
+                                TotalProcessed = 0,
+                                SuccessCount = 0,
+                                FailureCount = 0,
+                                SkippedCount = skippedDuplicates.Count,
+                                DuplicateCount = skippedDuplicates.Count,
+                                DuplicateRecords = skippedDuplicates
+                            }
+                        };
+                    }
+                }
+
+                // Original error handling for non-skip cases
+                await UpdateProgressAsync(processedCount, 0, processedCount, "Failed: Database Error");
+                await TrackImportHistory(request.Models, reportId, request.UserId, "Failed", cancellationToken, ex.Message);
 
                 var errorResponse = new FMSResponse<ImportFuelReportResult>();
                 errorResponse.IsSuccess = false;
@@ -371,6 +552,19 @@ namespace FMS.Application.Features.FuelImport.Commands
                     errorResponse.Message = "Database error occurred while saving the fuel report. Please check your data or contact support.";
                     errorResponse.Data = new ImportFuelReportResult();
                 }
+
+                // Create persistent notification for failed import
+                var failedData = errorResponse.Data ?? new ImportFuelReportResult();
+                await CreateImportNotificationAsync(
+                    reportId,
+                    request.UserId,
+                    isSuccess: false,
+                    successCount: failedData.SuccessCount,
+                    failedCount: failedData.FailureCount > 0 ? failedData.FailureCount : 1,
+                    skippedCount: failedData.SkippedCount,
+                    duplicateCount: failedData.DuplicateCount,
+                    errorMessage: errorResponse.Message,
+                    cancellationToken: cancellationToken);
 
                 return errorResponse;
             }
@@ -430,6 +624,101 @@ namespace FMS.Application.Features.FuelImport.Commands
             {
                 _logger.LogError(ex, "Failed to track import history for reportId {ReportId}", reportId);
                 // Don't fail the entire import if history tracking fails
+            }
+        }
+
+        /// <summary>
+        /// Creates a persistent notification for fuel import completion
+        /// </summary>
+        private async Task CreateImportNotificationAsync(
+            string reportId,
+            string userId,
+            bool isSuccess,
+            int successCount,
+            int failedCount,
+            int skippedCount,
+            int duplicateCount,
+            string errorMessage = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var notificationType = isSuccess ? NotificationType.Info : NotificationType.Error;
+                var priority = isSuccess ? NotificationPriority.Medium : NotificationPriority.High;
+
+                string title;
+                string message;
+
+                if (isSuccess && failedCount == 0 && skippedCount == 0)
+                {
+                    title = "Fuel Import Completed";
+                    message = $"Successfully imported {successCount} fuel consumption record(s). Report ID: {reportId}";
+                }
+                else if (isSuccess && (skippedCount > 0 || duplicateCount > 0))
+                {
+                    title = "Fuel Import Completed with Skipped Records";
+                    message = $"Imported {successCount} record(s). {skippedCount} skipped, {duplicateCount} duplicate(s). Report ID: {reportId}";
+                    notificationType = NotificationType.Warning;
+                }
+                else if (!isSuccess && duplicateCount > 0)
+                {
+                    title = "Fuel Import Stopped - Duplicates Found";
+                    message = $"Import stopped: {duplicateCount} duplicate record(s) already exist in the database.";
+                }
+                else
+                {
+                    title = "Fuel Import Failed";
+                    message = errorMessage ?? $"Import failed with {failedCount} error(s). Please check the data and try again.";
+                }
+
+                var request = new CreateNotificationRequest
+                {
+                    Type = notificationType,
+                    CategoryId = (int)WellKnownCategories.Generic,
+                    Priority = priority,
+                    Title = title,
+                    Message = message,
+                    TriggerSource = "FuelImport",
+                    TriggeredBy = userId ?? "System",
+                    Data = new
+                    {
+                        ReportId = reportId,
+                        SuccessCount = successCount,
+                        FailedCount = failedCount,
+                        SkippedCount = skippedCount,
+                        DuplicateCount = duplicateCount
+                    },
+                    DisableFallbackAllUsers = true, // Only send to the uploader, not all users
+                    Recipients = !string.IsNullOrEmpty(userId)
+                        ? new List<NotificationRecipientDto>
+                        {
+                            new NotificationRecipientDto
+                            {
+                                UserId = userId,
+                                DeliveryMethods = new List<string> { "System" }, // In-app only, no email
+                                ResolvedFrom = "FuelImport"
+                            }
+                        }
+                        : null
+                };
+
+                var result = await _notificationService.CreateNotificationAsync(request, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Created import notification for reportId {ReportId}: {Title}", reportId, title);
+                    // Send the notification immediately
+                    await _notificationService.SendNotificationAsync(result.Data, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to create import notification: {Error}", result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create import notification for reportId {ReportId}", reportId);
+                // Don't fail the import if notification creation fails
             }
         }
 
@@ -522,25 +811,93 @@ namespace FMS.Application.Features.FuelImport.Commands
             }
         }
 
+        /// <summary>
+        /// Finds duplicate records WITHIN the import batch itself (same vehicle/date/shift combination appearing multiple times in the import file)
+        /// </summary>
+        private async Task<List<DuplicateRecordInfo>> FindIntraBatchDuplicatesAsync(List<ConsumptionDTO> models, CancellationToken cancellationToken)
+        {
+            var duplicates = new List<DuplicateRecordInfo>();
+            var seen = new Dictionary<(int VehicleId, DateTime Date, bool IsNightShift), (int RowIndex, ConsumptionDTO Model)>(); // Track first occurrence
+
+            // Pre-load vehicle and site names for better reporting
+            var vehicleIds = models.Select(m => m.VehicleId).Distinct().ToList();
+            var siteIds = models.Where(m => m.SiteId > 0).Select(m => m.SiteId).Distinct().ToList();
+
+            var vehicleNames = await _context.Vehicles
+                .Where(v => vehicleIds.Contains(v.VehicleId))
+                .ToDictionaryAsync(v => v.VehicleId, v => v.HyoungNo, cancellationToken);
+
+            var siteNames = siteIds.Any()
+                ? await _context.Sites
+                    .Where(s => siteIds.Contains(s.Id))
+                    .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken)
+                : new Dictionary<int, string>();
+
+            int rowCounter = 0; // Fallback row counter if RowIndex is not set
+            foreach (var model in models)
+            {
+                var currentRowIndex = model.RowIndex ?? rowCounter;
+                var key = (model.VehicleId, model.Date.Date, model.IsNightShift);
+
+                if (seen.TryGetValue(key, out var firstOccurrence))
+                {
+                    // This is a duplicate within the batch
+                    var vehicleName = vehicleNames.ContainsKey(model.VehicleId)
+                        ? vehicleNames[model.VehicleId]
+                        : $"Vehicle ID {model.VehicleId}";
+
+                    var siteName = model.SiteId > 0 && siteNames.ContainsKey(model.SiteId)
+                        ? siteNames[model.SiteId]
+                        : (firstOccurrence.Model.SiteId > 0 && siteNames.ContainsKey(firstOccurrence.Model.SiteId)
+                            ? siteNames[firstOccurrence.Model.SiteId]
+                            : "N/A");
+
+                    var shiftText = model.IsNightShift ? "night" : "day";
+
+                    _logger.LogDebug($"Intra-batch duplicate: {vehicleName} (VehicleId={model.VehicleId}), Date={model.Date:yyyy-MM-dd}, Shift={shiftText}, " +
+                        $"First occurrence at row {firstOccurrence.RowIndex + 1}, duplicate at row {currentRowIndex + 1}");
+
+                    duplicates.Add(new DuplicateRecordInfo
+                    {
+                        RowIndex = currentRowIndex,
+                        VehicleId = model.VehicleId,
+                        VehicleName = vehicleName,
+                        SiteName = siteName,
+                        Date = model.Date,
+                        IsNightShift = model.IsNightShift,
+                        Message = $"Duplicate within import file: {vehicleName} on {model.Date:dd/MM/yyyy} ({shiftText} shift) appears at row {firstOccurrence.RowIndex + 1} and row {currentRowIndex + 1}"
+                    });
+                }
+                else
+                {
+                    seen[key] = (currentRowIndex, model);
+                }
+                rowCounter++;
+            }
+
+            return duplicates;
+        }
+
         private async Task<List<DuplicateRecordInfo>> CheckForExistingDuplicates(List<ConsumptionDTO> models, CancellationToken cancellationToken)
         {
             var duplicates = new List<DuplicateRecordInfo>();
+
+            // Guard against empty list to avoid Min()/Max() exceptions
+            if (models == null || !models.Any())
+            {
+                _logger.LogDebug("No models to check for duplicates - returning empty list");
+                return duplicates;
+            }
+
             var dates = models.Select(c => c.Date.Date).Distinct().ToList();
             var vehicleIds = models.Select(c => c.VehicleId).Distinct().ToList();
             var siteIds = models.Where(c => c.SiteId > 0).Select(c => c.SiteId).Distinct().ToList();
             var minDate = dates.Min();
             var maxDate = dates.Max();
 
-            var existingRecords = await _context.Vehicleconsumptions
-                .Where(c => c.Date.Date >= minDate && c.Date.Date <= maxDate)
-                .Select(c => new { c.VehicleId, Date = c.Date.Date, IsNightShift = c.IsNightShift })
-                .ToListAsync(cancellationToken);
+            _logger.LogDebug($"Checking for duplicates: Date range {minDate:yyyy-MM-dd} to {maxDate:yyyy-MM-dd}, Vehicles: {string.Join(",", vehicleIds)}");
 
-            var existingVehicleDateShiftCombos = existingRecords
-                .Where(e => vehicleIds.Contains(e.VehicleId))
-                .ToList();
-
-            // Pre-load vehicles and sites to avoid multiple queries
+            // Pre-load vehicles and sites FIRST (before raw SQL) to avoid connection disposal issues
             var vehicles = await _context.Vehicles
                 .Where(v => vehicleIds.Contains(v.VehicleId))
                 .ToDictionaryAsync(v => v.VehicleId, v => v.HyoungNo, cancellationToken);
@@ -551,20 +908,101 @@ namespace FMS.Application.Features.FuelImport.Commands
                     .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken)
                 : new Dictionary<int, string>();
 
+            // Use raw SQL to properly detect NULL IsNightShift values
+            // Entity has IsNightShift as ulong (non-nullable) but DB allows NULL
+            // MySQL treats NULL and 0 as different values in unique constraints
+            var vehicleIdList = string.Join(",", vehicleIds);
+            var sql = $@"
+                SELECT VehicleId, DATE(Date) as DateOnly, IsNightShift
+                FROM vehicleconsumption
+                WHERE DATE(Date) >= @minDate
+                AND DATE(Date) <= @maxDate
+                AND VehicleId IN ({vehicleIdList})";
+
+            var existingRecords = new List<(int VehicleId, DateTime Date, ulong? IsNightShift)>();
+
+            // Don't use 'using' on GetDbConnection() - it's EF Core's shared connection!
+            var connection = _context.Database.GetDbConnection();
+            try
+            {
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    await connection.OpenAsync(cancellationToken);
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+
+                    var minDateParam = command.CreateParameter();
+                    minDateParam.ParameterName = "@minDate";
+                    minDateParam.Value = minDate.Date;
+                    command.Parameters.Add(minDateParam);
+
+                    var maxDateParam = command.CreateParameter();
+                    maxDateParam.ParameterName = "@maxDate";
+                    maxDateParam.Value = maxDate.Date;
+                    command.Parameters.Add(maxDateParam);
+
+                    using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+                    {
+                        while (await reader.ReadAsync(cancellationToken))
+                        {
+                            var vehicleId = reader.GetInt32(0);
+                            var date = reader.GetDateTime(1);
+                            ulong? isNightShift = reader.IsDBNull(2) ? null : Convert.ToUInt64(reader.GetValue(2));
+
+                            existingRecords.Add((vehicleId, date, isNightShift));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing raw SQL for duplicate check");
+                throw;
+            }
+            // Note: Do NOT close the connection - EF Core manages it
+
+            _logger.LogDebug($"Found {existingRecords.Count} existing records in database (using raw SQL)");
+
+            // Log each existing record for debugging
+            foreach (var existing in existingRecords.Take(10))
+            {
+                _logger.LogDebug($"  DB Record: VehicleId={existing.VehicleId}, Date={existing.Date:yyyy-MM-dd}, IsNightShift={existing.IsNightShift?.ToString() ?? "NULL"}");
+            }
+
+            var existingVehicleDateShiftCombos = existingRecords
+                .Select(r => new { r.VehicleId, r.Date, r.IsNightShift })
+                .ToList();
+
+            // vehicles and sites are already loaded before the raw SQL query
+
             if (existingVehicleDateShiftCombos.Any())
             {
                 foreach (var model in models)
                 {
-                    var isDuplicate = existingVehicleDateShiftCombos.Any(e =>
+                    // Handle NULL IsNightShift values properly (NULL is treated as 0/day shift in database)
+                    var modelShiftValue = model.IsNightShift ? 1UL : 0UL;
+
+                    // Find exact match including shift - convert nullable to value for comparison
+                    var matchingRecord = existingVehicleDateShiftCombos.FirstOrDefault(e =>
                         e.VehicleId == model.VehicleId &&
                         e.Date == model.Date.Date &&
-                        e.IsNightShift == (model.IsNightShift ? 1UL : 0UL));
+                        (e.IsNightShift.HasValue ? e.IsNightShift.Value : 0UL) == modelShiftValue); // Treat NULL as 0
 
-                    if (isDuplicate)
+                    if (matchingRecord != null)
                     {
                         var vehicleName = vehicles.ContainsKey(model.VehicleId)
                             ? vehicles[model.VehicleId]
                             : $"Vehicle ID {model.VehicleId}";
+
+                        var shiftText = model.IsNightShift ? "night" : "day";
+                        var dbShiftValue = matchingRecord.IsNightShift.HasValue ? matchingRecord.IsNightShift.Value : 0UL;
+
+                        _logger.LogDebug(
+                            $"Duplicate found: Vehicle {vehicleName} (ID:{model.VehicleId}) on {model.Date:yyyy-MM-dd} {shiftText} shift - " +
+                            $"Importing shift={modelShiftValue}, DB shift={dbShiftValue}");
 
                         var siteName = model.SiteId > 0 && sites.ContainsKey(model.SiteId)
                             ? sites[model.SiteId]

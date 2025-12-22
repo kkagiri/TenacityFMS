@@ -369,3 +369,33 @@ Hyoung.FMS/
 .vscode/settings.json
 
 nul
+
+# ============================================
+# React Native Mobile Build Outputs
+# ============================================
+fms.mobile/android/app/build/
+fms.mobile/android/build/
+fms.mobile/android/.gradle/
+fms.mobile/android/.idea/
+fms.mobile/android/local.properties
+fms.mobile/android/captures/
+fms.mobile/android/*.iml
+fms.mobile/android/app/*.iml
+
+fms.mobile/ios/build/
+fms.mobile/ios/Pods/
+fms.mobile/ios/DerivedData/
+fms.mobile/ios/.xcode.env.local
+
+# Mobile package lock
+fms.mobile/package-lock.json
+
+# Mobile documentation (optional to commit)
+# fms.mobile/MOCK_DATA_TANK_SELECTION.md
+# fms.mobile/TANK_SELECTION_GUIDE.md
+
+# Mobile debug keystore
+fms.mobile/android/app/debug.keystore
+
+# iOS folder (large, platform-specific)
+fms.mobile/ios/

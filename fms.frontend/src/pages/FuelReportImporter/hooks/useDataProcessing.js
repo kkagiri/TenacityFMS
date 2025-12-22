@@ -1,4 +1,9 @@
 import { useState } from "react";
+import {
+  cleanNumericValue,
+  formatNumericValue,
+  formatDate,
+} from "../utils/formatting";
 
 /**
  * Hook for data processing functionality
@@ -15,48 +20,6 @@ const useDataProcessing = ({
   findVehicleByName,
   findSiteByName,
 }) => {
-  /**
-   * Cleans numeric values
-   */
-  const cleanNumericValue = (value) => {
-    if (typeof value === "number") return value;
-    if (value === undefined || value === null || value === "") return null;
-    const strValue = String(value)
-      .replace(/[^\d.-]/g, "")
-      .replace(/\.{2,}/g, ".");
-    if (!strValue) return null;
-    const num = parseFloat(strValue);
-    return isNaN(num) ? null : num;
-  };
-
-  /**
-   * Formats a numeric value for display
-   */
-  const formatNumericValue = (value) => {
-    if (value === 0 || value === 0.0) return "0.00";
-    return value === null || value === undefined ? "" : value.toString();
-  };
-
-  /**
-   * Formats a date
-   */
-  const formatDate = (excelDate) => {
-    if (excelDate === null || excelDate === undefined) return null;
-
-    let date;
-    if (typeof excelDate === "number" && excelDate > 0) {
-      date = new Date(Date.UTC(1900, 0, excelDate - 1));
-    } else {
-      date = new Date(excelDate);
-    }
-
-    if (!isNaN(date.getTime())) {
-      return date;
-    } else {
-      return null;
-    }
-  };
-
   /**
    * Maps data for km/l report type
    */

@@ -1,18 +1,19 @@
-
 //Cursor - Mobile device data hook adapted from web frontend
-import {useSelector} from 'react-redux';
-import {useMemo} from 'react';
-import FuelingUtils from '../utils/FuelingUtils';
+import { useSelector } from "react-redux";
+import { useMemo } from "react";
+import FuelingUtils from "../utils/FuelingUtils";
 
 export const useDeviceData = (ptsId) => {
   // Get raw device status from Redux
-  const deviceStatus = useSelector(state =>
-    state.fueling.deviceStatuses[ptsId]
+  const deviceStatus = useSelector(
+    (state) => state.fueling.deviceStatuses[ptsId]
   );
 
   const rawUploadStatus = deviceStatus?.uploadStatus;
   const lastUpdated = deviceStatus?.lastUpdated;
-  const isLiveDataEnabled = useSelector(state => state.fueling.isLiveDataEnabled);
+  const isLiveDataEnabled = useSelector(
+    (state) => state.fueling.isLiveDataEnabled
+  );
 
   // Parse pump status using FuelingUtils
   const devicePumpStatus = useMemo(() => {
@@ -21,7 +22,7 @@ export const useDeviceData = (ptsId) => {
     const pumps = FuelingUtils.handlePumpStatus(rawUploadStatus);
     const statusMap = {};
 
-    pumps.forEach(pump => {
+    pumps.forEach((pump) => {
       statusMap[pump.id] = {
         id: pump.id,
         name: pump.name,
@@ -52,8 +53,11 @@ export const useDeviceData = (ptsId) => {
   // Derive active fueling processes
   const activeFuelingProcesses = useMemo(() => {
     return Object.values(devicePumpStatus)
-      .filter(pump => pump.status === 'fueling' || pump.status === 'endOfTransaction')
-      .map(pump => ({
+      .filter(
+        (pump) =>
+          pump.status === "fueling" || pump.status === "endOfTransaction"
+      )
+      .map((pump) => ({
         pumpId: pump.id,
         status: pump.status,
         nozzle: pump.activeNozzle || pump.nozzle,
@@ -72,7 +76,37 @@ export const useDeviceData = (ptsId) => {
       name: grade.Name || `Grade ${index + 1}`,
       price: grade.Price || 0,
       nozzle: grade.Nozzle || index + 1,
-      fuelType: grade.FuelType || 'Unknown',
+      fuelType: grade.FuelType || "Unknown",
+      color: grade.Color || "#6366f1",
+    }));
+  }, [rawUploadStatus]);
+
+  // Extract probe/tank data from PTS status
+  const probeTanks = useMemo(() => {
+    if (!rawUploadStatus?.Probes) return [];
+
+    const probes = rawUploadStatus.Probes;
+    if (!probes.Count || !probes.Ids) return [];
+
+    return probes.Ids.map((id, index) => ({
+      id: `probe-${id}`,
+      probeId: id,
+      name: `Tank ${id} - ${probes.ProductNames?.[index] || "Unknown"}`,
+      productId: probes.ProductIds?.[index],
+      productName: probes.ProductNames?.[index] || "Unknown Product",
+      currentVolume: probes.Volumes?.[index] || 0,
+      capacity: probes.Capacities?.[index] || 50000,
+      height: probes.Heights?.[index] || 0,
+      temperature: probes.Temperatures?.[index] || 0,
+      water: probes.Waters?.[index] || 0,
+      status: probes.Statuses?.[index] || 0,
+      statusText:
+        ["Normal", "Low", "High", "Alarm"][probes.Statuses?.[index]] ||
+        "Normal",
+      percentFull: Math.round(
+        ((probes.Volumes?.[index] || 0) / (probes.Capacities?.[index] || 1)) *
+          100
+      ),
     }));
   }, [rawUploadStatus]);
 
@@ -104,6 +138,7 @@ export const useDeviceData = (ptsId) => {
     pumps,
     activeFuelingProcesses,
     fuelGrades,
+    probeTanks, // Tank data from PTS probes
 
     // Helper functions
     getPumpDetails,

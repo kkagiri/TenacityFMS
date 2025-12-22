@@ -3,16 +3,25 @@
 .form-popup .dx-toolbar-center {
     width: 100%;
   }
-  
+
   .form-popup-buttons-container {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: var(--popup-toolbar-item-spacing);
-  
-    .form-popup-buttons-container .dx-button {
-      margin-right: 10px !important; /* Adjust this value to your desired gap */    }
-    
-    .form-popup-buttons-container .dx-button:last-child {
-      margin-right: 0 !important; /* Ensure the last button has no right margin */    }
+    width: 100%;
+
+    .dx-button {
+      margin-right: 10px !important; /* Adjust this value to your desired gap */
+    }
+
+    .dx-button:last-child {
+      margin-right: 0 !important; /* Ensure the last button has no right margin */
+    }
+  }
+
+  .form-popup-buttons-container.flex-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }

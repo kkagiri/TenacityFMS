@@ -102,13 +102,16 @@ export const setupFuelImportProgressListener = () => async (dispatch) => {
       businessSignalRService.connection.off("FuelImportProgress");
 
       // Add new listener
-      businessSignalRService.connection.on("FuelImportProgress", (progressData) => {
-        console.log(
-          "[Business SignalR] Received fuel import progress update:",
-          progressData
-        );
-        dispatch(updateImportProgress(progressData));
-      });
+      businessSignalRService.connection.on(
+        "FuelImportProgress",
+        (progressData) => {
+          console.log(
+            "[Business SignalR] Received fuel import progress update:",
+            progressData
+          );
+          dispatch(updateImportProgress(progressData));
+        }
+      );
 
       return true;
     } else {
@@ -266,18 +269,18 @@ export const uploadFuelReport =
 
           dispatch(uploadFuelReportSuccess(successWithDuplicates));
 
-          // Show notification about skipped duplicates
-          dispatch(
-            showNotification(
-              `Import completed: ${duplicateErrors.length} duplicate record(s) were skipped.`,
-              {
-                type: "warning",
-                title: "Import Success with Skipped Duplicates",
-                autoClose: true,
-                duration: 5000,
-              }
-            )
-          );
+          // NOTE: Notification disabled - user prefers not to have import notifications
+          // dispatch(
+          //   showNotification(
+          //     `Import completed: ${duplicateErrors.length} duplicate record(s) were skipped.`,
+          //     {
+          //       type: "warning",
+          //       title: "Import Success with Skipped Duplicates",
+          //       autoClose: true,
+          //       duration: 5000,
+          //     }
+          //   )
+          // );
         } else {
           dispatch(uploadFuelReportSuccess(importResponse.data.data));
         }
@@ -314,18 +317,18 @@ export const uploadFuelReport =
             })
           );
 
-          // Also show a notification about the duplicates
-          dispatch(
-            showNotification(
-              `Import failed: ${duplicateErrors.length} duplicate record(s) found.`,
-              {
-                type: "error",
-                title: "Import Error",
-                autoClose: true,
-                duration: 5000,
-              }
-            )
-          );
+          // NOTE: Notification disabled - user prefers not to have import notifications
+          // dispatch(
+          //   showNotification(
+          //     `Import failed: ${duplicateErrors.length} duplicate record(s) found.`,
+          //     {
+          //       type: "error",
+          //       title: "Import Error",
+          //       autoClose: true,
+          //       duration: 5000,
+          //     }
+          //   )
+          // );
         } else if (
           importResponse.data.validationErrors &&
           importResponse.data.validationErrors.length > 0
@@ -403,16 +406,16 @@ export const retryFuelReportExcludingDuplicates =
           duplicateMap[index] = true;
         });
 
-        // Show notification about processing
-        dispatch(
-          showNotification(
-            `Processing large dataset (${originalData.length} records) excluding duplicates...`,
-            {
-              type: "info",
-              title: "Import Retry",
-            }
-          )
-        );
+        // NOTE: Notification disabled - user prefers not to have import notifications
+        // dispatch(
+        //   showNotification(
+        //     `Processing large dataset (${originalData.length} records) excluding duplicates...`,
+        //     {
+        //       type: "info",
+        //       title: "Import Retry",
+        //     }
+        //   )
+        // );
 
         // Process in chunks to avoid UI freezing
         const CHUNK_SIZE = 200;
@@ -438,27 +441,28 @@ export const retryFuelReportExcludingDuplicates =
         );
       }
 
-      // Show notification
-      dispatch(
-        showNotification(
-          `Retrying import with ${filteredData.length} records, excluding duplicate records...`,
-          {
-            type: "info",
-            title: "Import Retry",
-          }
-        )
-      );
+      // NOTE: Notification disabled - user prefers not to have import notifications
+      // dispatch(
+      //   showNotification(
+      //     `Retrying import with ${filteredData.length} records, excluding duplicate records...`,
+      //     {
+      //       type: "info",
+      //       title: "Import Retry",
+      //     }
+      //   )
+      // );
 
       // Proceed with the upload with the filtered data
       return dispatch(uploadFuelReport(filteredData, false));
     } catch (error) {
       console.error("Error retrying fuel report import:", error);
-      dispatch(
-        showNotification("Failed to retry import", {
-          type: "error",
-          title: "Import Error",
-        })
-      );
+      // NOTE: Notification disabled - user prefers not to have import notifications
+      // dispatch(
+      //   showNotification("Failed to retry import", {
+      //     type: "error",
+      //     title: "Import Error",
+      //   })
+      // );
       return false;
     }
   };
@@ -475,18 +479,18 @@ export const retryFuelReportWithOverwrite =
       // Performance optimization for large datasets
       const isLargeDataset = originalData && originalData.length > 200;
 
-      // Show notification
-      dispatch(
-        showNotification(
-          `Retrying import, overwriting existing records${
-            isLargeDataset ? " (large dataset)" : ""
-          }...`,
-          {
-            type: "info",
-            title: "Import Retry",
-          }
-        )
-      );
+      // NOTE: Notification disabled - user prefers not to have import notifications
+      // dispatch(
+      //   showNotification(
+      //     `Retrying import, overwriting existing records${
+      //       isLargeDataset ? " (large dataset)" : ""
+      //     }...`,
+      //     {
+      //       type: "info",
+      //       title: "Import Retry",
+      //     }
+      //   )
+      // );
 
       // For very large datasets, use chunking to improve performance
       if (isLargeDataset) {
@@ -515,12 +519,13 @@ export const retryFuelReportWithOverwrite =
       }
     } catch (error) {
       console.error("Error retrying fuel report import with overwrite:", error);
-      dispatch(
-        showNotification("Failed to retry import with overwrite", {
-          type: "error",
-          title: "Import Error",
-        })
-      );
+      // NOTE: Notification disabled - user prefers not to have import notifications
+      // dispatch(
+      //   showNotification("Failed to retry import with overwrite", {
+      //     type: "error",
+      //     title: "Import Error",
+      //   })
+      // );
       return false;
     }
   };
@@ -531,15 +536,19 @@ export const retryFuelReportWithOverwrite =
  * Progress and completion are sent via SignalR.
  */
 export const uploadFuelReportAsync =
-  (reportData, overwriteExisting = false) =>
+  (reportData, overwriteExisting = false, options = {}) =>
   async (dispatch) => {
     dispatch(uploadFuelReportRequest());
 
-    // Ensure SignalR listener is set up
-    await dispatch(setupFuelImportProgressListener());
+    const skipSignalRSetup = options?.skipSignalRSetup === true;
 
-    // Setup listeners for async import events
-    await dispatch(setupAsyncImportListeners());
+    if (!skipSignalRSetup) {
+      // Ensure SignalR listener is set up
+      await dispatch(setupFuelImportProgressListener());
+
+      // Setup listeners for async import events
+      await dispatch(setupAsyncImportListeners());
+    }
 
     // Check if data is already formatted (has PascalCase property names)
     const isAlreadyFormatted =
@@ -579,7 +588,7 @@ export const uploadFuelReportAsync =
           success: true,
           isAsync: true,
           jobId: jobData.jobId,
-          message: "Import job started"
+          message: "Import job started",
         };
       } else {
         // Handle validation errors or other failures
@@ -604,7 +613,8 @@ export const uploadFuelReportAsync =
       dispatch(
         uploadFuelReportFailure({
           message: errorMessage,
-          validationErrors: validationErrors.length > 0 ? validationErrors : null,
+          validationErrors:
+            validationErrors.length > 0 ? validationErrors : null,
         })
       );
 
@@ -628,7 +638,9 @@ export const cancelFuelImport = (jobId) => async (dispatch) => {
 
   try {
     console.log("[cancelFuelImport] Cancelling job:", jobId);
-    const response = await axiosInstance.post(`/consumption/import/cancel/${jobId}`);
+    const response = await axiosInstance.post(
+      `v1/consumption/import/cancel/${jobId}`
+    );
 
     if (response.data.isSuccess) {
       console.log("[cancelFuelImport] Job cancelled successfully");
@@ -639,7 +651,10 @@ export const cancelFuelImport = (jobId) => async (dispatch) => {
     }
   } catch (error) {
     console.error("[cancelFuelImport] Error cancelling job:", error);
-    const errorMessage = error.response?.data?.message || error.message || "Failed to cancel import";
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to cancel import";
     return { success: false, message: errorMessage };
   }
 };
@@ -656,7 +671,9 @@ export const setupAsyncImportListeners = () => async (dispatch) => {
 
     const connected = await businessSignalRService.ensureConnection();
     if (!connected) {
-      console.warn("[SignalR] Could not establish connection for async import events");
+      console.warn(
+        "[SignalR] Could not establish connection for async import events"
+      );
       return false;
     }
 
@@ -667,7 +684,13 @@ export const setupAsyncImportListeners = () => async (dispatch) => {
 
     // Listen for job completion
     businessSignalRService.connection.on("FuelImportCompleted", (data) => {
-      console.log("[SignalR] Fuel import completed - raw data:", JSON.stringify(data, null, 2));
+      console.log(
+        "[SignalR] Fuel import completed - raw data:",
+        JSON.stringify(data, null, 2)
+      );
+
+      // Notify batch import hook listeners
+      businessSignalRService.notifyListeners("fuelImportCompleted", data);
 
       // Handle both PascalCase (C#) and camelCase property names
       const isSuccess = data.IsSuccess ?? data.isSuccess ?? false;
@@ -676,16 +699,28 @@ export const setupAsyncImportListeners = () => async (dispatch) => {
       const message = data.Message || data.message;
 
       // Extract counts - handle both PascalCase and camelCase
-      const successCount = resultData.SuccessCount ?? resultData.successCount ?? 0;
-      const totalProcessed = resultData.TotalProcessed ?? resultData.totalProcessed ?? 0;
-      const skippedCount = resultData.SkippedCount ?? resultData.skippedCount ?? 0;
-      const duplicateCount = resultData.DuplicateCount ?? resultData.duplicateCount ?? 0;
-      const totalRecords = resultData.TotalRecords ?? resultData.totalRecords ?? 0;
+      const successCount =
+        resultData.SuccessCount ?? resultData.successCount ?? 0;
+      const totalProcessed =
+        resultData.TotalProcessed ?? resultData.totalProcessed ?? 0;
+      const skippedCount =
+        resultData.SkippedCount ?? resultData.skippedCount ?? 0;
+      const duplicateCount =
+        resultData.DuplicateCount ?? resultData.duplicateCount ?? 0;
+      const totalRecords =
+        resultData.TotalRecords ?? resultData.totalRecords ?? 0;
       const reportId = resultData.ReportId ?? resultData.reportId;
-      const duplicateRecords = resultData.DuplicateRecords ?? resultData.duplicateRecords ?? [];
+      const duplicateRecords =
+        resultData.DuplicateRecords ?? resultData.duplicateRecords ?? [];
 
       console.log("[SignalR] Parsed import result:", {
-        isSuccess, successCount, totalProcessed, skippedCount, duplicateCount, totalRecords, reportId
+        isSuccess,
+        successCount,
+        totalProcessed,
+        skippedCount,
+        duplicateCount,
+        totalRecords,
+        reportId,
       });
 
       if (isSuccess) {
@@ -703,61 +738,85 @@ export const setupAsyncImportListeners = () => async (dispatch) => {
 
         // Check if there were duplicates that were skipped
         if (duplicateRecords.length > 0) {
-          dispatch(asyncImportJobCompleted({
-            ...normalizedResult,
-            jobId,
-            duplicateErrors: duplicateRecords.map(record => ({
-              rowIndex: record.RowIndex ?? record.rowIndex ?? -1,
-              field: "vehicleName",
-              message: record.Message ?? record.message ?? `Duplicate record for Vehicle ID ${record.VehicleId ?? record.vehicleId}`,
-              isDuplicate: true,
-              vehicleId: record.VehicleId ?? record.vehicleId,
-              date: record.Date ?? record.date,
-              isNightShift: record.IsNightShift ?? record.isNightShift,
-            }))
-          }));
+          dispatch(
+            asyncImportJobCompleted({
+              ...normalizedResult,
+              jobId,
+              duplicateErrors: duplicateRecords.map((record) => ({
+                rowIndex: record.RowIndex ?? record.rowIndex ?? -1,
+                field: "vehicleName",
+                message:
+                  record.Message ??
+                  record.message ??
+                  `Duplicate record for Vehicle ID ${
+                    record.VehicleId ?? record.vehicleId
+                  }`,
+                isDuplicate: true,
+                vehicleId: record.VehicleId ?? record.vehicleId,
+                date: record.Date ?? record.date,
+                isNightShift: record.IsNightShift ?? record.isNightShift,
+              })),
+            })
+          );
 
           dispatch(uploadFuelReportSuccess(normalizedResult));
           // Progress bar shows completion status - minimal toast notification
-          console.log(`[SignalR] Import completed: ${successCount} records imported, ${skippedCount || duplicateRecords.length} duplicates skipped.`);
+          console.log(
+            `[SignalR] Import completed: ${successCount} records imported, ${
+              skippedCount || duplicateRecords.length
+            } duplicates skipped.`
+          );
         } else {
-          dispatch(asyncImportJobCompleted({
-            ...normalizedResult,
-            jobId
-          }));
+          dispatch(
+            asyncImportJobCompleted({
+              ...normalizedResult,
+              jobId,
+            })
+          );
 
           dispatch(uploadFuelReportSuccess(normalizedResult));
           // Progress bar shows completion status - minimal toast notification
-          console.log(`[SignalR] Import completed successfully! ${successCount || totalProcessed} records imported.`);
+          console.log(
+            `[SignalR] Import completed successfully! ${
+              successCount || totalProcessed
+            } records imported.`
+          );
         }
       } else {
         // Handle failed import
-        dispatch(asyncImportJobError({
-          message: message || "Import failed",
-          jobId,
-          ...resultData
-        }));
+        dispatch(
+          asyncImportJobError({
+            message: message || "Import failed",
+            jobId,
+            ...resultData,
+          })
+        );
 
         // Check if failure is due to duplicates
         if (duplicateRecords.length > 0) {
           dispatch(
             uploadFuelReportFailure({
               message: message || "Duplicate records detected",
-              duplicateErrors: duplicateRecords.map(record => ({
+              duplicateErrors: duplicateRecords.map((record) => ({
                 rowIndex: record.RowIndex ?? record.rowIndex ?? -1,
                 field: "vehicleName",
-                message: record.Message ?? record.message ?? `Duplicate record for Vehicle ID ${record.VehicleId ?? record.vehicleId}`,
+                message:
+                  record.Message ??
+                  record.message ??
+                  `Duplicate record for Vehicle ID ${
+                    record.VehicleId ?? record.vehicleId
+                  }`,
                 isDuplicate: true,
                 vehicleId: record.VehicleId ?? record.vehicleId,
                 date: record.Date ?? record.date,
                 isNightShift: record.IsNightShift ?? record.isNightShift,
-              }))
+              })),
             })
           );
         } else {
           dispatch(
             uploadFuelReportFailure({
-              message: message || "Import failed"
+              message: message || "Import failed",
             })
           );
         }
@@ -770,18 +829,27 @@ export const setupAsyncImportListeners = () => async (dispatch) => {
     businessSignalRService.connection.on("FuelImportError", (data) => {
       console.error("[SignalR] Fuel import error:", data);
 
-      dispatch(asyncImportJobError({
-        message: data.Message || data.message || "Import error occurred",
-        jobId: data.JobId || data.jobId
-      }));
+      // Notify batch import hook listeners
+      businessSignalRService.notifyListeners("fuelImportError", data);
+
+      dispatch(
+        asyncImportJobError({
+          message: data.Message || data.message || "Import error occurred",
+          jobId: data.JobId || data.jobId,
+        })
+      );
 
       dispatch(
         uploadFuelReportFailure({
-          message: data.Message || data.message || "Import error occurred"
+          message: data.Message || data.message || "Import error occurred",
         })
       );
       // Error status will be shown in the progress bar
-      console.error(`[SignalR] Import error: ${data.Message || data.message || "Unknown error"}`);
+      console.error(
+        `[SignalR] Import error: ${
+          data.Message || data.message || "Unknown error"
+        }`
+      );
     });
 
     console.log("[SignalR] Async import listeners setup complete");
