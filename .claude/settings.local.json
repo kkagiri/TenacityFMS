@@ -40,7 +40,8 @@
       "Bash(Select-String -Pattern \"BUILD|FAILURE|error|CMake|reanimated\" -Context 2)",
       "Bash(tee:*)",
       "Bash(./gradlew.bat:*)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
