@@ -27,7 +27,20 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(Select-String -Pattern \"Build succeeded|Build FAILED|error CS\" -Context 2)"
+      "Bash(Select-String -Pattern \"Build succeeded|Build FAILED|error CS\" -Context 2)",
+      "Bash(python fuel_report_analyzer.py:*)",
+      "Bash(npm start -- --reset-cache)",
+      "Bash(gradlew clean:*)",
+      "Bash(.gradlew.bat clean:*)",
+      "Bash(npx react-native run-android:*)",
+      "Bash(adb install:*)",
+      "Bash(adb shell:*)",
+      "Bash(Select-String -Pattern \"added|removed|up to date|EBUSY\")",
+      "Bash(Select-Object -First 10)",
+      "Bash(Select-String -Pattern \"BUILD|FAILURE|error|CMake|reanimated\" -Context 2)",
+      "Bash(tee:*)",
+      "Bash(./gradlew.bat:*)",
+      "Bash(git worktree:*)"
     ],
     "deny": [],
     "ask": []

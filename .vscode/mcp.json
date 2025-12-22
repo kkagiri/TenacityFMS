@@ -1,15 +1,15 @@
 {
-    "servers": {
-        "mysql-query": {
-            "command": "mcp-mysql-tool",
-            "type": "stdio"
-        },
-
-            "MYSQL_HOST": "10.0.10.150",
-            "MYSQL_PORT": 3306,
-            "MYSQL_USER": "root",
-            "MYSQL_PASSWORD": "Niwewenamimi1000",
-            "MYSQL_DATABASE": "gpsdata"
+  "servers": {
+    "mysql-query": {
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\run-mcp-mysql.ps1"
+      ],
+      "type": "stdio"
     }
-
+  }
 }
