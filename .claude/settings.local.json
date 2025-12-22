@@ -2,20 +2,20 @@
   "permissions": {
     "allow": [
       "Bash(powershell -Command \"Get-WindowsOptionalFeature -Online -FeatureName IIS-WebSockets\")",
-      "Bash(dir \"C:\\inetpub\\wwwroot\\hyoungFMS\" /s /b)",
+      "Bash(dir \"C:\inetpub\wwwroot\hyoungFMS\" /s /b)",
       "Bash(findstr:*)",
       "Bash(powershell -Command \"Get-WebConfigurationProperty -pspath ''MACHINE/WEBROOT/APPHOST'' -filter ''system.webServer/proxy'' -name ''enabled'' 2>&1\")",
       "Bash(powershell:*)",
-      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\FMS.Application\\Features\\TankManagement\\TankStock\" /s /b)",
+      "Bash(dir \"C:\Users\kkagiri\source\repos\Hyoung.Fms\FMS.Application\Features\TankManagement\TankStock\" /s /b)",
       "Bash(dotnet restore:*)",
       "Bash(dotnet build:*)",
       "Bash(dotnet clean:*)",
-      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\src\\components\\Tags\\TagRuleManagement\" /b)",
+      "Bash(dir \"C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend\src\components\Tags\TagRuleManagement\" /b)",
       "Bash(npm start)",
       "Bash(npm install)",
-      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\node_modules\\@craco\" /s /b)",
+      "Bash(dir \"C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend\node_modules\@craco\" /s /b)",
       "Bash(Select-String -Pattern \"TankVolumeReportHandlers|Build succeeded|Build FAILED|error CS\")",
-      "Bash(dir \"C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\fms.frontend\\src\\pages\\tankStock\\shared\" /b)",
+      "Bash(dir \"C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend\src\pages\tankStock\shared\" /b)",
       "Bash(dir:*)",
       "Bash(nul)",
       "Bash(mkdir:*)",
@@ -41,7 +41,9 @@
       "Bash(tee:*)",
       "Bash(./gradlew.bat:*)",
       "Bash(git worktree:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(npm run android:*)",
+      "Bash(./gradlew assembleDebug:*)"
     ],
     "deny": [],
     "ask": []
