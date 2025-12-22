@@ -354,7 +354,7 @@ export class AuthenticationService extends BaseService {
       const axiosInstance = (await import("../../api/axiosInstance.js"))
         .default;
 
-      const response = await axiosInstance.get("/api/v1/Navigation", {
+      const response = await axiosInstance.get("/v1/Navigation", {
         headers: {
           "API-Version": this.options.apiVersion,
         },
