@@ -3,6 +3,8 @@
  * Loads environment variables from .env file using react-native-config
  */
 
+import { Platform } from "react-native";
+
 let Config;
 try {
   Config = require("react-native-config").default;
@@ -14,16 +16,35 @@ try {
 // Fallback if Config is not properly initialized (before native module is built)
 const safeConfig = Config || {};
 
+// Determine default URL based on platform and dev mode
+// Android emulator uses 10.0.2.2 to access host localhost
+// iOS simulator uses localhost directly
+// Set USE_LOCAL_BACKEND to true to test with local backend
+const USE_LOCAL_BACKEND = true; // Change to false to use production server
+
+const getDefaultUrl = () => {
+  if (__DEV__ && USE_LOCAL_BACKEND) {
+    // Development mode with local backend
+    if (Platform.OS === "android") {
+      return "http://10.0.2.2:7009"; // Android emulator localhost alias
+    }
+    return "http://localhost:7009"; // iOS simulator
+  }
+  // Production or dev without local backend
+  return "http://197.254.33.227:7009";
+};
+
+const DEFAULT_URL = getDefaultUrl();
+
 /**
  * API Configuration
  */
 export const API_CONFIG = {
   // Base API URL - automatically switches based on .env configuration
-  // Production server: 197.254.33.227
-  BASE_URL: safeConfig.API_BASE_URL || "http://197.254.33.227:7009/api",
+  BASE_URL: safeConfig.API_BASE_URL || `${DEFAULT_URL}/api`,
 
   // SignalR Hub URL
-  SIGNALR_HUB_URL: safeConfig.SIGNALR_HUB_URL || "http://197.254.33.227:7009",
+  SIGNALR_HUB_URL: safeConfig.SIGNALR_HUB_URL || DEFAULT_URL,
 
   // Request timeout (milliseconds)
   TIMEOUT: 30000,
@@ -32,6 +53,19 @@ export const API_CONFIG = {
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,
 };
+
+// Log environment configuration at startup
+console.log("====================================");
+console.log("🔧 FMS Mobile Environment Config:");
+console.log("  API_BASE_URL:", API_CONFIG.BASE_URL);
+console.log("  SIGNALR_HUB_URL:", API_CONFIG.SIGNALR_HUB_URL);
+console.log("  Platform:", Platform.OS);
+console.log("  Dev Mode:", __DEV__ ? "Yes" : "No");
+console.log(
+  "  From .env:",
+  safeConfig.API_BASE_URL ? "Yes" : "No (using defaults)"
+);
+console.log("====================================");
 
 /**
  * Debug Configuration
@@ -89,12 +123,34 @@ export const ENV = {
    * Print current configuration to console
    */
   printConfig: () => {
-    if (DEBUG_CONFIG.DEBUG_MODE) {
-      console.log("=== Environment Configuration ===");
-      console.log("API Base URL:", API_CONFIG.BASE_URL);
-      console.log("SignalR Hub URL:", API_CONFIG.SIGNALR_HUB_URL);
-      console.log("Debug Mode:", DEBUG_CONFIG.DEBUG_MODE);
-      console.log("================================");
+    console.log("=== Environment Configuration ===");
+    console.log("API Base URL:", API_CONFIG.BASE_URL);
+    console.log("SignalR Hub URL:", API_CONFIG.SIGNALR_HUB_URL);
+    console.log("Debug Mode:", DEBUG_CONFIG.DEBUG_MODE);
+    console.log("Dev Mode (__DEV__):", __DEV__);
+    console.log("================================");
+  },
+
+  /**
+   * Test API connectivity
+   */
+  testConnection: async () => {
+    try {
+      console.log("Testing API connection to:", API_CONFIG.BASE_URL);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/v1/User`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log("API connection test result:", response.status);
+      return { success: response.status < 500, status: response.status };
+    } catch (error) {
+      console.error("API connection test failed:", error.message);
+      return { success: false, error: error.message };
     }
   },
 };

@@ -619,6 +619,43 @@ namespace FMS.Application.Communication
             return _redisDb;
         }
 
+        /// <summary>
+        /// Gets the cached UploadStatus for a device from Redis
+        /// This contains the full pump/probe/reader data that was last received from the device
+        /// </summary>
+        /// <param name="deviceId">Device ID to get status for</param>
+        /// <returns>UploadStatus object or null if not found</returns>
+        public async Task<object> GetDeviceUploadStatus(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                _logger.LogWarning("GetDeviceUploadStatus called with empty deviceId.");
+                return null;
+            }
+
+            try
+            {
+                var redisKey = $"device:{deviceId}:status";
+                var statusJson = await _redisDb.StringGetAsync(redisKey);
+
+                if (statusJson.IsNullOrEmpty)
+                {
+                    _logger.LogDebug("No UploadStatus found in Redis for device {DeviceId}", deviceId);
+                    return null;
+                }
+
+                // Deserialize as dynamic object to preserve the original structure
+                var status = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(statusJson);
+                _logger.LogDebug("Retrieved UploadStatus from Redis for device {DeviceId}", deviceId);
+                return status;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving UploadStatus from Redis for device {DeviceId}", deviceId);
+                return null;
+            }
+        }
+
         private async Task BroadcastDeviceUpdate(string deviceId, string status, string connectionType, DateTime lastActivity, string ipAddress)
         {
             try

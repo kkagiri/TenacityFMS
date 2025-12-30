@@ -856,6 +856,9 @@ const FuelingProcessScreen = () => {
             onReasonChange={setTransferReason}
             onNext={handleTransferConfirm}
             onBack={handleStepBack}
+            selectedPump={selectedPump}
+            selectedNozzle={selectedNozzle}
+            pumpDetails={getPumpDetails(selectedPump?.id)}
           />
         );
       case "vehicle":
@@ -879,6 +882,9 @@ const FuelingProcessScreen = () => {
           <FuelingVolumeStep
             selectedVehicle={selectedVehicle}
             sourceTank={selectedTank}
+            selectedPump={selectedPump}
+            selectedNozzle={selectedNozzle}
+            pumpDetails={getPumpDetails(selectedPump?.id)}
             volume={fuelingVolume}
             isFullTank={isFullTank}
             odometer={odometer}
@@ -985,6 +991,7 @@ const FuelingProcessScreen = () => {
             deviceId={ptsId}
             currentStep={step}
             connectionStatus={deviceConnectionStatus}
+            deviceOnline={deviceConnectionStatus === "connected"}
             onBack={
               step === "tank" ? () => navigation.goBack() : handleStepBack
             }
@@ -1005,8 +1012,12 @@ const FuelingProcessScreen = () => {
         pumpId={selectedPump?.id}
         nozzleId={selectedNozzle?.id}
         transactionId={currentTransactionId}
+        vehicleInfo={selectedVehicle}
+        authorizationType={isFullTank ? "Full" : "Volume"}
+        requestedVolume={isFullTank ? null : parseFloat(fuelingVolume) || null}
         onComplete={handleTransactionComplete}
         onCancel={() => setShowTransactionMonitoring(false)}
+        onMinimize={() => setShowTransactionMonitoring(false)}
       />
     </SafeAreaView>
   );

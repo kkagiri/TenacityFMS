@@ -15,6 +15,9 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 const FuelingVolumeStep = ({
   selectedVehicle,
   sourceTank,
+  selectedPump,
+  selectedNozzle,
+  pumpDetails,
   volume,
   isFullTank,
   odometer,
@@ -28,6 +31,10 @@ const FuelingVolumeStep = ({
 }) => {
   const [volumeError, setVolumeError] = useState("");
   const [odometerError, setOdometerError] = useState("");
+
+  // Check if the selected nozzle is currently up (lifted)
+  // nozzleUp value from pump status indicates which nozzle is lifted (0 = none)
+  const isNozzleUp = pumpDetails?.nozzleUp === selectedNozzle?.id;
 
   const validateVolume = (value) => {
     if (!value && !isFullTank) {
@@ -94,7 +101,9 @@ const FuelingVolumeStep = ({
     }
   };
 
-  const canProceed = (volume || isFullTank) && !volumeError && !odometerError;
+  // Can only proceed if nozzle is up AND volume is set
+  const canProceed =
+    isNozzleUp && (volume || isFullTank) && !volumeError && !odometerError;
 
   // Quick volume presets based on vehicle tank capacity
   const getQuickVolumes = () => {
@@ -138,13 +147,60 @@ const FuelingVolumeStep = ({
               <Text style={styles.vehicleDetailText}>
                 {selectedVehicle?.plateNo}
               </Text>
-              {selectedVehicle?.tankCapacity && (
+              {selectedVehicle?.tankCapacity ? (
                 <Text style={styles.vehicleDetailText}>
                   Tank: {selectedVehicle.tankCapacity}L
                 </Text>
-              )}
+              ) : null}
             </View>
           </View>
+        </View>
+
+        {/* Nozzle Status Card */}
+        <View
+          style={[
+            styles.nozzleStatusCard,
+            isNozzleUp ? styles.nozzleStatusReady : styles.nozzleStatusWaiting,
+          ]}
+        >
+          <View style={styles.nozzleStatusContent}>
+            <View
+              style={[
+                styles.nozzleStatusIcon,
+                isNozzleUp
+                  ? styles.nozzleStatusIconReady
+                  : styles.nozzleStatusIconWaiting,
+              ]}
+            >
+              <Icon
+                name={isNozzleUp ? "check-circle" : "hand-paper"}
+                size={20}
+                color={isNozzleUp ? "#10b981" : "#f59e0b"}
+              />
+            </View>
+            <View style={styles.nozzleStatusText}>
+              <Text
+                style={[
+                  styles.nozzleStatusTitle,
+                  isNozzleUp
+                    ? styles.nozzleStatusTitleReady
+                    : styles.nozzleStatusTitleWaiting,
+                ]}
+              >
+                {isNozzleUp ? "Nozzle Ready" : "Lift Nozzle to Continue"}
+              </Text>
+              <Text style={styles.nozzleStatusSubtitle}>
+                Pump {selectedPump?.id || "-"} • Nozzle{" "}
+                {selectedNozzle?.id || "-"}
+                {!isNozzleUp && " (Currently down)"}
+              </Text>
+            </View>
+          </View>
+          {!isNozzleUp && (
+            <View style={styles.nozzleStatusPulse}>
+              <Icon name="sync" size={16} color="#f59e0b" />
+            </View>
+          )}
         </View>
 
         {/* Full Tank Option */}
@@ -299,14 +355,14 @@ const FuelingVolumeStep = ({
                 : "-"}
             </Text>
           </View>
-          {odometer && (
+          {odometer ? (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Odometer:</Text>
               <Text style={styles.summaryValue}>
                 {parseFloat(odometer).toLocaleString()} km
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
       </ScrollView>
 
@@ -623,6 +679,69 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "white",
     marginRight: 8,
+  },
+  // Nozzle Status Card Styles
+  nozzleStatusCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  nozzleStatusReady: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#86efac",
+  },
+  nozzleStatusWaiting: {
+    backgroundColor: "#fffbeb",
+    borderColor: "#fcd34d",
+  },
+  nozzleStatusContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  nozzleStatusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  nozzleStatusIconReady: {
+    backgroundColor: "#dcfce7",
+  },
+  nozzleStatusIconWaiting: {
+    backgroundColor: "#fef3c7",
+  },
+  nozzleStatusText: {
+    flex: 1,
+  },
+  nozzleStatusTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  nozzleStatusTitleReady: {
+    color: "#166534",
+  },
+  nozzleStatusTitleWaiting: {
+    color: "#92400e",
+  },
+  nozzleStatusSubtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  nozzleStatusPulse: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fef3c7",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

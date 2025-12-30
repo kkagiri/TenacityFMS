@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,15 @@ import {
   ScrollView,
   FlatList,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  selectAllTanks,
+  selectIsLoading,
+  fetchTanks,
+} from "../../redux/slices/tankSlice";
 
 // Helper to normalize tank object (handle both PTS probe format and internal format)
 const normalizeTank = (tank) => {
@@ -16,79 +23,12 @@ const normalizeTank = (tank) => {
   return {
     tankId: tank.tankId || tank.id || tank.probeId,
     tankName: tank.tankName || tank.name || `Tank ${tank.id || tank.probeId}`,
-    productName: tank.productName || "Unknown",
-    capacity: tank.capacity || 50000,
-    currentVolume: tank.currentVolume || 0,
-    siteName: tank.siteName || "Current Site",
+    productName: tank.productName || tank.ProductName || "Unknown",
+    capacity: tank.capacity || tank.tankCapacity || 50000,
+    currentVolume: tank.currentVolume || tank.volume || 0,
+    siteName: tank.siteName || tank.SiteName || "Current Site",
     ...tank,
   };
-};
-
-// Generate mock destination tanks based on source product
-const generateMockDestinations = (sourceProductName) => {
-  const dieselTanks = [
-    {
-      tankId: 101,
-      tankName: "Tank B - Backup Storage",
-      productName: "Diesel",
-      capacity: 50000,
-      currentVolume: 15000,
-      siteName: "Site A - Doha",
-    },
-    {
-      tankId: 102,
-      tankName: "Tank C - Secondary",
-      productName: "Diesel",
-      capacity: 30000,
-      currentVolume: 8000,
-      siteName: "Site A - Doha",
-    },
-    {
-      tankId: 103,
-      tankName: "Tank D - Reserve",
-      productName: "Diesel",
-      capacity: 40000,
-      currentVolume: 12000,
-      siteName: "Site B - Lusail",
-    },
-  ];
-
-  const petrolTanks = [
-    {
-      tankId: 201,
-      tankName: "Tank P1 - Premium Storage",
-      productName: "Petrol",
-      capacity: 35000,
-      currentVolume: 10000,
-      siteName: "Site A - Doha",
-    },
-    {
-      tankId: 202,
-      tankName: "Tank P2 - Regular",
-      productName: "Petrol",
-      capacity: 25000,
-      currentVolume: 5000,
-      siteName: "Site B - Lusail",
-    },
-  ];
-
-  // Return tanks matching the source product, or all if no match
-  const normalizedProduct = (sourceProductName || "").toLowerCase();
-  if (
-    normalizedProduct.includes("diesel") ||
-    normalizedProduct.includes("ago")
-  ) {
-    return dieselTanks;
-  }
-  if (
-    normalizedProduct.includes("petrol") ||
-    normalizedProduct.includes("pms") ||
-    normalizedProduct.includes("gasoline")
-  ) {
-    return petrolTanks;
-  }
-  // Return all for unknown products
-  return [...dieselTanks, ...petrolTanks];
 };
 
 const TransferDetailsStep = ({
@@ -101,31 +41,45 @@ const TransferDetailsStep = ({
   onReasonChange,
   onNext,
   onBack,
+  // Nozzle validation props
+  selectedPump,
+  selectedNozzle,
+  pumpDetails,
 }) => {
-  // Debug logging
-  console.log("[TransferDetailsStep] Render - sourceTank:", sourceTank);
-  console.log(
-    "[TransferDetailsStep] Render - destinationTank:",
-    destinationTank
-  );
+  // Check if selected nozzle is lifted (nozzleUp value matches selected nozzle ID)
+  const isNozzleUp = pumpDetails?.nozzleUp === selectedNozzle?.id;
+  const dispatch = useDispatch();
+  const allTanks = useSelector(selectAllTanks);
+  const isLoadingTanks = useSelector(selectIsLoading);
 
   const [showDestinationPicker, setShowDestinationPicker] = useState(
     !destinationTank
   );
 
+  // Fetch tanks from API on mount if not already loaded
+  useEffect(() => {
+    if (!allTanks || allTanks.length === 0) {
+      dispatch(fetchTanks());
+    }
+  }, [dispatch, allTanks]);
+
   // Normalize source tank for consistent field access
   const normalizedSource = useMemo(() => {
     const normalized = normalizeTank(sourceTank);
-    console.log("[TransferDetailsStep] normalizedSource:", normalized);
     return normalized;
   }, [sourceTank]);
 
-  // Generate mock destinations based on source product
+  // Get destination tanks from API - filter out source tank
   const availableDestinations = useMemo(() => {
-    const mocks = generateMockDestinations(normalizedSource?.productName);
-    // Filter out source tank by ID
-    return mocks.filter((tank) => tank.tankId !== normalizedSource?.tankId);
-  }, [normalizedSource]);
+    if (!allTanks || allTanks.length === 0) return [];
+
+    // Normalize all tanks and filter out the source tank
+    return allTanks.map(normalizeTank).filter((tank) => {
+      const sourceId = normalizedSource?.tankId || normalizedSource?.probeId;
+      const tankId = tank?.tankId || tank?.probeId;
+      return tankId !== sourceId;
+    });
+  }, [allTanks, normalizedSource]);
 
   const getFillColor = (percentage) => {
     if (percentage >= 80) return "#f59e0b"; // Amber - nearly full
@@ -141,28 +95,22 @@ const TransferDetailsStep = ({
   const handleConfirm = () => {
     // Validate inputs before proceeding
     if (!destinationTank) {
-      console.log("[TransferDetailsStep] No destination tank selected");
       return;
     }
 
     if (!transferVolume || parseFloat(transferVolume) <= 0) {
-      console.log("[TransferDetailsStep] Invalid transfer volume");
       return;
     }
-
-    console.log("[TransferDetailsStep] Proceeding to confirmation:", {
-      sourceTank: normalizedSource?.tankName,
-      destinationTank: destinationTank.tankName,
-      volume: transferVolume,
-      reason: transferReason,
-    });
 
     onNext();
   };
 
-  // Check if form is valid
+  // Check if form is valid - must have destination, volume, AND nozzle must be up
   const isFormValid =
-    destinationTank && transferVolume && parseFloat(transferVolume) > 0;
+    isNozzleUp &&
+    destinationTank &&
+    transferVolume &&
+    parseFloat(transferVolume) > 0;
 
   // Calculate max transferable volume
   const maxVolume = normalizedSource?.currentVolume || 0;
@@ -338,7 +286,12 @@ const TransferDetailsStep = ({
                 Select destination tank ({availableDestinations.length}{" "}
                 available)
               </Text>
-              {availableDestinations.length === 0 ? (
+              {isLoadingTanks ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#6366f1" />
+                  <Text style={styles.loadingText}>Loading tanks...</Text>
+                </View>
+              ) : availableDestinations.length === 0 ? (
                 <View style={styles.noTanksContainer}>
                   <Icon name="exclamation-circle" size={24} color="#f59e0b" />
                   <Text style={styles.noTanksText}>
@@ -348,7 +301,9 @@ const TransferDetailsStep = ({
               ) : (
                 <FlatList
                   data={availableDestinations}
-                  keyExtractor={(item) => item.tankId.toString()}
+                  keyExtractor={(item) =>
+                    (item.tankId || item.id || item.probeId).toString()
+                  }
                   renderItem={renderDestinationTank}
                   scrollEnabled={false}
                 />
@@ -417,6 +372,55 @@ const TransferDetailsStep = ({
                 </View>
               </View>
             )}
+
+            {/* Nozzle Status Card */}
+            <View
+              style={[
+                styles.nozzleStatusCard,
+                isNozzleUp
+                  ? styles.nozzleStatusReady
+                  : styles.nozzleStatusWaiting,
+              ]}
+            >
+              <View style={styles.nozzleStatusContent}>
+                <View
+                  style={[
+                    styles.nozzleStatusIcon,
+                    isNozzleUp
+                      ? styles.nozzleStatusIconReady
+                      : styles.nozzleStatusIconWaiting,
+                  ]}
+                >
+                  <Icon
+                    name={isNozzleUp ? "check-circle" : "hand-paper"}
+                    size={20}
+                    color={isNozzleUp ? "#10b981" : "#f59e0b"}
+                  />
+                </View>
+                <View style={styles.nozzleStatusText}>
+                  <Text
+                    style={[
+                      styles.nozzleStatusTitle,
+                      isNozzleUp
+                        ? styles.nozzleStatusTitleReady
+                        : styles.nozzleStatusTitleWaiting,
+                    ]}
+                  >
+                    {isNozzleUp ? "Nozzle Ready" : "Lift Nozzle to Continue"}
+                  </Text>
+                  <Text style={styles.nozzleStatusSubtitle}>
+                    Pump {selectedPump?.id || "-"} • Nozzle{" "}
+                    {selectedNozzle?.id || "-"}
+                    {!isNozzleUp ? " (Currently down)" : ""}
+                  </Text>
+                </View>
+              </View>
+              {!isNozzleUp ? (
+                <View style={styles.nozzleStatusPulse}>
+                  <Icon name="sync" size={16} color="#f59e0b" />
+                </View>
+              ) : null}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -601,6 +605,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#065f46",
     marginBottom: 12,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6b7280",
   },
   noTanksContainer: {
     alignItems: "center",
@@ -796,6 +809,69 @@ const styles = StyleSheet.create({
   },
   nextButtonTextDisabled: {
     color: "#9ca3af",
+  },
+  // Nozzle Status Card Styles
+  nozzleStatusCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+  },
+  nozzleStatusReady: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#86efac",
+  },
+  nozzleStatusWaiting: {
+    backgroundColor: "#fffbeb",
+    borderColor: "#fcd34d",
+  },
+  nozzleStatusContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  nozzleStatusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  nozzleStatusIconReady: {
+    backgroundColor: "#dcfce7",
+  },
+  nozzleStatusIconWaiting: {
+    backgroundColor: "#fef3c7",
+  },
+  nozzleStatusText: {
+    flex: 1,
+  },
+  nozzleStatusTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  nozzleStatusTitleReady: {
+    color: "#166534",
+  },
+  nozzleStatusTitleWaiting: {
+    color: "#92400e",
+  },
+  nozzleStatusSubtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  nozzleStatusPulse: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fef3c7",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

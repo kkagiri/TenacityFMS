@@ -112,20 +112,43 @@ const tankSlice = createSlice({
     resetTankState: () => initialState,
 
     // Update tanks from real-time probe status (from SignalR UploadStatusUpdate)
+    // Handles both PascalCase (from cache) and camelCase (from SignalR broadcast)
     updateTanksFromProbeStatus: (state, action) => {
       const probeStatus = action.payload;
 
-      if (!probeStatus?.Ids) return;
+      // Helper to get property with either case
+      const getProp = (obj, pascalName, camelName, index) => {
+        const arr = obj?.[pascalName] || obj?.[camelName];
+        return arr?.[index];
+      };
 
-      probeStatus.Ids.forEach((probeId, index) => {
-        const volume = probeStatus.Volumes?.[index] || 0;
-        const temperature = probeStatus.Temperatures?.[index] || 0;
-        const height = probeStatus.Heights?.[index] || 0;
-        const productId = probeStatus.ProductIds?.[index];
-        const productName = probeStatus.ProductNames?.[index];
-        const capacity = probeStatus.Capacities?.[index] || 0;
-        const waterHeight = probeStatus.WaterHeights?.[index] || 0;
-        const waterVolume = probeStatus.WaterVolumes?.[index] || 0;
+      // Get Ids from either case
+      const ids = probeStatus?.Ids || probeStatus?.ids;
+      if (!ids) return;
+
+      ids.forEach((probeId, index) => {
+        const volume = getProp(probeStatus, "Volumes", "volumes", index) || 0;
+        const temperature =
+          getProp(probeStatus, "Temperatures", "temperatures", index) || 0;
+        const height = getProp(probeStatus, "Heights", "heights", index) || 0;
+        const productId = getProp(
+          probeStatus,
+          "ProductIds",
+          "productIds",
+          index
+        );
+        const productName = getProp(
+          probeStatus,
+          "ProductNames",
+          "productNames",
+          index
+        );
+        const capacity =
+          getProp(probeStatus, "Capacities", "capacities", index) || 0;
+        const waterHeight =
+          getProp(probeStatus, "WaterHeights", "waterHeights", index) || 0;
+        const waterVolume =
+          getProp(probeStatus, "WaterVolumes", "waterVolumes", index) || 0;
 
         // Update tank volumes map
         state.tankVolumes[probeId] = volume;

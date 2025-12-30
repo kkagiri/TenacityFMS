@@ -61,11 +61,42 @@ export const fetchDeviceStatus = createAsyncThunk(
 const initialState = {
   ptsDeviceList: [],
   deviceStatuses: {},
-  connectionStatuses: {},
+  connectionStatuses: {}, // SignalR-based live connection statuses
   selectedSiteId: null,
   isLoading: false,
   error: null,
   lastUpdated: null,
+  connectionStatusLastUpdated: null,
+};
+
+/**
+ * Map connection status to standardized format
+ * Handles both string and numeric status values from SignalR
+ */
+const mapConnectionStatus = (status) => {
+  if (typeof status === "string") {
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === "active" || lowerStatus === "connected")
+      return "online";
+    if (lowerStatus === "idle") return "idle";
+    if (lowerStatus === "disconnected") return "offline";
+    return lowerStatus;
+  }
+  if (typeof status === "number") {
+    switch (status) {
+      case 0:
+        return "online"; // Connected
+      case 1:
+        return "online"; // Active
+      case 2:
+        return "idle";
+      case 3:
+        return "offline"; // Disconnected
+      default:
+        return "offline";
+    }
+  }
+  return "offline";
 };
 
 const deviceSlice = createSlice({
@@ -79,14 +110,103 @@ const deviceSlice = createSlice({
         ...status,
         lastUpdated: new Date().toISOString(),
       };
+
+      // If we're receiving upload status data, the device is definitely online
+      // Update connectionStatuses to reflect this
+      if (status?.uploadStatus) {
+        state.connectionStatuses[deviceId] = {
+          ...state.connectionStatuses[deviceId],
+          isConnected: true,
+          status: "online",
+          lastActivity: new Date().toISOString(),
+          lastSeen: new Date().toISOString(),
+        };
+        state.connectionStatusLastUpdated = new Date().toISOString();
+      }
     },
 
     updateConnectionStatus: (state, action) => {
-      const { deviceId, isConnected } = action.payload;
+      const { deviceId, status, connectionType, lastActivity, ipAddress } =
+        action.payload;
+      // Support both simple isConnected boolean and full status object
+      const isConnected =
+        action.payload.isConnected !== undefined
+          ? action.payload.isConnected
+          : mapConnectionStatus(status) === "online";
+
       state.connectionStatuses[deviceId] = {
         isConnected,
+        status: mapConnectionStatus(
+          status || (isConnected ? "connected" : "disconnected")
+        ),
+        connectionType: connectionType || "unknown",
+        lastActivity: lastActivity || new Date().toISOString(),
+        ipAddress: ipAddress || null,
         lastSeen: new Date().toISOString(),
       };
+      state.connectionStatusLastUpdated = new Date().toISOString();
+    },
+
+    /**
+     * Bulk update connection statuses from SignalR ConnectedDevicesStatus event
+     * This is called when receiving the full device status summary
+     */
+    updateAllConnectionStatuses: (state, action) => {
+      const {
+        webSocketConnections = [],
+        httpConnections = [],
+        timestamp,
+      } = action.payload;
+      const newStatuses = {};
+
+      // Process WebSocket connections (these are the most reliable)
+      webSocketConnections.forEach((conn) => {
+        const deviceId = conn.deviceId || conn.DeviceId;
+        const status = conn.status !== undefined ? conn.status : conn.Status;
+        const lastMessageAt = conn.lastMessageAt || conn.LastMessageAt;
+        const ipAddress = conn.ipAddress || conn.IpAddress;
+
+        if (deviceId) {
+          newStatuses[deviceId] = {
+            isConnected: true,
+            status: mapConnectionStatus(status),
+            connectionType: "WebSocket",
+            lastActivity: lastMessageAt,
+            ipAddress: ipAddress,
+            lastSeen: new Date().toISOString(),
+          };
+        }
+      });
+
+      // Process HTTP connections (fallback for devices without WebSocket)
+      httpConnections.forEach((conn) => {
+        const deviceId = conn.deviceId || conn.DeviceId;
+        const lastStatusUpdate = conn.lastStatusUpdate || conn.LastStatusUpdate;
+        const lastPollTime = conn.lastPollTime || conn.LastPollTime;
+        const lastKnownIp = conn.lastKnownIp || conn.LastKnownIp;
+
+        // Only add if not already in WebSocket connections
+        if (deviceId && !newStatuses[deviceId]) {
+          const lastHttpActivity =
+            lastStatusUpdate > lastPollTime ? lastStatusUpdate : lastPollTime;
+          const httpTimeoutMinutes = 15.0;
+          const isStale =
+            (Date.now() - new Date(lastHttpActivity).getTime()) / (1000 * 60) >
+            httpTimeoutMinutes;
+
+          newStatuses[deviceId] = {
+            isConnected: !isStale,
+            status: isStale ? "offline" : "online",
+            connectionType: "HTTP",
+            lastActivity: lastHttpActivity,
+            ipAddress: lastKnownIp,
+            lastSeen: new Date().toISOString(),
+          };
+        }
+      });
+
+      state.connectionStatuses = newStatuses;
+      state.connectionStatusLastUpdated = timestamp || new Date().toISOString();
     },
 
     updatePumpStatus: (state, action) => {
@@ -119,7 +239,9 @@ const deviceSlice = createSlice({
       })
       .addCase(fetchDeviceList.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.ptsDeviceList = action.payload;
+        state.ptsDeviceList = Array.isArray(action.payload)
+          ? action.payload
+          : [];
         state.lastUpdated = new Date().toISOString();
       })
       .addCase(fetchDeviceList.rejected, (state, action) => {
@@ -134,7 +256,9 @@ const deviceSlice = createSlice({
       })
       .addCase(fetchDevicesBySite.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.ptsDeviceList = action.payload;
+        state.ptsDeviceList = Array.isArray(action.payload)
+          ? action.payload
+          : [];
         state.lastUpdated = new Date().toISOString();
       })
       .addCase(fetchDevicesBySite.rejected, (state, action) => {
@@ -149,16 +273,51 @@ const deviceSlice = createSlice({
           ...status,
           lastUpdated: new Date().toISOString(),
         };
-      });
+      })
+
+      // Handle redux-persist rehydrate to ensure arrays are valid (MUST be after all addCase)
+      .addMatcher(
+        (action) => action.type === "persist/REHYDRATE",
+        (state, action) => {
+          // Ensure ptsDeviceList is always an array after rehydration
+          if (action.payload?.device) {
+            const rehydratedDevice = action.payload.device;
+            state.ptsDeviceList = Array.isArray(rehydratedDevice.ptsDeviceList)
+              ? rehydratedDevice.ptsDeviceList
+              : [];
+            state.deviceStatuses = rehydratedDevice.deviceStatuses || {};
+            state.connectionStatuses =
+              rehydratedDevice.connectionStatuses || {};
+            state.selectedSiteId = rehydratedDevice.selectedSiteId || null;
+          }
+        }
+      );
   },
 });
 
 export const {
   updateDeviceStatus,
   updateConnectionStatus,
+  updateAllConnectionStatuses,
   updatePumpStatus,
   clearDeviceError,
   resetDeviceState,
 } = deviceSlice.actions;
+
+// Selector to get connection status for a device
+export const selectDeviceConnectionStatus = (state, deviceId) => {
+  return (
+    state.device.connectionStatuses[deviceId] || {
+      isConnected: false,
+      status: "offline",
+    }
+  );
+};
+
+// Selector to check if a device is online
+export const selectIsDeviceOnline = (state, deviceId) => {
+  const connStatus = state.device.connectionStatuses[deviceId];
+  return connStatus?.isConnected || connStatus?.status === "online";
+};
 
 export default deviceSlice.reducer;

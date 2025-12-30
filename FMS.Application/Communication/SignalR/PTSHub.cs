@@ -114,6 +114,61 @@ namespace FMS.Application.Communication.SignalR
         {
             await BroadcastConnectedDevicesSummary();
         }
+
+        /// <summary>
+        /// Subscribe to updates for a specific device.
+        /// Adds the client to a SignalR group for the device.
+        /// </summary>
+        /// <param name="deviceId">Device ID to subscribe to</param>
+        public async Task SubscribeToDevice(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                await Clients.Caller.SendAsync("Error", "DeviceId is required");
+                return;
+            }
+
+            try
+            {
+                // Add client to device-specific group
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"device_{deviceId}");
+                _logger.LogInformation("Client {ConnectionId} subscribed to device {DeviceId}",
+                    Context.ConnectionId, deviceId);
+
+                // Confirm subscription
+                await Clients.Caller.SendAsync("SubscriptionConfirmed", new { deviceId, subscribed = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error subscribing to device {DeviceId}", deviceId);
+                await Clients.Caller.SendAsync("Error", $"Failed to subscribe to device {deviceId}");
+            }
+        }
+
+        /// <summary>
+        /// Unsubscribe from updates for a specific device.
+        /// Removes the client from the SignalR group for the device.
+        /// </summary>
+        /// <param name="deviceId">Device ID to unsubscribe from</param>
+        public async Task UnsubscribeFromDevice(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                return;
+            }
+
+            try
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"device_{deviceId}");
+                _logger.LogInformation("Client {ConnectionId} unsubscribed from device {DeviceId}",
+                    Context.ConnectionId, deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unsubscribing from device {DeviceId}", deviceId);
+            }
+        }
+
         // Request methods
         public async Task RequestDeviceStatus(string deviceId)
         {
@@ -154,6 +209,56 @@ namespace FMS.Application.Communication.SignalR
             {
                 _logger.LogError(ex, "Error retrieving all devices status");
                 await Clients.Caller.SendAsync("Error", "Failed to retrieve devices status");
+            }
+        }
+
+        /// <summary>
+        /// Request the cached UploadStatus (pump/probe/reader data) for a specific device.
+        /// This retrieves the last known status from Redis and sends it via UploadStatusUpdate event.
+        /// Useful for mobile apps to get initial pump state when connecting.
+        /// </summary>
+        /// <param name="deviceId">The device ID to get upload status for</param>
+        public async Task RequestDeviceUploadStatus(string deviceId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(deviceId))
+                {
+                    await Clients.Caller.SendAsync("Error", "DeviceId is required");
+                    return;
+                }
+
+                var uploadStatus = await _deviceConnectionTracker.GetDeviceUploadStatus(deviceId);
+                if (uploadStatus == null)
+                {
+                    _logger.LogDebug("No cached UploadStatus found for device {DeviceId}", deviceId);
+                    // Send an empty status to indicate no data available yet
+                    await Clients.Caller.SendAsync("UploadStatusUpdate", new
+                    {
+                        deviceId,
+                        timestamp = DateTime.UtcNow,
+                        status = (object)null,
+                        message = "No cached status available. Waiting for device to send update."
+                    });
+                    return;
+                }
+
+                // Send the cached upload status to the caller
+                await Clients.Caller.SendAsync("UploadStatusUpdate", new
+                {
+                    deviceId,
+                    timestamp = DateTime.UtcNow,
+                    status = uploadStatus,
+                    cached = true  // Indicate this is cached data, not live
+                });
+
+                _logger.LogInformation("Sent cached UploadStatus for {DeviceId} to client {ConnectionId}",
+                    deviceId, Context.ConnectionId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving UploadStatus for {DeviceId}", deviceId);
+                await Clients.Caller.SendAsync("Error", "Failed to retrieve upload status");
             }
         }
 

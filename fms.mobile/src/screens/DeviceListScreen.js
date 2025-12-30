@@ -16,6 +16,7 @@ import {
   fetchDevicesBySite,
   fetchDeviceList,
 } from "../redux/slices/deviceSlice";
+import signalRService from "../services/signalRService";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",
@@ -24,7 +25,7 @@ const STORAGE_KEYS = {
 const DeviceListScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { ptsDeviceList, isLoading, error } = useSelector(
+  const { ptsDeviceList, connectionStatuses, isLoading, error } = useSelector(
     (state) => state.device
   );
   const [refreshing, setRefreshing] = useState(false);
@@ -33,6 +34,25 @@ const DeviceListScreen = ({ navigation }) => {
   // Load saved site and fetch devices on mount
   useEffect(() => {
     loadSavedSiteAndFetchDevices();
+  }, []);
+
+  // Start SignalR connection and request device status when screen mounts
+  useEffect(() => {
+    const initSignalR = async () => {
+      try {
+        // Start SignalR if not already connected
+        if (!signalRService.isConnected()) {
+          await signalRService.start();
+        } else {
+          // If already connected, request fresh status
+          await signalRService.requestDeviceStatusSummary();
+        }
+      } catch (error) {
+        console.log("[DeviceListScreen] SignalR connection error:", error);
+      }
+    };
+
+    initSignalR();
   }, []);
 
   const loadSavedSiteAndFetchDevices = async () => {
@@ -57,6 +77,14 @@ const DeviceListScreen = ({ navigation }) => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadSavedSiteAndFetchDevices();
+    // Also refresh SignalR device status
+    try {
+      if (signalRService.isConnected()) {
+        await signalRService.requestDeviceStatusSummary();
+      }
+    } catch (error) {
+      console.log("[DeviceListScreen] Error refreshing SignalR status:", error);
+    }
     setRefreshing(false);
   }, []);
 
@@ -68,15 +96,39 @@ const DeviceListScreen = ({ navigation }) => {
     });
   };
 
-  // Determine device online status from the device data
+  /**
+   * Determine device online status
+   * Priority: SignalR connection status > API device data
+   * @param {object} device - Device object from API
+   * @returns {string} Status: "online", "offline", or "idle"
+   */
   const getDeviceStatus = (device) => {
-    // Check if device has isOnline property or status property
+    // Get device ID (handle different property names)
+    const deviceId = device.ptsid || device.id?.toString();
+
+    // First check SignalR-based connection status (most reliable for real-time)
+    if (deviceId && connectionStatuses[deviceId]) {
+      const connStatus = connectionStatuses[deviceId];
+      if (connStatus.isConnected || connStatus.status === "online") {
+        return "online";
+      }
+      if (connStatus.status === "idle") {
+        return "idle";
+      }
+      // If we have explicit SignalR status, use it
+      if (connStatus.status) {
+        return connStatus.status;
+      }
+    }
+
+    // Fallback to API device data (less reliable for real-time status)
     if (device.isOnline !== undefined) {
       return device.isOnline ? "online" : "offline";
     }
     if (device.status) {
       return device.status.toLowerCase();
     }
+
     // Default to offline if no status information
     return "offline";
   };
@@ -84,13 +136,15 @@ const DeviceListScreen = ({ navigation }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case "online":
-        return "#10b981";
+        return "#10b981"; // Green
       case "offline":
-        return "#ef4444";
+        return "#ef4444"; // Red
+      case "idle":
+        return "#f59e0b"; // Orange/Amber
       case "busy":
-        return "#f59e0b";
+        return "#f59e0b"; // Orange/Amber
       default:
-        return "#6b7280";
+        return "#6b7280"; // Gray
     }
   };
 
@@ -290,9 +344,12 @@ const styles = StyleSheet.create({
   deviceInfo: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    marginRight: 8,
   },
   deviceDetails: {
     marginLeft: 12,
+    flex: 1,
   },
   deviceName: {
     fontSize: 16,
@@ -310,6 +367,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    flexShrink: 0,
   },
   statusDot: {
     width: 8,

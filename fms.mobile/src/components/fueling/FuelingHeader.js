@@ -8,114 +8,32 @@ const FuelingHeader = ({
   deviceId,
   currentStep,
   connectionStatus,
+  deviceOnline = false,
   onBack,
   selectedTank,
   operationMode,
   onChangeTank,
 }) => {
-  // Get step info based on operation mode
-  // When tank is already selected, the tank step is skipped from the flow
+  // Consistent 5-step flow for all modes:
+  // 1. Pump -> 2. Nozzle -> 3. Mode -> 4. Details (Vehicle/Transfer) -> 5. Confirmation
   const getStepInfo = () => {
-    const hasTankSelected = !!selectedTank;
-
-    // Tank Transfer flow
-    if (operationMode === "transfer") {
-      if (hasTankSelected) {
-        // Skip tank step: pump -> nozzle -> mode -> transfer (4 steps)
-        switch (currentStep) {
-          case "pump":
-            return { label: "Step 1 of 4", name: "Select Pump" };
-          case "nozzle":
-            return { label: "Step 2 of 4", name: "Select Nozzle" };
-          case "mode":
-            return { label: "Step 3 of 4", name: "Select Mode" };
-          case "transfer":
-            return { label: "Step 4 of 4", name: "Transfer Details" };
-          default:
-            return { label: "", name: "" };
-        }
-      } else {
-        switch (currentStep) {
-          case "tank":
-            return { label: "Step 1 of 5", name: "Select Source Tank" };
-          case "pump":
-            return { label: "Step 2 of 5", name: "Select Pump" };
-          case "nozzle":
-            return { label: "Step 3 of 5", name: "Select Nozzle" };
-          case "mode":
-            return { label: "Step 4 of 5", name: "Select Mode" };
-          case "transfer":
-            return { label: "Step 5 of 5", name: "Transfer Details" };
-          default:
-            return { label: "", name: "" };
-        }
-      }
-    }
-    // Vehicle Fueling flow
-    else if (operationMode === "vehicle") {
-      if (hasTankSelected) {
-        // Skip tank step: pump -> nozzle -> mode -> vehicle -> volume -> details (5 steps)
-        switch (currentStep) {
-          case "pump":
-            return { label: "Step 1 of 5", name: "Select Pump" };
-          case "nozzle":
-            return { label: "Step 2 of 5", name: "Select Nozzle" };
-          case "mode":
-            return { label: "Step 3 of 5", name: "Select Mode" };
-          case "vehicle":
-            return { label: "Step 4 of 5", name: "Select Vehicle" };
-          case "volume":
-            return { label: "Step 5 of 5", name: "Fueling Details" };
-          default:
-            return { label: "", name: "" };
-        }
-      } else {
-        switch (currentStep) {
-          case "tank":
-            return { label: "Step 1 of 6", name: "Select Source Tank" };
-          case "pump":
-            return { label: "Step 2 of 6", name: "Select Pump" };
-          case "nozzle":
-            return { label: "Step 3 of 6", name: "Select Nozzle" };
-          case "mode":
-            return { label: "Step 4 of 6", name: "Select Mode" };
-          case "vehicle":
-            return { label: "Step 5 of 6", name: "Select Vehicle" };
-          case "volume":
-            return { label: "Step 6 of 6", name: "Fueling Details" };
-          default:
-            return { label: "", name: "" };
-        }
-      }
-    }
-    // Initial flow (before mode selection)
-    else {
-      if (hasTankSelected) {
-        // Skip tank step: pump -> nozzle -> mode (3 steps)
-        switch (currentStep) {
-          case "pump":
-            return { label: "Step 1 of 3", name: "Select Pump" };
-          case "nozzle":
-            return { label: "Step 2 of 3", name: "Select Nozzle" };
-          case "mode":
-            return { label: "Step 3 of 3", name: "Select Mode" };
-          default:
-            return { label: "", name: "" };
-        }
-      } else {
-        switch (currentStep) {
-          case "tank":
-            return { label: "Step 1 of 4", name: "Select Source Tank" };
-          case "pump":
-            return { label: "Step 2 of 4", name: "Select Pump" };
-          case "nozzle":
-            return { label: "Step 3 of 4", name: "Select Nozzle" };
-          case "mode":
-            return { label: "Step 4 of 4", name: "Select Mode" };
-          default:
-            return { label: "", name: "" };
-        }
-      }
+    switch (currentStep) {
+      case "pump":
+        return { label: "Step 1 of 5", name: "Select Pump" };
+      case "nozzle":
+        return { label: "Step 2 of 5", name: "Select Nozzle" };
+      case "mode":
+        return { label: "Step 3 of 5", name: "Select Mode" };
+      case "vehicle":
+        return { label: "Step 4 of 5", name: "Select Vehicle" };
+      case "transfer":
+        return { label: "Step 4 of 5", name: "Select Destination" };
+      case "volume":
+        return { label: "Step 5 of 5", name: "Fueling Details" };
+      case "confirmation":
+        return { label: "Step 5 of 5", name: "Confirmation" };
+      default:
+        return { label: "", name: currentStep };
     }
   };
 
@@ -135,15 +53,26 @@ const FuelingHeader = ({
     }
   };
 
-  // Get step sequence based on operation mode
+  // Get step sequence - consistent 5 steps for all modes
+  // Steps: pump -> nozzle -> mode -> details -> confirmation
   const getStepSequence = () => {
-    if (operationMode === "transfer") {
-      return ["tank", "pump", "nozzle", "mode", "transfer"];
-    } else if (operationMode === "vehicle") {
-      return ["tank", "pump", "nozzle", "mode", "vehicle", "volume"];
-    } else {
-      return ["tank", "pump", "nozzle", "mode"];
-    }
+    // For progress dots, show 5 steps regardless of mode
+    // Step 4 varies by mode (vehicle or transfer), Step 5 is confirmation
+    return ["pump", "nozzle", "mode", "details", "confirmation"];
+  };
+
+  // Map current step to sequence position for progress indicator
+  const getCurrentStepIndex = () => {
+    const stepMapping = {
+      pump: 0,
+      nozzle: 1,
+      mode: 2,
+      vehicle: 3,
+      transfer: 3,
+      volume: 4,
+      confirmation: 4,
+    };
+    return stepMapping[currentStep] ?? 0;
   };
 
   const stepInfo = getStepInfo();
@@ -175,15 +104,19 @@ const FuelingHeader = ({
         </View>
 
         <View style={styles.connectionInfo}>
-          <Icon
-            name={connectionConfig.icon}
-            size={14}
-            color={connectionConfig.color}
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: deviceOnline ? "#10b981" : "#ef4444" },
+            ]}
           />
           <Text
-            style={[styles.connectionText, { color: connectionConfig.color }]}
+            style={[
+              styles.connectionText,
+              { color: deviceOnline ? "#10b981" : "#ef4444" },
+            ]}
           >
-            {connectionConfig.text}
+            {deviceOnline ? "Online" : "Offline"}
           </Text>
         </View>
       </View>
@@ -227,8 +160,9 @@ const FuelingHeader = ({
       <View style={styles.stepContainer}>
         <View style={styles.stepProgress}>
           {getStepSequence().map((step, index) => {
-            const isActive = currentStep === step;
-            const isPast = getStepSequence().indexOf(currentStep) > index;
+            const currentIndex = getCurrentStepIndex();
+            const isActive = index === currentIndex;
+            const isPast = index < currentIndex;
 
             return (
               <React.Fragment key={step}>
@@ -303,6 +237,12 @@ const styles = StyleSheet.create({
   connectionText: {
     fontSize: 12,
     marginLeft: 6,
+    fontWeight: "500",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   deviceRow: {
     flexDirection: "row",
@@ -314,6 +254,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#93c5fd",
     marginLeft: 6,
+    flex: 1,
+  },
+  serverStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  serverStatusText: {
+    fontSize: 10,
+    marginLeft: 4,
   },
   stepContainer: {
     marginTop: 8,

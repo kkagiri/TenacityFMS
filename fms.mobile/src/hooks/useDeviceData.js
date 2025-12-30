@@ -16,10 +16,28 @@ export const useDeviceData = (ptsId) => {
   );
 
   // Parse pump status using FuelingUtils
+  // FuelingUtils now handles both PascalCase and camelCase
   const devicePumpStatus = useMemo(() => {
-    if (!rawUploadStatus?.Pumps) return {};
+    const pumpsData = rawUploadStatus?.Pumps || rawUploadStatus?.pumps;
+    if (!pumpsData) {
+      // Only log if rawUploadStatus exists but has no pumps
+      if (rawUploadStatus) {
+        console.log(
+          "[useDeviceData] No Pumps in status. Keys:",
+          Object.keys(rawUploadStatus)
+        );
+      }
+      return {};
+    }
 
+    // FuelingUtils.handlePumpStatus now handles both cases internally
     const pumps = FuelingUtils.handlePumpStatus(rawUploadStatus);
+    console.log(
+      "[useDeviceData] ✅ Parsed pumps:",
+      pumps.length,
+      pumps.map((p) => `${p.name}(${p.status})`).join(", ")
+    );
+
     const statusMap = {};
 
     pumps.forEach((pump) => {

@@ -491,6 +491,7 @@ namespace FMS.WebClient.Controllers.PTSController
                     Timestamp = DateTime.UtcNow
                 });
             }
+
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting active transactions for device {DeviceId}", deviceId);

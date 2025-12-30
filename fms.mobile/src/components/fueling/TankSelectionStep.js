@@ -39,11 +39,15 @@ const TankSelectionStep = ({
 
   const renderTankItem = ({ item }) => {
     const isSelected = selectedTank?.id === item.id;
-    const currentVolume = item.currentVolume || 0;
-    const capacity = item.capacity || 50000;
+    // Support both API property names (currentStock, tankVolume) and legacy names (currentVolume, capacity)
+    const currentVolume = item.currentStock ?? item.currentVolume ?? 0;
+    const capacity = item.tankVolume ?? item.capacity ?? 50000;
     const percentFull =
-      item.percentFull || Math.round((currentVolume / capacity) * 100);
+      item.percentFull ||
+      (capacity > 0 ? Math.round((currentVolume / capacity) * 100) : 0);
     const temperature = item.temperature;
+    // Support both API property name (fuelGradeName) and legacy (productName)
+    const productName = item.fuelGradeName ?? item.productName;
 
     return (
       <TouchableOpacity
@@ -70,9 +74,9 @@ const TankSelectionStep = ({
           </Text>
 
           {/* Product Badge */}
-          {item.productName && (
+          {productName && (
             <View style={styles.productBadge}>
-              <Text style={styles.productText}>{item.productName}</Text>
+              <Text style={styles.productText}>{productName}</Text>
             </View>
           )}
 

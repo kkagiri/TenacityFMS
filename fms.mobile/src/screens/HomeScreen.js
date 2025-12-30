@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import { useDispatch, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { fetchDevicesBySite } from "../redux/slices/deviceSlice";
+import { fetchTanks } from "../redux/slices/tankSlice";
+import apiService from "../services/apiService";
+import signalRService from "../services/signalRService";
 
 const { width } = Dimensions.get("window");
 const isSmallScreen = width < 380;
@@ -23,10 +26,42 @@ const STORAGE_KEYS = {
 const HomeScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { ptsDeviceList, isLoading } = useSelector((state) => state.device);
+  const deviceState = useSelector((state) => state.device);
+  // Defensive fallback: ensure ptsDeviceList is always an array
+  const ptsDeviceList = Array.isArray(deviceState?.ptsDeviceList)
+    ? deviceState.ptsDeviceList
+    : [];
+  const connectionStatuses = deviceState?.connectionStatuses || {};
+  const isLoading = deviceState?.isLoading || false;
 
   const [defaultSite, setDefaultSite] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [todayTransactionCount, setTodayTransactionCount] = useState(0);
+
+  // Tank state for fuel summary
+  const { tanks } = useSelector((state) => state.tank);
+
+  // Calculate fuel stats from tanks
+  const fuelStats = useMemo(() => {
+    const totalCapacity = tanks.reduce(
+      (sum, t) => sum + (t.tankVolume || t.capacity || 0),
+      0
+    );
+    const totalStock = tanks.reduce(
+      (sum, t) => sum + (t.currentStock ?? t.currentVolume ?? 0),
+      0
+    );
+    const percentFull =
+      totalCapacity > 0 ? Math.round((totalStock / totalCapacity) * 100) : 0;
+    return { totalCapacity, totalStock, percentFull };
+  }, [tanks]);
+
+  // Format volume for display
+  const formatVolume = (volume) => {
+    if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
+    if (volume >= 1000) return `${(volume / 1000).toFixed(0)}K`;
+    return Math.round(volume).toLocaleString();
+  };
 
   // Get display name from user object - handle both PascalCase and camelCase
   const displayName =
@@ -49,6 +84,14 @@ const HomeScreen = ({ navigation }) => {
       onPress: () => navigation.navigate("Devices"),
     },
     {
+      id: "sites",
+      name: "Sites",
+      icon: "map-marker-alt",
+      color: "#8b5cf6",
+      description: "View all sites & tanks",
+      onPress: () => navigation.navigate("SiteOverview"),
+    },
+    {
       id: "transactions",
       name: "Transactions",
       icon: "history",
@@ -60,7 +103,7 @@ const HomeScreen = ({ navigation }) => {
       id: "transactionHub",
       name: "Transaction Hub",
       icon: "exchange-alt",
-      color: "#8b5cf6",
+      color: "#f59e0b",
       description: "Tank volume history",
       onPress: () => navigation.navigate("TankTransactionHub"),
     },
@@ -68,7 +111,7 @@ const HomeScreen = ({ navigation }) => {
       id: "stocks",
       name: "Stock Management",
       icon: "warehouse",
-      color: "#f59e0b",
+      color: "#059669",
       description: "Manage tank stocks",
       onPress: () => navigation.navigate("ManageStocks"),
     },
@@ -85,7 +128,31 @@ const HomeScreen = ({ navigation }) => {
   // Load saved site on mount
   useEffect(() => {
     loadSavedSite();
+    dispatch(fetchTanks());
+    fetchTodayTransactions();
   }, []);
+
+  // Fetch today's transaction count from TankVolumeHistory (same as Transaction Hub)
+  const fetchTodayTransactions = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Use TankVolumeHistory API (same source as Transaction Hub)
+      const response = await apiService.getTankVolumeHistory({
+        startDate: today.toISOString(),
+        endDate: tomorrow.toISOString(),
+        take: 1000,
+      });
+      // Response is an array of transactions
+      const transactions = Array.isArray(response) ? response : [];
+      setTodayTransactionCount(transactions.length);
+    } catch (error) {
+      console.error("Failed to fetch today's transactions:", error);
+    }
+  };
 
   // Fetch devices when site changes
   useEffect(() => {
@@ -108,14 +175,40 @@ const HomeScreen = ({ navigation }) => {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadSavedSite();
+    dispatch(fetchTanks());
+    await fetchTodayTransactions();
     if (defaultSite?.id) {
       await dispatch(fetchDevicesBySite(defaultSite.id));
+    }
+    // Also refresh SignalR device status
+    try {
+      if (signalRService.isConnected()) {
+        await signalRService.requestDeviceStatusSummary();
+      }
+    } catch (error) {
+      console.log("[HomeScreen] Error refreshing SignalR status:", error);
     }
     setRefreshing(false);
   };
 
-  // Calculate online devices count
-  const onlineDevices = ptsDeviceList?.filter((d) => d.isOnline)?.length || 0;
+  /**
+   * Check if a device is online using SignalR status first, then API data
+   * @param {object} device - Device object
+   * @returns {boolean} True if device is online
+   */
+  const isDeviceOnline = (device) => {
+    const deviceId = device.ptsid || device.id?.toString();
+    // Check SignalR-based connection status first (most reliable)
+    if (deviceId && connectionStatuses[deviceId]) {
+      const connStatus = connectionStatuses[deviceId];
+      return connStatus.isConnected || connStatus.status === "online";
+    }
+    // Fallback to API device data
+    return device.isOnline === true;
+  };
+
+  // Calculate online devices count using SignalR status
+  const onlineDevices = ptsDeviceList?.filter(isDeviceOnline)?.length || 0;
   const totalDevices = ptsDeviceList?.length || 0;
 
   return (
@@ -150,7 +243,58 @@ const HomeScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Quick Stats Card */}
+      {/* Fuel Summary Card */}
+      <View style={styles.fuelSummaryCard}>
+        <View style={styles.fuelSummaryHeader}>
+          <Text style={styles.fuelSummaryTitle}>Fuel Overview</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("SiteOverview")}>
+            <Text style={styles.viewAllLink}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.fuelStatsRow}>
+          <View style={styles.fuelStatItem}>
+            <View style={[styles.fuelStatIcon, { backgroundColor: "#dcfce7" }]}>
+              <Icon name="gas-pump" size={18} color="#22c55e" />
+            </View>
+            <Text style={styles.fuelStatValue}>
+              {formatVolume(fuelStats.totalStock)} L
+            </Text>
+            <Text style={styles.fuelStatLabel}>Available</Text>
+          </View>
+          <View style={styles.fuelStatDivider} />
+          <View style={styles.fuelStatItem}>
+            <View style={[styles.fuelStatIcon, { backgroundColor: "#e0e7ff" }]}>
+              <Icon name="tachometer-alt" size={18} color="#6366f1" />
+            </View>
+            <Text
+              style={[
+                styles.fuelStatValue,
+                {
+                  color:
+                    fuelStats.percentFull < 30
+                      ? "#ef4444"
+                      : fuelStats.percentFull < 60
+                      ? "#f59e0b"
+                      : "#22c55e",
+                },
+              ]}
+            >
+              {fuelStats.percentFull}%
+            </Text>
+            <Text style={styles.fuelStatLabel}>Capacity</Text>
+          </View>
+          <View style={styles.fuelStatDivider} />
+          <View style={styles.fuelStatItem}>
+            <View style={[styles.fuelStatIcon, { backgroundColor: "#fef3c7" }]}>
+              <Icon name="exchange-alt" size={18} color="#f59e0b" />
+            </View>
+            <Text style={styles.fuelStatValue}>{todayTransactionCount}</Text>
+            <Text style={styles.fuelStatLabel}>Today's Tx</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Device Stats Card */}
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: "#dcfce7" }]}>
@@ -224,37 +368,40 @@ const HomeScreen = ({ navigation }) => {
           </View>
         ) : (
           <View style={styles.deviceList}>
-            {ptsDeviceList.slice(0, 3).map((device) => (
-              <TouchableOpacity
-                key={device.ptsid || device.id}
-                style={styles.deviceItem}
-                onPress={() =>
-                  navigation.navigate("FuelingProcess", {
-                    ptsId: device.ptsid,
-                    deviceName: device.name || `Device ${device.ptsid}`,
-                  })
-                }
-              >
-                <View
-                  style={[
-                    styles.deviceStatus,
-                    {
-                      backgroundColor: device.isOnline ? "#22c55e" : "#ef4444",
-                    },
-                  ]}
-                />
-                <View style={styles.deviceInfo}>
-                  <Text style={styles.deviceName}>
-                    {device.name || `PTS ${device.ptsid}`}
-                  </Text>
-                  <Text style={styles.deviceSubtext}>
-                    {device.isOnline ? "Online" : "Offline"} •{" "}
-                    {device.pumpCount || 0} pumps
-                  </Text>
-                </View>
-                <Icon name="chevron-right" size={14} color="#9ca3af" />
-              </TouchableOpacity>
-            ))}
+            {ptsDeviceList.slice(0, 3).map((device) => {
+              const online = isDeviceOnline(device);
+              return (
+                <TouchableOpacity
+                  key={device.ptsid || device.id}
+                  style={styles.deviceItem}
+                  onPress={() =>
+                    navigation.navigate("FuelingProcess", {
+                      ptsId: device.ptsid,
+                      deviceName: device.name || `Device ${device.ptsid}`,
+                    })
+                  }
+                >
+                  <View
+                    style={[
+                      styles.deviceStatus,
+                      {
+                        backgroundColor: online ? "#22c55e" : "#ef4444",
+                      },
+                    ]}
+                  />
+                  <View style={styles.deviceInfo}>
+                    <Text style={styles.deviceName}>
+                      {device.name || `PTS ${device.ptsid}`}
+                    </Text>
+                    <Text style={styles.deviceSubtext}>
+                      {online ? "Online" : "Offline"} • {device.pumpCount || 0}{" "}
+                      pumps
+                    </Text>
+                  </View>
+                  <Icon name="chevron-right" size={14} color="#9ca3af" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>
@@ -315,6 +462,65 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#d97706",
     fontWeight: "500",
+  },
+  fuelSummaryCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  fuelSummaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  fuelSummaryTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  viewAllLink: {
+    fontSize: 13,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  fuelStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  fuelStatItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  fuelStatIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  fuelStatValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  fuelStatLabel: {
+    fontSize: 11,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  fuelStatDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: "#e5e7eb",
   },
   statsCard: {
     flexDirection: "row",

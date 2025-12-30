@@ -5,12 +5,22 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "../redux/store";
 import {
   updateDeviceStatus,
-  updateConnectionStatus,
+  updateConnectionStatus as updateFuelingConnectionStatus,
   updateTransactionProgress,
 } from "../redux/slices/fuelingSlice";
 import ApiService from "./apiService";
 import { createFuelingEvent } from "../redux/slices/fuelingEventSlice";
 import { API_CONFIG } from "../config/environment";
+
+// Lazy import for deviceSlice to avoid circular dependency issues
+// These will be resolved at runtime when needed
+let deviceSliceActions = null;
+const getDeviceSliceActions = () => {
+  if (!deviceSliceActions) {
+    deviceSliceActions = require("../redux/slices/deviceSlice");
+  }
+  return deviceSliceActions;
+};
 
 // ============================================================
 // CONSTANTS
@@ -65,17 +75,27 @@ class SignalRService {
   async getBaseUrl() {
     // Check config first
     const configUrl = API_CONFIG.SIGNALR_HUB_URL || API_CONFIG.BASE_URL;
+
+    console.log("[SignalR Mobile] 🔍 URL Resolution Debug:");
+    console.log("  - API_CONFIG.SIGNALR_HUB_URL:", API_CONFIG.SIGNALR_HUB_URL);
+    console.log("  - API_CONFIG.BASE_URL:", API_CONFIG.BASE_URL);
+
     if (configUrl) {
-      return this.normalizeUrl(configUrl);
+      const normalized = this.normalizeUrl(configUrl);
+      console.log("  - Using config URL:", normalized);
+      return normalized;
     }
 
     // Check stored setting
     const storedUrl = await AsyncStorage.getItem("signalr_base_url");
     if (storedUrl) {
-      return this.normalizeUrl(storedUrl);
+      const normalized = this.normalizeUrl(storedUrl);
+      console.log("  - Using stored URL:", normalized);
+      return normalized;
     }
 
     // Default fallback - Android emulator localhost
+    console.log("  - Using default fallback: http://10.0.2.2:5000");
     return "http://10.0.2.2:5000";
   }
 
@@ -343,6 +363,9 @@ class SignalRService {
 
       console.log("[SignalR Mobile] ✅ Connected successfully");
 
+      // Request initial device status summary to know which devices are online
+      await this.requestDeviceStatusSummary();
+
       // Re-subscribe to any previously subscribed devices
       await this._resubscribeDevices();
 
@@ -373,6 +396,9 @@ class SignalRService {
       this.reconnectAttempts = 0;
       this._notifyStateChange();
 
+      // Request fresh device status after reconnection
+      this.requestDeviceStatusSummary();
+
       // Re-subscribe to devices after reconnection
       this._resubscribeDevices();
     });
@@ -389,6 +415,31 @@ class SignalRService {
    */
   _setupMessageHandlers() {
     if (!this.connection) return;
+
+    // ============================================================
+    // DEVICE STATUS EVENTS (for online/offline status)
+    // ============================================================
+
+    // Handle bulk device status summary (all connected devices)
+    // This is the key event for knowing which devices are online
+    this.connection.on("ConnectedDevicesStatus", (data) => {
+      console.log("[SignalR Mobile] ConnectedDevicesStatus received:", {
+        wsCount: data?.webSocketConnections?.length || 0,
+        httpCount: data?.httpConnections?.length || 0,
+      });
+      this._handleConnectedDevicesStatus(data);
+    });
+
+    // Handle single device status update
+    this.connection.on("DeviceStatusUpdate", (data) => {
+      // Quiet - this event fires frequently. Uncomment for debugging:
+      // console.log("[SignalR Mobile] DeviceStatusUpdate:", data?.deviceId, data?.status || data?.connectionStatus);
+      this._handleDeviceStatusUpdate(data);
+    });
+
+    // ============================================================
+    // PTS DEVICE EVENTS
+    // ============================================================
 
     // Handle pump status updates
     this.connection.on("UploadStatusUpdate", (data) => {
@@ -411,7 +462,7 @@ class SignalRService {
       this._handleFuelingEvent(data);
     });
 
-    // Handle connection status
+    // Handle connection status (legacy event)
     this.connection.on("DeviceConnectionStatus", (data) => {
       console.log("[SignalR Mobile] DeviceConnectionStatus:", data);
       this._handleDeviceConnectionStatus(data);
@@ -474,6 +525,11 @@ class SignalRService {
       await this.connection.invoke("SubscribeToDevice", deviceId);
       this.subscribedDevices.add(deviceId);
       console.log("[SignalR Mobile] ✅ Subscribed to device:", deviceId);
+
+      // Request the cached upload status to get initial pump data
+      // This ensures we have pump data even if the device hasn't sent a status update yet
+      await this.requestDeviceUploadStatus(deviceId);
+
       return true;
     } catch (error) {
       console.error(
@@ -521,6 +577,9 @@ class SignalRService {
       try {
         await this.connection.invoke("SubscribeToDevice", deviceId);
         console.log("[SignalR Mobile] Re-subscribed to device:", deviceId);
+
+        // Also request cached upload status for each device
+        await this.requestDeviceUploadStatus(deviceId);
       } catch (error) {
         console.error(
           "[SignalR Mobile] Failed to re-subscribe to device:",
@@ -532,28 +591,157 @@ class SignalRService {
   }
 
   // ============================================================
+  // SERVER INVOCATION METHODS
+  // ============================================================
+
+  /**
+   * Request device status summary from server
+   * This asks the server to broadcast ConnectedDevicesStatus with all online devices
+   */
+  async requestDeviceStatusSummary() {
+    if (
+      !this.connection ||
+      this.connectionState !== ConnectionState.CONNECTED
+    ) {
+      console.warn(
+        "[SignalR Mobile] Cannot request device status: Not connected"
+      );
+      return;
+    }
+
+    try {
+      console.log("[SignalR Mobile] Requesting device status summary...");
+      await this.connection.invoke("RequestDeviceStatusSummary");
+      console.log("[SignalR Mobile] ✅ Device status summary requested");
+    } catch (error) {
+      console.error(
+        "[SignalR Mobile] ❌ Failed to request device status summary:",
+        error
+      );
+    }
+  }
+
+  /**
+   * Request status for a specific device
+   * @param {string} deviceId - Device ID
+   */
+  async requestDeviceStatus(deviceId) {
+    if (
+      !this.connection ||
+      this.connectionState !== ConnectionState.CONNECTED
+    ) {
+      console.warn(
+        "[SignalR Mobile] Cannot request device status: Not connected"
+      );
+      return;
+    }
+
+    try {
+      console.log("[SignalR Mobile] Requesting status for device:", deviceId);
+      await this.connection.invoke("RequestDeviceStatus", deviceId);
+    } catch (error) {
+      console.error("[SignalR Mobile] Failed to request device status:", error);
+    }
+  }
+
+  /**
+   * Request the cached UploadStatus (pump/probe data) for a specific device
+   * This retrieves the last known status from the server's Redis cache
+   * @param {string} deviceId - Device ID to get upload status for
+   */
+  async requestDeviceUploadStatus(deviceId) {
+    if (
+      !this.connection ||
+      this.connectionState !== ConnectionState.CONNECTED
+    ) {
+      console.warn(
+        "[SignalR Mobile] Cannot request upload status: Not connected"
+      );
+      return;
+    }
+
+    if (!deviceId) {
+      console.warn(
+        "[SignalR Mobile] Cannot request upload status: No device ID"
+      );
+      return;
+    }
+
+    try {
+      console.log(
+        "[SignalR Mobile] Invoking RequestDeviceUploadStatus for device:",
+        deviceId
+      );
+      console.log("[SignalR Mobile] Connection state:", this.connection.state);
+
+      const result = await this.connection.invoke(
+        "RequestDeviceUploadStatus",
+        deviceId
+      );
+      console.log(
+        "[SignalR Mobile] ✅ Upload status requested, result:",
+        result
+      );
+    } catch (error) {
+      console.error(
+        "[SignalR Mobile] ❌ Failed to request upload status:",
+        error.message || error
+      );
+      console.error("[SignalR Mobile] Error stack:", error.stack);
+    }
+  }
+
+  // ============================================================
   // MESSAGE HANDLERS
   // ============================================================
 
   /**
    * Handle upload status updates from PTS device
+   * This contains pump data (IdleStatus, FillingStatus, etc.)
    */
   _handleUploadStatusUpdate(data) {
-    if (!data || !data.deviceId) return;
+    try {
+      if (!data) {
+        console.warn("[SignalR Mobile] UploadStatusUpdate received null data");
+        return;
+      }
 
-    // Dispatch to Redux
-    store.dispatch(
-      updateDeviceStatus({
-        deviceId: data.deviceId,
-        status: {
-          uploadStatus: data.status,
-          lastUpdated: Date.now(),
-        },
-      })
-    );
+      const deviceId = data.deviceId || data.DeviceId;
+      if (!deviceId) {
+        console.warn(
+          "[SignalR Mobile] UploadStatusUpdate received with no deviceId:",
+          Object.keys(data)
+        );
+        return;
+      }
 
-    // Notify custom handlers
-    this._notifyHandlers("UploadStatusUpdate", data);
+      // Check if this is an empty cached response
+      if (data.message && data.status === null) {
+        return; // Don't dispatch null status
+      }
+
+      // Use the correct status object
+      const actualStatus = data.status || data;
+
+      // Dispatch to Redux
+      store.dispatch(
+        updateDeviceStatus({
+          deviceId,
+          status: {
+            uploadStatus: actualStatus,
+            lastUpdated: Date.now(),
+          },
+        })
+      );
+
+      // Notify custom handlers
+      this._notifyHandlers("UploadStatusUpdate", data);
+    } catch (error) {
+      console.error(
+        "[SignalR Mobile] Error in _handleUploadStatusUpdate:",
+        error.message
+      );
+    }
   }
 
   /**
@@ -591,15 +779,91 @@ class SignalRService {
     this._notifyHandlers("FuelingEvent", data);
   }
 
+  // ============================================================
+  // DEVICE STATUS HANDLERS
+  // ============================================================
+
   /**
-   * Handle device connection status
+   * Handle bulk connected devices status (all devices at once)
+   * This is the primary source for device online/offline status
+   */
+  _handleConnectedDevicesStatus(data) {
+    if (!data) return;
+
+    console.log("[SignalR Mobile] Processing ConnectedDevicesStatus:", {
+      webSocketConnections: data.webSocketConnections?.length || 0,
+      httpConnections: data.httpConnections?.length || 0,
+    });
+
+    // Dispatch to device slice to update all connection statuses (lazy load to avoid circular deps)
+    const { updateAllConnectionStatuses } = getDeviceSliceActions();
+    store.dispatch(
+      updateAllConnectionStatuses({
+        webSocketConnections:
+          data.webSocketConnections || data.WebSocketConnections || [],
+        httpConnections: data.httpConnections || data.HttpConnections || [],
+        timestamp: data.timestamp || Date.now(),
+      })
+    );
+
+    this._notifyHandlers("ConnectedDevicesStatus", data);
+  }
+
+  /**
+   * Handle single device status update
+   * Used for real-time updates when a device connects/disconnects
+   */
+  _handleDeviceStatusUpdate(data) {
+    if (!data) return;
+
+    const deviceId = data.deviceId || data.DeviceId;
+    if (!deviceId) return;
+
+    // Get connection status from various possible property names
+    const connectionStatus =
+      data.connectionStatus ||
+      data.ConnectionStatus ||
+      data.status ||
+      data.Status;
+
+    // Quiet - fires frequently. Uncomment for debugging:
+    // console.log("[SignalR Mobile] Processing DeviceStatusUpdate:", deviceId, connectionStatus);
+
+    // Dispatch to device slice (lazy load to avoid circular deps)
+    const { updateConnectionStatus } = getDeviceSliceActions();
+    store.dispatch(
+      updateConnectionStatus({
+        deviceId,
+        status: connectionStatus,
+        connectionType: data.connectionType || data.ConnectionType,
+        lastActivity: data.lastActivity || data.LastActivity,
+        ipAddress: data.ipAddress || data.IpAddress,
+      })
+    );
+
+    this._notifyHandlers("DeviceStatusUpdate", data);
+  }
+
+  /**
+   * Handle device connection status (legacy event)
    */
   _handleDeviceConnectionStatus(data) {
     if (!data || !data.deviceId) return;
 
+    // Update fueling slice
+    store.dispatch(
+      updateFuelingConnectionStatus({
+        deviceId: data.deviceId,
+        status: data.isConnected ? "connected" : "disconnected",
+      })
+    );
+
+    // Update device slice (lazy load to avoid circular deps)
+    const { updateConnectionStatus } = getDeviceSliceActions();
     store.dispatch(
       updateConnectionStatus({
         deviceId: data.deviceId,
+        isConnected: data.isConnected,
         status: data.isConnected ? "connected" : "disconnected",
       })
     );
@@ -694,13 +958,21 @@ class SignalRService {
       state: this.connectionState,
     });
 
-    // Also update Redux for global access
-    store.dispatch(
-      updateConnectionStatus({
-        deviceId: "global",
-        status: this.connectionState,
-      })
-    );
+    // Also update Redux for global access (lazy load to avoid circular deps)
+    try {
+      const { updateConnectionStatus } = getDeviceSliceActions();
+      store.dispatch(
+        updateConnectionStatus({
+          deviceId: "global",
+          status: this.connectionState,
+        })
+      );
+    } catch (error) {
+      console.warn(
+        "[SignalR Mobile] Could not update connection status in Redux:",
+        error.message
+      );
+    }
   }
 
   // ============================================================

@@ -12,6 +12,7 @@ import DeviceListScreen from "../screens/DeviceListScreen";
 import FuelingProcessScreen from "../screens/FuelingProcessScreen";
 import TransactionHistoryScreen from "../screens/TransactionHistoryScreen";
 import TankTransactionHubScreen from "../screens/TankTransactionHubScreen";
+import SiteOverviewScreen from "../screens/SiteOverviewScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import ManageStocksScreen from "../screens/ManageStocksScreen";
 import OpenStockScreen from "../screens/OpenStockScreen";
@@ -165,6 +166,14 @@ const MainStackNavigator = () => {
         component={TankTransactionHubScreen}
         options={{
           title: "Transaction Hub",
+          headerShown: false, // Screen has its own header
+        }}
+      />
+      <Stack.Screen
+        name="SiteOverview"
+        component={SiteOverviewScreen}
+        options={{
+          title: "Site Overview",
           headerShown: false, // Screen has its own header
         }}
       />
