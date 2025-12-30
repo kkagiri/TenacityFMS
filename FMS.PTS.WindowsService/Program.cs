@@ -123,7 +123,12 @@ namespace FMS.PTS.WindowsService
 
         private static void ConfigureApp(HostBuilderContext hostContext, IConfigurationBuilder config, string environment)
         {
-            config.SetBasePath(Directory.GetCurrentDirectory())
+            // Use the executable's directory instead of current directory
+            // This is critical for Windows Service which runs from System32
+            var exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)
+                          ?? Directory.GetCurrentDirectory();
+
+            config.SetBasePath(exePath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
@@ -492,6 +497,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
             services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
             services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService>();
+            services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); // Required by UploadStatusCommandHandler
             services.AddScoped<IAuthorizationHandler, PermissionHandler>();
             services.AddScoped<IPumpService, PumpService>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

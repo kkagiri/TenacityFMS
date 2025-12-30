@@ -88,7 +88,7 @@ function Create-LogDirectory {
 
     # Set permissions for service account
     try {
-        icacls $logDirectory /grant "NT SERVICE\$serviceName:(OI)(CI)F" /T | Out-Null
+        icacls $logDirectory /grant "NT SERVICE\${serviceName}:(OI)(CI)F" /T | Out-Null
         Write-Host "✓ Set log directory permissions" -ForegroundColor Green
     } catch {
         Write-Warning "Could not set log directory permissions. The service may have issues writing logs."
