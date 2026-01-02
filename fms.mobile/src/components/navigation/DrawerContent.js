@@ -40,6 +40,13 @@ const DrawerContent = ({ navigation, state }) => {
       description: "Opening & Closing Stocks",
     },
     {
+      id: "vehicleDetails",
+      label: "Vehicle Details",
+      icon: "car",
+      screen: "VehicleDetails",
+      description: "Search & view vehicle info",
+    },
+    {
       id: "divider1",
       type: "divider",
     },

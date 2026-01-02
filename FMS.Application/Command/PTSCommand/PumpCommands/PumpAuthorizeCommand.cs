@@ -401,6 +401,34 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // 2. Out-of-range errors when local counter gets out of sync with device
                 // 3. Duplicate transaction IDs across multiple application instances
                 // The PTS device maintains its own transaction counter and returns the assigned ID.
+
+                //Cursor: Log received authorization parameters for debugging
+                _logger.LogDebug("[PumpAuth] **AUTHORIZATION PARAMETERS** - Device: {DeviceId}, Pump: {PumpId}, Type: {Type} ({TypeValue}), Dose: {Dose}, Nozzle: {Nozzle}, Vehicle: {VehicleId}, Tank: {TankId}",
+                    request.DeviceId, request.PumpId, request.Type, (int)request.Type, request.Dose, request.Nozzle, request.VehicleId, request.TankId);
+
+                // **FIX: DOSE CUTOFF** - Get fuel grade price for Volume/Amount presets
+                // According to jsonPTS protocol, the price must be sent or configured on the device
+                // for preset dose cutoff to work properly. We get the price from cached upload status.
+                decimal fuelGradePrice = 0;
+                bool shouldIncludePrice = request.Type != PumpAuthorizeType.FULLTANK;
+
+                if (shouldIncludePrice)
+                {
+                    fuelGradePrice = await GetFuelGradePriceFromDeviceStatus(request.DeviceId!, request.Nozzle, request.FuelGradeId);
+                    if (fuelGradePrice > 0)
+                    {
+                        _logger.LogDebug("[PumpAuth] **PRICE LOOKUP** - Found fuel grade price: {Price} for device {DeviceId}",
+                            fuelGradePrice, request.DeviceId);
+                    }
+                    else
+                    {
+                        // Use default price of 1 if not found - this ensures preset works
+                        fuelGradePrice = 1;
+                        _logger.LogWarning("[PumpAuth] **PRICE FALLBACK** - No fuel grade price found for device {DeviceId}, using default price: 1",
+                            request.DeviceId);
+                    }
+                }
+
                 var pumpAuthorizeData = new PumpAuthorizeData
                 {
                     Pump = request.PumpId,
@@ -408,13 +436,18 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     Nozzle = request.Nozzle,
                     Nozzles = request.Nozzles,
                     FuelGradeId = request.FuelGradeId ?? 0,
-                    PriceEnabled = request.PriceEnabled,
+                    PriceEnabled = shouldIncludePrice && fuelGradePrice > 0, // Enable price for Volume/Amount presets
+                    Price = fuelGradePrice, // Set the actual price value
                     Type = request.Type,
                     Dose = request.Dose ?? 0,
                     AutoCloseTransaction = request.AutoCloseTransaction,
                     TransactionEnabled = false, //Cursor: Let PTS device generate transaction ID
                     Tag = request.Tag,
                 };
+
+                //Cursor: Log what will be sent to PTS device
+                _logger.LogDebug("[PumpAuth] **SENDING TO PTS** - Type: {Type}, Dose: {Dose} liters - Will send Dose to device: {WillSendDose}",
+                    pumpAuthorizeData.Type, pumpAuthorizeData.Dose, pumpAuthorizeData.Type != PumpAuthorizeType.FULLTANK);
 
                 _logger.LogInformation("**PTS TRANSACTION GENERATION** - Authorizing pump {PumpId} on device {DeviceId}, letting PTS device assign transaction ID",
                     request.PumpId, request.DeviceId);
@@ -424,7 +457,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 //log the confirmation
                 if (confirmation != null)
                 {
-                    _logger.LogInformation("**PTS TRANSACTION ASSIGNED** - Pump {PumpId} authorized successfully for device {DeviceId}. PTS device assigned transaction ID: {TransactionId}",
+                    _logger.LogDebug("**PTS TRANSACTION ASSIGNED** - Pump {PumpId} authorized successfully for device {DeviceId}. PTS device assigned transaction ID: {TransactionId}",
                         request.PumpId, request.DeviceId, confirmation.Transaction);
 
                     // Cursor: Get the device connection type to store with transaction context
@@ -462,7 +495,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     {
                         // Enable auto-close for connections that support it when ledger creation is enabled
                         configuredAutoClose = true;
-                        _logger.LogInformation("[PumpAuth] Auto-close enabled based on configuration for device {DeviceId}, transaction {TransactionId}",
+                        _logger.LogDebug("[PumpAuth] Auto-close enabled based on configuration for device {DeviceId}, transaction {TransactionId}",
                             request.DeviceId, confirmation.Transaction);
                     }
 
@@ -531,7 +564,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // This prevents stuck transactions from accumulating in Redis indefinitely
                 await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromMinutes(10));
 
-                _logger.LogInformation("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, Odometer: {Odometer}, connection: {ConnectionType}, expiry: 10min",
+                _logger.LogDebug("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, Odometer: {Odometer}, connection: {ConnectionType}, expiry: 10min",
                     deviceId, pumpId, transactionId, vehicleId, tankId, odometer, connectionType);
             }
             catch (Exception ex)
@@ -849,6 +882,85 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             public string DeviceId { get; set; } = string.Empty;
             public DateTime StartTime { get; set; }
             public TimeSpan Age { get; set; }
+        }
+
+        /// <summary>
+        /// Gets the fuel grade price from the device's cached upload status in Redis.
+        /// This is needed for Volume/Amount presets to work correctly with dose cutoff.
+        /// According to jsonPTS protocol Note 4: Price is optional but if omitted, the PTS-2
+        /// controller should have fuel grades configured with non-zero price.
+        /// To ensure dose cutoff works reliably, we explicitly send the price.
+        /// </summary>
+        /// <param name="deviceId">The PTS device ID</param>
+        /// <param name="nozzleId">The nozzle being authorized (for future nozzle-specific pricing)</param>
+        /// <param name="fuelGradeId">The fuel grade ID if specified</param>
+        /// <returns>The fuel grade price, or 0 if not found</returns>
+        private async Task<decimal> GetFuelGradePriceFromDeviceStatus(string deviceId, int nozzleId, int? fuelGradeId)
+        {
+            try
+            {
+                // Get the cached upload status from Redis
+                var statusKey = $"device:{deviceId}:status";
+                var statusJson = await _redisDb.StringGetAsync(statusKey);
+
+                if (statusJson.IsNullOrEmpty)
+                {
+                    _logger.LogDebug("[PumpAuth] No cached status found for device {DeviceId} to get fuel grade price", deviceId);
+                    return 0;
+                }
+
+                var status = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(statusJson);
+
+                // Check if FuelGrades array exists
+                if (!status.TryGetProperty("FuelGrades", out var fuelGradesElement) ||
+                    fuelGradesElement.ValueKind != System.Text.Json.JsonValueKind.Array)
+                {
+                    _logger.LogDebug("[PumpAuth] No FuelGrades array found in cached status for device {DeviceId}", deviceId);
+                    return 0;
+                }
+
+                var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
+                if (fuelGrades.Count == 0)
+                {
+                    _logger.LogDebug("[PumpAuth] FuelGrades array is empty for device {DeviceId}", deviceId);
+                    return 0;
+                }
+
+                // If a specific fuel grade ID was requested, find it
+                if (fuelGradeId.HasValue && fuelGradeId.Value > 0)
+                {
+                    foreach (var grade in fuelGrades)
+                    {
+                        if (grade.TryGetProperty("Id", out var idProp) && idProp.GetInt32() == fuelGradeId.Value)
+                        {
+                            if (grade.TryGetProperty("Price", out var priceProp))
+                            {
+                                var price = priceProp.GetDecimal();
+                                _logger.LogDebug("[PumpAuth] Found price {Price} for fuel grade {FuelGradeId} on device {DeviceId}",
+                                    price, fuelGradeId.Value, deviceId);
+                                return price;
+                            }
+                        }
+                    }
+                }
+
+                // Otherwise use the first fuel grade's price (most common case for single-product sites)
+                var firstGrade = fuelGrades[0];
+                if (firstGrade.TryGetProperty("Price", out var firstPriceProp))
+                {
+                    var price = firstPriceProp.GetDecimal();
+                    _logger.LogDebug("[PumpAuth] Using first fuel grade price {Price} for device {DeviceId}",
+                        price, deviceId);
+                    return price;
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[PumpAuth] Error getting fuel grade price from cached status for device {DeviceId}", deviceId);
+                return 0;
+            }
         }
     }
 }

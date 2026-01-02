@@ -75,19 +75,29 @@ namespace FMS.Application.Handlers
                 if (transactionDto.PacketId <= 0)
                     transactionDto.PacketId = packet.Id;
 
-                // IMPROVEMENT: Fire-and-forget Redis enrichment - don't let it block the response
-                // Use Task.Run to prevent Redis delays from blocking device acknowledgment
-                _ = Task.Run(async () =>
+                // **CRITICAL FIX**: Enrich transaction with Redis context BEFORE saving
+                // This ensures Odometer, TankId, VehicleId, Tag etc. from authorization are included
+                // Use timeout to prevent Redis delays from blocking device acknowledgment
+                try
                 {
-                    try
+                    var enrichTask = EnrichTransactionWithContextFromRedis(deviceId, transactionDto);
+                    var enrichTimeout = Task.Delay(TimeSpan.FromSeconds(2));
+                    var completedEnrichTask = await Task.WhenAny(enrichTask, enrichTimeout);
+
+                    if (completedEnrichTask == enrichTimeout)
                     {
-                        await EnrichTransactionWithContextFromRedis(deviceId, transactionDto);
+                        _logger.LogWarning("Redis enrichment timed out for device {DeviceId}, transaction {TransactionId}. Proceeding without context data.",
+                            deviceId, transactionDto.Transaction);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _logger.LogWarning(ex, "Non-critical: Failed to enrich transaction from Redis for device {DeviceId}", deviceId);
+                        await enrichTask; // Ensure any exceptions are observed
                     }
-                });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Non-critical: Failed to enrich transaction from Redis for device {DeviceId}. Odometer and other context may be missing.", deviceId);
+                }
 
                 // Process transaction with timeout protection
                 var commandTask = _mediator.Send(new CreatePumpTransactionCommand(transactionDto));
@@ -163,9 +173,15 @@ namespace FMS.Application.Handlers
                     {
                         transaction.TankId = context.TankId;
                         transaction.VehicleId = context.VehicleId;
+                        transaction.Odometer = context.Odometer;
+                        transaction.Tag = context.Tag;
+                        transaction.UserId = context.UserId;
+                        transaction.ConfigurationId = context.ConfigurationId;
+                        transaction.FuelGradeId = context.FuelGradeId;
+                        transaction.FuelGradeName = context.FuelGradeName;
 
-                        _logger.LogInformation("Enriched transaction with context from Redis: TankId={TankId}, VehicleId={VehicleId}",
-                            context.TankId, context.VehicleId);
+                        _logger.LogInformation("Enriched transaction with context from Redis: TankId={TankId}, VehicleId={VehicleId}, Odometer={Odometer}, Tag={Tag}",
+                            context.TankId, context.VehicleId, context.Odometer, context.Tag);
 
                         await _redisDb.KeyDeleteAsync(redisKey);
                     }
@@ -190,6 +206,12 @@ namespace FMS.Application.Handlers
         public int TransactionId { get; set; }
         public int? TankId { get; set; }
         public int? VehicleId { get; set; }
+        public decimal? Odometer { get; set; }
+        public string Tag { get; set; }
+        public int? UserId { get; set; }
+        public string ConfigurationId { get; set; }
+        public int? FuelGradeId { get; set; }
+        public string FuelGradeName { get; set; }
         public DateTime AuthorizedAt { get; set; }
     }
 }

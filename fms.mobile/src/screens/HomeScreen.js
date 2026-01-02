@@ -84,6 +84,14 @@ const HomeScreen = ({ navigation }) => {
       onPress: () => navigation.navigate("Devices"),
     },
     {
+      id: "vehicleDetails",
+      name: "Vehicle Details",
+      icon: "car",
+      color: "#0891b2",
+      description: "Search & view vehicle info",
+      onPress: () => navigation.navigate("VehicleDetails"),
+    },
+    {
       id: "sites",
       name: "Sites",
       icon: "map-marker-alt",

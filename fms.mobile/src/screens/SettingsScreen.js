@@ -9,6 +9,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,10 +17,13 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { logoutUser } from "../redux/slices/authSlice";
 import { fetchSiteList } from "../redux/slices/siteSlice";
 import { fetchDeviceList } from "../redux/slices/deviceSlice";
+import fuelingNotificationService from "../services/fuelingNotificationService";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",
   DEFAULT_PTS: "fms_default_pts",
+  FUELING_NOTIFICATIONS_ENABLED: "fms_fueling_notifications_enabled",
+  FUELING_NOTIFICATIONS_PTS_LIST: "fms_fueling_notifications_pts_list",
 };
 
 const SettingsScreen = ({ navigation }) => {
@@ -37,9 +41,17 @@ const SettingsScreen = ({ navigation }) => {
   const [showPTSModal, setShowPTSModal] = useState(false);
   const [filteredDevices, setFilteredDevices] = useState([]);
 
+  // Notification settings
+  const [fuelingNotificationsEnabled, setFuelingNotificationsEnabled] =
+    useState(false);
+  const [notificationPTSList, setNotificationPTSList] = useState([]); // List of PTS IDs to receive notifications for
+  const [showNotificationPTSModal, setShowNotificationPTSModal] =
+    useState(false);
+
   // Load saved defaults on mount
   useEffect(() => {
     loadSavedDefaults();
+    loadNotificationSettings();
     dispatch(fetchSiteList());
     dispatch(fetchDeviceList());
   }, [dispatch]);
@@ -74,6 +86,81 @@ const SettingsScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error loading saved defaults:", error);
+    }
+  };
+
+  const loadNotificationSettings = async () => {
+    try {
+      const enabled = await AsyncStorage.getItem(
+        STORAGE_KEYS.FUELING_NOTIFICATIONS_ENABLED
+      );
+      const ptsList = await AsyncStorage.getItem(
+        STORAGE_KEYS.FUELING_NOTIFICATIONS_PTS_LIST
+      );
+
+      setFuelingNotificationsEnabled(enabled === "true");
+      if (ptsList) {
+        setNotificationPTSList(JSON.parse(ptsList));
+      }
+    } catch (error) {
+      console.error("Error loading notification settings:", error);
+    }
+  };
+
+  const toggleFuelingNotifications = async (value) => {
+    try {
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.FUELING_NOTIFICATIONS_ENABLED,
+        value.toString()
+      );
+      setFuelingNotificationsEnabled(value);
+
+      // Update the notification service
+      fuelingNotificationService.setEnabled(value);
+
+      if (value) {
+        // If enabling, prompt to select PTS devices if none selected
+        if (notificationPTSList.length === 0 && ptsDeviceList?.length > 0) {
+          Alert.alert(
+            "Select PTS Devices",
+            "Would you like to select specific PTS devices to receive fueling notifications for?",
+            [
+              { text: "All Devices", onPress: () => {} },
+              {
+                text: "Select Devices",
+                onPress: () => setShowNotificationPTSModal(true),
+              },
+            ]
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error saving notification setting:", error);
+      Alert.alert("Error", "Failed to save notification setting");
+    }
+  };
+
+  const togglePTSNotification = async (pts) => {
+    try {
+      const ptsId = pts.ptsid;
+      let newList;
+
+      if (notificationPTSList.includes(ptsId)) {
+        newList = notificationPTSList.filter((id) => id !== ptsId);
+      } else {
+        newList = [...notificationPTSList, ptsId];
+      }
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.FUELING_NOTIFICATIONS_PTS_LIST,
+        JSON.stringify(newList)
+      );
+      setNotificationPTSList(newList);
+
+      // Update the notification service
+      fuelingNotificationService.setAllowedDevices(newList);
+    } catch (error) {
+      console.error("Error saving PTS notification setting:", error);
     }
   };
 
@@ -255,8 +342,51 @@ const SettingsScreen = ({ navigation }) => {
       <View style={styles.menuSection}>
         <Text style={styles.sectionTitle}>Account</Text>
         {renderMenuItem("user-cog", "Profile Settings", () => {})}
-        {renderMenuItem("bell", "Notifications", () => {})}
         {renderMenuItem("shield-alt", "Security", () => {})}
+      </View>
+
+      {/* Notifications Section */}
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>Notifications</Text>
+
+        {/* Fueling Notifications Toggle */}
+        <View style={styles.menuItem}>
+          <Icon name="gas-pump" size={20} color="#374151" />
+          <Text style={styles.menuText}>Fueling Notifications</Text>
+          <Switch
+            value={fuelingNotificationsEnabled}
+            onValueChange={toggleFuelingNotifications}
+            trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+            thumbColor={fuelingNotificationsEnabled ? "#2563eb" : "#f4f3f4"}
+          />
+        </View>
+
+        {/* PTS Device Selection for Notifications */}
+        {fuelingNotificationsEnabled && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setShowNotificationPTSModal(true)}
+          >
+            <Icon name="filter" size={20} color="#374151" />
+            <Text style={styles.menuText}>Notify for PTS Devices</Text>
+            <Text style={styles.menuRightText} numberOfLines={1}>
+              {notificationPTSList.length === 0
+                ? "All"
+                : `${notificationPTSList.length} selected`}
+            </Text>
+            <Icon name="chevron-right" size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        )}
+
+        {/* Notification info */}
+        {fuelingNotificationsEnabled && (
+          <View style={styles.notificationInfo}>
+            <Icon name="info-circle" size={14} color="#6b7280" />
+            <Text style={styles.notificationInfoText}>
+              Shows real-time fueling progress with volume and stop button
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* App Menu */}
@@ -308,6 +438,118 @@ const SettingsScreen = ({ navigation }) => {
         devicesLoading,
         defaultSite ? "No PTS devices for this site" : "Select a site first"
       )}
+
+      {/* Notification PTS Selection Modal */}
+      <Modal
+        visible={showNotificationPTSModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowNotificationPTSModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Select PTS Devices for Notifications
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowNotificationPTSModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Icon name="times" size={20} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.notificationPTSInfo}>
+              <Icon name="info-circle" size={14} color="#2563eb" />
+              <Text style={styles.notificationPTSInfoText}>
+                Select devices to receive notifications. Leave empty for all
+                devices.
+              </Text>
+            </View>
+
+            {devicesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#2563eb" />
+                <Text style={styles.loadingText}>Loading...</Text>
+              </View>
+            ) : ptsDeviceList?.length > 0 ? (
+              <FlatList
+                data={ptsDeviceList}
+                keyExtractor={(item) => item.ptsid}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.selectionItem}
+                    onPress={() => togglePTSNotification(item)}
+                  >
+                    <View style={styles.selectionItemContent}>
+                      <Icon
+                        name="gas-pump"
+                        size={20}
+                        color={
+                          notificationPTSList.includes(item.ptsid)
+                            ? "#10b981"
+                            : "#6b7280"
+                        }
+                      />
+                      <View style={styles.selectionItemText}>
+                        <Text style={styles.selectionItemTitle}>
+                          {item.ptsid}
+                        </Text>
+                        {item.ipaddress && (
+                          <Text style={styles.selectionItemSubtitle}>
+                            IP: {item.ipaddress}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    <Icon
+                      name={
+                        notificationPTSList.includes(item.ptsid)
+                          ? "check-circle"
+                          : "circle"
+                      }
+                      size={24}
+                      color={
+                        notificationPTSList.includes(item.ptsid)
+                          ? "#10b981"
+                          : "#d1d5db"
+                      }
+                      solid={notificationPTSList.includes(item.ptsid)}
+                    />
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Icon name="inbox" size={40} color="#9ca3af" />
+                <Text style={styles.emptyText}>No PTS devices available</Text>
+              </View>
+            )}
+
+            {/* Clear selection button */}
+            {notificationPTSList.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearSelectionButton}
+                onPress={async () => {
+                  await AsyncStorage.setItem(
+                    STORAGE_KEYS.FUELING_NOTIFICATIONS_PTS_LIST,
+                    JSON.stringify([])
+                  );
+                  setNotificationPTSList([]);
+                  fuelingNotificationService.setAllowedDevices([]);
+                }}
+              >
+                <Icon name="times-circle" size={16} color="#ef4444" />
+                <Text style={styles.clearSelectionText}>
+                  Clear Selection (Notify for All)
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -470,6 +712,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#9ca3af",
     textAlign: "center",
+  },
+  // Notification settings styles
+  notificationInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f0f9ff",
+    borderTopWidth: 1,
+    borderTopColor: "#e0f2fe",
+  },
+  notificationInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#6b7280",
+    marginLeft: 8,
+  },
+  notificationPTSInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#eff6ff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#dbeafe",
+  },
+  notificationPTSInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1e40af",
+    marginLeft: 8,
+  },
+  clearSelectionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    backgroundColor: "#fef2f2",
+  },
+  clearSelectionText: {
+    fontSize: 14,
+    color: "#ef4444",
+    fontWeight: "500",
+    marginLeft: 8,
   },
 });
 

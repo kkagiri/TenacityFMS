@@ -1,6 +1,12 @@
 //Cursor - Mobile Fueling Header Component
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 const FuelingHeader = ({
@@ -13,6 +19,10 @@ const FuelingHeader = ({
   selectedTank,
   operationMode,
   onChangeTank,
+  // Active fueling props - now supports multiple
+  activeFuelingPump,
+  activeFuelingPumps = [], // Array of all active fuelings
+  onViewFueling,
 }) => {
   // Consistent 5-step flow for all modes:
   // 1. Pump -> 2. Nozzle -> 3. Mode -> 4. Details (Vehicle/Transfer) -> 5. Confirmation
@@ -126,6 +136,83 @@ const FuelingHeader = ({
         <Icon name="microchip" size={14} color="#93c5fd" />
         <Text style={styles.deviceId}>{deviceId}</Text>
       </View>
+
+      {/* Active Fueling Banners - Show all pumps that are actively fueling */}
+      {activeFuelingPumps && activeFuelingPumps.length > 0 && onViewFueling && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.activeFuelingsContainer}
+          contentContainerStyle={styles.activeFuelingsContent}
+        >
+          {activeFuelingPumps.map((pump, index) => (
+            <TouchableOpacity
+              key={`${pump.pumpId || pump.id}-${index}`}
+              style={[
+                styles.activeFuelingBanner,
+                activeFuelingPumps.length > 1 &&
+                  styles.activeFuelingBannerCompact,
+              ]}
+              onPress={() => onViewFueling(pump)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.activeFuelingPulse} />
+              <View style={styles.activeFuelingContent}>
+                <View style={styles.activeFuelingInfo}>
+                  <Icon name="gas-pump" size={16} color="#fbbf24" />
+                  <View style={styles.activeFuelingDetails}>
+                    <Text style={styles.activeFuelingTitle}>
+                      Pump {pump.id || pump.pumpId}
+                    </Text>
+                    <Text style={styles.activeFuelingVolume}>
+                      {(pump.volume || pump.currentVolume || 0).toFixed(2)}L
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.viewFuelingButton}>
+                  <Text style={styles.viewFuelingText}>View</Text>
+                  <Icon name="chevron-right" size={12} color="#1f2937" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+      {/* Fallback for single active pump (backward compatibility) */}
+      {(!activeFuelingPumps || activeFuelingPumps.length === 0) &&
+        activeFuelingPump &&
+        onViewFueling && (
+          <TouchableOpacity
+            style={styles.activeFuelingBanner}
+            onPress={() => onViewFueling(activeFuelingPump)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.activeFuelingPulse} />
+            <View style={styles.activeFuelingContent}>
+              <View style={styles.activeFuelingInfo}>
+                <Icon name="gas-pump" size={16} color="#fbbf24" />
+                <View style={styles.activeFuelingDetails}>
+                  <Text style={styles.activeFuelingTitle}>
+                    Pump {activeFuelingPump.id || activeFuelingPump.pumpId}{" "}
+                    Fueling
+                  </Text>
+                  <Text style={styles.activeFuelingVolume}>
+                    {(
+                      activeFuelingPump.volume ||
+                      activeFuelingPump.currentVolume ||
+                      0
+                    ).toFixed(2)}
+                    L
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.viewFuelingButton}>
+                <Text style={styles.viewFuelingText}>View</Text>
+                <Icon name="chevron-right" size={12} color="#1f2937" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
 
       {/* Selected Tank Banner - Show when tank is selected and not on tank selection step */}
       {selectedTank && currentStep !== "tank" && (
@@ -378,6 +465,82 @@ const styles = StyleSheet.create({
     color: "#3b82f6",
     fontWeight: "500",
     marginLeft: 6,
+  },
+  // Active Fueling Container Styles (for multiple fuelings)
+  activeFuelingsContainer: {
+    marginBottom: 12,
+  },
+  activeFuelingsContent: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  // Active Fueling Banner Styles
+  activeFuelingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(251, 191, 36, 0.2)",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(251, 191, 36, 0.4)",
+    position: "relative",
+    overflow: "hidden",
+  },
+  activeFuelingBannerCompact: {
+    marginBottom: 0,
+    minWidth: 180,
+    maxWidth: 220,
+  },
+  activeFuelingPulse: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: "#fbbf24",
+  },
+  activeFuelingContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginLeft: 8,
+  },
+  activeFuelingInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  activeFuelingDetails: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  activeFuelingTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#fbbf24",
+  },
+  activeFuelingVolume: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "white",
+    marginTop: 2,
+  },
+  viewFuelingButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fbbf24",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  viewFuelingText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginRight: 4,
   },
 });
 

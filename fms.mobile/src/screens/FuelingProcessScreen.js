@@ -33,7 +33,6 @@ import TransferDetailsStep from "../components/fueling/TransferDetailsStep";
 import VehicleSelectionStep from "../components/fueling/VehicleSelectionStep";
 import FuelingVolumeStep from "../components/fueling/FuelingVolumeStep";
 import ScanStep from "../components/fueling/ScanStep";
-import FuelingDetailsStep from "../components/fueling/FuelingDetailsStep";
 import TransactionMonitoringModal from "../components/fueling/TransactionMonitoringModal";
 import FuelingHeader from "../components/fueling/FuelingHeader";
 import LoadingOverlay from "../components/common/LoadingOverlay";
@@ -161,6 +160,9 @@ const FuelingProcessScreen = () => {
   const [showTransactionMonitoring, setShowTransactionMonitoring] =
     useState(false);
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
+  const [isViewingExternalFueling, setIsViewingExternalFueling] =
+    useState(false);
+  const [viewingPumpData, setViewingPumpData] = useState(null); // Track which pump we're viewing
   const [tagDetails, setTagDetails] = useState(null);
   const [selectedTag, setSelectedTag] = useState(null);
   const [selectionMethod, setSelectionMethod] = useState("lookup");
@@ -494,10 +496,7 @@ const FuelingProcessScreen = () => {
         setStep("nozzle");
         setSelectedNozzle(null);
         break;
-      case "details":
-        // Go back to volume step (vehicle fueling flow)
-        setStep("volume");
-        break;
+
       default:
         navigation.goBack();
     }
@@ -540,17 +539,6 @@ const FuelingProcessScreen = () => {
         setSelectedNozzle(data.nozzle);
         setStep("scan");
         break;
-      case "details":
-        if (data.vehicleInfo) {
-          setVehicleInfo(data.vehicleInfo);
-          setSelectedVehicleId(data.vehicleInfo.id);
-        }
-        if (data.tagDetails) {
-          setTagDetails(data.tagDetails);
-          setSelectedTag(data.tagDetails.id);
-        }
-        setStep("details");
-        break;
     }
   };
 
@@ -565,8 +553,10 @@ const FuelingProcessScreen = () => {
       const transferAuthData = {
         deviceId: ptsId,
         pumpId: selectedPump?.id,
-        sourceTankId: selectedTank?.probeId || selectedTank?.id,
-        destinationTankId: destinationTank?.tankId,
+        nozzle: selectedNozzle?.id, // Required by backend
+        sourceTankId:
+          selectedTank?.probeId || selectedTank?.tankId || selectedTank?.id,
+        destinationTankId: destinationTank?.tankId || destinationTank?.id,
         volume: parseFloat(transferVolume),
         reason: transferReason || "Tank Transfer",
       };
@@ -636,20 +626,26 @@ const FuelingProcessScreen = () => {
     }
   };
 
-  // Handle vehicle fueling confirmation - navigate to details step for mock simulation
-  const handleVehicleFuelingConfirm = () => {
-    // For mock simulation: just navigate to the fueling details step
-    // The FuelingDetailsStep component handles the mock authorization flow internally
-    console.log("[Mobile Fueling] Proceeding to fueling details (mock mode):", {
+  // Handle vehicle fueling confirmation - Call real API authorization
+  const handleVehicleFuelingConfirm = async () => {
+    // Gather authorization data from state
+    const authData = {
+      authType: isFullTank ? "Full" : fuelingVolume ? "Volume" : "Full",
+      dose: isFullTank ? null : parseFloat(fuelingVolume) || null,
+      vehicleId: selectedVehicle?.vehicleId || selectedVehicle?.id,
+      tagId: selectedTag || tagDetails?.tagId || vehicleInfo?.tagId,
+      useMasterTag: useMasterTag,
+    };
+
+    console.log("[Mobile Fueling] Starting real authorization:", {
       pumpId: selectedPump?.id,
       nozzleId: selectedNozzle?.id,
       tankId: selectedTank?.tankId || selectedTank?.id,
-      vehicleId: selectedVehicle?.vehicleId,
-      isFullTank,
-      volume: fuelingVolume,
+      ...authData,
     });
 
-    setStep("details");
+    // Call real authorization
+    await startFueling(authData);
   };
 
   // Start fueling authorization
@@ -682,34 +678,63 @@ const FuelingProcessScreen = () => {
         return;
       }
 
-      // Prepare authorization request
+      // Map frontend type values to backend enum values (matching web app pattern)
+      // Backend expects: Volume=0, Amount=1, FullTank=2
+      const typeMapping = {
+        Volume: 0,
+        Amount: 1,
+        Full: 2,
+        FullTank: 2,
+      };
+
+      // Prepare authorization request matching backend PumpAuthorizeCommand
       const authRequest = {
         deviceId: ptsId,
         pumpId: selectedPump.id,
         nozzle: selectedNozzle.id,
-        type: authType,
-        dose: authType === "Full" ? null : dose,
+        type: typeMapping[authType] ?? 2, // Default to FullTank if unknown
+        dose:
+          authType === "Full" || authType === "FullTank"
+            ? 0
+            : parseFloat(dose) || 0,
         vehicleId: vehicleId,
+        tankId: selectedTank?.tankId || selectedTank?.id,
         tag: shouldUseMasterTag ? loggedInUser?.masterTag : tagId,
-        useMasterTag: shouldUseMasterTag,
-        odometer: odometer ? parseFloat(odometer) : null, // Include odometer reading
+        odometer: odometer ? parseFloat(odometer) : null,
       };
 
-      console.log("[Mobile Fueling] Starting authorization:", authRequest);
+      console.log(
+        "[Mobile Fueling] Starting authorization:",
+        JSON.stringify(authRequest, null, 2)
+      );
+      console.log(
+        "[Mobile Fueling] Dose value:",
+        dose,
+        "Type:",
+        typeof dose,
+        "AuthType:",
+        authType
+      );
 
       // Dispatch authorization action
       const result = await dispatch(authorizePump(authRequest)).unwrap();
 
-      if (result.success) {
-        setCurrentTransactionId(result.data?.transactionId);
+      // Handle FMSResponse<T> structure from backend (same as web app pattern)
+      if (result.isSuccess) {
+        const transactionId =
+          result.data?.transaction || result.data?.transactionId;
+        const pumpIdFromResponse = result.data?.pump || selectedPump.id;
+        const nozzleIdFromResponse = result.data?.nozzleId || selectedNozzle.id;
+
+        setCurrentTransactionId(transactionId);
         setShowTransactionMonitoring(true);
 
         // Create fueling event
         dispatch(
           createFuelingEvent("started", ptsId, {
-            pumpId: selectedPump.id,
-            nozzleNumber: selectedNozzle.id,
-            transactionId: result.data?.transactionId,
+            pumpId: pumpIdFromResponse,
+            nozzleNumber: nozzleIdFromResponse,
+            transactionId: transactionId,
             authType,
             dose,
             vehicleId,
@@ -720,7 +745,7 @@ const FuelingProcessScreen = () => {
         Toast.show({
           type: "success",
           text1: "Authorization Successful",
-          text2: "Transaction started successfully",
+          text2: `Pump ${pumpIdFromResponse} authorized. Lift nozzle ${nozzleIdFromResponse} to start fueling.`,
         });
       } else {
         Alert.alert(
@@ -914,41 +939,6 @@ const FuelingProcessScreen = () => {
             setVehicleReg={setVehicleReg}
           />
         );
-      case "details":
-        return (
-          <FuelingDetailsStep
-            pump={selectedPump}
-            nozzle={selectedNozzle}
-            tank={selectedTank}
-            vehicle={selectedVehicle || vehicleInfo}
-            volume={fuelingVolume || volume}
-            isFullTank={isFullTank}
-            onComplete={(result) => {
-              // Handle fueling completion with mock simulation
-              console.log("[Mobile Fueling] Fueling complete (mock):", result);
-              Toast.show({
-                type: "success",
-                text1: "Fueling Complete",
-                text2: `Dispensed ${result.finalVolume} L - TXN: ${result.transactionId}`,
-              });
-              resetFuelingProcess();
-            }}
-            onBack={handleStepBack}
-            onEmergencyStop={(data) => {
-              console.log("[Mobile Fueling] Emergency stop (mock):", data);
-              Toast.show({
-                type: "error",
-                text1: "Emergency Stop",
-                text2: `Stopped at ${data.stoppedAt} L`,
-              });
-              resetFuelingProcess();
-            }}
-            onStartNewFueling={() => {
-              // Allow starting new fueling from main page
-              resetFuelingProcess();
-            }}
-          />
-        );
       default:
         return null;
     }
@@ -979,6 +969,65 @@ const FuelingProcessScreen = () => {
     }
   };
 
+  // Get the first active fueling pump for header display (backward compatibility)
+  const activeFuelingPump = useMemo(() => {
+    if (!activeFuelingProcesses || activeFuelingProcesses.length === 0) {
+      return null;
+    }
+    // Return the first active fueling process
+    return activeFuelingProcesses[0];
+  }, [activeFuelingProcesses]);
+
+  // Handler to open transaction monitoring from header - accepts pump parameter
+  const handleViewFuelingFromHeader = (pump) => {
+    // Use passed pump or fall back to first active
+    const targetPump = pump || activeFuelingPump;
+    if (targetPump) {
+      // Select the active pump and show monitoring
+      const pumpToSelect = availablePumps?.find(
+        (p) => p.id === targetPump.pumpId
+      );
+      if (pumpToSelect) {
+        setSelectedPump(pumpToSelect);
+      }
+      // Mark as external fueling since we didn't initiate it
+      // (unless it matches our current transaction)
+      const isExternal =
+        !currentTransactionId ||
+        currentTransactionId !== targetPump.transaction;
+      setIsViewingExternalFueling(isExternal);
+      setViewingPumpData(targetPump); // Save the pump data for initial values
+      setShowTransactionMonitoring(true);
+    }
+  };
+
+  // Handle minimize - allow user to start fueling on another pump
+  const handleMinimizeMonitoring = () => {
+    setShowTransactionMonitoring(false);
+    setIsViewingExternalFueling(false);
+    setViewingPumpData(null);
+
+    // Reset to pump selection to allow starting another fueling
+    // Keep tank selection as it's persisted
+    setStep("pump");
+    setSelectedPump(null);
+    setSelectedNozzle(null);
+    setOperationMode(null);
+    setSelectedVehicle(null);
+    setFuelingVolume("");
+    setIsFullTank(false);
+
+    // Note: We keep currentTransactionId so we can track our own transaction
+    // if the user wants to view it again via the active fueling banner
+
+    Toast.show({
+      type: "info",
+      text1: "Fueling Minimized",
+      text2: "You can start another fueling or tap the banner to view",
+      visibilityTime: 3000,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Show loading state while determining initial step */}
@@ -998,6 +1047,9 @@ const FuelingProcessScreen = () => {
             selectedTank={selectedTank}
             operationMode={operationMode}
             onChangeTank={handleChangeTank}
+            activeFuelingPump={activeFuelingPump}
+            activeFuelingPumps={activeFuelingProcesses}
+            onViewFueling={handleViewFuelingFromHeader}
           />
 
           <View style={styles.content}>{renderCurrentStep()}</View>
@@ -1016,8 +1068,20 @@ const FuelingProcessScreen = () => {
         authorizationType={isFullTank ? "Full" : "Volume"}
         requestedVolume={isFullTank ? null : parseFloat(fuelingVolume) || null}
         onComplete={handleTransactionComplete}
-        onCancel={() => setShowTransactionMonitoring(false)}
-        onMinimize={() => setShowTransactionMonitoring(false)}
+        onCancel={() => {
+          setShowTransactionMonitoring(false);
+          setIsViewingExternalFueling(false);
+          setViewingPumpData(null);
+        }}
+        onMinimize={handleMinimizeMonitoring}
+        // External fueling props
+        isExternalFueling={isViewingExternalFueling}
+        initialVolume={
+          isViewingExternalFueling ? viewingPumpData?.volume || 0 : 0
+        }
+        initialAmount={
+          isViewingExternalFueling ? viewingPumpData?.amount || 0 : 0
+        }
       />
     </SafeAreaView>
   );

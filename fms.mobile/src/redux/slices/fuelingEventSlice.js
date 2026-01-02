@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   events: [],
@@ -8,7 +8,7 @@ const initialState = {
 };
 
 const fuelingEventSlice = createSlice({
-  name: 'fuelingEvent',
+  name: "fuelingEvent",
   initialState,
   reducers: {
     addEvent: (state, action) => {
@@ -33,7 +33,7 @@ const fuelingEventSlice = createSlice({
 
     addActiveEvent: (state, action) => {
       const existingIndex = state.activeEvents.findIndex(
-        e => e.transactionId === action.payload.transactionId
+        (e) => e.transactionId === action.payload.transactionId
       );
 
       if (existingIndex >= 0) {
@@ -45,13 +45,13 @@ const fuelingEventSlice = createSlice({
 
     removeActiveEvent: (state, action) => {
       state.activeEvents = state.activeEvents.filter(
-        e => e.transactionId !== action.payload
+        (e) => e.transactionId !== action.payload
       );
     },
 
     updateActiveEvent: (state, action) => {
       const index = state.activeEvents.findIndex(
-        e => e.transactionId === action.payload.transactionId
+        (e) => e.transactionId === action.payload.transactionId
       );
 
       if (index >= 0) {
@@ -81,5 +81,22 @@ export const {
   clearEvents,
   clearActiveEvents,
 } = fuelingEventSlice.actions;
+
+/**
+ * Helper function to create and dispatch a fueling event
+ * This matches the pattern expected by FuelingProcessScreen and signalRService
+ *
+ * @param {string} eventType - Type of event (started, completed, error, etc.)
+ * @param {string} deviceId - Device ID
+ * @param {object} details - Event details
+ * @returns {object} Action to dispatch
+ */
+export const createFuelingEvent = (eventType, deviceId, details) => {
+  return addEvent({
+    eventType,
+    deviceId,
+    details,
+  });
+};
 
 export default fuelingEventSlice.reducer;

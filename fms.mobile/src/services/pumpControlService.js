@@ -1,5 +1,6 @@
 //Cursor - Mobile pump control service adapted from web frontend
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_CONFIG } from "../config/environment";
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
@@ -16,8 +17,18 @@ class PumpControlService {
 
     // Request interceptor for auth token
     this.api.interceptors.request.use(
-      (config) => {
-        // Token will be added by Redux middleware
+      async (config) => {
+        try {
+          const token = await AsyncStorage.getItem("auth_token");
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch (error) {
+          console.error(
+            "[PumpControlService] Error retrieving auth token:",
+            error
+          );
+        }
         return config;
       },
       (error) => Promise.reject(error)
@@ -73,10 +84,10 @@ class PumpControlService {
 
   async stopPump(deviceId, pumpId) {
     try {
-      const response = await this.api.post("/v1/Pump/stop", {
-        deviceId,
-        pumpId,
-      });
+      // API endpoint: POST /api/v1/Pump/{deviceId}/{pumpId}/stop
+      const response = await this.api.post(
+        `/v1/Pump/${deviceId}/${pumpId}/stop`
+      );
       return response.data;
     } catch (error) {
       throw new Error(`Failed to stop pump: ${error.message}`);

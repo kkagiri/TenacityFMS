@@ -328,13 +328,22 @@ namespace FMS.PTS.WindowsService.Services.Pump
                     break;
             }
 
-            //add type and does if not full tank
+            //add type and dose if not full tank
+            var typeDescription = EnumerationHelper.GetEnumDescription(pumpAuthorizeData.Type);
+            authData.Add("Type", typeDescription);
 
-            authData.Add("Type", EnumerationHelper.GetEnumDescription(pumpAuthorizeData.Type));
+            //Cursor: Log the type and dose decision
+            _logger.LogDebug("[PumpService] Authorization Type: {Type} ({TypeDescription}), Dose: {Dose}, Adding Dose to request: {AddingDose}",
+                pumpAuthorizeData.Type, typeDescription, pumpAuthorizeData.Dose, pumpAuthorizeData.Type != PumpAuthorizeType.FULLTANK);
 
             if (pumpAuthorizeData.Type != PumpAuthorizeType.FULLTANK)
             {
                 authData.Add("Dose", pumpAuthorizeData.Dose);
+                _logger.LogDebug("[PumpService] Added Dose {Dose} liters to authorization request", pumpAuthorizeData.Dose);
+            }
+            else
+            {
+                _logger.LogDebug("[PumpService] FULLTANK mode - NOT adding Dose to authorization request");
             }
 
             if (pumpAuthorizeData.TransactionEnabled)
@@ -344,6 +353,7 @@ namespace FMS.PTS.WindowsService.Services.Pump
             if (pumpAuthorizeData.PriceEnabled)
             {
                 authData.Add("Price", pumpAuthorizeData.Price);
+                _logger.LogDebug("[PumpService] Added Price {Price} to authorization request (required for dose cutoff)", pumpAuthorizeData.Price);
             }
 
             authData.Add("AutoCloseTransaction", pumpAuthorizeData.AutoCloseTransaction);

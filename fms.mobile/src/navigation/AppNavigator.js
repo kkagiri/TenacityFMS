@@ -16,6 +16,7 @@ import SiteOverviewScreen from "../screens/SiteOverviewScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import ManageStocksScreen from "../screens/ManageStocksScreen";
 import OpenStockScreen from "../screens/OpenStockScreen";
+import VehicleDetailsScreen from "../screens/VehicleDetailsScreen";
 
 // Import custom drawer
 import DrawerContent from "../components/navigation/DrawerContent";
@@ -174,6 +175,14 @@ const MainStackNavigator = () => {
         component={SiteOverviewScreen}
         options={{
           title: "Site Overview",
+          headerShown: false, // Screen has its own header
+        }}
+      />
+      <Stack.Screen
+        name="VehicleDetails"
+        component={VehicleDetailsScreen}
+        options={{
+          title: "Vehicle Details",
           headerShown: false, // Screen has its own header
         }}
       />

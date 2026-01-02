@@ -8,19 +8,28 @@ import { Platform } from "react-native";
 let Config;
 try {
   Config = require("react-native-config").default;
+  console.log("✅ [Environment] react-native-config loaded successfully");
 } catch (error) {
-  console.warn("react-native-config not available, using default values");
+  console.warn(
+    "⚠️ [Environment] react-native-config not available, using default values:",
+    error.message
+  );
   Config = null;
 }
 
 // Fallback if Config is not properly initialized (before native module is built)
 const safeConfig = Config || {};
+console.log("📋 [Environment] Config initialized:", {
+  hasConfig: !!Config,
+  hasApiUrl: !!safeConfig.API_BASE_URL,
+  hasSignalRUrl: !!safeConfig.SIGNALR_HUB_URL,
+});
 
 // Determine default URL based on platform and dev mode
 // Android emulator uses 10.0.2.2 to access host localhost
 // iOS simulator uses localhost directly
 // Set USE_LOCAL_BACKEND to true to test with local backend
-const USE_LOCAL_BACKEND = true; // Change to false to use production server
+const USE_LOCAL_BACKEND = false; // Change to false to use production server
 
 const getDefaultUrl = () => {
   if (__DEV__ && USE_LOCAL_BACKEND) {

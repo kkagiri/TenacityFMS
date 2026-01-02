@@ -9,6 +9,5 @@ export { default as TransferDetailsStep } from "./TransferDetailsStep";
 export { default as VehicleSelectionStep } from "./VehicleSelectionStep";
 export { default as FuelingVolumeStep } from "./FuelingVolumeStep";
 export { default as ScanStep } from "./ScanStep";
-export { default as FuelingDetailsStep } from "./FuelingDetailsStep";
 export { default as TransactionMonitoringModal } from "./TransactionMonitoringModal";
 export { default as FuelingHeader } from "./FuelingHeader";

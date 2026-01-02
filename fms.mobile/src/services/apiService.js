@@ -332,26 +332,43 @@ class ApiService {
   // Transaction endpoints
   async getTransactionHistory(filters = {}) {
     try {
+      // Default to last 30 days if no dates provided
+      const now = new Date();
+      const defaultEndDate = now.toISOString();
+      const defaultStartDate = new Date(
+        now.getTime() - 30 * 24 * 60 * 60 * 1000
+      ).toISOString();
+
       const params = {
-        page: filters.page || 1,
-        pageSize: filters.pageSize || 20,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        pumpId: filters.pumpId,
-        deviceId: filters.deviceId,
+        startDate: filters.startDate || defaultStartDate,
+        endDate: filters.endDate || defaultEndDate,
+        ptsId: filters.ptsId || filters.deviceId,
         vehicleId: filters.vehicleId,
-        tagId: filters.tagId,
-        sortBy: filters.sortBy || "createdAt",
-        sortOrder: filters.sortOrder || "desc",
+        tankId: filters.tankId,
       };
 
-      // Remove undefined values
+      // Remove undefined/null values
       Object.keys(params).forEach(
-        (key) => params[key] === undefined && delete params[key]
+        (key) =>
+          (params[key] === undefined || params[key] === null) &&
+          delete params[key]
       );
 
-      const response = await this.api.get("/transaction/history", { params });
-      return response.data;
+      const response = await this.api.get("/v1/Consumption/pumptransactions", {
+        params,
+      });
+
+      // Transform response to expected format for the slice
+      const data = response.data?.data || response.data || [];
+      const transactions = Array.isArray(data) ? data : [];
+
+      return {
+        data: transactions,
+        totalCount: transactions.length,
+        currentPage: filters.page || 1,
+        pageSize: filters.pageSize || 20,
+        hasMore: false, // Backend doesn't paginate yet
+      };
     } catch (error) {
       throw this.handleError(error, "Failed to fetch transaction history");
     }
@@ -368,10 +385,52 @@ class ApiService {
 
   async getTransactionSummary(filters = {}) {
     try {
-      const response = await this.api.get("/transaction/summary", {
-        params: filters,
+      // Default to last 30 days if no dates provided
+      const now = new Date();
+      const defaultEndDate = now.toISOString();
+      const defaultStartDate = new Date(
+        now.getTime() - 30 * 24 * 60 * 60 * 1000
+      ).toISOString();
+
+      const params = {
+        startDate: filters.startDate || defaultStartDate,
+        endDate: filters.endDate || defaultEndDate,
+        ptsId: filters.ptsId || filters.deviceId,
+        vehicleId: filters.vehicleId,
+        tankId: filters.tankId,
+      };
+
+      // Remove undefined/null values
+      Object.keys(params).forEach(
+        (key) =>
+          (params[key] === undefined || params[key] === null) &&
+          delete params[key]
+      );
+
+      const response = await this.api.get("/v1/Consumption/pumptransactions", {
+        params,
       });
-      return response.data;
+
+      // Calculate summary from transactions data
+      const data = response.data?.data || response.data || [];
+      const transactions = Array.isArray(data) ? data : [];
+
+      const totalVolume = transactions.reduce(
+        (sum, t) => sum + (t.volume || 0),
+        0
+      );
+      const totalAmount = transactions.reduce(
+        (sum, t) => sum + (t.amount || 0),
+        0
+      );
+
+      return {
+        totalTransactions: transactions.length,
+        totalVolume,
+        totalAmount,
+        averageTransactionAmount:
+          transactions.length > 0 ? totalAmount / transactions.length : 0,
+      };
     } catch (error) {
       throw this.handleError(error, "Failed to fetch transaction summary");
     }
@@ -461,6 +520,89 @@ class ApiService {
     }
   }
 
+  /**
+   * Get GPS information for a vehicle
+   * @param {number} vehicleId - Vehicle ID
+   * @returns {Promise<Object>} GPS data including location, speed, etc.
+   */
+  async getVehicleGPSInfo(vehicleId) {
+    try {
+      const response = await this.api.get(
+        `/v1/vehicletracking/${vehicleId}/gps-information`
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch vehicle GPS information");
+    }
+  }
+
+  /**
+   * Get consumption history for a vehicle
+   * @param {number} vehicleId - Vehicle ID
+   * @param {string} startDate - Start date (ISO string)
+   * @param {string} endDate - End date (ISO string)
+   * @returns {Promise<Array>} Consumption history records
+   */
+  async getVehicleConsumptionHistory(
+    vehicleId,
+    startDate,
+    endDate,
+    entry = 30
+  ) {
+    try {
+      // Format dates as YYYY-MM-DD
+      const formatDate = (date) => {
+        const d = new Date(date);
+        return d.toISOString().split("T")[0];
+      };
+
+      const response = await this.api.get(
+        `/v1/consumption/gethistoryconsumptionbyvehicle`,
+        {
+          params: {
+            vehicleId,
+            datestring: formatDate(endDate),
+            dateFromString: formatDate(startDate),
+            entry,
+          },
+        }
+      );
+      // Handle FMSResponse wrapper
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch consumption history");
+    }
+  }
+
+  /**
+   * Get fueling/refill history for a vehicle
+   * @param {number} vehicleId - Vehicle ID
+   * @param {string} startDate - Start date (ISO string)
+   * @param {string} endDate - End date (ISO string)
+   * @returns {Promise<Array>} Fueling history records
+   */
+  async getVehicleFuelingHistory(vehicleId, startDate, endDate) {
+    try {
+      // Format dates as YYYY-MM-DD
+      const formatDate = (date) => {
+        const d = new Date(date);
+        return d.toISOString().split("T")[0];
+      };
+
+      const response = await this.api.get(`/v1/consumption/vehicleRefills`, {
+        params: {
+          vehicleId,
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate),
+        },
+      });
+      // Handle FMSResponse wrapper
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch fueling history");
+    }
+  }
+
   async validateTag(tagId) {
     try {
       const response = await this.api.post("/tag/validate", { tagId });
@@ -492,10 +634,10 @@ class ApiService {
 
   async stopPump(deviceId, pumpId) {
     try {
-      const response = await this.api.post("/v1/Pump/stop", {
-        deviceId,
-        pumpId,
-      });
+      // API endpoint: POST /api/v1/Pump/{deviceId}/{pumpId}/stop
+      const response = await this.api.post(
+        `/v1/Pump/${deviceId}/${pumpId}/stop`
+      );
       return response.data;
     } catch (error) {
       throw this.handleError(error, "Failed to stop pump");
