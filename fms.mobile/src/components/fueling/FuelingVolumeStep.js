@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -28,9 +28,42 @@ const FuelingVolumeStep = ({
   onNotesChange,
   onNext,
   onBack,
+  // Fueling rules from validation step (contains maxFuelAllowed, limits, etc.)
+  fuelingRules = null,
+  // Legacy props - kept for backward compatibility but deprecated
+  enableFuelCapacityValidation = true,
+  enableGPSFuelLevelCheck = true,
 }) => {
   const [volumeError, setVolumeError] = useState("");
   const [odometerError, setOdometerError] = useState("");
+
+  // Extract limits from fueling rules (from effective rules API)
+  const maxFuelAllowed = useMemo(() => {
+    if (
+      fuelingRules?.maxFuelAllowed != null &&
+      fuelingRules.maxFuelAllowed > 0
+    ) {
+      return fuelingRules.maxFuelAllowed;
+    }
+    // Fallback to hard limit if maxFuelAllowed is 0 or not set
+    if (fuelingRules?.hardLimit != null && fuelingRules.hardLimit > 0) {
+      return fuelingRules.hardLimit;
+    }
+    // Ultimate fallback to tank capacity
+    return (
+      fuelingRules?.tankCapacity || selectedVehicle?.fuelTankCapacity || null
+    );
+  }, [fuelingRules, selectedVehicle]);
+
+  const limitingFactor = fuelingRules?.limitingFactor || null;
+  const tankCapacity =
+    fuelingRules?.tankCapacity || selectedVehicle?.fuelTankCapacity || null;
+  const currentFuelLevel = fuelingRules?.currentFuelLevel || null;
+  const hasGpsFuelSensor = fuelingRules?.hasGpsFuelSensor || false;
+  const hardLimit = fuelingRules?.hardLimit || null;
+  const dailyRemaining = fuelingRules?.dailyRemaining || null;
+  const monthlyRemaining = fuelingRules?.monthlyRemaining || null;
+  const perTransactionLimit = fuelingRules?.perTransactionLimit || null;
 
   // Check if the selected nozzle is currently up (lifted)
   // nozzleUp value from pump status indicates which nozzle is lifted (0 = none)
@@ -49,6 +82,7 @@ const FuelingVolumeStep = ({
       return false;
     }
 
+    // Check against source tank volume
     if (sourceTank && numValue > sourceTank.currentVolume) {
       setVolumeError(
         `Cannot exceed tank volume (${sourceTank.currentVolume.toLocaleString()} L)`
@@ -56,13 +90,18 @@ const FuelingVolumeStep = ({
       return false;
     }
 
-    if (
-      selectedVehicle?.tankCapacity &&
-      numValue > selectedVehicle.tankCapacity
-    ) {
-      setVolumeError(
-        `Exceeds vehicle tank capacity (${selectedVehicle.tankCapacity} L)`
-      );
+    // Check against max fuel allowed from rules (already calculated considering all limits)
+    if (maxFuelAllowed !== null && numValue > maxFuelAllowed) {
+      let errorMessage = `Exceeds maximum allowed (${maxFuelAllowed.toLocaleString()} L)`;
+
+      // Add context about the limiting factor
+      if (limitingFactor) {
+        errorMessage += ` - Limited by: ${limitingFactor}`;
+      } else if (hasGpsFuelSensor && currentFuelLevel != null) {
+        errorMessage += ` - Current fuel: ${currentFuelLevel.toFixed(0)} L`;
+      }
+
+      setVolumeError(errorMessage);
       return false;
     }
 
@@ -105,15 +144,56 @@ const FuelingVolumeStep = ({
   const canProceed =
     isNozzleUp && (volume || isFullTank) && !volumeError && !odometerError;
 
-  // Quick volume presets based on vehicle tank capacity
-  const getQuickVolumes = () => {
-    const tankCapacity = selectedVehicle?.tankCapacity || 200;
-    return [
-      { label: "25%", value: Math.round(tankCapacity * 0.25) },
-      { label: "50%", value: Math.round(tankCapacity * 0.5) },
-      { label: "75%", value: Math.round(tankCapacity * 0.75) },
-      { label: "Full", value: tankCapacity },
+  // Quick volume presets based on hard limit (available balance in tank)
+  const getQuickVolumes = useMemo(() => {
+    // Use hardLimit (available space in tank) for percentage-based quick selections
+    // This represents the actual balance/space available
+    const availableBalance = hardLimit || maxFuelAllowed || tankCapacity || 200;
+
+    // Always show as percentages of the available balance
+    const presets = [
+      { label: "25%", percentage: 0.25 },
+      { label: "50%", percentage: 0.5 },
+      { label: "75%", percentage: 0.75 },
+      { label: "100%", percentage: 1.0 },
     ];
+
+    return presets.map((preset) => ({
+      label: preset.label,
+      value: Math.round(availableBalance * preset.percentage),
+      percentage: preset.percentage,
+    }));
+  }, [hardLimit, maxFuelAllowed, tankCapacity]);
+
+  // Render fuel allowance info card - simplified version
+  const renderFuelAllowanceInfo = () => {
+    // Only show if there are soft limits remaining
+    const hasSoftLimits =
+      (dailyRemaining != null && dailyRemaining > 0) ||
+      (monthlyRemaining != null && monthlyRemaining > 0);
+
+    if (!hasSoftLimits) return null;
+
+    return (
+      <View style={styles.softLimitsCard}>
+        {dailyRemaining != null && dailyRemaining > 0 && (
+          <View style={styles.softLimitItem}>
+            <Text style={styles.softLimitLabel}>Daily Remaining</Text>
+            <Text style={styles.softLimitValue}>
+              {dailyRemaining.toLocaleString()} L
+            </Text>
+          </View>
+        )}
+        {monthlyRemaining != null && monthlyRemaining > 0 && (
+          <View style={styles.softLimitItem}>
+            <Text style={styles.softLimitLabel}>Monthly Remaining</Text>
+            <Text style={styles.softLimitValue}>
+              {monthlyRemaining.toLocaleString()} L
+            </Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -133,26 +213,24 @@ const FuelingVolumeStep = ({
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Vehicle Info Card */}
-        <View style={styles.vehicleCard}>
-          <View style={styles.vehicleCardHeader}>
-            <Icon name="truck" size={18} color="#2563eb" />
-            <Text style={styles.vehicleCardTitle}>Vehicle</Text>
-          </View>
-          <View style={styles.vehicleCardBody}>
-            <Text style={styles.vehicleNumber}>
+        {/* Fuel Allowance Info Card */}
+        {renderFuelAllowanceInfo()}
+
+        {/* Vehicle & Max Limit - Combined Simple Card */}
+        <View style={styles.vehicleMaxCard}>
+          <View style={styles.vehicleMaxLeft}>
+            <Icon name="truck" size={16} color="#2563eb" />
+            <Text style={styles.vehicleMaxName}>
               {selectedVehicle?.hyoungNo}
             </Text>
-            <View style={styles.vehicleDetails}>
-              <Text style={styles.vehicleDetailText}>
-                {selectedVehicle?.plateNo}
-              </Text>
-              {selectedVehicle?.tankCapacity ? (
-                <Text style={styles.vehicleDetailText}>
-                  Tank: {selectedVehicle.tankCapacity}L
-                </Text>
-              ) : null}
-            </View>
+          </View>
+          <View style={styles.vehicleMaxRight}>
+            <Text style={styles.vehicleMaxLabel}>Max:</Text>
+            <Text style={styles.vehicleMaxValue}>
+              {maxFuelAllowed != null
+                ? `${Math.round(maxFuelAllowed).toLocaleString()} L`
+                : "No Limit"}
+            </Text>
           </View>
         </View>
 
@@ -254,7 +332,7 @@ const FuelingVolumeStep = ({
 
             {/* Quick Volume Buttons */}
             <View style={styles.quickVolumeContainer}>
-              {getQuickVolumes().map((preset) => (
+              {getQuickVolumes.map((preset) => (
                 <TouchableOpacity
                   key={preset.label}
                   style={[
@@ -430,42 +508,52 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  vehicleCard: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-  },
-  vehicleCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  vehicleCardTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1e40af",
-    marginLeft: 8,
-    textTransform: "uppercase",
-  },
-  vehicleCardBody: {
+  // Simplified Vehicle + Max Limit Card
+  vehicleMaxCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
   },
-  vehicleNumber: {
-    fontSize: 18,
+  vehicleMaxLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  vehicleMaxName: {
+    fontSize: 16,
     fontWeight: "700",
     color: "#1e3a8a",
+    marginLeft: 10,
   },
-  vehicleDetails: {
-    alignItems: "flex-end",
+  vehicleMaxRight: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  vehicleDetailText: {
-    fontSize: 13,
-    color: "#3b82f6",
+  vehicleMaxLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginRight: 4,
+  },
+  vehicleMaxValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#10b981",
+  },
+  // Soft Limits Card (simplified)
+  softLimitsCard: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   fullTankCard: {
     flexDirection: "row",
@@ -742,6 +830,163 @@ const styles = StyleSheet.create({
     backgroundColor: "#fef3c7",
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Fuel Allowance Card Styles (replaces GPS Fuel Card)
+  fuelAllowanceCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    overflow: "hidden",
+  },
+  // Hard Limit Section Styles
+  hardLimitSection: {
+    backgroundColor: "#fef2f2",
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#fecaca",
+  },
+  hardLimitHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  hardLimitTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#991b1b",
+    marginLeft: 6,
+    textTransform: "uppercase",
+  },
+  hardLimitGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  hardLimitItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  hardLimitItemHighlight: {
+    backgroundColor: "#fee2e2",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+  },
+  gpsIndicator: {
+    position: "absolute",
+    top: -2,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#d1fae5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  hardLimitLabel: {
+    fontSize: 10,
+    color: "#7f1d1d",
+    marginBottom: 2,
+    textTransform: "uppercase",
+  },
+  hardLimitValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#991b1b",
+  },
+  hardLimitValueHighlight: {
+    color: "#dc2626",
+    fontSize: 18,
+  },
+  // Max Allowed Section Styles
+  maxAllowedSection: {
+    backgroundColor: "#f0fdf4",
+    padding: 14,
+  },
+  fuelAllowanceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  fuelAllowanceTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#166534",
+    marginLeft: 8,
+  },
+  maxFuelDisplay: {
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  maxFuelValue: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#10b981",
+  },
+  limitingFactorText: {
+    fontSize: 11,
+    color: "#6b7280",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  fuelGaugeSection: {
+    marginTop: 10,
+    paddingTop: 10,
+  },
+  fuelGaugeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  fuelGauge: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 4,
+    marginRight: 10,
+    overflow: "hidden",
+  },
+  fuelGaugeFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  fuelGaugeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1f2937",
+    minWidth: 50,
+    textAlign: "right",
+  },
+  fuelDetailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  fuelDetailLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  softLimitsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "#fafafa",
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  softLimitItem: {
+    alignItems: "center",
+  },
+  softLimitLabel: {
+    fontSize: 10,
+    color: "#6b7280",
+    marginBottom: 2,
+    textTransform: "uppercase",
+  },
+  softLimitValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#166534",
   },
 });
 

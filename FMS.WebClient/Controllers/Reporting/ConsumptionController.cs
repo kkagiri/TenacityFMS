@@ -338,18 +338,27 @@ namespace FMS.WebClient.Controllers
         [HttpGet("pumptransactions")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetPumpTransactions(
-            [FromQuery] int? vehicleId, [FromQuery] string? ptsId, [FromQuery] int? tankId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool? processedOnly)
+            [FromQuery] List<int>? vehicleId,
+            [FromQuery] List<string>? ptsId,
+            [FromQuery] List<int>? tankId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] bool? processedOnly,
+            [FromQuery] List<int>? siteId)
         {
             try
             {
+                // Support both single values (mobile) and arrays (web)
+                // ASP.NET Core automatically converts single query params to List with one item
                 var query = new FMS.Application.Features.TankManagement.PumpTransaction.GetPumpTransactionQuery
                 {
-                    VehicleId = vehicleId,
-                    PtsId = ptsId,
-                    TankId = tankId,
+                    VehicleIds = vehicleId?.Any() == true ? vehicleId : null,
+                    PtsIds = ptsId?.Any() == true ? ptsId : null,
+                    TankIds = tankId?.Any() == true ? tankId : null,
                     StartDate = startDate,
                     EndDate = endDate,
-                    ProcessedOnly = processedOnly
+                    ProcessedOnly = processedOnly,
+                    SiteIds = siteId?.Any() == true ? siteId : null
                 };
 
                 var result = await _mediator.Send(query);

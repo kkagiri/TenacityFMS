@@ -8,6 +8,10 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSelector, useDispatch } from "react-redux";
@@ -21,11 +25,30 @@ import {
 const normalizeTank = (tank) => {
   if (!tank) return null;
   return {
-    tankId: tank.tankId || tank.id || tank.probeId,
-    tankName: tank.tankName || tank.name || `Tank ${tank.id || tank.probeId}`,
-    productName: tank.productName || tank.ProductName || "Unknown",
-    capacity: tank.capacity || tank.tankCapacity || 50000,
-    currentVolume: tank.currentVolume || tank.volume || 0,
+    tankId: tank.tankId || tank.id || tank.Id || tank.probeId,
+    tankName:
+      tank.tankName ||
+      tank.name ||
+      tank.Name ||
+      `Tank ${tank.id || tank.probeId}`,
+    productName:
+      tank.productName ||
+      tank.ProductName ||
+      tank.fuelGradeName ||
+      tank.FuelGradeName ||
+      "Unknown",
+    capacity:
+      tank.capacity ||
+      tank.tankCapacity ||
+      tank.TankVolume ||
+      tank.tankVolume ||
+      50000,
+    currentVolume:
+      tank.currentVolume ||
+      tank.volume ||
+      tank.CurrentStock ||
+      tank.currentStock ||
+      0,
     siteName: tank.siteName || tank.SiteName || "Current Site",
     ...tank,
   };
@@ -187,277 +210,278 @@ const TransferDetailsStep = ({
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.stepTitle}>Tank Transfer</Text>
-        <Text style={styles.stepDescription}>
-          {destinationTank
-            ? "Confirm transfer details"
-            : "Select destination tank"}
-        </Text>
-      </View>
-
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.content}
-      >
-        {/* Source Tank Card */}
-        <View style={styles.sourceTankCard}>
-          <View style={styles.transferDirectionLabel}>
-            <View style={styles.directionIconFrom}>
-              <Icon name="arrow-up" size={12} color="white" />
-            </View>
-            <Text style={styles.directionText}>FROM</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.innerContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.stepTitle}>Tank Transfer</Text>
+            <Text style={styles.stepDescription}>
+              {destinationTank
+                ? "Confirm transfer details"
+                : "Select destination tank"}
+            </Text>
           </View>
 
-          <View style={styles.tankSummary}>
-            <View style={styles.tankSummaryIcon}>
-              <Icon name="database" size={24} color="#ef4444" />
-            </View>
-            <View style={styles.tankSummaryInfo}>
-              <Text style={styles.tankSummaryName}>
-                {normalizedSource?.tankName || "No tank selected"}
-              </Text>
-              <Text style={styles.tankSummaryDetail}>
-                {normalizedSource?.productName || "Unknown"} •{" "}
-                {normalizedSource?.currentVolume?.toLocaleString() || 0} L
-                available
-              </Text>
-            </View>
-          </View>
-        </View>
+          <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Source Tank Card */}
+            <View style={styles.sourceTankCard}>
+              <View style={styles.transferDirectionLabel}>
+                <View style={styles.directionIconFrom}>
+                  <Icon name="arrow-up" size={12} color="white" />
+                </View>
+                <Text style={styles.directionText}>FROM</Text>
+              </View>
 
-        {/* Transfer Arrow */}
-        <View style={styles.transferArrow}>
-          <View style={styles.transferArrowLine} />
-          <View style={styles.transferArrowIcon}>
-            <Icon name="arrow-down" size={16} color="#6b7280" />
-          </View>
-          <View style={styles.transferArrowLine} />
-        </View>
-
-        {/* Destination Tank Section */}
-        <View style={styles.destinationSection}>
-          <View style={styles.transferDirectionLabel}>
-            <View style={styles.directionIconTo}>
-              <Icon name="arrow-down" size={12} color="white" />
-            </View>
-            <Text style={styles.directionText}>TO</Text>
-          </View>
-
-          {destinationTank && !showDestinationPicker ? (
-            // Selected destination display
-            <View style={styles.selectedDestinationCard}>
               <View style={styles.tankSummary}>
-                <View
-                  style={[
-                    styles.tankSummaryIcon,
-                    { backgroundColor: "#ecfdf5" },
-                  ]}
-                >
-                  <Icon name="database" size={24} color="#10b981" />
+                <View style={styles.tankSummaryIcon}>
+                  <Icon name="database" size={24} color="#ef4444" />
                 </View>
                 <View style={styles.tankSummaryInfo}>
                   <Text style={styles.tankSummaryName}>
-                    {destinationTank.tankName}
+                    {normalizedSource?.tankName || "No tank selected"}
                   </Text>
                   <Text style={styles.tankSummaryDetail}>
-                    {destinationTank.productName} •{" "}
-                    {(
-                      destinationTank.capacity - destinationTank.currentVolume
-                    ).toLocaleString()}{" "}
-                    L available
+                    {normalizedSource?.productName || "Unknown"} •{" "}
+                    {normalizedSource?.currentVolume?.toLocaleString() || 0} L
+                    available
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity
-                style={styles.changeButton}
-                onPress={() => setShowDestinationPicker(true)}
-              >
-                <Icon name="exchange-alt" size={14} color="#6b7280" />
-                <Text style={styles.changeButtonText}>Change</Text>
-              </TouchableOpacity>
             </View>
-          ) : (
-            // Destination picker list
-            <View style={styles.destinationPickerContainer}>
-              <Text style={styles.pickerTitle}>
-                Select destination tank ({availableDestinations.length}{" "}
-                available)
-              </Text>
-              {isLoadingTanks ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#6366f1" />
-                  <Text style={styles.loadingText}>Loading tanks...</Text>
+
+            {/* Transfer Arrow */}
+            <View style={styles.transferArrow}>
+              <View style={styles.transferArrowLine} />
+              <View style={styles.transferArrowIcon}>
+                <Icon name="arrow-down" size={16} color="#6b7280" />
+              </View>
+              <View style={styles.transferArrowLine} />
+            </View>
+
+            {/* Destination Tank Section */}
+            <View style={styles.destinationSection}>
+              <View style={styles.transferDirectionLabel}>
+                <View style={styles.directionIconTo}>
+                  <Icon name="arrow-down" size={12} color="white" />
                 </View>
-              ) : availableDestinations.length === 0 ? (
-                <View style={styles.noTanksContainer}>
-                  <Icon name="exclamation-circle" size={24} color="#f59e0b" />
-                  <Text style={styles.noTanksText}>
-                    No compatible tanks available for transfer
-                  </Text>
+                <Text style={styles.directionText}>TO</Text>
+              </View>
+
+              {destinationTank && !showDestinationPicker ? (
+                // Selected destination display
+                <View style={styles.selectedDestinationCard}>
+                  <View style={styles.tankSummary}>
+                    <View
+                      style={[
+                        styles.tankSummaryIcon,
+                        { backgroundColor: "#ecfdf5" },
+                      ]}
+                    >
+                      <Icon name="database" size={24} color="#10b981" />
+                    </View>
+                    <View style={styles.tankSummaryInfo}>
+                      <Text style={styles.tankSummaryName}>
+                        {destinationTank.tankName}
+                      </Text>
+                      <Text style={styles.tankSummaryDetail}>
+                        {destinationTank.productName} •{" "}
+                        {(
+                          destinationTank.capacity -
+                          destinationTank.currentVolume
+                        ).toLocaleString()}{" "}
+                        L available
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.changeButton}
+                    onPress={() => setShowDestinationPicker(true)}
+                  >
+                    <Icon name="exchange-alt" size={14} color="#6b7280" />
+                    <Text style={styles.changeButtonText}>Change</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
-                <FlatList
-                  data={availableDestinations}
-                  keyExtractor={(item) =>
-                    (item.tankId || item.id || item.probeId).toString()
-                  }
-                  renderItem={renderDestinationTank}
-                  scrollEnabled={false}
-                />
+                // Destination picker list
+                <View style={styles.destinationPickerContainer}>
+                  <Text style={styles.pickerTitle}>
+                    Select destination tank ({availableDestinations.length}{" "}
+                    available)
+                  </Text>
+                  {isLoadingTanks ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color="#6366f1" />
+                      <Text style={styles.loadingText}>Loading tanks...</Text>
+                    </View>
+                  ) : availableDestinations.length === 0 ? (
+                    <View style={styles.noTanksContainer}>
+                      <Icon
+                        name="exclamation-circle"
+                        size={24}
+                        color="#f59e0b"
+                      />
+                      <Text style={styles.noTanksText}>
+                        No compatible tanks available for transfer
+                      </Text>
+                    </View>
+                  ) : (
+                    <FlatList
+                      data={availableDestinations}
+                      keyExtractor={(item) =>
+                        (item.tankId || item.id || item.probeId).toString()
+                      }
+                      renderItem={renderDestinationTank}
+                      scrollEnabled={false}
+                    />
+                  )}
+                </View>
               )}
             </View>
-          )}
-        </View>
 
-        {/* Volume and Reason Input */}
-        {destinationTank && !showDestinationPicker && (
-          <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Transfer Details</Text>
+            {/* Volume and Reason Input */}
+            {destinationTank && !showDestinationPicker && (
+              <View style={styles.inputSection}>
+                <Text style={styles.sectionTitle}>Transfer Details</Text>
 
-            {/* Volume Input */}
-            <View style={styles.inputGroup}>
-              <View style={styles.inputHeader}>
-                <View style={styles.inputLabelContainer}>
-                  <Icon name="tint" size={14} color="#6366f1" />
-                  <Text style={styles.inputLabel}>Volume (Liters)</Text>
+                {/* Volume Input */}
+                <View style={styles.inputGroup}>
+                  <View style={styles.inputHeader}>
+                    <View style={styles.inputLabelContainer}>
+                      <Icon name="tint" size={14} color="#6366f1" />
+                      <Text style={styles.inputLabel}>Volume (Liters)</Text>
+                    </View>
+                    <Text style={styles.maxVolumeHint}>
+                      Max: {maxTransferVolume.toLocaleString()} L
+                    </Text>
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter volume to transfer"
+                    placeholderTextColor="#9ca3af"
+                    value={transferVolume}
+                    onChangeText={onVolumeChange}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    blurOnSubmit={true}
+                  />
                 </View>
-                <Text style={styles.maxVolumeHint}>
-                  Max: {maxTransferVolume.toLocaleString()} L
-                </Text>
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter volume to transfer"
-                placeholderTextColor="#9ca3af"
-                value={transferVolume}
-                onChangeText={onVolumeChange}
-                keyboardType="numeric"
-              />
-            </View>
 
-            {/* Reason Input */}
-            <View style={styles.inputGroup}>
-              <View style={styles.inputLabelContainer}>
-                <Icon name="clipboard" size={14} color="#6366f1" />
-                <Text style={styles.inputLabel}>Reason (Optional)</Text>
-              </View>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Enter reason for transfer"
-                placeholderTextColor="#9ca3af"
-                value={transferReason}
-                onChangeText={onReasonChange}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
+                {/* Transfer Summary */}
+                {transferVolume && parseFloat(transferVolume) > 0 && (
+                  <View style={styles.summaryCard}>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Transfer Volume:</Text>
+                      <Text style={styles.summaryValue}>
+                        {parseFloat(transferVolume).toLocaleString()} L
+                      </Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Product:</Text>
+                      <Text style={styles.summaryValue}>
+                        {normalizedSource?.productName}
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
-            {/* Transfer Summary */}
-            {transferVolume && parseFloat(transferVolume) > 0 && (
-              <View style={styles.summaryCard}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Transfer Volume:</Text>
-                  <Text style={styles.summaryValue}>
-                    {parseFloat(transferVolume).toLocaleString()} L
-                  </Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Product:</Text>
-                  <Text style={styles.summaryValue}>
-                    {normalizedSource?.productName}
-                  </Text>
+                {/* Nozzle Status Card */}
+                <View
+                  style={[
+                    styles.nozzleStatusCard,
+                    isNozzleUp
+                      ? styles.nozzleStatusReady
+                      : styles.nozzleStatusWaiting,
+                  ]}
+                >
+                  <View style={styles.nozzleStatusContent}>
+                    <View
+                      style={[
+                        styles.nozzleStatusIcon,
+                        isNozzleUp
+                          ? styles.nozzleStatusIconReady
+                          : styles.nozzleStatusIconWaiting,
+                      ]}
+                    >
+                      <Icon
+                        name={isNozzleUp ? "check-circle" : "hand-paper"}
+                        size={20}
+                        color={isNozzleUp ? "#10b981" : "#f59e0b"}
+                      />
+                    </View>
+                    <View style={styles.nozzleStatusText}>
+                      <Text
+                        style={[
+                          styles.nozzleStatusTitle,
+                          isNozzleUp
+                            ? styles.nozzleStatusTitleReady
+                            : styles.nozzleStatusTitleWaiting,
+                        ]}
+                      >
+                        {isNozzleUp
+                          ? "Nozzle Ready"
+                          : "Lift Nozzle to Continue"}
+                      </Text>
+                      <Text style={styles.nozzleStatusSubtitle}>
+                        Pump {selectedPump?.id || "-"} • Nozzle{" "}
+                        {selectedNozzle?.id || "-"}
+                        {!isNozzleUp ? " (Currently down)" : ""}
+                      </Text>
+                    </View>
+                  </View>
+                  {!isNozzleUp ? (
+                    <View style={styles.nozzleStatusPulse}>
+                      <Icon name="sync" size={16} color="#f59e0b" />
+                    </View>
+                  ) : null}
                 </View>
               </View>
             )}
+          </ScrollView>
 
-            {/* Nozzle Status Card */}
-            <View
-              style={[
-                styles.nozzleStatusCard,
-                isNozzleUp
-                  ? styles.nozzleStatusReady
-                  : styles.nozzleStatusWaiting,
-              ]}
-            >
-              <View style={styles.nozzleStatusContent}>
-                <View
+          {/* Action Buttons */}
+          <View style={styles.actionContainer}>
+            <TouchableOpacity style={styles.backButton} onPress={onBack}>
+              <Icon name="arrow-left" size={16} color="#6b7280" />
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            {destinationTank && !showDestinationPicker && (
+              <TouchableOpacity
+                style={[
+                  styles.nextButton,
+                  !isFormValid && styles.nextButtonDisabled,
+                ]}
+                onPress={handleConfirm}
+                disabled={!isFormValid}
+              >
+                <Text
                   style={[
-                    styles.nozzleStatusIcon,
-                    isNozzleUp
-                      ? styles.nozzleStatusIconReady
-                      : styles.nozzleStatusIconWaiting,
+                    styles.nextButtonText,
+                    !isFormValid && styles.nextButtonTextDisabled,
                   ]}
                 >
-                  <Icon
-                    name={isNozzleUp ? "check-circle" : "hand-paper"}
-                    size={20}
-                    color={isNozzleUp ? "#10b981" : "#f59e0b"}
-                  />
-                </View>
-                <View style={styles.nozzleStatusText}>
-                  <Text
-                    style={[
-                      styles.nozzleStatusTitle,
-                      isNozzleUp
-                        ? styles.nozzleStatusTitleReady
-                        : styles.nozzleStatusTitleWaiting,
-                    ]}
-                  >
-                    {isNozzleUp ? "Nozzle Ready" : "Lift Nozzle to Continue"}
-                  </Text>
-                  <Text style={styles.nozzleStatusSubtitle}>
-                    Pump {selectedPump?.id || "-"} • Nozzle{" "}
-                    {selectedNozzle?.id || "-"}
-                    {!isNozzleUp ? " (Currently down)" : ""}
-                  </Text>
-                </View>
-              </View>
-              {!isNozzleUp ? (
-                <View style={styles.nozzleStatusPulse}>
-                  <Icon name="sync" size={16} color="#f59e0b" />
-                </View>
-              ) : null}
-            </View>
+                  Continue
+                </Text>
+                <Icon
+                  name="arrow-right"
+                  size={16}
+                  color={isFormValid ? "white" : "#9ca3af"}
+                />
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-      </ScrollView>
-
-      {/* Action Buttons */}
-      <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Icon name="arrow-left" size={16} color="#6b7280" />
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-
-        {destinationTank && !showDestinationPicker && (
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              !isFormValid && styles.nextButtonDisabled,
-            ]}
-            onPress={handleConfirm}
-            disabled={!isFormValid}
-          >
-            <Text
-              style={[
-                styles.nextButtonText,
-                !isFormValid && styles.nextButtonTextDisabled,
-              ]}
-            >
-              Continue
-            </Text>
-            <Icon
-              name="arrow-right"
-              size={16}
-              color={isFormValid ? "white" : "#9ca3af"}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -465,6 +489,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+  },
+  innerContainer: {
+    flex: 1,
   },
   header: {
     padding: 20,

@@ -1,9 +1,10 @@
 import React from "react";
 import { Form, SimpleItem, GroupItem, Label } from "devextreme-react/form";
 import { Button } from "devextreme-react/button";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import notify from "devextreme/ui/notify";
 import { updatePTSDevice } from "../../../../redux/actions/ptsActions/ptsDeviceActions";
+import { fetchSiteList } from "../../../../redux/actions/siteActions";
 import "./PTSDeviceEditForm.scss";
 
 /**
@@ -12,11 +13,27 @@ import "./PTSDeviceEditForm.scss";
  */
 const PTSDeviceEditForm = ({ device, onSave }) => {
   const dispatch = useDispatch();
-  const [formData, setFormData] = React.useState(device);
+  const { sites } = useSelector((state) => state.site);
+
+  // Ensure sites array is available for the SelectBox
+  const sitesDataSource = Array.isArray(sites) ? sites : [];
+
+  // Deep clone the device to avoid mutating Redux state
+  const [formData, setFormData] = React.useState(() =>
+    device ? JSON.parse(JSON.stringify(device)) : {}
+  );
   const [saving, setSaving] = React.useState(false);
 
+  // Fetch sites on mount
   React.useEffect(() => {
-    setFormData(device);
+    dispatch(fetchSiteList());
+  }, [dispatch]);
+
+  React.useEffect(() => {
+    // Deep clone when device prop changes to avoid Redux state mutation
+    if (device) {
+      setFormData(JSON.parse(JSON.stringify(device)));
+    }
   }, [device]);
 
   const handleFieldChange = (e) => {
@@ -29,7 +46,11 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
       dataField === "isAuthenticated" ||
       dataField === "webSocketCapable" ||
       dataField === "allowedForDirectCommands" ||
-      dataField === "autoAssignUserMasterTag"
+      dataField === "autoAssignUserMasterTag" ||
+      dataField === "enableLocationValidation" ||
+      dataField === "requireVehicleProximity" ||
+      dataField === "requireMobileAppProximity" ||
+      dataField === "bypassOnGPSFailure"
     ) {
       value = value ? 1 : 0;
     }
@@ -43,7 +64,40 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await dispatch(updatePTSDevice(device.ptsid, formData));
+      // Convert boolean fields to sbyte (0 or 1) before sending to API
+      const booleanFields = [
+        "isActive",
+        "isAuthenticated",
+        "webSocketCapable",
+        "allowedForDirectCommands",
+        "autoAssignUserMasterTag",
+        "enableLocationValidation",
+        "requireVehicleProximity",
+        "requireMobileAppProximity",
+        "bypassOnGPSFailure",
+      ];
+
+      const dataToSend = { ...formData };
+      booleanFields.forEach((field) => {
+        if (dataToSend[field] === true) {
+          dataToSend[field] = 1;
+        } else if (dataToSend[field] === false) {
+          dataToSend[field] = 0;
+        }
+      });
+
+      // Remove navigation properties that shouldn't be sent
+      delete dataToSend.configuration;
+      delete dataToSend.intankdeliveries;
+      delete dataToSend.ptsDevicePendingCommands;
+      delete dataToSend.pumptransactions;
+      delete dataToSend.tanks;
+      delete dataToSend.deviceConnections;
+      delete dataToSend.siteNavigation;
+      delete dataToSend.notifications;
+      delete dataToSend.notificationPolicies;
+
+      await dispatch(updatePTSDevice(device.ptsid, dataToSend));
       notify("Device settings updated successfully", "success", 3000);
       if (onSave) onSave();
     } catch (error) {
@@ -54,7 +108,10 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
   };
 
   const handleReset = () => {
-    setFormData(device);
+    // Deep clone to avoid Redux state mutation
+    if (device) {
+      setFormData(JSON.parse(JSON.stringify(device)));
+    }
     notify("Changes reset", "info", 2000);
   };
 
@@ -77,6 +134,10 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
           <Label text="PTS ID" />
         </SimpleItem>
 
+        <SimpleItem dataField="ptsName" editorType="dxTextBox">
+          <Label text="PTS Name" />
+        </SimpleItem>
+
         <SimpleItem dataField="ipaddress" editorType="dxTextBox">
           <Label text="IP Address" />
         </SimpleItem>
@@ -85,8 +146,19 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
           <Label text="Port Number" />
         </SimpleItem>
 
-        <SimpleItem dataField="site" editorType="dxNumberBox">
-          <Label text="Site ID" />
+        <SimpleItem
+          dataField="site"
+          editorType="dxSelectBox"
+          editorOptions={{
+            dataSource: sitesDataSource,
+            displayExpr: "name",
+            valueExpr: "id",
+            placeholder: "Select Site",
+            searchEnabled: true,
+            showClearButton: true,
+          }}
+        >
+          <Label text="Site" />
         </SimpleItem>
 
         <SimpleItem dataField="login" editorType="dxTextBox">
@@ -168,6 +240,107 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               value: formData.autoAssignUserMasterTag === 1,
             }}
           />
+        </GroupItem>
+
+        {/* Location Validation Settings */}
+        <GroupItem colSpan={2} caption="Location Validation Settings">
+          <GroupItem colCount={2}>
+            <SimpleItem
+              dataField="enableLocationValidation"
+              editorType="dxCheckBox"
+              editorOptions={{
+                text: "Enable Location Validation",
+                value: formData.enableLocationValidation === 1,
+              }}
+            />
+
+            <SimpleItem
+              dataField="bypassOnGPSFailure"
+              editorType="dxCheckBox"
+              editorOptions={{
+                text: "Bypass on GPS Failure",
+                value: formData.bypassOnGPSFailure === 1,
+              }}
+            />
+          </GroupItem>
+
+          <GroupItem colCount={2}>
+            <SimpleItem
+              dataField="requireVehicleProximity"
+              editorType="dxCheckBox"
+              editorOptions={{
+                text: "Require Vehicle Proximity",
+                value: formData.requireVehicleProximity === 1,
+              }}
+            />
+
+            <SimpleItem
+              dataField="vehicleProximityRadius"
+              editorType="dxNumberBox"
+              editorOptions={{
+                min: 10,
+                max: 1000,
+                showSpinButtons: true,
+                format: "#0 meters",
+              }}
+            >
+              <Label text="Vehicle Proximity Radius (m)" />
+            </SimpleItem>
+          </GroupItem>
+
+          <GroupItem colCount={2}>
+            <SimpleItem
+              dataField="requireMobileAppProximity"
+              editorType="dxCheckBox"
+              editorOptions={{
+                text: "Require Mobile App Proximity",
+                value: formData.requireMobileAppProximity === 1,
+              }}
+            />
+
+            <SimpleItem
+              dataField="mobileAppProximityRadius"
+              editorType="dxNumberBox"
+              editorOptions={{
+                min: 5,
+                max: 500,
+                showSpinButtons: true,
+                format: "#0 meters",
+              }}
+            >
+              <Label text="Mobile App Proximity Radius (m)" />
+            </SimpleItem>
+          </GroupItem>
+
+          <GroupItem colCount={2}>
+            <SimpleItem
+              dataField="minimumGPSAccuracy"
+              editorType="dxNumberBox"
+              editorOptions={{
+                min: 1,
+                max: 100,
+                showSpinButtons: true,
+                format: "#0 meters",
+                placeholder: "Default: 20m",
+              }}
+            >
+              <Label text="Minimum GPS Accuracy (m)" />
+            </SimpleItem>
+
+            <SimpleItem
+              dataField="proximityGracePeriodMeters"
+              editorType="dxNumberBox"
+              editorOptions={{
+                min: 0,
+                max: 50,
+                showSpinButtons: true,
+                format: "#0 meters",
+                placeholder: "Default: 10m",
+              }}
+            >
+              <Label text="Grace Period Tolerance (m)" />
+            </SimpleItem>
+          </GroupItem>
         </GroupItem>
 
         <GroupItem colSpan={2}>

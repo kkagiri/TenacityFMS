@@ -31,8 +31,8 @@ import signalRService, { ConnectionState } from "../../services/signalRService";
 import fuelingNotificationService from "../../services/fuelingNotificationService";
 import {
   stopPump,
-  completePump,
   cancelTransaction,
+  selectFuelingContext,
 } from "../../redux/slices/fuelingSlice";
 
 // Transaction status enum
@@ -84,7 +84,6 @@ const TransactionMonitoringModal = ({
   const [status, setStatus] = useState(
     isExternalFueling ? TransactionStatus.FUELING : TransactionStatus.AUTHORIZED
   );
-  const [flowRate, setFlowRate] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -101,6 +100,9 @@ const TransactionMonitoringModal = ({
   const deviceStatus = useSelector(
     (state) => state.fueling?.deviceStatuses?.[deviceId]
   );
+
+  // Enhanced: Get fueling context from Redux (includes mode, vehicle, tank, fueled by)
+  const fuelingContext = useSelector(selectFuelingContext(deviceId, pumpId));
 
   // Add to status history
   const addStatusHistory = useCallback(
@@ -415,7 +417,6 @@ const TransactionMonitoringModal = ({
 
       if (data.volume !== undefined) setVolume(data.volume);
       if (data.amount !== undefined) setAmount(data.amount);
-      if (data.flowRate !== undefined) setFlowRate(data.flowRate);
 
       if (data.status) {
         setStatus(data.status.toLowerCase());
@@ -838,63 +839,55 @@ const TransactionMonitoringModal = ({
   };
 
   // Handle manual complete (for EOT scenarios)
+  // NOTE: The backend auto-completes transactions via AutoTransactionCompletionService when EOT is detected.
+  // This button is for the user to acknowledge completion and close the monitoring modal.
+  // We don't need to call a backend API - the transaction is already saved.
   const handleComplete = async () => {
-    setIsLoading(true);
-    addStatusHistory("Completing transaction...");
-    try {
-      await dispatch(
-        completePump({ deviceId, pumpId, transactionId })
-      ).unwrap();
-      setStatus(TransactionStatus.COMPLETED);
-      addStatusHistory("Transaction completed");
-      // Auto-close after a short delay
-      setTimeout(() => {
-        onComplete(transactionId);
-      }, 1500);
-    } catch (error) {
-      console.error("[TransactionMonitoringModal] Complete error:", error);
-      addStatusHistory(`Complete failed: ${error.message || error}`);
-      Alert.alert(
-        "Error",
-        "Failed to complete transaction: " + (error.message || error)
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    console.log(
+      "[TransactionMonitoringModal] User acknowledged transaction completion - Transaction:",
+      transactionId
+    );
+    addStatusHistory("Transaction acknowledged as complete");
+    setStatus(TransactionStatus.COMPLETED);
+
+    // Auto-close after a short delay to show completion status
+    setTimeout(() => {
+      onComplete(transactionId);
+    }, 1500);
   };
 
-  // Handle cancel transaction
+  // Handle cancel transaction (stop pump before fueling starts)
   const handleCancelTransaction = () => {
     Alert.alert(
-      "Cancel Transaction",
-      "Are you sure you want to cancel this authorization?",
+      "Stop Pump",
+      "Are you sure you want to stop this pump and cancel the authorization?",
       [
         { text: "No", style: "cancel" },
         {
-          text: "Yes, Cancel",
+          text: "Yes, Stop",
           style: "destructive",
           onPress: async () => {
             setIsLoading(true);
-            addStatusHistory("Cancelling transaction...");
+            addStatusHistory("Stopping pump...");
             try {
               await dispatch(
                 cancelTransaction({
                   deviceId,
                   transactionId,
-                  reason: "User cancelled",
+                  reason: "User stopped pump",
                 })
               ).unwrap();
-              addStatusHistory("Transaction cancelled");
+              addStatusHistory("Pump stopped");
               onCancel();
             } catch (error) {
               console.error(
-                "[TransactionMonitoringModal] Cancel error:",
+                "[TransactionMonitoringModal] Stop pump error:",
                 error
               );
-              addStatusHistory(`Cancel failed: ${error.message || error}`);
+              addStatusHistory(`Stop failed: ${error.message || error}`);
               Alert.alert(
                 "Error",
-                "Failed to cancel: " + (error.message || error)
+                "Failed to stop pump: " + (error.message || error)
               );
             } finally {
               setIsLoading(false);
@@ -1114,10 +1107,24 @@ const TransactionMonitoringModal = ({
                 </Text>
               </View>
               <View style={styles.detailItem}>
-                <Icon name="tachometer-alt" size={16} color="#6b7280" />
-                <Text style={styles.detailLabel}>Flow Rate</Text>
-                <Text style={styles.detailValue}>
-                  {flowRate.toFixed(1)} L/min
+                <Icon
+                  name={
+                    fuelingContext?.mode === "Transfer" ? "exchange-alt" : "car"
+                  }
+                  size={16}
+                  color={
+                    fuelingContext?.mode === "Transfer" ? "#8b5cf6" : "#6b7280"
+                  }
+                />
+                <Text style={styles.detailLabel}>Mode</Text>
+                <Text
+                  style={[
+                    styles.detailValue,
+                    fuelingContext?.mode === "Transfer" &&
+                      styles.transferModeText,
+                  ]}
+                >
+                  {fuelingContext?.mode || "Vehicle"}
                 </Text>
               </View>
             </View>
@@ -1134,14 +1141,43 @@ const TransactionMonitoringModal = ({
               </View>
             </View>
 
-            {/* Vehicle Info */}
-            {vehicleInfo && (
+            {/* Enhanced: Vehicle Info from fueling context or props */}
+            {(fuelingContext?.vehicleName || vehicleInfo) && (
               <View style={styles.detailRow}>
                 <View style={styles.detailItem}>
                   <Icon name="car" size={16} color="#6b7280" />
                   <Text style={styles.detailLabel}>Vehicle</Text>
                   <Text style={styles.detailValue}>
-                    {vehicleInfo.plateNo || vehicleInfo.hyoungNo}
+                    {fuelingContext?.vehicleName ||
+                      vehicleInfo?.plateNo ||
+                      vehicleInfo?.hyoungNo}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Enhanced: Tank Info for transfer mode */}
+            {fuelingContext?.mode === "Transfer" &&
+              fuelingContext?.tankName && (
+                <View style={styles.detailRow}>
+                  <View style={styles.detailItem}>
+                    <Icon name="database" size={16} color="#8b5cf6" />
+                    <Text style={styles.detailLabel}>Target Tank</Text>
+                    <Text style={styles.detailValue}>
+                      {fuelingContext.tankName}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+            {/* Enhanced: Fueled By info */}
+            {fuelingContext?.fueledByUserName && (
+              <View style={styles.detailRow}>
+                <View style={styles.detailItem}>
+                  <Icon name="user" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Fueled By</Text>
+                  <Text style={styles.detailValue}>
+                    {fuelingContext.fueledByUserName}
                   </Text>
                 </View>
               </View>
@@ -1241,17 +1277,6 @@ const TransactionMonitoringModal = ({
                   >
                     <Icon name="check" size={20} color="white" />
                     <Text style={styles.actionText}>Done</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Cancel button - show when can cancel */}
-                {canCancel() && (
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.cancelButton]}
-                    onPress={handleCancelTransaction}
-                  >
-                    <Icon name="times" size={20} color="white" />
-                    <Text style={styles.actionText}>Cancel Authorization</Text>
                   </TouchableOpacity>
                 )}
 
@@ -1550,6 +1575,10 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 14,
     marginLeft: 10,
+  },
+  transferModeText: {
+    color: "#8b5cf6",
+    fontWeight: "600",
   },
   minimizeButton: {
     flexDirection: "row",

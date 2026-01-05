@@ -24,19 +24,20 @@ const RULE_TYPES = [
     id: "DailyMonthlyLimitRule",
     name: "Daily/Monthly Limits",
     icon: "fa-light fa-gauge-high",
-    description: "Set fuel volume limits per day, month, or transaction"
+    description: "Set fuel volume limits per day, month, or transaction",
   },
   {
     id: "NoOfRefillRule",
     name: "Refill Count Limits",
     icon: "fa-light fa-hashtag",
-    description: "Control how many times a vehicle can refuel within a time period"
+    description:
+      "Control how many times a vehicle can refuel within a time period",
   },
   {
     id: "TimeWindowRule",
     name: "Time Window Restrictions",
     icon: "fa-light fa-clock",
-    description: "Restrict fueling to specific hours and days of the week"
+    description: "Restrict fueling to specific hours and days of the week",
   },
 ];
 
@@ -57,31 +58,40 @@ const DailyMonthlyForm = ({ formData, onFieldChange, validationErrors }) => {
     <div className="rule-form-wrapper" ref={formRef}>
       <div className="rule-form-info tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-mb-4">
         <div className="tw-flex tw-items-start tw-gap-2">
-          <i className="fa-light fa-info-circle tw-text-blue-500 tw-text-lg tw-mt-1"></i>
+          <span className="tw-text-blue-500 tw-text-lg tw-mt-1">
+            <i className="fa-light fa-info-circle"></i>
+          </span>
           <div>
             <h5 className="tw-text-sm tw-font-semibold tw-text-blue-700 tw-m-0 tw-mb-1">
               Daily/Monthly Fuel Limits
             </h5>
             <p className="tw-text-xs tw-text-blue-600 tw-m-0">
-              These limits control how much fuel can be dispensed per day, month, and per transaction.
-              Set limits to 0 to disable specific restrictions.
+              These limits control how much fuel can be dispensed per day,
+              month, and per transaction. Set limits to 0 to disable specific
+              restrictions.
             </p>
           </div>
         </div>
       </div>
 
       <Form
-        key={`daily-monthly-${formData.ruleId ?? 'new'}-${formData.ruleSetId ?? 'unset'}`}
+        key={`daily-monthly-${formData.ruleId ?? "new"}-${
+          formData.ruleSetId ?? "unset"
+        }`}
         formData={formData}
         labelLocation="top"
         showColonAfterLabel={true}
+        onFieldDataChanged={(e) => {
+          if (e.dataField) {
+            onFieldChange("dailyMonthly", e.dataField, e.value);
+          }
+        }}
       >
         <SimpleItem
           dataField="ruleName"
           label={{ text: "Rule Name" }}
           editorOptions={{
             placeholder: "e.g., Standard Vehicle Limits",
-            onValueChanged: (e) => onFieldChange("dailyMonthly", "ruleName", e.value),
           }}
           isRequired={true}
           validationError={validationErrors.dailyMonthlyRuleName}
@@ -96,14 +106,10 @@ const DailyMonthlyForm = ({ formData, onFieldChange, validationErrors }) => {
               min: 0,
               showSpinButtons: true,
               placeholder: "Maximum liters per day",
-              onValueChanged: (e) => onFieldChange("dailyMonthly", "dailyLimit", e.value),
             }}
             validationError={validationErrors.dailyLimit}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Total fuel allowed per day
-            </span>
-          </SimpleItem>
+            helpText="Total fuel allowed per day"
+          />
 
           <SimpleItem
             dataField="monthlyLimit"
@@ -113,14 +119,10 @@ const DailyMonthlyForm = ({ formData, onFieldChange, validationErrors }) => {
               min: 0,
               showSpinButtons: true,
               placeholder: "Maximum liters per month",
-              onValueChanged: (e) => onFieldChange("dailyMonthly", "monthlyLimit", e.value),
             }}
             validationError={validationErrors.monthlyLimit}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Total fuel allowed per calendar month
-            </span>
-          </SimpleItem>
+            helpText="Total fuel allowed per calendar month"
+          />
 
           <SimpleItem
             dataField="fuelingLimit"
@@ -130,27 +132,46 @@ const DailyMonthlyForm = ({ formData, onFieldChange, validationErrors }) => {
               min: 0,
               showSpinButtons: true,
               placeholder: "Maximum liters per transaction",
-              onValueChanged: (e) => onFieldChange("dailyMonthly", "fuelingLimit", e.value),
             }}
             validationError={validationErrors.fuelingLimit}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Maximum fuel allowed in a single refueling session
-            </span>
-          </SimpleItem>
+            helpText="Maximum fuel allowed in a single refueling session"
+          />
         </GroupItem>
-
-        <SimpleItem
-          dataField="isActive"
-          label={{ text: "Rule Status" }}
-          editorType="dxSwitch"
-          editorOptions={{
-            switchedOnText: "Active",
-            switchedOffText: "Inactive",
-            onValueChanged: (e) => onFieldChange("dailyMonthly", "isActive", e.value),
-          }}
-        />
       </Form>
+
+      {/* Native Toggle for Rule Status - outside Form to avoid infinite loop */}
+      <div className="tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
+        <label className="tw-flex tw-items-center tw-justify-between tw-cursor-pointer">
+          <span className="tw-text-sm tw-font-medium tw-text-gray-700">
+            Rule Status
+          </span>
+          <div className="tw-relative">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) =>
+                onFieldChange("dailyMonthly", "isActive", e.target.checked)
+              }
+              className="tw-sr-only"
+            />
+            <div
+              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${
+                formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
+              }`}
+            ></div>
+            <div
+              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${
+                formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
+              }`}
+            ></div>
+          </div>
+        </label>
+        <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+          {formData.isActive
+            ? "Rule is active and will be enforced"
+            : "Rule is inactive and will be ignored"}
+        </p>
+      </div>
     </div>
   );
 };
@@ -170,31 +191,40 @@ const RefillCountForm = ({ formData, onFieldChange, validationErrors }) => {
     <div className="rule-form-wrapper" ref={formRef}>
       <div className="rule-form-info tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-p-3 tw-mb-4">
         <div className="tw-flex tw-items-start tw-gap-2">
-          <i className="fa-light fa-info-circle tw-text-amber-500 tw-text-lg tw-mt-1"></i>
+          <span className="tw-text-amber-500 tw-text-lg tw-mt-1">
+            <i className="fa-light fa-info-circle"></i>
+          </span>
           <div>
             <h5 className="tw-text-sm tw-font-semibold tw-text-amber-700 tw-m-0 tw-mb-1">
               Refill Frequency Control
             </h5>
             <p className="tw-text-xs tw-text-amber-600 tw-m-0">
-              Control how many times a vehicle can refuel within specific time periods.
-              Set to 0 to disable frequency restrictions for that period.
+              Control how many times a vehicle can refuel within specific time
+              periods. Set to 0 to disable frequency restrictions for that
+              period.
             </p>
           </div>
         </div>
       </div>
 
       <Form
-        key={`refill-count-${formData.ruleId ?? 'new'}-${formData.ruleSetId ?? 'unset'}`}
+        key={`refill-count-${formData.ruleId ?? "new"}-${
+          formData.ruleSetId ?? "unset"
+        }`}
         formData={formData}
         labelLocation="top"
         showColonAfterLabel={true}
+        onFieldDataChanged={(e) => {
+          if (e.dataField) {
+            onFieldChange("refillCount", e.dataField, e.value);
+          }
+        }}
       >
         <SimpleItem
           dataField="ruleName"
           label={{ text: "Rule Name" }}
           editorOptions={{
             placeholder: "e.g., Standard Refill Frequency",
-            onValueChanged: (e) => onFieldChange("refillCount", "ruleName", e.value),
           }}
           isRequired={true}
           validationError={validationErrors.refillCountRuleName}
@@ -209,14 +239,10 @@ const RefillCountForm = ({ formData, onFieldChange, validationErrors }) => {
               min: 0,
               showSpinButtons: true,
               placeholder: "Number of refills per day",
-              onValueChanged: (e) => onFieldChange("refillCount", "maxRefillsPerDay", e.value),
             }}
             validationError={validationErrors.maxRefillsPerDay}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              How many times vehicle can refuel in one day
-            </span>
-          </SimpleItem>
+            helpText="How many times vehicle can refuel in one day"
+          />
 
           <SimpleItem
             dataField="maxRefillsPerWeek"
@@ -226,14 +252,10 @@ const RefillCountForm = ({ formData, onFieldChange, validationErrors }) => {
               min: 0,
               showSpinButtons: true,
               placeholder: "Number of refills per week",
-              onValueChanged: (e) => onFieldChange("refillCount", "maxRefillsPerWeek", e.value),
             }}
             validationError={validationErrors.maxRefillsPerWeek}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Weekly refueling frequency limit (Monday-Sunday)
-            </span>
-          </SimpleItem>
+            helpText="Weekly refueling frequency limit (Monday-Sunday)"
+          />
 
           <SimpleItem
             dataField="maxRefillsPerMonth"
@@ -243,27 +265,46 @@ const RefillCountForm = ({ formData, onFieldChange, validationErrors }) => {
               min: 0,
               showSpinButtons: true,
               placeholder: "Number of refills per month",
-              onValueChanged: (e) => onFieldChange("refillCount", "maxRefillsPerMonth", e.value),
             }}
             validationError={validationErrors.maxRefillsPerMonth}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Monthly refueling frequency limit (calendar month)
-            </span>
-          </SimpleItem>
+            helpText="Monthly refueling frequency limit (calendar month)"
+          />
         </GroupItem>
-
-        <SimpleItem
-          dataField="isActive"
-          label={{ text: "Rule Status" }}
-          editorType="dxSwitch"
-          editorOptions={{
-            switchedOnText: "Active",
-            switchedOffText: "Inactive",
-            onValueChanged: (e) => onFieldChange("refillCount", "isActive", e.value),
-          }}
-        />
       </Form>
+
+      {/* Native Toggle for Rule Status - outside Form to avoid infinite loop */}
+      <div className="tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
+        <label className="tw-flex tw-items-center tw-justify-between tw-cursor-pointer">
+          <span className="tw-text-sm tw-font-medium tw-text-gray-700">
+            Rule Status
+          </span>
+          <div className="tw-relative">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) =>
+                onFieldChange("refillCount", "isActive", e.target.checked)
+              }
+              className="tw-sr-only"
+            />
+            <div
+              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${
+                formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
+              }`}
+            ></div>
+            <div
+              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${
+                formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
+              }`}
+            ></div>
+          </div>
+        </label>
+        <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+          {formData.isActive
+            ? "Rule is active and will be enforced"
+            : "Rule is inactive and will be ignored"}
+        </p>
+      </div>
     </div>
   );
 };
@@ -283,37 +324,48 @@ const TimeWindowForm = ({ formData, onFieldChange, validationErrors }) => {
     <div className="rule-form-wrapper" ref={formRef}>
       <div className="rule-form-info tw-bg-purple-50 tw-border tw-border-purple-200 tw-rounded-lg tw-p-3 tw-mb-4">
         <div className="tw-flex tw-items-start tw-gap-2">
-          <i className="fa-light fa-info-circle tw-text-purple-500 tw-text-lg tw-mt-1"></i>
+          <span className="tw-text-purple-500 tw-text-lg tw-mt-1">
+            <i className="fa-light fa-info-circle"></i>
+          </span>
           <div>
             <h5 className="tw-text-sm tw-font-semibold tw-text-purple-700 tw-m-0 tw-mb-1">
               Time Window Restrictions
             </h5>
             <p className="tw-text-xs tw-text-purple-600 tw-m-0">
-              Restrict fueling to specific hours and days of the week. Vehicles can only refuel
-              during the allowed time windows on selected days.
+              Restrict fueling to specific hours and days of the week. Vehicles
+              can only refuel during the allowed time windows on selected days.
             </p>
           </div>
         </div>
       </div>
 
       <Form
-        key={`time-window-${formData.ruleId ?? 'new'}-${formData.ruleSetId ?? 'unset'}`}
+        key={`time-window-${formData.ruleId ?? "new"}-${
+          formData.ruleSetId ?? "unset"
+        }`}
         formData={formData}
         labelLocation="top"
         showColonAfterLabel={true}
+        onFieldDataChanged={(e) => {
+          if (e.dataField) {
+            onFieldChange("timeWindow", e.dataField, e.value);
+          }
+        }}
       >
         <SimpleItem
           dataField="ruleName"
           label={{ text: "Rule Name" }}
           editorOptions={{
             placeholder: "e.g., Business Hours Only",
-            onValueChanged: (e) => onFieldChange("timeWindow", "ruleName", e.value),
           }}
           isRequired={true}
           validationError={validationErrors.timeWindowRuleName}
         />
 
-        <GroupItem caption="Operating Hours" cssClass="time-range-group tw-mb-3">
+        <GroupItem
+          caption="Operating Hours"
+          cssClass="time-range-group tw-mb-3"
+        >
           <SimpleItem
             dataField="startTime"
             label={{ text: "Start Time" }}
@@ -322,13 +374,9 @@ const TimeWindowForm = ({ formData, onFieldChange, validationErrors }) => {
               type: "time",
               pickerType: "calendar",
               placeholder: "Select start time",
-              onValueChanged: (e) => onFieldChange("timeWindow", "startTime", e.value),
             }}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Fueling starts from this time
-            </span>
-          </SimpleItem>
+            helpText="Fueling starts from this time"
+          />
 
           <SimpleItem
             dataField="endTime"
@@ -338,13 +386,9 @@ const TimeWindowForm = ({ formData, onFieldChange, validationErrors }) => {
               type: "time",
               pickerType: "calendar",
               placeholder: "Select end time",
-              onValueChanged: (e) => onFieldChange("timeWindow", "endTime", e.value),
             }}
-          >
-            <span className="tw-text-xs tw-text-gray-500">
-              Fueling ends at this time
-            </span>
-          </SimpleItem>
+            helpText="Fueling ends at this time"
+          />
         </GroupItem>
 
         <SimpleItem
@@ -364,34 +408,79 @@ const TimeWindowForm = ({ formData, onFieldChange, validationErrors }) => {
             displayExpr: "name",
             valueExpr: "id",
             placeholder: "Select allowed days",
-            onValueChanged: (e) => onFieldChange("timeWindow", "allowedDays", e.value),
           }}
           validationError={validationErrors.allowedDays}
-        >
-          <span className="tw-text-xs tw-text-gray-500">
-            Select all days when fueling is allowed
-          </span>
-        </SimpleItem>
-
-        <SimpleItem
-          dataField="isActive"
-          label={{ text: "Rule Status" }}
-          editorType="dxSwitch"
-          editorOptions={{
-            switchedOnText: "Active",
-            switchedOffText: "Inactive",
-            onValueChanged: (e) => onFieldChange("timeWindow", "isActive", e.value),
-          }}
+          helpText="Select all days when fueling is allowed"
         />
       </Form>
+
+      {/* Native Toggle for Rule Status - outside Form to avoid infinite loop */}
+      <div className="tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
+        <label className="tw-flex tw-items-center tw-justify-between tw-cursor-pointer">
+          <span className="tw-text-sm tw-font-medium tw-text-gray-700">
+            Rule Status
+          </span>
+          <div className="tw-relative">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) =>
+                onFieldChange("timeWindow", "isActive", e.target.checked)
+              }
+              className="tw-sr-only"
+            />
+            <div
+              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${
+                formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
+              }`}
+            ></div>
+            <div
+              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${
+                formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
+              }`}
+            ></div>
+          </div>
+        </label>
+        <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+          {formData.isActive
+            ? "Rule is active and will be enforced"
+            : "Rule is inactive and will be ignored"}
+        </p>
+      </div>
     </div>
   );
 };
 
-const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
+// Helper function to convert time string to Date object
+const timeStringToDate = (timeString) => {
+  if (!timeString) return new Date();
+  const [hours, minutes] = timeString.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date;
+};
+
+// Helper function to convert Date object to time string (TimeSpan format with seconds)
+const dateToTimeString = (date) => {
+  if (!date || !(date instanceof Date)) return "00:00:00";
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}:00`; // Include seconds for TimeSpan format
+};
+
+const RuleDetailForm = ({
+  isVisible,
+  onClose,
+  onDataChanged,
+  ruleSet,
+  rule,
+  editMode,
+}) => {
   const dispatch = useDispatch();
 
-  const [selectedRuleType, setSelectedRuleType] = useState("DailyMonthlyLimitRule");
+  const [selectedRuleType, setSelectedRuleType] = useState(
+    "DailyMonthlyLimitRule"
+  );
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -423,8 +512,8 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
     ruleSetId: null,
     ruleId: null,
     ruleName: "",
-    startTime: "07:00",
-    endTime: "18:00",
+    startTime: timeStringToDate("07:00"),
+    endTime: timeStringToDate("18:00"),
     allowedDays: [1, 2, 3, 4, 5], // Monday to Friday by default
     isActive: true,
   });
@@ -437,8 +526,21 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
       setTimeWindowFormData((prev) => ({ ...prev, ruleSetId: ruleSet.id }));
 
       if (rule && editMode === "edit") {
+        // Helper to normalize discriminator - handles both DB values and frontend values
+        const normalizeDiscriminator = (disc) => {
+          if (!disc) return null;
+          const d = disc.toLowerCase();
+          if (d.includes("dailymonthly") || d.includes("daily"))
+            return "DailyMonthlyLimit";
+          if (d.includes("refill") || d.includes("noof")) return "NoOfRefill";
+          if (d.includes("time") || d.includes("window")) return "TimeWindow";
+          return disc;
+        };
+
+        const normalizedType = normalizeDiscriminator(rule.discriminator);
+
         // Determine rule type and populate the correct form
-        if (rule.discriminator === "DailyMonthlyLimitRule") {
+        if (normalizedType === "DailyMonthlyLimit") {
           setSelectedRuleType("DailyMonthlyLimitRule");
           setDailyMonthlyFormData({
             ruleSetId: ruleSet.id,
@@ -449,7 +551,7 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
             fuelingLimit: rule.fuelingLimit || 100,
             isActive: rule.isActive !== false,
           });
-        } else if (rule.discriminator === "NoOfRefillRule") {
+        } else if (normalizedType === "NoOfRefill") {
           setSelectedRuleType("NoOfRefillRule");
           setRefillCountFormData({
             ruleSetId: ruleSet.id,
@@ -460,14 +562,14 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
             maxRefillsPerMonth: rule.maxRefillsPerMonth || 30,
             isActive: rule.isActive !== false,
           });
-        } else if (rule.discriminator === "TimeWindowRule") {
+        } else if (normalizedType === "TimeWindow") {
           setSelectedRuleType("TimeWindowRule");
           setTimeWindowFormData({
             ruleSetId: ruleSet.id,
             ruleId: rule.id,
             ruleName: rule.ruleName || "",
-            startTime: rule.startTime || "07:00",
-            endTime: rule.endTime || "18:00",
+            startTime: timeStringToDate(rule.startTime || "07:00"),
+            endTime: timeStringToDate(rule.endTime || "18:00"),
             allowedDays: Array.isArray(rule.allowedDays)
               ? rule.allowedDays
               : [1, 2, 3, 4, 5],
@@ -490,7 +592,7 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
       setValidationErrors({});
 
       // Use setTimeout to ensure DOM cleanup happens before rendering new form
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       setSelectedRuleType(newType);
       setIsTransitioning(false);
@@ -636,23 +738,21 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
           }
           result = await dispatch(
             updateTimeWindowRule(timeWindowFormData.ruleId, {
-              ruleId: timeWindowFormData.ruleId,
-              ruleName: timeWindowFormData.ruleName,
-              startTime: timeWindowFormData.startTime,
-              endTime: timeWindowFormData.endTime,
-              allowedDays: timeWindowFormData.allowedDays,
-              isActive: timeWindowFormData.isActive,
+              RuleId: timeWindowFormData.ruleId,
+              RuleName: timeWindowFormData.ruleName,
+              StartTime: dateToTimeString(timeWindowFormData.startTime),
+              EndTime: dateToTimeString(timeWindowFormData.endTime),
+              IsActive: timeWindowFormData.isActive,
             })
           );
         } else {
           result = await dispatch(
             createTimeWindowRule(ruleSet.id, {
-              ruleSetId: ruleSet.id,
-              ruleName: timeWindowFormData.ruleName,
-              startTime: timeWindowFormData.startTime,
-              endTime: timeWindowFormData.endTime,
-              allowedDays: timeWindowFormData.allowedDays,
-              isActive: timeWindowFormData.isActive,
+              RuleSetId: ruleSet.id,
+              RuleName: timeWindowFormData.ruleName,
+              StartTime: dateToTimeString(timeWindowFormData.startTime),
+              EndTime: dateToTimeString(timeWindowFormData.endTime),
+              IsActive: timeWindowFormData.isActive,
             })
           );
         }
@@ -664,6 +764,10 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
           "success",
           2000
         );
+        // Trigger data refresh before closing
+        if (onDataChanged) {
+          onDataChanged();
+        }
         onClose();
       } else {
         notify(
@@ -687,15 +791,28 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
       return;
     }
 
+    // Helper to normalize discriminator
+    const normalizeDiscriminator = (disc) => {
+      if (!disc) return null;
+      const d = disc.toLowerCase();
+      if (d.includes("dailymonthly") || d.includes("daily"))
+        return "DailyMonthlyLimit";
+      if (d.includes("refill") || d.includes("noof")) return "NoOfRefill";
+      if (d.includes("time") || d.includes("window")) return "TimeWindow";
+      return disc;
+    };
+
+    const normalizedType = normalizeDiscriminator(rule.discriminator);
+
     setLoading(true);
     try {
       let result;
 
-      if (rule.discriminator === "DailyMonthlyLimitRule") {
+      if (normalizedType === "DailyMonthlyLimit") {
         result = await dispatch(deleteDailyMonthlyRule(rule.id));
-      } else if (rule.discriminator === "NoOfRefillRule") {
+      } else if (normalizedType === "NoOfRefill") {
         result = await dispatch(deleteRefillCountRule(rule.id));
-      } else if (rule.discriminator === "TimeWindowRule") {
+      } else if (normalizedType === "TimeWindow") {
         result = await dispatch(deleteTimeWindowRule(rule.id));
       } else {
         throw new Error(`Unknown rule type: ${rule.discriminator}`);
@@ -703,6 +820,10 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
 
       if (result && result.success) {
         notify("Rule deleted successfully", "success", 2000);
+        // Trigger data refresh before closing
+        if (onDataChanged) {
+          onDataChanged();
+        }
         onClose();
       } else {
         notify(result?.error || "Failed to delete rule", "error", 3000);
@@ -745,28 +866,38 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
                   key={ruleType.id}
                   className={`rule-type-card tw-p-3 tw-border-2 tw-rounded-lg tw-cursor-pointer tw-transition-all ${
                     selectedRuleType === ruleType.id
-                      ? 'tw-border-blue-500 tw-bg-blue-50'
-                      : 'tw-border-gray-200 tw-bg-white hover:tw-border-gray-300'
+                      ? "tw-border-blue-500 tw-bg-blue-50"
+                      : "tw-border-gray-200 tw-bg-white hover:tw-border-gray-300"
                   }`}
                   onClick={() => handleRuleTypeChange(ruleType.id)}
                 >
                   <div className="tw-flex tw-items-start tw-gap-3">
-                    <div className={`tw-flex-shrink-0 tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${
-                      selectedRuleType === ruleType.id
-                        ? 'tw-bg-blue-500 tw-text-white'
-                        : 'tw-bg-gray-100 tw-text-gray-600'
-                    }`}>
-                      <i className={`${ruleType.icon} tw-text-lg`}></i>
+                    <div
+                      className={`tw-flex-shrink-0 tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${
+                        selectedRuleType === ruleType.id
+                          ? "tw-bg-blue-500 tw-text-white"
+                          : "tw-bg-gray-100 tw-text-gray-600"
+                      }`}
+                    >
+                      <span key={`icon-${ruleType.id}-${selectedRuleType}`}>
+                        <i className={`${ruleType.icon} tw-text-lg`}></i>
+                      </span>
                     </div>
                     <div className="tw-flex-1">
                       <div className="tw-flex tw-items-center tw-gap-2">
-                        <h4 className={`tw-text-sm tw-font-semibold tw-m-0 ${
-                          selectedRuleType === ruleType.id ? 'tw-text-blue-700' : 'tw-text-gray-800'
-                        }`}>
+                        <h4
+                          className={`tw-text-sm tw-font-semibold tw-m-0 ${
+                            selectedRuleType === ruleType.id
+                              ? "tw-text-blue-700"
+                              : "tw-text-gray-800"
+                          }`}
+                        >
                           {ruleType.name}
                         </h4>
                         {selectedRuleType === ruleType.id && (
-                          <i className="fa-light fa-check-circle tw-text-blue-500"></i>
+                          <span key={`check-${ruleType.id}`}>
+                            <i className="fa-light fa-check-circle tw-text-blue-500"></i>
+                          </span>
                         )}
                       </div>
                       <p className="tw-text-xs tw-text-gray-600 tw-m-0 tw-mt-1">
@@ -780,9 +911,23 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
           </div>
         )}
 
+        {/* Divider between rule type selector and form */}
+        {editMode === "add" && (
+          <div className="tw-border-t tw-border-gray-200 tw-my-4"></div>
+        )}
+
         {/* Use a keyed container to force full re-render on type change */}
         {!isTransitioning && (
           <div className="rule-form" key={`form-container-${selectedRuleType}`}>
+            {/* Section Header for Rule Configuration */}
+            {editMode === "add" && (
+              <h4 className="tw-text-base tw-font-semibold tw-text-gray-700 tw-mb-3 tw-flex tw-items-center tw-gap-2">
+                <span>
+                  <i className="fa-light fa-cog tw-text-gray-500"></i>
+                </span>
+                Rule Configuration
+              </h4>
+            )}
             {selectedRuleType === "DailyMonthlyLimitRule" && (
               <DailyMonthlyForm
                 formData={dailyMonthlyFormData}
@@ -807,29 +952,33 @@ const RuleDetailForm = ({ isVisible, onClose, ruleSet, rule, editMode }) => {
           </div>
         )}
 
-        <div className="form-actions">
-          {editMode === "edit" && (
+        <div className="tw-flex tw-justify-between tw-items-center tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
+          <div>
+            {editMode === "edit" && (
+              <Button
+                text="Delete"
+                stylingMode="outlined"
+                type="danger"
+                onClick={handleDelete}
+                disabled={loading}
+              />
+            )}
+          </div>
+          <div className="tw-flex tw-gap-2">
             <Button
-              text="Delete"
+              text="Cancel"
               stylingMode="outlined"
-              type="danger"
-              onClick={handleDelete}
-              disabled={loading}
+              type="normal"
+              onClick={onClose}
             />
-          )}
-          <Button
-            text="Cancel"
-            stylingMode="outlined"
-            type="normal"
-            onClick={onClose}
-          />
-          <Button
-            text="Save"
-            type="default"
-            stylingMode="contained"
-            onClick={handleSubmit}
-            disabled={loading || isTransitioning}
-          />
+            <Button
+              text="Save"
+              type="default"
+              stylingMode="contained"
+              onClick={handleSubmit}
+              disabled={loading || isTransitioning}
+            />
+          </div>
         </div>
       </div>
 

@@ -164,6 +164,9 @@ const SettingsScreen = ({ navigation }) => {
     }
   };
 
+  // Fueling validation settings are now admin-managed (read-only)
+  // No local toggle functions needed - settings are fetched from API
+
   const saveDefaultSite = async (site) => {
     try {
       await AsyncStorage.setItem(
@@ -267,7 +270,7 @@ const SettingsScreen = ({ navigation }) => {
                     />
                     <View style={styles.selectionItemText}>
                       <Text style={styles.selectionItemTitle}>
-                        {item.name || item.ptsid}
+                        {item.ptsName || item.name || item.ptsid}
                       </Text>
                       {item.description && (
                         <Text style={styles.selectionItemSubtitle}>
@@ -338,13 +341,6 @@ const SettingsScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Account Menu */}
-      <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        {renderMenuItem("user-cog", "Profile Settings", () => {})}
-        {renderMenuItem("shield-alt", "Security", () => {})}
-      </View>
-
       {/* Notifications Section */}
       <View style={styles.menuSection}>
         <Text style={styles.sectionTitle}>Notifications</Text>
@@ -395,15 +391,6 @@ const SettingsScreen = ({ navigation }) => {
         {renderMenuItem("clipboard-list", "Manage Stocks", () =>
           navigation.navigate("ManageStocks")
         )}
-        {renderMenuItem("download", "Offline Data", () => {})}
-        {renderMenuItem("info-circle", "About", () => {})}
-      </View>
-
-      {/* Support Menu */}
-      <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Support</Text>
-        {renderMenuItem("question-circle", "Help & Support", () => {})}
-        {renderMenuItem("bug", "Report Issue", () => {})}
       </View>
 
       {/* Logout Button */}
@@ -413,8 +400,8 @@ const SettingsScreen = ({ navigation }) => {
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={styles.appVersion}>Hyoung FMS v1.0.0</Text>
-        <Text style={styles.copyright}>© 2024 Hyoung FMS</Text>
+        <Text style={styles.appVersion}>Hyoung FMS v1.0.1</Text>
+        <Text style={styles.copyright}>© 2026 Hyoung FMS</Text>
       </View>
 
       {/* Site Selection Modal */}
@@ -494,8 +481,13 @@ const SettingsScreen = ({ navigation }) => {
                       />
                       <View style={styles.selectionItemText}>
                         <Text style={styles.selectionItemTitle}>
-                          {item.ptsid}
+                          {item.ptsName || item.ptsid}
                         </Text>
+                        {item.ptsName && (
+                          <Text style={styles.selectionItemSubtitle}>
+                            ID: {item.ptsid}
+                          </Text>
+                        )}
                         {item.ipaddress && (
                           <Text style={styles.selectionItemSubtitle}>
                             IP: {item.ipaddress}
@@ -607,6 +599,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     marginLeft: 12,
+  },
+  menuTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  menuSubText: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
   },
   menuRightText: {
     fontSize: 14,
@@ -758,6 +759,16 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     fontWeight: "500",
     marginLeft: 8,
+  },
+  // Admin-managed settings styles
+  sectionTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
   },
 });
 

@@ -33,7 +33,10 @@ namespace FMS.Application.Features.Site.Queries
         {
             try
             {
-                var sites = await _context.Sites.ToListAsync(cancellationToken);
+                var sites = await _context.Sites
+                    .Where(s => s.IsActive) // Only return active sites
+                    .Include(s => s.SiteAdministrator)
+                    .ToListAsync(cancellationToken);
                 var siteDTOs = _mapper.Map<List<SiteDTO>>(sites);
                 return FMSResponse<List<SiteDTO>>.Success(siteDTOs, "Sites retrieved successfully");
             }

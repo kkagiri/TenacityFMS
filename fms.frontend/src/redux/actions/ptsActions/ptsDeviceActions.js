@@ -97,12 +97,16 @@ export const updatePTSDevice = (deviceId, ptsDevice) => async (dispatch) => {
       `/PTSDevice/update/${deviceId}`,
       ptsDevice
     );
+    // Response structure: { data: {...}, success: true, message: "..." }
+    const updatedDevice = response.data?.data || response.data;
     dispatch({
       type: UPDATE_PTS_DEVICE_SUCCESS,
-      payload: response.data,
+      payload: updatedDevice,
     });
+    return { success: true, data: updatedDevice };
   } catch (error) {
     dispatch({ type: UPDATE_PTS_DEVICE_FAILURE, payload: error.message });
+    throw error;
   }
 };
 

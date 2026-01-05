@@ -36,6 +36,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.VehicleQuery
             try
             {
                 var results = await _context.Vehicles
+                    .Where(v => v.IsActive == 1) // Only return active vehicles
                     .Include(x => x.DefaultExptdAvg != null ? x.DefaultExptdAvg.ExpectedAverageClassification : null)
                     .Include(x => x.Tags)
                     .ProjectTo<VehicleDTO>(_mapper.ConfigurationProvider)

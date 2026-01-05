@@ -1,7 +1,9 @@
 using System;
 
-namespace FMS.Application.Features.Configuration {
-    public class AutomatedFuelingConfigurationDto {
+namespace FMS.Application.Features.Configuration
+{
+    public class AutomatedFuelingConfigurationDto
+    {
         public int Id { get; set; }
 
         /// <summary>
@@ -69,6 +71,23 @@ namespace FMS.Application.Features.Configuration {
         /// </summary>
         public bool IsActive { get; set; }
 
+        // ===== Mobile Fueling Validation Settings =====
+
+        /// <summary>
+        /// Whether to check if vehicle has fueling rules before allowing fueling (mobile app)
+        /// </summary>
+        public bool EnableFuelRulesCheck { get; set; }
+
+        /// <summary>
+        /// Whether to validate fuel volume against vehicle tank capacity (mobile app)
+        /// </summary>
+        public bool EnableFuelCapacityValidation { get; set; }
+
+        /// <summary>
+        /// Whether to use GPS fuel level sensor to calculate remaining tank capacity (mobile app)
+        /// </summary>
+        public bool EnableGPSFuelLevelCheck { get; set; }
+
         /// <summary>
         /// Created date
         /// </summary>
@@ -109,7 +128,8 @@ namespace FMS.Application.Features.Configuration {
         /// Discrepancy action as string for display (computed)
         /// </summary>
         public string DiscrepancyActionText => DiscrepancyAction
-        switch {
+        switch
+        {
             1 => "Alert",
             2 => "Block",
             3 => "Auto-Adjust",
@@ -117,7 +137,29 @@ namespace FMS.Application.Features.Configuration {
         };
     }
 
-    public class CreateAutomatedFuelingConfigurationDto {
+    /// <summary>
+    /// Lightweight DTO for mobile app fueling validation settings
+    /// </summary>
+    public class MobileFuelingValidationSettingsDto
+    {
+        /// <summary>
+        /// Whether to check if vehicle has fueling rules before allowing fueling
+        /// </summary>
+        public bool EnableFuelRulesCheck { get; set; } = true;
+
+        /// <summary>
+        /// Whether to validate fuel volume against vehicle tank capacity
+        /// </summary>
+        public bool EnableFuelCapacityValidation { get; set; } = true;
+
+        /// <summary>
+        /// Whether to use GPS fuel level sensor to calculate remaining tank capacity
+        /// </summary>
+        public bool EnableGPSFuelLevelCheck { get; set; } = true;
+    }
+
+    public class CreateAutomatedFuelingConfigurationDto
+    {
         /// <summary>
         /// Site ID this configuration applies to (null for global settings)
         /// </summary>
@@ -177,9 +219,27 @@ namespace FMS.Application.Features.Configuration {
         /// Whether the configuration is active
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        // ===== Mobile Fueling Validation Settings =====
+
+        /// <summary>
+        /// Whether to check if vehicle has fueling rules before allowing fueling (mobile app)
+        /// </summary>
+        public bool EnableFuelRulesCheck { get; set; } = true;
+
+        /// <summary>
+        /// Whether to validate fuel volume against vehicle tank capacity (mobile app)
+        /// </summary>
+        public bool EnableFuelCapacityValidation { get; set; } = true;
+
+        /// <summary>
+        /// Whether to use GPS fuel level sensor to calculate remaining tank capacity (mobile app)
+        /// </summary>
+        public bool EnableGPSFuelLevelCheck { get; set; } = true;
     }
 
-    public class UpdateAutomatedFuelingConfigurationDto {
+    public class UpdateAutomatedFuelingConfigurationDto
+    {
         public int Id { get; set; }
 
         /// <summary>
@@ -236,5 +296,22 @@ namespace FMS.Application.Features.Configuration {
         /// Whether the configuration is active
         /// </summary>
         public bool IsActive { get; set; }
+
+        // ===== Mobile Fueling Validation Settings =====
+
+        /// <summary>
+        /// Whether to check if vehicle has fueling rules before allowing fueling (mobile app)
+        /// </summary>
+        public bool EnableFuelRulesCheck { get; set; }
+
+        /// <summary>
+        /// Whether to validate fuel volume against vehicle tank capacity (mobile app)
+        /// </summary>
+        public bool EnableFuelCapacityValidation { get; set; }
+
+        /// <summary>
+        /// Whether to use GPS fuel level sensor to calculate remaining tank capacity (mobile app)
+        /// </summary>
+        public bool EnableGPSFuelLevelCheck { get; set; }
     }
 }

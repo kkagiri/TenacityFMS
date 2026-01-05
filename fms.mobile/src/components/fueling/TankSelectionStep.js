@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -20,6 +21,23 @@ const TankSelectionStep = ({
   isRefreshing = false,
   isMockData = false,
 }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter tanks based on search query
+  const filteredTanks = useMemo(() => {
+    if (!tanks || !searchQuery.trim()) return tanks || [];
+    const query = searchQuery.toLowerCase().trim();
+    return tanks.filter((tank) => {
+      const name = (tank.name || tank.tankName || "").toLowerCase();
+      const fuelGrade = (
+        tank.fuelGradeName ||
+        tank.productName ||
+        ""
+      ).toLowerCase();
+      return name.includes(query) || fuelGrade.includes(query);
+    });
+  }, [tanks, searchQuery]);
+
   // Auto-proceed when tank is selected
   const handleTankSelect = (tank) => {
     onSelectTank(tank);
@@ -39,9 +57,11 @@ const TankSelectionStep = ({
 
   const renderTankItem = ({ item }) => {
     const isSelected = selectedTank?.id === item.id;
-    // Support both API property names (currentStock, tankVolume) and legacy names (currentVolume, capacity)
-    const currentVolume = item.currentStock ?? item.currentVolume ?? 0;
-    const capacity = item.tankVolume ?? item.capacity ?? 50000;
+    // Support both API property names (CurrentStock/currentStock, TankVolume/tankVolume) and legacy names
+    const currentVolume =
+      item.CurrentStock ?? item.currentStock ?? item.currentVolume ?? 0;
+    const capacity =
+      item.TankVolume ?? item.tankVolume ?? item.capacity ?? 50000;
     const percentFull =
       item.percentFull ||
       (capacity > 0 ? Math.round((currentVolume / capacity) * 100) : 0);
@@ -167,22 +187,67 @@ const TankSelectionStep = ({
         </View>
       )}
 
+      {/* Search Box */}
+      {!isLoadingTanks && tanks?.length > 0 && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputWrapper}>
+            <Icon
+              name="search"
+              size={16}
+              color="#9ca3af"
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search tanks by name or fuel type..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={styles.clearButton}
+              >
+                <Icon name="times-circle" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {searchQuery.length > 0 && (
+            <Text style={styles.searchResultsText}>
+              {filteredTanks.length} of {tanks.length} tanks
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Tank List */}
       {isLoadingTanks ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
           <Text style={styles.loadingText}>Loading tanks...</Text>
         </View>
-      ) : tanks?.length > 0 ? (
+      ) : filteredTanks?.length > 0 ? (
         <FlatList
-          data={tanks}
+          data={filteredTanks}
           keyExtractor={(item) =>
             item.id?.toString() || item.probeId?.toString()
           }
           renderItem={renderTankItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
+      ) : searchQuery.length > 0 ? (
+        <View style={styles.emptyContainer}>
+          <Icon name="search" size={48} color="#9ca3af" />
+          <Text style={styles.emptyTitle}>No Matching Tanks</Text>
+          <Text style={styles.emptyText}>
+            No tanks found matching "{searchQuery}"
+          </Text>
+        </View>
       ) : (
         <View style={styles.emptyContainer}>
           <Icon name="database" size={48} color="#9ca3af" />
@@ -262,6 +327,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
     marginLeft: 38,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f8fafc",
+  },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#1f2937",
+  },
+  clearButton: {
+    padding: 4,
+  },
+  searchResultsText: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 8,
+    textAlign: "center",
   },
   listContainer: {
     padding: 16,

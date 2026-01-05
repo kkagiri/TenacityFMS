@@ -1,6 +1,7 @@
 # Fuel Rule Management System Documentation
 
 ## Table of Contents
+
 1. [System Overview](#system-overview)
 2. [Architecture](#architecture)
 3. [Core Entities](#core-entities)
@@ -11,6 +12,10 @@
 8. [Configuration Examples](#configuration-examples)
 9. [Troubleshooting](#troubleshooting)
 
+## Related Documentation
+
+- **[Cascade Hierarchy Implementation](CASCADE_HIERARCHY_IMPLEMENTATION.md)** - Detailed guide on rule cascade system, priority merging, effective rules API, and pump authorization integration
+
 ---
 
 ## System Overview
@@ -18,6 +23,7 @@
 The Fuel Rule Management System (FMS) is a comprehensive solution for managing and enforcing fuel dispensing rules across a fleet of vehicles. It provides granular control over fuel consumption through configurable rule sets that can be applied to vehicles or fuel tags.
 
 ### Key Features
+
 - **Rule-based Authorization**: Define multiple types of rules for fuel dispensing
 - **Flexible Assignment**: Apply rules to individual vehicles or fuel tags
 - **Real-time Validation**: Evaluate rules during fuel dispensing operations
@@ -25,6 +31,7 @@ The Fuel Rule Management System (FMS) is a comprehensive solution for managing a
 - **Multi-tenant Support**: Manage rules across different sites
 
 ### Use Cases
+
 - Fleet management companies controlling fuel costs
 - Government organizations monitoring vehicle fuel usage
 - Logistics companies preventing fuel theft
@@ -158,6 +165,7 @@ CREATE TABLE FuelRefills (
 ## Core Entities
 
 ### FuelingRuleSet
+
 Container for a collection of rules that can be applied as a unit.
 
 ```csharp
@@ -172,6 +180,7 @@ public class FuelingRuleSet
 ```
 
 ### FuelingRule (Base Class)
+
 Abstract base class for all rule types.
 
 ```csharp
@@ -191,6 +200,7 @@ public abstract class FuelingRule
 ```
 
 ### FuelingContext
+
 Provides context information for rule evaluation.
 
 ```csharp
@@ -213,6 +223,7 @@ public class FuelingContext
 ## Rule Types
 
 ### 1. DailyMonthlyLimitRule
+
 Controls fuel consumption based on daily and monthly limits.
 
 ```csharp
@@ -235,6 +246,7 @@ public class DailyMonthlyLimitRule : FuelingRule
 ```
 
 ### 2. NoOfRefillRule
+
 Limits the number of refills within specific time periods.
 
 ```csharp
@@ -261,6 +273,7 @@ public class NoOfRefillRule : FuelingRule
 ```
 
 ### 3. TimeWindowRule
+
 Restricts fuel dispensing to specific time periods.
 
 ```csharp
@@ -519,6 +532,7 @@ public class TimeWindowRule : FuelingRule
 ### Rule Set Management
 
 #### Create Rule Set
+
 ```http
 POST /api/fuelingrules/ruleset
 Content-Type: application/json
@@ -530,6 +544,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -541,11 +556,13 @@ Content-Type: application/json
 ```
 
 #### Get All Rule Sets
+
 ```http
 GET /api/fuelingrules/rulesets
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -561,6 +578,7 @@ GET /api/fuelingrules/rulesets
 ```
 
 #### Update Rule Set
+
 ```http
 PUT /api/fuelingrules/ruleset/{id}
 Content-Type: application/json
@@ -572,6 +590,7 @@ Content-Type: application/json
 ```
 
 #### Delete Rule Set
+
 ```http
 DELETE /api/fuelingrules/ruleset/{id}
 ```
@@ -579,6 +598,7 @@ DELETE /api/fuelingrules/ruleset/{id}
 ### Rule Management
 
 #### Create Daily/Monthly Limit Rule
+
 ```http
 POST /api/fuelingrules/rules/dailymonthly
 Content-Type: application/json
@@ -593,6 +613,7 @@ Content-Type: application/json
 ```
 
 #### Create Refill Count Rule
+
 ```http
 POST /api/fuelingrules/rules/refillcount
 Content-Type: application/json
@@ -608,6 +629,7 @@ Content-Type: application/json
 ```
 
 #### Create Time Window Rule
+
 ```http
 POST /api/fuelingrules/rules/timewindow
 Content-Type: application/json
@@ -624,6 +646,7 @@ Content-Type: application/json
 ### Rule Assignment
 
 #### Assign Rule Set to Vehicle
+
 ```http
 POST /api/fuelingrules/assign/vehicle
 Content-Type: application/json
@@ -635,6 +658,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -643,6 +667,7 @@ Content-Type: application/json
 ```
 
 #### Assign Rule Set to Tag
+
 ```http
 POST /api/fuelingrules/assign/tag
 Content-Type: application/json
@@ -656,16 +681,19 @@ Content-Type: application/json
 ### Fuel Consumption Queries
 
 #### Get Fuel Taken Today
+
 ```http
 GET /api/fuelingrules/consumption/today/{tagId}
 ```
 
 #### Get Monthly Fuel Consumption
+
 ```http
 GET /api/fuelingrules/consumption/month/{tagId}
 ```
 
 #### Get Refill Count
+
 ```http
 GET /api/fuelingrules/refills/today/{tagId}
 GET /api/fuelingrules/refills/week/{tagId}
@@ -819,15 +847,18 @@ flowchart TD
 #### Issue 1: Rules Not Being Applied
 
 **Symptoms:**
+
 - Vehicles can refuel without restrictions
 - Rules appear to be ignored
 
 **Possible Causes:**
+
 1. Rule set not properly assigned to vehicle/tag
 2. Rules marked as inactive
 3. Missing or incorrect discriminator in database
 
 **Solution:**
+
 ```sql
 -- Check rule assignment
 SELECT v.NumberPlate, v.VehicleId, ft.TagName, ft.FuelRuleSetId, frs.Name
@@ -844,15 +875,18 @@ WHERE FuelingRuleSetId = 1 AND IsActive = 1;
 #### Issue 2: Incorrect Fuel Consumption Calculation
 
 **Symptoms:**
+
 - Daily/monthly totals don't match actual consumption
 - Refill counts are wrong
 
 **Possible Causes:**
+
 1. Timezone issues (UTC vs Local)
 2. Missing transactions in database
 3. Duplicate entries
 
 **Solution:**
+
 ```sql
 -- Check for duplicate entries
 SELECT TagId, DATE(DateCreated) as RefillDate,
@@ -877,15 +911,18 @@ LIMIT 10;
 #### Issue 3: Performance Issues
 
 **Symptoms:**
+
 - Slow rule evaluation
 - Timeout during authorization
 
 **Possible Causes:**
+
 1. Missing database indexes
 2. Loading too much data
 3. Inefficient queries
 
 **Solution:**
+
 ```sql
 -- Add necessary indexes
 CREATE INDEX idx_fuel_refills_tag_date ON FuelRefills(TagId, DateCreated);
@@ -906,16 +943,16 @@ GROUP BY TagId, DATE(DateCreated);
 
 ### Error Messages Reference
 
-| Error Code | Message | Description | Solution |
-|------------|---------|-------------|----------|
-| `VEHICLE_NOT_FOUND` | Vehicle not found | Vehicle ID doesn't exist in database | Verify vehicle exists before assignment |
-| `RULESET_NOT_FOUND` | Rule set not found | Rule set ID doesn't exist | Ensure rule set is created first |
-| `NO_RULES_IN_RULESET` | Rule set contains no rules | Empty rule set | Add at least one rule to the set |
-| `TAG_NOT_FOUND` | Tag not found | Tag ID doesn't exist | Verify tag exists |
-| `DAILY_LIMIT_EXCEEDED` | Daily fuel limit exceeded | Vehicle has consumed daily allowance | Wait until next day or adjust limits |
-| `MONTHLY_LIMIT_EXCEEDED` | Monthly fuel limit exceeded | Vehicle has consumed monthly allowance | Wait until next month or adjust limits |
-| `REFILL_COUNT_EXCEEDED` | Maximum refills exceeded | Too many refills in period | Wait for period reset |
-| `OUTSIDE_TIME_WINDOW` | Fueling outside allowed hours | Current time not in allowed window | Wait for allowed time period |
+| Error Code               | Message                       | Description                            | Solution                                |
+| ------------------------ | ----------------------------- | -------------------------------------- | --------------------------------------- |
+| `VEHICLE_NOT_FOUND`      | Vehicle not found             | Vehicle ID doesn't exist in database   | Verify vehicle exists before assignment |
+| `RULESET_NOT_FOUND`      | Rule set not found            | Rule set ID doesn't exist              | Ensure rule set is created first        |
+| `NO_RULES_IN_RULESET`    | Rule set contains no rules    | Empty rule set                         | Add at least one rule to the set        |
+| `TAG_NOT_FOUND`          | Tag not found                 | Tag ID doesn't exist                   | Verify tag exists                       |
+| `DAILY_LIMIT_EXCEEDED`   | Daily fuel limit exceeded     | Vehicle has consumed daily allowance   | Wait until next day or adjust limits    |
+| `MONTHLY_LIMIT_EXCEEDED` | Monthly fuel limit exceeded   | Vehicle has consumed monthly allowance | Wait until next month or adjust limits  |
+| `REFILL_COUNT_EXCEEDED`  | Maximum refills exceeded      | Too many refills in period             | Wait for period reset                   |
+| `OUTSIDE_TIME_WINDOW`    | Fueling outside allowed hours | Current time not in allowed window     | Wait for allowed time period            |
 
 ---
 
@@ -945,19 +982,23 @@ GROUP BY TagId, DATE(DateCreated);
 ### 4. Maintenance Schedule
 
 **Daily:**
+
 - Monitor rule violations
 - Check system performance metrics
 
 **Weekly:**
+
 - Review fuel consumption reports
 - Analyze rule effectiveness
 
 **Monthly:**
+
 - Archive old transaction data
 - Update rule sets based on consumption patterns
 - Generate management reports
 
 **Quarterly:**
+
 - Full system audit
 - Performance tuning
 - Rule optimization based on historical data
@@ -969,6 +1010,7 @@ GROUP BY TagId, DATE(DateCreated);
 ### Sample SQL Reports
 
 #### Monthly Fuel Consumption Report
+
 ```sql
 SELECT
     v.NumberPlate,
@@ -989,6 +1031,7 @@ ORDER BY Year DESC, Month DESC, v.NumberPlate;
 ```
 
 #### Rule Violation Report
+
 ```sql
 SELECT
     v.NumberPlate,
@@ -1015,6 +1058,7 @@ ORDER BY fr.DateCreated DESC;
 ### Integration Examples
 
 #### SignalR Real-Time Notifications
+
 ```csharp
 public class FuelAuthorizationHub : Hub
 {
@@ -1042,6 +1086,7 @@ public class FuelAuthorizationHub : Hub
 ```
 
 #### External API Integration
+
 ```csharp
 public interface IFuelPriceService
 {
@@ -1074,13 +1119,13 @@ public class FuelCostCalculator
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2024-01-15 | Initial release with basic rule types |
-| 1.1.0 | 2024-03-20 | Added time window rules |
-| 1.2.0 | 2024-06-10 | Added vehicle-specific rule assignments |
-| 1.3.0 | 2024-09-05 | Added real-time monitoring via SignalR |
-| 1.4.0 | 2024-11-10 | Current version with enhanced reporting |
+| Version | Date       | Changes                                 |
+| ------- | ---------- | --------------------------------------- |
+| 1.0.0   | 2024-01-15 | Initial release with basic rule types   |
+| 1.1.0   | 2024-03-20 | Added time window rules                 |
+| 1.2.0   | 2024-06-10 | Added vehicle-specific rule assignments |
+| 1.3.0   | 2024-09-05 | Added real-time monitoring via SignalR  |
+| 1.4.0   | 2024-11-10 | Current version with enhanced reporting |
 
 ---
 
@@ -1095,5 +1140,5 @@ For technical support or questions about the Fuel Rule Management System:
 
 ---
 
-*Last Updated: November 10, 2024*
-*Documentation Version: 1.4.0*
+_Last Updated: November 10, 2024_
+_Documentation Version: 1.4.0_

@@ -1,10 +1,15 @@
 using FMS.Application.Common;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.Queries;
 using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.DailyMonthlyRules;
 using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.NoOfRefilRules;
 using FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.TimeWIndowLimitRule;
 using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSet.Commands;
 using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSet.Queries;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSetAssignments.Commands;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSetAssignments.DTOs;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.RuleSetAssignments.Queries;
 using FMS.Application.Queries.Database.FMSQuery;
+using FMS.Domain.Entities.Features.FuelRuleSet;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -320,4 +325,243 @@ public class FuelingRuleController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
+
+    #region Rule Set Assignments (Cascade Model)
+
+    /// <summary>
+    /// Get all rule set assignments with optional filtering
+    /// </summary>
+    [HttpGet("assignments")]
+    public async Task<IActionResult> GetAssignments(
+        [FromQuery] int? ruleSetId = null,
+        [FromQuery] AssignmentTargetType? targetType = null,
+        [FromQuery] int? siteId = null,
+        [FromQuery] int? vehicleTypeId = null,
+        [FromQuery] int? vehicleId = null,
+        [FromQuery] int? tagId = null,
+        [FromQuery] bool? isActive = true)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetRuleSetAssignmentsQuery(
+                ruleSetId, targetType, siteId, vehicleTypeId, vehicleId, tagId, isActive));
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting rule set assignments");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Get a specific assignment by ID
+    /// </summary>
+    [HttpGet("assignments/{id}")]
+    public async Task<IActionResult> GetAssignmentById(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetRuleSetAssignmentByIdQuery(id));
+            if (!result.IsSuccess)
+                return result.ErrorCode == "ASSIGNMENT_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting assignment by id {Id}", id);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Get all applicable assignments for a specific vehicle (cascade hierarchy)
+    /// </summary>
+    [HttpGet("assignments/vehicle/{vehicleId}")]
+    public async Task<IActionResult> GetAssignmentsForVehicle(
+        int vehicleId,
+        [FromQuery] int? siteId = null,
+        [FromQuery] int? tagId = null)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetAssignmentsForVehicleQuery(vehicleId, siteId, tagId));
+            if (!result.IsSuccess)
+                return result.ErrorCode == "VEHICLE_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting assignments for vehicle {VehicleId}", vehicleId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Get effective (merged) rules for a vehicle based on cascade hierarchy.
+    /// Returns the calculated fuel allowance considering Site → VehicleType → Tag → Vehicle priority.
+    /// </summary>
+    [HttpGet("vehicle/{vehicleId}/effective-rules")]
+    public async Task<IActionResult> GetEffectiveRulesForVehicle(
+        int vehicleId,
+        [FromQuery] int? siteId = null,
+        [FromQuery] int? tagId = null)
+    {
+        try
+        {
+            var result = await _mediator.Send(
+                new GetEffectiveRulesForVehicleQuery(vehicleId, siteId, tagId));
+
+            if (!result.IsSuccess)
+                return result.ErrorCode == "VEHICLE_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting effective rules for vehicle {VehicleId}", vehicleId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Create a new rule set assignment (link a rule set to a target)
+    /// </summary>
+    [HttpPost("assignments")]
+    public async Task<IActionResult> CreateAssignment([FromBody] FuelingRuleSetAssignmentDTO assignment)
+    {
+        try
+        {
+            var result = await _mediator.Send(new CreateRuleSetAssignmentCommand(assignment));
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode switch
+                {
+                    "RULESET_NOT_FOUND" or "SITE_NOT_FOUND" or "VEHICLE_TYPE_NOT_FOUND"
+                        or "VEHICLE_NOT_FOUND" or "TAG_NOT_FOUND" => NotFound(result),
+                    _ => BadRequest(result)
+                };
+            }
+            return CreatedAtAction(nameof(GetAssignmentById), new { id = result.Data!.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating rule set assignment");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Update an existing rule set assignment
+    /// </summary>
+    [HttpPut("assignments/{id}")]
+    public async Task<IActionResult> UpdateAssignment(int id, [FromBody] FuelingRuleSetAssignmentDTO assignment)
+    {
+        try
+        {
+            var result = await _mediator.Send(new UpdateRuleSetAssignmentCommand(id, assignment));
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode switch
+                {
+                    "ASSIGNMENT_NOT_FOUND" or "RULESET_NOT_FOUND" or "SITE_NOT_FOUND"
+                        or "VEHICLE_TYPE_NOT_FOUND" or "VEHICLE_NOT_FOUND" or "TAG_NOT_FOUND" => NotFound(result),
+                    _ => BadRequest(result)
+                };
+            }
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating rule set assignment {Id}", id);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Delete (deactivate) a rule set assignment
+    /// </summary>
+    [HttpDelete("assignments/{id}")]
+    public async Task<IActionResult> DeleteAssignment(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new DeleteRuleSetAssignmentCommand(id));
+            if (!result.IsSuccess)
+                return result.ErrorCode == "ASSIGNMENT_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting rule set assignment {Id}", id);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Permanently delete a rule set assignment (hard delete)
+    /// </summary>
+    [HttpDelete("assignments/{id}/permanent")]
+    public async Task<IActionResult> HardDeleteAssignment(int id)
+    {
+        try
+        {
+            var result = await _mediator.Send(new HardDeleteRuleSetAssignmentCommand(id));
+            if (!result.IsSuccess)
+                return result.ErrorCode == "ASSIGNMENT_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error hard deleting rule set assignment {Id}", id);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Bulk create assignments - assign a rule set to multiple targets at once
+    /// </summary>
+    [HttpPost("assignments/bulk")]
+    public async Task<IActionResult> BulkCreateAssignments([FromBody] BulkAssignmentDTO bulkAssignment)
+    {
+        try
+        {
+            var result = await _mediator.Send(new BulkCreateRuleSetAssignmentsCommand(bulkAssignment));
+            if (!result.IsSuccess)
+                return result.ErrorCode == "RULESET_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk creating rule set assignments");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Get assignments grouped by rule set
+    /// </summary>
+    [HttpGet("rulesets/{ruleSetId}/assignments")]
+    public async Task<IActionResult> GetAssignmentsByRuleSet(int ruleSetId, [FromQuery] bool? isActive = true)
+    {
+        try
+        {
+            var result = await _mediator.Send(new GetRuleSetAssignmentsQuery(
+                RuleSetId: ruleSetId,
+                IsActive: isActive));
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting assignments for rule set {RuleSetId}", ruleSetId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    #endregion
 }

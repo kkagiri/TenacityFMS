@@ -6,16 +6,21 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+
+// Get screen height to determine if we need compact mode
+const { height: screenHeight } = Dimensions.get("window");
+const isSmallScreen = screenHeight < 700;
 
 const FuelingHeader = ({
   siteName,
   deviceId,
+  deviceName, // Human-readable PTS device name
   currentStep,
   connectionStatus,
   deviceOnline = false,
-  onBack,
   selectedTank,
   operationMode,
   onChangeTank,
@@ -99,21 +104,28 @@ const FuelingHeader = ({
   };
 
   return (
-    <View style={styles.container}>
-      {/* Top Row - Site & Connection */}
-      <View style={styles.topRow}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Icon name="arrow-left" size={18} color="white" />
-        </TouchableOpacity>
-
+    <View style={[styles.container, isSmallScreen && styles.containerCompact]}>
+      {/* Top Row - Site & PTS Device Info */}
+      <View style={[styles.topRow, isSmallScreen && styles.topRowCompact]}>
+        {/* Site Info */}
         <View style={styles.siteInfo}>
-          <Text style={styles.siteLabel}>Site</Text>
-          <Text style={styles.siteName} numberOfLines={1}>
+          {!isSmallScreen && <Text style={styles.siteLabel}>Site</Text>}
+          <Text
+            style={[styles.siteName, isSmallScreen && styles.siteNameCompact]}
+            numberOfLines={1}
+          >
             {siteName || "Unknown Site"}
           </Text>
         </View>
 
-        <View style={styles.connectionInfo}>
+        {/* PTS Device Info with Status */}
+        <View style={styles.deviceInfoContainer}>
+          <Icon name="microchip" size={16} color="#93c5fd" />
+          <View style={styles.deviceTextContainer}>
+            <Text style={styles.deviceNameText} numberOfLines={1}>
+              {deviceName || `Device ${deviceId}`}
+            </Text>
+          </View>
           <View
             style={[
               styles.statusDot,
@@ -122,19 +134,13 @@ const FuelingHeader = ({
           />
           <Text
             style={[
-              styles.connectionText,
+              styles.statusText,
               { color: deviceOnline ? "#10b981" : "#ef4444" },
             ]}
           >
             {deviceOnline ? "Online" : "Offline"}
           </Text>
         </View>
-      </View>
-
-      {/* Device ID */}
-      <View style={styles.deviceRow}>
-        <Icon name="microchip" size={14} color="#93c5fd" />
-        <Text style={styles.deviceId}>{deviceId}</Text>
       </View>
 
       {/* Active Fueling Banners - Show all pumps that are actively fueling */}
@@ -243,8 +249,13 @@ const FuelingHeader = ({
         </View>
       )}
 
-      {/* Step Progress */}
-      <View style={styles.stepContainer}>
+      {/* Step Progress (Compact) */}
+      <View
+        style={[
+          styles.stepContainer,
+          isSmallScreen && styles.stepContainerCompact,
+        ]}
+      >
         <View style={styles.stepProgress}>
           {getStepSequence().map((step, index) => {
             const currentIndex = getCurrentStepIndex();
@@ -257,6 +268,7 @@ const FuelingHeader = ({
                   <View
                     style={[
                       styles.stepLine,
+                      isSmallScreen && styles.stepLineCompact,
                       (isPast || isActive) && styles.stepLineActive,
                     ]}
                   />
@@ -264,19 +276,34 @@ const FuelingHeader = ({
                 <View
                   style={[
                     styles.stepDot,
+                    isSmallScreen && styles.stepDotCompact,
                     isActive && styles.stepDotActive,
                     isPast && styles.stepDotPast,
                   ]}
                 >
-                  {isPast && <Icon name="check" size={10} color="white" />}
+                  {isPast && (
+                    <Icon
+                      name="check"
+                      size={isSmallScreen ? 8 : 10}
+                      color="white"
+                    />
+                  )}
                 </View>
               </React.Fragment>
             );
           })}
         </View>
         <View style={styles.stepInfo}>
-          <Text style={styles.stepLabel}>{stepInfo.label}</Text>
-          <Text style={styles.stepName}>{stepInfo.name}</Text>
+          <Text
+            style={[styles.stepLabel, isSmallScreen && styles.stepLabelCompact]}
+          >
+            {stepInfo.label}
+          </Text>
+          <Text
+            style={[styles.stepName, isSmallScreen && styles.stepNameCompact]}
+          >
+            {stepInfo.name}
+          </Text>
         </View>
       </View>
     </View>
@@ -288,12 +315,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f2937",
     paddingTop: 8,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 12,
+  },
+  containerCompact: {
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
+  },
+  topRowCompact: {
+    marginBottom: 4,
   },
   backButton: {
     padding: 8,
@@ -313,6 +347,37 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "white",
   },
+  siteNameCompact: {
+    fontSize: 14,
+  },
+  deviceInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+    maxWidth: "50%",
+  },
+  deviceTextContainer: {
+    flexShrink: 1,
+  },
+  deviceNameText: {
+    fontSize: 12,
+    color: "#93c5fd",
+    fontWeight: "500",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
   connectionInfo: {
     flexDirection: "row",
     alignItems: "center",
@@ -321,15 +386,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
   },
+  connectionInfoCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   connectionText: {
     fontSize: 12,
     marginLeft: 6,
     fontWeight: "500",
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  connectionTextCompact: {
+    fontSize: 10,
+    marginLeft: 4,
   },
   deviceRow: {
     flexDirection: "row",
@@ -358,6 +427,9 @@ const styles = StyleSheet.create({
   stepContainer: {
     marginTop: 8,
   },
+  stepContainerCompact: {
+    marginTop: 4,
+  },
   stepProgress: {
     flexDirection: "row",
     alignItems: "center",
@@ -374,6 +446,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#4b5563",
   },
+  stepDotCompact: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+  },
   stepDotActive: {
     backgroundColor: "#3b82f6",
     borderColor: "#3b82f6",
@@ -387,6 +465,10 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: "#4b5563",
   },
+  stepLineCompact: {
+    width: 20,
+    height: 1.5,
+  },
   stepLineActive: {
     backgroundColor: "#10b981",
   },
@@ -399,11 +481,18 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  stepLabelCompact: {
+    fontSize: 9,
+  },
   stepName: {
     fontSize: 14,
     fontWeight: "600",
     color: "white",
     marginTop: 2,
+  },
+  stepNameCompact: {
+    fontSize: 12,
+    marginTop: 1,
   },
   // Tank Banner Styles
   tankBanner: {

@@ -11,13 +11,13 @@
  * - Shows status history and progress indicators
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSelector } from 'react-redux';
-import { Button } from 'devextreme-react/button';
-import { ProgressBar } from 'devextreme-react/progress-bar';
-import { LoadPanel } from 'devextreme-react/load-panel';
-import ptsSignalRService from '../../../signalR/ptsSignalRService';
-import './TransactionMonitoringStatus.scss';
+import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
+import { Button } from "devextreme-react/button";
+import { ProgressBar } from "devextreme-react/progress-bar";
+import { LoadPanel } from "devextreme-react/load-panel";
+import ptsSignalRService from "../../../signalR/ptsSignalRService";
+import "./TransactionMonitoringStatus.scss";
 
 const TransactionMonitoringStatus = ({
   deviceId,
@@ -26,7 +26,7 @@ const TransactionMonitoringStatus = ({
   isVisible,
   onCancel,
   onComplete,
-  connectionType = 'Unknown'
+  connectionType = "Unknown",
 }) => {
   const [monitoringData, setMonitoringData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,12 +35,17 @@ const TransactionMonitoringStatus = ({
   const [isConnected, setIsConnected] = useState(false);
 
   // Get real-time data from Redux
-  const uploadStatus = useSelector(state =>
-    state.realtimeStatus?.deviceStatuses?.[deviceId]?.status
+  const uploadStatus = useSelector(
+    (state) => state.realtimeStatus?.deviceStatuses?.[deviceId]?.status
   );
 
-  const deviceStatus = useSelector(state =>
-    state.realtimeStatus?.deviceStatuses?.[deviceId]
+  const deviceStatus = useSelector(
+    (state) => state.realtimeStatus?.deviceStatuses?.[deviceId]
+  );
+
+  // Get fueling context for this pump (Mode, Vehicle/Tank, FueledBy)
+  const fuelingContext = useSelector(
+    (state) => state.realtimeStatus?.deviceFuelingContexts?.[deviceId]?.[pumpId]
   );
 
   /**
@@ -50,14 +55,17 @@ const TransactionMonitoringStatus = ({
     const handleConnectionStatusChange = (connected) => {
       setIsConnected(connected);
       if (!connected) {
-        console.warn('[TransactionMonitoring] PTS SignalR disconnected');
+        console.warn("[TransactionMonitoring] PTS SignalR disconnected");
       } else {
-        console.log('[TransactionMonitoring] PTS SignalR connected');
+        console.log("[TransactionMonitoring] PTS SignalR connected");
       }
     };
 
     // Subscribe to connection status
-    const unsubscribe = ptsSignalRService.on('connectionStatusChanged', handleConnectionStatusChange);
+    const unsubscribe = ptsSignalRService.on(
+      "connectionStatusChanged",
+      handleConnectionStatusChange
+    );
 
     // Set initial connection status
     setIsConnected(ptsSignalRService.isConnected);
@@ -70,119 +78,144 @@ const TransactionMonitoringStatus = ({
   /**
    * Handle transaction monitoring updates
    */
-  const handleTransactionMonitoringUpdate = useCallback((data) => {
-    if (!data || data.deviceId !== deviceId || data.transactionId !== transactionId) {
-      return;
-    }
+  const handleTransactionMonitoringUpdate = useCallback(
+    (data) => {
+      if (
+        !data ||
+        data.deviceId !== deviceId ||
+        data.transactionId !== transactionId
+      ) {
+        return;
+      }
 
-    console.log('[TransactionMonitoring] Update received:', data);
+      console.log("[TransactionMonitoring] Update received:", data);
 
-    setMonitoringData(data);
-    setLastUpdated(new Date());
+      setMonitoringData(data);
+      setLastUpdated(new Date());
 
-    // Add to status history
-    setStatusHistory(prev => {
-      const newEntry = {
-        timestamp: new Date(),
-        status: data.status,
-        volume: data.volume,
-        amount: data.amount
-      };
-      return [...prev.slice(-4), newEntry]; // Keep last 5 entries
-    });
-  }, [deviceId, transactionId]);
+      // Add to status history
+      setStatusHistory((prev) => {
+        const newEntry = {
+          timestamp: new Date(),
+          status: data.status,
+          volume: data.volume,
+          amount: data.amount,
+        };
+        return [...prev.slice(-4), newEntry]; // Keep last 5 entries
+      });
+    },
+    [deviceId, transactionId]
+  );
 
   /**
    * Handle transaction completion
    */
-  const handleTransactionCompleted = useCallback((data) => {
-    if (!data || data.deviceId !== deviceId || data.pump !== pumpId) {
-      return;
-    }
-
-    console.log('[TransactionMonitoring] Transaction completed:', data);
-
-    setMonitoringData(prev => ({
-      ...prev,
-      status: 'Completed',
-      finalData: data
-    }));
-    setLastUpdated(new Date());
-
-    // Add completion to history
-    setStatusHistory(prev => [
-      ...prev.slice(-4),
-      {
-        timestamp: new Date(),
-        status: 'Completed',
-        volume: data.volume || data.transactionData?.volume,
-        amount: data.amount || data.transactionData?.amount
+  const handleTransactionCompleted = useCallback(
+    (data) => {
+      if (!data || data.deviceId !== deviceId || data.pump !== pumpId) {
+        return;
       }
-    ]);
-  }, [deviceId, pumpId]);
+
+      console.log("[TransactionMonitoring] Transaction completed:", data);
+
+      setMonitoringData((prev) => ({
+        ...prev,
+        status: "Completed",
+        finalData: data,
+      }));
+      setLastUpdated(new Date());
+
+      // Add completion to history
+      setStatusHistory((prev) => [
+        ...prev.slice(-4),
+        {
+          timestamp: new Date(),
+          status: "Completed",
+          volume: data.volume || data.transactionData?.volume,
+          amount: data.amount || data.transactionData?.amount,
+        },
+      ]);
+    },
+    [deviceId, pumpId]
+  );
 
   /**
    * Handle filling status updates
    */
-  const handleFillingStatus = useCallback((data) => {
-    if (!data || data.deviceId !== deviceId) {
-      return;
-    }
+  const handleFillingStatus = useCallback(
+    (data) => {
+      if (!data || data.deviceId !== deviceId) {
+        return;
+      }
 
-    console.log('[TransactionMonitoring] Filling status:', data);
+      console.log("[TransactionMonitoring] Filling status:", data);
 
-    // Update monitoring data with real-time filling info
-    setMonitoringData(prev => ({
-      ...prev,
-      status: 'Filling',
-      volume: data.fillingData?.volume,
-      amount: data.fillingData?.amount,
-      lastUpdate: new Date()
-    }));
-    setLastUpdated(new Date());
-  }, [deviceId]);
+      // Update monitoring data with real-time filling info
+      setMonitoringData((prev) => ({
+        ...prev,
+        status: "Filling",
+        volume: data.fillingData?.volume,
+        amount: data.fillingData?.amount,
+        lastUpdate: new Date(),
+      }));
+      setLastUpdated(new Date());
+    },
+    [deviceId]
+  );
 
   /**
    * Handle fueling events
    */
-  const handleFuelingEvent = useCallback((data) => {
-    if (!data || data.deviceId !== deviceId) {
-      return;
-    }
+  const handleFuelingEvent = useCallback(
+    (data) => {
+      if (!data || data.deviceId !== deviceId) {
+        return;
+      }
 
-    console.log('[TransactionMonitoring] Fueling event:', data);
+      console.log("[TransactionMonitoring] Fueling event:", data);
 
-    // Update based on event type
-    const eventType = data.fuelingData?.type || data.type;
+      // Update based on event type
+      const eventType = data.fuelingData?.type || data.type;
 
-    if (eventType === 'TransactionStarted' || eventType === 'FuelingStarted') {
-      setMonitoringData(prev => ({
-        ...prev,
-        status: 'InProgress',
-        startTime: new Date()
-      }));
-    } else if (eventType === 'TransactionCompleted' || eventType === 'FuelingCompleted') {
-      setMonitoringData(prev => ({
-        ...prev,
-        status: 'Completed',
-        endTime: new Date()
-      }));
-    }
+      if (
+        eventType === "TransactionStarted" ||
+        eventType === "FuelingStarted"
+      ) {
+        setMonitoringData((prev) => ({
+          ...prev,
+          status: "InProgress",
+          startTime: new Date(),
+        }));
+      } else if (
+        eventType === "TransactionCompleted" ||
+        eventType === "FuelingCompleted"
+      ) {
+        setMonitoringData((prev) => ({
+          ...prev,
+          status: "Completed",
+          endTime: new Date(),
+        }));
+      }
 
-    setLastUpdated(new Date());
-  }, [deviceId]);
+      setLastUpdated(new Date());
+    },
+    [deviceId]
+  );
 
   /**
    * Handle upload status updates
    */
-  const handleUploadStatusUpdate = useCallback((data) => {
-    if (!data || data.deviceId !== deviceId) {
-      return;
-    }
+  const handleUploadStatusUpdate = useCallback(
+    (data) => {
+      if (!data || data.deviceId !== deviceId) {
+        return;
+      }
 
-    console.log('[TransactionMonitoring] Upload status update:', data);
-    setLastUpdated(new Date());
-  }, [deviceId]);
+      console.log("[TransactionMonitoring] Upload status update:", data);
+      setLastUpdated(new Date());
+    },
+    [deviceId]
+  );
 
   /**
    * Set up PTS SignalR event handlers
@@ -190,28 +223,37 @@ const TransactionMonitoringStatus = ({
   useEffect(() => {
     if (!isVisible || !transactionId) return;
 
-    console.log('[TransactionMonitoring] Setting up event handlers for transaction:', transactionId);
+    console.log(
+      "[TransactionMonitoring] Setting up event handlers for transaction:",
+      transactionId
+    );
 
     // Register all relevant event handlers
     const unsubscribers = [
-      ptsSignalRService.on('pumpTransactionCompleted', handleTransactionCompleted),
-      ptsSignalRService.on('fillingStatus', handleFillingStatus),
-      ptsSignalRService.on('fuelingEvent', handleFuelingEvent),
-      ptsSignalRService.on('uploadStatusUpdate', handleUploadStatusUpdate)
+      ptsSignalRService.on(
+        "pumpTransactionCompleted",
+        handleTransactionCompleted
+      ),
+      ptsSignalRService.on("fillingStatus", handleFillingStatus),
+      ptsSignalRService.on("fuelingEvent", handleFuelingEvent),
+      ptsSignalRService.on("uploadStatusUpdate", handleUploadStatusUpdate),
     ];
 
     // Request initial status if connected
     if (ptsSignalRService.isConnected) {
-      ptsSignalRService.requestDeviceStatus(deviceId).catch(err => {
-        console.error('[TransactionMonitoring] Failed to request device status:', err);
+      ptsSignalRService.requestDeviceStatus(deviceId).catch((err) => {
+        console.error(
+          "[TransactionMonitoring] Failed to request device status:",
+          err
+        );
       });
     }
 
     // Cleanup function
     return () => {
-      console.log('[TransactionMonitoring] Cleaning up event handlers');
-      unsubscribers.forEach(unsub => {
-        if (typeof unsub === 'function') {
+      console.log("[TransactionMonitoring] Cleaning up event handlers");
+      unsubscribers.forEach((unsub) => {
+        if (typeof unsub === "function") {
           unsub();
         }
       });
@@ -224,7 +266,7 @@ const TransactionMonitoringStatus = ({
     handleTransactionCompleted,
     handleFillingStatus,
     handleFuelingEvent,
-    handleUploadStatusUpdate
+    handleUploadStatusUpdate,
   ]);
 
   /**
@@ -237,21 +279,21 @@ const TransactionMonitoringStatus = ({
       const status = uploadStatus.pumps[statusType];
       if (!status?.ids) return null;
 
-      const pumpIndex = status.ids.findIndex(id => id === pumpId);
+      const pumpIndex = status.ids.findIndex((id) => id === pumpId);
       if (pumpIndex === -1) return null;
 
       return {
         type: statusKey,
         index: pumpIndex,
-        data: status
+        data: status,
       };
     };
 
     return (
-      checkStatusType('idleStatus', 'idle') ||
-      checkStatusType('fillingStatus', 'filling') ||
-      checkStatusType('endOfTransactionStatus', 'endOfTransaction') ||
-      checkStatusType('offlineStatus', 'offline')
+      checkStatusType("idleStatus", "idle") ||
+      checkStatusType("fillingStatus", "filling") ||
+      checkStatusType("endOfTransactionStatus", "endOfTransaction") ||
+      checkStatusType("offlineStatus", "offline")
     );
   }, [uploadStatus, pumpId]);
 
@@ -262,15 +304,24 @@ const TransactionMonitoringStatus = ({
    */
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'authorized': return '#2196F3';
-      case 'monitoring': return '#FF9800';
-      case 'inprogress': return '#4CAF50';
-      case 'filling': return '#4CAF50';
-      case 'completed': return '#8BC34A';
-      case 'awaitingmanualcompletion': return '#FFC107';
-      case 'cancelled': return '#F44336';
-      case 'error': return '#F44336';
-      default: return '#9E9E9E';
+      case "authorized":
+        return "#2196F3";
+      case "monitoring":
+        return "#FF9800";
+      case "inprogress":
+        return "#4CAF50";
+      case "filling":
+        return "#4CAF50";
+      case "completed":
+        return "#8BC34A";
+      case "awaitingmanualcompletion":
+        return "#FFC107";
+      case "cancelled":
+        return "#F44336";
+      case "error":
+        return "#F44336";
+      default:
+        return "#9E9E9E";
     }
   };
 
@@ -279,15 +330,24 @@ const TransactionMonitoringStatus = ({
    */
   const getStatusText = (status) => {
     switch (status?.toLowerCase()) {
-      case 'authorized': return 'Authorized';
-      case 'monitoring': return 'Monitoring';
-      case 'inprogress': return 'Fueling In Progress';
-      case 'filling': return 'Fueling In Progress';
-      case 'completed': return 'Completed';
-      case 'awaitingmanualcompletion': return 'Awaiting Manual Completion';
-      case 'cancelled': return 'Cancelled';
-      case 'error': return 'Error';
-      default: return status || 'Unknown';
+      case "authorized":
+        return "Authorized";
+      case "monitoring":
+        return "Monitoring";
+      case "inprogress":
+        return "Fueling In Progress";
+      case "filling":
+        return "Fueling In Progress";
+      case "completed":
+        return "Completed";
+      case "awaitingmanualcompletion":
+        return "Awaiting Manual Completion";
+      case "cancelled":
+        return "Cancelled";
+      case "error":
+        return "Error";
+      default:
+        return status || "Unknown";
     }
   };
 
@@ -299,15 +359,22 @@ const TransactionMonitoringStatus = ({
 
     const status = monitoringData.status?.toLowerCase();
     switch (status) {
-      case 'authorized': return 10;
-      case 'monitoring': return 25;
-      case 'inprogress':
-      case 'filling': return 60;
-      case 'completed': return 100;
-      case 'awaitingmanualcompletion': return 90;
-      case 'cancelled':
-      case 'error': return 0;
-      default: return 20;
+      case "authorized":
+        return 10;
+      case "monitoring":
+        return 25;
+      case "inprogress":
+      case "filling":
+        return 60;
+      case "completed":
+        return 100;
+      case "awaitingmanualcompletion":
+        return 90;
+      case "cancelled":
+      case "error":
+        return 0;
+      default:
+        return 20;
     }
   };
 
@@ -316,7 +383,7 @@ const TransactionMonitoringStatus = ({
    */
   const canCancel = () => {
     const status = monitoringData?.status?.toLowerCase();
-    return status && !['completed', 'cancelled', 'error'].includes(status);
+    return status && !["completed", "cancelled", "error"].includes(status);
   };
 
   /**
@@ -324,8 +391,11 @@ const TransactionMonitoringStatus = ({
    */
   const canComplete = () => {
     const status = monitoringData?.status?.toLowerCase();
-    return status === 'awaitingmanualcompletion' ||
-           (currentPumpStatus?.type === 'endOfTransaction' && connectionType !== 'HTTPPolling');
+    return (
+      status === "awaitingmanualcompletion" ||
+      (currentPumpStatus?.type === "endOfTransaction" &&
+        connectionType !== "HTTPPolling")
+    );
   };
 
   /**
@@ -336,13 +406,16 @@ const TransactionMonitoringStatus = ({
 
     setIsLoading(true);
     try {
-      await onCancel(transactionId, 'User cancelled');
-      setMonitoringData(prev => ({
+      await onCancel(transactionId, "User cancelled");
+      setMonitoringData((prev) => ({
         ...prev,
-        status: 'Cancelled'
+        status: "Cancelled",
       }));
     } catch (error) {
-      console.error('[TransactionMonitoring] Error cancelling transaction:', error);
+      console.error(
+        "[TransactionMonitoring] Error cancelling transaction:",
+        error
+      );
     } finally {
       setIsLoading(false);
     }
@@ -357,12 +430,15 @@ const TransactionMonitoringStatus = ({
     setIsLoading(true);
     try {
       await onComplete(transactionId);
-      setMonitoringData(prev => ({
+      setMonitoringData((prev) => ({
         ...prev,
-        status: 'Completed'
+        status: "Completed",
       }));
     } catch (error) {
-      console.error('[TransactionMonitoring] Error completing transaction:', error);
+      console.error(
+        "[TransactionMonitoring] Error completing transaction:",
+        error
+      );
     } finally {
       setIsLoading(false);
     }
@@ -377,13 +453,15 @@ const TransactionMonitoringStatus = ({
       <div className="tw-monitoring-header">
         <h4 className="tw-monitoring-title">
           Transaction Monitoring
-          <span className="tw-transaction-badge">
-            #{transactionId}
-          </span>
+          <span className="tw-transaction-badge">#{transactionId}</span>
         </h4>
         <div className="tw-connection-info">
-          <span className={`tw-connection-status ${isConnected ? 'tw-connected' : 'tw-disconnected'}`}>
-            {isConnected ? '● Connected' : '○ Disconnected'}
+          <span
+            className={`tw-connection-status ${
+              isConnected ? "tw-connected" : "tw-disconnected"
+            }`}
+          >
+            {isConnected ? "● Connected" : "○ Disconnected"}
           </span>
           <span className="tw-connection-type">{connectionType}</span>
           {lastUpdated && (
@@ -400,7 +478,9 @@ const TransactionMonitoringStatus = ({
           <div className="tw-status-display">
             <div
               className="tw-status-indicator"
-              style={{ backgroundColor: getStatusColor(monitoringData?.status) }}
+              style={{
+                backgroundColor: getStatusColor(monitoringData?.status),
+              }}
             />
             <span className="tw-status-text">
               {getStatusText(monitoringData?.status)}
@@ -428,13 +508,97 @@ const TransactionMonitoringStatus = ({
             {monitoringData.volume && (
               <div className="tw-data-row">
                 <span className="tw-data-label">Volume:</span>
-                <span className="tw-data-value">{Number(monitoringData.volume).toFixed(2)} L</span>
+                <span className="tw-data-value">
+                  {Number(monitoringData.volume).toFixed(2)} L
+                </span>
               </div>
             )}
             {monitoringData.amount && (
               <div className="tw-data-row">
                 <span className="tw-data-label">Amount:</span>
-                <span className="tw-data-value">${Number(monitoringData.amount).toFixed(2)}</span>
+                <span className="tw-data-value">
+                  ${Number(monitoringData.amount).toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Fueling Context - Mode, Vehicle/Tank, FueledBy */}
+        {fuelingContext && (
+          <div className="tw-fueling-context">
+            <div className="tw-context-row">
+              <span className="tw-context-label">Mode:</span>
+              <span
+                className={`tw-context-value tw-mode-${
+                  fuelingContext.mode?.toLowerCase() || "unknown"
+                }`}
+              >
+                {fuelingContext.mode === "Vehicle" ? (
+                  <>
+                    <i className="fa-light fa-truck tw-mr-1"></i> Vehicle
+                  </>
+                ) : fuelingContext.mode === "Transfer" ? (
+                  <>
+                    <i className="fa-light fa-arrow-right-arrow-left tw-mr-1"></i>{" "}
+                    Transfer
+                  </>
+                ) : (
+                  fuelingContext.mode || "Unknown"
+                )}
+              </span>
+            </div>
+
+            {fuelingContext.mode === "Vehicle" &&
+              fuelingContext.vehicleName && (
+                <div className="tw-context-row">
+                  <span className="tw-context-label">Vehicle:</span>
+                  <span className="tw-context-value">
+                    <i className="fa-light fa-car tw-mr-1"></i>
+                    {fuelingContext.vehicleName}
+                    {fuelingContext.vehicleId && (
+                      <span className="tw-context-id">
+                        {" "}
+                        (#{fuelingContext.vehicleId})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+
+            {fuelingContext.mode === "Transfer" && fuelingContext.tankName && (
+              <div className="tw-context-row">
+                <span className="tw-context-label">Tank:</span>
+                <span className="tw-context-value">
+                  <i className="fa-light fa-database tw-mr-1"></i>
+                  {fuelingContext.tankName}
+                  {fuelingContext.tankId && (
+                    <span className="tw-context-id">
+                      {" "}
+                      (#{fuelingContext.tankId})
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {fuelingContext.fueledByUserName && (
+              <div className="tw-context-row">
+                <span className="tw-context-label">Fueled By:</span>
+                <span className="tw-context-value">
+                  <i className="fa-light fa-user tw-mr-1"></i>
+                  {fuelingContext.fueledByUserName}
+                </span>
+              </div>
+            )}
+
+            {fuelingContext.tag && (
+              <div className="tw-context-row">
+                <span className="tw-context-label">Tag:</span>
+                <span className="tw-context-value">
+                  <i className="fa-light fa-tag tw-mr-1"></i>
+                  {fuelingContext.tag}
+                </span>
               </div>
             )}
           </div>
@@ -450,18 +614,30 @@ const TransactionMonitoringStatus = ({
               </span>
             </div>
 
-            {currentPumpStatus.type === 'filling' && currentPumpStatus.data.volumes && (
-              <div className="tw-live-data">
-                <div className="tw-live-row">
-                  <span>Volume: {currentPumpStatus.data.volumes[currentPumpStatus.index]?.toFixed(2) || '0.00'} L</span>
+            {currentPumpStatus.type === "filling" &&
+              currentPumpStatus.data.volumes && (
+                <div className="tw-live-data">
+                  <div className="tw-live-row">
+                    <span>
+                      Volume:{" "}
+                      {currentPumpStatus.data.volumes[
+                        currentPumpStatus.index
+                      ]?.toFixed(2) || "0.00"}{" "}
+                      L
+                    </span>
+                  </div>
+                  <div className="tw-live-row">
+                    <span>
+                      Amount: $
+                      {currentPumpStatus.data.amounts?.[
+                        currentPumpStatus.index
+                      ]?.toFixed(2) || "0.00"}
+                    </span>
+                  </div>
                 </div>
-                <div className="tw-live-row">
-                  <span>Amount: ${currentPumpStatus.data.amounts?.[currentPumpStatus.index]?.toFixed(2) || '0.00'}</span>
-                </div>
-              </div>
-            )}
+              )}
 
-            {currentPumpStatus.type === 'endOfTransaction' && (
+            {currentPumpStatus.type === "endOfTransaction" && (
               <div className="tw-live-data">
                 <div className="tw-live-row">
                   <span className="tw-completion-message">
@@ -478,22 +654,26 @@ const TransactionMonitoringStatus = ({
           <div className="tw-status-history">
             <h5 className="tw-history-title">Recent Updates</h5>
             <div className="tw-history-list">
-              {statusHistory.slice().reverse().map((entry, index) => (
-                <div key={index} className="tw-history-entry">
-                  <div className="tw-history-time">
-                    {entry.timestamp.toLocaleTimeString()}
-                  </div>
-                  <div className="tw-history-status">
-                    {getStatusText(entry.status)}
-                  </div>
-                  {entry.volume && (
-                    <div className="tw-history-data">
-                      {Number(entry.volume).toFixed(2)} L
-                      {entry.amount && ` - $${Number(entry.amount).toFixed(2)}`}
+              {statusHistory
+                .slice()
+                .reverse()
+                .map((entry, index) => (
+                  <div key={index} className="tw-history-entry">
+                    <div className="tw-history-time">
+                      {entry.timestamp.toLocaleTimeString()}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="tw-history-status">
+                      {getStatusText(entry.status)}
+                    </div>
+                    {entry.volume && (
+                      <div className="tw-history-data">
+                        {Number(entry.volume).toFixed(2)} L
+                        {entry.amount &&
+                          ` - $${Number(entry.amount).toFixed(2)}`}
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
           </div>
         )}
@@ -502,7 +682,9 @@ const TransactionMonitoringStatus = ({
         {!isConnected && (
           <div className="tw-connection-warning">
             <i className="fa-light fa-exclamation-triangle"></i>
-            <span>Real-time updates unavailable - PTS SignalR disconnected</span>
+            <span>
+              Real-time updates unavailable - PTS SignalR disconnected
+            </span>
           </div>
         )}
       </div>

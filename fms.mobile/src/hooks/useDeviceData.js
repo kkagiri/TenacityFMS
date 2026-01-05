@@ -1,6 +1,6 @@
 //Cursor - Mobile device data hook adapted from web frontend
 import { useSelector } from "react-redux";
-import { useMemo } from "react";
+import { useMemo, useRef, useCallback } from "react";
 import FuelingUtils from "../utils/FuelingUtils";
 
 export const useDeviceData = (ptsId) => {
@@ -128,6 +128,145 @@ export const useDeviceData = (ptsId) => {
     }));
   }, [rawUploadStatus]);
 
+  // ==========================================
+  // RFID Tag Detection from Upload Status
+  // ==========================================
+  // Track previously seen tags to detect new ones
+  const previousTagsRef = useRef(new Set());
+
+  // Extract RFID tags from IdleStatus (pump-attached readers) and Readers (standalone readers)
+  const detectedTags = useMemo(() => {
+    if (!rawUploadStatus) return [];
+
+    const tags = [];
+    const now = new Date().toISOString();
+
+    // Get Pumps data (handles both PascalCase and camelCase)
+    const pumpsData = rawUploadStatus?.Pumps || rawUploadStatus?.pumps;
+
+    // 1. Extract tags from IdleStatus (pump-attached RFID readers)
+    // Format: Pumps.IdleStatus.Tags[] - parallel array with Ids[]
+    const idleStatus = pumpsData?.IdleStatus || pumpsData?.idleStatus;
+    if (idleStatus) {
+      const pumpIds = idleStatus?.Ids || idleStatus?.ids || [];
+      const pumpTags = idleStatus?.Tags || idleStatus?.tags || [];
+
+      pumpTags.forEach((tag, index) => {
+        if (tag && tag.trim() !== "" && tag !== "000000000000") {
+          const pumpId = pumpIds[index];
+          tags.push({
+            tagId: tag.trim(),
+            source: "pump",
+            pumpId: pumpId,
+            readerId: null,
+            detectedAt: now,
+            isNew: !previousTagsRef.current.has(tag.trim()),
+          });
+        }
+      });
+    }
+
+    // 2. Extract tags from Readers.OnlineStatus (standalone RFID readers)
+    // Format: Readers.OnlineStatus.Tags[] with Ids[]
+    const readers = rawUploadStatus?.Readers || rawUploadStatus?.readers;
+    const onlineReaders = readers?.OnlineStatus || readers?.onlineStatus;
+    if (onlineReaders) {
+      const readerIds = onlineReaders?.Ids || onlineReaders?.ids || [];
+      const readerTags = onlineReaders?.Tags || onlineReaders?.tags || [];
+
+      readerTags.forEach((tag, index) => {
+        if (tag && tag.trim() !== "" && tag !== "000000000000") {
+          const readerId = readerIds[index];
+          // Avoid duplicates from pump tags
+          if (!tags.find((t) => t.tagId === tag.trim())) {
+            tags.push({
+              tagId: tag.trim(),
+              source: "reader",
+              pumpId: null,
+              readerId: readerId,
+              detectedAt: now,
+              isNew: !previousTagsRef.current.has(tag.trim()),
+            });
+          }
+        }
+      });
+
+      // Also check LastTags for recently scanned tags
+      const lastTags = onlineReaders?.LastTags || onlineReaders?.lastTags || [];
+      lastTags.forEach((tag, index) => {
+        if (tag && tag.trim() !== "" && tag !== "000000000000") {
+          const readerId = readerIds[index];
+          if (!tags.find((t) => t.tagId === tag.trim())) {
+            tags.push({
+              tagId: tag.trim(),
+              source: "reader-last",
+              pumpId: null,
+              readerId: readerId,
+              detectedAt: now,
+              isNew: !previousTagsRef.current.has(tag.trim()),
+            });
+          }
+        }
+      });
+    }
+
+    // 3. Extract tags from Readers.OfflineStatus (offline readers with buffered tags)
+    // Format: Readers.OfflineStatus.Tags[] with Ids[]
+    const offlineReaders = readers?.OfflineStatus || readers?.offlineStatus;
+    if (offlineReaders) {
+      const offlineIds = offlineReaders?.Ids || offlineReaders?.ids || [];
+      const offlineTags = offlineReaders?.Tags || offlineReaders?.tags || [];
+
+      offlineTags.forEach((tag, index) => {
+        if (tag && tag.trim() !== "" && tag !== "000000000000") {
+          const readerId = offlineIds[index];
+          if (!tags.find((t) => t.tagId === tag.trim())) {
+            tags.push({
+              tagId: tag.trim(),
+              source: "reader-offline",
+              pumpId: null,
+              readerId: readerId,
+              detectedAt: now,
+              isNew: !previousTagsRef.current.has(tag.trim()),
+            });
+          }
+        }
+      });
+    }
+
+    // Update previous tags reference
+    tags.forEach((t) => previousTagsRef.current.add(t.tagId));
+
+    // Log detected tags for debugging
+    if (tags.length > 0) {
+      console.log(
+        "[useDeviceData] 🏷️ Detected tags:",
+        tags
+          .map((t) => `${t.tagId}(${t.source}${t.isNew ? ",NEW" : ""})`)
+          .join(", ")
+      );
+    }
+
+    return tags;
+  }, [rawUploadStatus]);
+
+  // Get newly detected tags (tags that appeared in the latest update)
+  const newlyDetectedTags = useMemo(() => {
+    return detectedTags.filter((t) => t.isNew);
+  }, [detectedTags]);
+
+  // Get the most recently detected tag
+  const lastDetectedTag = useMemo(() => {
+    const newTags = detectedTags.filter((t) => t.isNew);
+    return newTags.length > 0 ? newTags[newTags.length - 1] : null;
+  }, [detectedTags]);
+
+  // Clear tag detection history (call when starting new scan session)
+  const clearTagHistory = useCallback(() => {
+    previousTagsRef.current.clear();
+    console.log("[useDeviceData] 🧹 Tag detection history cleared");
+  }, []);
+
   // Helper function to get pump details
   const getPumpDetails = (pumpId) => {
     return devicePumpStatus[pumpId] || null;
@@ -157,6 +296,12 @@ export const useDeviceData = (ptsId) => {
     activeFuelingProcesses,
     fuelGrades,
     probeTanks, // Tank data from PTS probes
+
+    // RFID Tag detection
+    detectedTags, // All currently detected tags
+    newlyDetectedTags, // Tags that appeared in latest update
+    lastDetectedTag, // Most recently detected new tag
+    clearTagHistory, // Function to reset tag detection
 
     // Helper functions
     getPumpDetails,

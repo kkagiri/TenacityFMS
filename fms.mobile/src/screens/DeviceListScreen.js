@@ -92,7 +92,7 @@ const DeviceListScreen = ({ navigation }) => {
     navigation.navigate("FuelingProcess", {
       ptsId: device.ptsid || device.id?.toString(),
       siteId: device.site || defaultSite?.id,
-      deviceName: device.name || `PTS ${device.ptsid}`,
+      deviceName: device.ptsName || device.name || `PTS ${device.ptsid}`,
     });
   };
 
@@ -148,10 +148,25 @@ const DeviceListScreen = ({ navigation }) => {
     }
   };
 
+  // Format device ID for display - show shorter version if no name
+  const formatDeviceId = (ptsid) => {
+    if (!ptsid) return "Unknown";
+    const id = ptsid.toString();
+    // Show last 8 characters for long IDs
+    if (id.length > 12) {
+      return `...${id.slice(-8)}`;
+    }
+    return id;
+  };
+
   const renderDeviceItem = ({ item }) => {
     const status = getDeviceStatus(item);
     const siteName =
       item.siteNavigation?.name || defaultSite?.name || "Unknown Site";
+    const deviceId = item.ptsid || item.id?.toString();
+    const hasName = !!(item.ptsName || item.name);
+    const displayName =
+      item.ptsName || item.name || `PTS ${formatDeviceId(deviceId)}`;
 
     return (
       <TouchableOpacity
@@ -162,9 +177,10 @@ const DeviceListScreen = ({ navigation }) => {
           <View style={styles.deviceInfo}>
             <Icon name="gas-pump" size={24} color="#2563eb" />
             <View style={styles.deviceDetails}>
-              <Text style={styles.deviceName}>
-                {item.name || `PTS ${item.ptsid}`}
-              </Text>
+              <Text style={styles.deviceName}>{displayName}</Text>
+              {hasName && deviceId && (
+                <Text style={styles.deviceId}>ID: {deviceId}</Text>
+              )}
               <Text style={styles.deviceLocation}>
                 <Icon name="map-marker-alt" size={12} color="#6b7280" />{" "}
                 {siteName}
@@ -195,10 +211,6 @@ const DeviceListScreen = ({ navigation }) => {
           <View style={styles.statItem}>
             <Icon name="tint" size={14} color="#6b7280" />
             <Text style={styles.statText}>{item.pumpCount || 0} Pumps</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Icon name="barcode" size={14} color="#6b7280" />
-            <Text style={styles.statText}>ID: {item.ptsid}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -355,6 +367,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#1f2937",
+  },
+  deviceId: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 1,
   },
   deviceLocation: {
     fontSize: 12,

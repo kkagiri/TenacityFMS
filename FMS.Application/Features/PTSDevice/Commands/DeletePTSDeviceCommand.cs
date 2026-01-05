@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Features.PTSDevice.Commands
 {
-    public record DeletePTSDeviceCommand(int DeviceId) : IRequest<FMSResponseMessage<Ptsdevice>>;
+    public record DeletePTSDeviceCommand(string DeviceId) : IRequest<FMSResponseMessage<Ptsdevice>>;
 
     public class DeletePTSDeviceCommandHandler : IRequestHandler<DeletePTSDeviceCommand, FMSResponseMessage<Ptsdevice>>
     {

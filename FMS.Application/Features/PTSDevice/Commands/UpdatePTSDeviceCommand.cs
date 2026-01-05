@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Features.PTSDevice.Commands
 {
-    public record UpdatePTSDeviceCommand(int DeviceId, Ptsdevice UpdatedPTSDevice) : IRequest<FMSResponseMessage<Ptsdevice>>;
+    public record UpdatePTSDeviceCommand(string DeviceId, Ptsdevice UpdatedPTSDevice) : IRequest<FMSResponseMessage<Ptsdevice>>;
 
     public class UpdatePTSDeviceCommandHandler : IRequestHandler<UpdatePTSDeviceCommand, FMSResponseMessage<Ptsdevice>>
     {

@@ -28,9 +28,10 @@ namespace FMS.Application.Features.PTSDevice.Queries
         {
             try
             {
-                // Include Site navigation to get site name
+                // Include Site navigation to get site name and Tanks
                 return await _context.Ptsdevices
                     .Include(p => p.SiteNavigation)
+                    .Include(p => p.Tanks)
                     .ToListAsync(cancellationToken);
             }
             catch (Exception ex)

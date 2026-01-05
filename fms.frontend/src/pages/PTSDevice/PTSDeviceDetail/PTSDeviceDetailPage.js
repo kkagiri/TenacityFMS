@@ -99,11 +99,15 @@ const PTSDeviceDetailPage = () => {
 
     // Only subscribe when Live Info tab (index 0) is active
     if (activeTab !== 0) {
-      console.log(`[PTSDeviceDetail] Live Info not active - skipping parent subscriptions`);
+      console.log(
+        `[PTSDeviceDetail] Live Info not active - skipping parent subscriptions`
+      );
       return;
     }
 
-    console.log(`[PTSDeviceDetail] Live Info active - subscribing to device updates for ${deviceid}`);
+    console.log(
+      `[PTSDeviceDetail] Live Info active - subscribing to device updates for ${deviceid}`
+    );
 
     const handleDeviceUpdate = (data) => {
       //console.log(`[PTSDeviceDetail] Received update for device ${deviceid}:`, data);
@@ -175,8 +179,9 @@ const PTSDeviceDetailPage = () => {
 
   // Check if device is connected via WebSocket
   const isWebSocketConnected = useMemo(() => {
-    return device?.webSocketCapable === 1 &&
-           device?.connectionStatus === "Connected";
+    return (
+      device?.webSocketCapable === 1 && device?.connectionStatus === "Connected"
+    );
   }, [device?.webSocketCapable, device?.connectionStatus]);
 
   // Memoize tab components
@@ -348,8 +353,11 @@ const PTSDeviceDetailPage = () => {
           {/* Device Info Section */}
           <div className="tw-flex-1">
             <h1 className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">
-              {device.ptsid}
+              {device.ptsName || device.ptsid}
             </h1>
+            <p className="tw-text-sm tw-text-gray-500 tw-mb-1">
+              ID: {device.ptsid}
+            </p>
             <p className="tw-text-sm md:tw-text-base tw-text-gray-600">
               {device.siteNavigation?.name || "Unknown Site"}
             </p>
@@ -362,16 +370,22 @@ const PTSDeviceDetailPage = () => {
           <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
             <div className="tw-flex tw-items-center tw-gap-3">
               <div className="tw-text-2xl">
-                <i className={`fa-light ${
-                  isWebSocketConnected
-                    ? "fa-circle-check tw-text-green-600"
-                    : "fa-circle-xmark tw-text-red-600"
-                }`}></i>
+                <i
+                  className={`fa-light ${
+                    isWebSocketConnected
+                      ? "fa-circle-check tw-text-green-600"
+                      : "fa-circle-xmark tw-text-red-600"
+                  }`}
+                ></i>
               </div>
               <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">Connection</div>
+                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
+                  Connection
+                </div>
                 <div className="tw-font-semibold tw-text-gray-800">
-                  {isWebSocketConnected ? "WebSocket Connected" : "Disconnected"}
+                  {isWebSocketConnected
+                    ? "WebSocket Connected"
+                    : "Disconnected"}
                 </div>
               </div>
             </div>
@@ -384,7 +398,9 @@ const PTSDeviceDetailPage = () => {
                 <i className="fa-light fa-network-wired tw-text-blue-600"></i>
               </div>
               <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">IP Address</div>
+                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
+                  IP Address
+                </div>
                 <div className="tw-font-semibold tw-text-gray-800">
                   {device.ipaddress || "N/A"}
                 </div>
@@ -396,12 +412,16 @@ const PTSDeviceDetailPage = () => {
           <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
             <div className="tw-flex tw-items-center tw-gap-3">
               <div className="tw-text-2xl">
-                <i className={`fa-light fa-circle-dot ${
-                  device.isActive ? "tw-text-green-600" : "tw-text-red-600"
-                }`}></i>
+                <i
+                  className={`fa-light fa-circle-dot ${
+                    device.isActive ? "tw-text-green-600" : "tw-text-red-600"
+                  }`}
+                ></i>
               </div>
               <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">Status</div>
+                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
+                  Status
+                </div>
                 <div className="tw-font-semibold tw-text-gray-800">
                   {device.isActive ? "Active" : "Inactive"}
                 </div>
@@ -416,7 +436,9 @@ const PTSDeviceDetailPage = () => {
                 <i className="fa-light fa-clock tw-text-purple-600"></i>
               </div>
               <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">Last Activity</div>
+                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
+                  Last Activity
+                </div>
                 <div className="tw-font-semibold tw-text-gray-800 tw-text-sm">
                   {device.lastActivity
                     ? new Date(device.lastActivity).toLocaleString()
@@ -433,7 +455,9 @@ const PTSDeviceDetailPage = () => {
                 <i className="fa-light fa-satellite-dish tw-text-indigo-600"></i>
               </div>
               <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">Communication</div>
+                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
+                  Communication
+                </div>
                 <div className="tw-font-semibold tw-text-gray-800">
                   {device.communicationType || "Unknown"}
                 </div>
@@ -450,12 +474,64 @@ const PTSDeviceDetailPage = () => {
               <div>
                 <div className="tw-text-xs tw-text-gray-500 tw-mb-1">Port</div>
                 <div className="tw-font-semibold tw-text-gray-800">
-                  {device.port || "N/A"}
+                  {device.port || device.portNumber || "N/A"}
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Connected Tanks Section */}
+        {device.tanks && device.tanks.length > 0 && (
+          <div className="tw-mt-6">
+            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
+              <i className="fa-light fa-database tw-mr-2 tw-text-blue-600"></i>
+              Connected Tanks ({device.tanks.length})
+            </h3>
+            <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 xl:tw-grid-cols-4 tw-gap-3">
+              {device.tanks.map((tank) => (
+                <div
+                  key={tank.id}
+                  className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3"
+                >
+                  <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
+                    <i className="fa-light fa-oil-can tw-text-blue-600"></i>
+                    <span className="tw-font-semibold tw-text-gray-800">
+                      {tank.name}
+                    </span>
+                  </div>
+                  <div className="tw-text-xs tw-text-gray-600 tw-space-y-1">
+                    <div>
+                      <span className="tw-text-gray-500">Capacity:</span>{" "}
+                      <span className="tw-font-medium">
+                        {tank.tankVolume?.toLocaleString() || "N/A"} L
+                      </span>
+                    </div>
+                    {tank.fuelGradeName && (
+                      <div>
+                        <span className="tw-text-gray-500">Fuel:</span>{" "}
+                        <span className="tw-font-medium">
+                          {tank.fuelGradeName}
+                        </span>
+                      </div>
+                    )}
+                    {tank.currentStock !== null &&
+                      tank.currentStock !== undefined && (
+                        <div>
+                          <span className="tw-text-gray-500">
+                            Current Stock:
+                          </span>{" "}
+                          <span className="tw-font-medium">
+                            {tank.currentStock?.toLocaleString() || "0"} L
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs Section */}

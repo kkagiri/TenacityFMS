@@ -4,6 +4,7 @@ import {
   READER_STATUS_UPDATE,
   TOGGLE_LIVE_DATA,
   SET_UPDATE_FREQUENCY,
+  UPDATE_FUELING_CONTEXTS,
 } from "../../actions/ptsActions/realtimeStatusActions";
 
 const initialState = {
@@ -15,6 +16,8 @@ const initialState = {
   devicePumpStatus: {}, // Parsed pump status organized by device and pump ID
   deviceProbeStatus: {}, // Parsed probe status organized by device and probe ID
   deviceReaderStatus: {}, // Parsed reader status organized by device and reader ID
+  // Enhanced: Fueling contexts for active pumps (mode, vehicle, tank, fueled by)
+  deviceFuelingContexts: {}, // deviceId -> { pumpId -> fuelingContext }
   lastUpdated: null,
 };
 
@@ -360,6 +363,36 @@ const realtimeStatusReducer = (state = initialState, action) => {
         ...state,
         updateFrequency: action.payload,
       };
+
+    case UPDATE_FUELING_CONTEXTS: {
+      const { deviceId, fuelingContexts } = action.payload;
+      const timestamp = new Date().toISOString();
+
+      // Build updated contexts for this device
+      const updatedContexts = {
+        ...(state.deviceFuelingContexts[deviceId] || {}),
+      };
+
+      if (fuelingContexts && Array.isArray(fuelingContexts)) {
+        fuelingContexts.forEach((context) => {
+          if (context.pumpId) {
+            updatedContexts[context.pumpId] = {
+              ...context,
+              lastUpdated: timestamp,
+            };
+          }
+        });
+      }
+
+      return {
+        ...state,
+        deviceFuelingContexts: {
+          ...state.deviceFuelingContexts,
+          [deviceId]: updatedContexts,
+        },
+        lastUpdated: timestamp,
+      };
+    }
 
     default:
       return state;

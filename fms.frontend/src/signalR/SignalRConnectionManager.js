@@ -26,7 +26,6 @@ const ROUTE_PATTERNS = {
     /^\/reader/,
     /^\/fueling/,
     /^\/atg/,
-    /^\/admin\/ptsdevice/, // PTS Device management pages
   ],
   BUSINESS: [
     /^\/tankstock/,
@@ -95,11 +94,18 @@ class SignalRConnectionManager {
     }
 
     // Skip SignalR for login/auth pages or when no token present
-    const isAuthPage = newPath.includes('/login') || newPath.includes('/auth') || newPath.includes('/logout');
-    const hasToken = !!localStorage.getItem('token');
+    const isAuthPage =
+      newPath.includes("/login") ||
+      newPath.includes("/auth") ||
+      newPath.includes("/logout");
+    const hasToken = !!localStorage.getItem("token");
 
     if (isAuthPage || !hasToken) {
-      console.log(`[SignalRManager] ⏭️ Skipping SignalR - ${isAuthPage ? 'auth page' : 'no token'}`);
+      console.log(
+        `[SignalRManager] ⏭️ Skipping SignalR - ${
+          isAuthPage ? "auth page" : "no token"
+        }`
+      );
       // Stop all active services if user is logging out
       if (this.activeServices.size > 0) {
         await this.stopAll();

@@ -16,9 +16,7 @@ import {
 import { Button } from "devextreme-react/button";
 
 // Import selectors and actions
-import {
-  selectAllDevices,
-} from "../../redux/selectors/deviceSelectors";
+import { selectAllDevices } from "../../redux/selectors/deviceSelectors";
 import { fetchPTSDeviceList } from "../../redux/actions/ptsActions/ptsDeviceActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
 import {
@@ -104,7 +102,9 @@ const ATGDashboard = () => {
     const deviceCount = ptsDevices?.length || 0;
     const devicesExist = deviceCount > 0;
 
-    console.log(`[ATG Dashboard] Device count: ${deviceCount}, Has devices: ${devicesExist}`);
+    console.log(
+      `[ATG Dashboard] Device count: ${deviceCount}, Has devices: ${devicesExist}`
+    );
     setHasDevices(devicesExist);
 
     let cleanupListeners = null;
@@ -119,7 +119,9 @@ const ATGDashboard = () => {
       const initSignalR = async () => {
         try {
           if (ptsSignalRService.isConnected) {
-            console.log("[ATG Dashboard] PTS SignalR connection already active");
+            console.log(
+              "[ATG Dashboard] PTS SignalR connection already active"
+            );
             cleanupListeners = setupSignalRListeners();
             setSignalRInitialized(true);
             // Mark status as stable after a short delay
@@ -135,7 +137,10 @@ const ATGDashboard = () => {
             }, 1000);
           }
         } catch (error) {
-          console.error("[ATG Dashboard] SignalR initialization failed:", error);
+          console.error(
+            "[ATG Dashboard] SignalR initialization failed:",
+            error
+          );
           setSignalRInitialized(false);
           setStatusStable(false);
         }
@@ -147,7 +152,9 @@ const ATGDashboard = () => {
       console.log("[ATG Dashboard] No devices - Stopping SignalR...");
       cleanupSignalR();
     } else if (!devicesExist && !isInitialLoad) {
-      console.log("[ATG Dashboard] No devices detected - SignalR initialization skipped");
+      console.log(
+        "[ATG Dashboard] No devices detected - SignalR initialization skipped"
+      );
     }
 
     // Cleanup on unmount or when dependencies change
@@ -163,7 +170,9 @@ const ATGDashboard = () => {
     try {
       // Connection lifecycle is managed by SignalRConnectionManager
       // Just reset local state
-      console.log("[ATG Dashboard] Cleaning up local SignalR state (connection managed by ConnectionManager)");
+      console.log(
+        "[ATG Dashboard] Cleaning up local SignalR state (connection managed by ConnectionManager)"
+      );
       setSignalRInitialized(false);
       setStatusStable(false);
     } catch (error) {
@@ -208,7 +217,9 @@ const ATGDashboard = () => {
         // Log activity age for debugging
         if (!isRecent) {
           console.log(
-            `[ATG Dashboard] Device ${device.ptsid} activity too old: ${diffMinutes.toFixed(1)} minutes`
+            `[ATG Dashboard] Device ${
+              device.ptsid
+            } activity too old: ${diffMinutes.toFixed(1)} minutes`
           );
         }
       } catch (e) {
@@ -227,7 +238,12 @@ const ATGDashboard = () => {
     if (!canFuel) {
       console.log(
         `[ATG Dashboard] Device ${device.ptsid} cannot start fueling:`,
-        { isOnlineStatus, hasWebSocket, isRecent, status: device.connectionStatus }
+        {
+          isOnlineStatus,
+          hasWebSocket,
+          isRecent,
+          status: device.connectionStatus,
+        }
       );
     }
 
@@ -294,11 +310,20 @@ const ATGDashboard = () => {
 
   // Render empty state when no devices
   const renderEmptyState = () => (
-    <div className="dx-card" style={{ marginTop: "20px", padding: "40px", textAlign: "center" }}>
-      <i className="dx-icon-warning" style={{ fontSize: "48px", color: "#ffc107", marginBottom: "20px" }}></i>
-      <h3 style={{ margin: "0 0 10px 0", color: "#6c757d" }}>No PTS Devices Configured</h3>
+    <div
+      className="dx-card"
+      style={{ marginTop: "20px", padding: "40px", textAlign: "center" }}
+    >
+      <i
+        className="dx-icon-warning"
+        style={{ fontSize: "48px", color: "#ffc107", marginBottom: "20px" }}
+      ></i>
+      <h3 style={{ margin: "0 0 10px 0", color: "#6c757d" }}>
+        No PTS Devices Configured
+      </h3>
       <p style={{ color: "#6c757d", marginBottom: "20px" }}>
-        There are no PTS devices registered in the system. Please configure devices to start monitoring.
+        There are no PTS devices registered in the system. Please configure
+        devices to start monitoring.
       </p>
       <Button
         text="Configure PTS Devices"
@@ -347,7 +372,10 @@ const ATGDashboard = () => {
                       fontWeight: "500",
                     }}
                   >
-                    <i className="dx-icon-check" style={{ marginRight: "4px" }}></i>
+                    <i
+                      className="dx-icon-check"
+                      style={{ marginRight: "4px" }}
+                    ></i>
                     Live Updates Active
                   </span>
                 )}
@@ -374,8 +402,20 @@ const ATGDashboard = () => {
                   allowHiding={false}
                   sortOrder="asc"
                 >
-                  <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
+                  <Lookup
+                    dataSource={sites}
+                    valueExpr="id"
+                    displayExpr="name"
+                  />
                 </Column>
+                <Column
+                  dataField="ptsName"
+                  caption="Device Name"
+                  minWidth={180}
+                  cellRender={(data) => (
+                    <span>{data.value || data.data.ptsid}</span>
+                  )}
+                />
                 <Column dataField="ptsid" caption="Device ID" minWidth={150} />
                 <Column
                   dataField="connectionStatus"
@@ -398,14 +438,30 @@ const ATGDashboard = () => {
                       const diffMinutes = diffMs / (1000 * 60);
 
                       if (diffMinutes < 1) {
-                        healthIndicator = { icon: "●", color: "#28a745", title: "Excellent connection" };
+                        healthIndicator = {
+                          icon: "●",
+                          color: "#28a745",
+                          title: "Excellent connection",
+                        };
                         pulseAnimation = true;
                       } else if (diffMinutes < 5) {
-                        healthIndicator = { icon: "●", color: "#28a745", title: "Good connection" };
+                        healthIndicator = {
+                          icon: "●",
+                          color: "#28a745",
+                          title: "Good connection",
+                        };
                       } else if (diffMinutes < 15) {
-                        healthIndicator = { icon: "●", color: "#ffc107", title: "Moderate connection" };
+                        healthIndicator = {
+                          icon: "●",
+                          color: "#ffc107",
+                          title: "Moderate connection",
+                        };
                       } else {
-                        healthIndicator = { icon: "●", color: "#dc3545", title: "Poor connection" };
+                        healthIndicator = {
+                          icon: "●",
+                          color: "#dc3545",
+                          title: "Poor connection",
+                        };
                       }
                     }
 
@@ -439,13 +495,27 @@ const ATGDashboard = () => {
                           gap: "8px",
                         }}
                       >
-                        <i
-                          className={iconClass}
-                          style={{ fontSize: "16px" }}
-                        />
-                        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span style={{ textTransform: "capitalize", fontWeight: 500 }}>
+                        <i className={iconClass} style={{ fontSize: "16px" }} />
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            flex: 1,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                textTransform: "capitalize",
+                                fontWeight: 500,
+                              }}
+                            >
                               {statusText}
                             </span>
                             {healthIndicator && (
@@ -453,7 +523,9 @@ const ATGDashboard = () => {
                                 style={{
                                   fontSize: "12px",
                                   color: healthIndicator.color,
-                                  animation: pulseAnimation ? "pulse 2s infinite" : "none",
+                                  animation: pulseAnimation
+                                    ? "pulse 2s infinite"
+                                    : "none",
                                 }}
                                 title={healthIndicator.title}
                               >
@@ -462,7 +534,9 @@ const ATGDashboard = () => {
                             )}
                           </div>
                           {connectionType && (
-                            <span style={{ fontSize: "0.8em", color: "#6c757d" }}>
+                            <span
+                              style={{ fontSize: "0.8em", color: "#6c757d" }}
+                            >
                               via {connectionType}
                             </span>
                           )}
@@ -503,7 +577,9 @@ const ATGDashboard = () => {
                               marginTop: "2px",
                             }}
                           >
-                            {new Date(formattedActivity.timestamp).toLocaleTimeString()}
+                            {new Date(
+                              formattedActivity.timestamp
+                            ).toLocaleTimeString()}
                           </span>
                         )}
                       </div>
@@ -511,13 +587,23 @@ const ATGDashboard = () => {
                   }}
                   sortOrder="desc"
                 />
-                <Column dataField="ipAddress" caption="IP Address" width={130} />
+                <Column
+                  dataField="ipAddress"
+                  caption="IP Address"
+                  width={130}
+                />
                 <Column
                   caption="Actions"
                   width={120}
                   allowHiding={false}
                   cellRender={(cellData) => (
-                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "4px",
+                        justifyContent: "center",
+                      }}
+                    >
                       <Button
                         text="Fuel"
                         icon="chevrondoubleright"

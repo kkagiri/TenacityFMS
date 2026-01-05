@@ -58,13 +58,14 @@ public class FuelTagController : ControllerBase
 
     [HttpGet("validate-vehicle/{vehicleId}")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> ValidateVehicle(int vehicleId)
+    public async Task<IActionResult> ValidateVehicle(int vehicleId, [FromQuery] int siteId)
     {
         if (vehicleId <= 0) return BadRequest("Invalid Vehicle ID");
+        if (siteId <= 0) return BadRequest("Invalid Site ID");
         var hasPermission = User.HasClaim("permissions", "_readFuelTag");
         if (!hasPermission) return Forbid();
 
-        var result = await _mediator.Send(new ValidateVehicleQuery(vehicleId));
+        var result = await _mediator.Send(new ValidateVehicleQuery(vehicleId, siteId));
 
         // Return 200 OK with result object - frontend will check isValid flag
         // This allows frontend to receive vehicleInfo even when validation fails

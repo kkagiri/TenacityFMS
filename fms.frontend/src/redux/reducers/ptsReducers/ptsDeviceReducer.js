@@ -189,6 +189,15 @@ const ptsDeviceReducer = (state = initialState, action) => {
         ptsDeviceList: state.ptsDeviceList.map((device) =>
           device.ptsid === action.payload.ptsid ? action.payload : device
         ),
+        // Also update currentDevice if it matches the updated device
+        currentDevice:
+          state.currentDevice?.ptsid === action.payload.ptsid
+            ? action.payload
+            : state.currentDevice,
+        selectedPTSDevice:
+          state.selectedPTSDevice?.ptsid === action.payload.ptsid
+            ? action.payload
+            : state.selectedPTSDevice,
         loading: false,
       };
     case "UPDATE_PTS_DEVICE_FAILURE":

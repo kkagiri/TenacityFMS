@@ -6,6 +6,7 @@ export const PROBE_STATUS_UPDATE = "PROBE_STATUS_UPDATE";
 export const READER_STATUS_UPDATE = "READER_STATUS_UPDATE";
 export const UPDATE_DEVICE_WITH_REALTIME_DATA =
   "UPDATE_DEVICE_WITH_REALTIME_DATA";
+export const UPDATE_FUELING_CONTEXTS = "UPDATE_FUELING_CONTEXTS";
 
 // Action creators
 export const toggleLiveData = () => ({
@@ -37,6 +38,17 @@ export const receiveProbeStatusUpdate = (data) => ({
 export const receiveReaderStatusUpdate = (data) => ({
   type: READER_STATUS_UPDATE,
   payload: data,
+});
+
+/**
+ * Action creator for updating fueling contexts from SignalR
+ * Contains mode, vehicleId, vehicleName, tankId, tankName, fueledBy for active pumps
+ * @param {string} deviceId - The device ID
+ * @param {Array} fuelingContexts - Array of fueling context objects for active pumps
+ */
+export const updateFuelingContexts = (deviceId, fuelingContexts) => ({
+  type: UPDATE_FUELING_CONTEXTS,
+  payload: { deviceId, fuelingContexts },
 });
 
 /**

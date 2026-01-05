@@ -171,6 +171,10 @@ const initialState = {
   // Device pump statuses (from SignalR UploadStatusUpdate)
   deviceStatuses: {}, // deviceId -> { uploadStatus, lastUpdated }
 
+  // Fueling contexts for active pumps (from SignalR UploadStatusUpdate)
+  // Enhanced: Contains mode, vehicleId, vehicleName, tankId, tankName, fueledBy for each pump
+  fuelingContexts: {}, // deviceId -> { pumpId -> fuelingContext }
+
   // Active transactions
   activeTransactions: [], // Array of active transaction objects
 
@@ -248,6 +252,35 @@ const fuelingSlice = createSlice({
         ...status,
         lastUpdated: Date.now(),
       };
+    },
+
+    // Update fueling contexts for a device (from UploadStatusUpdate.fuelingContexts)
+    updateFuelingContexts: (state, action) => {
+      const { deviceId, fuelingContexts } = action.payload;
+      if (!fuelingContexts || !Array.isArray(fuelingContexts)) return;
+
+      // Initialize device context map if not exists
+      if (!state.fuelingContexts[deviceId]) {
+        state.fuelingContexts[deviceId] = {};
+      }
+
+      // Update contexts for each pump
+      fuelingContexts.forEach((context) => {
+        if (context.pumpId) {
+          state.fuelingContexts[deviceId][context.pumpId] = {
+            ...context,
+            lastUpdated: Date.now(),
+          };
+        }
+      });
+    },
+
+    // Clear fueling context for a specific pump (when transaction completes)
+    clearPumpFuelingContext: (state, action) => {
+      const { deviceId, pumpId } = action.payload;
+      if (state.fuelingContexts[deviceId]) {
+        delete state.fuelingContexts[deviceId][pumpId];
+      }
     },
 
     // Update connection status
@@ -480,6 +513,8 @@ export const {
   setSelectedTag,
   setAuthorizationDetails,
   updateDeviceStatus,
+  updateFuelingContexts,
+  clearPumpFuelingContext,
   updateConnectionStatus,
   addActiveTransaction,
   removeActiveTransaction,
@@ -499,5 +534,11 @@ export const selectActiveTransactions = (state) =>
 export const selectCurrentProcess = (state) => state.fueling.currentProcess;
 export const selectIsLiveDataEnabled = (state) =>
   state.fueling.isLiveDataEnabled;
+// Enhanced: Get fueling context for a specific pump
+export const selectFuelingContext = (deviceId, pumpId) => (state) =>
+  state.fueling.fuelingContexts?.[deviceId]?.[pumpId] || null;
+// Enhanced: Get all fueling contexts for a device
+export const selectDeviceFuelingContexts = (deviceId) => (state) =>
+  state.fueling.fuelingContexts?.[deviceId] || {};
 
 export default fuelingSlice.reducer;

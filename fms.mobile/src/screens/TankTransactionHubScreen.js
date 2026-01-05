@@ -34,17 +34,18 @@ import { fetchTanksBySite } from "../redux/slices/tankSlice";
 
 const { width } = Dimensions.get("window");
 
-// Volume change reason mapping (matches backend enum)
+// Volume change reason mapping (matches backend VolumeChangeReasonEnum.cs)
 const VolumeChangeReasonEnum = [
-  { id: 0, name: "Unknown", color: "#6B7280", icon: "question" },
-  { id: 1, name: "Dispensing", color: "#EF4444", icon: "gas-pump" },
-  { id: 2, name: "Refill", color: "#10B981", icon: "truck-loading" },
+  { id: 0, name: "Opening Stock", color: "#3B82F6", icon: "play-circle" },
+  { id: 1, name: "Closing Stock", color: "#6B7280", icon: "stop-circle" },
+  { id: 2, name: "Delivery", color: "#10B981", icon: "truck-loading" },
   { id: 3, name: "Transfer In", color: "#3B82F6", icon: "arrow-right" },
   { id: 4, name: "Transfer Out", color: "#F59E0B", icon: "arrow-left" },
   { id: 5, name: "Adjustment", color: "#8B5CF6", icon: "edit" },
-  { id: 6, name: "Manual Entry", color: "#EC4899", icon: "hand-paper" },
-  { id: 7, name: "System Correction", color: "#6366F1", icon: "cog" },
-  { id: 8, name: "Loss", color: "#DC2626", icon: "exclamation-triangle" },
+  { id: 6, name: "Dispensing", color: "#EF4444", icon: "gas-pump" },
+  { id: 7, name: "Auto Dispensing", color: "#DC2626", icon: "robot" },
+  { id: 8, name: "Reconciliation", color: "#6366F1", icon: "balance-scale" },
+  { id: 9, name: "Auto Reconciliation", color: "#8B5CF6", icon: "sync-alt" },
 ];
 
 const TankTransactionHubScreen = ({ navigation }) => {
@@ -197,11 +198,18 @@ const TankTransactionHubScreen = ({ navigation }) => {
     setShowDatePicker(true);
   }, []);
 
+  // Default fallback for unknown reason types
+  const unknownReason = {
+    id: -1,
+    name: "Unknown",
+    color: "#6B7280",
+    icon: "question",
+  };
+
   // Get reason details
   const getReasonDetails = (reasonId) => {
     return (
-      VolumeChangeReasonEnum.find((r) => r.id === reasonId) ||
-      VolumeChangeReasonEnum[0]
+      VolumeChangeReasonEnum.find((r) => r.id === reasonId) || unknownReason
     );
   };
 
@@ -343,11 +351,11 @@ const TankTransactionHubScreen = ({ navigation }) => {
         </View>
 
         {/* Footer: Recorded By */}
-        {(item.recordedBy || item.userName) && (
+        {(item.recordedByUserName || item.userName) && (
           <View style={styles.cardFooter}>
             <Icon name="user" size={10} color="#9CA3AF" />
             <Text style={styles.recordedBy}>
-              {item.recordedBy || item.userName}
+              {item.recordedByUserName || item.userName}
             </Text>
           </View>
         )}

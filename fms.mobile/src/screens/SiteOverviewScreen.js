@@ -114,37 +114,50 @@ const SiteOverviewScreen = () => {
     [tanks, todayTransactions]
   );
 
-  // Calculate overall totals
+  // Filter sites to only show active sites with at least one tank
+  const filteredSites = useMemo(() => {
+    return sites.filter((site) => {
+      // Check if site is active (default to true if property doesn't exist)
+      const isActive = site.isActive !== false && site.active !== false;
+      // Check if site has at least one tank
+      const hasTanks = tanks.some((tank) => tank.siteId === site.id);
+      return isActive && hasTanks;
+    });
+  }, [sites, tanks]);
+
+  // Calculate overall totals (based on filtered sites only)
   const overallStats = useMemo(() => {
-    const totalCapacity = tanks.reduce(
+    // Get tanks only from filtered sites
+    const filteredSiteIds = new Set(filteredSites.map((s) => s.id));
+    const filteredTanks = tanks.filter((t) => filteredSiteIds.has(t.siteId));
+
+    const totalCapacity = filteredTanks.reduce(
       (sum, t) => sum + (t.tankVolume || t.capacity || 0),
       0
     );
-    const totalStock = tanks.reduce(
+    const totalStock = filteredTanks.reduce(
       (sum, t) => sum + (t.currentStock ?? t.currentVolume ?? 0),
       0
     );
     const percentFull =
       totalCapacity > 0 ? Math.round((totalStock / totalCapacity) * 100) : 0;
-    const totalTx = Object.values(todayTransactions).reduce(
-      (sum, tx) => sum + tx.count,
-      0
-    );
-    const totalVolume = Object.values(todayTransactions).reduce(
-      (sum, tx) => sum + tx.volume,
-      0
-    );
+    const totalTx = Object.values(todayTransactions)
+      .filter((_, siteId) => filteredSiteIds.has(Number(siteId)))
+      .reduce((sum, tx) => sum + tx.count, 0);
+    const totalVolume = Object.values(todayTransactions)
+      .filter((_, siteId) => filteredSiteIds.has(Number(siteId)))
+      .reduce((sum, tx) => sum + tx.volume, 0);
 
     return {
-      siteCount: sites.length,
-      tankCount: tanks.length,
+      siteCount: filteredSites.length,
+      tankCount: filteredTanks.length,
       totalCapacity,
       totalStock,
       percentFull,
       transactionCount: totalTx,
       transactionVolume: totalVolume,
     };
-  }, [sites, tanks, todayTransactions]);
+  }, [filteredSites, tanks, todayTransactions]);
 
   // Get fill color based on percentage
   const getFillColor = (percent) => {
@@ -391,14 +404,14 @@ const SiteOverviewScreen = () => {
       </View>
 
       {/* Sites List */}
-      {isLoading && sites.length === 0 ? (
+      {isLoading && filteredSites.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
           <Text style={styles.loadingText}>Loading sites...</Text>
         </View>
       ) : (
         <FlatList
-          data={sites}
+          data={filteredSites}
           keyExtractor={(item) => item.id?.toString()}
           renderItem={renderSiteCard}
           contentContainerStyle={styles.listContent}
@@ -408,7 +421,9 @@ const SiteOverviewScreen = () => {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Icon name="map-marker-alt" size={48} color="#d1d5db" />
-              <Text style={styles.emptyText}>No sites found</Text>
+              <Text style={styles.emptyText}>
+                No active sites with tanks found
+              </Text>
             </View>
           }
         />

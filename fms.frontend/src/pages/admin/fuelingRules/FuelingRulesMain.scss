@@ -1,0 +1,26 @@
+.fueling-rules-main {
+  height: 100%;
+  width: 100%;
+
+  .tab-content {
+    @apply tw-bg-white tw-rounded-lg tw-shadow-sm;
+    min-height: calc(100vh - 250px);
+  }
+
+  // Tab styling
+  .dx-tabs {
+    @apply tw-bg-white tw-rounded-lg tw-shadow-sm tw-mb-4;
+
+    .dx-tab {
+      @apply tw-py-3 tw-px-4;
+
+      &.dx-tab-selected {
+        @apply tw-border-b-2 tw-border-blue-500;
+
+        .dx-tab-text {
+          @apply tw-text-blue-600 tw-font-semibold;
+        }
+      }
+    }
+  }
+}

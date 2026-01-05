@@ -1,11 +1,13 @@
-﻿using FMS.Domain.Entities.Features.TankStockManagement;
+﻿using FMS.Domain.Entities.Enums;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FMS.Domain.Entities;
 
-public partial class Tank {
+public partial class Tank
+{
     public int Id { get; set; }
 
     public string Name { get; set; } = null!;
@@ -33,26 +35,71 @@ public partial class Tank {
     public int? FuelGradeId { get; set; }
     public string? FuelGradeName { get; set; }
 
-    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery> ();
+    /// <summary>
+    /// Whether automatic book keeping is enabled for this tank
+    /// </summary>
+    public sbyte? HasAutomaticBookKeeping { get; set; }
 
-    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
+    /// <summary>
+    /// Priority level of the tank (e.g., High, Medium, Low)
+    /// </summary>
+    public string? Priority { get; set; }
+
+    // =====================================================
+    // Location Validation Properties
+    // =====================================================
+
+    /// <summary>
+    /// Type of tank: Stationary (fixed location) or MobileTanker (moves with vehicle)
+    /// </summary>
+    public TankType TankType { get; set; } = TankType.Stationary;
+
+    /// <summary>
+    /// GPS Latitude for stationary tanks. For mobile tankers, use LinkedVehicle's GPS.
+    /// </summary>
+    public decimal? Latitude { get; set; }
+
+    /// <summary>
+    /// GPS Longitude for stationary tanks. For mobile tankers, use LinkedVehicle's GPS.
+    /// </summary>
+    public decimal? Longitude { get; set; }
+
+    /// <summary>
+    /// For MobileTanker type: The vehicle that carries this tank. GPS location comes from this vehicle.
+    /// </summary>
+    public int? LinkedVehicleId { get; set; }
+
+    /// <summary>
+    /// Proximity radius in meters for location validation. Overrides PTS device default if set.
+    /// </summary>
+    public int? LocationValidationRadius { get; set; } = 100;
+
+    public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
+
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill>();
 
     public virtual Ptsdevice? Pts { get; set; }
 
     public virtual Site Site { get; set; } = null!;
 
-    public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock> ();
-    public virtual ICollection<Dailytankreconciliation> Dailytankreconciliations { get; set; } = new List<Dailytankreconciliation> ();
+    public virtual ICollection<Tankstock> Tankstocks { get; set; } = new List<Tankstock>();
+    public virtual ICollection<Dailytankreconciliation> Dailytankreconciliations { get; set; } = new List<Dailytankreconciliation>();
 
-    public virtual ICollection<TankVolumeHistory> TankVolumeHistories { get; set; } = new List<TankVolumeHistory> ();
+    public virtual ICollection<TankVolumeHistory> TankVolumeHistories { get; set; } = new List<TankVolumeHistory>();
 
-    public virtual ICollection<TankTransfer> TankTransfersAsSource { get; set; } = new List<TankTransfer> ();
+    public virtual ICollection<TankTransfer> TankTransfersAsSource { get; set; } = new List<TankTransfer>();
 
-    public virtual ICollection<TankTransfer> TankTransfersAsDestination { get; set; } = new List<TankTransfer> ();
+    public virtual ICollection<TankTransfer> TankTransfersAsDestination { get; set; } = new List<TankTransfer>();
 
-    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction> ();
-    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment> ();
+    public virtual ICollection<Pumptransaction> Pumptransactions { get; set; } = new List<Pumptransaction>();
+    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment>();
 
-    public virtual ICollection<Tankmeasurement> Tankmeasurements { get; set; } = new List<Tankmeasurement> ();
+    public virtual ICollection<Tankmeasurement> Tankmeasurements { get; set; } = new List<Tankmeasurement>();
+
+    /// <summary>
+    /// Navigation property for the vehicle that carries this mobile tanker.
+    /// Used to get real-time GPS location for location validation.
+    /// </summary>
+    public virtual Vehicle? LinkedVehicle { get; set; }
 
 }

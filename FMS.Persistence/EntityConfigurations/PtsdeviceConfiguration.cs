@@ -27,6 +27,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(100)
                     .HasColumnName("PTSId");
 
+                builder.Property(e => e.PtsName)
+                    .HasMaxLength(200)
+                    .HasColumnName("PTSName");
+
                 builder.Property(e => e.AllowedForDirectCommands).HasColumnType("tinyint(4)");
                 builder.Property(e => e.AuthenticationType).HasMaxLength(45);
                 builder.Property(e => e.Ipaddress)
@@ -42,6 +46,51 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.WebSocketCapable).HasColumnType("tinyint(4)");
                 builder.Property(e => e.ConnectionStatus).HasMaxLength(20);
                 builder.Property(e => e.LastActivity).HasColumnType("datetime");
+
+                // Auto-assign user master tag setting
+                builder.Property(e => e.AutoAssignUserMasterTag)
+                    .HasColumnType("tinyint(4)")
+                    .HasDefaultValue((sbyte)0);
+
+                // =====================================================
+                // Location Validation Settings
+                // =====================================================
+
+                builder.Property(e => e.EnableLocationValidation)
+                    .HasColumnType("tinyint(4)")
+                    .HasDefaultValue((sbyte)0);
+
+                builder.Property(e => e.RequireVehicleProximity)
+                    .HasColumnType("tinyint(4)")
+                    .HasDefaultValue((sbyte)0);
+
+                builder.Property(e => e.RequireMobileAppProximity)
+                    .HasColumnType("tinyint(4)")
+                    .HasDefaultValue((sbyte)0);
+
+                builder.Property(e => e.VehicleProximityRadius)
+                    .HasColumnType("int")
+                    .HasDefaultValue(100)
+                    .IsRequired(false);
+
+                builder.Property(e => e.MobileAppProximityRadius)
+                    .HasColumnType("int")
+                    .HasDefaultValue(50)
+                    .IsRequired(false);
+
+                builder.Property(e => e.BypassOnGPSFailure)
+                    .HasColumnType("tinyint(4)")
+                    .HasDefaultValue((sbyte)1);
+
+                builder.Property(e => e.MinimumGPSAccuracy)
+                    .HasColumnType("int")
+                    .HasDefaultValue(20)
+                    .IsRequired(false);
+
+                builder.Property(e => e.ProximityGracePeriodMeters)
+                    .HasColumnType("int")
+                    .HasDefaultValue(10)
+                    .IsRequired(false);
 
                 // Relationships
                 builder.HasOne(d => d.SiteNavigation).WithMany(p => p.Ptsdevices)

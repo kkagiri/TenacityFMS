@@ -28,6 +28,8 @@ using FMS.Application.Common;
 using FMS.Application.Communication; //Cursor: Add for DeviceConnectionTracker
 using FMS.Application.Features.FuelTagManagement.FuelingTags.FuelingTags.Queries;
 using FMS.Application.Features.FuelTagManagement.FuelingTags.Queries;
+using FMS.Application.Features.LocationValidation.DTOs;
+using FMS.Application.Features.LocationValidation.Services;
 using FMS.Application.Helpers;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
@@ -71,6 +73,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         /// </summary>
         public decimal? Odometer { get; set; }
 
+        /// <summary>
+        /// Mobile app operator's current location for proximity validation.
+        /// Required when PTS device has RequireMobileAppProximity enabled.
+        /// </summary>
+        public GeoLocation? MobileLocation { get; set; }
+
     }
 
     public class PumpAuthorizeCommandHandler : IRequestHandler<PumpAuthorizeCommand, FMSResponse<PumpAuthorizeConfirmation>>
@@ -87,6 +95,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly ITransactionMonitoringService _transactionMonitoringService; //Cursor: Add for ITransactionMonitoringService
         //Cursor: Add configuration service for automated fueling settings
         private readonly IAutomatedFuelingConfigurationService _configurationService;
+        private readonly ILocationValidationService _locationValidationService; //Location validation for proximity checks
+        private readonly Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService _fuelingRuleService; //Fueling rule evaluation
 
         public PumpAuthorizeCommandHandler(
             IAuthorizationStateTracker authstatetracker,
@@ -97,6 +107,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             DeviceConnectionTracker deviceConnectionTracker, //Cursor: Add device connection tracker
             ITransactionMonitoringService transactionMonitoringService, //Cursor: Add for ITransactionMonitoringService
             IAutomatedFuelingConfigurationService configurationService, //Cursor: Add configuration service
+            ILocationValidationService locationValidationService, //Location validation service
+            Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService fuelingRuleService, //Fueling rule service
             ILogger<PumpAuthorizeCommandHandler> logger)
         {
             _authTracker = authstatetracker;
@@ -107,6 +119,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _deviceConnectionTracker = deviceConnectionTracker; //Cursor: Add device connection tracker
             _transactionMonitoringService = transactionMonitoringService; //Cursor: Add for ITransactionMonitoringService
             _configurationService = configurationService; //Cursor: Add configuration service
+            _locationValidationService = locationValidationService;
+            _fuelingRuleService = fuelingRuleService;
             _logger = logger;
         }
 
@@ -163,6 +177,61 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         {
                             $"Pump {request.PumpId} has a stuck transaction ({stuckTransaction.TransactionId}) that must be cleared first. Please contact support or use the emergency cleanup feature."
                         });
+                }
+
+                // **STEP 3: LOCATION VALIDATION** - Ensure vehicle and/or mobile app are near the tank/dispenser
+                if (request.TankId.HasValue)
+                {
+                    _logger.LogInformation("[PumpAuth] **STEP 3** - Validating location proximity for Tank {TankId}, Vehicle {VehicleId}",
+                        request.TankId, request.VehicleId);
+
+                    var locationValidationRequest = new LocationValidationRequest
+                    {
+                        TankId = request.TankId.Value,
+                        PtsId = request.DeviceId,
+                        VehicleId = request.VehicleId,
+                        MobileAppLocation = request.MobileLocation,
+                        UserId = request.UserId
+                    };
+
+                    var locationResult = await _locationValidationService.ValidateProximityAsync(
+                        locationValidationRequest, cancellationToken);
+
+                    if (!locationResult.IsValid)
+                    {
+                        _logger.LogWarning("[PumpAuth] **LOCATION VALIDATION FAILED** - {Reason}. " +
+                            "Vehicle distance: {VehicleDistance}m (max: {VehicleRadius}m), " +
+                            "Mobile distance: {MobileDistance}m (max: {MobileRadius}m)",
+                            locationResult.FailureReason,
+                            locationResult.VehicleProximity?.DistanceMeters,
+                            locationResult.VehicleProximity?.AllowedRadiusMeters,
+                            locationResult.MobileProximity?.DistanceMeters,
+                            locationResult.MobileProximity?.AllowedRadiusMeters);
+
+                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                            new List<string>
+                            {
+                                "⚠️ Location validation failed",
+                                locationResult.FailureReason ?? "Vehicle or mobile device not within required proximity to fuel dispenser"
+                            });
+                    }
+
+                    if (locationResult.WasBypassedDueToGPSFailure)
+                    {
+                        _logger.LogWarning("[PumpAuth] **LOCATION VALIDATION BYPASSED** - GPS data unavailable, proceeding with authorization");
+                    }
+                    else if (locationResult.ValidationPerformed)
+                    {
+                        _logger.LogInformation("[PumpAuth] **LOCATION VALIDATION PASSED** ✅ - Tank at {TankLocation}, " +
+                            "Vehicle distance: {VehicleDistance}m, Mobile distance: {MobileDistance}m",
+                            locationResult.TankLocation,
+                            locationResult.VehicleProximity?.DistanceMeters,
+                            locationResult.MobileProximity?.DistanceMeters);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[PumpAuth] Location validation skipped - not enabled for this device");
+                    }
                 }
 
                 // Determine NozzleOrFuelIdSelector based on provided inputs
@@ -395,6 +464,97 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 }
                 */
 
+                // ============================================================================
+                // **FUELING RULES VALIDATION** - Evaluate cascade rules (Site → VehicleType → Tag → Vehicle)
+                // ============================================================================
+                decimal? effectiveDose = request.Dose.HasValue ? (decimal)request.Dose.Value : null;
+
+                if (request.VehicleId.HasValue)
+                {
+                    try
+                    {
+                        // Get site ID for rule evaluation
+                        int siteIdForRules = 0;
+                        if (request.TankId.HasValue)
+                        {
+                            var tank = await _context.Tanks.FindAsync(new object[] { request.TankId.Value }, cancellationToken);
+                            siteIdForRules = tank?.SiteId ?? 0;
+                        }
+
+                        // Get tag ID if tag is provided
+                        int? tagIdForRules = null;
+                        if (!string.IsNullOrEmpty(request.Tag))
+                        {
+                            var fuelTag = await _context.FuelTags.FirstOrDefaultAsync(t => t.Name == request.Tag, cancellationToken);
+                            tagIdForRules = fuelTag?.Id;
+                        }
+
+                        // Build fueling context with all relevant info
+                        var fuelingContext = await _fuelingRuleService.BuildFuelingContextAsync(
+                            request.VehicleId.Value,
+                            siteIdForRules,
+                            tagIdForRules,
+                            cancellationToken);
+
+                        // Calculate fuel allowance based on cascade rules
+                        var fuelAllowance = await _fuelingRuleService.CalculateFuelAllowanceAsync(fuelingContext, cancellationToken);
+
+                        _logger.LogInformation(
+                            "[PumpAuth] **FUELING RULES** - Vehicle {VehicleId}: IsAllowed={IsAllowed}, MaxFuel={MaxFuel}L, LimitingFactor={LimitingFactor}, AppliedRuleSets={Count}",
+                            request.VehicleId.Value,
+                            fuelAllowance.IsAllowed,
+                            fuelAllowance.MaxFuelAllowed,
+                            fuelAllowance.LimitingFactor,
+                            fuelAllowance.AppliedRuleSets.Count);
+
+                        // Check if fueling is blocked by rules
+                        if (!fuelAllowance.IsAllowed)
+                        {
+                            _logger.LogWarning(
+                                "[PumpAuth] **FUELING BLOCKED** - Vehicle {VehicleId}: {Reason}",
+                                request.VehicleId.Value, fuelAllowance.BlockedReason);
+
+                            return FMSResponse<PumpAuthorizeConfirmation>.Failed(
+                                fuelAllowance.Message ?? $"Fueling blocked: {fuelAllowance.BlockedReason}",
+                                "FUELING_BLOCKED");
+                        }
+
+                        // Apply rule-based dose limit
+                        if (fuelAllowance.MaxFuelAllowed > 0)
+                        {
+                            if (!request.Dose.HasValue)
+                            {
+                                // No dose specified - use calculated max
+                                effectiveDose = fuelAllowance.MaxFuelAllowed;
+                                _logger.LogInformation(
+                                    "[PumpAuth] **DOSE SET** - No dose requested, using rule-based max: {MaxFuel}L (LimitedBy: {LimitingFactor})",
+                                    effectiveDose, fuelAllowance.LimitingFactor);
+                            }
+                            else if ((decimal)request.Dose.Value > fuelAllowance.MaxFuelAllowed)
+                            {
+                                // Requested dose exceeds max - limit it
+                                _logger.LogInformation(
+                                    "[PumpAuth] **DOSE LIMITED** - Requested {Requested}L exceeds max {Max}L (LimitedBy: {LimitingFactor}). Using max.",
+                                    request.Dose.Value, fuelAllowance.MaxFuelAllowed, fuelAllowance.LimitingFactor);
+                                effectiveDose = fuelAllowance.MaxFuelAllowed;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't block fueling if rule evaluation fails
+                        _logger.LogWarning(ex,
+                            "[PumpAuth] **FUELING RULES WARNING** - Failed to evaluate fueling rules for vehicle {VehicleId}. Proceeding without limits.",
+                            request.VehicleId.Value);
+                    }
+                }
+
+                // Apply effective dose if calculated
+                if (effectiveDose.HasValue && effectiveDose.Value > 0)
+                {
+                    request = request with { Dose = (double)effectiveDose.Value };
+                }
+
                 // Cursor: **TRANSACTION ID STRATEGY**: We let the PTS device generate transaction IDs
                 // instead of generating them locally. This prevents issues with:
                 // 1. Transaction ID conflicts when the application restarts
@@ -500,7 +660,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     }
 
                     //Cursor: Store transaction context in Redis for later correlation with connection type and configuration
-                    await StoreTransactionContextInRedis(request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, configuredAutoClose, siteId, request.Odometer);
+                    await StoreTransactionContextInRedis(request.DeviceId!, request.PumpId, confirmation.Transaction, request.TankId, request.VehicleId, connectionType, configuredAutoClose, siteId, request.Odometer, request.UserId);
 
                     //Cursor: Start monitoring the transaction after successful authorization
                     await _transactionMonitoringService.StartMonitoringTransaction(request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
@@ -537,7 +697,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         }
 
         //Cursor: Enhanced method to store transaction context in Redis with complete data
-        private async Task StoreTransactionContextInRedis(string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction, int? siteId = null, decimal? odometer = null)
+        private async Task StoreTransactionContextInRedis(string deviceId, int pumpId, int transactionId, int? tankId, int? vehicleId, string connectionType, bool autoCloseTransaction, int? siteId = null, decimal? odometer = null, string? userId = null)
         {
             try
             {
@@ -548,6 +708,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     PumpId = pumpId, //Cursor: Add missing PumpId for proper correlation
                     TankId = tankId,
                     VehicleId = vehicleId,
+                    UserId = userId, //Cursor: Add user ID for transaction tracking
                     SiteId = siteId, //Cursor: Add site ID for configuration lookup
                     Odometer = odometer, //Cursor: Add odometer reading for vehicle tracking
                     AuthorizedAt = DateTime.UtcNow,
@@ -564,8 +725,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // This prevents stuck transactions from accumulating in Redis indefinitely
                 await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromMinutes(10));
 
-                _logger.LogDebug("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, Odometer: {Odometer}, connection: {ConnectionType}, expiry: 10min",
-                    deviceId, pumpId, transactionId, vehicleId, tankId, odometer, connectionType);
+                _logger.LogDebug("**CONTEXT STORED** - Transaction context in Redis for device {DeviceId}, pump {PumpId}, transaction {TransactionId}, VehicleId: {VehicleId}, TankId: {TankId}, UserId: {UserId}, Odometer: {Odometer}, connection: {ConnectionType}, expiry: 10min",
+                    deviceId, pumpId, transactionId, vehicleId, tankId, userId, odometer, connectionType);
             }
             catch (Exception ex)
             {

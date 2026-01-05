@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,139 +7,155 @@ import {
   TextInput,
   FlatList,
   ActivityIndicator,
-  ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
+import pumpControlService from "../../services/pumpControlService";
+import VehicleConfirmationStep from "./VehicleConfirmationStep";
 
-// Fallback mock vehicles (used only if API fails)
-const FALLBACK_MOCK_VEHICLES = [
-  {
-    vehicleId: 1,
-    hyoungNo: "HY-001",
-    vehicleName: "Excavator CAT 320",
-    numberPlate: "ABC-1234",
-    siteName: "Site A - Doha",
-    vehicleTypeName: "Excavator",
-    tankCapacity: 400,
-    driverName: "Ahmed Hassan",
-    tagId: "RFID-001-A1B2C3",
-  },
-  {
-    vehicleId: 2,
-    hyoungNo: "HY-002",
-    vehicleName: "Dump Truck Volvo",
-    numberPlate: "DEF-5678",
-    siteName: "Site A - Doha",
-    vehicleTypeName: "Dump Truck",
-    tankCapacity: 300,
-    driverName: "Mohammed Ali",
-    tagId: "RFID-002-D4E5F6",
-  },
-  {
-    vehicleId: 3,
-    hyoungNo: "HY-003",
-    vehicleName: "Loader Komatsu",
-    numberPlate: "GHI-9012",
-    siteName: "Site B - Lusail",
-    vehicleTypeName: "Loader",
-    tankCapacity: 250,
-    driverName: "Omar Khalid",
-    tagId: "RFID-003-G7H8I9",
-  },
-  {
-    vehicleId: 4,
-    hyoungNo: "HY-004",
-    vehicleName: "Crane Liebherr",
-    numberPlate: "JKL-3456",
-    siteName: "Site A - Doha",
-    vehicleTypeName: "Crane",
-    tankCapacity: 500,
-    driverName: "Yusuf Ibrahim",
-    tagId: "RFID-004-J0K1L2",
-  },
-  {
-    vehicleId: 5,
-    hyoungNo: "HY-005",
-    vehicleName: "Bulldozer CAT D8",
-    numberPlate: "MNO-7890",
-    siteName: "Site C - Al Wakra",
-    vehicleTypeName: "Bulldozer",
-    tankCapacity: 450,
-    driverName: "Samir Nasser",
-    tagId: "RFID-005-M3N4O5",
-  },
-];
+/**
+ * Extract time window from applied rule sets
+ * Parses strings like "TimeWindow: 04:00-19:00" from rulesApplied arrays
+ * @param {Array} appliedRuleSets - Array of applied rule sets
+ * @returns {Object} - { timeWindowStart, timeWindowEnd }
+ */
+const extractTimeWindowFromRuleSets = (appliedRuleSets) => {
+  if (!appliedRuleSets || !Array.isArray(appliedRuleSets)) {
+    return { timeWindowStart: null, timeWindowEnd: null };
+  }
 
-// Mock fueling rules data
-const getMockFuelingRules = (vehicleId) => {
-  const rules = {
-    1: {
-      dailyLimit: 200,
-      monthlyLimit: 4000,
-      usedToday: 50,
-      usedThisMonth: 1200,
-      maxRefillsPerDay: 2,
-      refillsToday: 0,
-      lastRefillDate: "2024-12-18",
-      lastRefillAmount: 150,
-      allowedTimeWindow: "06:00 - 22:00",
-    },
-    2: {
-      dailyLimit: 250,
-      monthlyLimit: 5000,
-      usedToday: 100,
-      usedThisMonth: 2500,
-      maxRefillsPerDay: 3,
-      refillsToday: 1,
-      lastRefillDate: "2024-12-19",
-      lastRefillAmount: 100,
-      allowedTimeWindow: "24 Hours",
-    },
-    3: {
-      dailyLimit: 150,
-      monthlyLimit: 3000,
-      usedToday: 0,
-      usedThisMonth: 800,
-      maxRefillsPerDay: 2,
-      refillsToday: 0,
-      lastRefillDate: "2024-12-17",
-      lastRefillAmount: 120,
-      allowedTimeWindow: "06:00 - 20:00",
-    },
-    4: {
-      dailyLimit: 300,
-      monthlyLimit: 6000,
-      usedToday: 200,
-      usedThisMonth: 4500,
-      maxRefillsPerDay: 2,
-      refillsToday: 1,
-      lastRefillDate: "2024-12-19",
-      lastRefillAmount: 200,
-      allowedTimeWindow: "24 Hours",
-    },
-    5: {
-      dailyLimit: 280,
-      monthlyLimit: 5500,
-      usedToday: 0,
-      usedThisMonth: 1800,
-      maxRefillsPerDay: 3,
-      refillsToday: 0,
-      lastRefillDate: "2024-12-16",
-      lastRefillAmount: 250,
-      allowedTimeWindow: "05:00 - 23:00",
-    },
-  };
-  return rules[vehicleId] || rules[1];
+  for (const ruleSet of appliedRuleSets) {
+    const rulesApplied = ruleSet.rulesApplied || [];
+    for (const rule of rulesApplied) {
+      // Match patterns like "TimeWindow: 04:00-19:00" or "Time Window: 04:00-19:00"
+      const timeWindowMatch = rule.match(
+        /Time\s*Window:\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/i
+      );
+      if (timeWindowMatch) {
+        return {
+          timeWindowStart: timeWindowMatch[1],
+          timeWindowEnd: timeWindowMatch[2],
+        };
+      }
+    }
+  }
+
+  return { timeWindowStart: null, timeWindowEnd: null };
 };
 
+/**
+ * Parse limiting factor from API message
+ * Extracts factor from messages like "limited by HardLimit" or "limited by DailyLimit"
+ * @param {string} message - API response message
+ * @returns {string} - Limiting factor name
+ */
+const parseLimitingFactorFromMessage = (message) => {
+  if (!message) return "None";
+  const match = message.match(/limited by\s+(\w+)/i);
+  return match ? match[1] : "None";
+};
+
+/**
+ * Convert API effective rules response to fueling rules format for display
+ * @param {Object} apiResponse - Response from getVehicleEffectiveRules
+ * @returns {Object} - Formatted fueling rules object for UI display
+ */
+export const convertApiResponseToRules = (apiResponse) => {
+  console.log(
+    "[VehicleSelection] Converting API response to rules:",
+    JSON.stringify(apiResponse, null, 2)
+  );
+
+  if (!apiResponse) {
+    console.warn("[VehicleSelection] API response is null/undefined");
+    return null;
+  }
+
+  // Extract data from FMSResponse wrapper
+  const data = apiResponse.data || apiResponse;
+
+  // Extract time windows from applied rule sets if not directly provided
+  const { timeWindowStart, timeWindowEnd } = extractTimeWindowFromRuleSets(
+    data.appliedRuleSets
+  );
+
+  // Parse limiting factor from message if not provided
+  const limitingFactor =
+    data.limitingFactor || parseLimitingFactorFromMessage(data.message);
+
+  // Determine hardLimit - use maxFuelAllowed when limited by HardLimit
+  let hardLimit = data.hardLimit || 0;
+  let tankCapacity = data.tankCapacity || 0;
+
+  // If hardLimit is 0 but we have maxFuelAllowed and it's limited by HardLimit,
+  // use maxFuelAllowed as the hardLimit
+  if (
+    hardLimit === 0 &&
+    data.maxFuelAllowed > 0 &&
+    limitingFactor.toLowerCase() === "hardlimit"
+  ) {
+    hardLimit = data.maxFuelAllowed;
+    // If tankCapacity is also 0, use hardLimit as an approximation
+    if (tankCapacity === 0) {
+      tankCapacity = hardLimit;
+    }
+  }
+
+  return {
+    // Hard Limits (Physics-based)
+    tankCapacity: tankCapacity,
+    currentFuelLevel: data.currentFuelLevel,
+    hasGpsFuelSensor: data.hasGpsFuelSensor || false,
+    hardLimit: hardLimit,
+
+    // Soft Limits (Rule-based)
+    dailyLimit: data.dailyLimit || 0,
+    monthlyLimit: data.monthlyLimit || 0,
+    perTransactionLimit: data.perTransactionLimit,
+    usedToday: data.dailyUsed || data.fuelUsedToday || 0,
+    usedThisMonth: data.monthlyUsed || data.fuelUsedThisMonth || 0,
+    dailyRemaining: data.dailyRemaining || 0,
+    monthlyRemaining: data.monthlyRemaining || 0,
+
+    // Max allowed considering all limits
+    maxAllowedDose: data.maxFuelAllowed || 0,
+    limitingFactor: limitingFactor,
+
+    // Status
+    hasRules: data.hasRules || false,
+    isValid: data.isAllowed !== false,
+    isAllowed: data.isAllowed !== false,
+    message: data.message || "",
+    blockedReason: data.blockedReason,
+
+    // Time window - use extracted values if not directly provided
+    timeWindowStart: data.timeWindowStart || timeWindowStart,
+    timeWindowEnd: data.timeWindowEnd || timeWindowEnd,
+
+    // Refill counts
+    maxRefillsPerDay: data.maxRefillsPerDay || null,
+    refillsToday: data.refillsToday || 0,
+    refillsRemainingToday: data.refillsRemainingToday,
+
+    // Applied rules (for debugging/display)
+    appliedRuleSets: data.appliedRuleSets || [],
+  };
+};
+
+/**
+ * VehicleSelectionStep - Allows user to select a vehicle via RFID scan or manual search
+ */
 const VehicleSelectionStep = ({
   selectedVehicle,
   fuelingRules,
   onSelectVehicle,
   onNext,
   onBack,
+  enableFuelRulesCheck = true,
 }) => {
   // Selection mode: 'none' | 'rfid' | 'manual'
   const [selectionMode, setSelectionMode] = useState("none");
@@ -148,10 +164,11 @@ const VehicleSelectionStep = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredVehicles, setFilteredVehicles] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showVehicleConfirmation, setShowVehicleConfirmation] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [pendingVehicle, setPendingVehicle] = useState(null);
   const [pendingRules, setPendingRules] = useState(null);
   const [searchError, setSearchError] = useState(null);
+  const [isCheckingRules, setIsCheckingRules] = useState(false);
 
   // Search vehicles using real API (minimum 2 characters)
   useEffect(() => {
@@ -203,17 +220,10 @@ const VehicleSelectionStep = ({
           setIsSearching(false);
         } catch (error) {
           console.error("[VehicleSelection] Search error:", error.message);
-          setSearchError("Search failed. Using offline data.");
-
-          // Fallback to mock data on error
-          const query = searchQuery.toLowerCase();
-          const filtered = FALLBACK_MOCK_VEHICLES.filter(
-            (v) =>
-              v.hyoungNo.toLowerCase().includes(query) ||
-              v.vehicleName.toLowerCase().includes(query) ||
-              v.numberPlate.toLowerCase().includes(query)
+          setSearchError(
+            "Search failed. Please check your connection and try again."
           );
-          setFilteredVehicles(filtered);
+          setFilteredVehicles([]);
           setIsSearching(false);
         }
       }, 400); // Slightly longer debounce for API calls
@@ -225,26 +235,65 @@ const VehicleSelectionStep = ({
     }
   }, [searchQuery]);
 
-  // Handle RFID scan simulation
-  // Note: In production, this would integrate with actual RFID hardware
+  // Handle RFID scan start
+  // Note: Actual RFID tag detection is handled by the parent component via deviceId prop
+  // This component should receive scanned tag via props and validate it
   const handleStartScan = () => {
     setSelectionMode("rfid");
     setIsScanning(true);
 
-    // Simulate RFID scan after 2 seconds (replace with actual RFID integration)
-    setTimeout(() => {
-      const randomVehicle =
-        FALLBACK_MOCK_VEHICLES[
-          Math.floor(Math.random() * FALLBACK_MOCK_VEHICLES.length)
-        ];
-      setScannedTagId(randomVehicle.tagId);
-      setIsScanning(false);
+    // Show scanning UI - parent component handles actual tag detection via SignalR
+    // When a tag is detected, parent should call onTagScanned callback
+    console.log(
+      "[VehicleSelection] RFID scanning started - waiting for tag from device..."
+    );
 
-      // Show the scanned tag and wait for user confirmation
-      setPendingVehicle(randomVehicle);
-      setPendingRules(getMockFuelingRules(randomVehicle.vehicleId));
-      setShowVehicleConfirmation(true);
-    }, 2000);
+    // Note: In the real flow, the ScanStep component handles tag detection
+    // and this component is used for manual vehicle selection
+    // If using direct RFID in this component, integrate with device hook here
+  };
+
+  // Handle scanned tag - validate and get vehicle info
+  const handleTagScanned = async (tagId) => {
+    if (!tagId) return;
+
+    setScannedTagId(tagId);
+    console.log("[VehicleSelection] Tag scanned:", tagId);
+
+    try {
+      // Validate tag and get associated vehicle from API
+      const tagDetails = await pumpControlService.getTagDetails(tagId);
+
+      if (tagDetails && tagDetails.vehicleId) {
+        // Get vehicle fueling rules
+        const rulesCheck = await pumpControlService.checkVehicleFuelingRules(
+          tagDetails.vehicleId
+        );
+        const rules = convertApiResponseToRules(rulesCheck);
+
+        const vehicle = {
+          vehicleId: tagDetails.vehicleId,
+          hyoungNo: tagDetails.hyoungNo || "",
+          vehicleName: tagDetails.vehicleName || "",
+          numberPlate: tagDetails.numberPlate || "",
+          tagId: tagId,
+        };
+
+        setPendingVehicle(vehicle);
+        setPendingRules(rules || { noRulesConfigured: true });
+        setShowConfirmation(true);
+      } else {
+        Alert.alert(
+          "Tag Not Recognized",
+          `Tag "${tagId}" is not associated with any vehicle.`
+        );
+      }
+    } catch (error) {
+      console.error("[VehicleSelection] Tag validation error:", error.message);
+      Alert.alert("Error", `Failed to validate tag: ${error.message}`);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleCancelScan = () => {
@@ -257,7 +306,7 @@ const VehicleSelectionStep = ({
     setSelectionMode("manual");
     setScannedTagId("");
     setIsScanning(false);
-    setShowVehicleConfirmation(false);
+    setShowConfirmation(false);
     setPendingVehicle(null);
     setPendingRules(null);
   };
@@ -268,42 +317,98 @@ const VehicleSelectionStep = ({
     setFilteredVehicles([]);
   };
 
-  // Generate default fueling rules for a vehicle
-  // TODO: In production, these rules should come from the backend
-  const getDefaultFuelingRules = (vehicle) => {
-    const tankCapacity = vehicle.tankCapacity || 300;
-    return {
-      dailyLimit: Math.round(tankCapacity * 0.8),
-      monthlyLimit: Math.round(tankCapacity * 20),
-      usedToday: 0,
-      usedThisMonth: 0,
-      maxRefillsPerDay: 3,
-      refillsToday: 0,
-      lastRefillDate: null,
-      lastRefillAmount: 0,
-      allowedTimeWindow: "24 Hours",
-    };
-  };
+  const handleVehicleSelect = async (vehicle) => {
+    setIsCheckingRules(true);
 
-  const handleVehicleSelect = (vehicle) => {
-    // Use vehicle-specific rules if available from mock, otherwise generate defaults
-    const rules =
-      getMockFuelingRules(vehicle.vehicleId) || getDefaultFuelingRules(vehicle);
-    setPendingVehicle(vehicle);
-    setPendingRules(rules);
-    setShowVehicleConfirmation(true);
+    try {
+      // Fetch fueling rules from real API
+      console.log(
+        "[VehicleSelection] Fetching fueling rules for vehicle:",
+        vehicle.vehicleId
+      );
+      const rulesCheck = await pumpControlService.checkVehicleFuelingRules(
+        vehicle.vehicleId
+      );
+      console.log(
+        "[VehicleSelection] API response:",
+        JSON.stringify(rulesCheck, null, 2)
+      );
+
+      // Convert API response to rules format for display
+      const rules = convertApiResponseToRules(rulesCheck);
+
+      if (!rules) {
+        // API didn't return valid data - show error
+        Alert.alert(
+          "Error",
+          "Unable to fetch fueling rules for this vehicle. Please try again."
+        );
+        setIsCheckingRules(false);
+        return;
+      }
+
+      // Check if fuel rules check is enabled and vehicle has no rules
+      if (enableFuelRulesCheck && !rules.hasRules) {
+        console.log("[VehicleSelection] Vehicle has no rules - showing alert");
+        // Vehicle has no rules - show simple alert
+        Alert.alert(
+          "No Fuel Rules Configured",
+          "This vehicle has no fuel rules configured. Please contact your administrator to set up fueling rules for this vehicle.",
+          [{ text: "OK", style: "cancel" }]
+        );
+        setIsCheckingRules(false);
+        return;
+      }
+
+      // Check if fueling is blocked
+      if (!rules.isAllowed && rules.blockedReason) {
+        Alert.alert(
+          "Fueling Not Allowed",
+          rules.blockedReason ||
+            rules.message ||
+            "Fueling is not permitted at this time.",
+          [{ text: "OK", style: "cancel" }]
+        );
+        setIsCheckingRules(false);
+        return;
+      }
+
+      console.log("[VehicleSelection] Converted rules:", rules);
+      setPendingVehicle(vehicle);
+      setPendingRules(rules);
+      setShowConfirmation(true);
+    } catch (error) {
+      console.error(
+        "[VehicleSelection] Failed to fetch fueling rules:",
+        error.message
+      );
+
+      // Show error to user
+      Alert.alert(
+        "Connection Error",
+        `Failed to fetch fueling rules: ${error.message}. Please check your connection and try again.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Retry",
+            onPress: () => handleVehicleSelect(vehicle),
+          },
+        ]
+      );
+    } finally {
+      setIsCheckingRules(false);
+    }
   };
 
   const handleConfirmVehicle = () => {
     if (pendingVehicle && pendingRules) {
       onSelectVehicle(pendingVehicle, pendingRules);
-      // Auto-proceed after confirmation
       setTimeout(() => onNext(), 150);
     }
   };
 
   const handleRejectVehicle = () => {
-    setShowVehicleConfirmation(false);
+    setShowConfirmation(false);
     setPendingVehicle(null);
     setPendingRules(null);
     setScannedTagId("");
@@ -480,28 +585,36 @@ const VehicleSelectionStep = ({
     if (selectionMode !== "manual") return null;
 
     return (
-      <View style={styles.manualSection}>
-        {/* Search Input */}
-        <View style={styles.searchContainer}>
-          <Icon
-            name="search"
-            size={16}
-            color="#9ca3af"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search by Hyoung No, Plate, Name..."
-            placeholderTextColor="#9ca3af"
-            autoFocus
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Icon name="times-circle" size={16} color="#9ca3af" />
-            </TouchableOpacity>
-          ) : null}
+      <KeyboardAvoidingView
+        style={styles.manualSection}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 180 : 100}
+      >
+        {/* Search Input - Positioned at top for keyboard visibility */}
+        <View style={styles.searchInputWrapper}>
+          <View style={styles.searchContainer}>
+            <Icon
+              name="search"
+              size={16}
+              color="#9ca3af"
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by Hyoung No, Plate, Name..."
+              placeholderTextColor="#9ca3af"
+              autoFocus
+              returnKeyType="search"
+              blurOnSubmit={false}
+            />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Icon name="times-circle" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
 
         {/* Search Results */}
@@ -551,182 +664,31 @@ const VehicleSelectionStep = ({
 
         <TouchableOpacity
           style={styles.switchModeLink}
-          onPress={() => setSelectionMode("none")}
+          onPress={() => {
+            Keyboard.dismiss();
+            setSelectionMode("none");
+          }}
         >
           <Icon name="arrow-left" size={12} color="#6b7280" />
           <Text style={styles.switchModeLinkText}>Choose different method</Text>
         </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     );
   };
 
-  // Render vehicle confirmation modal
-  const renderVehicleConfirmation = () => {
-    if (!showVehicleConfirmation || !pendingVehicle || !pendingRules)
-      return null;
-
-    const remainingDaily = pendingRules.dailyLimit - pendingRules.usedToday;
-    const remainingMonthly =
-      pendingRules.monthlyLimit - pendingRules.usedThisMonth;
-    const remainingRefills =
-      pendingRules.maxRefillsPerDay - pendingRules.refillsToday;
-
+  // Show confirmation page if vehicle is selected
+  if (showConfirmation && pendingVehicle && pendingRules) {
     return (
-      <ScrollView style={styles.confirmationContainer}>
-        {/* Scanned Tag Info (for RFID mode) */}
-        {selectionMode === "rfid" && scannedTagId && (
-          <View style={styles.tagInfoCard}>
-            <Icon name="wifi" size={16} color="#2563eb" />
-            <Text style={styles.tagInfoText}>
-              Tag ID: <Text style={styles.tagIdText}>{scannedTagId}</Text>
-            </Text>
-          </View>
-        )}
-
-        {/* Vehicle Info Card */}
-        <View style={styles.vehicleConfirmCard}>
-          <View style={styles.vehicleConfirmHeader}>
-            <View style={styles.vehicleConfirmIcon}>
-              <Icon name="truck" size={24} color="#1f2937" />
-            </View>
-            <View style={styles.vehicleConfirmInfo}>
-              <Text style={styles.vehicleConfirmHyoung}>
-                {pendingVehicle.hyoungNo}
-              </Text>
-              <Text style={styles.vehicleConfirmName}>
-                {pendingVehicle.vehicleName}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.vehicleDetailsGrid}>
-            <View style={styles.vehicleDetailItem}>
-              <Icon name="id-card" size={14} color="#6b7280" />
-              <Text style={styles.vehicleDetailLabel}>Plate</Text>
-              <Text style={styles.vehicleDetailValue}>
-                {pendingVehicle.numberPlate}
-              </Text>
-            </View>
-            <View style={styles.vehicleDetailItem}>
-              <Icon name="gas-pump" size={14} color="#6b7280" />
-              <Text style={styles.vehicleDetailLabel}>Tank</Text>
-              <Text style={styles.vehicleDetailValue}>
-                {pendingVehicle.tankCapacity} L
-              </Text>
-            </View>
-            <View style={styles.vehicleDetailItem}>
-              <Icon name="user" size={14} color="#6b7280" />
-              <Text style={styles.vehicleDetailLabel}>Driver</Text>
-              <Text style={styles.vehicleDetailValue}>
-                {pendingVehicle.driverName}
-              </Text>
-            </View>
-            <View style={styles.vehicleDetailItem}>
-              <Icon name="map-marker-alt" size={14} color="#6b7280" />
-              <Text style={styles.vehicleDetailLabel}>Site</Text>
-              <Text style={styles.vehicleDetailValue}>
-                {pendingVehicle.siteName}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Fueling Rules Card */}
-        <View style={styles.rulesCard}>
-          <Text style={styles.rulesTitle}>
-            <Icon name="clipboard-list" size={14} color="#6366f1" /> Fueling
-            Rules
-          </Text>
-
-          <View style={styles.rulesGrid}>
-            {/* Daily Limit */}
-            <View style={styles.ruleItem}>
-              <Text style={styles.ruleLabel}>Daily Remaining</Text>
-              <Text
-                style={[
-                  styles.ruleValue,
-                  remainingDaily < 50 && styles.ruleValueWarning,
-                ]}
-              >
-                {remainingDaily.toLocaleString()} L
-              </Text>
-              <Text style={styles.ruleSubtext}>
-                of {pendingRules.dailyLimit.toLocaleString()} L limit
-              </Text>
-            </View>
-
-            {/* Monthly Limit */}
-            <View style={styles.ruleItem}>
-              <Text style={styles.ruleLabel}>Monthly Remaining</Text>
-              <Text
-                style={[
-                  styles.ruleValue,
-                  remainingMonthly < 500 && styles.ruleValueWarning,
-                ]}
-              >
-                {remainingMonthly.toLocaleString()} L
-              </Text>
-              <Text style={styles.ruleSubtext}>
-                of {pendingRules.monthlyLimit.toLocaleString()} L limit
-              </Text>
-            </View>
-
-            {/* Refills Today */}
-            <View style={styles.ruleItem}>
-              <Text style={styles.ruleLabel}>Refills Available</Text>
-              <Text
-                style={[
-                  styles.ruleValue,
-                  remainingRefills === 0 && styles.ruleValueDanger,
-                ]}
-              >
-                {remainingRefills}
-              </Text>
-              <Text style={styles.ruleSubtext}>
-                of {pendingRules.maxRefillsPerDay} per day
-              </Text>
-            </View>
-
-            {/* Time Window */}
-            <View style={styles.ruleItem}>
-              <Text style={styles.ruleLabel}>Allowed Time</Text>
-              <Text style={styles.ruleValue}>
-                {pendingRules.allowedTimeWindow}
-              </Text>
-            </View>
-          </View>
-
-          {/* Last Refill Info */}
-          <View style={styles.lastRefillInfo}>
-            <Icon name="history" size={14} color="#6b7280" />
-            <Text style={styles.lastRefillText}>
-              Last refill: {pendingRules.lastRefillAmount} L on{" "}
-              {pendingRules.lastRefillDate}
-            </Text>
-          </View>
-        </View>
-
-        {/* Confirmation Buttons */}
-        <View style={styles.confirmationButtons}>
-          <TouchableOpacity
-            style={styles.rejectButton}
-            onPress={handleRejectVehicle}
-          >
-            <Icon name="times" size={16} color="#ef4444" />
-            <Text style={styles.rejectButtonText}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.confirmButton}
-            onPress={handleConfirmVehicle}
-          >
-            <Icon name="check" size={16} color="white" />
-            <Text style={styles.confirmButtonText}>Confirm & Continue</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <VehicleConfirmationStep
+        vehicle={pendingVehicle}
+        rules={pendingRules}
+        selectionMode={selectionMode}
+        scannedTagId={scannedTagId}
+        onConfirm={handleConfirmVehicle}
+        onCancel={handleRejectVehicle}
+      />
     );
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -734,9 +696,7 @@ const VehicleSelectionStep = ({
       <View style={styles.header}>
         <Text style={styles.stepTitle}>Select Vehicle</Text>
         <Text style={styles.stepDescription}>
-          {showVehicleConfirmation
-            ? "Confirm vehicle details"
-            : selectionMode === "none"
+          {selectionMode === "none"
             ? "Choose how to identify the vehicle"
             : selectionMode === "rfid"
             ? "Scan the vehicle's RFID tag"
@@ -744,26 +704,30 @@ const VehicleSelectionStep = ({
         </Text>
       </View>
 
-      {/* Content */}
-      {showVehicleConfirmation ? (
-        renderVehicleConfirmation()
-      ) : (
-        <View style={styles.content}>
-          {selectionMode === "none" && renderModeSelection()}
-          {renderRfidSection()}
-          {renderManualSection()}
+      {/* Loading overlay when checking rules */}
+      {isCheckingRules && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={styles.loadingText}>Checking fueling rules...</Text>
+          </View>
         </View>
       )}
 
-      {/* Footer - only show when not in confirmation */}
-      {!showVehicleConfirmation && (
-        <View style={styles.actionContainer}>
-          <TouchableOpacity style={styles.backButton} onPress={onBack}>
-            <Icon name="arrow-left" size={16} color="#6b7280" />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Content */}
+      <View style={styles.content}>
+        {selectionMode === "none" && renderModeSelection()}
+        {renderRfidSection()}
+        {renderManualSection()}
+      </View>
+
+      {/* Footer */}
+      <View style={styles.actionContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Icon name="arrow-left" size={16} color="#6b7280" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -931,6 +895,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  searchInputWrapper: {
+    marginBottom: 8,
+    paddingTop: 4,
+  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -939,6 +907,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#10b981",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   searchIcon: {
     marginRight: 10,
@@ -1023,182 +996,6 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     marginTop: 2,
   },
-  confirmationContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  tagInfoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#eff6ff",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  tagInfoText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: "#1e40af",
-  },
-  tagIdText: {
-    fontWeight: "700",
-    fontFamily: "monospace",
-  },
-  vehicleConfirmCard: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  vehicleConfirmHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
-  vehicleConfirmIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  vehicleConfirmInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  vehicleConfirmHyoung: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1f2937",
-  },
-  vehicleConfirmName: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  vehicleDetailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  vehicleDetailItem: {
-    width: "50%",
-    paddingVertical: 8,
-    paddingRight: 8,
-  },
-  vehicleDetailLabel: {
-    fontSize: 11,
-    color: "#9ca3af",
-    marginTop: 4,
-    textTransform: "uppercase",
-  },
-  vehicleDetailValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1f2937",
-    marginTop: 2,
-  },
-  rulesCard: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  rulesTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#6366f1",
-    marginBottom: 16,
-  },
-  rulesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  ruleItem: {
-    width: "50%",
-    paddingVertical: 8,
-    paddingRight: 8,
-  },
-  ruleLabel: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  ruleValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#10b981",
-    marginTop: 2,
-  },
-  ruleValueWarning: {
-    color: "#f59e0b",
-  },
-  ruleValueDanger: {
-    color: "#ef4444",
-  },
-  ruleSubtext: {
-    fontSize: 11,
-    color: "#9ca3af",
-    marginTop: 2,
-  },
-  lastRefillInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-  },
-  lastRefillText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: "#6b7280",
-  },
-  confirmationButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-    marginBottom: 24,
-  },
-  rejectButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    marginRight: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#fecaca",
-    backgroundColor: "#fef2f2",
-  },
-  rejectButtonText: {
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#ef4444",
-  },
-  confirmButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 2,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: "#10b981",
-  },
-  confirmButtonText: {
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "white",
-  },
   actionContainer: {
     flexDirection: "row",
     justifyContent: "flex-start",
@@ -1218,6 +1015,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#6b7280",
     marginLeft: 8,
+  },
+  // Loading overlay styles for rules check
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  loadingCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
 

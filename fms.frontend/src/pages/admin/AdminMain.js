@@ -1,28 +1,29 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
-import AdminLayout from './layout/AdminLayout';
-import AdminDashboard from './AdminDashboard';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import AdminLayout from "./layout/AdminLayout";
+import AdminDashboard from "./AdminDashboard";
 
 // Import the existing component pages to be used in admin routes
-import UserPage from '../user/userPage';
-import Rolepage from '../Role/rolepage';
-import PermissionTreeList from '../../components/PermissionTreeList/permissionTreeList';
-import NavigationPage from '../Navigation/NavigationPage';
-import Tagpage from '../tag/tagPage';
-import SitePage from '../site/sitePage';
-import TankPage from '../tank/tankPage';
-import DeviceDashboard from '../PTSDevice/DeviceDashboard';
-import PTSDeviceDetailPage from '../PTSDevice/PTSDeviceDetail/PTSDeviceDetailPage';
-import PTSAutomationConfigPage from '../PTSAutomationConfig/PTSAutomationConfigPage';
-import ConfigurationPage from './configuration';
-import SystemConfiguration from './systemConfig/SystemConfigPage';
-import PTSServiceControl from './ptsService/PTSServiceControl';
-import NotificationSettings from './notification-settings/NotificationSettings';
-import ProviderManagementMain from '../providermanagement/ProviderManagementMain';
-import TaskManagement from '../taskManagement';
-import LogManagementPage from './logManagement/LogManagementPage';
-import ExpectedAverageManagementPage from './expectedaverages/ExpectedAverageManagementPage';
+import UserPage from "../user/userPage";
+import Rolepage from "../Role/rolepage";
+import PermissionTreeList from "../../components/PermissionTreeList/permissionTreeList";
+import NavigationPage from "../Navigation/NavigationPage";
+import Tagpage from "../tag/tagPage";
+import SitePage from "../site/sitePage";
+import TankPage from "../tank/tankPage";
+import DeviceDashboard from "../PTSDevice/DeviceDashboard";
+import PTSDeviceDetailPage from "../PTSDevice/PTSDeviceDetail/PTSDeviceDetailPage";
+import PTSAutomationConfigPage from "../PTSAutomationConfig/PTSAutomationConfigPage";
+import ConfigurationPage from "./configuration";
+import SystemConfiguration from "./systemConfig/SystemConfigPage";
+import PTSServiceControl from "./ptsService/PTSServiceControl";
+import NotificationSettings from "./notification-settings/NotificationSettings";
+import ProviderManagementMain from "../providermanagement/ProviderManagementMain";
+import TaskManagement from "../taskManagement";
+import LogManagementPage from "./logManagement/LogManagementPage";
+import ExpectedAverageManagementPage from "./expectedaverages/ExpectedAverageManagementPage";
+import { FuelingRulesMain } from "./fuelingRules";
 
 const AdminMain = () => {
   const location = useLocation();
@@ -48,9 +49,9 @@ const AdminMain = () => {
         <Route path="task-management" element={<TaskManagement />} />
         <Route path="task-management/*" element={<TaskManagement />} />
 
-    {/* Provider Management */}
-    <Route path="providers" element={<ProviderManagementMain />} />
-    <Route path="providers/*" element={<ProviderManagementMain />} />
+        {/* Provider Management */}
+        <Route path="providers" element={<ProviderManagementMain />} />
+        <Route path="providers/*" element={<ProviderManagementMain />} />
 
         {/* System Configuration Routes */}
         <Route path="tags" element={<Tagpage />} />
@@ -78,8 +79,18 @@ const AdminMain = () => {
         <Route path="logs/*" element={<LogManagementPage />} />
 
         {/* Expected Fuel Average Management Route */}
-        <Route path="expected-averages" element={<ExpectedAverageManagementPage />} />
-        <Route path="expected-averages/*" element={<ExpectedAverageManagementPage />} />
+        <Route
+          path="expected-averages"
+          element={<ExpectedAverageManagementPage />}
+        />
+        <Route
+          path="expected-averages/*"
+          element={<ExpectedAverageManagementPage />}
+        />
+
+        {/* Fueling Rules Management Route */}
+        <Route path="fueling-rules" element={<FuelingRulesMain />} />
+        <Route path="fueling-rules/*" element={<FuelingRulesMain />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

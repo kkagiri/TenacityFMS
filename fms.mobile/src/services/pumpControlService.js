@@ -311,11 +311,32 @@ class PumpControlService {
    */
   async validateVehicleForFueling(vehicleId) {
     try {
+      console.log(
+        "[PumpControlService] Calling validateVehicleForFueling API for vehicleId:",
+        vehicleId
+      );
       const response = await this.api.get(
         `/v1/FuelTag/validate-vehicle/${vehicleId}`
       );
+      console.log(
+        "[PumpControlService] validateVehicleForFueling API status:",
+        response.status
+      );
+      console.log(
+        "[PumpControlService] validateVehicleForFueling API data:",
+        JSON.stringify(response.data, null, 2)
+      );
       return response.data;
     } catch (error) {
+      console.error(
+        "[PumpControlService] validateVehicleForFueling API error:",
+        error.message
+      );
+      console.error(
+        "[PumpControlService] Error details:",
+        error.response?.status,
+        error.response?.data
+      );
       throw new Error(`Failed to validate vehicle: ${error.message}`);
     }
   }
@@ -377,6 +398,283 @@ class PumpControlService {
       return response.data;
     } catch (error) {
       throw new Error(`Failed to fetch transaction details: ${error.message}`);
+    }
+  }
+
+  // ==========================================
+  // Fueling Rules Operations
+  // ==========================================
+
+  /**
+   * Get all available rule sets
+   * GET /api/v1/FuelingRule/rulesets
+   */
+  async getRuleSets() {
+    try {
+      const response = await this.api.get("/v1/FuelingRule/rulesets");
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch rule sets: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get fueling rules for a vehicle
+   * GET /api/v1/FuelingRule/vehicle/{vehicleId}
+   */
+  async getVehicleFuelingRules(vehicleId) {
+    try {
+      const response = await this.api.get(
+        `/v1/FuelingRule/vehicle/${vehicleId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch vehicle fueling rules: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Get effective/merged fueling rules for a vehicle from cascade hierarchy
+   * GET /api/v1/FuelingRule/vehicle/{vehicleId}/effective-rules
+   * @param {number} vehicleId - The vehicle ID
+   * @param {number|null} siteId - Optional site ID for site-level rules
+   * @param {number|null} tagId - Optional tag ID for tag-level rules
+   * @returns {Promise<Object>} Effective rules with merged limits and applied rule sets
+   */
+  async getVehicleEffectiveRules(vehicleId, siteId = null, tagId = null) {
+    try {
+      let url = `/v1/FuelingRule/vehicle/${vehicleId}/effective-rules`;
+      const params = [];
+      if (siteId) params.push(`siteId=${siteId}`);
+      if (tagId) params.push(`tagId=${tagId}`);
+      if (params.length > 0) url += `?${params.join("&")}`;
+
+      console.log("[PumpControlService] getVehicleEffectiveRules - URL:", url);
+      const response = await this.api.get(url);
+      console.log(
+        "[PumpControlService] getVehicleEffectiveRules - Response:",
+        JSON.stringify(response.data, null, 2)
+      );
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[PumpControlService] Failed to fetch effective rules:",
+        error
+      );
+      throw new Error(
+        `Failed to fetch effective fueling rules: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Assign a rule set to a vehicle
+   * POST /api/v1/FuelingRule/rulesets/{ruleSetId}/assign-to-vehicle/{vehicleId}
+   */
+  async assignRuleSetToVehicle(ruleSetId, vehicleId) {
+    try {
+      const response = await this.api.post(
+        `/v1/FuelingRule/rulesets/${ruleSetId}/assign-to-vehicle/${vehicleId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to assign rule set to vehicle: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if vehicle has fueling rules configured using the effective rules API
+   * Returns { hasRules: boolean, isAllowed: boolean, maxFuelAllowed: number, ... }
+   */
+  async checkVehicleFuelingRules(vehicleId, siteId = null, tagId = null) {
+    try {
+      console.log(
+        "[PumpControlService] checkVehicleFuelingRules called for vehicleId:",
+        vehicleId,
+        "siteId:",
+        siteId,
+        "tagId:",
+        tagId
+      );
+
+      // Use the new effective rules endpoint for cascade-merged rules
+      const effectiveRulesResponse = await this.getVehicleEffectiveRules(
+        vehicleId,
+        siteId,
+        tagId
+      );
+      console.log(
+        "[PumpControlService] getVehicleEffectiveRules response:",
+        JSON.stringify(effectiveRulesResponse, null, 2)
+      );
+
+      // Extract data from FMSResponse wrapper if present
+      const effectiveRules =
+        effectiveRulesResponse?.data || effectiveRulesResponse;
+
+      // Parse the effective rules response
+      const hasRules = effectiveRules?.hasRules || false;
+      const isAllowed = effectiveRules?.isAllowed ?? true;
+      const maxFuelAllowed = effectiveRules?.maxFuelAllowed || null;
+
+      console.log(
+        "[PumpControlService] Parsed - hasRules:",
+        hasRules,
+        "| isAllowed:",
+        isAllowed,
+        "| maxFuelAllowed:",
+        maxFuelAllowed,
+        "| dailyLimit:",
+        effectiveRules?.dailyLimit,
+        "| monthlyLimit:",
+        effectiveRules?.monthlyLimit,
+        "| tankCapacity:",
+        effectiveRules?.tankCapacity,
+        "| currentFuelLevel:",
+        effectiveRules?.currentFuelLevel,
+        "| hardLimit:",
+        effectiveRules?.hardLimit
+      );
+
+      const result = {
+        hasRules,
+        isAllowed,
+        isValid: isAllowed,
+        maxFuelAllowed,
+        message:
+          effectiveRules?.message ||
+          (isAllowed ? "Fueling allowed" : "Fueling not allowed"),
+        vehicleInfo: effectiveRules?.vehicle || null,
+
+        // Tank/Hard Limit Info (critical for accurate fueling)
+        tankCapacity: effectiveRules?.tankCapacity || 0,
+        currentFuelLevel: effectiveRules?.currentFuelLevel ?? null,
+        hasGpsFuelSensor: effectiveRules?.hasGpsFuelSensor || false,
+        hardLimit: effectiveRules?.hardLimit || 0,
+        limitingFactor: effectiveRules?.limitingFactor || null,
+
+        // Soft Limits
+        dailyLimit: effectiveRules?.dailyLimit || 0,
+        monthlyLimit: effectiveRules?.monthlyLimit || 0,
+        perTransactionLimit: effectiveRules?.perTransactionLimit || 0,
+
+        // Usage Stats
+        dailyUsed: effectiveRules?.fuelUsedToday || 0,
+        monthlyUsed: effectiveRules?.fuelUsedThisMonth || 0,
+        dailyRemaining: effectiveRules?.dailyRemaining ?? null,
+        monthlyRemaining: effectiveRules?.monthlyRemaining ?? null,
+
+        // Refill Info
+        refillsToday: effectiveRules?.refillsToday || 0,
+        maxRefillsPerDay: effectiveRules?.maxRefillsPerDay ?? null,
+        refillsRemainingToday: effectiveRules?.refillsRemainingToday ?? null,
+
+        // Time Window
+        timeWindowStart: effectiveRules?.timeWindowStart || null,
+        timeWindowEnd: effectiveRules?.timeWindowEnd || null,
+
+        // Applied Rules
+        appliedRuleSets: effectiveRules?.appliedRuleSets || [],
+        softLimits: effectiveRules?.softLimits || {},
+      };
+
+      console.log(
+        "[PumpControlService] Returning result:",
+        JSON.stringify(result, null, 2)
+      );
+      return result;
+    } catch (error) {
+      console.error(
+        "[PumpControlService] Error checking vehicle rules:",
+        error
+      );
+      return {
+        hasRules: false,
+        isAllowed: true, // Allow fueling if rules check fails
+        isValid: true,
+        message: error.message,
+        vehicleInfo: null,
+      };
+    }
+  }
+
+  // ==========================================
+  // GPS and Fuel Level Operations
+  // ==========================================
+
+  /**
+   * Get vehicle GPS info including fuel level
+   * GET /api/v1/vehicletracking/{vehicleId}/gps-information
+   */
+  async getVehicleGPSInfo(vehicleId) {
+    try {
+      const response = await this.api.get(
+        `/v1/vehicletracking/${vehicleId}/gps-information`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch vehicle GPS info: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get current fuel level from GPS data
+   * Returns fuel level in liters or percentage based on GPS sensor data
+   */
+  async getVehicleFuelLevel(vehicleId, tankCapacity = null) {
+    try {
+      const gpsResponse = await this.getVehicleGPSInfo(vehicleId);
+      const gpsData = gpsResponse?.data || gpsResponse;
+
+      if (!gpsData) {
+        return {
+          available: false,
+          message: "No GPS data available",
+        };
+      }
+
+      // Check for fuel level in sensor health data
+      const fuelLevel = gpsData?.sensorHealth?.fuelLevel ?? gpsData?.fuelLevel;
+      const fuelLevelUnit = gpsData?.sensorHealth?.fuelLevelUnit || "%";
+
+      if (fuelLevel === null || fuelLevel === undefined) {
+        return {
+          available: false,
+          message: "Fuel level sensor data not available",
+        };
+      }
+
+      // Convert to liters if we have tank capacity and fuel level is in percentage
+      let fuelLevelLiters = null;
+      if (tankCapacity && fuelLevelUnit === "%") {
+        fuelLevelLiters = (fuelLevel / 100) * tankCapacity;
+      } else if (fuelLevelUnit === "L") {
+        fuelLevelLiters = fuelLevel;
+      }
+
+      return {
+        available: true,
+        fuelLevel,
+        fuelLevelUnit,
+        fuelLevelLiters,
+        tankCapacity,
+        remainingCapacity:
+          tankCapacity && fuelLevelLiters
+            ? tankCapacity - fuelLevelLiters
+            : null,
+        lastUpdated: gpsData?.lastUpdated || gpsData?.receivedAt,
+      };
+    } catch (error) {
+      console.error(
+        "[PumpControlService] Error getting vehicle fuel level:",
+        error
+      );
+      return {
+        available: false,
+        message: error.message,
+      };
     }
   }
 

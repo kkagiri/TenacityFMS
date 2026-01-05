@@ -16,6 +16,7 @@ import {
   updatePTSDevice,
   createPTSDevice,
 } from "../../redux/actions/ptsActions/ptsDeviceActions";
+import { fetchSiteList } from "../../redux/actions/siteActions";
 
 // windsurf comment
 const EditPTSDevice = () => {
@@ -24,6 +25,7 @@ const EditPTSDevice = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     ptsid: "",
+    ptsName: "",
     ipaddress: "",
     portNumber: 80,
     login: "",
@@ -35,14 +37,30 @@ const EditPTSDevice = () => {
     isAuthenticated: false,
     webSocketCapable: false,
     allowedForDirectCommands: false,
+    // Location Validation Settings
+    enableLocationValidation: false,
+    requireVehicleProximity: false,
+    requireMobileAppProximity: false,
+    vehicleProximityRadius: 100,
+    mobileAppProximityRadius: 50,
+    bypassOnGPSFailure: true,
+    minimumGPSAccuracy: 20,
+    proximityGracePeriodMeters: 10,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [isNewDevice, setIsNewDevice] = useState(deviceId === 'new');
+  const [isNewDevice, setIsNewDevice] = useState(deviceId === "new");
 
   const ptsDevice = useSelector((state) => state.ptsDevice.currentDevice);
+  const { sites } = useSelector((state) => state.site);
+
+  // Ensure sites array is available for the SelectBox
+  const sitesDataSource = Array.isArray(sites) ? sites : [];
 
   useEffect(() => {
+    // Fetch sites for the dropdown
+    dispatch(fetchSiteList());
+
     if (!isNewDevice) {
       const fetchDevice = async () => {
         setLoading(true);
@@ -57,6 +75,7 @@ const EditPTSDevice = () => {
     if (ptsDevice && !isNewDevice) {
       setFormData({
         ptsid: ptsDevice.ptsid,
+        ptsName: ptsDevice.ptsName || "",
         ipaddress: ptsDevice.ipaddress,
         portNumber: ptsDevice.portNumber,
         login: ptsDevice.login,
@@ -68,6 +87,15 @@ const EditPTSDevice = () => {
         isAuthenticated: ptsDevice.isAuthenticated === 1,
         webSocketCapable: ptsDevice.webSocketCapable === 1,
         allowedForDirectCommands: ptsDevice.allowedForDirectCommands === 1,
+        // Location Validation Settings
+        enableLocationValidation: ptsDevice.enableLocationValidation === 1,
+        requireVehicleProximity: ptsDevice.requireVehicleProximity === 1,
+        requireMobileAppProximity: ptsDevice.requireMobileAppProximity === 1,
+        vehicleProximityRadius: ptsDevice.vehicleProximityRadius ?? 100,
+        mobileAppProximityRadius: ptsDevice.mobileAppProximityRadius ?? 50,
+        bypassOnGPSFailure: ptsDevice.bypassOnGPSFailure === 1,
+        minimumGPSAccuracy: ptsDevice.minimumGPSAccuracy ?? 20,
+        proximityGracePeriodMeters: ptsDevice.proximityGracePeriodMeters ?? 10,
       });
     }
   }, [ptsDevice, isNewDevice]);
@@ -83,6 +111,15 @@ const EditPTSDevice = () => {
       isAuthenticated: formData.isAuthenticated ? 1 : 0,
       webSocketCapable: formData.webSocketCapable ? 1 : 0,
       allowedForDirectCommands: formData.allowedForDirectCommands ? 1 : 0,
+      // Location Validation Settings
+      enableLocationValidation: formData.enableLocationValidation ? 1 : 0,
+      requireVehicleProximity: formData.requireVehicleProximity ? 1 : 0,
+      requireMobileAppProximity: formData.requireMobileAppProximity ? 1 : 0,
+      vehicleProximityRadius: formData.vehicleProximityRadius,
+      mobileAppProximityRadius: formData.mobileAppProximityRadius,
+      bypassOnGPSFailure: formData.bypassOnGPSFailure ? 1 : 0,
+      minimumGPSAccuracy: formData.minimumGPSAccuracy,
+      proximityGracePeriodMeters: formData.proximityGracePeriodMeters,
     };
 
     try {
@@ -95,7 +132,13 @@ const EditPTSDevice = () => {
       }
       navigate("/automatic fueling"); // Navigate back to the device dashboard
     } catch (error) {
-      notify(`Error ${isNewDevice ? 'creating' : 'updating'} device: ${error.message}`, "error", 3000);
+      notify(
+        `Error ${isNewDevice ? "creating" : "updating"} device: ${
+          error.message
+        }`,
+        "error",
+        3000
+      );
     } finally {
       setSaving(false);
     }
@@ -119,7 +162,7 @@ const EditPTSDevice = () => {
 
   return (
     <div className="content-block">
-      <h2>{isNewDevice ? 'Create New PTS Device' : 'Edit PTS Device'}</h2>
+      <h2>{isNewDevice ? "Create New PTS Device" : "Edit PTS Device"}</h2>
       <div className="dx-card responsive-paddings">
         <Form
           formData={formData}
@@ -138,6 +181,19 @@ const EditPTSDevice = () => {
               <Label text="PTS ID" />
             </SimpleItem>
             <SimpleItem
+              dataField="ptsName"
+              editorType="dxTextBox"
+              editorOptions={{
+                stylingMode: "filled",
+                placeholder: "Enter a friendly name for this device",
+              }}
+            >
+              <Label text="PTS Name" />
+            </SimpleItem>
+          </GroupItem>
+
+          <GroupItem colCount={2}>
+            <SimpleItem
               dataField="ipaddress"
               editorType="dxTextBox"
               editorOptions={{
@@ -146,9 +202,6 @@ const EditPTSDevice = () => {
             >
               <Label text="IP Address" />
             </SimpleItem>
-          </GroupItem>
-
-          <GroupItem colCount={2}>
             <SimpleItem
               dataField="portNumber"
               editorType="dxNumberBox"
@@ -207,9 +260,15 @@ const EditPTSDevice = () => {
             </SimpleItem>
             <SimpleItem
               dataField="site"
-              editorType="dxNumberBox"
+              editorType="dxSelectBox"
               editorOptions={{
                 stylingMode: "filled",
+                dataSource: sitesDataSource,
+                displayExpr: "name",
+                valueExpr: "id",
+                placeholder: "Select Site",
+                searchEnabled: true,
+                showClearButton: true,
               }}
             >
               <Label text="Site" />
@@ -248,6 +307,108 @@ const EditPTSDevice = () => {
                 text: "Allowed For Direct Commands",
               }}
             />
+          </GroupItem>
+
+          {/* Location Validation Settings Section */}
+          <GroupItem
+            caption="Location Validation Settings"
+            cssClass="tw-mt-6 tw-border-t tw-pt-4"
+          >
+            <GroupItem colCount={2}>
+              <SimpleItem
+                dataField="enableLocationValidation"
+                editorType="dxCheckBox"
+                editorOptions={{
+                  text: "Enable Location Validation",
+                }}
+                helpText="Enable GPS-based proximity validation for fueling operations"
+              />
+              <SimpleItem
+                dataField="bypassOnGPSFailure"
+                editorType="dxCheckBox"
+                editorOptions={{
+                  text: "Bypass on GPS Failure",
+                }}
+                helpText="Allow fueling if GPS location is temporarily unavailable"
+              />
+            </GroupItem>
+
+            <GroupItem colCount={2}>
+              <SimpleItem
+                dataField="requireVehicleProximity"
+                editorType="dxCheckBox"
+                editorOptions={{
+                  text: "Require Vehicle Proximity",
+                }}
+                helpText="Require the receiving vehicle to be near the tank for fueling"
+              />
+              <SimpleItem
+                dataField="requireMobileAppProximity"
+                editorType="dxCheckBox"
+                editorOptions={{
+                  text: "Require Mobile App Proximity",
+                }}
+                helpText="Require the mobile app operator to be near the tank"
+              />
+            </GroupItem>
+
+            <GroupItem colCount={2}>
+              <SimpleItem
+                dataField="vehicleProximityRadius"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  stylingMode: "filled",
+                  min: 10,
+                  max: 1000,
+                  showSpinButtons: true,
+                  format: "#0 meters",
+                }}
+              >
+                <Label text="Vehicle Proximity Radius (meters)" />
+              </SimpleItem>
+              <SimpleItem
+                dataField="mobileAppProximityRadius"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  stylingMode: "filled",
+                  min: 10,
+                  max: 500,
+                  showSpinButtons: true,
+                  format: "#0 meters",
+                }}
+              >
+                <Label text="Mobile App Proximity Radius (meters)" />
+              </SimpleItem>
+            </GroupItem>
+
+            <GroupItem colCount={2}>
+              <SimpleItem
+                dataField="minimumGPSAccuracy"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  stylingMode: "filled",
+                  min: 5,
+                  max: 100,
+                  showSpinButtons: true,
+                  format: "#0 meters",
+                }}
+              >
+                <Label text="Minimum GPS Accuracy (meters)" />
+              </SimpleItem>
+              <SimpleItem
+                dataField="proximityGracePeriodMeters"
+                editorType="dxNumberBox"
+                editorOptions={{
+                  stylingMode: "filled",
+                  min: 0,
+                  max: 50,
+                  showSpinButtons: true,
+                  format: "#0 meters",
+                }}
+              >
+                <Label text="Proximity Grace Period (meters)" />
+              </SimpleItem>
+            </GroupItem>
           </GroupItem>
 
           <GroupItem>

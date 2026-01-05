@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   DataGrid,
   Column,
@@ -23,11 +23,14 @@ import {
 import { fetchTags } from "../../../redux/actions/tagActions";
 import RuleSetForm from "./RuleSetForm";
 import RuleDetailForm from "./RuleDetailForm";
+import FuelingRulesHelp from "../../../pages/ATG/fuelingprocess/Components/FuelingRulesHelp";
 import notify from "devextreme/ui/notify";
 import "./TagRuleManagement.scss";
 
 const TagRuleManagement = () => {
   const dispatch = useDispatch();
+  const dataGridRef = useRef(null);
+  const isMounted = useRef(true);
   const ruleSets = useSelector((state) => state.fuelingRule.ruleSets || []);
   const loading = useSelector((state) => state.fuelingRule.loading);
   const tags = useSelector((state) => state.tag.tags || []);
@@ -37,10 +40,15 @@ const TagRuleManagement = () => {
   const [isRuleDetailFormVisible, setIsRuleDetailFormVisible] = useState(false);
   const [selectedRule, setSelectedRule] = useState(null);
   const [editMode, setEditMode] = useState("add"); // 'add' or 'edit'
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     dispatch(fetchAllRuleSets());
     dispatch(fetchTags());
+
+    return () => {
+      isMounted.current = false;
+    };
   }, [dispatch]);
 
   const handleAddRuleSet = () => {
@@ -62,16 +70,24 @@ const TagRuleManagement = () => {
       return;
     }
 
-    // Check if rule set is assigned to any tags
-    const assignedTags = tags.filter(tag => tag.fuelRuleSetId === ruleSet.id);
+    // Check if rule set is assigned to any tags (legacy direct assignment)
+    const assignedTags = tags.filter((tag) => tag.fuelRuleSetId === ruleSet.id);
 
     if (assignedTags.length > 0) {
-      const tagNames = assignedTags.map(tag => tag.tagName).join(", ");
+      const tagNames = assignedTags
+        .map((tag) => tag.name || tag.tagName)
+        .join(", ");
       notify({
-        message: `Cannot delete rule set "${ruleSet.name}". It is currently assigned to ${assignedTags.length} tag(s): ${tagNames.substring(0, 50)}${tagNames.length > 50 ? '...' : ''}. Please unassign it first.`,
+        message: `Cannot delete rule set "${
+          ruleSet.name
+        }". It is currently assigned to ${
+          assignedTags.length
+        } tag(s): ${tagNames.substring(0, 50)}${
+          tagNames.length > 50 ? "..." : ""
+        }. Please unassign it first.`,
         type: "error",
         displayTime: 6000,
-        width: 450
+        width: 450,
       });
       return;
     }
@@ -79,7 +95,9 @@ const TagRuleManagement = () => {
     // Confirm deletion
     const confirmed = window.confirm(
       `Are you sure you want to delete the rule set "${ruleSet.name}"?\n\n` +
-      `This rule set contains ${ruleSet.rules?.length || 0} rule(s). This action cannot be undone.`
+        `This rule set contains ${
+          ruleSet.rules?.length || 0
+        } rule(s). This action cannot be undone.`
     );
 
     if (!confirmed) {
@@ -97,12 +115,16 @@ const TagRuleManagement = () => {
         dispatch(fetchAllRuleSets());
       } else {
         // Check for foreign key constraint error
-        if (result.error && (result.error.includes("foreign key") || result.error.includes("constraint"))) {
+        if (
+          result.error &&
+          (result.error.includes("foreign key") ||
+            result.error.includes("constraint"))
+        ) {
           notify({
             message: `Cannot delete rule set "${ruleSet.name}". It is currently assigned to one or more tags or vehicles. Please unassign it first.`,
             type: "error",
             displayTime: 5000,
-            width: 450
+            width: 450,
           });
         } else {
           notify(result.error || "Failed to delete rule set", "error", 3000);
@@ -112,12 +134,15 @@ const TagRuleManagement = () => {
       console.error("Error deleting rule set:", error);
       const errorMessage = error.message || error.toString();
 
-      if (errorMessage.includes("foreign key") || errorMessage.includes("constraint")) {
+      if (
+        errorMessage.includes("foreign key") ||
+        errorMessage.includes("constraint")
+      ) {
         notify({
           message: `Cannot delete rule set "${ruleSet.name}". It is currently in use. Please unassign it from all tags and vehicles first.`,
           type: "error",
           displayTime: 5000,
-          width: 450
+          width: 450,
         });
       } else {
         notify("An error occurred while deleting rule set", "error", 3000);
@@ -198,12 +223,22 @@ const TagRuleManagement = () => {
     setIsRuleDetailFormVisible(false);
   };
 
+  const handleRuleDataChanged = async () => {
+    // Refresh rule sets after a rule is added, edited, or deleted
+    await dispatch(fetchAllRuleSets());
+
+    // Force DataGrid to refresh only if component is still mounted
+    if (isMounted.current && dataGridRef.current) {
+      dataGridRef.current.instance.refresh();
+    }
+  };
+
   const renderRuleSetActions = (cellData) => {
     if (!cellData || !cellData.data) return null;
 
     const ruleSet = cellData.data;
     return (
-      <div className="rule-set-actions">
+      <div className="rule-set-actions tw-flex tw-gap-1">
         <Button
           icon="edit"
           onClick={() => handleEditRuleSet(ruleSet)}
@@ -215,12 +250,6 @@ const TagRuleManagement = () => {
           onClick={() => handleDeleteRuleSet(ruleSet)}
           stylingMode="text"
           hint="Delete Rule Set"
-        />
-        <Button
-          icon="add"
-          onClick={() => handleAddRule(ruleSet)}
-          stylingMode="text"
-          hint="Add Rule"
         />
       </div>
     );
@@ -249,7 +278,11 @@ const TagRuleManagement = () => {
     const ruleSet = cellData.data;
 
     if (!ruleSet.id) {
-      return <span className="no-rules tw-text-xs tw-text-red-500">Invalid rule set</span>;
+      return (
+        <span className="no-rules tw-text-xs tw-text-red-500">
+          Invalid rule set
+        </span>
+      );
     }
 
     if (
@@ -258,9 +291,22 @@ const TagRuleManagement = () => {
       ruleSet.rules.length === 0
     ) {
       return (
-        <div className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-gray-400 tw-italic">
-          <i className="fa-light fa-inbox"></i>
-          <span>No rules defined</span>
+        <div className="tw-flex tw-flex-col tw-gap-2">
+          <div className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-text-gray-400 tw-italic">
+            <span>
+              <i className="fa-light fa-inbox"></i>
+            </span>
+            <span>No rules defined</span>
+          </div>
+          <Button
+            text="Add Rule"
+            icon="fa-light fa-plus"
+            type="default"
+            stylingMode="outlined"
+            onClick={() => handleAddRule(ruleSet)}
+            height={28}
+            className="tw-text-xs"
+          />
         </div>
       );
     }
@@ -271,26 +317,41 @@ const TagRuleManagement = () => {
           {ruleSet.rules.map((rule, index) => {
             if (!rule) return null;
 
+            // Helper to normalize discriminator - handles both DB values and frontend values
+            const normalizeDiscriminator = (disc) => {
+              if (!disc) return null;
+              const d = disc.toLowerCase();
+              if (d.includes("dailymonthly") || d.includes("daily"))
+                return "DailyMonthlyLimit";
+              if (d.includes("refill") || d.includes("noof"))
+                return "NoOfRefill";
+              if (d.includes("time") || d.includes("window"))
+                return "TimeWindow";
+              return disc;
+            };
+
+            const normalizedType = normalizeDiscriminator(rule.discriminator);
+
             const getRuleIcon = () => {
-              if (rule.discriminator === 'DailyMonthlyLimitRule') {
-                return 'fa-light fa-gauge-high tw-text-green-600';
-              } else if (rule.discriminator === 'NoOfRefillRule') {
-                return 'fa-light fa-hashtag tw-text-amber-600';
-              } else if (rule.discriminator === 'TimeWindowRule') {
-                return 'fa-light fa-clock tw-text-purple-600';
+              if (normalizedType === "DailyMonthlyLimit") {
+                return "fa-light fa-gauge-high tw-text-green-600";
+              } else if (normalizedType === "NoOfRefill") {
+                return "fa-light fa-hashtag tw-text-amber-600";
+              } else if (normalizedType === "TimeWindow") {
+                return "fa-light fa-clock tw-text-purple-600";
               }
-              return 'fa-light fa-question-circle tw-text-gray-400';
+              return "fa-light fa-question-circle tw-text-gray-400";
             };
 
             const getRuleTypeLabel = () => {
-              if (rule.discriminator === 'DailyMonthlyLimitRule') {
-                return 'Volume Limits';
-              } else if (rule.discriminator === 'NoOfRefillRule') {
-                return 'Refill Count';
-              } else if (rule.discriminator === 'TimeWindowRule') {
-                return 'Time Window';
+              if (normalizedType === "DailyMonthlyLimit") {
+                return "Volume Limits";
+              } else if (normalizedType === "NoOfRefill") {
+                return "Refill Count";
+              } else if (normalizedType === "TimeWindow") {
+                return "Time Window";
               }
-              return 'Unknown';
+              return rule.discriminator || "Unknown";
             };
 
             return (
@@ -298,7 +359,9 @@ const TagRuleManagement = () => {
                 key={rule.id || `rule-index-${index}`}
                 className="rule-item tw-flex tw-items-center tw-gap-2 tw-p-2 tw-bg-gray-50 tw-rounded tw-border tw-border-gray-200 hover:tw-bg-gray-100 tw-transition-colors"
               >
-                <i className={`${getRuleIcon()} tw-text-lg`}></i>
+                <span>
+                  <i className={`${getRuleIcon()} tw-text-lg`}></i>
+                </span>
                 <div className="tw-flex-1 tw-min-w-0">
                   <div className="tw-font-medium tw-text-sm tw-text-gray-900 tw-truncate">
                     {rule.ruleName || "Unnamed Rule"}
@@ -307,7 +370,10 @@ const TagRuleManagement = () => {
                     {getRuleTypeLabel()}
                     {!rule.isActive && (
                       <span className="tw-ml-2 tw-text-amber-600">
-                        <i className="fa-light fa-pause-circle"></i> Inactive
+                        <span>
+                          <i className="fa-light fa-pause-circle"></i>
+                        </span>{" "}
+                        Inactive
                       </span>
                     )}
                   </div>
@@ -322,11 +388,27 @@ const TagRuleManagement = () => {
               </div>
             );
           })}
+          {/* Add Rule button at the bottom of rules list */}
+          <div className="tw-mt-2 tw-pt-2 tw-border-t tw-border-gray-200">
+            <Button
+              text="Add Rule"
+              icon="fa-light fa-plus"
+              type="default"
+              stylingMode="text"
+              onClick={() => handleAddRule(ruleSet)}
+              height={28}
+              className="tw-text-xs"
+            />
+          </div>
         </div>
       );
     } catch (error) {
       console.error("Error in renderRulesDetail:", error);
-      return <span className="no-rules tw-text-xs tw-text-red-500">Error rendering rules</span>;
+      return (
+        <span className="no-rules tw-text-xs tw-text-red-500">
+          Error rendering rules
+        </span>
+      );
     }
   };
 
@@ -335,32 +417,49 @@ const TagRuleManagement = () => {
       <div className="section-header tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-justify-between tw-mb-4 tw-gap-3">
         <div>
           <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-m-0 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-layer-group tw-text-blue-600"></i>
+            <span>
+              <i className="fa-light fa-layer-group tw-text-blue-600"></i>
+            </span>
             Fueling Rule Sets
           </h2>
           <p className="tw-text-sm tw-text-gray-600 tw-mt-1 tw-mb-0">
             Create and manage rule sets to control fuel dispensing
           </p>
         </div>
-        <Button
-          text="Add Rule Set"
-          type="default"
-          stylingMode="contained"
-          icon="fas fa-plus"
-          onClick={handleAddRuleSet}
-          height={40}
-        />
+        <div className="tw-flex tw-items-center tw-gap-2">
+          <button
+            className="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-gray-600 hover:tw-text-blue-600 tw-border tw-border-gray-200 tw-rounded-lg hover:tw-border-blue-300 tw-transition-colors tw-bg-white"
+            onClick={() => setShowHelp(true)}
+            title="Help - Learn about Fueling Rules"
+          >
+            <i className="fa-light fa-circle-question"></i>
+            <span className="tw-hidden sm:tw-inline">Help</span>
+          </button>
+          <Button
+            text="Add Rule Set"
+            type="default"
+            stylingMode="contained"
+            icon="fas fa-plus"
+            onClick={handleAddRuleSet}
+            height={40}
+          />
+        </div>
       </div>
+
+      {/* Help Popup */}
+      <FuelingRulesHelp visible={showHelp} onClose={() => setShowHelp(false)} />
 
       {ruleSets && ruleSets.length === 0 && !loading && (
         <div className="empty-state tw-bg-gray-50 tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-8 tw-text-center tw-mb-4">
-          <i className="fa-light fa-layer-group tw-text-gray-300 tw-text-5xl tw-mb-3"></i>
+          <span>
+            <i className="fa-light fa-layer-group tw-text-gray-300 tw-text-5xl tw-mb-3"></i>
+          </span>
           <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-2">
             No Rule Sets Created
           </h3>
           <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
-            Get started by creating your first rule set. Rule sets contain multiple rules
-            that define fueling restrictions for vehicles.
+            Get started by creating your first rule set. Rule sets contain
+            multiple rules that define fueling restrictions for vehicles.
           </p>
           <Button
             text="Create First Rule Set"
@@ -373,13 +472,14 @@ const TagRuleManagement = () => {
       )}
 
       <DataGrid
+        ref={dataGridRef}
         dataSource={ruleSets || []}
         keyExpr="id"
         showBorders={true}
         columnAutoWidth={true}
         hoverStateEnabled={true}
         noDataText="No rule sets available"
-        repaintChangesOnly={true}
+        repaintChangesOnly={false}
         remoteOperations={false}
         onContentReady={() => console.log("DataGrid content ready")}
       >
@@ -399,7 +499,7 @@ const TagRuleManagement = () => {
           showInfo={true}
         />
 
-        <Column type="buttons" width={120} cellRender={renderRuleSetActions} />
+        <Column type="buttons" width={80} cellRender={renderRuleSetActions} />
         <Column dataField="name" caption="Rule Set Name" />
         <Column dataField="description" caption="Description" />
         <Column
@@ -425,6 +525,7 @@ const TagRuleManagement = () => {
         <RuleDetailForm
           isVisible={isRuleDetailFormVisible}
           onClose={handleRuleDetailFormClose}
+          onDataChanged={handleRuleDataChanged}
           ruleSet={selectedRuleSet}
           rule={selectedRule}
           editMode={editMode}

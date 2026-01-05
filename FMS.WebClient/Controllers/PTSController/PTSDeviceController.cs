@@ -346,7 +346,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="ptsDevice"></param>
         /// <returns></returns>
         [HttpPut("update/{deviceId}")]
-        public async Task<IActionResult> UpdatePTSDevice(int deviceId, [FromBody] Ptsdevice ptsDevice)
+        public async Task<IActionResult> UpdatePTSDevice(string deviceId, [FromBody] Ptsdevice ptsDevice)
         {
             try
             {
@@ -368,7 +368,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="deviceId"></param>
         /// <returns></returns>
         [HttpDelete("delete/{deviceId}")]
-        public async Task<IActionResult> DeletePTSDevice(int deviceId)
+        public async Task<IActionResult> DeletePTSDevice(string deviceId)
         {
             try
             {

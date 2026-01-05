@@ -31,6 +31,7 @@ using FMS.Application.Features.ATG;
 using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
@@ -185,6 +186,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         {
             try
             {
+                // Get fueling context for active pumps (filling or EOT)
+                var fuelingContexts = await GetActivePumpFuelingContexts(deviceId, status);
+
                 var statusUpdate = new
                 {
                     deviceId = deviceId,
@@ -203,15 +207,189 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         probes = status.Probes, // Send the whole Probes object
                         readers = status.Readers, // Send the whole Readers object
                         fuelGrades = status.FuelGrades
-                    }
+                    },
+                    // Enhanced: Include fueling context for active pumps
+                    fuelingContexts = fuelingContexts
                 };
 
                 await _hubContext.Clients.All.SendAsync("UploadStatusUpdate", statusUpdate);
-                _logger.LogInformation("[Broadcast] Sent UploadStatusUpdate for {DeviceId}", deviceId);
+                _logger.LogDebug("[Broadcast] Sent UploadStatusUpdate for {DeviceId} with {ContextCount} fueling contexts",
+                    deviceId, fuelingContexts?.Count ?? 0);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error broadcasting upload status update for device {DeviceId}", deviceId);
+            }
+        }
+
+        /// <summary>
+        /// Get fueling context information for all pumps that are actively filling or in EOT state.
+        /// This enriches the upload status with business context (vehicle, tank, user info).
+        /// </summary>
+        private async Task<List<PumpFuelingContext>> GetActivePumpFuelingContexts(string deviceId, UploadStatus status)
+        {
+            var contexts = new List<PumpFuelingContext>();
+
+            try
+            {
+                if (status?.Pumps == null) return contexts;
+
+                // Collect pump IDs and transaction IDs from FillingStatus
+                var fillingPumps = new Dictionary<int, int>(); // pumpId -> transactionId
+                if (status.Pumps.FillingStatus?.Ids != null && status.Pumps.FillingStatus.Transactions != null)
+                {
+                    for (int i = 0; i < status.Pumps.FillingStatus.Ids.Count; i++)
+                    {
+                        var pumpId = status.Pumps.FillingStatus.Ids[i];
+                        var transactionId = status.Pumps.FillingStatus.Transactions.Count > i
+                            ? status.Pumps.FillingStatus.Transactions[i] : 0;
+                        if (pumpId.HasValue && transactionId > 0)
+                        {
+                            fillingPumps[pumpId.Value] = transactionId;
+                        }
+                    }
+                }
+
+                // Collect pump IDs and transaction IDs from EndOfTransactionStatus
+                var eotPumps = new Dictionary<int, int>(); // pumpId -> transactionId
+                if (status.Pumps.EndOfTransactionStatus?.Ids != null && status.Pumps.EndOfTransactionStatus.Transactions != null)
+                {
+                    for (int i = 0; i < status.Pumps.EndOfTransactionStatus.Ids.Count; i++)
+                    {
+                        var pumpId = status.Pumps.EndOfTransactionStatus.Ids[i];
+                        var transactionId = status.Pumps.EndOfTransactionStatus.Transactions.Count > i
+                            ? status.Pumps.EndOfTransactionStatus.Transactions[i] : 0;
+                        if (pumpId.HasValue && transactionId > 0 && !fillingPumps.ContainsKey(pumpId.Value))
+                        {
+                            eotPumps[pumpId.Value] = transactionId;
+                        }
+                    }
+                }
+
+                // Combine all active pumps
+                var allActivePumps = fillingPumps.Concat(eotPumps).ToList();
+
+                foreach (var pump in allActivePumps)
+                {
+                    var pumpId = pump.Key;
+                    var transactionId = pump.Value;
+
+                    // Try to get context from Redis
+                    var context = await GetFuelingContextFromRedis(deviceId, transactionId, pumpId);
+                    if (context != null)
+                    {
+                        contexts.Add(context);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting fueling contexts for device {DeviceId}", deviceId);
+            }
+
+            return contexts;
+        }
+
+        /// <summary>
+        /// Get fueling context from Redis transaction context and enrich with database lookups
+        /// </summary>
+        private async Task<PumpFuelingContext?> GetFuelingContextFromRedis(string deviceId, int transactionId, int pumpId)
+        {
+            try
+            {
+                var transactionKey = $"device:{deviceId}:transaction:{transactionId}";
+                var contextJson = await _redisDb.StringGetAsync(transactionKey);
+
+                if (contextJson.IsNullOrEmpty)
+                {
+                    _logger.LogDebug("No Redis context found for device {DeviceId}, transaction {TransactionId}", deviceId, transactionId);
+                    return null;
+                }
+
+                var redisContext = JsonSerializer.Deserialize<JsonElement>(contextJson!);
+
+                // Extract values from Redis context
+                var vehicleId = redisContext.TryGetProperty("VehicleId", out var vIdProp) && vIdProp.ValueKind != JsonValueKind.Null
+                    ? vIdProp.GetInt32() : (int?)null;
+                var tankId = redisContext.TryGetProperty("TankId", out var tIdProp) && tIdProp.ValueKind != JsonValueKind.Null
+                    ? tIdProp.GetInt32() : (int?)null;
+                var userId = redisContext.TryGetProperty("UserId", out var uIdProp) && uIdProp.ValueKind != JsonValueKind.Null
+                    ? uIdProp.GetString() : null;
+                var connectionType = redisContext.TryGetProperty("ConnectionType", out var ctProp)
+                    ? ctProp.GetString() : null;
+                var autoClose = redisContext.TryGetProperty("AutoCloseTransaction", out var acProp)
+                    ? acProp.GetBoolean() : false;
+                var authorizedAt = redisContext.TryGetProperty("AuthorizedAt", out var aaProp)
+                    ? aaProp.GetDateTime() : (DateTime?)null;
+                var odometer = redisContext.TryGetProperty("Odometer", out var odProp) && odProp.ValueKind != JsonValueKind.Null
+                    ? odProp.GetDecimal() : (decimal?)null;
+
+                // Determine mode based on VehicleId and TankId
+                string mode = "Unknown";
+                if (vehicleId.HasValue && vehicleId > 0)
+                {
+                    mode = "Vehicle";
+                }
+                else if (tankId.HasValue && tankId > 0)
+                {
+                    mode = "Transfer";
+                }
+
+                // Lookup vehicle name if applicable
+                string? vehicleName = null;
+                if (vehicleId.HasValue && vehicleId > 0)
+                {
+                    var vehicle = await _context.Vehicles
+                        .Where(v => v.VehicleId == vehicleId)
+                        .Select(v => new { v.NumberPlate, v.HyoungNo })
+                        .FirstOrDefaultAsync();
+                    vehicleName = vehicle?.NumberPlate ?? vehicle?.HyoungNo ?? $"Vehicle {vehicleId}";
+                }
+
+                // Lookup tank name if applicable
+                string? tankName = null;
+                if (tankId.HasValue && tankId > 0)
+                {
+                    var tank = await _context.Tanks
+                        .Where(t => t.Id == tankId)
+                        .Select(t => t.Name)
+                        .FirstOrDefaultAsync();
+                    tankName = tank ?? $"Tank {tankId}";
+                }
+
+                // Lookup user name if applicable
+                string? userName = null;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    var user = await _context.Users
+                        .Where(u => u.Id == userId)
+                        .Select(u => u.UserName)
+                        .FirstOrDefaultAsync();
+                    userName = user ?? userId;
+                }
+
+                return new PumpFuelingContext
+                {
+                    PumpId = pumpId,
+                    TransactionId = transactionId,
+                    Mode = mode,
+                    VehicleId = vehicleId,
+                    VehicleName = vehicleName,
+                    TankId = tankId,
+                    TankName = tankName,
+                    FueledByUserId = userId,
+                    FueledByUserName = userName,
+                    ConnectionType = connectionType,
+                    AutoCloseTransaction = autoClose,
+                    AuthorizedAt = authorizedAt,
+                    Odometer = odometer
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting fueling context from Redis for device {DeviceId}, transaction {TransactionId}",
+                    deviceId, transactionId);
+                return null;
             }
         }
 

@@ -1,29 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Item, Toolbar } from "devextreme-react/toolbar";
 import Button from "devextreme-react/button";
-import Tabs from "devextreme-react/tabs";
 import { ScrollView } from "devextreme-react";
 import { fetchTags, setSelectedTag } from "../../redux/actions/tagActions";
-import { fetchAllRuleSets } from "../../redux/actions/fuelingRuleActions";
 import { fetchVehicleList } from "../../redux/actions/vehicleActions";
 import TagList from "../../components/Tags/TagList/tagList";
-import TagRuleManagement from "../../components/Tags/TagRuleManagement/TagRuleManagement";
-import TagRuleAssignment from "../../components/Tags/TagRuleManagement/TagRuleAssignment";
 import TagForm from "../../components/Tags/TagForm/TagForm";
 import notify from "devextreme/ui/notify";
 import "./tagpage.scss";
 
 // Custom styles for components
 const styles = {
-  tabs: {
-    marginBottom: "15px",
-  },
-  tabItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
   contentContainer: {
     width: "100%",
     height: "calc(100vh - 150px)",
@@ -52,21 +39,14 @@ const TagPage = () => {
   const dispatch = useDispatch();
   const tags = useSelector((state) => state.tag.tags || []);
   const selectedTag = useSelector((state) => state.tag.selectedTag);
-  const vehicles = useSelector((state) => state.vehicle.vehicles || []);
-  const ruleSets = useSelector((state) => state.fuelingRule.ruleSets || []);
-  const isLoading = useSelector(
-    (state) => state.tag.loading || state.fuelingRule.loading || false
-  );
+  const isLoading = useSelector((state) => state.tag.loading || false);
 
   // Local state
-  const [activeTab, setActiveTab] = useState(0);
   const [showTagForm, setShowTagForm] = useState(false);
   const [editingTag, setEditingTag] = useState(null);
-  const [showRuleAssignment, setShowRuleAssignment] = useState(false);
 
   useEffect(() => {
     dispatch(fetchTags());
-    dispatch(fetchAllRuleSets());
     dispatch(fetchVehicleList());
   }, [dispatch]);
 
@@ -74,11 +54,6 @@ const TagPage = () => {
     if (tag) {
       dispatch(setSelectedTag(tag));
     }
-  };
-
-  // Simplified tab change handler
-  const handleTabChange = (e) => {
-    setActiveTab(e.itemIndex);
   };
 
   const handleAddTag = () => {
@@ -108,102 +83,112 @@ const TagPage = () => {
     }
   };
 
-  const handleAssignRules = () => {
-    setShowRuleAssignment(true);
-  };
-
-  const handleAssignmentClose = () => {
-    setShowRuleAssignment(false);
-    dispatch(fetchTags());
-  };
-
   const handleRefreshData = () => {
     dispatch(fetchTags());
-    dispatch(fetchAllRuleSets());
     dispatch(fetchVehicleList());
     notify("Data refreshed", "info", 1000);
-  };
-
-  // Tab data
-  const tabData = [
-    { text: "Tag Management", icon: "fa-light fa-tags" },
-    { text: "Fueling Rules", icon: "fa-light fa-gas-pump" },
-  ];
-
-  // Cursor: Define a custom tab item renderer to fix duplication issue
-  const renderTabItem = (item) => {
-    return (
-      <div style={styles.tabItem}>
-        <i className={item.icon}></i>
-        <span>{item.text}</span>
-      </div>
-    );
-  };
-
-  // Render tab content based on active tab
-  const renderContent = () => {
-    if (activeTab === 0) {
-      return (
-        <div style={styles.panelsContainer}>
-          <div style={styles.leftPanel}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "15px",
-              }}
-            >
-              <Button
-                text="Add Tag"
-                type="default"
-                stylingMode="contained"
-                icon="fa-light fa-plus"
-                onClick={handleAddTag}
-              />
-            </div>
-            <TagList
-              tags={tags}
-              onTagSelect={handleTagSelection}
-              onEditTag={handleEditTag}
-            />
-          </div>
-          <div style={styles.rightPanel}>
-            <h3>Tag Details</h3>
-            {selectedTag ? (
-              <div>
-                <p>Details for selected tag will display here</p>
-                <pre>{JSON.stringify(selectedTag, null, 2)}</pre>
-              </div>
-            ) : (
-              <p>Select a tag to view details</p>
-            )}
-          </div>
-        </div>
-      );
-    } else {
-      return <TagRuleManagement />;
-    }
   };
 
   return (
     <ScrollView className="content-block">
       <div className="view-wrapper view-wrapper-tag-page">
         <div className="view-container">
-          {/* Tabs Navigation */}
-          <Tabs
-            dataSource={tabData}
-            selectedIndex={activeTab}
-            onItemClick={handleTabChange}
-            style={styles.tabs}
-            width="100%"
-            repaintChangesOnly={true}
-            itemRender={renderTabItem}
-            noDataText=""
-          />
+          {/* Page Header */}
+          <div className="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-p-4">
+            <div>
+              <h1 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
+                <i className="fa-light fa-tags tw-text-blue-600"></i>
+                Tag Management
+              </h1>
+              <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
+                Manage RFID tags and vehicle assignments
+              </p>
+            </div>
+            <div className="tw-flex tw-gap-2">
+              <Button
+                icon="fa-light fa-refresh"
+                hint="Refresh"
+                stylingMode="text"
+                onClick={handleRefreshData}
+              />
+            </div>
+          </div>
 
-          {/* Tab Content */}
-          <div style={styles.contentContainer}>{renderContent()}</div>
+          {/* Content */}
+          <div style={styles.contentContainer}>
+            <div style={styles.panelsContainer}>
+              <div style={styles.leftPanel}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "15px",
+                  }}
+                >
+                  <Button
+                    text="Add Tag"
+                    type="default"
+                    stylingMode="contained"
+                    icon="fa-light fa-plus"
+                    onClick={handleAddTag}
+                  />
+                </div>
+                <TagList
+                  tags={tags}
+                  onTagSelect={handleTagSelection}
+                  onEditTag={handleEditTag}
+                />
+              </div>
+              <div style={styles.rightPanel}>
+                <h3 className="tw-text-lg tw-font-semibold tw-mb-3">
+                  Tag Details
+                </h3>
+                {selectedTag ? (
+                  <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg">
+                    <div className="tw-space-y-2">
+                      <div className="tw-flex tw-justify-between">
+                        <span className="tw-text-gray-600">Tag Name:</span>
+                        <span className="tw-font-medium">
+                          {selectedTag.tagName || selectedTag.name || "-"}
+                        </span>
+                      </div>
+                      <div className="tw-flex tw-justify-between">
+                        <span className="tw-text-gray-600">Tag Type:</span>
+                        <span className="tw-font-medium">
+                          {selectedTag.tagType || "-"}
+                        </span>
+                      </div>
+                      <div className="tw-flex tw-justify-between">
+                        <span className="tw-text-gray-600">Status:</span>
+                        <span
+                          className={`tw-font-medium ${
+                            selectedTag.isEnabled
+                              ? "tw-text-green-600"
+                              : "tw-text-red-600"
+                          }`}
+                        >
+                          {selectedTag.isEnabled ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      {selectedTag.vehicleId && (
+                        <div className="tw-flex tw-justify-between">
+                          <span className="tw-text-gray-600">Vehicle ID:</span>
+                          <span className="tw-font-medium">
+                            {selectedTag.vehicleId}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="tw-text-gray-500 tw-italic">
+                    Select a tag to view details
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -213,15 +198,6 @@ const TagPage = () => {
           onClose={handleFormClose}
           onSave={handleTagSave}
           tag={editingTag}
-        />
-      )}
-
-      {showRuleAssignment && (
-        <TagRuleAssignment
-          isVisible={showRuleAssignment}
-          onClose={handleAssignmentClose}
-          tags={tags}
-          ruleSets={ruleSets}
         />
       )}
     </ScrollView>

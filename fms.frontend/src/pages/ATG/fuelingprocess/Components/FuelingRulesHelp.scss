@@ -1,0 +1,38 @@
+/* FuelingRulesHelp.scss */
+
+.fueling-rules-help {
+  .help-sidebar {
+    @apply tw-w-48 tw-border-r tw-border-gray-200 tw-bg-gray-50 tw-p-3;
+  }
+
+  .help-content {
+    @apply tw-flex-1 tw-p-6 tw-overflow-y-auto;
+  }
+
+  .help-nav-item {
+    @apply tw-w-full tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-rounded-lg tw-text-left tw-text-sm tw-transition-colors;
+
+    &:hover {
+      @apply tw-bg-gray-100;
+    }
+
+    &.active {
+      @apply tw-bg-blue-100 tw-text-blue-700 tw-font-medium;
+    }
+  }
+
+  .priority-bar {
+    &.priority-100 {
+      @apply tw-bg-purple-100 tw-border-2 tw-border-purple-300;
+    }
+    &.priority-80 {
+      @apply tw-bg-orange-50 tw-border tw-border-orange-200;
+    }
+    &.priority-50 {
+      @apply tw-bg-green-50 tw-border tw-border-green-200;
+    }
+    &.priority-10 {
+      @apply tw-bg-blue-50 tw-border tw-border-blue-200;
+    }
+  }
+}

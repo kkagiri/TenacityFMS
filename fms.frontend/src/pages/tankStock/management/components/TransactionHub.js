@@ -12,7 +12,7 @@
  *
  * Refactored: Components and hooks extracted to separate files in transactionHub folder
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from "react";
 import DataGrid, {
   Paging,
   Pager,
@@ -30,52 +30,52 @@ import DataGrid, {
   Grouping,
   Summary,
   TotalItem,
-  GroupItem
-} from 'devextreme-react/data-grid';
-import { LoadPanel } from 'devextreme-react/load-panel';
-import Button from 'devextreme-react/button';
-import Popup from 'devextreme-react/popup';
-import notify from 'devextreme/ui/notify';
+  GroupItem,
+} from "devextreme-react/data-grid";
+import { LoadPanel } from "devextreme-react/load-panel";
+import Button from "devextreme-react/button";
+import Popup from "devextreme-react/popup";
+import notify from "devextreme/ui/notify";
 
 // Utilities and exports
-import { exportTransactionsToExcel } from '../utils/transactionExportUtils';
-import { exportAnalysisReport } from '../utils/transactionAnalysisExportUtils';
+import { exportTransactionsToExcel } from "../utils/transactionExportUtils";
+import { exportAnalysisReport } from "../utils/transactionAnalysisExportUtils";
 
 // Components
-import ManualRefillForm from '../../forms/ManualRefillForm';
-import QuickActions from '../../components/QuickActions';
+import ManualRefillForm from "../../forms/ManualRefillForm";
+import QuickActions from "../../components/QuickActions";
 
 // Extracted components and hooks
 import {
   VolumeChangeReasonEnum,
-  allowedPageSizes
-} from './transactionHub/transactionHubConstants';
-import { calculateDispensingCustomSummary } from './transactionHub/transactionHubUtils';
-import { DeleteConfirmationDialog } from './transactionHub/DeleteConfirmationDialog';
-import { TransactionFilters } from './transactionHub/TransactionFilters';
-import { GroupingControls } from './transactionHub/GroupingControls';
+  allowedPageSizes,
+} from "./transactionHub/transactionHubConstants";
+import { calculateDispensingCustomSummary } from "./transactionHub/transactionHubUtils";
+import { DeleteConfirmationDialog } from "./transactionHub/DeleteConfirmationDialog";
+import { TransactionFilters } from "./transactionHub/TransactionFilters";
+import { GroupingControls } from "./transactionHub/GroupingControls";
 import {
   useTransactionData,
   useDeleteTransaction,
   useEditTransaction,
-  useDataGridGrouping
-} from './transactionHub/useTransactionHub';
-import { EditTransactionDialog } from './transactionHub/EditTransactionDialog';
+  useDataGridGrouping,
+} from "./transactionHub/useTransactionHub";
+import { EditTransactionDialog } from "./transactionHub/EditTransactionDialog";
 
 // Hooks
-import { usePermissions } from '../../../../hooks/usePermissions';
-import './TransactionHub.scss';
+import { usePermissions } from "../../../../hooks/usePermissions";
+import "./TransactionHub.scss";
 
 const TransactionHub = () => {
   const dataGridRef = useRef(null);
 
   // Permission checks using JWT token
   const { hasPermission, hasRole } = usePermissions();
-  const canReadTankVolumeHistory = hasPermission('_Read_tankVolumeHistory');
-  const canDeleteTankVolumeHistory = hasPermission('_Delete_tankVolumeHistory');
+  const canReadTankVolumeHistory = hasPermission("_Read_tankVolumeHistory");
+  const canDeleteTankVolumeHistory = hasPermission("_Delete_tankVolumeHistory");
   // Edit is admin-only feature
-  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
-  const canEditTankVolumeHistory = isAdmin ;
+  const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
+  const canEditTankVolumeHistory = isAdmin;
 
   // Use extracted hooks for data management
   const {
@@ -97,7 +97,7 @@ const TransactionHub = () => {
     selectedTankIds,
     handleApplyFilters,
     handleRefresh,
-    handleClearFilters
+    handleClearFilters,
   } = useTransactionData();
 
   // Use extracted hook for delete functionality
@@ -107,7 +107,7 @@ const TransactionHub = () => {
     executeDelete,
     handleCancelDelete,
     handleToggleDetails,
-    handleConfirmChange
+    handleConfirmChange,
   } = useDeleteTransaction(handleRefresh);
 
   // Use extracted hook for edit functionality
@@ -117,7 +117,7 @@ const TransactionHub = () => {
     handleEditTransaction,
     handleEditSuccess,
     handleCancelEdit,
-    handleEditDialogHiding
+    handleEditDialogHiding,
   } = useEditTransaction(handleRefresh);
 
   // Use extracted hook for grouping
@@ -129,7 +129,7 @@ const TransactionHub = () => {
     handleGroupByChange,
     handleClearGrouping,
     handleToggleExpandGroups,
-    handleToggleDispensingTotal
+    handleToggleDispensingTotal,
   } = useDataGridGrouping(dataGridRef);
 
   // Local state for manual refill form
@@ -140,23 +140,23 @@ const TransactionHub = () => {
     setShowManualRefillForm(false);
     handleRefresh();
     notify({
-      message: 'Manual refill recorded successfully',
-      type: 'success',
+      message: "Manual refill recorded successfully",
+      type: "success",
       displayTime: 3000,
-      position: 'top center'
+      position: "top center",
     });
   }, [handleRefresh]);
 
   // Handle row click to prevent errors with group rows
   const onRowClick = useCallback((e) => {
-    if (e.rowType === 'group') {
+    if (e.rowType === "group") {
       return;
     }
   }, []);
 
   // Format timestamp for display
   const formatTime = useCallback((cellInfo) => {
-    if (!cellInfo.value) return '';
+    if (!cellInfo.value) return "";
     const date = new Date(cellInfo.value);
     return isNaN(date.getTime()) ? cellInfo.value : date.toLocaleString();
   }, []);
@@ -167,25 +167,25 @@ const TransactionHub = () => {
     const date = new Date(rowData.timestamp);
     if (isNaN(date.getTime())) return null;
     // Return date string in YYYY-MM-DD format for consistent grouping
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   }, []);
 
   // Render group cell for date grouping - displays formatted date
   const groupCellRenderDate = useCallback((cellInfo) => {
-    if (!cellInfo.value) return 'No Date';
+    if (!cellInfo.value) return "No Date";
     const date = new Date(cellInfo.value);
     if (isNaN(date.getTime())) return cellInfo.value;
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   }, []);
 
   // Render change reason
   const changeReasonCellRender = useCallback((cellInfo) => {
-    const reason = VolumeChangeReasonEnum.find(r => r.id === cellInfo.value);
+    const reason = VolumeChangeReasonEnum.find((r) => r.id === cellInfo.value);
     return reason ? reason.name : cellInfo.value;
   }, []);
 
@@ -196,23 +196,23 @@ const TransactionHub = () => {
         dataGridInstance: dataGridRef.current?.instance,
         startDate: headerStartDate,
         endDate: headerEndDate,
-        userName: user?.userName || user?.username || 'Unknown User',
-        volumeChangeReasonEnum: VolumeChangeReasonEnum
+        userName: user?.userName || user?.username || "Unknown User",
+        volumeChangeReasonEnum: VolumeChangeReasonEnum,
       });
 
       notify({
-        message: 'Export completed successfully!',
-        type: 'success',
+        message: "Export completed successfully!",
+        type: "success",
         displayTime: 2000,
-        position: 'top center'
+        position: "top center",
       });
     } catch (error) {
-      console.error('Export failed:', error);
+      console.error("Export failed:", error);
       notify({
-        message: 'Failed to export data. Please try again.',
-        type: 'error',
+        message: "Failed to export data. Please try again.",
+        type: "error",
         displayTime: 3000,
-        position: 'top center'
+        position: "top center",
       });
     }
   }, [headerStartDate, headerEndDate, user]);
@@ -227,30 +227,33 @@ const TransactionHub = () => {
         startDate: headerStartDate,
         endDate: headerEndDate,
         volumeChangeReasonEnum: VolumeChangeReasonEnum,
-        userName: user?.userName || user?.username || 'Unknown User'
+        userName: user?.userName || user?.username || "Unknown User",
       });
 
       notify({
-        message: 'AI-Style Analysis Report generated successfully!',
-        type: 'success',
+        message: "AI-Style Analysis Report generated successfully!",
+        type: "success",
         displayTime: 3000,
-        position: 'top center'
+        position: "top center",
       });
     } catch (error) {
-      console.error('Analysis export failed:', error);
+      console.error("Analysis export failed:", error);
       notify({
-        message: 'Failed to generate analysis report. Please try again.',
-        type: 'error',
+        message: "Failed to generate analysis report. Please try again.",
+        type: "error",
         displayTime: 3000,
-        position: 'top center'
+        position: "top center",
       });
     }
   }, [tankVolumeHistory, tanks, sites, headerStartDate, headerEndDate, user]);
 
   // Custom summary calculation for dispensing totals
-  const calculateCustomSummary = useCallback((options) => {
-    calculateDispensingCustomSummary(options, showDispensingTotal);
-  }, [showDispensingTotal]);
+  const calculateCustomSummary = useCallback(
+    (options) => {
+      calculateDispensingCustomSummary(options, showDispensingTotal);
+    },
+    [showDispensingTotal]
+  );
 
   // Early return if no read permission
   if (!canReadTankVolumeHistory) {
@@ -258,8 +261,12 @@ const TransactionHub = () => {
       <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
         <div className="tw-text-center">
           <i className="fa-light fa-lock tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
-          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-600 tw-mb-2">Access Denied</h3>
-          <p className="tw-text-gray-500">You don't have permission to view tank volume history.</p>
+          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-600 tw-mb-2">
+            Access Denied
+          </h3>
+          <p className="tw-text-gray-500">
+            You don't have permission to view tank volume history.
+          </p>
         </div>
       </div>
     );
@@ -369,7 +376,11 @@ const TransactionHub = () => {
           >
             <FilterPanel visible={true} />
             <GroupPanel visible={false} />
-            <Grouping visible={true} autoExpandAll={isGroupsExpanded} allowCollapsing={true} />
+            <Grouping
+              visible={true}
+              autoExpandAll={isGroupsExpanded}
+              allowCollapsing={true}
+            />
             <HeaderFilter visible={true} />
             <FilterRow visible={true} />
             <Paging enabled={true} defaultPageSize={100} />
@@ -388,7 +399,12 @@ const TransactionHub = () => {
             </Toolbar>
 
             {/* Columns */}
-            <Column dataField="id" caption="ID" visible={false} defaultSortOrder="desc" />
+            <Column
+              dataField="id"
+              caption="ID"
+              visible={false}
+              defaultSortOrder="desc"
+            />
             <Column
               dataField="timestamp"
               caption="Date & Time"
@@ -400,16 +416,8 @@ const TransactionHub = () => {
               calculateGroupValue={calculateDateGroupValue}
               groupCellRender={groupCellRenderDate}
             />
-            <Column
-              dataField="site"
-              caption="Site"
-              allowGrouping={true}
-            />
-            <Column
-              dataField="tankId"
-              caption="Tank"
-              allowGrouping={true}
-            >
+            <Column dataField="site" caption="Site" allowGrouping={true} />
+            <Column dataField="tankId" caption="Tank" allowGrouping={true}>
               <Lookup dataSource={tanks} valueExpr="id" displayExpr="name" />
             </Column>
             <Column
@@ -419,7 +427,11 @@ const TransactionHub = () => {
               cellRender={changeReasonCellRender}
               allowGrouping={true}
             >
-              <Lookup dataSource={VolumeChangeReasonEnum} valueExpr="id" displayExpr="name" />
+              <Lookup
+                dataSource={VolumeChangeReasonEnum}
+                valueExpr="id"
+                displayExpr="name"
+              />
             </Column>
             <Column
               dataField="vehicleName"
@@ -449,11 +461,14 @@ const TransactionHub = () => {
                 format="#,##0.00"
                 customizeText={(cellInfo) => {
                   const rowData = cellInfo.row?.data;
-                  if (!rowData || (rowData.changeReason !== 6 && rowData.changeReason !== 7)) {
-                    return '-';
+                  if (
+                    !rowData ||
+                    (rowData.changeReason !== 6 && rowData.changeReason !== 7)
+                  ) {
+                    return "-";
                   }
                   if (cellInfo.value === null || cellInfo.value === undefined) {
-                    return '-';
+                    return "-";
                   }
                   return cellInfo.value.toFixed(2);
                 }}
@@ -472,8 +487,16 @@ const TransactionHub = () => {
               minWidth={120}
             />
             <ColumnChooser height="340px" enabled={true} mode="selection">
-              <ColumnChooserSelection allowSelectAll={true} selectByClick={true} recursive="true" />
-              <Position my="right top" at="right bottom" of=".dx-datagrid-column-chooser-button" />
+              <ColumnChooserSelection
+                allowSelectAll={true}
+                selectByClick={true}
+                recursive="true"
+              />
+              <Position
+                my="right top"
+                at="right bottom"
+                of=".dx-datagrid-column-chooser-button"
+              />
             </ColumnChooser>
 
             {/* Actions Column */}
@@ -487,23 +510,31 @@ const TransactionHub = () => {
               cellRender={(cellData) => (
                 <div className="tw-flex tw-space-x-1">
                   {/* Edit Button */}
-                  {canEditTankVolumeHistory && isTransactionEditable(cellData.data) && (
-                    <Button
-                      icon="fa-light fa-pencil"
-                      stylingMode="text"
-                      onClick={() => handleEditTransaction(cellData.data)}
-                      className="tw-text-blue-600 hover:tw-text-blue-800"
-                      hint="Edit Transaction"
-                      disabled={isLoading || editState.visible}
-                    />
-                  )}
-                  {canEditTankVolumeHistory && !isTransactionEditable(cellData.data) && (
-                    <span className="tw-text-gray-300 tw-px-2" title="This type cannot be edited">
-                      <i className="fa-light fa-pencil-slash"></i>
-                    </span>
-                  )}
+                  {canEditTankVolumeHistory &&
+                    isTransactionEditable(cellData.data) && (
+                      <Button
+                        icon="fa-light fa-pencil"
+                        stylingMode="text"
+                        onClick={() => handleEditTransaction(cellData.data)}
+                        className="tw-text-blue-600 hover:tw-text-blue-800"
+                        hint="Edit Transaction"
+                        disabled={isLoading || editState.visible}
+                      />
+                    )}
+                  {canEditTankVolumeHistory &&
+                    !isTransactionEditable(cellData.data) && (
+                      <span
+                        className="tw-text-gray-300 tw-px-2"
+                        title="This type cannot be edited"
+                      >
+                        <i className="fa-light fa-pencil-slash"></i>
+                      </span>
+                    )}
                   {!canEditTankVolumeHistory && (
-                    <span className="tw-text-gray-300 tw-px-2" title="No edit permission">
+                    <span
+                      className="tw-text-gray-300 tw-px-2"
+                      title="No edit permission"
+                    >
                       <i className="fa-light fa-pencil"></i>
                     </span>
                   )}
@@ -520,7 +551,10 @@ const TransactionHub = () => {
                     />
                   )}
                   {!canDeleteTankVolumeHistory && (
-                    <span className="tw-text-gray-300 tw-px-2" title="No delete permission">
+                    <span
+                      className="tw-text-gray-300 tw-px-2"
+                      title="No delete permission"
+                    >
                       <i className="fa-light fa-trash"></i>
                     </span>
                   )}
@@ -535,7 +569,12 @@ const TransactionHub = () => {
                   name="GroupDispensing"
                   summaryType="custom"
                   customizeText={(data) => {
-                    return `Dispensing: ${data.value?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'} L`;
+                    return `Dispensing: ${
+                      data.value?.toLocaleString("en-US", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }) || "0"
+                    } L`;
                   }}
                   alignByColumn={true}
                   showInGroupFooter={false}
@@ -559,7 +598,12 @@ const TransactionHub = () => {
                   name="TotalDispensing"
                   summaryType="custom"
                   customizeText={(data) => {
-                    return `Total Dispensing: ${data.value?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}L`;
+                    return `Total Dispensing: ${
+                      data.value?.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }) || "0.00"
+                    }L`;
                   }}
                 />
               )}

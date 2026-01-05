@@ -20,7 +20,6 @@ import {
 } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
 import { Popup } from "devextreme-react/popup";
-import { Toast } from "devextreme-react/toast";
 import notify from "devextreme/ui/notify";
 import {
   fetchConfigurations,
@@ -29,6 +28,16 @@ import {
 } from "../../redux/actions/ptsAutomationConfigActions";
 import ConfigurationForm from "./components/ConfigurationForm";
 import EffectiveConfigViewer from "./components/EffectiveConfigViewer";
+
+// Helper function to show notifications
+const showNotification = (message, type = "success") => {
+  notify({
+    message,
+    type,
+    displayTime: 3000,
+    position: { at: "top right", my: "top right", offset: "0 20" },
+  });
+};
 
 //Cursor - PTS Automation Configuration page component
 const PTSAutomationConfigPage = () => {
@@ -39,9 +48,6 @@ const PTSAutomationConfigPage = () => {
   const [showEffectiveConfig, setShowEffectiveConfig] = useState(false);
   const [selectedConfiguration, setSelectedConfiguration] = useState(null);
   const [selectedSiteId, setSelectedSiteId] = useState(null);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success");
   const [isLoading, setIsLoading] = useState(true);
 
   const { configurations, loading, error, pagination } = useSelector(
@@ -69,16 +75,17 @@ const PTSAutomationConfigPage = () => {
 
       // Handle specific error cases
       if (error.includes("404") || error.includes("Not Found")) {
-        errorMessage = "No configurations found or the API endpoint is not available. Please try again later.";
+        errorMessage =
+          "No configurations found or the API endpoint is not available. Please try again later.";
       } else if (error.includes("401") || error.includes("Unauthorized")) {
-        errorMessage = "You are not authorized to access this resource. Please login again.";
+        errorMessage =
+          "You are not authorized to access this resource. Please login again.";
       } else if (error.includes("Network Error")) {
-        errorMessage = "Network error. Please check your connection and try again.";
+        errorMessage =
+          "Network error. Please check your connection and try again.";
       }
 
-      setToastMessage(errorMessage);
-      setToastType("error");
-      setToastVisible(true);
+      showNotification(errorMessage, "error");
       dispatch(clearError());
     }
   }, [error, dispatch]);
@@ -97,14 +104,13 @@ const PTSAutomationConfigPage = () => {
     if (window.confirm("Are you sure you want to delete this configuration?")) {
       try {
         await dispatch(deleteConfiguration(id));
-        setToastMessage("Configuration deleted successfully");
-        setToastType("success");
-        setToastVisible(true);
+        showNotification("Configuration deleted successfully", "success");
         dispatch(fetchConfigurations());
       } catch (error) {
-        setToastMessage("Failed to delete configuration. Please try again.");
-        setToastType("error");
-        setToastVisible(true);
+        showNotification(
+          "Failed to delete configuration. Please try again.",
+          "error"
+        );
       }
     }
   };
@@ -125,9 +131,7 @@ const PTSAutomationConfigPage = () => {
   const handleFormSuccess = () => {
     handleModalClose();
     dispatch(fetchConfigurations());
-    setToastMessage("Configuration saved successfully");
-    setToastType("success");
-    setToastVisible(true);
+    showNotification("Configuration saved successfully", "success");
   };
 
   const navigateToPTSDeviceSettings = () => {
@@ -170,7 +174,6 @@ const PTSAutomationConfigPage = () => {
   return (
     <div className="content-block">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
-
         <div className="tw-flex tw-gap-3">
           <Button
             text="PTS Device Settings"
@@ -200,7 +203,11 @@ const PTSAutomationConfigPage = () => {
           className="tw-w-full"
           noDataText="No configurations found. Create a new configuration to get started."
         >
-          <StateStoring enabled={true} type="localStorage" storageKey="ptsAutomationConfigGrid" />
+          <StateStoring
+            enabled={true}
+            type="localStorage"
+            storageKey="ptsAutomationConfigGrid"
+          />
           <LoadPanel enabled={isLoading} />
           <Selection mode="single" />
           <Export enabled={true} />
@@ -208,7 +215,11 @@ const PTSAutomationConfigPage = () => {
           <ColumnFixing enabled={true} />
           <FilterRow visible={true} />
           <HeaderFilter visible={true} />
-          <SearchPanel visible={true} width={240} placeholder="Search configurations..." />
+          <SearchPanel
+            visible={true}
+            width={240}
+            placeholder="Search configurations..."
+          />
           <Paging defaultPageSize={10} pageSizes={[5, 10, 20, 50]} />
 
           <Toolbar>
@@ -224,7 +235,12 @@ const PTSAutomationConfigPage = () => {
             caption="Configuration Name"
             allowSorting={true}
           />
-          <Column dataField="siteId" caption="Site ID" width={100} allowSorting={true} />
+          <Column
+            dataField="siteId"
+            caption="Site ID"
+            width={100}
+            allowSorting={true}
+          />
           <Column
             dataField="isGlobal"
             caption="Global"
@@ -308,53 +324,44 @@ const PTSAutomationConfigPage = () => {
         </DataGrid>
       </div>
 
-      {/* Create/Edit Configuration Modal */}
+      {/* Create/Edit Configuration Modal - Always render, control via visible prop */}
       <Popup
         visible={showCreateModal || showEditModal}
         onHiding={handleModalClose}
         dragEnabled={false}
-        showCloseButton
-={false}
+        showCloseButton={false}
         showTitle={false}
         width="900px"
         height="90vh"
-        showCloseButton={false}
         className="pts-config-popup"
       >
-        <ConfigurationForm
-          configuration={selectedConfiguration}
-          onSuccess={handleFormSuccess}
-          onCancel={handleModalClose}
-        />
+        {(showCreateModal || showEditModal) && (
+          <ConfigurationForm
+            configuration={selectedConfiguration}
+            onSuccess={handleFormSuccess}
+            onCancel={handleModalClose}
+          />
+        )}
       </Popup>
 
-      {/* Effective Configuration Viewer Modal */}
+      {/* Effective Configuration Viewer Modal - Always render, control via visible prop */}
       <Popup
         visible={showEffectiveConfig}
         onHiding={handleModalClose}
         dragEnabled={false}
-        showCloseButton
-={true}
+        showCloseButton={true}
         showTitle={true}
         title="Effective Configuration for Site"
         width="600px"
         height="auto"
-        showCloseButton={true}
       >
-        <EffectiveConfigViewer
-          siteId={selectedSiteId}
-          onClose={handleModalClose}
-        />
+        {showEffectiveConfig && (
+          <EffectiveConfigViewer
+            siteId={selectedSiteId}
+            onClose={handleModalClose}
+          />
+        )}
       </Popup>
-
-      {/* Toast Notification */}
-      <Toast
-        visible={toastVisible}
-        message={toastMessage}
-        type={toastType}
-        onHiding={() => setToastVisible(false)}
-        displayTime={3000}
-      />
     </div>
   );
 };

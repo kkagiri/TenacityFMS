@@ -47,7 +47,9 @@ namespace FMS.Application.Features.Site.Queries
                     return FMSResponse<SiteDTO>.ValidationFailed(validationErrors);
                 }
 
-                var site = await _context.Sites.FindAsync(request.Id);
+                var site = await _context.Sites
+                    .Include(s => s.SiteAdministrator)
+                    .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
                 if (site == null)
                 {
                     return FMSResponse<SiteDTO>.Failed("Site not found");

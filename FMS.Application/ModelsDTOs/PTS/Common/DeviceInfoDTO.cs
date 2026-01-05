@@ -2,9 +2,11 @@ using FMS.Application.Features.PTS.Enum;
 
 namespace FMS.Application.Features.PTS.Common;
 
-public class DeviceInfoDTO {
+public class DeviceInfoDTO
+{
     public string PtsId { get; set; }
-    public string DeviceId => PtsId.ToString ();
+    public string? PtsName { get; set; }
+    public string DeviceId => PtsId.ToString();
     public string? IpAddress { get; set; }
     public int? PortNumber { get; set; }
     public bool IsAuthenticated { get; set; }

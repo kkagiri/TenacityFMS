@@ -116,8 +116,11 @@ const SplashScreen = ({
         )}
       </Animated.View>
 
-      {/* Version at bottom */}
-      <Text style={styles.version}>Version 1.0.0</Text>
+      {/* App Info at bottom */}
+      <View style={styles.appInfo}>
+        <Text style={styles.appVersion}>Hyoung FMS v1.0.1</Text>
+        <Text style={styles.copyright}>© 2026 Hyoung FMS</Text>
+      </View>
     </View>
   );
 };
@@ -212,9 +215,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  version: {
+  appInfo: {
     position: "absolute",
     bottom: 30,
+    alignItems: "center",
+  },
+  appVersion: {
+    fontSize: 14,
+    color: "#94a3b8",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  copyright: {
     fontSize: 12,
     color: "#475569",
   },

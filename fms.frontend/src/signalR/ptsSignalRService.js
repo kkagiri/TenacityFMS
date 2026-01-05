@@ -100,7 +100,9 @@ class PTSSignalRService {
     // This will automatically refresh the token if it's expired or about to expire
     const token = await ensureValidToken("PTS");
     if (!token) {
-      console.warn("[PTS SignalR] No valid auth token available - skipping connection (user not authenticated or token refresh failed)");
+      console.warn(
+        "[PTS SignalR] No valid auth token available - skipping connection (user not authenticated or token refresh failed)"
+      );
       this.state = ConnectionState.DISCONNECTED;
       return;
     }
@@ -398,7 +400,11 @@ class PTSSignalRService {
               payload: {
                 deviceId: data.deviceId || data.DeviceId,
                 // Backend sends 'status' (lowercase), not 'connectionStatus'
-                connectionStatus: data.connectionStatus || data.ConnectionStatus || data.status || data.Status,
+                connectionStatus:
+                  data.connectionStatus ||
+                  data.ConnectionStatus ||
+                  data.status ||
+                  data.Status,
                 connectionType: data.connectionType || data.ConnectionType,
                 lastActivity: data.lastActivity || data.LastActivity,
                 ipAddress: data.ipAddress || data.IpAddress,
@@ -441,6 +447,8 @@ class PTSSignalRService {
         deviceId: data?.deviceId,
         hasStatus: !!data?.status,
         statusKeys: data?.status ? Object.keys(data.status) : [],
+        hasFuelingContexts: !!data?.fuelingContexts,
+        fuelingContextsCount: data?.fuelingContexts?.length || 0,
         timestamp: new Date().toISOString(),
       });
 
@@ -454,6 +462,24 @@ class PTSSignalRService {
           console.log(
             "[PTS SignalR] ✓ Dispatched RECEIVE_UPLOAD_STATUS_UPDATE to Redux"
           );
+
+          // Enhanced: Dispatch fueling contexts if available
+          const fuelingContexts = data.fuelingContexts || data.FuelingContexts;
+          if (
+            fuelingContexts &&
+            Array.isArray(fuelingContexts) &&
+            fuelingContexts.length > 0
+          ) {
+            store.dispatch({
+              type: "UPDATE_FUELING_CONTEXTS",
+              payload: { deviceId: data.deviceId, fuelingContexts },
+            });
+            console.log(
+              "[PTS SignalR] ✓ Dispatched UPDATE_FUELING_CONTEXTS with",
+              fuelingContexts.length,
+              "contexts"
+            );
+          }
         }
       } else {
         console.warn("[PTS SignalR] ✗ Invalid UploadStatusUpdate data:", data);

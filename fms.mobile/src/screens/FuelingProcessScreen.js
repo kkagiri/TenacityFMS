@@ -41,6 +41,8 @@ import LoadingOverlay from "../components/common/LoadingOverlay";
 import { useDeviceData } from "../hooks/useDeviceData";
 import { pumpControlService } from "../services/pumpControlService";
 import FuelingUtils from "../utils/FuelingUtils";
+import fuelingValidationSettings from "../services/fuelingValidationSettings";
+import locationService from "../services/locationService";
 
 // Import Redux actions
 import {
@@ -65,8 +67,6 @@ import signalRService, {
   ConnectionState,
   HubPaths,
 } from "../services/signalRService";
-// Mock data kept for fallback/testing mode only
-import { generateMockPTSData } from "../utils/mockPTSData";
 
 // Storage key for persisting tank selection (per device)
 const TANK_STORAGE_KEY_PREFIX = "@fms_selected_tank_";
@@ -76,8 +76,25 @@ const FuelingProcessScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  // Get params with fallback for testing (use MOCK-PTS-001 if no ptsId provided)
-  const ptsId = route.params?.ptsId || "MOCK-PTS-001";
+  // Get params - ptsId is required for real device connection
+  const ptsId = route.params?.ptsId;
+
+  // Validate that ptsId was provided
+  useEffect(() => {
+    if (!ptsId) {
+      console.error(
+        "[FuelingProcess] ERROR: No ptsId provided in route params"
+      );
+      Toast.show({
+        type: "error",
+        text1: "Device Not Selected",
+        text2: "Please select a PTS device from the device list",
+        position: "bottom",
+        visibilityTime: 4000,
+      });
+      navigation.goBack();
+    }
+  }, [ptsId, navigation]);
   const siteId = route.params?.siteId || 1;
   const previousPumpStatuses = useRef({});
 
@@ -129,8 +146,9 @@ const FuelingProcessScreen = () => {
     return [];
   }, [filteredTanks, probeTanks]);
 
-  const isMockMode =
-    !isLiveDataEnabled && isMockDataLoaded && probeTanks?.length > 0;
+  // Check if data is still loading (no mock mode anymore - always use real data)
+  const isDataLoading =
+    deviceConnectionStatus === "connecting" && availableTanks.length === 0;
 
   // Local state - Enhanced for new flow
   // Steps: 'tank' -> 'pump' -> 'nozzle' -> 'mode' -> 'transfer'/'vehicle' -> 'volume'/'details'
@@ -169,8 +187,15 @@ const FuelingProcessScreen = () => {
   const [useMasterTag, setUseMasterTag] = useState(false);
   const [deviceConnectionStatus, setDeviceConnectionStatus] =
     useState("connecting");
-  const [isMockDataLoaded, setIsMockDataLoaded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // For refresh button state
+  const [fuelingRules, setFuelingRules] = useState(null); // Fueling rules from validation step
+
+  // Fueling validation settings
+  const [validationSettings, setValidationSettings] = useState({
+    fuelRulesCheckEnabled: true,
+    fuelCapacityValidationEnabled: true,
+    gpsFuelLevelCheckEnabled: true,
+  });
 
   // Debug logging - log on every render to trace state changes
   console.log("[FuelingProcess] RENDER - ptsId:", ptsId);
@@ -183,7 +208,10 @@ const FuelingProcessScreen = () => {
     "[FuelingProcess] RENDER - rawUploadStatus:",
     rawUploadStatus ? "exists" : "null"
   );
-  console.log("[FuelingProcess] RENDER - isMockDataLoaded:", isMockDataLoaded);
+  console.log(
+    "[FuelingProcess] RENDER - connectionStatus:",
+    deviceConnectionStatus
+  );
   console.log(
     "[FuelingProcess] RENDER - isLiveDataEnabled:",
     isLiveDataEnabled
@@ -239,9 +267,21 @@ const FuelingProcessScreen = () => {
     }
   }, [dispatch, ptsDevice?.site, siteId, ptsId]);
 
-  // Initialize data - fetch from real APIs with fallback to mock
+  // Initialize data - fetch from real APIs (no mock fallback)
   useEffect(() => {
     const initializeData = async () => {
+      // Load fueling validation settings
+      try {
+        const settings = await fuelingValidationSettings.loadSettings();
+        setValidationSettings(settings);
+        console.log("[FuelingProcess] Loaded validation settings:", settings);
+      } catch (error) {
+        console.warn(
+          "[FuelingProcess] Failed to load validation settings:",
+          error
+        );
+      }
+
       // Always fetch vehicle and site lists
       dispatch(fetchVehicleList());
       dispatch(fetchSiteList());
@@ -291,46 +331,42 @@ const FuelingProcessScreen = () => {
           visibilityTime: 2000,
         });
       } catch (error) {
-        console.warn(
-          "[FuelingProcess] Failed to connect to real PTS, using mock data:",
+        console.error(
+          "[FuelingProcess] Failed to connect to PTS device:",
           error.message
         );
 
-        // Fallback to mock data
-        if (ptsId) {
-          console.log(
-            "[FuelingProcess] Loading mock PTS data for ptsId:",
-            ptsId
-          );
-          const mockData = generateMockPTSData(ptsId);
-          console.log("[FuelingProcess] Mock Probes:", mockData.Probes);
+        // Show connection error - no mock data fallback in production
+        setDeviceConnectionStatus("disconnected");
+        dispatch(setLiveDataEnabled(false));
 
-          dispatch(
-            updateDeviceStatus({
-              deviceId: ptsId,
-              status: {
-                uploadStatus: mockData,
-                lastUpdated: Date.now(),
+        Toast.show({
+          type: "error",
+          text1: "Connection Failed",
+          text2: `Unable to connect to PTS device: ${error.message}`,
+          position: "bottom",
+          visibilityTime: 4000,
+        });
+
+        // Alert user with option to retry or go back
+        Alert.alert(
+          "Connection Error",
+          `Could not connect to PTS device "${ptsId}". Please ensure:\n\n• The device is powered on\n• Network connection is available\n• The server is running\n\nWould you like to retry?`,
+          [
+            {
+              text: "Go Back",
+              style: "cancel",
+              onPress: () => navigation.goBack(),
+            },
+            {
+              text: "Retry",
+              onPress: () => {
+                // Re-trigger the useEffect by updating a dependency
+                handleRefreshData();
               },
-            })
-          );
-          console.log(
-            "[FuelingProcess] DISPATCHED updateDeviceStatus for:",
-            ptsId
-          );
-
-          // Mark mock data as loaded
-          setIsMockDataLoaded(true);
-          dispatch(setLiveDataEnabled(false));
-          setDeviceConnectionStatus("connected");
-
-          Toast.show({
-            type: "info",
-            text1: "Mock Mode",
-            text2: "Using simulated PTS data for testing",
-            position: "bottom",
-          });
-        }
+            },
+          ]
+        );
       }
     };
 
@@ -533,6 +569,9 @@ const FuelingProcessScreen = () => {
           setSelectedVehicle(data.vehicle);
           setSelectedVehicleId(data.vehicle.vehicleId);
         }
+        if (data.rules) {
+          setFuelingRules(data.rules);
+        }
         setStep("volume");
         break;
       case "scan":
@@ -542,7 +581,7 @@ const FuelingProcessScreen = () => {
     }
   };
 
-  // Handle tank transfer submission - Real API with fallback to mock
+  // Handle tank transfer submission - calls real API
   const handleTransferConfirm = async () => {
     if (isAuthorizing) return;
 
@@ -566,61 +605,36 @@ const FuelingProcessScreen = () => {
         transferAuthData
       );
 
-      // Try real API call if live data is enabled
-      if (isLiveDataEnabled) {
-        try {
-          const result = await apiService.authorizeTankTransfer(
-            transferAuthData
-          );
+      // Call real API
+      const result = await apiService.authorizeTankTransfer(transferAuthData);
 
-          if (result.isSuccess) {
-            const transactionId =
-              result.data?.transactionId || result.data?.transaction;
-            setCurrentTransactionId(transactionId);
+      if (result.isSuccess) {
+        const transactionId =
+          result.data?.transactionId || result.data?.transaction;
+        setCurrentTransactionId(transactionId);
 
-            Toast.show({
-              type: "success",
-              text1: "Transfer Authorized",
-              text2: `Transaction ${transactionId} started`,
-              position: "bottom",
-            });
+        Toast.show({
+          type: "success",
+          text1: "Transfer Authorized",
+          text2: `Transaction ${transactionId} started`,
+          position: "bottom",
+        });
 
-            // Open transaction monitoring modal
-            setShowTransactionMonitoring(true);
-            return;
-          } else {
-            Alert.alert(
-              "Authorization Failed",
-              result.message || "Failed to authorize transfer"
-            );
-            return;
-          }
-        } catch (apiError) {
-          console.warn(
-            "[Mobile Fueling] API call failed, falling back to mock:",
-            apiError.message
-          );
-          // Continue to mock mode below
-        }
+        // Open transaction monitoring modal
+        setShowTransactionMonitoring(true);
+      } else {
+        Alert.alert(
+          "Authorization Failed",
+          result.message || "Failed to authorize transfer"
+        );
       }
-
-      // Fallback: Simulate success after a short delay (mock mode)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      Toast.show({
-        type: "info",
-        text1: "Transfer Simulated (Mock Mode)",
-        text2: `Would transfer ${transferVolume}L from ${
-          selectedTank?.name || selectedTank?.tankName || "Source Tank"
-        } to ${destinationTank?.tankName}`,
-        position: "bottom",
-      });
-
-      resetFuelingProcess();
-      navigation.goBack();
     } catch (error) {
       console.error("[Mobile Fueling] Transfer error:", error);
-      Alert.alert("Error", error.message || "Failed to process transfer");
+      Alert.alert(
+        "Transfer Error",
+        error.message ||
+          "Failed to process tank transfer. Please check your connection and try again."
+      );
     } finally {
       setIsAuthorizing(false);
     }
@@ -687,6 +701,24 @@ const FuelingProcessScreen = () => {
         FullTank: 2,
       };
 
+      // Get mobile device location for proximity validation
+      console.log(
+        "[Mobile Fueling] Getting device location for authorization..."
+      );
+      const deviceLocation = await locationService.getLocationForFueling();
+
+      if (!deviceLocation) {
+        // Location service already showed appropriate alert to user
+        console.warn(
+          "[Mobile Fueling] Could not get device location - proceeding without location"
+        );
+      } else {
+        console.log(
+          "[Mobile Fueling] Device location obtained:",
+          `lat=${deviceLocation.latitude}, lng=${deviceLocation.longitude}, accuracy=${deviceLocation.accuracy}m`
+        );
+      }
+
       // Prepare authorization request matching backend PumpAuthorizeCommand
       const authRequest = {
         deviceId: ptsId,
@@ -701,6 +733,10 @@ const FuelingProcessScreen = () => {
         tankId: selectedTank?.tankId || selectedTank?.id,
         tag: shouldUseMasterTag ? loggedInUser?.masterTag : tagId,
         odometer: odometer ? parseFloat(odometer) : null,
+        // Include mobile location for proximity validation (backend LocationValidationService)
+        mobileLocation: deviceLocation
+          ? locationService.formatForApi(deviceLocation)
+          : null,
       };
 
       console.log(
@@ -822,9 +858,8 @@ const FuelingProcessScreen = () => {
             }}
             onBack={() => navigation.goBack()}
             onRefresh={handleRefreshData}
-            isLoadingTanks={!isMockMode && availableTanks.length === 0}
+            isLoadingTanks={isDataLoading}
             isRefreshing={isRefreshing}
-            isMockData={isMockMode}
           />
         );
       case "pump":
@@ -835,7 +870,6 @@ const FuelingProcessScreen = () => {
             onPumpSelect={(pump) => handleStepNext("nozzle", { pump })}
             onRefresh={handleRefreshData}
             connectionStatus={deviceConnectionStatus}
-            isMockData={isMockMode}
             isRefreshing={isRefreshing}
             nozzleConfig={rawUploadStatus?.Pumps?.NozzleConfig || {}}
           />
@@ -890,9 +924,10 @@ const FuelingProcessScreen = () => {
         return (
           <VehicleSelectionStep
             selectedVehicle={selectedVehicle}
-            onSelectVehicle={(vehicle) => {
+            onSelectVehicle={(vehicle, rules) => {
               setSelectedVehicle(vehicle);
               setVehicleInfo(vehicle);
+              setFuelingRules(rules); // Store fueling rules from validation
             }}
             onScanRfid={handleScan}
             isScanning={isScanning}
@@ -900,6 +935,7 @@ const FuelingProcessScreen = () => {
               handleStepNext("volume", { vehicle: selectedVehicle })
             }
             onBack={handleStepBack}
+            enableFuelRulesCheck={validationSettings.fuelRulesCheckEnabled}
           />
         );
       case "volume":
@@ -920,6 +956,13 @@ const FuelingProcessScreen = () => {
             onNotesChange={setNotes}
             onNext={handleVehicleFuelingConfirm}
             onBack={handleStepBack}
+            enableFuelCapacityValidation={
+              validationSettings.fuelCapacityValidationEnabled
+            }
+            enableGPSFuelLevelCheck={
+              validationSettings.gpsFuelLevelCheckEnabled
+            }
+            fuelingRules={fuelingRules}
           />
         );
       case "scan":
@@ -932,11 +975,18 @@ const FuelingProcessScreen = () => {
             vehicles={vehicles}
             vehicleReg={vehicleReg}
             onScan={handleScan}
-            onVehicleSelect={handleVehicleSelect}
-            onNext={(data) => handleStepNext("details", data)}
+            onVehicleSelect={(vehicle, rules) => {
+              setSelectedVehicle(vehicle);
+              setVehicleInfo(vehicle);
+              setFuelingRules(rules); // Store fueling rules from ScanStep
+              handleStepNext("volume", { vehicle, rules });
+            }}
+            onNext={(data) => handleStepNext("volume", data)}
             onBack={handleStepBack}
             setSelectionMethod={setSelectionMethod}
             setVehicleReg={setVehicleReg}
+            isLoadingVehicles={isLoadingVehicles}
+            deviceId={ptsId}
           />
         );
       default:
@@ -944,16 +994,20 @@ const FuelingProcessScreen = () => {
     }
   };
 
-  // Handle tag scanning
+  // Handle tag scanning - now uses real RFID detection via ScanStep's deviceId prop
   const handleScan = async () => {
-    // Implementation for RFID/QR code scanning
+    // Start scanning state - actual tag detection is handled by ScanStep
+    // via useDeviceData hook which listens for real RFID tags from SignalR
     setIsScanning(true);
-    // This would integrate with camera/NFC scanning
-    // For now, simulate scan
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanResult("sample-tag-123");
-    }, 2000);
+    console.log(
+      "[FuelingProcess] Scan initiated - listening for RFID tags via deviceId:",
+      ptsId
+    );
+
+    // Note: We don't simulate tags anymore. ScanStep will:
+    // 1. Use deviceId to subscribe to real RFID tag detection from upload status
+    // 2. Call pumpControlService.getTagDetails() to validate detected tags
+    // 3. Auto-select vehicle when valid tag is detected
   };
 
   // Handle vehicle selection
@@ -1038,6 +1092,7 @@ const FuelingProcessScreen = () => {
           <FuelingHeader
             siteName={siteName()}
             deviceId={ptsId}
+            deviceName={ptsDevice?.ptsName}
             currentStep={step}
             connectionStatus={deviceConnectionStatus}
             deviceOnline={deviceConnectionStatus === "connected"}

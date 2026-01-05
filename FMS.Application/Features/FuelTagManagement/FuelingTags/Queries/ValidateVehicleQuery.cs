@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
+using FMS.Application.Features.FuelTagManagement.FuelingRules.Services;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.FuelRule;
-using FMS.Domain.Entities.Features.FuelRule.Rules;
+using FMS.Persistence.DataAccess;
 using MediatR;
-using FMS.Application.Features.Vehicle.DTOs;
-using FMS.Application.Features.Vehicle.Queries;
+using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
 {
@@ -18,6 +18,9 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
         public bool IsValid { get; set; }
         public string Message { get; set; }
         public VehicleFuelInfoDTO VehicleInfo { get; set; }
+
+        // Indicates if no rules are configured (admin needs to set them)
+        public bool HasNoRules { get; set; }
     }
 
     public class VehicleFuelInfoDTO
@@ -26,31 +29,67 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
         public string HyoungNo { get; set; }
         public string NumberPlate { get; set; } // Vehicle number plate
         public bool IsCompanyVehicle { get; set; } // Company vehicle flag
+
+        // Hard Limits (Physics-based)
+        public decimal TankCapacity { get; set; }
+        public decimal? CurrentFuelLevel { get; set; }  // From GPS sensor if available
+        public decimal HardLimit { get; set; }  // Tank capacity - current fuel (or just tank capacity if no sensor)
+        public bool HasGpsFuelSensor { get; set; }
+        public string HardLimitSource { get; set; }  // "GPS Sensor" or "Tank Capacity"
+
+        // Soft Limits (Rule-based)
         public decimal DailyUsed { get; set; }
         public decimal DailyLimit { get; set; }
         public decimal MonthlyUsed { get; set; }
         public decimal MonthlyLimit { get; set; }
-        public decimal DailyRemaining => DailyLimit - DailyUsed;
-        public decimal MonthlyRemaining => MonthlyLimit - MonthlyUsed;
-        public decimal MaxAllowedDose => Math.Min(DailyRemaining, MonthlyRemaining);
+        public decimal? PerTransactionLimit { get; set; }
+
+        // Calculated values
+        public decimal DailyRemaining => DailyLimit > 0 ? Math.Max(0, DailyLimit - DailyUsed) : 0;
+        public decimal MonthlyRemaining => MonthlyLimit > 0 ? Math.Max(0, MonthlyLimit - MonthlyUsed) : 0;
+
+        // Maximum allowed dose considering all limits
+        public decimal MaxAllowedDose { get; set; }
+        public string LimitingFactor { get; set; }  // What's limiting the dose ("DailyLimit", "MonthlyLimit", "HardLimit", etc.)
+
+        // Time window rules
+        public bool IsWithinTimeWindow { get; set; } = true;
+        public string TimeWindowStart { get; set; }
+        public string TimeWindowEnd { get; set; }
+
+        // Refill count rules
+        public int RefillsToday { get; set; }
+        public int? MaxRefillsPerDay { get; set; }
+        public int? RefillsRemaining => MaxRefillsPerDay.HasValue ? Math.Max(0, MaxRefillsPerDay.Value - RefillsToday) : null;
     }
 
-    public record ValidateVehicleQuery(int VehicleId, double? RequestedDose = null) : IRequest<VehicleValidationResultDTO>;
+    public record ValidateVehicleQuery(int VehicleId, int SiteId, double? RequestedDose = null) : IRequest<VehicleValidationResultDTO>;
 
     public class ValidateVehicleQueryHandler : IRequestHandler<ValidateVehicleQuery, VehicleValidationResultDTO>
     {
         private readonly IMediator _mediator;
+        private readonly IFuelingRuleEvaluationService _ruleEvaluationService;
+        private readonly GpsdataContext _context;
 
-        public ValidateVehicleQueryHandler(IMediator mediator)
+        public ValidateVehicleQueryHandler(
+            IMediator mediator,
+            IFuelingRuleEvaluationService ruleEvaluationService,
+            GpsdataContext context)
         {
             _mediator = mediator;
+            _ruleEvaluationService = ruleEvaluationService;
+            _context = context;
         }
 
         public async Task<VehicleValidationResultDTO> Handle(ValidateVehicleQuery request, CancellationToken cancellationToken)
         {
             try
             {
-                var vehicle = await _mediator.Send(new GetVehicleByIDQuery(request.VehicleId), cancellationToken);
+                // Get vehicle with related data
+                var vehicle = await _context.Vehicles
+                    .Include(v => v.VehicleType)
+                    .FirstOrDefaultAsync(v => v.VehicleId == request.VehicleId, cancellationToken);
+
                 if (vehicle == null)
                 {
                     return new VehicleValidationResultDTO
@@ -61,120 +100,93 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
                     };
                 }
 
-                // Check fuel limits by fetching rules associated with the vehicle
-                var currentDate = DateTime.UtcNow;
-                var dailyFuelIssued = await _mediator.Send(new GetDailyFuelIssuedForVehicleQuery(request.VehicleId, currentDate), cancellationToken);
-                var monthlyFuelIssued = await _mediator.Send(new GetMonthlyFuelIssuedForVehicleQuery(request.VehicleId, currentDate), cancellationToken);
-
-                // Fetch fuel rules for the vehicle
-                var fuelRules = await _mediator.Send(new GetFuelRulesForVehicleQuery(request.VehicleId), cancellationToken);
-
-                //Cursor: Vehicle MUST have fuel rules to be allowed to fuel - administrator must set rules first
-                if (fuelRules == null || !fuelRules.Any())
+                // Build FuelingContext for rule evaluation
+                var fuelingContext = new FuelingContext
                 {
-                    return new VehicleValidationResultDTO
-                    {
-                        IsValid = false,
-                        Message = "Vehicle has no fuel rules configured. Administrator must set fuel rules before vehicle can be used for fueling.",
-                        VehicleInfo = new VehicleFuelInfoDTO
-                        {
-                            VehicleId = vehicle.VehicleId,
-                            HyoungNo = vehicle.HyoungNo,
-                            NumberPlate = vehicle.NumberPlate,
-                            IsCompanyVehicle = vehicle.IsCompanyVehicle ?? false,
-                            DailyUsed = dailyFuelIssued,
-                            DailyLimit = 0,
-                            MonthlyUsed = monthlyFuelIssued,
-                            MonthlyLimit = 0
-                        }
-                    };
-                }
+                    VehicleId = vehicle.VehicleId,
+                    Vehicle = vehicle,
+                    VehicleTypeId = vehicle.VehicleTypeId,
+                    SiteId = request.SiteId,
+                    TankCapacity = vehicle.FuelTankCapacity ?? 0,
+                    CurrentFuelLevel = null, // No GPS fuel level data available on Vehicle entity
+                    HasFuelSensor = false, // Default to false since Vehicle doesn't track this
+                    FuelLevelTimestamp = null
+                };
 
-                //Cursor: Get actual limits from fuel rules (no default values)
-                decimal? dailyLimit = null;
-                decimal? monthlyLimit = null;
+                // Calculate fuel allowance using the evaluation service
+                var allowanceResult = await _ruleEvaluationService.CalculateFuelAllowanceAsync(fuelingContext, cancellationToken);
 
-                var dailyMonthlyRule = fuelRules?.OfType<DailyMonthlyLimitRule>().FirstOrDefault();
-                if (dailyMonthlyRule != null)
-                {
-                    dailyLimit = dailyMonthlyRule.DailyLimitLiter;
-                    monthlyLimit = dailyMonthlyRule.MonthlyLimitLiter;
-                }
-
-                //Cursor: Vehicle must have at least one limit configured
-                if (!dailyLimit.HasValue && !monthlyLimit.HasValue)
-                {
-                    return new VehicleValidationResultDTO
-                    {
-                        IsValid = false,
-                        Message = "Vehicle fuel rules are configured but no daily or monthly limits are set. Administrator must configure proper limits.",
-                        VehicleInfo = new VehicleFuelInfoDTO
-                        {
-                            VehicleId = vehicle.VehicleId,
-                            HyoungNo = vehicle.HyoungNo,
-                            NumberPlate = vehicle.NumberPlate,
-                            IsCompanyVehicle = vehicle.IsCompanyVehicle ?? false,
-                            DailyUsed = dailyFuelIssued,
-                            DailyLimit = 0,
-                            MonthlyUsed = monthlyFuelIssued,
-                            MonthlyLimit = 0
-                        }
-                    };
-                }
-
-                //Cursor: Use configured limits or max value if not set
-                var effectiveDailyLimit = dailyLimit ?? decimal.MaxValue;
-                var effectiveMonthlyLimit = monthlyLimit ?? decimal.MaxValue;
-
-                bool isDailyLimitExceeded = dailyFuelIssued >= effectiveDailyLimit;
-                bool isMonthlyLimitExceeded = monthlyFuelIssued >= effectiveMonthlyLimit;
-
+                // Build the VehicleFuelInfoDTO with all details
                 var vehicleFuelInfo = new VehicleFuelInfoDTO
                 {
                     VehicleId = vehicle.VehicleId,
                     HyoungNo = vehicle.HyoungNo,
                     NumberPlate = vehicle.NumberPlate,
-                    IsCompanyVehicle = vehicle.IsCompanyVehicle ?? false,
-                    DailyUsed = dailyFuelIssued,
-                    DailyLimit = effectiveDailyLimit,
-                    MonthlyUsed = monthlyFuelIssued,
-                    MonthlyLimit = effectiveMonthlyLimit
+                    IsCompanyVehicle = vehicle.IsCompanyVehicle.HasValue && vehicle.IsCompanyVehicle.Value == 1,
+
+                    // Hard limits
+                    TankCapacity = allowanceResult.TankCapacity,
+                    CurrentFuelLevel = allowanceResult.CurrentFuelInTank,
+                    HardLimit = allowanceResult.HardLimit,
+                    HasGpsFuelSensor = fuelingContext.HasFuelSensor,
+                    HardLimitSource = allowanceResult.HardLimitSource,
+
+                    // Soft limits
+                    DailyUsed = allowanceResult.FuelUsedToday,
+                    DailyLimit = allowanceResult.DailyLimit ?? decimal.MaxValue,
+                    MonthlyUsed = allowanceResult.FuelUsedThisMonth,
+                    MonthlyLimit = allowanceResult.MonthlyLimit ?? decimal.MaxValue,
+                    PerTransactionLimit = allowanceResult.PerTransactionLimit,
+
+                    // Other limits
+                    MaxAllowedDose = allowanceResult.MaxFuelAllowed,
+                    LimitingFactor = allowanceResult.LimitingFactor ?? "None",
+
+                    // Time window
+                    IsWithinTimeWindow = allowanceResult.IsWithinTimeWindow,
+                    TimeWindowStart = allowanceResult.TimeWindowStart?.ToString(@"hh\:mm"),
+                    TimeWindowEnd = allowanceResult.TimeWindowEnd?.ToString(@"hh\:mm"),
+
+                    // Refill counts
+                    RefillsToday = allowanceResult.RefillsToday,
+                    MaxRefillsPerDay = allowanceResult.MaxRefillsPerDay
                 };
 
-                if (isDailyLimitExceeded)
+                // Check if vehicle has no rules configured
+                bool hasNoRules = allowanceResult.AppliedRuleSets == null || !allowanceResult.AppliedRuleSets.Any();
+
+                if (hasNoRules)
                 {
                     return new VehicleValidationResultDTO
                     {
                         IsValid = false,
-                        Message = $"Daily fuel limit exceeded. Used: {dailyFuelIssued:F2}L, Limit: {effectiveDailyLimit:F2}L",
+                        HasNoRules = true,
+                        Message = "No fuel rules configured for this vehicle. Please contact administrator.",
                         VehicleInfo = vehicleFuelInfo
                     };
                 }
 
-                if (isMonthlyLimitExceeded)
+                // Check if fueling is allowed
+                if (!allowanceResult.IsAllowed)
                 {
                     return new VehicleValidationResultDTO
                     {
                         IsValid = false,
-                        Message = $"Monthly fuel limit exceeded. Used: {monthlyFuelIssued:F2}L, Limit: {effectiveMonthlyLimit:F2}L",
+                        Message = allowanceResult.BlockedReason ?? "Fueling not allowed at this time.",
                         VehicleInfo = vehicleFuelInfo
                     };
                 }
 
-                //Cursor: Check if requested dose would exceed remaining limits
+                // Check if requested dose would exceed limits
                 if (request.RequestedDose.HasValue && request.RequestedDose.Value > 0)
                 {
                     var requestedDose = (decimal)request.RequestedDose.Value;
-                    var dailyRemaining = effectiveDailyLimit - dailyFuelIssued;
-                    var monthlyRemaining = effectiveMonthlyLimit - monthlyFuelIssued;
-                    var maxAllowedDose = Math.Min(dailyRemaining, monthlyRemaining);
-
-                    if (requestedDose > maxAllowedDose)
+                    if (requestedDose > allowanceResult.MaxFuelAllowed)
                     {
                         return new VehicleValidationResultDTO
                         {
                             IsValid = false,
-                            Message = $"Requested dose ({requestedDose:F2}L) exceeds remaining limit. Maximum allowed: {maxAllowedDose:F2}L (Daily remaining: {dailyRemaining:F2}L, Monthly remaining: {monthlyRemaining:F2}L)",
+                            Message = $"Requested dose ({requestedDose:F2}L) exceeds maximum allowed ({allowanceResult.MaxFuelAllowed:F2}L). Limiting factor: {allowanceResult.LimitingFactor}",
                             VehicleInfo = vehicleFuelInfo
                         };
                     }
@@ -184,17 +196,16 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
                 return new VehicleValidationResultDTO
                 {
                     IsValid = true,
-                    Message = "Vehicle is valid.",
+                    Message = $"Vehicle valid. Maximum allowed: {allowanceResult.MaxFuelAllowed:F2}L",
                     VehicleInfo = vehicleFuelInfo
                 };
             }
             catch (Exception ex)
             {
-                // Consider more specific exception handling
                 return new VehicleValidationResultDTO
                 {
                     IsValid = false,
-                    Message = $"An error occurred during validation: {ex.Message}",
+                    Message = $"Validation error: {ex.Message}",
                     VehicleInfo = null
                 };
             }

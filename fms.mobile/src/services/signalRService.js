@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "../redux/store";
 import {
   updateDeviceStatus,
+  updateFuelingContexts,
   updateConnectionStatus as updateFuelingConnectionStatus,
   updateTransactionProgress,
 } from "../redux/slices/fuelingSlice";
@@ -733,6 +734,27 @@ class SignalRService {
           },
         })
       );
+
+      // Enhanced: Dispatch fueling contexts if available
+      const fuelingContexts = data.fuelingContexts || data.FuelingContexts;
+      if (
+        fuelingContexts &&
+        Array.isArray(fuelingContexts) &&
+        fuelingContexts.length > 0
+      ) {
+        console.log(
+          "[SignalR Mobile] FuelingContexts received:",
+          fuelingContexts.length,
+          "contexts for device:",
+          deviceId
+        );
+        store.dispatch(
+          updateFuelingContexts({
+            deviceId,
+            fuelingContexts,
+          })
+        );
+      }
 
       // Notify custom handlers
       this._notifyHandlers("UploadStatusUpdate", data);

@@ -48,6 +48,10 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
     isActive: true,
     createdBy: "System",
     description: "",
+    // Mobile Fueling Validation Settings
+    enableFuelRulesCheck: true,
+    enableFuelCapacityValidation: true,
+    enableGPSFuelLevelCheck: true,
   });
 
   useEffect(() => {
@@ -56,20 +60,33 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
         name: configuration.name || "",
         siteId: configuration.siteId || null,
         isGlobal: configuration.isGlobal || false,
-        autoCreateLedgerEntries: configuration.autoCreateLedgerEntries !== false,
-        checkForDuplicateManualEntries: configuration.checkForDuplicateManualEntries !== false,
+        autoCreateLedgerEntries:
+          configuration.autoCreateLedgerEntries !== false,
+        checkForDuplicateManualEntries:
+          configuration.checkForDuplicateManualEntries !== false,
         duplicateCheckHours: configuration.duplicateCheckHours || 24,
-        updateTankVolumeFromBookKeeping: configuration.updateTankVolumeFromBookKeeping !== false,
+        updateTankVolumeFromBookKeeping:
+          configuration.updateTankVolumeFromBookKeeping !== false,
         usePtsProbeReadings: configuration.usePtsProbeReadings || false,
         volumeSourcePriority: configuration.volumeSourcePriority || 1,
-        duplicateVolumeTolerance: configuration.duplicateVolumeTolerance || 0.01,
-        autoReconcileTankVolumes: configuration.autoReconcileTankVolumes || false,
-        reconciliationFrequencyMinutes: configuration.reconciliationFrequencyMinutes || 60,
-        maxVolumeDiscrepancyThreshold: configuration.maxVolumeDiscrepancyThreshold || 10.0,
+        duplicateVolumeTolerance:
+          configuration.duplicateVolumeTolerance || 0.01,
+        autoReconcileTankVolumes:
+          configuration.autoReconcileTankVolumes || false,
+        reconciliationFrequencyMinutes:
+          configuration.reconciliationFrequencyMinutes || 60,
+        maxVolumeDiscrepancyThreshold:
+          configuration.maxVolumeDiscrepancyThreshold || 10.0,
         discrepancyAction: configuration.discrepancyAction || 1,
         isActive: configuration.isActive !== false,
         createdBy: configuration.createdBy || "System",
         description: configuration.description || "",
+        // Mobile Fueling Validation Settings
+        enableFuelRulesCheck: configuration.enableFuelRulesCheck !== false,
+        enableFuelCapacityValidation:
+          configuration.enableFuelCapacityValidation !== false,
+        enableGPSFuelLevelCheck:
+          configuration.enableGPSFuelLevelCheck !== false,
       });
     }
   }, [configuration]);
@@ -89,7 +106,11 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
     }
 
     if (formData.isGlobal && formData.siteId) {
-      notify("Global configurations cannot have a specific site", "error", 3000);
+      notify(
+        "Global configurations cannot have a specific site",
+        "error",
+        3000
+      );
       return;
     }
 
@@ -106,7 +127,9 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
       }
 
       notify(
-        `Configuration ${configuration?.id ? "updated" : "created"} successfully`,
+        `Configuration ${
+          configuration?.id ? "updated" : "created"
+        } successfully`,
         "success",
         3000
       );
@@ -114,7 +137,9 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
     } catch (error) {
       console.error("Error saving configuration:", error);
       notify(
-        `Error ${configuration?.id ? "updating" : "creating"} configuration: ${error.message}`,
+        `Error ${configuration?.id ? "updating" : "creating"} configuration: ${
+          error.message
+        }`,
         "error",
         3000
       );
@@ -142,7 +167,9 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
       <div className="tw-flex-shrink-0 tw-p-4 tw-border-b tw-border-gray-200 tw-bg-gray-50">
         <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
           <i className="fa-light fa-cog tw-mr-2 tw-text-blue-600"></i>
-          {configuration?.id ? "Edit Configuration" : "Create New Configuration"}
+          {configuration?.id
+            ? "Edit Configuration"
+            : "Create New Configuration"}
         </h3>
         <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
           Configure PTS automation settings for your site or globally
@@ -178,7 +205,8 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         placeholder: "Enter configuration name",
                         stylingMode: "filled",
-                        onValueChanged: (e) => handleFieldChange("name", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("name", e.value),
                       }}
                     >
                       <Label text="Configuration Name" />
@@ -189,10 +217,12 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       dataField="description"
                       editorType="dxTextArea"
                       editorOptions={{
-                        placeholder: "Enter configuration description (optional)",
+                        placeholder:
+                          "Enter configuration description (optional)",
                         stylingMode: "filled",
                         height: 80,
-                        onValueChanged: (e) => handleFieldChange("description", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("description", e.value),
                       }}
                     >
                       <Label text="Description" />
@@ -231,7 +261,8 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                         placeholder: "Select a site",
                         stylingMode: "filled",
                         disabled: formData.isGlobal,
-                        onValueChanged: (e) => handleFieldChange("siteId", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("siteId", e.value),
                       }}
                     >
                       <Label text="Site" />
@@ -256,7 +287,8 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         text: "Auto Create Ledger Entries",
                         hint: "Automatically create tank volume history entries for pump transactions",
-                        onValueChanged: (e) => handleFieldChange("autoCreateLedgerEntries", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("autoCreateLedgerEntries", e.value),
                       }}
                     />
 
@@ -266,7 +298,11 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         text: "Check for Duplicate Manual Entries",
                         hint: "Check if manual entries already exist before processing pump transactions",
-                        onValueChanged: (e) => handleFieldChange("checkForDuplicateManualEntries", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "checkForDuplicateManualEntries",
+                            e.value
+                          ),
                       }}
                     />
 
@@ -281,12 +317,17 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                         step: 1,
                         showSpinButtons: true,
                         disabled: !formData.checkForDuplicateManualEntries,
-                        onValueChanged: (e) => handleFieldChange("duplicateCheckHours", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("duplicateCheckHours", e.value),
                       }}
                     >
                       <Label text="Duplicate Check Hours" />
                       <NumericRule message="Must be a valid number" />
-                      <RangeRule min={1} max={168} message="Must be between 1 and 168 hours" />
+                      <RangeRule
+                        min={1}
+                        max={168}
+                        message="Must be between 1 and 168 hours"
+                      />
                     </SimpleItem>
 
                     <SimpleItem
@@ -301,12 +342,20 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                         format: "percent",
                         showSpinButtons: true,
                         disabled: !formData.checkForDuplicateManualEntries,
-                        onValueChanged: (e) => handleFieldChange("duplicateVolumeTolerance", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "duplicateVolumeTolerance",
+                            e.value
+                          ),
                       }}
                     >
                       <Label text="Duplicate Volume Tolerance (%)" />
                       <NumericRule message="Must be a valid number" />
-                      <RangeRule min={0} max={1} message="Must be between 0% and 100%" />
+                      <RangeRule
+                        min={0}
+                        max={1}
+                        message="Must be between 0% and 100%"
+                      />
                     </SimpleItem>
                   </GroupItem>
                 </div>
@@ -328,7 +377,11 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         text: "Update Tank Volume from Book Keeping",
                         hint: "Update tank current volume from ledger/book keeping records",
-                        onValueChanged: (e) => handleFieldChange("updateTankVolumeFromBookKeeping", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "updateTankVolumeFromBookKeeping",
+                            e.value
+                          ),
                       }}
                     />
 
@@ -338,7 +391,8 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         text: "Use PTS Probe Readings",
                         hint: "Use PTS probe readings for tank volume measurements",
-                        onValueChanged: (e) => handleFieldChange("usePtsProbeReadings", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("usePtsProbeReadings", e.value),
                       }}
                     />
 
@@ -348,13 +402,16 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         dataSource: [
                           { id: 1, name: "Book Keeping Priority" },
-                          { id: 2, name: "PTS Probe Priority" }
+                          { id: 2, name: "PTS Probe Priority" },
                         ],
                         displayExpr: "name",
                         valueExpr: "id",
                         stylingMode: "filled",
-                        disabled: !formData.updateTankVolumeFromBookKeeping && !formData.usePtsProbeReadings,
-                        onValueChanged: (e) => handleFieldChange("volumeSourcePriority", e.value),
+                        disabled:
+                          !formData.updateTankVolumeFromBookKeeping &&
+                          !formData.usePtsProbeReadings,
+                        onValueChanged: (e) =>
+                          handleFieldChange("volumeSourcePriority", e.value),
                       }}
                     >
                       <Label text="Volume Source Priority" />
@@ -379,7 +436,11 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         text: "Auto Reconcile Tank Volumes",
                         hint: "Automatically reconcile tank volumes between different sources",
-                        onValueChanged: (e) => handleFieldChange("autoReconcileTankVolumes", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "autoReconcileTankVolumes",
+                            e.value
+                          ),
                       }}
                     />
 
@@ -394,12 +455,20 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                         step: 1,
                         showSpinButtons: true,
                         disabled: !formData.autoReconcileTankVolumes,
-                        onValueChanged: (e) => handleFieldChange("reconciliationFrequencyMinutes", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "reconciliationFrequencyMinutes",
+                            e.value
+                          ),
                       }}
                     >
                       <Label text="Reconciliation Frequency (minutes)" />
                       <NumericRule message="Must be a valid number" />
-                      <RangeRule min={1} max={1440} message="Must be between 1 and 1440 minutes" />
+                      <RangeRule
+                        min={1}
+                        max={1440}
+                        message="Must be between 1 and 1440 minutes"
+                      />
                     </SimpleItem>
 
                     <SimpleItem
@@ -412,7 +481,11 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                         step: 0.1,
                         showSpinButtons: true,
                         disabled: !formData.autoReconcileTankVolumes,
-                        onValueChanged: (e) => handleFieldChange("maxVolumeDiscrepancyThreshold", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "maxVolumeDiscrepancyThreshold",
+                            e.value
+                          ),
                       }}
                     >
                       <Label text="Max Volume Discrepancy Threshold" />
@@ -426,17 +499,70 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                         dataSource: [
                           { id: 1, name: "Alert Only" },
                           { id: 2, name: "Block Operations" },
-                          { id: 3, name: "Auto-Adjust" }
+                          { id: 3, name: "Auto-Adjust" },
                         ],
                         displayExpr: "name",
                         valueExpr: "id",
                         stylingMode: "filled",
                         disabled: !formData.autoReconcileTankVolumes,
-                        onValueChanged: (e) => handleFieldChange("discrepancyAction", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("discrepancyAction", e.value),
                       }}
                     >
                       <Label text="Discrepancy Action" />
                     </SimpleItem>
+                  </GroupItem>
+                </div>
+              </div>
+
+              {/* Mobile Fueling Validation Section */}
+              <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200">
+                <div className="tw-bg-indigo-50 tw-px-4 tw-py-3 tw-border-b tw-border-indigo-100 tw-rounded-t-lg">
+                  <h4 className="tw-text-md tw-font-semibold tw-text-indigo-800 tw-flex tw-items-center">
+                    <i className="fa-light fa-mobile-screen tw-mr-2"></i>
+                    Mobile Fueling Validation
+                  </h4>
+                  <p className="tw-text-xs tw-text-indigo-600 tw-mt-1">
+                    Configure validation settings for mobile fueling app
+                  </p>
+                </div>
+                <div className="tw-p-4 tw-space-y-4">
+                  <GroupItem>
+                    <SimpleItem
+                      dataField="enableFuelRulesCheck"
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: "Enable Fuel Rules Check",
+                        hint: "Warn mobile users if no fueling rules are assigned to the selected vehicle",
+                        onValueChanged: (e) =>
+                          handleFieldChange("enableFuelRulesCheck", e.value),
+                      }}
+                    />
+
+                    <SimpleItem
+                      dataField="enableFuelCapacityValidation"
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: "Enable Fuel Capacity Validation",
+                        hint: "Prevent issuing more fuel than the vehicle tank can hold",
+                        onValueChanged: (e) =>
+                          handleFieldChange(
+                            "enableFuelCapacityValidation",
+                            e.value
+                          ),
+                      }}
+                    />
+
+                    <SimpleItem
+                      dataField="enableGPSFuelLevelCheck"
+                      editorType="dxCheckBox"
+                      editorOptions={{
+                        text: "Enable GPS Fuel Level Check",
+                        hint: "Use GPS-based fuel level readings to determine available tank space",
+                        onValueChanged: (e) =>
+                          handleFieldChange("enableGPSFuelLevelCheck", e.value),
+                      }}
+                    />
                   </GroupItem>
                 </div>
               </div>
@@ -457,7 +583,8 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
                       editorOptions={{
                         text: "Active Configuration",
                         hint: "Only active configurations are used by the system",
-                        onValueChanged: (e) => handleFieldChange("isActive", e.value),
+                        onValueChanged: (e) =>
+                          handleFieldChange("isActive", e.value),
                       }}
                     />
                   </GroupItem>
@@ -480,7 +607,11 @@ const ConfigurationForm = ({ configuration, onSuccess, onCancel }) => {
             icon="fa-light fa-times"
           />
           <Button
-            text={configuration?.id ? "Update Configuration" : "Create Configuration"}
+            text={
+              configuration?.id
+                ? "Update Configuration"
+                : "Create Configuration"
+            }
             type="success"
             onClick={handleSubmit}
             disabled={saving}

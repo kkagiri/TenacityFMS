@@ -2,23 +2,23 @@
 
 buildscript {
     ext {
-        buildToolsVersion = "33.0.0"
+        buildToolsVersion = "34.0.0"
         minSdkVersion = 21
-        compileSdkVersion = 33
-        targetSdkVersion = 33
+        compileSdkVersion = 34
+        targetSdkVersion = 34
 
         // We use NDK 23 which has both M1 support and is the side-by-side NDK version from AGP.
         ndkVersion = "23.1.7779620"
 
         // Kotlin JVM target for consistency
-        kotlinJvmTarget = "11"
+        kotlinJvmTarget = "17"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle")
+        classpath("com.android.tools.build:gradle:8.1.1")
         classpath("com.facebook.react:react-native-gradle-plugin")
     }
 }
@@ -36,14 +36,31 @@ subprojects {
                     force 'androidx.annotation:annotation-experimental:1.3.0'
                 }
             }
+
+            // Set namespace for libraries that don't have it (required for AGP 8+)
+            if (!project.android.namespace) {
+                def manifestFile = file("${project.projectDir}/src/main/AndroidManifest.xml")
+                if (manifestFile.exists()) {
+                    def manifest = new XmlSlurper().parse(manifestFile)
+                    def packageName = manifest.@package.toString()
+                    if (packageName) {
+                        project.android.namespace = packageName
+                    }
+                }
+            }
+
+            // Enable buildConfig for libraries that need it
+            if (project.android.hasProperty('buildFeatures')) {
+                project.android.buildFeatures.buildConfig = true
+            }
         }
 
         // Align Kotlin JVM target if Kotlin plugin is applied
         if (project.plugins.hasPlugin('kotlin-android') || project.plugins.hasPlugin('org.jetbrains.kotlin.android')) {
             project.android {
                 compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_11
-                    targetCompatibility JavaVersion.VERSION_11
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
                 }
                 kotlinOptions {
                     jvmTarget = rootProject.ext.kotlinJvmTarget

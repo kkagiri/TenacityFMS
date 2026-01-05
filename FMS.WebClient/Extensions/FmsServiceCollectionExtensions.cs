@@ -64,6 +64,7 @@ using FMS.BackgroundServices.VehicleDocumentNotifier;
 using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Services.Logging;
+using FMS.Application.Features.LocationValidation.Extensions;
 
 namespace FMS.WebClient.Extensions;
 
@@ -438,6 +439,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IDeviceCommunicationService, DeviceCommunicationService>();
         services.AddScoped<IDeviceValidator, DeviceValidator>();
 
+        // Location Validation Services (for proximity-based fueling validation)
+        services.AddLocationValidationServices();
+
         // Communication & Tracking Services
         services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
         services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
@@ -501,6 +505,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditTankStockService, FMS.Application.Features.FuelAudit.Services.FuelAuditTankStockService>();
         services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditCalculationService, FMS.Application.Features.FuelAudit.Services.FuelAuditCalculationService>();
         services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFullTankEstimationService, FMS.Application.Features.FuelAudit.Services.FullTankEstimationService>();
+
+        // Fueling Rules Services
+        services.AddScoped<FMS.Application.Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService, FMS.Application.Features.FuelTagManagement.FuelingRules.Services.FuelingRuleEvaluationService>();
 
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();

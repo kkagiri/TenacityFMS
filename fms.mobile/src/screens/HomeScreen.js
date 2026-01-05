@@ -385,7 +385,10 @@ const HomeScreen = ({ navigation }) => {
                   onPress={() =>
                     navigation.navigate("FuelingProcess", {
                       ptsId: device.ptsid,
-                      deviceName: device.name || `Device ${device.ptsid}`,
+                      deviceName:
+                        device.ptsName ||
+                        device.name ||
+                        `Device ${device.ptsid}`,
                     })
                   }
                 >
@@ -399,7 +402,7 @@ const HomeScreen = ({ navigation }) => {
                   />
                   <View style={styles.deviceInfo}>
                     <Text style={styles.deviceName}>
-                      {device.name || `PTS ${device.ptsid}`}
+                      {device.ptsName || device.name || `PTS ${device.ptsid}`}
                     </Text>
                     <Text style={styles.deviceSubtext}>
                       {online ? "Online" : "Offline"} • {device.pumpCount || 0}{" "}
