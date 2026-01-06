@@ -14,6 +14,13 @@
     <None Remove="Consumers\**" />
   </ItemGroup>
 
+  <!-- Ensure appsettings files are copied to output -->
+  <ItemGroup>
+    <Content Update="appsettings*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="automapper" Version="13.0.1" />
     <PackageReference Include="MediatR" Version="12.5.0" />
