@@ -88,8 +88,8 @@ android {
         applicationId "com.fmsmobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 102
+        versionName "1.0.2"
 
         // Fix for react-native-camera flavor selection
         missingDimensionStrategy 'react-native-camera', 'general'

@@ -78,6 +78,16 @@ class PumpControlService {
       const response = await this.api.post("/v1/Pump/authorize", authRequest);
       return response.data;
     } catch (error) {
+      // Preserve validation errors from API response
+      const responseData = error.response?.data;
+      if (responseData?.validationErrors?.length > 0) {
+        const validationError = new Error(
+          responseData.validationErrors.join("\n")
+        );
+        validationError.validationErrors = responseData.validationErrors;
+        validationError.isValidationError = true;
+        throw validationError;
+      }
       throw new Error(`Failed to authorize pump: ${error.message}`);
     }
   }
@@ -144,6 +154,16 @@ class PumpControlService {
       );
       return response.data;
     } catch (error) {
+      // Preserve validation errors from API response
+      const responseData = error.response?.data;
+      if (responseData?.validationErrors?.length > 0) {
+        const validationError = new Error(
+          responseData.validationErrors.join("\n")
+        );
+        validationError.validationErrors = responseData.validationErrors;
+        validationError.isValidationError = true;
+        throw validationError;
+      }
       throw new Error(`Failed to authorize tank transfer: ${error.message}`);
     }
   }

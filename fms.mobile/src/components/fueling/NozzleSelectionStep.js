@@ -18,8 +18,88 @@ const NozzleSelectionStep = ({
   onBack,
   isRefreshing = false,
 }) => {
+  // Get nozzle status based on pump state
+  // nozzleUp from pump indicates which nozzle is currently lifted (0 = none)
+  const getNozzleStatus = (nozzleId) => {
+    // Check if nozzle is from status data
+    const nozzle = nozzles.find((n) => n.id === nozzleId);
+    if (nozzle?.status === "busy") return "busy";
+    if (nozzle?.status === "offline") return "offline";
+
+    // Check if this nozzle is lifted based on pump's nozzleUp value
+    if (pump?.nozzleUp === nozzleId) return "lifted";
+
+    // Check pump status to determine nozzle state
+    if (pump?.status === "offline") return "offline";
+
+    return "idle";
+  };
+
+  // Get status color for nozzle
+  const getNozzleStatusColor = (status) => {
+    switch (status) {
+      case "idle":
+        return "#10B981"; // Green - available
+      case "lifted":
+        return "#F59E0B"; // Yellow/Amber - nozzle up/ready
+      case "busy":
+        return "#3B82F6"; // Blue - currently fueling
+      case "offline":
+        return "#EF4444"; // Red - offline
+      default:
+        return "#6B7280"; // Gray
+    }
+  };
+
+  // Get status icon for nozzle
+  const getNozzleStatusIcon = (status) => {
+    switch (status) {
+      case "idle":
+        return "check-circle";
+      case "lifted":
+        return "hand-point-up";
+      case "busy":
+        return "play-circle";
+      case "offline":
+        return "times-circle";
+      default:
+        return "question-circle";
+    }
+  };
+
+  // Get status display text
+  const getNozzleStatusText = (status) => {
+    switch (status) {
+      case "idle":
+        return "AVAILABLE";
+      case "lifted":
+        return "LIFTED";
+      case "busy":
+        return "IN USE";
+      case "offline":
+        return "OFFLINE";
+      default:
+        return "UNKNOWN";
+    }
+  };
+
+  // Check if nozzle is selectable
+  const isNozzleSelectable = (status) => {
+    return status === "idle" || status === "lifted";
+  };
   // Get fuel grade info for a nozzle
-  const getFuelGradeInfo = (nozzleId) => {
+  const getFuelGradeInfo = (nozzle) => {
+    // First, check if the nozzle object already has fuel type/grade info from getNozzlesForPump
+    if (nozzle?.fuelType || nozzle?.fuelGrade) {
+      return {
+        name: nozzle.fuelGrade?.name || nozzle.fuelType || nozzle.name,
+        fuelType: nozzle.fuelType || nozzle.fuelGrade?.name || "Unknown",
+        price: nozzle.price || nozzle.fuelGrade?.price || 0,
+      };
+    }
+
+    // Fallback: look up from fuelGrades array
+    const nozzleId = nozzle?.id || nozzle;
     const grade = fuelGrades.find(
       (g) => g.nozzle === nozzleId || g.id === nozzleId
     );
@@ -36,24 +116,34 @@ const NozzleSelectionStep = ({
   };
 
   const renderNozzleItem = (nozzle) => {
-    const gradeInfo = getFuelGradeInfo(nozzle.id);
+    const gradeInfo = getFuelGradeInfo(nozzle);
     const fuelColor = getFuelTypeColor(gradeInfo.fuelType);
+    const nozzleStatus = getNozzleStatus(nozzle.id);
+    const statusColor = getNozzleStatusColor(nozzleStatus);
+    const statusIcon = getNozzleStatusIcon(nozzleStatus);
+    const statusText = getNozzleStatusText(nozzleStatus);
+    const selectable = isNozzleSelectable(nozzleStatus);
 
     return (
       <TouchableOpacity
         key={nozzle.id}
-        style={styles.nozzleCard}
-        onPress={() => onNozzleSelect(nozzle)}
+        style={[
+          styles.nozzleCard,
+          selectable && styles.nozzleCardSelectable,
+          !selectable && styles.nozzleCardDisabled,
+        ]}
+        onPress={() => selectable && onNozzleSelect(nozzle)}
         activeOpacity={0.7}
+        disabled={!selectable}
       >
         {/* Icon Container */}
         <View
           style={[
             styles.nozzleIconContainer,
-            { backgroundColor: fuelColor + "20" },
+            { backgroundColor: statusColor + "20" },
           ]}
         >
-          <Icon name="tint" size={24} color={fuelColor} />
+          <Icon name="tint" size={24} color={statusColor} />
         </View>
 
         {/* Nozzle Info */}
@@ -61,6 +151,19 @@ const NozzleSelectionStep = ({
           <Text style={styles.nozzleName}>
             Nozzle {nozzle.nozzleNumber || nozzle.id}
           </Text>
+
+          {/* Status Badge */}
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusColor + "20" },
+            ]}
+          >
+            <Icon name={statusIcon} size={10} color={statusColor} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {statusText}
+            </Text>
+          </View>
 
           {/* Fuel Type Badge */}
           <View
@@ -77,7 +180,11 @@ const NozzleSelectionStep = ({
 
         {/* Selection indicator */}
         <View style={styles.selectIndicator}>
-          <Icon name="chevron-right" size={16} color="#9ca3af" />
+          {selectable ? (
+            <Icon name="chevron-right" size={16} color="#9ca3af" />
+          ) : (
+            <Icon name="times-circle" size={16} color="#ef4444" />
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -140,10 +247,26 @@ const NozzleSelectionStep = ({
         )}
       </ScrollView>
 
-      {/* Help Text */}
-      <View style={styles.helpContainer}>
-        <Icon name="info-circle" size={16} color="#6b7280" />
-        <Text style={styles.helpText}>Tap to select the fuel type</Text>
+      {/* Status Legend */}
+      <View style={styles.footer}>
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "#10B981" }]} />
+            <Text style={styles.legendText}>Available</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "#F59E0B" }]} />
+            <Text style={styles.legendText}>Lifted</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "#3B82F6" }]} />
+            <Text style={styles.legendText}>In Use</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
+            <Text style={styles.legendText}>Offline</Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -232,12 +355,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#e5e7eb",
+    borderColor: "transparent",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  nozzleCardSelectable: {
+    borderColor: "#e5e7eb",
+  },
+  nozzleCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: "#f9fafb",
   },
   nozzleIconContainer: {
     width: 52,
@@ -254,6 +384,20 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: "#1f2937",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginLeft: 4,
   },
   fuelTypeBadge: {
     alignSelf: "flex-start",
@@ -285,20 +429,34 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     marginTop: 8,
   },
-  helpContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
+  footer: {
+    marginTop: 12,
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: "#f9fafb",
-    borderRadius: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
   },
-  helpText: {
-    fontSize: 13,
+  legendRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 8,
+    marginBottom: 8,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 4,
+  },
+  legendText: {
+    fontSize: 12,
     color: "#6b7280",
-    marginLeft: 8,
   },
 });
 

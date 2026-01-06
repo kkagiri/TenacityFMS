@@ -45,10 +45,6 @@
     }
   }
 
-
-
-
-
   .config-category-badge {
     display: inline-flex;
     align-items: center;
@@ -154,8 +150,6 @@
   }
 }
 
-
-
 // Status cell styling improvements
 .status-cell {
   display: flex;
@@ -214,6 +208,82 @@
     .filter-actions {
       display: flex;
       gap: 0.5rem;
+    }
+  }
+}
+
+// System Config Form Popup Styles
+.system-config-popup {
+  .dx-popup-content {
+    padding: 0 !important;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .dx-popup-wrapper > .dx-overlay-content {
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid #e5e7eb;
+  }
+
+  // Input styling improvements
+  .dx-texteditor {
+    &.dx-editor-outlined {
+      border-radius: 8px;
+
+      .dx-texteditor-input {
+        padding: 10px 12px;
+      }
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  // SelectBox styling
+  .dx-selectbox {
+    &.dx-editor-outlined {
+      border-radius: 8px;
+
+      &.dx-state-focused {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+  }
+
+  // Switch styling
+  .dx-switch {
+    .dx-switch-container {
+      border-radius: 12px;
+    }
+
+    &.dx-switch-on-value {
+      .dx-switch-container {
+        background-color: #3b82f6;
+      }
+    }
+  }
+
+  // Button styling
+  .dx-button {
+    border-radius: 8px;
+
+    &.dx-button-default {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+
+      &:hover:not(.dx-state-disabled) {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      }
+    }
+
+    &.dx-button-normal {
+      &:hover:not(.dx-state-disabled) {
+        background-color: #f3f4f6;
+      }
     }
   }
 }

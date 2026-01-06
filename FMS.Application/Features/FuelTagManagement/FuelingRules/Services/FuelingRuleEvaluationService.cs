@@ -109,9 +109,20 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
                         context.VehicleId, context.TankCapacity);
                 }
 
-                // If tank is full, block fueling
+                // If tank is full or capacity not configured, block fueling
                 if (result.HardLimit <= 0)
                 {
+                    // Distinguish between "tank full" and "tank capacity not configured"
+                    if (context.TankCapacity <= 0)
+                    {
+                        _logger.LogWarning(
+                            "Vehicle {VehicleId}: Tank capacity not configured (FuelTankCapacity = 0 or null). Cannot calculate fuel allowance.",
+                            context.VehicleId);
+                        return FuelAllowanceResult.Blocked(
+                            "Tank capacity not configured. Please set FuelTankCapacity for this vehicle in Vehicle Management.");
+                    }
+
+                    // Tank capacity is set but GPS shows tank is full
                     return FuelAllowanceResult.Blocked("Tank is full - no fuel needed");
                 }
 

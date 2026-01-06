@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Animated,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
@@ -169,6 +170,24 @@ const VehicleSelectionStep = ({
   const [pendingRules, setPendingRules] = useState(null);
   const [searchError, setSearchError] = useState(null);
   const [isCheckingRules, setIsCheckingRules] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Track keyboard visibility for compact mode
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   // Search vehicles using real API (minimum 2 characters)
   useEffect(() => {
@@ -646,18 +665,17 @@ const VehicleSelectionStep = ({
                   onPress={() => handleVehicleSelect(item)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.vehicleIconContainer}>
-                    <Icon name="truck" size={20} color="#10b981" />
-                  </View>
                   <View style={styles.vehicleInfo}>
                     <Text style={styles.vehicleHyoung}>{item.hyoungNo}</Text>
-                    <Text style={styles.vehicleName}>{item.vehicleName}</Text>
-                    <Text style={styles.vehicleSite}>{item.siteName}</Text>
+                    {/* <Text style={styles.vehicleName}>
+                      {item.vehicleName} • {item.siteName}
+                    </Text> */}
                   </View>
-                  <Icon name="chevron-right" size={16} color="#9ca3af" />
+                  <Icon name="chevron-right" size={14} color="#9ca3af" />
                 </TouchableOpacity>
               )}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             />
           )}
         </View>
@@ -690,18 +708,27 @@ const VehicleSelectionStep = ({
     );
   }
 
+  // Determine if we should use compact mode (keyboard visible in manual mode)
+  const isCompactMode = isKeyboardVisible && selectionMode === "manual";
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.stepTitle}>Select Vehicle</Text>
-        <Text style={styles.stepDescription}>
-          {selectionMode === "none"
-            ? "Choose how to identify the vehicle"
-            : selectionMode === "rfid"
-            ? "Scan the vehicle's RFID tag"
-            : "Search and select vehicle"}
+      {/* Header - Compact when keyboard is visible in manual mode */}
+      <View style={[styles.header, isCompactMode && styles.headerCompact]}>
+        <Text
+          style={[styles.stepTitle, isCompactMode && styles.stepTitleCompact]}
+        >
+          Select Vehicle
         </Text>
+        {!isCompactMode && (
+          <Text style={styles.stepDescription}>
+            {selectionMode === "none"
+              ? "Choose how to identify the vehicle"
+              : selectionMode === "rfid"
+              ? "Scan the vehicle's RFID tag"
+              : "Search and select vehicle"}
+          </Text>
+        )}
       </View>
 
       {/* Loading overlay when checking rules */}
@@ -721,13 +748,15 @@ const VehicleSelectionStep = ({
         {renderManualSection()}
       </View>
 
-      {/* Footer */}
-      <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Icon name="arrow-left" size={16} color="#6b7280" />
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Footer - Hidden when keyboard is visible in manual mode */}
+      {!isCompactMode && (
+        <View style={styles.actionContainer}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Icon name="arrow-left" size={16} color="#6b7280" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -743,10 +772,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
+  headerCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
   stepTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#1f2937",
+  },
+  stepTitleCompact: {
+    fontSize: 16,
   },
   stepDescription: {
     fontSize: 14,
@@ -963,38 +999,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  vehicleIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: "#ecfdf5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   vehicleInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   vehicleHyoung: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
     color: "#1f2937",
   },
   vehicleName: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  vehicleSite: {
     fontSize: 12,
-    color: "#9ca3af",
-    marginTop: 2,
+    color: "#6b7280",
+    marginTop: 1,
   },
   actionContainer: {
     flexDirection: "row",

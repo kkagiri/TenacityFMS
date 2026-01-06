@@ -918,11 +918,27 @@ class ApiService {
     }
   }
 
-  // Error handling helper
+  // Error handling helper - Enhanced to support FMSResponse validationErrors
   handleError(error, defaultMessage) {
+    const responseData = error.response?.data;
+
+    // Check for FMSResponse validationErrors array
+    if (
+      responseData?.validationErrors &&
+      Array.isArray(responseData.validationErrors) &&
+      responseData.validationErrors.length > 0
+    ) {
+      // Join validation errors with newlines for display
+      const validationMessage = responseData.validationErrors.join("\n");
+      const err = new Error(validationMessage);
+      err.validationErrors = responseData.validationErrors;
+      err.isValidationError = true;
+      return err;
+    }
+
     const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
+      responseData?.message ||
+      responseData?.error ||
       error.message ||
       defaultMessage;
     return new Error(message);

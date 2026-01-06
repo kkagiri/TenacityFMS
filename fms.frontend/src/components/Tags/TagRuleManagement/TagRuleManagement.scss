@@ -1,6 +1,37 @@
 // Tag Rule Management Styles
 .tag-rule-management {
-  padding: 20px;
+  // DevExtreme Tabs styling
+  .dx-tabs {
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+
+    .dx-tab {
+      padding: 12px 20px;
+      font-weight: 500;
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #3b82f6;
+        background-color: #eff6ff;
+      }
+
+      &.dx-tab-selected {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        background-color: #ffffff;
+      }
+
+      .dx-tab-text {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .rule-sets-content {
+    padding: 0;
+  }
 
   .section-header {
     display: flex;
@@ -61,6 +92,21 @@
     .no-rules {
       color: #6c757d;
       font-style: italic;
+    }
+  }
+}
+
+// Location Rules Settings Styles
+.location-rules-settings {
+  .dx-switch {
+    .dx-switch-on {
+      background-color: #22c55e;
+    }
+  }
+
+  .dx-numberbox {
+    .dx-texteditor-input {
+      font-weight: 500;
     }
   }
 }

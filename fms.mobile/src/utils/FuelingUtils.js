@@ -166,6 +166,13 @@ const FuelingUtils = {
   // For a selected pump, extract nozzle information
   // Handles both PascalCase and camelCase property names
   getNozzlesForPump: (selectedPumpId, uploadStatus, fuelGrades = []) => {
+    console.log("[FuelingUtils.getNozzlesForPump] Called with:", {
+      selectedPumpId,
+      hasFuelGrades: !!fuelGrades?.length,
+      fuelGradesCount: fuelGrades?.length,
+      fuelGrades: fuelGrades,
+    });
+
     // Get Pumps from either case
     const pumpsData = uploadStatus?.Pumps || uploadStatus?.pumps;
     if (!uploadStatus || !pumpsData) return [];
@@ -182,24 +189,32 @@ const FuelingUtils = {
     };
 
     // Try to get nozzle count from fuel grades if available
-    let nozzleCount = fuelGrades.length || 2;
+    // Use optional chaining for safety in case fuelGrades is undefined
+    let nozzleCount = fuelGrades?.length || 2;
 
     // Create nozzles with fuel grade information
     for (let i = 1; i <= nozzleCount; i++) {
-      const fuelGrade = fuelGrades.find((fg) => fg.nozzle === i) ||
-        fuelGrades[i - 1] || {
-          name: i % 2 === 0 ? "Diesel" : "Petrol",
-          price: 3.99,
+      // Match fuel grade by nozzle number or by index (0-based)
+      const fuelGrade = fuelGrades?.find(
+        (fg) => fg.nozzle === i || fg.id === i
+      ) ||
+        fuelGrades?.[i - 1] || {
+          name: "Unknown",
+          fuelType: "Unknown",
+          price: 0,
         };
 
-      nozzles.push({
+      const nozzleData = {
         id: i,
         name: `Nozzle ${i}`,
         status: "idle",
-        fuelType: fuelGrade.name,
-        price: fuelGrade.price || 3.99,
+        // Use fuelType if available, otherwise fall back to name
+        fuelType: fuelGrade.fuelType || fuelGrade.name || "Unknown",
+        price: fuelGrade.price || 0,
         fuelGrade: fuelGrade,
-      });
+      };
+      console.log(`[FuelingUtils] Created nozzle ${i}:`, nozzleData);
+      nozzles.push(nozzleData);
     }
 
     // Mark active nozzles as busy - handle both cases

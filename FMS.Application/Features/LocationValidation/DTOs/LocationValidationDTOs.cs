@@ -289,6 +289,13 @@ public record ProximityCheckResult
     /// Reason for failure or skip
     /// </summary>
     public string? Reason { get; init; }
+
+    /// <summary>
+    /// Whether this check was bypassed due to GPS being unavailable.
+    /// When true, allowBypassOnGPSFailure was used to pass the check.
+    /// When false, GPS was available and actual distance was calculated.
+    /// </summary>
+    public bool WasBypassedDueToGPSFailure { get; init; }
 }
 
 /// <summary>

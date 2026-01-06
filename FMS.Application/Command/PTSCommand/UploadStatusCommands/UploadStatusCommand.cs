@@ -302,9 +302,13 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                 if (contextJson.IsNullOrEmpty)
                 {
-                    _logger.LogDebug("No Redis context found for device {DeviceId}, transaction {TransactionId}", deviceId, transactionId);
+                    _logger.LogWarning("[UploadStatus] ⚠️ NO REDIS CONTEXT found for device {DeviceId}, transaction {TransactionId} - Authorization context may have expired", deviceId, transactionId);
                     return null;
                 }
+
+                // **DEBUG: Log the raw Redis context JSON**
+                _logger.LogInformation("[UploadStatus] 📦 REDIS CONTEXT RETRIEVED for device {DeviceId}, transaction {TransactionId}: {ContextJson}",
+                    deviceId, transactionId, contextJson.ToString());
 
                 var redisContext = JsonSerializer.Deserialize<JsonElement>(contextJson!);
 
@@ -367,6 +371,12 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         .FirstOrDefaultAsync();
                     userName = user ?? userId;
                 }
+
+                // **DEBUG: Log extracted context values**
+                _logger.LogDebug("[UploadStatus] 📊 FUELING CONTEXT BUILT - Device: {DeviceId}, Transaction: {TransactionId}, " +
+                    "VehicleId: {VehicleId}, VehicleName: {VehicleName}, TankId: {TankId}, TankName: {TankName}, " +
+                    "UserId: {UserId}, UserName: {UserName}, Odometer: {Odometer}, Mode: {Mode}, AutoClose: {AutoClose}",
+                    deviceId, transactionId, vehicleId, vehicleName, tankId, tankName, userId, userName, odometer, mode, autoClose);
 
                 return new PumpFuelingContext
                 {

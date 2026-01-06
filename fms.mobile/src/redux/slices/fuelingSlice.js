@@ -16,7 +16,15 @@ export const authorizePump = createAsyncThunk(
       const response = await pumpControlService.authorizePump(authRequest);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Preserve validation errors for display
+      if (error.validationErrors?.length > 0) {
+        return rejectWithValue({
+          message: error.message,
+          validationErrors: error.validationErrors,
+          isValidationError: true,
+        });
+      }
+      return rejectWithValue({ message: error.message });
     }
   }
 );
@@ -33,7 +41,15 @@ export const authorizeTankTransfer = createAsyncThunk(
       );
       return response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Preserve validation errors for display
+      if (error.validationErrors?.length > 0) {
+        return rejectWithValue({
+          message: error.message,
+          validationErrors: error.validationErrors,
+          isValidationError: true,
+        });
+      }
+      return rejectWithValue({ message: error.message });
     }
   }
 );

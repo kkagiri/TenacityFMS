@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -36,6 +37,25 @@ const FuelingVolumeStep = ({
 }) => {
   const [volumeError, setVolumeError] = useState("");
   const [odometerError, setOdometerError] = useState("");
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const scrollViewRef = useRef(null);
+
+  // Track keyboard visibility
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   // Extract limits from fueling rules (from effective rules API)
   const maxFuelAllowed = useMemo(() => {
@@ -201,17 +221,28 @@ const FuelingVolumeStep = ({
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.stepTitle}>Fueling Details</Text>
-        <Text style={styles.stepDescription}>
-          Enter the volume of fuel to dispense
+      {/* Header - Compact when keyboard visible */}
+      <View style={[styles.header, isKeyboardVisible && styles.headerCompact]}>
+        <Text
+          style={[
+            styles.stepTitle,
+            isKeyboardVisible && styles.stepTitleCompact,
+          ]}
+        >
+          Fueling Details
         </Text>
+        {!isKeyboardVisible && (
+          <Text style={styles.stepDescription}>
+            Enter the volume of fuel to dispense
+          </Text>
+        )}
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Fuel Allowance Info Card */}
         {renderFuelAllowanceInfo()}
@@ -287,9 +318,6 @@ const FuelingVolumeStep = ({
             <Icon name="gas-pump" size={22} color="#10b981" />
             <View style={styles.fullTankText}>
               <Text style={styles.fullTankTitle}>Fill Full Tank</Text>
-              <Text style={styles.fullTankSubtitle}>
-                Dispense until vehicle tank is full
-              </Text>
             </View>
           </View>
           <Switch
@@ -320,6 +348,11 @@ const FuelingVolumeStep = ({
                 style={styles.volumeInput}
                 value={volume}
                 onChangeText={handleVolumeChange}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: 200, animated: true });
+                  }, 100);
+                }}
                 keyboardType="numeric"
                 placeholder="Enter fuel volume"
                 placeholderTextColor="#9ca3af"
@@ -384,6 +417,11 @@ const FuelingVolumeStep = ({
               style={styles.input}
               value={odometer}
               onChangeText={handleOdometerChange}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: 350, animated: true });
+                }, 100);
+              }}
               keyboardType="numeric"
               placeholder="Enter current odometer"
               placeholderTextColor="#9ca3af"
@@ -404,6 +442,11 @@ const FuelingVolumeStep = ({
             style={styles.notesInput}
             value={notes}
             onChangeText={onNotesChange}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+            }}
             placeholder="Add any additional notes..."
             placeholderTextColor="#9ca3af"
             multiline
@@ -475,6 +518,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
+  headerCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
   stepIndicator: {
     flexDirection: "row",
     alignItems: "center",
@@ -498,6 +545,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#1f2937",
+  },
+  stepTitleCompact: {
+    fontSize: 16,
   },
   stepDescription: {
     fontSize: 14,

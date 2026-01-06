@@ -92,6 +92,27 @@ const TransactionMonitoringModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  // PERFORMANCE FIX: Use refs for values accessed inside SignalR handlers
+  // This prevents constant re-subscriptions when these values change
+  const statusRef = useRef(status);
+  const volumeRef = useRef(volume);
+  const amountRef = useRef(amount);
+  const startTimeRef = useRef(startTime);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+  useEffect(() => {
+    amountRef.current = amount;
+  }, [amount]);
+  useEffect(() => {
+    startTimeRef.current = startTime;
+  }, [startTime]);
+
   // Animations
   const [progressAnimation] = useState(new Animated.Value(0));
   const pulseAnimation = useRef(new Animated.Value(1)).current;
@@ -105,12 +126,32 @@ const TransactionMonitoringModal = ({
   const fuelingContext = useSelector(selectFuelingContext(deviceId, pumpId));
 
   // Add to status history
+  // Can be called with just a message string or with (status, volume, amount)
   const addStatusHistory = useCallback(
-    (newStatus, volumeValue, amountValue) => {
+    (messageOrStatus, volumeValue, amountValue) => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
       setStatusHistory((prev) => {
+        // If only one argument and it's a string message (not a status enum value)
+        const isSimpleMessage =
+          volumeValue === undefined && typeof messageOrStatus === "string";
+
         const entry = {
-          timestamp: new Date(),
-          status: newStatus,
+          time: timeStr,
+          message: isSimpleMessage
+            ? messageOrStatus
+            : `${messageOrStatus}${
+                volumeValue !== undefined
+                  ? ` - ${volumeValue?.toFixed?.(2) || volumeValue}L`
+                  : ""
+              }`,
+          timestamp: now,
+          status: messageOrStatus,
           volume: volumeValue,
           amount: amountValue,
         };
@@ -248,6 +289,7 @@ const TransactionMonitoringModal = ({
   }, [visible, isExternalFueling, initialVolume, initialAmount]);
 
   // Handle upload status updates
+  // PERFORMANCE FIX: Use refs to avoid re-subscribing on every state change
   useEffect(() => {
     // For external fueling, we don't need transactionId - we track by pumpId
     if (!visible || (!transactionId && !isExternalFueling)) return;
@@ -259,6 +301,12 @@ const TransactionMonitoringModal = ({
       // ENHANCED: Pass our transaction ID to validate status data
       const pumpStatus = parsePumpStatus(data.status, transactionId);
       if (!pumpStatus) return;
+
+      // Use refs to get current values without re-subscribing
+      const currentStatus = statusRef.current;
+      const currentVolume = volumeRef.current;
+      const currentAmount = amountRef.current;
+      const currentStartTime = startTimeRef.current;
 
       console.log(
         "[TransactionMonitoring] Pump status:",
@@ -287,11 +335,11 @@ const TransactionMonitoringModal = ({
         }
 
         if (
-          status !== TransactionStatus.FUELING &&
-          status !== TransactionStatus.FILLING
+          currentStatus !== TransactionStatus.FUELING &&
+          currentStatus !== TransactionStatus.FILLING
         ) {
           setStatus(TransactionStatus.FUELING);
-          if (!startTime) {
+          if (!currentStartTime) {
             setStartTime(Date.now());
           }
           addStatusHistory(
@@ -315,14 +363,14 @@ const TransactionMonitoringModal = ({
           }
 
           if (
-            status !== TransactionStatus.END_OF_TRANSACTION &&
-            status !== TransactionStatus.COMPLETED
+            currentStatus !== TransactionStatus.END_OF_TRANSACTION &&
+            currentStatus !== TransactionStatus.COMPLETED
           ) {
             setStatus(TransactionStatus.END_OF_TRANSACTION);
             addStatusHistory(
               TransactionStatus.END_OF_TRANSACTION,
-              pumpStatus.volume ?? volume,
-              pumpStatus.amount ?? amount
+              pumpStatus.volume ?? currentVolume,
+              pumpStatus.amount ?? currentAmount
             );
           }
         } else {
@@ -342,8 +390,8 @@ const TransactionMonitoringModal = ({
       if (pumpStatus.type === PumpStatusType.IDLE) {
         // If we're still just AUTHORIZED, pump is waiting for nozzle - this is expected
         if (
-          status === TransactionStatus.AUTHORIZED ||
-          status === TransactionStatus.WAITING_NOZZLE
+          currentStatus === TransactionStatus.AUTHORIZED ||
+          currentStatus === TransactionStatus.WAITING_NOZZLE
         ) {
           console.log(
             "[TransactionMonitoring] Pump idle while authorized - waiting for nozzle lift"
@@ -354,8 +402,8 @@ const TransactionMonitoringModal = ({
 
         // If we were FUELING or EOT, and idle shows our transaction - mark complete
         if (
-          status === TransactionStatus.FUELING ||
-          status === TransactionStatus.END_OF_TRANSACTION
+          currentStatus === TransactionStatus.FUELING ||
+          currentStatus === TransactionStatus.END_OF_TRANSACTION
         ) {
           if (pumpStatus.isOurTransaction) {
             console.log(
@@ -371,8 +419,8 @@ const TransactionMonitoringModal = ({
             setStatus(TransactionStatus.COMPLETED);
             addStatusHistory(
               TransactionStatus.COMPLETED,
-              pumpStatus.volume ?? volume,
-              pumpStatus.amount ?? amount
+              pumpStatus.volume ?? currentVolume,
+              pumpStatus.amount ?? currentAmount
             );
           } else {
             console.log(
@@ -398,10 +446,8 @@ const TransactionMonitoringModal = ({
     visible,
     transactionId,
     deviceId,
-    status,
-    startTime,
-    volume,
-    amount,
+    pumpId,
+    isExternalFueling,
     parsePumpStatus,
     addStatusHistory,
   ]);
@@ -437,6 +483,7 @@ const TransactionMonitoringModal = ({
   }, [visible, transactionId, addStatusHistory]);
 
   // Handle EOT events
+  // PERFORMANCE FIX: Use refs to avoid re-subscribing on every state change
   useEffect(() => {
     if (!visible || !transactionId) return;
 
@@ -474,8 +521,12 @@ const TransactionMonitoringModal = ({
         data
       );
 
-      const finalVolume = data.finalVolume || data.volume || volume;
-      const finalAmount = data.finalAmount || data.amount || amount;
+      // Use refs for current values
+      const currentVolume = volumeRef.current;
+      const currentAmount = amountRef.current;
+
+      const finalVolume = data.finalVolume || data.volume || currentVolume;
+      const finalAmount = data.finalAmount || data.amount || currentAmount;
 
       setVolume(finalVolume);
       setAmount(finalAmount);
@@ -493,9 +544,10 @@ const TransactionMonitoringModal = ({
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [visible, transactionId, deviceId, volume, amount, addStatusHistory]);
+  }, [visible, transactionId, deviceId, addStatusHistory]);
 
   // Handle fueling events
+  // PERFORMANCE FIX: Use refs to avoid re-subscribing on every state change
   useEffect(() => {
     if (!visible || !transactionId) return;
 
@@ -503,6 +555,11 @@ const TransactionMonitoringModal = ({
       if (data?.deviceId !== deviceId) return;
 
       console.log("[TransactionMonitoring] Fueling event:", data);
+
+      // Use refs for current values
+      const currentStartTime = startTimeRef.current;
+      const currentVolume = volumeRef.current;
+      const currentAmount = amountRef.current;
 
       // ENHANCED: Validate transaction ID before processing completion events
       const eventTransactionId =
@@ -526,8 +583,12 @@ const TransactionMonitoringModal = ({
           return;
         }
         setStatus(TransactionStatus.FUELING);
-        if (!startTime) setStartTime(Date.now());
-        addStatusHistory(TransactionStatus.FUELING, volume, amount);
+        if (!currentStartTime) setStartTime(Date.now());
+        addStatusHistory(
+          TransactionStatus.FUELING,
+          currentVolume,
+          currentAmount
+        );
       } else if (
         eventType === "TransactionCompleted" ||
         eventType === "FuelingCompleted"
@@ -567,7 +628,11 @@ const TransactionMonitoringModal = ({
           "[TransactionMonitoring] Transaction completed via FuelingEvent"
         );
         setStatus(TransactionStatus.COMPLETED);
-        addStatusHistory(TransactionStatus.COMPLETED, volume, amount);
+        addStatusHistory(
+          TransactionStatus.COMPLETED,
+          currentVolume,
+          currentAmount
+        );
       }
 
       setLastUpdated(new Date());
@@ -578,18 +643,10 @@ const TransactionMonitoringModal = ({
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [
-    visible,
-    transactionId,
-    deviceId,
-    pumpId,
-    startTime,
-    volume,
-    amount,
-    addStatusHistory,
-  ]);
+  }, [visible, transactionId, deviceId, pumpId, addStatusHistory]);
 
   // Handle device disconnect events (orphaned transactions)
+  // PERFORMANCE FIX: Use refs to avoid re-subscribing on every state change
   useEffect(() => {
     if (!visible || !transactionId) return;
 
@@ -597,6 +654,10 @@ const TransactionMonitoringModal = ({
       if (data?.DeviceId !== deviceId && data?.deviceId !== deviceId) return;
 
       console.log("[TransactionMonitoring] Device disconnected:", data);
+
+      // Use refs for current values
+      const currentVolume = volumeRef.current;
+      const currentAmount = amountRef.current;
 
       // Check if our transaction is in the orphaned list and get its details
       const orphanedTransactions =
@@ -611,8 +672,10 @@ const TransactionMonitoringModal = ({
 
       // Update volume/amount from backend if available (backend has the last known values)
       if (ourTxnInfo) {
-        const savedVolume = ourTxnInfo.Volume ?? ourTxnInfo.volume ?? volume;
-        const savedAmount = ourTxnInfo.Amount ?? ourTxnInfo.amount ?? amount;
+        const savedVolume =
+          ourTxnInfo.Volume ?? ourTxnInfo.volume ?? currentVolume;
+        const savedAmount =
+          ourTxnInfo.Amount ?? ourTxnInfo.amount ?? currentAmount;
         if (savedVolume > 0) setVolume(savedVolume);
         if (savedAmount > 0) setAmount(savedAmount);
       }
@@ -621,15 +684,16 @@ const TransactionMonitoringModal = ({
       setStatus(TransactionStatus.DISCONNECTED);
       addStatusHistory(
         TransactionStatus.DISCONNECTED,
-        ourTxnInfo?.Volume ?? ourTxnInfo?.volume ?? volume,
-        ourTxnInfo?.Amount ?? ourTxnInfo?.amount ?? amount
+        ourTxnInfo?.Volume ?? ourTxnInfo?.volume ?? currentVolume,
+        ourTxnInfo?.Amount ?? ourTxnInfo?.amount ?? currentAmount
       );
       setLastUpdated(new Date());
 
       // Determine message based on whether data was saved
       const savedToDatabase =
         ourTxnInfo?.SavedToDatabase || ourTxnInfo?.savedToDatabase;
-      const displayVolume = ourTxnInfo?.Volume ?? ourTxnInfo?.volume ?? volume;
+      const displayVolume =
+        ourTxnInfo?.Volume ?? ourTxnInfo?.volume ?? currentVolume;
 
       let alertMessage = `The pump device has disconnected.`;
       if (displayVolume > 0) {
@@ -660,15 +724,7 @@ const TransactionMonitoringModal = ({
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [
-    visible,
-    transactionId,
-    deviceId,
-    volume,
-    amount,
-    addStatusHistory,
-    onCancel,
-  ]);
+  }, [visible, transactionId, deviceId, addStatusHistory, onCancel]);
 
   // Timer effect
   useEffect(() => {
@@ -1301,16 +1357,6 @@ const TransactionMonitoringModal = ({
               </>
             )}
           </View>
-
-          {/* Debug log for minimize button visibility */}
-          {console.log(
-            "[TransactionMonitoringModal] Minimize button check - onMinimize:",
-            !!onMinimize,
-            "status:",
-            status,
-            "isExternalFueling:",
-            isExternalFueling
-          )}
 
           {/* Minimize button - always show unless completed/cancelled/error */}
           {onMinimize &&
