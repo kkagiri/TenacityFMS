@@ -596,6 +596,14 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFullTankEstimationService, FMS.Application.Features.FuelAudit.Services.FullTankEstimationService>();
             services.AddScoped<FMS.Application.Features.LocationValidation.Services.ILocationValidationService, FMS.Application.Features.LocationValidation.Services.LocationValidationService>();
 
+            // Register PTS Pump Authorization Services
+            services.AddScoped<FMS.Application.Validation.PTSValidators.PumpAuthorization.IPumpAuthorizationValidator, FMS.Application.Validation.PTSValidators.PumpAuthorization.PumpAuthorizationValidator>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IPumpAuthorizationPreCheckService, FMS.Application.Features.PTS.Services.PumpAuthorizationPreCheckService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.ITransactionContextService, FMS.Application.Features.PTS.Services.TransactionContextService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IFuelPriceService, FMS.Application.Features.PTS.Services.FuelPriceService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IPumpAuthorizationLoggingService, FMS.Application.Features.PTS.Services.PumpAuthorizationLoggingService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IDeviceConnectionTypeService, FMS.Application.Features.PTS.Services.DeviceConnectionTypeService>();
+
             // Removed legacy Dashboard Services (migrated to IDataSourceManager)
             // services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();
             // services.AddScoped<FMS.Application.Services.Dashboard.IWidgetDataService, FMS.Application.Services.Dashboard.WidgetDataService> ();
