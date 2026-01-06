@@ -20,23 +20,11 @@ export const useDeviceData = (ptsId) => {
   const devicePumpStatus = useMemo(() => {
     const pumpsData = rawUploadStatus?.Pumps || rawUploadStatus?.pumps;
     if (!pumpsData) {
-      // Only log if rawUploadStatus exists but has no pumps
-      if (rawUploadStatus) {
-        console.log(
-          "[useDeviceData] No Pumps in status. Keys:",
-          Object.keys(rawUploadStatus)
-        );
-      }
       return {};
     }
 
     // FuelingUtils.handlePumpStatus now handles both cases internally
     const pumps = FuelingUtils.handlePumpStatus(rawUploadStatus);
-    console.log(
-      "[useDeviceData] ✅ Parsed pumps:",
-      pumps.length,
-      pumps.map((p) => `${p.name}(${p.status})`).join(", ")
-    );
 
     const statusMap = {};
 
@@ -86,17 +74,43 @@ export const useDeviceData = (ptsId) => {
   }, [devicePumpStatus]);
 
   // Extract fuel grades from status
+  // Handle both PascalCase (FuelGrades) and camelCase (fuelGrades) from different sources
   const fuelGrades = useMemo(() => {
-    if (!rawUploadStatus?.FuelGrades) return [];
+    const rawFuelGrades =
+      rawUploadStatus?.FuelGrades || rawUploadStatus?.fuelGrades;
 
-    return rawUploadStatus.FuelGrades.map((grade, index) => ({
-      id: index + 1,
-      name: grade.Name || `Grade ${index + 1}`,
-      price: grade.Price || 0,
-      nozzle: grade.Nozzle || index + 1,
-      fuelType: grade.FuelType || "Unknown",
-      color: grade.Color || "#6366f1",
-    }));
+    if (!rawFuelGrades || !rawFuelGrades.length) {
+      console.log(
+        "[useDeviceData] No FuelGrades in rawUploadStatus:",
+        rawUploadStatus
+      );
+      return [];
+    }
+
+    console.log(
+      "[useDeviceData] Raw FuelGrades from upload status:",
+      JSON.stringify(rawFuelGrades, null, 2)
+    );
+
+    return rawFuelGrades.map((grade, index) => {
+      const mappedGrade = {
+        // Handle both PascalCase and camelCase property names
+        id: grade.Id || grade.id || index + 1,
+        name: grade.Name || grade.name || `Grade ${index + 1}`,
+        price: grade.Price || grade.price || 0,
+        nozzle: grade.Nozzle || grade.nozzle || index + 1,
+        // FuelType doesn't exist in raw data - use Name as the fuel type
+        fuelType:
+          grade.FuelType ||
+          grade.fuelType ||
+          grade.Name ||
+          grade.name ||
+          "Unknown",
+        color: grade.Color || grade.color || "#6366f1",
+      };
+      console.log(`[useDeviceData] Mapped fuel grade ${index}:`, mappedGrade);
+      return mappedGrade;
+    });
   }, [rawUploadStatus]);
 
   // Extract probe/tank data from PTS status
@@ -236,16 +250,6 @@ export const useDeviceData = (ptsId) => {
 
     // Update previous tags reference
     tags.forEach((t) => previousTagsRef.current.add(t.tagId));
-
-    // Log detected tags for debugging
-    if (tags.length > 0) {
-      console.log(
-        "[useDeviceData] 🏷️ Detected tags:",
-        tags
-          .map((t) => `${t.tagId}(${t.source}${t.isNew ? ",NEW" : ""})`)
-          .join(", ")
-      );
-    }
 
     return tags;
   }, [rawUploadStatus]);

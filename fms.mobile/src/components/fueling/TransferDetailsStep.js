@@ -1,17 +1,16 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  FlatList,
+  SectionList,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  TouchableWithoutFeedback,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSelector, useDispatch } from "react-redux";
@@ -78,6 +77,27 @@ const TransferDetailsStep = ({
   const [showDestinationPicker, setShowDestinationPicker] = useState(
     !destinationTank
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [activeInput, setActiveInput] = useState(null); // 'search', 'volume', 'notes'
+  const scrollViewRef = useRef(null);
+
+  // Track keyboard visibility
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   // Fetch tanks from API on mount if not already loaded
   useEffect(() => {
@@ -103,6 +123,41 @@ const TransferDetailsStep = ({
       return tankId !== sourceId;
     });
   }, [allTanks, normalizedSource]);
+
+  // Filter destinations based on search query
+  const filteredDestinations = useMemo(() => {
+    if (!searchQuery.trim()) return availableDestinations;
+    const query = searchQuery.toLowerCase().trim();
+    return availableDestinations.filter((tank) => {
+      const name = (tank.tankName || "").toLowerCase();
+      const product = (tank.productName || "").toLowerCase();
+      const site = (tank.siteName || "").toLowerCase();
+      return (
+        name.includes(query) || product.includes(query) || site.includes(query)
+      );
+    });
+  }, [availableDestinations, searchQuery]);
+
+  // Group filtered destinations by site
+  const groupedDestinations = useMemo(() => {
+    if (!filteredDestinations || filteredDestinations.length === 0) return [];
+
+    const groups = {};
+    filteredDestinations.forEach((tank) => {
+      const siteName = tank.siteName || "Unknown Site";
+      if (!groups[siteName]) {
+        groups[siteName] = [];
+      }
+      groups[siteName].push(tank);
+    });
+
+    return Object.keys(groups)
+      .sort()
+      .map((siteName) => ({
+        title: siteName,
+        data: groups[siteName],
+      }));
+  }, [filteredDestinations]);
 
   const getFillColor = (percentage) => {
     if (percentage >= 80) return "#f59e0b"; // Amber - nearly full
@@ -153,61 +208,68 @@ const TransferDetailsStep = ({
         onPress={() => handleDestinationSelect(item)}
         activeOpacity={0.7}
       >
-        <View
-          style={[
-            styles.tankIconContainer,
-            {
-              backgroundColor: isSelected ? "#10b981" : "#10b98115",
-            },
-          ]}
-        >
-          <Icon
-            name="database"
-            size={20}
-            color={isSelected ? "#ffffff" : "#10b981"}
-          />
-        </View>
-
         <View style={styles.tankInfo}>
-          <Text
-            style={[styles.tankName, isSelected && styles.tankNameSelected]}
-          >
-            {item.tankName}
-          </Text>
-          <View style={styles.tankMeta}>
+          <View style={styles.tankHeader}>
+            <Text
+              style={[styles.tankName, isSelected && styles.tankNameSelected]}
+              numberOfLines={1}
+            >
+              {item.tankName}
+            </Text>
             <View style={styles.fuelTypeBadge}>
               <Text style={styles.fuelTypeText}>{item.productName}</Text>
             </View>
-            <Text style={styles.tankSite}>{item.siteName}</Text>
           </View>
 
-          {/* Capacity bar */}
-          <View style={styles.capacityContainer}>
-            <View style={styles.capacityBar}>
-              <View
-                style={[
-                  styles.capacityFill,
-                  {
-                    width: `${fillPercentage}%`,
-                    backgroundColor: getFillColor(fillPercentage),
-                  },
-                ]}
-              />
-            </View>
+          {/* Compact capacity display */}
+          <View style={styles.capacityRow}>
             <Text style={styles.availableSpace}>
               {availableSpace.toLocaleString()} L available
             </Text>
+            <View style={styles.capacityBarContainer}>
+              <View style={styles.capacityBar}>
+                <View
+                  style={[
+                    styles.capacityFill,
+                    {
+                      width: `${fillPercentage}%`,
+                      backgroundColor: getFillColor(fillPercentage),
+                    },
+                  ]}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.capacityPercent,
+                  { color: getFillColor(fillPercentage) },
+                ]}
+              >
+                {Math.round(fillPercentage)}%
+              </Text>
+            </View>
           </View>
         </View>
 
         <Icon
-          name="chevron-right"
-          size={16}
+          name={isSelected ? "check-circle" : "chevron-right"}
+          size={isSelected ? 18 : 14}
           color={isSelected ? "#10b981" : "#9ca3af"}
+          solid={isSelected}
         />
       </TouchableOpacity>
     );
   };
+
+  // Render section header for site grouping
+  const renderSectionHeader = ({ section: { title, data } }) => (
+    <View style={styles.sectionHeader}>
+      <Icon name="map-marker-alt" size={11} color="#10b981" />
+      <Text style={styles.sectionHeaderTitle}>{title}</Text>
+      <Text style={styles.sectionCount}>({data.length})</Text>
+    </View>
+  );
+
+  const isCompactMode = isKeyboardVisible;
 
   return (
     <KeyboardAvoidingView
@@ -215,25 +277,38 @@ const TransferDetailsStep = ({
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.innerContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.stepTitle}>Tank Transfer</Text>
+      <View style={styles.innerContainer}>
+        {/* Header - Compact when keyboard visible */}
+        <View style={[styles.header, isCompactMode && styles.headerCompact]}>
+          <Text
+            style={[styles.stepTitle, isCompactMode && styles.stepTitleCompact]}
+          >
+            Tank Transfer
+          </Text>
+          {!isCompactMode && (
             <Text style={styles.stepDescription}>
               {destinationTank
                 ? "Confirm transfer details"
                 : "Select destination tank"}
             </Text>
-          </View>
+          )}
+        </View>
 
-          <ScrollView
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Source Tank Card */}
-            <View style={styles.sourceTankCard}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Source Tank Card - Hidden when searching */}
+          {!(isCompactMode && showDestinationPicker) && (
+            <View
+              style={[
+                styles.sourceTankCard,
+                isCompactMode && styles.sourceTankCardCompact,
+              ]}
+            >
               <View style={styles.transferDirectionLabel}>
                 <View style={styles.directionIconFrom}>
                   <Icon name="arrow-up" size={12} color="white" />
@@ -257,8 +332,10 @@ const TransferDetailsStep = ({
                 </View>
               </View>
             </View>
+          )}
 
-            {/* Transfer Arrow */}
+          {/* Transfer Arrow - Hidden when keyboard visible during search */}
+          {!(isCompactMode && showDestinationPicker) && (
             <View style={styles.transferArrow}>
               <View style={styles.transferArrowLine} />
               <View style={styles.transferArrowIcon}>
@@ -266,117 +343,162 @@ const TransferDetailsStep = ({
               </View>
               <View style={styles.transferArrowLine} />
             </View>
+          )}
 
-            {/* Destination Tank Section */}
-            <View style={styles.destinationSection}>
-              <View style={styles.transferDirectionLabel}>
-                <View style={styles.directionIconTo}>
-                  <Icon name="arrow-down" size={12} color="white" />
-                </View>
-                <Text style={styles.directionText}>TO</Text>
+          {/* Destination Tank Section */}
+          <View style={styles.destinationSection}>
+            <View style={styles.transferDirectionLabel}>
+              <View style={styles.directionIconTo}>
+                <Icon name="arrow-down" size={12} color="white" />
               </View>
-
-              {destinationTank && !showDestinationPicker ? (
-                // Selected destination display
-                <View style={styles.selectedDestinationCard}>
-                  <View style={styles.tankSummary}>
-                    <View
-                      style={[
-                        styles.tankSummaryIcon,
-                        { backgroundColor: "#ecfdf5" },
-                      ]}
-                    >
-                      <Icon name="database" size={24} color="#10b981" />
-                    </View>
-                    <View style={styles.tankSummaryInfo}>
-                      <Text style={styles.tankSummaryName}>
-                        {destinationTank.tankName}
-                      </Text>
-                      <Text style={styles.tankSummaryDetail}>
-                        {destinationTank.productName} •{" "}
-                        {(
-                          destinationTank.capacity -
-                          destinationTank.currentVolume
-                        ).toLocaleString()}{" "}
-                        L available
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.changeButton}
-                    onPress={() => setShowDestinationPicker(true)}
-                  >
-                    <Icon name="exchange-alt" size={14} color="#6b7280" />
-                    <Text style={styles.changeButtonText}>Change</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                // Destination picker list
-                <View style={styles.destinationPickerContainer}>
-                  <Text style={styles.pickerTitle}>
-                    Select destination tank ({availableDestinations.length}{" "}
-                    available)
-                  </Text>
-                  {isLoadingTanks ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="large" color="#6366f1" />
-                      <Text style={styles.loadingText}>Loading tanks...</Text>
-                    </View>
-                  ) : availableDestinations.length === 0 ? (
-                    <View style={styles.noTanksContainer}>
-                      <Icon
-                        name="exclamation-circle"
-                        size={24}
-                        color="#f59e0b"
-                      />
-                      <Text style={styles.noTanksText}>
-                        No compatible tanks available for transfer
-                      </Text>
-                    </View>
-                  ) : (
-                    <FlatList
-                      data={availableDestinations}
-                      keyExtractor={(item) =>
-                        (item.tankId || item.id || item.probeId).toString()
-                      }
-                      renderItem={renderDestinationTank}
-                      scrollEnabled={false}
-                    />
-                  )}
-                </View>
-              )}
+              <Text style={styles.directionText}>TO</Text>
             </View>
 
-            {/* Volume and Reason Input */}
-            {destinationTank && !showDestinationPicker && (
-              <View style={styles.inputSection}>
-                <Text style={styles.sectionTitle}>Transfer Details</Text>
-
-                {/* Volume Input */}
-                <View style={styles.inputGroup}>
-                  <View style={styles.inputHeader}>
-                    <View style={styles.inputLabelContainer}>
-                      <Icon name="tint" size={14} color="#6366f1" />
-                      <Text style={styles.inputLabel}>Volume (Liters)</Text>
-                    </View>
-                    <Text style={styles.maxVolumeHint}>
-                      Max: {maxTransferVolume.toLocaleString()} L
+            {destinationTank && !showDestinationPicker ? (
+              // Selected destination display
+              <View style={styles.selectedDestinationCard}>
+                <View style={styles.tankSummary}>
+                  <View
+                    style={[
+                      styles.tankSummaryIcon,
+                      { backgroundColor: "#ecfdf5" },
+                    ]}
+                  >
+                    <Icon name="database" size={24} color="#10b981" />
+                  </View>
+                  <View style={styles.tankSummaryInfo}>
+                    <Text style={styles.tankSummaryName}>
+                      {destinationTank.tankName}
+                    </Text>
+                    <Text style={styles.tankSummaryDetail}>
+                      {destinationTank.productName} •{" "}
+                      {(
+                        destinationTank.capacity - destinationTank.currentVolume
+                      ).toLocaleString()}{" "}
+                      L available
                     </Text>
                   </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter volume to transfer"
-                    placeholderTextColor="#9ca3af"
-                    value={transferVolume}
-                    onChangeText={onVolumeChange}
-                    keyboardType="numeric"
-                    returnKeyType="done"
-                    blurOnSubmit={true}
-                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.changeButton}
+                  onPress={() => setShowDestinationPicker(true)}
+                >
+                  <Icon name="exchange-alt" size={14} color="#6b7280" />
+                  <Text style={styles.changeButtonText}>Change</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // Destination picker list
+              <View style={styles.destinationPickerContainer}>
+                {/* Search Box */}
+                <View style={styles.searchContainer}>
+                  <View style={styles.searchInputWrapper}>
+                    <Icon
+                      name="search"
+                      size={14}
+                      color="#9ca3af"
+                      style={styles.searchIcon}
+                    />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Search tanks by name, site or fuel..."
+                      placeholderTextColor="#9ca3af"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => setSearchQuery("")}
+                        style={styles.clearButton}
+                      >
+                        <Icon name="times-circle" size={14} color="#9ca3af" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {searchQuery.length > 0 && (
+                    <Text style={styles.searchResultsText}>
+                      {filteredDestinations.length} of{" "}
+                      {availableDestinations.length} tanks
+                    </Text>
+                  )}
                 </View>
 
-                {/* Transfer Summary */}
-                {transferVolume && parseFloat(transferVolume) > 0 && (
+                {isLoadingTanks ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#6366f1" />
+                    <Text style={styles.loadingText}>Loading tanks...</Text>
+                  </View>
+                ) : groupedDestinations.length === 0 ? (
+                  <View style={styles.noTanksContainer}>
+                    <Icon
+                      name={searchQuery ? "search" : "exclamation-circle"}
+                      size={24}
+                      color="#f59e0b"
+                    />
+                    <Text style={styles.noTanksText}>
+                      {searchQuery
+                        ? `No tanks found matching "${searchQuery}"`
+                        : "No compatible tanks available for transfer"}
+                    </Text>
+                  </View>
+                ) : (
+                  <SectionList
+                    sections={groupedDestinations}
+                    keyExtractor={(item) =>
+                      (item.tankId || item.id || item.probeId).toString()
+                    }
+                    renderItem={renderDestinationTank}
+                    renderSectionHeader={renderSectionHeader}
+                    scrollEnabled={false}
+                    keyboardShouldPersistTaps="handled"
+                    stickySectionHeadersEnabled={false}
+                  />
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Volume and Reason Input */}
+          {destinationTank && !showDestinationPicker && (
+            <View style={styles.inputSection}>
+              <Text style={styles.sectionTitle}>Transfer Details</Text>
+
+              {/* Volume Input */}
+              <View style={styles.inputGroup}>
+                <View style={styles.inputHeader}>
+                  <View style={styles.inputLabelContainer}>
+                    <Icon name="tint" size={14} color="#6366f1" />
+                    <Text style={styles.inputLabel}>Volume (Liters)</Text>
+                  </View>
+                  <Text style={styles.maxVolumeHint}>
+                    Max: {maxTransferVolume.toLocaleString()} L
+                  </Text>
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter volume to transfer"
+                  placeholderTextColor="#9ca3af"
+                  value={transferVolume}
+                  onChangeText={onVolumeChange}
+                  onFocus={() => {
+                    setActiveInput("volume");
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 100);
+                  }}
+                  onBlur={() => setActiveInput(null)}
+                  keyboardType="numeric"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                />
+              </View>
+
+              {/* Transfer Summary - Hidden when keyboard visible */}
+              {!isKeyboardVisible &&
+                transferVolume &&
+                parseFloat(transferVolume) > 0 && (
                   <View style={styles.summaryCard}>
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Transfer Volume:</Text>
@@ -393,7 +515,8 @@ const TransferDetailsStep = ({
                   </View>
                 )}
 
-                {/* Nozzle Status Card */}
+              {/* Nozzle Status Card - Hidden when keyboard visible */}
+              {!isKeyboardVisible && (
                 <View
                   style={[
                     styles.nozzleStatusCard,
@@ -443,44 +566,44 @@ const TransferDetailsStep = ({
                     </View>
                   ) : null}
                 </View>
-              </View>
-            )}
-          </ScrollView>
+              )}
+            </View>
+          )}
+        </ScrollView>
 
-          {/* Action Buttons */}
-          <View style={styles.actionContainer}>
-            <TouchableOpacity style={styles.backButton} onPress={onBack}>
-              <Icon name="arrow-left" size={16} color="#6b7280" />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
+        {/* Action Buttons */}
+        <View style={styles.actionContainer}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Icon name="arrow-left" size={16} color="#6b7280" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
 
-            {destinationTank && !showDestinationPicker && (
-              <TouchableOpacity
+          {destinationTank && !showDestinationPicker && (
+            <TouchableOpacity
+              style={[
+                styles.nextButton,
+                !isFormValid && styles.nextButtonDisabled,
+              ]}
+              onPress={handleConfirm}
+              disabled={!isFormValid}
+            >
+              <Text
                 style={[
-                  styles.nextButton,
-                  !isFormValid && styles.nextButtonDisabled,
+                  styles.nextButtonText,
+                  !isFormValid && styles.nextButtonTextDisabled,
                 ]}
-                onPress={handleConfirm}
-                disabled={!isFormValid}
               >
-                <Text
-                  style={[
-                    styles.nextButtonText,
-                    !isFormValid && styles.nextButtonTextDisabled,
-                  ]}
-                >
-                  Continue
-                </Text>
-                <Icon
-                  name="arrow-right"
-                  size={16}
-                  color={isFormValid ? "white" : "#9ca3af"}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+                Continue
+              </Text>
+              <Icon
+                name="arrow-right"
+                size={16}
+                color={isFormValid ? "white" : "#9ca3af"}
+              />
+            </TouchableOpacity>
+          )}
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -499,10 +622,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
+  headerCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
   stepTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#1f2937",
+  },
+  stepTitleCompact: {
+    fontSize: 16,
   },
   stepDescription: {
     fontSize: 14,
@@ -522,6 +652,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: "#fecaca",
+  },
+  sourceTankCardCompact: {
+    padding: 10,
+    marginBottom: 8,
   },
   transferDirectionLabel: {
     flexDirection: "row",
@@ -628,10 +762,55 @@ const styles = StyleSheet.create({
   destinationPickerContainer: {
     marginTop: 4,
   },
-  pickerTitle: {
-    fontSize: 13,
+  // Search box styles
+  searchContainer: {
+    marginBottom: 10,
+  },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#10b981",
+    paddingHorizontal: 10,
+  },
+  searchIcon: {
+    marginRight: 6,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: "#1f2937",
+  },
+  clearButton: {
+    padding: 4,
+  },
+  searchResultsText: {
+    fontSize: 11,
     color: "#065f46",
-    marginBottom: 12,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  // Section header for site grouping
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    marginTop: 4,
+  },
+  sectionHeaderTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#065f46",
+    marginLeft: 4,
+  },
+  sectionCount: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginLeft: 4,
   },
   loadingContainer: {
     alignItems: "center",
@@ -652,77 +831,84 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     textAlign: "center",
   },
+  // Compact tank card
   tankCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: "#d1fae5",
   },
   tankCardSelected: {
     borderColor: "#10b981",
     backgroundColor: "#f0fdf4",
-  },
-  tankIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 2,
   },
   tankInfo: {
     flex: 1,
-    marginLeft: 12,
+  },
+  tankHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
   },
   tankName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#1f2937",
   },
   tankNameSelected: {
     color: "#065f46",
   },
-  tankMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
   fuelTypeBadge: {
     backgroundColor: "#f3f4f6",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     borderRadius: 4,
   },
   fuelTypeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
     color: "#6b7280",
   },
-  tankSite: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginLeft: 8,
+  capacityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 3,
+    gap: 8,
   },
-  capacityContainer: {
-    marginTop: 8,
+  availableSpace: {
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "500",
+    minWidth: 90,
+  },
+  capacityBarContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   capacityBar: {
-    height: 6,
+    flex: 1,
+    height: 4,
     backgroundColor: "#e5e7eb",
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: "hidden",
   },
   capacityFill: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 2,
   },
-  availableSpace: {
-    fontSize: 11,
-    color: "#6b7280",
-    marginTop: 4,
+  capacityPercent: {
+    fontSize: 10,
+    fontWeight: "600",
+    minWidth: 24,
   },
   inputSection: {
     backgroundColor: "white",

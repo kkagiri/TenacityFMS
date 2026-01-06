@@ -1,4 +1,10 @@
-import React, { useEffect, useState, Component } from "react";
+import React, {
+  useEffect,
+  useState,
+  Component,
+  useRef,
+  useCallback,
+} from "react";
 import {
   StatusBar,
   LogBox,
@@ -6,6 +12,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  AppState,
 } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { Provider, useDispatch, useSelector } from "react-redux";
@@ -19,11 +26,14 @@ import SplashScreen from "./screens/SplashScreen";
 import { checkAuthStatus } from "./redux/slices/authSlice";
 import { ENV } from "./config/environment";
 import fuelingNotificationService from "./services/fuelingNotificationService";
+import signalRService from "./services/signalRService";
 
 // Ignore specific warnings
 LogBox.ignoreLogs([
   "Non-serializable values were found in the navigation state",
   "Remote debugger",
+  "Require cycle:", // Common in React Native
+  "VirtualizedLists should never be nested", // Common warning
 ]);
 
 // Error Boundary Component
@@ -117,6 +127,77 @@ const AppContent = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Starting up...");
   const [hasError, setHasError] = useState(false);
+
+  // App state management for SignalR reconnection
+  const appState = useRef(AppState.currentState);
+  const backgroundTimestamp = useRef(null);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  // Handle app state changes for SignalR connection management
+  const handleAppStateChange = useCallback(
+    async (nextAppState) => {
+      const previousState = appState.current;
+
+      console.log(`📱 [App] State change: ${previousState} -> ${nextAppState}`);
+
+      // App is going to background
+      if (nextAppState === "background" || nextAppState === "inactive") {
+        backgroundTimestamp.current = Date.now();
+        console.log("[App] Going to background, pausing SignalR...");
+        signalRService.pause();
+      }
+
+      // App is coming to foreground
+      if (previousState !== "active" && nextAppState === "active") {
+        console.log("[App] Returning to foreground");
+
+        const wasInBackground = backgroundTimestamp.current !== null;
+        const timeInBackground = wasInBackground
+          ? Date.now() - backgroundTimestamp.current
+          : 0;
+
+        console.log(
+          `[App] Time in background: ${Math.round(timeInBackground / 1000)}s`
+        );
+
+        // Only attempt reconnection if user is authenticated
+        if (isAuthenticated) {
+          try {
+            // Resume SignalR (it will check if reconnection is needed)
+            const resumed = await signalRService.resume();
+            if (resumed) {
+              console.log("[App] ✅ SignalR resumed successfully");
+            } else {
+              console.warn("[App] ⚠️ SignalR resume returned false");
+            }
+          } catch (error) {
+            console.error("[App] ❌ SignalR resume failed:", error.message);
+            // Don't crash the app, just log the error
+            // User can manually retry via pull-to-refresh on screens
+          }
+        }
+
+        backgroundTimestamp.current = null;
+      }
+
+      appState.current = nextAppState;
+    },
+    [isAuthenticated]
+  );
+
+  // Subscribe to app state changes
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      if (subscription?.remove) {
+        subscription.remove();
+      }
+    };
+  }, [handleAppStateChange]);
 
   useEffect(() => {
     initializeApp();

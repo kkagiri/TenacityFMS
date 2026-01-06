@@ -6,6 +6,7 @@ import { fetchAllRuleSets } from "../../../redux/actions/fuelingRuleActions";
 import { fetchTags } from "../../../redux/actions/tagActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import TagRuleManagement from "../../../components/Tags/TagRuleManagement/TagRuleManagement";
+import LocationRulesSettings from "../../../components/Tags/TagRuleManagement/LocationRulesSettings";
 import { RuleSetAssignmentManager } from "./index";
 import FuelingRulesHelp from "../../ATG/fuelingprocess/Components/FuelingRulesHelp";
 import "./FuelingRulesMain.scss";
@@ -39,6 +40,11 @@ const FuelingRulesMain = () => {
       text: "Assignments",
       icon: "fa-light fa-link",
     },
+    {
+      id: "location-rules",
+      text: "Location Rules",
+      icon: "fa-light fa-location-dot",
+    },
   ];
 
   const handleTabChange = (e) => {
@@ -60,6 +66,8 @@ const FuelingRulesMain = () => {
         return <TagRuleManagement />;
       case 1:
         return <RuleSetAssignmentManager />;
+      case 2:
+        return <LocationRulesSettings />;
       default:
         return <TagRuleManagement />;
     }

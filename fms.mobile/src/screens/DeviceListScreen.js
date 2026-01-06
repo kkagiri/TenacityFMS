@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  AppState,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   fetchDevicesBySite,
   fetchDeviceList,
@@ -36,24 +38,41 @@ const DeviceListScreen = ({ navigation }) => {
     loadSavedSiteAndFetchDevices();
   }, []);
 
-  // Start SignalR connection and request device status when screen mounts
-  useEffect(() => {
-    const initSignalR = async () => {
-      try {
-        // Start SignalR if not already connected
-        if (!signalRService.isConnected()) {
-          await signalRService.start();
-        } else {
-          // If already connected, request fresh status
-          await signalRService.requestDeviceStatusSummary();
+  // Reconnect SignalR when screen gains focus (e.g., returning from background)
+  useFocusEffect(
+    useCallback(() => {
+      const checkAndReconnect = async () => {
+        try {
+          // Health check and reconnect if needed
+          if (!signalRService.isConnected()) {
+            console.log(
+              "[DeviceListScreen] Screen focused, connecting SignalR..."
+            );
+            await signalRService.start();
+          } else {
+            // If already connected, request fresh status
+            console.log(
+              "[DeviceListScreen] Screen focused, refreshing device status..."
+            );
+            await signalRService.requestDeviceStatusSummary();
+          }
+        } catch (error) {
+          console.log(
+            "[DeviceListScreen] SignalR connection error:",
+            error?.message
+          );
+          // Don't crash - user can pull to refresh
         }
-      } catch (error) {
-        console.log("[DeviceListScreen] SignalR connection error:", error);
-      }
-    };
+      };
 
-    initSignalR();
-  }, []);
+      checkAndReconnect();
+
+      // Cleanup function (optional)
+      return () => {
+        // We don't disconnect here to keep connection alive for other screens
+      };
+    }, [])
+  );
 
   const loadSavedSiteAndFetchDevices = async () => {
     try {

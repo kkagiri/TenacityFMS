@@ -63,6 +63,9 @@ class SignalRService {
     this.subscribedDevices = new Set();
     this.isInitialized = false;
     this.connectionPromise = null;
+    this.isPaused = false; // Track if service is paused (app in background)
+    this.lastActivityTime = null; // Track last activity for stale detection
+    this.connectionTimeout = null; // Track connection timeout
   }
 
   // ============================================================
@@ -444,10 +447,6 @@ class SignalRService {
 
     // Handle pump status updates
     this.connection.on("UploadStatusUpdate", (data) => {
-      console.log(
-        "[SignalR Mobile] UploadStatusUpdate received:",
-        data?.deviceId
-      );
       this._handleUploadStatusUpdate(data);
     });
 
@@ -486,6 +485,12 @@ class SignalRService {
    * Stop the SignalR connection
    */
   async stop() {
+    // Clear any pending connection timeout
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+
     if (this.connection) {
       try {
         await this.connection.stop();
@@ -497,7 +502,123 @@ class SignalRService {
 
     this.connectionState = ConnectionState.DISCONNECTED;
     this.connection = null;
+    this.connectionPromise = null;
+    this.isPaused = false;
     this._notifyStateChange();
+  }
+
+  /**
+   * Pause the SignalR connection (app going to background)
+   * Connection stays alive but we track that we're paused
+   */
+  pause() {
+    console.log("[SignalR Mobile] ⏸️ Pausing SignalR (app backgrounded)");
+    this.isPaused = true;
+    this.lastActivityTime = Date.now();
+  }
+
+  /**
+   * Resume the SignalR connection (app coming to foreground)
+   * Checks if connection is still valid and reconnects if needed
+   */
+  async resume() {
+    console.log("[SignalR Mobile] ▶️ Resuming SignalR (app foregrounded)");
+    this.isPaused = false;
+
+    // Check if we were paused too long and connection might be stale
+    const timePaused = this.lastActivityTime
+      ? Date.now() - this.lastActivityTime
+      : 0;
+
+    console.log(
+      `[SignalR Mobile] Time paused: ${Math.round(timePaused / 1000)}s`
+    );
+
+    try {
+      // Check connection state
+      if (
+        this.connection &&
+        this.connectionState === ConnectionState.CONNECTED
+      ) {
+        // Try to send a ping/request to verify connection is alive
+        try {
+          await this.requestDeviceStatusSummary();
+          console.log(
+            "[SignalR Mobile] ✅ Connection still alive after resume"
+          );
+          return true;
+        } catch (pingError) {
+          console.warn(
+            "[SignalR Mobile] Connection stale after resume, reconnecting..."
+          );
+          // Connection is stale, need to reconnect
+          await this.stop();
+          await this.start(this.hubPath);
+          return true;
+        }
+      } else if (this.connectionState !== ConnectionState.CONNECTED) {
+        // Not connected, try to start
+        console.log("[SignalR Mobile] Not connected after resume, starting...");
+        await this.start(this.hubPath);
+        return true;
+      }
+    } catch (error) {
+      console.error("[SignalR Mobile] ❌ Resume failed:", error.message);
+      this.connectionState = ConnectionState.ERROR;
+      this._notifyStateChange();
+      return false;
+    }
+
+    return this.isConnected();
+  }
+
+  /**
+   * Check if connection is healthy and optionally reconnect
+   * @param {boolean} autoReconnect - Whether to automatically reconnect if unhealthy
+   */
+  async healthCheck(autoReconnect = true) {
+    console.log("[SignalR Mobile] 🏥 Running health check...");
+
+    if (this.isPaused) {
+      console.log("[SignalR Mobile] Skipping health check - service is paused");
+      return false;
+    }
+
+    try {
+      if (
+        !this.connection ||
+        this.connectionState !== ConnectionState.CONNECTED
+      ) {
+        console.log("[SignalR Mobile] Health check: Not connected");
+        if (autoReconnect) {
+          await this.start(this.hubPath);
+        }
+        return this.isConnected();
+      }
+
+      // Try to request status to verify connection
+      await this.requestDeviceStatusSummary();
+      console.log("[SignalR Mobile] ✅ Health check passed");
+      return true;
+    } catch (error) {
+      console.error("[SignalR Mobile] ❌ Health check failed:", error.message);
+
+      if (autoReconnect) {
+        try {
+          await this.stop();
+          await this.start(this.hubPath);
+          return this.isConnected();
+        } catch (reconnectError) {
+          console.error(
+            "[SignalR Mobile] Reconnect after health check failed:",
+            reconnectError.message
+          );
+          return false;
+        }
+      }
+
+      return false;
+    }
   }
 
   // ============================================================
@@ -703,16 +824,11 @@ class SignalRService {
   _handleUploadStatusUpdate(data) {
     try {
       if (!data) {
-        console.warn("[SignalR Mobile] UploadStatusUpdate received null data");
         return;
       }
 
       const deviceId = data.deviceId || data.DeviceId;
       if (!deviceId) {
-        console.warn(
-          "[SignalR Mobile] UploadStatusUpdate received with no deviceId:",
-          Object.keys(data)
-        );
         return;
       }
 

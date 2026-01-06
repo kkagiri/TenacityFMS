@@ -1,5 +1,7 @@
 using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Enums;
 using FMS.Domain.Entities.Features.LocationValidation;
@@ -22,6 +24,13 @@ public class LocationValidationService : ILocationValidationService
     private readonly GpsdataContext _context;
     private readonly IGPSService _gpsService;
     private readonly ILogger<LocationValidationService> _logger;
+    private readonly ISystemConfigurationService _systemConfigService;
+    private readonly IAutomatedFuelingConfigurationService _automatedFuelingConfigService;
+
+    // Configuration keys for FuelingRules
+    private const string CONFIG_KEY_ENABLE_LOCATION_VALIDATION = "FuelingRules.EnableLocationValidation";
+    private const string CONFIG_KEY_BYPASS_ON_GPS_FAILURE = "FuelingRules.BypassOnGPSFailure";
+    private const string CONFIG_KEY_ALLOW_NON_GPS_VEHICLES = "FuelingRules.AllowNonGPSVehicles";
 
     // Earth radius in meters for Haversine formula
     private const double EarthRadiusMeters = 6371000;
@@ -29,10 +38,14 @@ public class LocationValidationService : ILocationValidationService
     public LocationValidationService(
         GpsdataContext context,
         IGPSService gpsService,
+        ISystemConfigurationService systemConfigService,
+        IAutomatedFuelingConfigurationService automatedFuelingConfigService,
         ILogger<LocationValidationService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _gpsService = gpsService ?? throw new ArgumentNullException(nameof(gpsService));
+        _systemConfigService = systemConfigService ?? throw new ArgumentNullException(nameof(systemConfigService));
+        _automatedFuelingConfigService = automatedFuelingConfigService ?? throw new ArgumentNullException(nameof(automatedFuelingConfigService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -49,23 +62,43 @@ public class LocationValidationService : ILocationValidationService
             _logger.LogDebug("Starting location validation for Tank {TankId}, Vehicle {VehicleId}",
                 request.TankId, request.VehicleId);
 
+            // **STEP 0: Check global location validation setting from SystemConfigurations**
+            var globalLocationValidationEnabled = await _systemConfigService.GetConfigurationValueAsync(
+                CONFIG_KEY_ENABLE_LOCATION_VALIDATION, cancellationToken);
+
+            if (string.Equals(globalLocationValidationEnabled, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("Location validation globally disabled via SystemConfiguration");
+
+                // 🔍 DEBUG: Calculate and log distances even when validation is disabled
+                await LogDistanceDebugInfoAsync(request, cancellationToken);
+
+                result = LocationValidationResult.Skipped("Location validation is globally disabled");
+                return result;
+            }
+
             // Step 1: Get PTS device settings
             ptsDevice = await GetPtsDeviceForTankAsync(request.TankId, request.PtsId, cancellationToken);
 
             if (ptsDevice == null)
             {
-                _logger.LogWarning("PTS device not found for tank {TankId}", request.TankId);
-                result = LocationValidationResult.Skipped("PTS device not found");
+                _logger.LogWarning("PTS device not found for tank {TankId}, PtsId {PtsId}", request.TankId, request.PtsId);
+                // If we can't find the device, we can't determine if validation is required
+                // This should be treated as a configuration error, not a skip
+                result = LocationValidationResult.Failed("PTS device not found - unable to perform location validation");
                 return result;
             }
 
-            // Step 2: Check if location validation is enabled
+            // Step 2: Check if location validation is enabled on the PTS device
             if (ptsDevice.EnableLocationValidation == 0)
             {
                 _logger.LogDebug("Location validation not enabled for PTS {PtsId}", ptsDevice.Ptsid);
                 result = LocationValidationResult.Skipped("Location validation not enabled for this device");
                 return result;
             }
+
+            // **STEP 2.5: Now that we know validation is REQUIRED, we must enforce it**
+            _logger.LogDebug("[LocationValidation] Validation REQUIRED for PTS {PtsId} - enforcing checks", ptsDevice.Ptsid);
 
             // Step 3: Get tank location (always fresh for mobile tankers)
             var (tankLocation, tankLocationSource) = await GetTankLocationAsync(request.TankId, cancellationToken);
@@ -89,70 +122,166 @@ public class LocationValidationService : ILocationValidationService
             int gracePeriodMeters = ptsDevice.ProximityGracePeriodMeters ?? 10;
             int minimumGPSAccuracy = ptsDevice.MinimumGPSAccuracy ?? 20;
 
+            // Get global BypassOnGPSFailure setting as fallback
+            var globalBypassOnGPSFailure = await _systemConfigService.GetConfigurationValueAsync(
+                CONFIG_KEY_BYPASS_ON_GPS_FAILURE, cancellationToken);
+            bool allowBypassOnGPSFailure = ptsDevice.BypassOnGPSFailure == 1 ||
+                string.Equals(globalBypassOnGPSFailure, "true", StringComparison.OrdinalIgnoreCase);
+
+            // Get global AllowNonGPSVehicles setting
+            var globalAllowNonGPSVehicles = await _systemConfigService.GetConfigurationValueAsync(
+                CONFIG_KEY_ALLOW_NON_GPS_VEHICLES, cancellationToken);
+            bool allowNonGPSVehicles = string.Equals(globalAllowNonGPSVehicles, "true", StringComparison.OrdinalIgnoreCase);
+
             // Step 4: Perform proximity checks
             ProximityCheckResult? vehicleProximity = null;
             ProximityCheckResult? mobileProximity = null;
 
-            // Vehicle proximity check
-            if (ptsDevice.RequireVehicleProximity == 1 && request.VehicleId.HasValue)
+            // Vehicle proximity check - CRITICAL FIX: Fail if required but no VehicleId provided
+            if (ptsDevice.RequireVehicleProximity == 1)
             {
-                vehicleProximity = await CheckVehicleProximityAsync(
-                    request.VehicleId.Value,
-                    tankLocation,
-                    ptsDevice.VehicleProximityRadius ?? 100,
-                    gracePeriodMeters,
-                    minimumGPSAccuracy,
-                    ptsDevice.BypassOnGPSFailure == 1,
-                    cancellationToken);
-
-                if (vehicleProximity.WasRequired && !vehicleProximity.IsValid && ptsDevice.BypassOnGPSFailure != 1)
+                if (!request.VehicleId.HasValue)
                 {
-                    result = LocationValidationResult.Failed(
-                        vehicleProximity.Reason ?? "Vehicle not within required proximity",
+                    _logger.LogWarning("[LocationValidation] Vehicle proximity REQUIRED but no VehicleId provided for PTS {PtsId}",
+                        ptsDevice.Ptsid);
+
+                    if (allowNonGPSVehicles && allowBypassOnGPSFailure)
+                    {
+                        _logger.LogWarning("[LocationValidation] Bypassing vehicle proximity check - AllowNonGPSVehicles=true");
+                        vehicleProximity = new ProximityCheckResult
+                        {
+                            WasRequired = true,
+                            IsValid = true,
+                            Reason = "Vehicle proximity bypassed - no vehicle ID provided but AllowNonGPSVehicles is enabled"
+                        };
+                    }
+                    else
+                    {
+                        result = LocationValidationResult.Failed(
+                            "Vehicle proximity validation required but no vehicle ID was provided. Please select a vehicle before fueling.",
+                            tankLocation,
+                            new ProximityCheckResult
+                            {
+                                WasRequired = true,
+                                IsValid = false,
+                                Reason = "No vehicle ID provided for required vehicle proximity check"
+                            },
+                            null);
+                        await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
+                        return result;
+                    }
+                }
+                else
+                {
+                    vehicleProximity = await CheckVehicleProximityAsync(
+                        request.VehicleId.Value,
                         tankLocation,
-                        vehicleProximity,
-                        null);
-                    await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
-                    return result;
+                        ptsDevice.VehicleProximityRadius ?? 100,
+                        gracePeriodMeters,
+                        minimumGPSAccuracy,
+                        allowBypassOnGPSFailure,
+                        cancellationToken);
+
+                    // CRITICAL FIX: Only bypass if GPS was actually unavailable
+                    // If GPS returned a valid location but vehicle is too far away, we MUST fail
+                    if (vehicleProximity.WasRequired && !vehicleProximity.IsValid)
+                    {
+                        _logger.LogWarning(
+                            "[LocationValidation] ❌ VEHICLE PROXIMITY FAILED - Distance: {Distance:F0}m, Max allowed: {MaxRadius}m, " +
+                            "Bypassed due to GPS failure: {WasBypassed}",
+                            vehicleProximity.DistanceMeters,
+                            vehicleProximity.AllowedRadiusMeters,
+                            vehicleProximity.WasBypassedDueToGPSFailure);
+
+                        result = LocationValidationResult.Failed(
+                            vehicleProximity.Reason ?? "Vehicle not within required proximity",
+                            tankLocation,
+                            vehicleProximity,
+                            null);
+                        await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
+                        return result;
+                    }
                 }
             }
 
-            // Mobile app proximity check
+            // Mobile app proximity check - CRITICAL FIX: Fail if required but no location provided
             if (ptsDevice.RequireMobileAppProximity == 1)
             {
-                mobileProximity = await CheckMobileProximityAsync(
-                    request.MobileAppLocation,
-                    tankLocation,
-                    ptsDevice.MobileAppProximityRadius ?? 50,
-                    gracePeriodMeters,
-                    minimumGPSAccuracy,
-                    ptsDevice.BypassOnGPSFailure == 1,
-                    cancellationToken);
-
-                if (mobileProximity.WasRequired && !mobileProximity.IsValid && ptsDevice.BypassOnGPSFailure != 1)
+                if (request.MobileAppLocation == null || !request.MobileAppLocation.IsValid)
                 {
-                    result = LocationValidationResult.Failed(
-                        mobileProximity.Reason ?? "Mobile app not within required proximity",
+                    _logger.LogWarning("[LocationValidation] Mobile app proximity REQUIRED but no valid location provided for PTS {PtsId}",
+                        ptsDevice.Ptsid);
+
+                    // Check if we allow cached mobile locations
+                    var allowCachedLocation = await _systemConfigService.GetConfigurationValueAsync(
+                        "FuelingRules.AllowCachedMobileLocation", cancellationToken);
+
+                    if (allowBypassOnGPSFailure)
+                    {
+                        _logger.LogWarning("[LocationValidation] Bypassing mobile proximity check - BypassOnGPSFailure=true");
+                        mobileProximity = new ProximityCheckResult
+                        {
+                            WasRequired = true,
+                            IsValid = true,
+                            Reason = "Mobile proximity bypassed - no location provided but BypassOnGPSFailure is enabled"
+                        };
+                    }
+                    else
+                    {
+                        result = LocationValidationResult.Failed(
+                            "Mobile app location required for fueling but was not provided. Please enable location services and try again.",
+                            tankLocation,
+                            vehicleProximity,
+                            new ProximityCheckResult
+                            {
+                                WasRequired = true,
+                                IsValid = false,
+                                Reason = "No mobile app location provided for required proximity check"
+                            });
+                        await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
+                        return result;
+                    }
+                }
+                else
+                {
+                    mobileProximity = await CheckMobileProximityAsync(
+                        request.MobileAppLocation,
                         tankLocation,
-                        vehicleProximity,
-                        mobileProximity);
-                    await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
-                    return result;
+                        ptsDevice.MobileAppProximityRadius ?? 50,
+                        gracePeriodMeters,
+                        minimumGPSAccuracy,
+                        allowBypassOnGPSFailure,
+                        cancellationToken);
+
+                    // CRITICAL FIX: Only bypass if GPS was actually unavailable
+                    // If mobile location is valid but too far away, we MUST fail
+                    if (mobileProximity.WasRequired && !mobileProximity.IsValid)
+                    {
+                        result = LocationValidationResult.Failed(
+                            mobileProximity.Reason ?? "Mobile app not within required proximity",
+                            tankLocation,
+                            vehicleProximity,
+                            mobileProximity);
+                        await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
+                        return result;
+                    }
                 }
             }
 
             // All checks passed
             _logger.LogInformation(
-                "Location validation passed for Tank {TankId}, Vehicle {VehicleId}. " +
-                "Vehicle distance: {VehicleDistance}m, Mobile distance: {MobileDistance}m",
+                "[LocationValidation] ✅ Location validation PASSED for Tank {TankId}, Vehicle {VehicleId}. " +
+                "Vehicle distance: {VehicleDistance:F0}m (max: {VehicleRadius}m), Mobile distance: {MobileDistance:F0}m (max: {MobileRadius}m)",
                 request.TankId,
                 request.VehicleId,
                 vehicleProximity?.DistanceMeters,
-                mobileProximity?.DistanceMeters);
+                ptsDevice.VehicleProximityRadius,
+                mobileProximity?.DistanceMeters,
+                ptsDevice.MobileAppProximityRadius);
 
-            // Check if any validation was bypassed
-            bool wasBypassed = (vehicleProximity?.Reason?.Contains("bypassed", StringComparison.OrdinalIgnoreCase) ?? false) ||
-                               (mobileProximity?.Reason?.Contains("bypassed", StringComparison.OrdinalIgnoreCase) ?? false);
+            // Check if any validation was bypassed due to GPS failure
+            bool wasBypassed = (vehicleProximity?.WasBypassedDueToGPSFailure ?? false) ||
+                               (mobileProximity?.WasBypassedDueToGPSFailure ?? false);
 
             if (wasBypassed)
             {
@@ -325,6 +454,18 @@ public class LocationValidationService : ILocationValidationService
         return EarthRadiusMeters * c;
     }
 
+    /// <summary>
+    /// Formats distance for display - shows km if distance >= 500m, otherwise shows m
+    /// </summary>
+    private static string FormatDistance(double distanceMeters)
+    {
+        if (distanceMeters >= 500)
+        {
+            return $"{distanceMeters / 1000:F1}km";
+        }
+        return $"{distanceMeters:F0}m";
+    }
+
     /// <inheritdoc />
     public async Task<bool> IsLocationValidationEnabledAsync(
         string ptsId,
@@ -388,6 +529,7 @@ public class LocationValidationService : ILocationValidationService
             {
                 WasRequired = true,
                 IsValid = bypassOnFailure,
+                WasBypassedDueToGPSFailure = bypassOnFailure,
                 Reason = bypassOnFailure ? "Vehicle not found - bypassed" : "Vehicle not found"
             };
         }
@@ -415,6 +557,7 @@ public class LocationValidationService : ILocationValidationService
             {
                 WasRequired = true,
                 IsValid = bypassOnFailure,
+                WasBypassedDueToGPSFailure = bypassOnFailure,
                 Reason = bypassOnFailure ? "Vehicle GPS unavailable - bypassed" : "Vehicle GPS unavailable"
             };
         }
@@ -440,12 +583,12 @@ public class LocationValidationService : ILocationValidationService
         string? reason = null;
         if (!isWithinRadius)
         {
-            reason = $"Vehicle is {distance:F0}m away, must be within {allowedRadius}m (with {gracePeriodMeters}m tolerance)";
+            reason = $"Vehicle is {FormatDistance(distance)} away, must be within {allowedRadius}m (with {gracePeriodMeters}m tolerance)";
         }
         else if (distance > allowedRadius && distance <= effectiveRadius)
         {
             // Within grace period - log info
-            _logger.LogInformation("Vehicle {VehicleId} is {Distance}m away - within grace period ({Radius}m + {Grace}m tolerance)",
+            _logger.LogDebug("Vehicle {VehicleId} is {Distance}m away - within grace period ({Radius}m + {Grace}m tolerance)",
                 vehicleId, distance, allowedRadius, gracePeriodMeters);
         }
 
@@ -476,6 +619,7 @@ public class LocationValidationService : ILocationValidationService
             {
                 WasRequired = true,
                 IsValid = bypassOnFailure,
+                WasBypassedDueToGPSFailure = bypassOnFailure,
                 Reason = bypassOnFailure ? "Mobile location not provided - bypassed" : "Mobile location not provided"
             });
         }
@@ -492,7 +636,7 @@ public class LocationValidationService : ILocationValidationService
         // Log if using cached location
         if (mobileLocation.IsCached)
         {
-            _logger.LogInformation("Using cached mobile location (offline mode allowed)");
+            _logger.LogDebug("Using cached mobile location (offline mode allowed)");
         }
 
         // Calculate distance
@@ -505,7 +649,7 @@ public class LocationValidationService : ILocationValidationService
         string? reason = null;
         if (!isWithinRadius)
         {
-            reason = $"Mobile device is {distance:F0}m away, must be within {allowedRadius}m (with {gracePeriodMeters}m tolerance)";
+            reason = $"Mobile device is {FormatDistance(distance)} away, must be within {allowedRadius}m (with {gracePeriodMeters}m tolerance)";
             if (hasAccuracyIssue)
             {
                 reason += $" (Note: GPS accuracy was {mobileLocation.Accuracy}m)";
@@ -513,7 +657,7 @@ public class LocationValidationService : ILocationValidationService
         }
         else if (distance > allowedRadius && distance <= effectiveRadius)
         {
-            _logger.LogInformation("Mobile device is {Distance}m away - within grace period ({Radius}m + {Grace}m tolerance)",
+            _logger.LogDebug("Mobile device is {Distance}m away - within grace period ({Radius}m + {Grace}m tolerance)",
                 distance, allowedRadius, gracePeriodMeters);
         }
 
@@ -616,6 +760,112 @@ public class LocationValidationService : ILocationValidationService
         {
             // Don't fail the validation if audit logging fails
             _logger.LogError(ex, "Failed to log location validation audit for Tank {TankId}", request.TankId);
+        }
+    }
+
+    #endregion
+
+    #region Debug Logging
+
+    /// <summary>
+    /// Logs distance debug information even when validation is disabled.
+    /// This helps operators understand what would happen if validation were enabled.
+    /// </summary>
+    private async Task LogDistanceDebugInfoAsync(
+        LocationValidationRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogDebug("📍 [LocationDebug] ========== DISTANCE DEBUG INFO (Validation Disabled) ==========");
+
+            // Get tank location
+            var (tankLocation, tankSource) = await GetTankLocationAsync(request.TankId, cancellationToken);
+
+            if (tankLocation == null || !tankLocation.IsValid)
+            {
+                _logger.LogWarning("📍 [LocationDebug] ❌ Tank {TankId} has no valid location configured", request.TankId);
+                return;
+            }
+
+            _logger.LogDebug("📍 [LocationDebug] 🏭 TANK {TankId} Location: ({Lat:F6}, {Lng:F6}) - Source: {Source}",
+                request.TankId, tankLocation.Latitude, tankLocation.Longitude, tankSource);
+
+            // Calculate vehicle distance if VehicleId provided
+            if (request.VehicleId.HasValue)
+            {
+                var vehicleLocation = await GetVehicleLocationAsync(request.VehicleId.Value, cancellationToken);
+
+                if (vehicleLocation != null && vehicleLocation.IsValid)
+                {
+                    var vehicleDistance = CalculateDistanceMeters(vehicleLocation, tankLocation);
+
+                    _logger.LogDebug("📍 [LocationDebug] 🚗 VEHICLE {VehicleId} Location: ({Lat:F6}, {Lng:F6})",
+                        request.VehicleId, vehicleLocation.Latitude, vehicleLocation.Longitude);
+                    _logger.LogDebug("📍 [LocationDebug] 🚗 VEHICLE -> TANK Distance: {Distance:F1} meters",
+                        vehicleDistance);
+
+                    // Get PTS device settings for context
+                    var ptsDevice = await GetPtsDeviceForTankAsync(request.TankId, request.PtsId, cancellationToken);
+                    if (ptsDevice != null)
+                    {
+                        var vehicleRadius = ptsDevice.VehicleProximityRadius ?? 100;
+                        var gracePeriod = ptsDevice.ProximityGracePeriodMeters ?? 10;
+                        var effectiveRadius = vehicleRadius + gracePeriod;
+
+                        var wouldPass = vehicleDistance <= effectiveRadius;
+                        var status = wouldPass ? "✅ WOULD PASS" : "❌ WOULD FAIL";
+
+                        _logger.LogDebug("📍 [LocationDebug] 🚗 VEHICLE Proximity Check: {Status} (Distance: {Distance:F1}m, Allowed: {Radius}m + {Grace}m grace = {Effective}m)",
+                            status, vehicleDistance, vehicleRadius, gracePeriod, effectiveRadius);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("📍 [LocationDebug] 🚗 VEHICLE {VehicleId} - No GPS location available", request.VehicleId);
+                }
+            }
+            else
+            {
+                _logger.LogDebug("📍 [LocationDebug] 🚗 No VehicleId provided - skipping vehicle distance calculation");
+            }
+
+            // Calculate mobile distance if provided
+            if (request.MobileAppLocation != null && request.MobileAppLocation.IsValid)
+            {
+                var mobileDistance = CalculateDistanceMeters(request.MobileAppLocation, tankLocation);
+
+                _logger.LogDebug("📍 [LocationDebug] 📱 MOBILE Location: ({Lat:F6}, {Lng:F6}), Accuracy: {Accuracy}m, IsCached: {IsCached}",
+                    request.MobileAppLocation.Latitude, request.MobileAppLocation.Longitude,
+                    request.MobileAppLocation.Accuracy, request.MobileAppLocation.IsCached);
+                _logger.LogDebug("📍 [LocationDebug] 📱 MOBILE -> TANK Distance: {Distance:F1} meters",
+                    mobileDistance);
+
+                // Get PTS device settings for context
+                var ptsDevice = await GetPtsDeviceForTankAsync(request.TankId, request.PtsId, cancellationToken);
+                if (ptsDevice != null)
+                {
+                    var mobileRadius = ptsDevice.MobileAppProximityRadius ?? 50;
+                    var gracePeriod = ptsDevice.ProximityGracePeriodMeters ?? 10;
+                    var effectiveRadius = mobileRadius + gracePeriod;
+
+                    var wouldPass = mobileDistance <= effectiveRadius;
+                    var status = wouldPass ? "✅ WOULD PASS" : "❌ WOULD FAIL";
+
+                    _logger.LogDebug("📍 [LocationDebug] 📱 MOBILE Proximity Check: {Status} (Distance: {Distance:F1}m, Allowed: {Radius}m + {Grace}m grace = {Effective}m)",
+                        status, mobileDistance, mobileRadius, gracePeriod, effectiveRadius);
+                }
+            }
+            else
+            {
+                _logger.LogDebug("📍 [LocationDebug] 📱 No mobile location provided");
+            }
+
+            _logger.LogDebug("📍 [LocationDebug] ================================================================");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "📍 [LocationDebug] Error calculating debug distances");
         }
     }
 

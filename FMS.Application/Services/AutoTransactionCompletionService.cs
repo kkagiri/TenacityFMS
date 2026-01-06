@@ -385,10 +385,15 @@ namespace FMS.Application.Services
 
                 if (contextJson.IsNullOrEmpty)
                 {
-                    _logger.LogDebug("[AutoComplete] No transaction context found in Redis for enrichment - device: {DeviceId}, transaction: {Transaction}",
+                    _logger.LogWarning("[AutoComplete] ⚠️ NO REDIS CONTEXT FOUND for enrichment - device: {DeviceId}, transaction: {Transaction}. " +
+                        "This means VehicleId, TankId, Odometer, and other authorization data will be NULL in the saved transaction!",
                         deviceId, transaction);
                     return;
                 }
+
+                // **DEBUG: Log the raw Redis context**
+                _logger.LogInformation("[AutoComplete] 📦 REDIS CONTEXT FOR ENRICHMENT - device: {DeviceId}, transaction: {Transaction}, Raw JSON: {ContextJson}",
+                    deviceId, transaction, contextJson.ToString());
 
                 var context = JsonSerializer.Deserialize<JsonElement>(contextJson);
 

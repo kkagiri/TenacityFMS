@@ -1,8 +1,10 @@
 /**
  * SplashScreen - Initial loading screen with branding
  * Shows app logo, name, and loading indicator
+ *
+ * Fixed: Added error handling for image loading to prevent black screen
  */
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,9 +13,17 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  TouchableOpacity,
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
+
+// Fallback logo component when image fails to load
+const FallbackLogo = () => (
+  <View style={styles.fallbackLogo}>
+    <Text style={styles.fallbackLogoText}>H</Text>
+  </View>
+);
 
 const SplashScreen = ({
   message = "Loading...",
@@ -23,42 +33,80 @@ const SplashScreen = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [imageError, setImageError] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Fade in and scale animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 4,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Set ready immediately to ensure something shows
+    // This prevents black screen on slow devices
+    setIsReady(true);
 
-    // Pulse animation for loader
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
+    // Start animations with a small delay to ensure component is mounted
+    const animationTimer = setTimeout(() => {
+      try {
+        // Fade in and scale animation
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 4,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+        ]).start();
 
-    return () => pulse.stop();
+        // Pulse animation for loader
+        const pulse = Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        pulse.start();
+      } catch (animError) {
+        console.warn("[SplashScreen] Animation error:", animError);
+      }
+    }, 50);
+
+    return () => {
+      clearTimeout(animationTimer);
+      try {
+        pulseAnim.stopAnimation();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    };
   }, [fadeAnim, scaleAnim, pulseAnim]);
+
+  // Handle image load error
+  const handleImageError = (error) => {
+    console.warn(
+      "[SplashScreen] Logo image failed to load:",
+      error?.nativeEvent?.error
+    );
+    setImageError(true);
+  };
+
+  // Early return with basic view if not ready (prevents black screen)
+  if (!isReady) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -75,13 +123,18 @@ const SplashScreen = ({
           },
         ]}
       >
-        {/* Logo */}
+        {/* Logo - with fallback for image load errors */}
         <View style={styles.logoContainer}>
-          <Image
-            source={require("../assets/images/hyoung-logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          {imageError ? (
+            <FallbackLogo />
+          ) : (
+            <Image
+              source={require("../assets/images/hyoung-logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+              onError={handleImageError}
+            />
+          )}
         </View>
 
         {/* App Name */}
@@ -107,11 +160,9 @@ const SplashScreen = ({
             <Text style={styles.errorText}>
               Failed to load. Please try again.
             </Text>
-            <View style={styles.retryButton}>
-              <Text style={styles.retryButtonText} onPress={onRetry}>
-                Retry
-              </Text>
-            </View>
+            <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         )}
       </Animated.View>
@@ -229,6 +280,20 @@ const styles = StyleSheet.create({
   copyright: {
     fontSize: 12,
     color: "#475569",
+  },
+  // Fallback logo styles when image fails to load
+  fallbackLogo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#2563eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fallbackLogoText: {
+    fontSize: 48,
+    fontWeight: "bold",
+    color: "white",
   },
 });
 

@@ -65,6 +65,7 @@ using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Services.Logging;
 using FMS.Application.Features.LocationValidation.Extensions;
+using FMS.Application.Features.PTS.Extensions;
 
 namespace FMS.WebClient.Extensions;
 
@@ -441,6 +442,9 @@ public static class FmsServiceCollectionExtensions
 
         // Location Validation Services (for proximity-based fueling validation)
         services.AddLocationValidationServices();
+
+        // PTS Authorization Services (validators, pre-checks, transaction context)
+        services.AddPtsAuthorizationServices();
 
         // Communication & Tracking Services
         services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();

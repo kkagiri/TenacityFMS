@@ -20,6 +20,7 @@ using FMS.Application.Common;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
 using FMS.Persistence.DataAccess;
@@ -274,10 +275,13 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 }
             }
 
-            // Source tank validation
+            // Tank validations - load both tanks with their relationships
+            Tank? sourceTank = null;
+            Tank? destTank = null;
+
             if (request.SourceTankId > 0)
             {
-                var sourceTank = await _context.Tanks
+                sourceTank = await _context.Tanks
                     .Include(t => t.Site)
                     .FirstOrDefaultAsync(t => t.Id == request.SourceTankId);
 
@@ -285,27 +289,75 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 {
                     validationErrors.Add("Source tank not found");
                 }
-                else
-                {
-                    // Check sufficient stock
-                    var currentStock = sourceTank.CurrentStock ?? 0;
-                    if (currentStock < (decimal)request.Volume)
-                    {
-                        validationErrors.Add(
-                            $"Insufficient stock in source tank. Available: {currentStock:F2} L, Requested: {request.Volume:F2} L");
-                    }
+            }
 
-                    // Check tank capacity for destination
-                    if (request.DestinationTankId > 0)
-                    {
-                        var destTank = await _context.Tanks.FirstOrDefaultAsync(t => t.Id == request.DestinationTankId);
-                        if (destTank == null)
-                        {
-                            validationErrors.Add("Destination tank not found");
-                        }
-                        // NOTE: Removed same-site, fuel grade, and capacity validations
-                        // These checks are removed to allow flexibility in tank transfers
-                    }
+            if (request.DestinationTankId > 0)
+            {
+                destTank = await _context.Tanks
+                    .Include(t => t.Site)
+                    .FirstOrDefaultAsync(t => t.Id == request.DestinationTankId);
+
+                if (destTank == null)
+                {
+                    validationErrors.Add("Destination tank not found");
+                }
+            }
+
+            // Perform detailed validations only if both tanks are found
+            if (sourceTank != null && destTank != null)
+            {
+                // **VALIDATION 1: Source Tank Stock Check**
+                var currentStock = sourceTank.CurrentStock ?? 0;
+                if (currentStock < (decimal)request.Volume)
+                {
+                    validationErrors.Add(
+                        $"⛽ Insufficient stock in source tank '{sourceTank.Name}'. Available: {currentStock:N0} L, Requested: {request.Volume:N0} L");
+                }
+
+                // **VALIDATION 2: Destination Tank Capacity Check**
+                var destCurrentStock = destTank.CurrentStock ?? 0;
+                var destCapacity = destTank.TankVolume;
+                var destAvailableSpace = destCapacity - destCurrentStock;
+
+                if (destAvailableSpace < (decimal)request.Volume)
+                {
+                    validationErrors.Add(
+                        $"⚠️ Destination tank '{destTank.Name}' has insufficient capacity. Available space: {destAvailableSpace:N0} L, Transfer volume: {request.Volume:N0} L");
+                }
+
+                // Also warn if transfer would fill tank above 95% (safety threshold)
+                var destAfterTransfer = destCurrentStock + (decimal)request.Volume;
+                var destPercentAfter = (destAfterTransfer / destCapacity) * 100;
+                if (destPercentAfter > 95)
+                {
+                    _logger.LogWarning(
+                        "[TankTransferAuth] ⚠️ WARNING: Transfer will fill destination tank '{TankName}' to {Percent:F1}%",
+                        destTank.Name, destPercentAfter);
+                }
+
+                // **VALIDATION 3: Minimum Transfer Volume (prevent trivial transfers)**
+                const double MINIMUM_TRANSFER_VOLUME = 10.0; // 10 liters minimum
+                if (request.Volume < MINIMUM_TRANSFER_VOLUME)
+                {
+                    validationErrors.Add(
+                        $"Transfer volume must be at least {MINIMUM_TRANSFER_VOLUME:N0} L. Requested: {request.Volume:N1} L");
+                }
+
+                // **VALIDATION 4: Maximum Single Transfer Volume (safety limit)**
+                const double MAXIMUM_SINGLE_TRANSFER = 20000.0; // 50,000 liters max per single transfer
+                if (request.Volume > MAXIMUM_SINGLE_TRANSFER)
+                {
+                    validationErrors.Add(
+                        $"Transfer volume exceeds maximum limit of {MAXIMUM_SINGLE_TRANSFER:N0} L. Please split into smaller transfers.");
+                }
+
+                // Log successful validation details
+                if (!validationErrors.Any())
+                {
+                    _logger.LogInformation(
+                        "[TankTransferAuth] ✅ Validation passed - Source: '{SourceTank}' ({SourceStock:N0}/{SourceCapacity:N0} L), Dest: '{DestTank}' ({DestStock:N0}/{DestCapacity:N0} L), Transfer: {Volume:N0} L",
+                        sourceTank.Name, currentStock, sourceTank.TankVolume,
+                        destTank.Name, destCurrentStock, destCapacity, request.Volume);
                 }
             }
 

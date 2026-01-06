@@ -1,10 +1,10 @@
 .fueling-rules-main {
-  height: 100%;
+  height: auto;
   width: 100%;
 
   .tab-content {
     @apply tw-bg-white tw-rounded-lg tw-shadow-sm;
-    min-height: calc(100vh - 250px);
+    height: auto;
   }
 
   // Tab styling

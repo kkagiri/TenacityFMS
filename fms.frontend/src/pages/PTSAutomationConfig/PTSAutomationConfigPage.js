@@ -1,5 +1,5 @@
 //Cursor - Create PTS Automation Configuration main page
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -138,37 +138,48 @@ const PTSAutomationConfigPage = () => {
     navigate("/automatic fueling");
   };
 
-  // Column configurations
-  const renderActionsColumn = ({ data }) => (
-    <div className="tw-flex tw-gap-2">
-      <Button
-        icon="fa-light fa-edit"
-        hint="Edit Configuration"
-        onClick={() => handleEdit(data)}
-        className="tw-btn tw-btn-sm tw-btn-primary"
-      />
-      <Button
-        icon="fa-light fa-eye"
-        hint="View Effective Config"
-        onClick={() => handleViewEffectiveConfig(data.siteId)}
-        className="tw-btn tw-btn-sm tw-btn-info"
-        disabled={!data.siteId}
-      />
-      <Button
-        icon="fa-light fa-trash"
-        hint="Delete Configuration"
-        onClick={() => handleDelete(data.id)}
-        className="tw-btn tw-btn-sm tw-btn-danger"
-      />
-    </div>
-  );
+  // Memoize the configurations to prevent unnecessary re-renders
+  const gridDataSource = useMemo(() => {
+    return configurations ? [...configurations] : [];
+  }, [configurations]);
 
-  const renderBooleanColumn = ({ value }) => (
-    <i
-      className={`fa-light ${
-        value ? "fa-check tw-text-green-600" : "fa-times tw-text-red-600"
-      }`}
-    />
+  // Stable callback for actions column - avoid inline functions in cellRender
+  const handleEditClick = useCallback((e) => {
+    const data = e.row?.data;
+    if (data) {
+      setSelectedConfiguration(data);
+      setShowEditModal(true);
+    }
+  }, []);
+
+  const handleViewClick = useCallback((e) => {
+    const data = e.row?.data;
+    if (data?.siteId) {
+      setSelectedSiteId(data.siteId);
+      setShowEffectiveConfig(true);
+    }
+  }, []);
+
+  const handleDeleteClick = useCallback(
+    async (e) => {
+      const data = e.row?.data;
+      if (
+        data &&
+        window.confirm("Are you sure you want to delete this configuration?")
+      ) {
+        try {
+          await dispatch(deleteConfiguration(data.id));
+          showNotification("Configuration deleted successfully", "success");
+          dispatch(fetchConfigurations());
+        } catch (error) {
+          showNotification(
+            "Failed to delete configuration. Please try again.",
+            "error"
+          );
+        }
+      }
+    },
+    [dispatch]
   );
 
   return (
@@ -194,7 +205,7 @@ const PTSAutomationConfigPage = () => {
 
       <div className="tw-bg-white tw-rounded-lg tw-shadow-md">
         <DataGrid
-          dataSource={configurations}
+          dataSource={gridDataSource}
           showBorders={true}
           remoteOperations={false}
           allowColumnReordering={true}
@@ -202,6 +213,8 @@ const PTSAutomationConfigPage = () => {
           columnAutoWidth={true}
           className="tw-w-full"
           noDataText="No configurations found. Create a new configuration to get started."
+          repaintChangesOnly={true}
+          keyExpr="id"
         >
           <StateStoring
             enabled={true}
@@ -246,21 +259,21 @@ const PTSAutomationConfigPage = () => {
             caption="Global"
             width={80}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
             dataField="autoCreateLedgerEntries"
             caption="Auto Ledger"
             width={100}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
             dataField="checkForDuplicateManualEntries"
             caption="Check Duplicates"
             width={120}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
             dataField="reconciliationFrequencyMinutes"
@@ -273,14 +286,14 @@ const PTSAutomationConfigPage = () => {
             caption="Use BookKeeping"
             width={120}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
             dataField="usePtsProbeReadings"
             caption="Use PTS Probe"
             width={120}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
             dataField="volumeSourcePriorityText"
@@ -293,7 +306,7 @@ const PTSAutomationConfigPage = () => {
             caption="Auto Reconcile"
             width={120}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
             dataField="discrepancyActionText"
@@ -313,55 +326,94 @@ const PTSAutomationConfigPage = () => {
             caption="Active"
             width={80}
             allowSorting={true}
-            cellRender={renderBooleanColumn}
+            dataType="boolean"
           />
           <Column
+            type="buttons"
             caption="Actions"
             width={150}
-            allowSorting={false}
-            cellRender={renderActionsColumn}
+            buttons={[
+              {
+                hint: "Edit",
+                icon: "edit",
+                onClick: handleEditClick,
+              },
+              {
+                hint: "View Effective Config",
+                icon: "eyeopen",
+                onClick: handleViewClick,
+              },
+              {
+                hint: "Delete",
+                icon: "trash",
+                onClick: handleDeleteClick,
+              },
+            ]}
           />
         </DataGrid>
       </div>
 
-      {/* Create/Edit Configuration Modal - Always render, control via visible prop */}
-      <Popup
-        visible={showCreateModal || showEditModal}
-        onHiding={handleModalClose}
-        dragEnabled={false}
-        showCloseButton={false}
-        showTitle={false}
-        width="900px"
-        height="90vh"
-        className="pts-config-popup"
-      >
-        {(showCreateModal || showEditModal) && (
-          <ConfigurationForm
-            configuration={selectedConfiguration}
-            onSuccess={handleFormSuccess}
-            onCancel={handleModalClose}
-          />
-        )}
-      </Popup>
+      {/* Create Configuration Modal */}
+      {showCreateModal && (
+        <Popup
+          visible={true}
+          onHiding={handleModalClose}
+          dragEnabled={false}
+          showCloseButton={false}
+          showTitle={false}
+          width="900px"
+          height="90vh"
+          className="pts-config-popup"
+          contentRender={() => (
+            <ConfigurationForm
+              configuration={null}
+              onSuccess={handleFormSuccess}
+              onCancel={handleModalClose}
+            />
+          )}
+        />
+      )}
 
-      {/* Effective Configuration Viewer Modal - Always render, control via visible prop */}
-      <Popup
-        visible={showEffectiveConfig}
-        onHiding={handleModalClose}
-        dragEnabled={false}
-        showCloseButton={true}
-        showTitle={true}
-        title="Effective Configuration for Site"
-        width="600px"
-        height="auto"
-      >
-        {showEffectiveConfig && (
-          <EffectiveConfigViewer
-            siteId={selectedSiteId}
-            onClose={handleModalClose}
-          />
-        )}
-      </Popup>
+      {/* Edit Configuration Modal */}
+      {showEditModal && (
+        <Popup
+          visible={true}
+          onHiding={handleModalClose}
+          dragEnabled={false}
+          showCloseButton={false}
+          showTitle={false}
+          width="900px"
+          height="90vh"
+          className="pts-config-popup"
+          contentRender={() => (
+            <ConfigurationForm
+              configuration={selectedConfiguration}
+              onSuccess={handleFormSuccess}
+              onCancel={handleModalClose}
+            />
+          )}
+        />
+      )}
+
+      {/* Effective Configuration Viewer Modal */}
+      {showEffectiveConfig && (
+        <Popup
+          visible={true}
+          onHiding={handleModalClose}
+          dragEnabled={false}
+          showCloseButton={true}
+          showTitle={true}
+          title="Effective Configuration for Site"
+          width="600px"
+          height="auto"
+          contentRender={() => (
+            <EffectiveConfigViewer
+              siteId={selectedSiteId}
+              onClose={handleModalClose}
+            />
+          )}
+        />
+      )}
     </div>
   );
 };
