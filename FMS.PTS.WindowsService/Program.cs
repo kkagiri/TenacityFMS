@@ -262,6 +262,25 @@ namespace FMS.PTS.WindowsService
                 .Enrich.WithEnvironmentName()
                 .Enrich.WithMachineName();
 
+            // Production-specific overrides to reduce log volume
+            if (environment == "Production")
+            {
+                // Reduce WebSocket listener verbosity - only warnings and errors
+                loggerConfig.MinimumLevel.Override("FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket.PTSWebSocketListenerService", LogEventLevel.Warning);
+
+                // Reduce connection tracking verbosity
+                loggerConfig.MinimumLevel.Override("FMS.Application.Communication.Tracker.DeviceConnectionTracker", LogEventLevel.Warning);
+
+                // Reduce Redis communication verbosity
+                loggerConfig.MinimumLevel.Override("FMS.Application.Communication.Redis", LogEventLevel.Warning);
+
+                // Only log important SignalR events
+                loggerConfig.MinimumLevel.Override("Microsoft.AspNetCore.SignalR", LogEventLevel.Warning);
+
+                // Reduce HTTP client logging
+                loggerConfig.MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning);
+            }
+
             // Configure Console Sink with specific filter for Development //Cursor
             loggerConfig.WriteTo.Logger(lc => lc
                 .Filter.ByExcluding(le =>
@@ -563,6 +582,27 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SmsNotificationChannel>();
             services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.SlackNotificationChannel>();
             services.AddScoped<INotificationChannel, FMS.Application.Features.Notification.Services.Channels.PushNotificationChannel>();
+
+            // Register missing services from error messages
+            services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
+            services.AddScoped<FMS.Application.Features.Reporting.Services.IReportDefinitionService, FMS.Application.Features.Reporting.Services.ReportDefinitionService>();
+            services.AddScoped<FMS.Application.Features.Reporting.Services.IReportGenerationService, FMS.Application.Features.Reporting.Services.ReportGenerationService>();
+            services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateReportingService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();
+            services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();
+            services.AddScoped<FMS.Application.Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService, FMS.Application.Features.FuelTagManagement.FuelingRules.Services.FuelingRuleEvaluationService>();
+            services.AddScoped<FMS.Application.Communication.SignalR.IGpsFetchProgressService, FMS.Application.Communication.SignalR.GpsFetchProgressService>();
+            services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditTankStockService, FMS.Application.Features.FuelAudit.Services.FuelAuditTankStockService>();
+            services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditCalculationService, FMS.Application.Features.FuelAudit.Services.FuelAuditCalculationService>();
+            services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFullTankEstimationService, FMS.Application.Features.FuelAudit.Services.FullTankEstimationService>();
+            services.AddScoped<FMS.Application.Features.LocationValidation.Services.ILocationValidationService, FMS.Application.Features.LocationValidation.Services.LocationValidationService>();
+
+            // Register PTS Pump Authorization Services
+            services.AddScoped<FMS.Application.Validation.PTSValidators.PumpAuthorization.IPumpAuthorizationValidator, FMS.Application.Validation.PTSValidators.PumpAuthorization.PumpAuthorizationValidator>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IPumpAuthorizationPreCheckService, FMS.Application.Features.PTS.Services.PumpAuthorizationPreCheckService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.ITransactionContextService, FMS.Application.Features.PTS.Services.TransactionContextService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IFuelPriceService, FMS.Application.Features.PTS.Services.FuelPriceService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IPumpAuthorizationLoggingService, FMS.Application.Features.PTS.Services.PumpAuthorizationLoggingService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IDeviceConnectionTypeService, FMS.Application.Features.PTS.Services.DeviceConnectionTypeService>();
 
             // Removed legacy Dashboard Services (migrated to IDataSourceManager)
             // services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();

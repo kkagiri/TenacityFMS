@@ -103,9 +103,8 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket
             var segment = configuredBasePath.Trim('/');
 
             var prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            // Register both with and without trailing slash to catch devices that omit it
+            // HttpListener requires URI prefixes to end with '/' - only add valid prefixes
             prefixes.Add($"http://localhost:{port}/{segment}/");
-            prefixes.Add($"http://localhost:{port}/{segment}");
 
             var hostSetting = _settings.WebSocket.Host?.Trim();
             if (!string.IsNullOrEmpty(hostSetting))
@@ -113,12 +112,10 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket
                 if (hostSetting == "*" || hostSetting == "0.0.0.0")
                 {
                     prefixes.Add($"http://+:{port}/{segment}/");
-                    prefixes.Add($"http://+:{port}/{segment}");
                 }
                 else if (!hostSetting.Equals("localhost", StringComparison.OrdinalIgnoreCase))
                 {
                     prefixes.Add($"http://{hostSetting}:{port}/{segment}/");
-                    prefixes.Add($"http://{hostSetting}:{port}/{segment}");
                 }
             }
 
@@ -127,18 +124,35 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket
                 prefixes.Add($"http://+:{port}/");
             }
 
+            var successfulPrefixes = new List<string>();
+            var failedPrefixes = new List<string>();
+
             foreach (var prefix in prefixes)
             {
                 try
                 {
-                    _logger.LogInformation("Adding listener prefix: {Prefix}", prefix);
+                    _logger.LogDebug("Adding listener prefix: {Prefix}", prefix);
                     await VerifyUrlRegistrationAsync(prefix);
                     listener.Prefixes.Add(prefix);
+                    successfulPrefixes.Add(prefix);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to add prefix {Prefix}. Continuing.", prefix);
+                    failedPrefixes.Add(prefix);
+                    _logger.LogDebug(ex, "Failed to add prefix {Prefix}", prefix);
                 }
+            }
+
+            // Log summary once instead of per-prefix
+            if (successfulPrefixes.Any())
+            {
+                _logger.LogInformation("Successfully registered {Count} WebSocket prefix(es): {Prefixes}",
+                    successfulPrefixes.Count, string.Join(", ", successfulPrefixes));
+            }
+            if (failedPrefixes.Any())
+            {
+                _logger.LogWarning("Failed to register {Count} prefix(es): {Prefixes}",
+                    failedPrefixes.Count, string.Join(", ", failedPrefixes));
             }
 
             _logger.LogInformation("Listener configured. BasePath={BasePath} Segment={Segment} Port={Port} RegisteredPrefixes={Count} PortWidePrefix={PortWide}", configuredBasePath, segment, port, listener.Prefixes.Count, _settings.WebSocket.AddPortWidePrefix);
@@ -178,45 +192,72 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket
 
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    var context = await _httpListener.GetContextAsync();
-                    if (!context.Request.IsWebSocketRequest)
+                    try
                     {
-                        _logger.LogWarning("Non-WebSocket request received from {RemoteIP}, Protocol: {Protocol}, Path: {Path}", context.Request.RemoteEndPoint,
-                            context.Request.Url.Scheme, context.Request.Url.PathAndQuery);
-
-                        // Prepare informative response
-                        context.Response.StatusCode = 426; // Upgrade Required
-                        context.Response.Headers.Add("Upgrade", "websocket");
-                        context.Response.Headers.Add("Connection", "Upgrade");
-
-                        // Detailed error message
-                        var errorResponse = new
+                        var context = await _httpListener.GetContextAsync().WaitAsync(stoppingToken);
+                        if (!context.Request.IsWebSocketRequest)
                         {
-                            error = "WebSocket Upgrade Required",
-                            message = "This endpoint requires a WebSocket connection.",
-                            details = new
+                            _logger.LogWarning("Non-WebSocket request received from {RemoteIP}, Protocol: {Protocol}, Path: {Path}", context.Request.RemoteEndPoint,
+                                context.Request.Url.Scheme, context.Request.Url.PathAndQuery);
+
+                            // Prepare informative response
+                            context.Response.StatusCode = 426; // Upgrade Required
+                            context.Response.Headers.Add("Upgrade", "websocket");
+                            context.Response.Headers.Add("Connection", "Upgrade");
+
+                            // Detailed error message
+                            var errorResponse = new
                             {
-                                expectedProtocol = "ws://",
-                                currentProtocol = context.Request.Url.Scheme + "://",
-                                guidance = "Please use a WebSocket client or modify your connection to use the 'ws://' protocol.",
-                                example = $"ws://{context.Request.Url.Host}:{context.Request.Url.Port}{context.Request.Url.PathAndQuery}"
-                            }
-                        };
+                                error = "WebSocket Upgrade Required",
+                                message = "This endpoint requires a WebSocket connection.",
+                                details = new
+                                {
+                                    expectedProtocol = "ws://",
+                                    currentProtocol = context.Request.Url.Scheme + "://",
+                                    guidance = "Please use a WebSocket client or modify your connection to use the 'ws://' protocol.",
+                                    example = $"ws://{context.Request.Url.Host}:{context.Request.Url.Port}{context.Request.Url.PathAndQuery}"
+                                }
+                            };
 
-                        // Send JSON response
-                        var jsonResponse = System.Text.Json.JsonSerializer.Serialize(errorResponse, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                            // Send JSON response
+                            var jsonResponse = System.Text.Json.JsonSerializer.Serialize(errorResponse, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
 
-                        context.Response.ContentType = "application/json";
-                        using var writer = new StreamWriter(context.Response.OutputStream);
-                        await writer.WriteAsync(jsonResponse);
-                        await writer.FlushAsync();
+                            context.Response.ContentType = "application/json";
+                            using var writer = new StreamWriter(context.Response.OutputStream);
+                            await writer.WriteAsync(jsonResponse);
+                            await writer.FlushAsync();
+                        }
+                        else
+                        {
+                            _ = HandleWebSocketConnectionAsync(context, stoppingToken);
+                        }
                     }
-                    else
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                     {
-                        _ = HandleWebSocketConnectionAsync(context, stoppingToken);
-
+                        // Normal shutdown - exit gracefully
+                        _logger.LogDebug("WebSocket listener stopping due to cancellation request");
+                        break;
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // HttpListener was disposed during shutdown - exit gracefully
+                        _logger.LogDebug("HttpListener disposed during shutdown");
+                        break;
+                    }
+                    catch (HttpListenerException ex) when (ex.ErrorCode == 995)
+                    {
+                        // Error code 995 = Operation aborted - normal during shutdown
+                        _logger.LogDebug("HttpListener operation aborted (normal during shutdown)");
+                        break;
                     }
                 }
+
+                _logger.LogInformation("WebSocket listener stopped gracefully");
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Normal shutdown
+                _logger.LogInformation("WebSocket listener service cancelled");
             }
             catch (Exception ex)
             {
@@ -393,6 +434,7 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket
 
         private async Task VerifyUrlRegistrationAsync(string prefix)
         {
+            // Reduced logging - only log at Debug level during verification
             _logger.LogDebug("Verifying URL registration for prefix: {Prefix}", prefix);
 
             try
@@ -446,7 +488,8 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket
                     throw new UnauthorizedAccessException(guidance);
                 }
 
-                _logger.LogInformation("URL registration verified successfully for {Prefix}", prefix);
+                // Removed the Information log here - will be logged in summary
+                _logger.LogDebug("URL registration verified for {Prefix}", prefix);
             }
             catch (Exception ex) when (ex is not UnauthorizedAccessException)
             {
