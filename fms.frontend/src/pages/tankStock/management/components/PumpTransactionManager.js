@@ -248,8 +248,38 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
       },
       {
         dataField: "tankName",
-        caption: "Tank",
+        caption: "Source Tank",
         width: 120,
+      },
+      {
+        dataField: "isTransferMode",
+        caption: "Type",
+        width: 110,
+        cellRender: (data) => (
+          <span
+            className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
+              data.value
+                ? "tw-bg-purple-100 tw-text-purple-800"
+                : "tw-bg-blue-100 tw-text-blue-800"
+            }`}
+          >
+            {data.value ? (
+              <><i className="fa-light fa-arrow-right-arrow-left tw-mr-1"></i>Transfer</>
+            ) : (
+              <><i className="fa-light fa-gas-pump tw-mr-1"></i>Vehicle</>
+            )}
+          </span>
+        ),
+      },
+      {
+        dataField: "destinationTankName",
+        caption: "Dest. Tank",
+        width: 120,
+        cellRender: (data) => (
+          <span className={data.value ? "tw-text-purple-700 tw-font-medium" : "tw-text-gray-400"}>
+            {data.value || "-"}
+          </span>
+        ),
       },
       {
         dataField: "fuelGradeName",

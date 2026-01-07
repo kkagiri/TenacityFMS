@@ -450,9 +450,26 @@ const TransactionHistoryScreen = ({ navigation }) => {
       >
         <View style={styles.transactionHeader}>
           <View style={styles.transactionInfo}>
-            <Text style={styles.transactionId}>
-              #{item.transaction || item.packetId}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.transactionId}>
+                #{item.transaction || item.packetId}
+              </Text>
+              {item.isTransferMode && (
+                <View
+                  style={{
+                    backgroundColor: "#ede9fe",
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 4,
+                    marginLeft: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 10, color: "#7c3aed", fontWeight: "600" }}>
+                    TRANSFER
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.transactionDate}>
               {formatDate(item.dateTime)}
             </Text>
@@ -527,7 +544,18 @@ const TransactionHistoryScreen = ({ navigation }) => {
           {item.tankName && (
             <View style={styles.detailRow}>
               <Icon name="database" size={14} color="#6b7280" />
-              <Text style={styles.detailText}>Tank: {item.tankName}</Text>
+              <Text style={styles.detailText}>
+                {item.isTransferMode ? "From: " : "Tank: "}{item.tankName}
+              </Text>
+            </View>
+          )}
+
+          {item.isTransferMode && item.destinationTankName && (
+            <View style={styles.detailRow}>
+              <Icon name="arrow-right" size={14} color="#7c3aed" />
+              <Text style={[styles.detailText, { color: "#7c3aed", fontWeight: "600" }]}>
+                To: {item.destinationTankName}
+              </Text>
             </View>
           )}
 
@@ -707,11 +735,27 @@ const TransactionHistoryScreen = ({ navigation }) => {
                   </Text>
                 </View>
                 <View style={styles.auditRow}>
-                  <Text style={styles.auditLabel}>Tank</Text>
+                  <Text style={styles.auditLabel}>Transaction Type</Text>
+                  <Text style={[styles.auditValue, { color: selectedTransaction.isTransferMode ? "#7c3aed" : "#2563eb" }]}>
+                    {selectedTransaction.isTransferMode ? "Tank Transfer" : "Vehicle Fueling"}
+                  </Text>
+                </View>
+                <View style={styles.auditRow}>
+                  <Text style={styles.auditLabel}>
+                    {selectedTransaction.isTransferMode ? "Source Tank" : "Tank"}
+                  </Text>
                   <Text style={styles.auditValue}>
                     {selectedTransaction.tankName || "N/A"}
                   </Text>
                 </View>
+                {selectedTransaction.isTransferMode && selectedTransaction.destinationTankName && (
+                  <View style={styles.auditRow}>
+                    <Text style={styles.auditLabel}>Destination Tank</Text>
+                    <Text style={[styles.auditValue, { color: "#7c3aed", fontWeight: "600" }]}>
+                      {selectedTransaction.destinationTankName}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.auditRow}>
                   <Text style={styles.auditLabel}>Pump / Nozzle</Text>
                   <Text style={styles.auditValue}>
