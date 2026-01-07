@@ -395,6 +395,8 @@ public static class FmsServiceCollectionExtensions
         services.AddSingleton<IPTSConnectionManager, PTSConnectionManager>();
         // Register the device connection tracker (shared Redis-based tracker)
         services.AddSingleton<FMS.Application.Communication.DeviceConnectionTracker>();
+        // Register orphaned transaction cleanup service (handles saving transactions on device disconnect)
+        services.AddSingleton<FMS.Application.Services.IOrphanedTransactionCleanupService, FMS.Application.Services.OrphanedTransactionCleanupService>();
         // Register SignalR connection monitor for FrontEndHub
         services.AddSingleton<FMS.Application.Communication.SignalR.ConnectionMonitor>();
         services.AddScoped<ISystemUserService, SystemUserService>();

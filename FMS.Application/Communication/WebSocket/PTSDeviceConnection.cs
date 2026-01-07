@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using FMS.Application.Features.PTSDevice.Commands;
+using FMS.Application.Services;
 
 namespace FMS.Application.Communication.webSocket
 {
@@ -462,6 +463,33 @@ namespace FMS.Application.Communication.webSocket
             finally
             {
                 lifecycle.MarkComplete();
+
+                // **CRITICAL**: Clean up orphaned transactions BEFORE removing WebSocket from Redis
+                // This ensures transaction data is saved before connection info is lost
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var cleanupService = scope.ServiceProvider.GetService<IOrphanedTransactionCleanupService>();
+                    if (cleanupService != null)
+                    {
+                        _logger.LogInformation("[{DeviceId}] Triggering immediate orphaned transaction cleanup before removing connection", _deviceId);
+                        var processedTxnIds = await cleanupService.CleanupOrphanedTransactionsAsync(_deviceId, cleanupRedisKeys: true);
+                        if (processedTxnIds.Count > 0)
+                        {
+                            _logger.LogInformation("[{DeviceId}] Saved {Count} orphaned transaction(s) to database: {TxnIds}",
+                                _deviceId, processedTxnIds.Count, string.Join(", ", processedTxnIds));
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[{DeviceId}] OrphanedTransactionCleanupService not available - transactions may be lost", _deviceId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[{DeviceId}] Error during orphaned transaction cleanup", _deviceId);
+                }
+
                 await _deviceConnectionTracker.RemoveWebSocketConnection(_deviceId);
                 _logger.LogInformation("WebSocket connection cleanup complete and Redis tracker notified for device {DeviceId}, lifecycle {LifecycleId}", _deviceId, lifecycle.ConnectionId);
             }

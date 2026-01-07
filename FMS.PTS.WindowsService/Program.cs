@@ -202,6 +202,15 @@ namespace FMS.PTS.WindowsService
                 return new DeviceConnectionTracker(logger, hubContext, redisConnection);
             }); //Cursor
 
+            // Register OrphanedTransactionCleanupService for handling transactions on device disconnect
+            services.AddSingleton<IOrphanedTransactionCleanupService>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<OrphanedTransactionCleanupService>>();
+                var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+                var deviceConnectionTracker = sp.GetRequiredService<DeviceConnectionTracker>();
+                return new OrphanedTransactionCleanupService(logger, scopeFactory, deviceConnectionTracker);
+            });
+
             // Register DeviceStatusHelper for Redis status management //Cursor
             services.AddSingleton<DeviceStatusHelper>(sp =>
             {

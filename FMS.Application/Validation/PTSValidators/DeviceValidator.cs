@@ -3,19 +3,22 @@ using System.Threading.Tasks;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Application.Validation.PTSValidators.Common;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Validation.PTSValidators
 {
     public class DeviceValidator : IDeviceValidator
     {
-        private readonly IMediator _mediator;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<DeviceValidator> _logger;
-        public DeviceValidator(IMediator mediator, ILogger<DeviceValidator> logger)
+
+        public DeviceValidator(IServiceScopeFactory scopeFactory, ILogger<DeviceValidator> logger)
         {
-            _mediator = mediator;
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
+
         public async Task<bool> IsDeviceAllowed(string deviceId)
         {
             var result = await ValidateDevice(deviceId);
@@ -26,8 +29,12 @@ namespace FMS.Application.Validation.PTSValidators
         {
             try
             {
+                // Create a new scope to ensure we have a valid IMediator instance
+                // This prevents ObjectDisposedException when called from long-running contexts
+                using var scope = _scopeFactory.CreateScope();
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                var deviceInfo = await _mediator.Send(new GetAllowedDeviceQuery(deviceId));
+                var deviceInfo = await mediator.Send(new GetAllowedDeviceQuery(deviceId));
                 var isAllowed = deviceInfo != null;
 
                 if (!isAllowed)
