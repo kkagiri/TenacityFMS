@@ -497,7 +497,7 @@ namespace FMS.Application.Services
                 DateTime = data.Value<DateTime?>("DateTime") ?? DateTime.UtcNow,
                 DateTimeStart = data.Value<DateTime?>("DateTimeStart"),
                 Tag = data.Value<string>("Tag"), //Cursor: Now enriched from authorization context
-                UserId = data.Value<int?>("UserId"),
+                UserId = data.Value<string?>("UserId"),
                 ConfigurationId = data.Value<string>("ConfigurationId"),
                 TankId = data.Value<int?>("TankId"), //Cursor: Now enriched from authorization context
                 VehicleId = data.Value<int?>("VehicleId"), //Cursor: Now enriched from authorization context

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace FMS.Domain.Entities;
 
-public partial class Pumptransaction {
+public partial class Pumptransaction
+{
     public int Id { get; set; }
 
     public string PtsId { get; set; } = null!;
@@ -41,7 +42,7 @@ public partial class Pumptransaction {
     /// <summary>
     /// PTS User Id not to be confused with the UserId in the User table
     /// </summary>
-    public int? UserId { get; set; }
+    public string? UserId { get; set; }
 
     /// <summary>
     /// PTS Configuration Id
@@ -69,7 +70,7 @@ public partial class Pumptransaction {
     /// </summary>
     public bool HasBeenProcessed { get; set; } = false; //Cursor
 
-    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
+    public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill>();
 
     public virtual Ptsdevice Pts { get; set; } = null!;
 

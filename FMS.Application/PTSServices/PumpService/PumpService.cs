@@ -133,7 +133,7 @@ namespace FMS.PTS.WindowsService.Services.Pump
                         DateTime = responseData.Value<DateTime?>("DateTime") ?? DateTime.UtcNow,
                         DateTimeStart = responseData.Value<DateTime?>("DateTimeStart"),
                         Tag = responseData.Value<string>("Tag"),
-                        UserId = responseData.Value<int?>("UserId"),
+                        UserId = responseData.Value<string>("UserId"),
                         ConfigurationId = responseData.Value<string>("ConfigurationId")
                     };
 

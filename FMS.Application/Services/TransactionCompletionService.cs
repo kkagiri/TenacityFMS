@@ -564,9 +564,9 @@ namespace FMS.Application.Services
                 {
                     transaction.Tag = tagProp.GetString();
                 }
-                if (transaction.UserId == null && context.TryGetProperty("UserId", out var userIdProp) && userIdProp.ValueKind == JsonValueKind.Number)
+                if (string.IsNullOrEmpty(transaction.UserId) && context.TryGetProperty("UserId", out var userIdProp) && userIdProp.ValueKind == JsonValueKind.String)
                 {
-                    transaction.UserId = userIdProp.GetInt32();
+                    transaction.UserId = userIdProp.GetString();
                 }
                 if (string.IsNullOrEmpty(transaction.ConfigurationId) && context.TryGetProperty("ConfigurationId", out var configIdProp) && configIdProp.ValueKind == JsonValueKind.String)
                 {

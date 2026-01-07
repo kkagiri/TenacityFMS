@@ -181,13 +181,10 @@ namespace FMS.Application.Handlers
                         transaction.Odometer = transaction.Odometer ?? context.Odometer;
                         transaction.Tag = string.IsNullOrEmpty(transaction.Tag) ? context.Tag : transaction.Tag;
 
-                        // Handle UserId type conversion (context has string?, transaction expects int?)
-                        if (!transaction.UserId.HasValue && !string.IsNullOrEmpty(context.UserId))
+                        // UserId is now string? (GUID from ASP.NET Identity)
+                        if (string.IsNullOrEmpty(transaction.UserId) && !string.IsNullOrEmpty(context.UserId))
                         {
-                            if (int.TryParse(context.UserId, out var userId))
-                            {
-                                transaction.UserId = userId;
-                            }
+                            transaction.UserId = context.UserId;
                         }
 
                         transaction.ConfigurationId = string.IsNullOrEmpty(transaction.ConfigurationId) ? context.ConfigurationId : transaction.ConfigurationId;

@@ -25,7 +25,7 @@ namespace FMS.Application.Features.ATG
         public decimal? TotalVolume { get; set; }
         public decimal? TotalAmount { get; set; }
         public string? Tag { get; set; }
-        public int? UserId { get; set; }
+        public string? UserId { get; set; }
         public string? ConfigurationId { get; set; }
 
         // Add these fields to match PumpAuthorizeCommand

@@ -40,6 +40,6 @@ namespace FMS.Domain.Entities.PTS
 
         public double TotalAmount { get; set; }
 
-        public int UserId { get; set; }
+        public string? UserId { get; set; }
     }
 }
