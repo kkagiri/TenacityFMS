@@ -20,6 +20,9 @@ using StackExchange.Redis;
 
 namespace FMS.Application.Handlers
 {
+    /// <summary>
+    ///   important: Do not use this to process pump transactions from redis , it is sent from device.
+    /// </summary>
     [PacketType("UploadPumpTransaction")]
     public class UploadPumpTransactionHandler : IPacketHandler
     {

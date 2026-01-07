@@ -34,10 +34,6 @@ namespace FMS.Application.Handlers.Common
             {
                 throw new ArgumentNullException(nameof(message), "Message cannot be null");
             }
-
-            _logger.LogInformation("Processing message from device {DeviceId} with {PacketCount} packets",
-                deviceId, message.Packets?.Count ?? 0);
-
             var responseMessage = new PTSMessage
             {
                 Protocol = "jsonPTS",

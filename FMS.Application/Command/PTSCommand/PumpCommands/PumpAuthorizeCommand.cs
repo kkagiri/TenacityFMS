@@ -61,7 +61,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         public int? FuelGradeId { get; set; }
         public bool PriceEnabled { get; set; }
         public PumpAuthorizeType Type { get; set; }
-        public bool AutoCloseTransaction { get; set; }
+        /// <summary>
+        /// Whether to auto-close and save the transaction when fueling completes.
+        /// DEFAULTS TO TRUE to ensure transactions are automatically saved to the database.
+        /// Set to false only for special cases where manual completion is required.
+        /// </summary>
+        public bool AutoCloseTransaction { get; set; } = true;
         public string? Tag { get; set; }
         public int? TankId { get; set; }
         public int? VehicleId { get; set; }

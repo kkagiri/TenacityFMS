@@ -62,7 +62,7 @@ public class PermissionRequirement : IAuthorizationRequirement
 }
 
 
-using MediatR;
+
 
 namespace FMS.Application.Commands;
 
@@ -85,7 +85,7 @@ public class CreatePermissionCommandHandler : IRequestHandler<CreatePermissionCo
         return permission.Id;
     }
 }
-using MediatR;
+
 
 namespace FMS.Application.Commands;
 
@@ -112,8 +112,7 @@ public class UpdatePermissionCommandHandler : IRequestHandler<UpdatePermissionCo
 }
 
 
-using Microsoft.AspNetCore.Mvc;
-using MediatR;
+
 
 namespace FMS.WebClient.Controllers;
 
@@ -148,8 +147,7 @@ public class PermissionsController : ControllerBase
 
     // Additional methods for getting permissions, listing all permissions, etc.
 }
-using Microsoft.AspNetCore.Mvc;
-using MediatR;
+
 
 namespace FMS.WebClient.Controllers;
 

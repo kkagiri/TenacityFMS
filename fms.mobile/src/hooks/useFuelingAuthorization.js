@@ -217,6 +217,8 @@ export const useFuelingAuthorization = ({
           mobileLocation: deviceLocation
             ? locationService.formatForApi(deviceLocation)
             : null,
+          // CRITICAL: Enable auto-close so transaction is automatically saved when fueling completes
+          autoCloseTransaction: true,
         };
 
         console.log(

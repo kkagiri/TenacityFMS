@@ -194,7 +194,7 @@ namespace FMS.Application.Communication.webSocket
                 }
 
                 //Cursor: Add detailed logging for debugging correlation ID issues
-                _logger.LogInformation("Received message from device {DeviceId}: PtsId={PtsId}, Packets={PacketCount}",
+                _logger.LogDebug("Received message from device {DeviceId}: PtsId={PtsId}, Packets={PacketCount}",
                     _deviceId, ptsMessage.PtsId ?? "null", ptsMessage.Packets?.Count ?? 0);
 
                 if (ptsMessage.Packets?.Count > 0)

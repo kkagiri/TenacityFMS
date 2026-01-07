@@ -1,0 +1,384 @@
+name: Deploy FMS PTS Windows Service
+
+on:
+  push:
+    branches: [productionv1, main, master]
+    paths:
+      - "FMS.PTS.WindowsService/**"
+      - "FMS.Application/**"
+      - "FMS.Domain/**"
+      - "FMS.Infrastructure/**"
+      - "FMS.Persistence/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+        default: production
+      force_deploy:
+        description: "Force deployment (skip path checks)"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  SERVICE_NAME: "FMS.PTS.Service"
+  PROJECT_PATH: "FMS.PTS.WindowsService/FMS.PTS.WindowsService.csproj"
+  PUBLISH_PATH: "C:\\FMS.PTS"
+  BACKUP_PATH: "C:\\FMS.PTS.Backup"
+
+jobs:
+  build:
+    name: 🏗️ Build PTS Service
+    runs-on: self-hosted
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 📦 Restore Dependencies
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Restoring NuGet Packages" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          dotnet restore ${{ env.PROJECT_PATH }}
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "NuGet restore failed"
+            exit 1
+          }
+
+          Write-Host "✅ Dependencies restored successfully" -ForegroundColor Green
+        shell: powershell
+
+      - name: 🔨 Build Project
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Building FMS.PTS.WindowsService" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Build failed"
+            exit 1
+          }
+
+          Write-Host "✅ Build completed successfully" -ForegroundColor Green
+        shell: powershell
+
+      - name: 🧪 Run Tests (if any)
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Running Tests" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          # Check if test projects exist for PTS
+          $testProjects = Get-ChildItem -Path . -Recurse -Filter "*Tests*.csproj" |
+                          Where-Object { $_.FullName -match "PTS|Application" }
+
+          if ($testProjects.Count -gt 0) {
+            foreach ($project in $testProjects) {
+              Write-Host "Running tests for: $($project.Name)" -ForegroundColor Yellow
+              dotnet test $project.FullName --configuration Release --no-build --verbosity normal
+            }
+          } else {
+            Write-Host "⚠️ No test projects found, skipping tests" -ForegroundColor Yellow
+          }
+        shell: powershell
+        continue-on-error: true
+
+  deploy:
+    name: 🚀 Deploy PTS Service
+    runs-on: self-hosted
+    needs: build
+    if: success()
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 🔍 Pre-Deployment Checks
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Pre-Deployment Checks" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          # Check if service exists
+          $service = Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue
+          if ($service) {
+            Write-Host "✅ Service '${{ env.SERVICE_NAME }}' found" -ForegroundColor Green
+            Write-Host "   Status: $($service.Status)" -ForegroundColor Gray
+          } else {
+            Write-Host "⚠️ Service '${{ env.SERVICE_NAME }}' not found - will be installed after publish" -ForegroundColor Yellow
+          }
+
+          # Check publish path
+          if (Test-Path "${{ env.PUBLISH_PATH }}") {
+            Write-Host "✅ Publish path exists: ${{ env.PUBLISH_PATH }}" -ForegroundColor Green
+          } else {
+            Write-Host "📁 Creating publish path: ${{ env.PUBLISH_PATH }}" -ForegroundColor Yellow
+            New-Item -ItemType Directory -Path "${{ env.PUBLISH_PATH }}" -Force | Out-Null
+          }
+
+          # Create backup path if needed
+          if (-not (Test-Path "${{ env.BACKUP_PATH }}")) {
+            New-Item -ItemType Directory -Path "${{ env.BACKUP_PATH }}" -Force | Out-Null
+            Write-Host "📁 Created backup path: ${{ env.BACKUP_PATH }}" -ForegroundColor Yellow
+          }
+        shell: powershell
+
+      - name: 💾 Backup Current Deployment
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Backing Up Current Deployment" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+          $backupFolder = "${{ env.BACKUP_PATH }}\$timestamp"
+
+          if (Test-Path "${{ env.PUBLISH_PATH }}") {
+            Write-Host "📦 Creating backup at: $backupFolder" -ForegroundColor Yellow
+
+            # Copy current deployment to backup
+            Copy-Item -Path "${{ env.PUBLISH_PATH }}" -Destination $backupFolder -Recurse -Force
+
+            Write-Host "✅ Backup created successfully" -ForegroundColor Green
+
+            # Keep only last 5 backups
+            $backups = Get-ChildItem -Path "${{ env.BACKUP_PATH }}" -Directory |
+                       Sort-Object Name -Descending |
+                       Select-Object -Skip 5
+
+            foreach ($oldBackup in $backups) {
+              Write-Host "🗑️ Removing old backup: $($oldBackup.Name)" -ForegroundColor Gray
+              Remove-Item -Path $oldBackup.FullName -Recurse -Force
+            }
+          } else {
+            Write-Host "⚠️ No existing deployment to backup" -ForegroundColor Yellow
+          }
+        shell: powershell
+
+      - name: 🛑 Stop PTS Service
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Stopping PTS Service" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          $service = Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue
+
+          if ($service) {
+            if ($service.Status -eq 'Running') {
+              Write-Host "🛑 Stopping service: ${{ env.SERVICE_NAME }}" -ForegroundColor Yellow
+
+              Stop-Service -Name "${{ env.SERVICE_NAME }}" -Force -ErrorAction Stop
+
+              # Wait for service to stop completely
+              $timeout = 60
+              $elapsed = 0
+              while ((Get-Service -Name "${{ env.SERVICE_NAME }}").Status -ne 'Stopped' -and $elapsed -lt $timeout) {
+                Start-Sleep -Seconds 2
+                $elapsed += 2
+                Write-Host "   Waiting for service to stop... ($elapsed seconds)" -ForegroundColor Gray
+              }
+
+              if ((Get-Service -Name "${{ env.SERVICE_NAME }}").Status -eq 'Stopped') {
+                Write-Host "✅ Service stopped successfully" -ForegroundColor Green
+              } else {
+                Write-Error "Service did not stop within $timeout seconds"
+                exit 1
+              }
+            } else {
+              Write-Host "ℹ️ Service is already stopped" -ForegroundColor Gray
+            }
+          } else {
+            Write-Host "⚠️ Service not found, skipping stop" -ForegroundColor Yellow
+          }
+
+          # Give time for file handles to be released
+          Start-Sleep -Seconds 3
+        shell: powershell
+
+      - name: 📤 Publish Application
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Publishing FMS.PTS.WindowsService" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          Write-Host "📦 Publishing to: ${{ env.PUBLISH_PATH }}" -ForegroundColor Yellow
+
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            --configuration Release `
+            --output "${{ env.PUBLISH_PATH }}" `
+            --no-restore `
+            /p:PublishSingleFile=false `
+            /p:SelfContained=false `
+            /p:PublishReadyToRun=true
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Publish failed"
+            exit 1
+          }
+
+          Write-Host "✅ Published successfully" -ForegroundColor Green
+
+          # List published files
+          Write-Host "`nPublished files:" -ForegroundColor Gray
+          Get-ChildItem -Path "${{ env.PUBLISH_PATH }}" -File |
+            Select-Object Name, Length, LastWriteTime |
+            Format-Table -AutoSize
+        shell: powershell
+
+      - name: ▶️ Start PTS Service
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Starting PTS Service" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          $service = Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue
+
+          if ($service) {
+            Write-Host "▶️ Starting service: ${{ env.SERVICE_NAME }}" -ForegroundColor Yellow
+
+            Start-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction Stop
+
+            # Wait for service to start
+            $timeout = 30
+            $elapsed = 0
+            while ((Get-Service -Name "${{ env.SERVICE_NAME }}").Status -ne 'Running' -and $elapsed -lt $timeout) {
+              Start-Sleep -Seconds 2
+              $elapsed += 2
+              Write-Host "   Waiting for service to start... ($elapsed seconds)" -ForegroundColor Gray
+            }
+
+            $finalStatus = (Get-Service -Name "${{ env.SERVICE_NAME }}").Status
+            if ($finalStatus -eq 'Running') {
+              Write-Host "✅ Service started successfully" -ForegroundColor Green
+            } else {
+              Write-Error "Service failed to start. Status: $finalStatus"
+              exit 1
+            }
+          } else {
+            Write-Host "⚠️ Service not installed. To install, run:" -ForegroundColor Yellow
+            Write-Host "   sc.exe create `"${{ env.SERVICE_NAME }}`" binPath= `"${{ env.PUBLISH_PATH }}\FMS.PTS.WindowsService.exe`" start= auto" -ForegroundColor Gray
+          }
+        shell: powershell
+
+      - name: ✅ Post-Deployment Verification
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Post-Deployment Verification" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+
+          # Check service status
+          $service = Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue
+
+          if ($service -and $service.Status -eq 'Running') {
+            Write-Host "✅ Service Status: Running" -ForegroundColor Green
+
+            # Wait a few seconds and verify it's still running
+            Start-Sleep -Seconds 5
+            $service = Get-Service -Name "${{ env.SERVICE_NAME }}"
+
+            if ($service.Status -eq 'Running') {
+              Write-Host "✅ Service is stable after 5 seconds" -ForegroundColor Green
+            } else {
+              Write-Error "Service stopped unexpectedly after deployment"
+              exit 1
+            }
+          } else {
+            Write-Host "⚠️ Service is not running" -ForegroundColor Yellow
+          }
+
+          # Display deployment summary
+          Write-Host "`n========================================" -ForegroundColor Cyan
+          Write-Host "  Deployment Summary" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "  Service: ${{ env.SERVICE_NAME }}" -ForegroundColor White
+          Write-Host "  Path: ${{ env.PUBLISH_PATH }}" -ForegroundColor White
+          Write-Host "  Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor White
+          Write-Host "  Commit: ${{ github.sha }}" -ForegroundColor White
+          Write-Host "========================================" -ForegroundColor Cyan
+        shell: powershell
+
+  rollback:
+    name: 🔄 Rollback (on failure)
+    runs-on: self-hosted
+    needs: deploy
+    if: failure()
+
+    steps:
+      - name: 🔄 Attempt Rollback
+        run: |
+          Write-Host "========================================" -ForegroundColor Red
+          Write-Host "  Deployment Failed - Attempting Rollback" -ForegroundColor Red
+          Write-Host "========================================" -ForegroundColor Red
+
+          # Find latest backup
+          $latestBackup = Get-ChildItem -Path "${{ env.BACKUP_PATH }}" -Directory |
+                          Sort-Object Name -Descending |
+                          Select-Object -First 1
+
+          if ($latestBackup) {
+            Write-Host "📦 Found backup: $($latestBackup.Name)" -ForegroundColor Yellow
+
+            # Stop service if running
+            $service = Get-Service -Name "${{ env.SERVICE_NAME }}" -ErrorAction SilentlyContinue
+            if ($service -and $service.Status -eq 'Running') {
+              Stop-Service -Name "${{ env.SERVICE_NAME }}" -Force
+              Start-Sleep -Seconds 3
+            }
+
+            # Restore backup
+            Write-Host "🔄 Restoring from backup..." -ForegroundColor Yellow
+            Remove-Item -Path "${{ env.PUBLISH_PATH }}\*" -Recurse -Force -ErrorAction SilentlyContinue
+            Copy-Item -Path "$($latestBackup.FullName)\*" -Destination "${{ env.PUBLISH_PATH }}" -Recurse -Force
+
+            # Start service
+            if ($service) {
+              Start-Service -Name "${{ env.SERVICE_NAME }}"
+              Write-Host "✅ Rollback completed - service restarted" -ForegroundColor Green
+            }
+          } else {
+            Write-Host "⚠️ No backup found for rollback" -ForegroundColor Yellow
+          }
+        shell: powershell
+
+  notify:
+    name: 📢 Notify
+    runs-on: self-hosted
+    needs: [build, deploy]
+    if: always()
+
+    steps:
+      - name: 📢 Deployment Notification
+        run: |
+          $status = "${{ needs.deploy.result }}"
+          $emoji = if ($status -eq 'success') { '✅' } else { '❌' }
+
+          Write-Host "$emoji PTS Service Deployment: $status" -ForegroundColor $(if ($status -eq 'success') { 'Green' } else { 'Red' })
+          Write-Host "   Branch: ${{ github.ref_name }}"
+          Write-Host "   Commit: ${{ github.sha }}"
+          Write-Host "   Triggered by: ${{ github.actor }}"
+          Write-Host "   Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        shell: powershell

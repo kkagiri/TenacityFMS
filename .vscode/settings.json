@@ -14,5 +14,8 @@
   },
   "kiroAgent.configureMCP": "Disabled",
   "dotnet.defaultSolution": "disable",
-  "postman.settings.dotenv-detection-notification-visibility": false
+  "postman.settings.dotenv-detection-notification-visibility": false,
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  }
 }

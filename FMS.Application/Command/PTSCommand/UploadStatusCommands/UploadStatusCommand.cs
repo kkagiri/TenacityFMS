@@ -504,8 +504,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                     if (lastTransaction > 0 && (lastVolume > 0 || lastAmount > 0))
                     {
-                        _logger.LogInformation("[UploadStatus] **IDLE EOT DETECTED** - Device {DeviceId}, Pump {PumpId} shows completed transaction {TransactionId}, Volume: {Volume}L, Amount: ${Amount}",
-                            deviceId, pumpId, lastTransaction, lastVolume, lastAmount);
 
                         // **CHECK IF THIS IS A NEW COMPLETION** - Compare with previous values
                         await CheckIfTransactionJustCompleted(deviceId, pumpId, lastTransaction, lastVolume, lastAmount);
@@ -582,8 +580,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     // **ENRICH WITH REDIS CONTEXT** - Add authorization data if available //Cursor
                     if (!contextJson.IsNullOrEmpty)
                     {
-                        _logger.LogInformation("[UploadStatus] **CONTEXT FOUND** - Enriching IdleStatus completion with Redis context for {DeviceId}:{TransactionId}",
-                            deviceId, transactionId);
+
 
                         try
                         {
@@ -594,10 +591,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                             if (isTransferMode)
                             {
-                                // **TANK TRANSFER PATH** - Process as pump-based tank transfer
-                                _logger.LogInformation(
-                                    "[UploadStatus] **TANK TRANSFER MODE DETECTED** - Device {DeviceId}, Transaction {TransactionId}",
-                                    deviceId, transactionId);
+
 
                                 // Extract transfer-specific data
                                 var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp) ? sourceProp.GetInt32() : 0;
@@ -629,7 +623,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                                         if (result.IsSuccess)
                                         {
-                                            _logger.LogInformation(
+                                            _logger.LogWarning(
                                                 "[UploadStatus] **TRANSFER COMPLETE** ✅ - {Message}",
                                                 result.Message);
                                         }
@@ -708,9 +702,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                 _logger.LogDebug("Could not extract fuel grade info for IdleStatus completion: {Error}", fgEx.Message);
                             }
 
-                            // **LOG ENRICHED DATA** //Cursor
-                            _logger.LogInformation("[UploadStatus] **ENRICHED IDLE COMPLETION** - Device {DeviceId}, Transaction {TransactionId}: TankId={TankId}, VehicleId={VehicleId}, Tag={Tag}, Nozzle={Nozzle}",
-                                deviceId, transactionId, tankId, vehicleId, tagId, nozzleId);
 
                         }
                         catch (Exception ex)
@@ -733,8 +724,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                             await _autoCompletionService.ProcessEndOfTransactionAsync(
                                 deviceId, pumpId, transactionId, statusData);
 
-                            _logger.LogInformation("[UploadStatus] **IDLE SUCCESS** - IdleStatus-based completion successful for {DeviceId}:{TransactionId}",
-                                deviceId, transactionId);
                         }
                         catch (Exception ex)
                         {
@@ -779,7 +768,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 try
                 {
                     await _authTracker.UpdateAuthState(deviceId, pumpId, "InProgress");
-                    _logger.LogInformation("[Internal] Updated auth state to InProgress for Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
                     // NO _hubContext call here
                 }
                 catch (Exception ex)
@@ -825,11 +813,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         {
             try
             {
-                _logger.LogInformation("[UploadStatus] **EOT ANALYSIS** - EndOfTransactionStatus check for device {DeviceId}", deviceId);
-                _logger.LogInformation("[UploadStatus] **EOT STRUCTURE** - Ids: {IdsPresent}, Count: {IdsCount}",
-                    eotStatus.Ids != null, eotStatus.Ids?.Count ?? 0);
-                _logger.LogInformation("[UploadStatus] **EOT ARRAYS** - Transactions: {TransCount}, Volumes: {VolCount}, Amounts: {AmtCount}",
-                    eotStatus.Transactions?.Count ?? 0, eotStatus.Volumes?.Count ?? 0, eotStatus.Amounts?.Count ?? 0);
 
                 // **DETAILED DATA INSPECTION** - Log the actual EndOfTransaction data received //Cursor
                 if (eotStatus.Ids?.Any() == true)
@@ -858,8 +841,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                     foreach (var (pumpId, transactionId) in activeTransactions)
                     {
-                        _logger.LogWarning("[UploadStatus] **ACTIVE TX** - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId} - checking for forced completion",
-                            deviceId, pumpId, transactionId);
 
                         // **CORRELATION CHECK** - Log what we're expecting vs what we received //Cursor
                         var expectedMatch = eotStatus.Ids?.Any() == true &&
