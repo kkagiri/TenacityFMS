@@ -85,6 +85,7 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     .Include(pt => pt.Tank)
                         .ThenInclude(t => t.Site)  // Tank's site (primary - every fueling is from a tank)
                     .Include(pt => pt.Vehicle)
+                    .Include(pt => pt.DestinationTank)  // Destination tank for tank-to-tank transfers
                     .OrderByDescending(pt => pt.DateTime)
                     .ToListAsync(cancellationToken);
 
@@ -112,11 +113,29 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     .GroupBy(fr => fr.PumpTranscationId ?? 0)
                     .ToDictionary(g => g.Key, g => g.FirstOrDefault());
 
+                // Fetch user lookup for resolving UserId (GUID string) to UserName
+                var userIds = pumpTransactions
+                    .Where(pt => !string.IsNullOrEmpty(pt.UserId))
+                    .Select(pt => pt.UserId!)
+                    .Distinct()
+                    .ToList();
+
+                var userLookup = await _context.Users
+                    .Where(u => userIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.UserName, cancellationToken);
+
                 // Map to DTOs
                 var dtos = pumpTransactions.Select(pt =>
                 {
                     // Get the fuel refill for this pump transaction
                     fuelRefillLookup.TryGetValue(pt.Id, out var fr);
+
+                    // Resolve username from UserId
+                    string? userName = null;
+                    if (!string.IsNullOrEmpty(pt.UserId) && userLookup.TryGetValue(pt.UserId, out var resolvedUserName))
+                    {
+                        userName = resolvedUserName;
+                    }
 
                     return new PumpTransactionDto
                     {
@@ -138,12 +157,16 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         TotalAmount = pt.TotalAmount,
                         Tag = pt.Tag,
                         UserId = pt.UserId,
+                        UserName = userName, // Resolved from User table lookup
                         ConfigurationId = pt.ConfigurationId,
                         TankId = pt.TankId,
                         TankName = pt.Tank?.Name,
                         VehicleId = pt.VehicleId,
                         VehicleName = pt.Vehicle?.HyoungNo,
                         VehicleNumberPlate = pt.Vehicle?.NumberPlate,
+                        DestinationTankId = pt.DestinationTankId, // Destination tank for tank-to-tank transfers
+                        DestinationTankName = pt.DestinationTank?.Name, // Destination tank name
+                        IsTransferMode = pt.IsTransferMode, // Flag for tank transfer vs vehicle fueling
                         Odometer = fr?.CurrentMeterReading ?? pt.Odometer,
                         HasBeenProcessed = pt.HasBeenProcessed,
 

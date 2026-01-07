@@ -128,6 +128,10 @@ namespace FMS.Application.Services
                                     orphanedInfo.VehicleId = vehicleIdElement.GetInt32();
                                 if (txnContext.TryGetProperty("TankId", out var tankIdElement) && tankIdElement.ValueKind != JsonValueKind.Null)
                                     orphanedInfo.TankId = tankIdElement.GetInt32();
+                                if (txnContext.TryGetProperty("DestinationTankId", out var destTankIdElement) && destTankIdElement.ValueKind != JsonValueKind.Null)
+                                    orphanedInfo.DestinationTankId = destTankIdElement.GetInt32();
+                                if (txnContext.TryGetProperty("IsTransferMode", out var isTransferModeElement) && isTransferModeElement.ValueKind != JsonValueKind.Null)
+                                    orphanedInfo.IsTransferMode = isTransferModeElement.GetBoolean();
                                 if (txnContext.TryGetProperty("Odometer", out var odometerElement) && odometerElement.ValueKind != JsonValueKind.Null)
                                     orphanedInfo.Odometer = odometerElement.GetDecimal();
                             }
@@ -169,6 +173,10 @@ namespace FMS.Application.Services
                             orphanedInfo.VehicleId = vehicleIdElement.GetInt32();
                         if (context.TryGetProperty("TankId", out var tankIdElement) && tankIdElement.ValueKind != JsonValueKind.Null)
                             orphanedInfo.TankId = tankIdElement.GetInt32();
+                        if (context.TryGetProperty("DestinationTankId", out var destTankIdElement) && destTankIdElement.ValueKind != JsonValueKind.Null)
+                            orphanedInfo.DestinationTankId = destTankIdElement.GetInt32();
+                        if (context.TryGetProperty("IsTransferMode", out var isTransferModeElement) && isTransferModeElement.ValueKind != JsonValueKind.Null)
+                            orphanedInfo.IsTransferMode = isTransferModeElement.GetBoolean();
                         if (context.TryGetProperty("Odometer", out var odometerElement) && odometerElement.ValueKind != JsonValueKind.Null)
                             orphanedInfo.Odometer = odometerElement.GetDecimal();
                         if (context.TryGetProperty("AuthorizedAt", out var startedAtElement))
@@ -263,6 +271,8 @@ namespace FMS.Application.Services
                             t.NozzleId,
                             t.VehicleId,
                             t.TankId,
+                            t.DestinationTankId,
+                            t.IsTransferMode,
                             t.Volume,
                             t.Amount,
                             t.Odometer,
@@ -326,6 +336,8 @@ namespace FMS.Application.Services
                             Nozzle = orphaned.NozzleId,
                             VehicleId = orphaned.VehicleId,
                             TankId = orphaned.TankId,
+                            DestinationTankId = orphaned.DestinationTankId,
+                            IsTransferMode = orphaned.IsTransferMode,
                             Volume = orphaned.Volume,
                             Amount = orphaned.Amount,
                             Odometer = orphaned.Odometer,
@@ -333,13 +345,13 @@ namespace FMS.Application.Services
                             DateTime = DateTime.UtcNow,
                             PacketId = -1, // Indicate this is a reconstructed/incomplete transaction
                             HasBeenProcessed = false, // Mark as incomplete/needs review
-                            Tag = "INCOMPLETE:DISCONNECT" // Mark reason for incomplete status
+                            Tag = orphaned.IsTransferMode ? "INCOMPLETE:DISCONNECT:TRANSFER" : "INCOMPLETE:DISCONNECT" // Mark reason for incomplete status
                         };
 
                         context.Pumptransactions.Add(incompleteTransaction);
 
-                        _logger.LogInformation("[{DeviceId}] Saved incomplete transaction {TransactionId} - Vehicle: {VehicleId}, Tank: {TankId}, Volume: {Volume}, Amount: {Amount}",
-                            deviceId, orphaned.TransactionId, orphaned.VehicleId, orphaned.TankId, orphaned.Volume, orphaned.Amount);
+                        _logger.LogInformation("[{DeviceId}] Saved incomplete transaction {TransactionId} - Vehicle: {VehicleId}, Tank: {TankId}, DestinationTank: {DestinationTankId}, IsTransfer: {IsTransfer}, Volume: {Volume}, Amount: {Amount}",
+                            deviceId, orphaned.TransactionId, orphaned.VehicleId, orphaned.TankId, orphaned.DestinationTankId, orphaned.IsTransferMode, orphaned.Volume, orphaned.Amount);
                     }
                 }
 
@@ -363,6 +375,8 @@ namespace FMS.Application.Services
             public int NozzleId { get; set; }
             public int? VehicleId { get; set; }
             public int? TankId { get; set; }
+            public int? DestinationTankId { get; set; }
+            public bool IsTransferMode { get; set; }
             public decimal? Volume { get; set; }
             public decimal? Amount { get; set; }
             public decimal? Odometer { get; set; }

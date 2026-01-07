@@ -405,6 +405,8 @@ namespace FMS.Application.Services
                 EnrichPropertyIfMissing(data, context, "Odometer");
                 EnrichPropertyIfMissing(data, context, "TankId");
                 EnrichPropertyIfMissing(data, context, "VehicleId");
+                EnrichPropertyIfMissing(data, context, "DestinationTankId"); //Cursor: Destination tank for transfers
+                EnrichPropertyIfMissing(data, context, "IsTransferMode"); //Cursor: Flag for tank transfer vs vehicle fueling
                 EnrichPropertyIfMissing(data, context, "Tag");
                 EnrichPropertyIfMissing(data, context, "UserId");
                 EnrichPropertyIfMissing(data, context, "ConfigurationId");
@@ -414,11 +416,13 @@ namespace FMS.Application.Services
                 EnrichPropertyIfMissing(data, context, "PumpId"); // Pump ID from authorization
                 EnrichPropertyIfMissing(data, context, "SiteId"); // Site ID for configuration lookup
 
-                _logger.LogInformation("[AutoComplete] Enriched transaction data with Redis context - device: {DeviceId}, transaction: {Transaction}, Odometer: {Odometer}, TankId: {TankId}, VehicleId: {VehicleId}, Tag: {Tag}, Nozzle: {Nozzle}",
+                _logger.LogInformation("[AutoComplete] Enriched transaction data with Redis context - device: {DeviceId}, transaction: {Transaction}, Odometer: {Odometer}, TankId: {TankId}, VehicleId: {VehicleId}, DestinationTankId: {DestinationTankId}, IsTransferMode: {IsTransferMode}, Tag: {Tag}, Nozzle: {Nozzle}",
                     deviceId, transaction,
                     data.Value<decimal?>("Odometer"),
                     data.Value<int?>("TankId"),
                     data.Value<int?>("VehicleId"),
+                    data.Value<int?>("DestinationTankId"),
+                    data.Value<bool?>("IsTransferMode"),
                     data.Value<string>("Tag"),
                     data.Value<int?>("Nozzle"));
 
@@ -501,6 +505,8 @@ namespace FMS.Application.Services
                 ConfigurationId = data.Value<string>("ConfigurationId"),
                 TankId = data.Value<int?>("TankId"), //Cursor: Now enriched from authorization context
                 VehicleId = data.Value<int?>("VehicleId"), //Cursor: Now enriched from authorization context
+                DestinationTankId = data.Value<int?>("DestinationTankId"), //Cursor: Destination tank for tank-to-tank transfers
+                IsTransferMode = data.Value<bool?>("IsTransferMode") ?? false, //Cursor: Flag for tank transfer vs vehicle fueling
                 Odometer = data.Value<decimal?>("Odometer"), //Cursor: Add odometer from authorization context
                 HasBeenProcessed = false // Will be set to true after processing
             };
@@ -520,6 +526,8 @@ namespace FMS.Application.Services
             existing.Odometer = updated.Odometer ?? existing.Odometer;
             existing.TankId = updated.TankId ?? existing.TankId;
             existing.VehicleId = updated.VehicleId ?? existing.VehicleId;
+            existing.DestinationTankId = updated.DestinationTankId ?? existing.DestinationTankId; //Cursor: Update destination tank
+            existing.IsTransferMode = updated.IsTransferMode || existing.IsTransferMode; //Cursor: Keep true if ever set
             existing.Tag = updated.Tag ?? existing.Tag;
             existing.UserId = updated.UserId ?? existing.UserId;
             existing.ConfigurationId = updated.ConfigurationId ?? existing.ConfigurationId;

@@ -60,6 +60,20 @@ public partial class Pumptransaction
     public int? VehicleId { get; set; }
 
     /// <summary>
+    /// FK to Tank table - identifies destination tank for tank-to-tank transfers.
+    /// This is only populated when IsTransferMode is true.
+    /// For vehicle fueling, use VehicleId instead.
+    /// </summary>
+    public int? DestinationTankId { get; set; }
+
+    /// <summary>
+    /// Indicates whether this is a tank-to-tank transfer (true) or vehicle fueling (false).
+    /// When true, TankId is source and DestinationTankId is destination.
+    /// When false, TankId is source and VehicleId is the receiving vehicle.
+    /// </summary>
+    public bool IsTransferMode { get; set; } = false;
+
+    /// <summary>
     /// Vehicle odometer reading at time of fueling (in kilometers or miles)
     /// Captured during pump authorization and stored with transaction
     /// </summary>
@@ -78,4 +92,9 @@ public partial class Pumptransaction
     public virtual Tank? Tank { get; set; }
 
     public virtual Vehicle? Vehicle { get; set; }
+
+    /// <summary>
+    /// Navigation property to destination tank (only for tank-to-tank transfers)
+    /// </summary>
+    public virtual Tank? DestinationTank { get; set; }
 }

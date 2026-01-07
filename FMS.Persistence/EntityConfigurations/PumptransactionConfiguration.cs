@@ -26,6 +26,8 @@ namespace FMS.Persistence.EntityConfigurations
                 //Cursor: Add additional indexes for performance
                 builder.HasIndex(e => e.TankId, "idx_pumptransaction_tankid");
                 builder.HasIndex(e => e.VehicleId, "idx_pumptransaction_vehicleid");
+                builder.HasIndex(e => e.DestinationTankId, "idx_pumptransaction_destinationtankid");
+                builder.HasIndex(e => e.IsTransferMode, "idx_pumptransaction_istransfermode");
                 builder.HasIndex(e => e.HasBeenProcessed, "idx_pumptransaction_processed");
                 builder.HasIndex(e => e.DateTime, "idx_pumptransaction_datetime");
                 builder.HasIndex(e => new { e.Pump, e.Transaction }, "idx_pumptransaction_pump_transaction");
@@ -58,6 +60,11 @@ namespace FMS.Persistence.EntityConfigurations
                 //Cursor: Configure new columns
                 builder.Property(e => e.TankId).HasColumnType("int(11)");
                 builder.Property(e => e.VehicleId).HasColumnType("int(11)");
+                builder.Property(e => e.DestinationTankId).HasColumnType("int(11)");
+                builder.Property(e => e.IsTransferMode)
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(false)
+                    .HasComment("True for tank-to-tank transfers, false for vehicle fueling");
                 builder.Property(e => e.HasBeenProcessed)
                     .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false)
@@ -80,6 +87,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.VehicleId)
                     .OnDelete(DeleteBehavior.SetNull) //Cursor: Use SetNull instead of ClientSetNull
                     .HasConstraintName("FK_vehicle");
+
+                // Relationship for destination tank (tank-to-tank transfers)
+                builder.HasOne(d => d.DestinationTank)
+                    .WithMany() // No inverse navigation collection needed
+                    .HasForeignKey(d => d.DestinationTankId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("FK_destination_tank");
 
             }
             catch (Exception ex)

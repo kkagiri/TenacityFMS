@@ -26,6 +26,10 @@ namespace FMS.Application.Features.ATG
         public decimal? TotalAmount { get; set; }
         public string? Tag { get; set; }
         public string? UserId { get; set; }
+        /// <summary>
+        /// The actual username resolved from UserId (joined with User table)
+        /// </summary>
+        public string? UserName { get; set; }
         public string? ConfigurationId { get; set; }
 
         // Add these fields to match PumpAuthorizeCommand
@@ -34,6 +38,21 @@ namespace FMS.Application.Features.ATG
         public int? VehicleId { get; set; }
         public string? VehicleName { get; set; } // This will be HyoungNo from Vehicle entity
         public string? VehicleNumberPlate { get; set; }
+
+        /// <summary>
+        /// FK to Tank table - identifies destination tank for tank-to-tank transfers
+        /// </summary>
+        public int? DestinationTankId { get; set; }
+
+        /// <summary>
+        /// Destination tank name for tank-to-tank transfers
+        /// </summary>
+        public string? DestinationTankName { get; set; }
+
+        /// <summary>
+        /// Indicates whether this is a tank-to-tank transfer (true) or vehicle fueling (false)
+        /// </summary>
+        public bool IsTransferMode { get; set; } = false;
 
         /// <summary>
         /// Vehicle odometer reading at time of fueling (in kilometers or miles)
