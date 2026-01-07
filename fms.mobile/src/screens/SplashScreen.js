@@ -15,6 +15,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
+import { APP_VERSION } from "../config/appVersion";
 
 const { width, height } = Dimensions.get("window");
 
@@ -169,7 +170,8 @@ const SplashScreen = ({
 
       {/* App Info at bottom */}
       <View style={styles.appInfo}>
-        <Text style={styles.appVersion}>Hyoung FMS v1.0.1</Text>
+        <Text style={styles.appVersion}>{APP_VERSION.displayName}</Text>
+        <Text style={styles.appBuild}>Build {APP_VERSION.versionCode}</Text>
         <Text style={styles.copyright}>© 2026 Hyoung FMS</Text>
       </View>
     </View>
@@ -275,6 +277,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#94a3b8",
     fontWeight: "600",
+    marginBottom: 2,
+  },
+  appBuild: {
+    fontSize: 11,
+    color: "#64748b",
     marginBottom: 4,
   },
   copyright: {
